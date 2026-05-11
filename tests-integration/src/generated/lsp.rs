@@ -6,8 +6,9 @@ use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::{QueryEngine, prim};
 use async_lsp::lsp_types::{
-    CompletionItemKind, CompletionList, CompletionResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, Position, Url, WorkspaceSymbolResponse,
+    CompletionItemKind, CompletionList, CompletionResponse, DocumentSymbolResponse,
+    GotoDefinitionResponse, HoverContents, LanguageString, Location, MarkedString, Position,
+    SymbolInformation, Url, WorkspaceSymbolResponse,
 };
 use files::{FileId, Files};
 use itertools::Itertools;
@@ -23,10 +24,11 @@ enum CursorKind {
     Completion,
     CompletionCached,
     References,
+    DocumentSymbols,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -35,6 +37,7 @@ impl CursorKind {
             "^" => Some(CursorKind::Completion),
             "~" => Some(CursorKind::CompletionCached),
             "%" => Some(CursorKind::References),
+            "!" => Some(CursorKind::DocumentSymbols),
             _ => None,
         }
     }
@@ -279,6 +282,38 @@ fn dispatch_cursor(
                         table.with(Padding::new(2, 2, 0, 0));
 
                         writeln!(result, "{table}").unwrap();
+                    }
+                }
+            } else {
+                writeln!(result, "<empty>").unwrap();
+            }
+        }
+        CursorKind::DocumentSymbols => {
+            let render_symbol = |s: SymbolInformation| -> String {
+                let SymbolInformation { name, kind, location, .. } = s;
+                format!(
+                    "{name} :: {kind:?} @ {}:{}..{}:{}",
+                    location.range.start.line,
+                    location.range.start.character,
+                    location.range.end.line,
+                    location.range.end.character,
+                )
+            };
+
+            if let Ok(Some(response)) =
+                analyzer::document_symbols::implementation(engine, files, uri)
+            {
+                match response {
+                    DocumentSymbolResponse::Flat(symbols) => {
+                        if symbols.is_empty() {
+                            writeln!(result, "<empty>").unwrap();
+                        } else {
+                            let symbols = symbols.into_iter().map(render_symbol).join("\n");
+                            writeln!(result, "{symbols}").unwrap();
+                        }
+                    }
+                    DocumentSymbolResponse::Nested(_) => {
+                        writeln!(result, "<nested>").unwrap();
                     }
                 }
             } else {
