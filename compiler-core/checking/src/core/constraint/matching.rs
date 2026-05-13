@@ -4,7 +4,6 @@ use building_types::QueryResult;
 use files::FileId;
 use indexing::TypeItemId;
 use itertools::Itertools;
-use lowering::TypeItemIr;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::ExternalQueries;
@@ -556,7 +555,7 @@ where
     let pattern_variables = FxHashSet::default();
 
     let functional_dependencies =
-        get_functional_dependencies(context, wanted.file_id, wanted.type_id)?;
+        get_functional_dependencies(state, context, wanted.file_id, wanted.type_id)?;
 
     let wanted_arguments = wanted
         .arguments
@@ -613,7 +612,7 @@ where
         declared.binders.iter().map(|binder| binder.name).collect();
 
     let functional_dependencies =
-        get_functional_dependencies(context, wanted.file_id, wanted.type_id)?;
+        get_functional_dependencies(state, context, wanted.file_id, wanted.type_id)?;
 
     let wanted_arguments = wanted
         .arguments
@@ -674,6 +673,7 @@ where
 }
 
 fn get_functional_dependencies<Q>(
+    state: &mut CheckState,
     context: &CheckContext<Q>,
     file_id: FileId,
     type_id: TypeItemId,
@@ -681,25 +681,16 @@ fn get_functional_dependencies<Q>(
 where
     Q: ExternalQueries,
 {
-    fn extract(type_item: Option<&TypeItemIr>) -> Vec<Fd> {
-        let Some(TypeItemIr::ClassGroup { class: Some(class), .. }) = type_item else {
-            return vec![];
-        };
+    let Some(class) = toolkit::lookup_file_class(state, context, file_id, type_id)? else {
+        return Ok(vec![]);
+    };
 
-        let fd = class.functional_dependencies.iter().map(|functional_dependency| {
-            Fd::new(
-                functional_dependency.determiners.iter().map(|&x| x as usize),
-                functional_dependency.determined.iter().map(|&x| x as usize),
-            )
-        });
+    let fd = class.functional_dependencies.iter().map(|functional_dependency| {
+        Fd::new(
+            functional_dependency.determiners.iter().map(|&x| x as usize),
+            functional_dependency.determined.iter().map(|&x| x as usize),
+        )
+    });
 
-        fd.collect_vec()
-    }
-
-    if file_id == context.id {
-        Ok(extract(context.lowered.info.get_type_item(type_id)))
-    } else {
-        let lowered = context.queries.lowered(file_id)?;
-        Ok(extract(lowered.info.get_type_item(type_id)))
-    }
+    Ok(fd.collect_vec())
 }
