@@ -4,7 +4,7 @@ assertion_line: 28
 expression: report
 ---
 Terms
-defaultOptions :: {| Optional }
+defaultOptions :: {| Optional @Type }
 
 Types
 Optional :: forall (k :: Type). Row (k :: Type)
@@ -15,7 +15,7 @@ ConvertOptions ::
 
 Synonyms
 type Optional = ()
-type All = ( value :: Int | Optional )
+type All = ( value :: Int | Optional @Type )
 
 Classes
 class forall (t6 :: Type) (t5 :: Type) (t4 :: Type) (defaults :: (t6 :: Type)) (provided :: (t5 :: Type)) (all :: (t4 :: Type)). ConvertOptions @(t6 :: Type) @(t5 :: Type) @(t4 :: Type)
@@ -25,16 +25,4 @@ class forall (t6 :: Type) (t5 :: Type) (t4 :: Type) (defaults :: (t6 :: Type)) (
 
 Instances
 instance forall (t7 :: Row Type).
-  ConvertOptions @Type @Type @Type {| Optional } {| (t7 :: Row Type) } {| All }
-
-Diagnostics
-error[CannotUnify]: Cannot unify '()' with 'Optional'
-  --> 12:18..12:20
-   |
-12 | defaultOptions = {}
-   |                  ^~
-error[CannotUnify]: Cannot unify '{}' with '{| Optional }'
-  --> 12:18..12:20
-   |
-12 | defaultOptions = {}
-   |                  ^~
+  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t7 :: Row Type) } {| All }
