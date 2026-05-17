@@ -27,7 +27,6 @@ pub struct SnapshotInfo {
     pub short_path: String,
     pub snap_new: PathBuf,
     pub is_update: bool,
-    pub trace_path: Option<PathBuf>,
 }
 
 impl SnapshotInfo {
@@ -88,13 +87,7 @@ pub fn collect_pending_snapshots(
         let snap_new = PathBuf::from(format!("{}.new", snapshot_path));
         let is_update = Path::new(&snapshot_path).exists();
 
-        snapshots.push(SnapshotInfo {
-            snapshot_path,
-            short_path,
-            snap_new,
-            is_update,
-            trace_path: None, // Populated separately if needed
-        });
+        snapshots.push(SnapshotInfo { snapshot_path, short_path, snap_new, is_update });
     }
 
     Ok(snapshots)
@@ -133,14 +126,8 @@ fn apply_exclusions(
 pub fn process_pending_snapshots(
     category: TestCategory,
     args: &RunArgs,
-    trace_paths: &[PathBuf],
 ) -> anyhow::Result<PendingResult> {
-    let mut snapshots = collect_pending_snapshots(category, &args.filters)?;
-
-    // Populate trace paths
-    for info in &mut snapshots {
-        info.trace_path = category.trace_for_snapshot(Path::new(&info.snapshot_path), trace_paths);
-    }
+    let snapshots = collect_pending_snapshots(category, &args.filters)?;
 
     // Apply exclusion filters
     let exclusion_patterns = collect_exclusion_patterns(args);
@@ -162,8 +149,6 @@ pub fn process_pending_snapshots(
         total_lines_changed: 0, // not known yet, not relevant for limits
         showed_diffs: args.diff,
         ran_all: args.filters.is_empty(),
-        debug: args.debug,
-        trace_count: trace_paths.len(),
         max_count: args.count,
     });
 
@@ -172,20 +157,9 @@ pub fn process_pending_snapshots(
     for info in visible.iter().take(max_shown) {
         let snap = Path::new(&info.snapshot_path);
         let stats = if info.is_update {
-            ui::display_snapshot_diff(
-                snap,
-                &info.snap_new,
-                &info.short_path_new(),
-                info.trace_path.as_deref(),
-                args.diff,
-            )
+            ui::display_snapshot_diff(snap, &info.snap_new, &info.short_path_new(), args.diff)
         } else {
-            ui::display_new_snapshot(
-                &info.snap_new,
-                &info.short_path_new(),
-                info.trace_path.as_deref(),
-                args.diff,
-            )
+            ui::display_new_snapshot(&info.snap_new, &info.short_path_new(), args.diff)
         };
         total_lines_changed += stats.added + stats.removed;
     }

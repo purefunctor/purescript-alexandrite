@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
 use anyhow::Context;
@@ -7,11 +6,7 @@ use console::style;
 use crate::test_runner::category::TestCategory;
 use crate::test_runner::cli::RunArgs;
 
-pub fn build_nextest_command(
-    category: TestCategory,
-    args: &RunArgs,
-    fixture_hashes: &HashMap<String, String>,
-) -> Command {
+pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command {
     let mut cmd = Command::new("cargo");
     cmd.arg("nextest")
         .arg("run")
@@ -19,10 +14,6 @@ pub fn build_nextest_command(
         .arg("tests-integration")
         .arg("--test")
         .arg(category.as_str());
-
-    for (key, value) in category.extra_env(args.debug) {
-        cmd.env(key, value);
-    }
 
     for filter in &args.filters {
         cmd.arg(filter);
@@ -36,19 +27,12 @@ pub fn build_nextest_command(
     }
 
     cmd.env("INSTA_FORCE_PASS", "1");
-    for (key, value) in fixture_hashes {
-        cmd.env(key, value);
-    }
 
     cmd
 }
 
-pub fn run_nextest(
-    category: TestCategory,
-    args: &RunArgs,
-    fixture_hashes: &HashMap<String, String>,
-) -> anyhow::Result<bool> {
-    let mut cmd = build_nextest_command(category, args, fixture_hashes);
+pub fn run_nextest(category: TestCategory, args: &RunArgs) -> anyhow::Result<bool> {
+    let mut cmd = build_nextest_command(category, args);
 
     if args.verbose {
         let status = cmd.status().context("failed to run cargo nextest")?;
@@ -68,12 +52,11 @@ pub fn run_nextest(
                 reject: false,
                 filters: args.filters.clone(),
                 verbose: true,
-                debug: args.debug,
                 diff: args.diff,
                 count: args.count,
                 exclude: args.exclude.clone(),
             };
-            let mut retry = build_nextest_command(category, &verbose_args, fixture_hashes);
+            let mut retry = build_nextest_command(category, &verbose_args);
             let _ = retry.status();
         }
 

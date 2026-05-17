@@ -4,14 +4,10 @@ mod decision;
 mod fixture;
 mod nextest;
 mod pending;
-mod traces;
 mod ui;
 
 pub use category::TestCategory;
 pub use cli::RunArgs;
-
-use std::path::PathBuf;
-use std::time::Instant;
 
 use console::style;
 
@@ -20,25 +16,11 @@ use crate::test_runner::ui::NextActionsArgs;
 pub struct TestOutcome {
     pub tests_passed: bool,
     pub pending_count: usize,
-    pub trace_paths: Vec<PathBuf>,
 }
 
 pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<TestOutcome> {
-    // 1. Hash fixtures and print timing
-    let start = Instant::now();
-    let fixture_hashes = crate::fixtures::fixture_env();
-    println!("{}", style(format!("Hashed fixtures in {}ms", start.elapsed().as_millis())).dim());
-
-    // 2. Run nextest
-    let tests_passed = nextest::run_nextest(category, args, &fixture_hashes)?;
-
-    // 3. Collect trace paths
-    let trace_paths = traces::collect_trace_paths(&args.filters, args.debug);
-
-    // 4. Process pending snapshots
-    let pending_result = pending::process_pending_snapshots(category, args, &trace_paths)?;
-
-    // 5. Print next actions
+    let tests_passed = nextest::run_nextest(category, args)?;
+    let pending_result = pending::process_pending_snapshots(category, args)?;
     ui::print_next_actions(NextActionsArgs {
         category_name: category.as_str(),
         filters: &args.filters,
@@ -46,12 +28,10 @@ pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<Te
         pending_count: pending_result.count,
         excluded_count: pending_result.excluded_count,
         total_lines_changed: pending_result.total_lines_changed,
-        trace_paths: &trace_paths,
-        debug: args.debug,
         showed_diffs: args.diff,
     });
 
-    Ok(TestOutcome { tests_passed, pending_count: pending_result.count, trace_paths })
+    Ok(TestOutcome { tests_passed, pending_count: pending_result.count })
 }
 
 pub struct SnapshotOutcome {

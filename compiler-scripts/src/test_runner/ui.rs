@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use similar::{ChangeTag, TextDiff};
 
@@ -35,7 +35,6 @@ pub fn display_snapshot_diff(
     snap: &Path,
     snap_new: &Path,
     short_path: &str,
-    trace_path: Option<&Path>,
     show_diff: bool,
 ) -> SnapshotStats {
     let old_content = fs::read_to_string(snap).unwrap_or_default();
@@ -53,10 +52,6 @@ pub fn display_snapshot_diff(
         style(format!("-{}", stats.removed)).red()
     );
 
-    if let Some(trace) = trace_path {
-        println!("  {} {}", style("TRACE").magenta().bold(), style(trace.display()).cyan());
-    }
-
     if show_diff {
         println!();
         print_diff(old_stripped, new_stripped);
@@ -66,22 +61,13 @@ pub fn display_snapshot_diff(
     stats
 }
 
-pub fn display_new_snapshot(
-    snap_new: &Path,
-    short_path: &str,
-    trace_path: Option<&Path>,
-    show_diff: bool,
-) -> SnapshotStats {
+pub fn display_new_snapshot(snap_new: &Path, short_path: &str, show_diff: bool) -> SnapshotStats {
     let new_content = fs::read_to_string(snap_new).unwrap_or_default();
     let new_stripped = strip_frontmatter(&new_content);
     let line_count = new_stripped.lines().count();
 
     print!("{} {}", style("CREATED").green().bold(), style(short_path).cyan());
     println!(" ({})", style(format!("+{}", line_count)).green());
-
-    if let Some(trace) = trace_path {
-        println!("  {} {}", style("TRACE").magenta().bold(), style(trace.display()).cyan());
-    }
 
     if show_diff {
         println!();
@@ -101,8 +87,6 @@ pub struct NextActionsArgs<'a> {
     pub pending_count: usize,
     pub excluded_count: usize,
     pub total_lines_changed: usize,
-    pub trace_paths: &'a [PathBuf],
-    pub debug: bool,
     pub showed_diffs: bool,
 }
 
@@ -114,8 +98,6 @@ pub fn print_next_actions(args: NextActionsArgs<'_>) {
         pending_count,
         excluded_count,
         total_lines_changed,
-        trace_paths,
-        debug,
         showed_diffs,
     } = args;
 
@@ -128,8 +110,6 @@ pub fn print_next_actions(args: NextActionsArgs<'_>) {
         total_lines_changed,
         showed_diffs,
         ran_all,
-        debug,
-        trace_count: trace_paths.len(),
         max_count: 3, // not used for outcome decisions
     };
 
@@ -138,7 +118,7 @@ pub fn print_next_actions(args: NextActionsArgs<'_>) {
             println!("{}", style("All tests passed, no pending snapshots.").green());
         }
         Outcome::Failure(decision) => {
-            render_failure(&decision, category_name, &filters_str, trace_paths);
+            render_failure(&decision, category_name, &filters_str);
         }
         Outcome::Pending(decision) => {
             render_pending(
@@ -153,34 +133,16 @@ pub fn print_next_actions(args: NextActionsArgs<'_>) {
     }
 }
 
-fn render_failure(
-    decision: &FailureDecision,
-    category_name: &str,
-    filters_str: &str,
-    trace_paths: &[PathBuf],
-) {
+fn render_failure(decision: &FailureDecision, category_name: &str, filters_str: &str) {
     println!("{}", style("-".repeat(60)).dim());
     println!();
     println!("{}", style("Tests failed.").red());
 
-    if decision.show_debug_hint {
+    if decision.show_verbose_hint {
         println!(
             "  Next: {}",
-            style(format!("just t {} --debug{}", category_name, filters_str)).cyan()
+            style(format!("just t {}{} --verbose", category_name, filters_str)).cyan()
         );
-    } else if decision.show_trace_hint {
-        println!("  Next: consult trace files below");
-    }
-
-    if !trace_paths.is_empty() {
-        println!();
-        for trace in trace_paths.iter().take(decision.max_traces_to_show) {
-            println!("  {} {}", style("TRACE").magenta().bold(), style(trace.display()).cyan());
-        }
-        if trace_paths.len() > decision.max_traces_to_show {
-            let hidden = trace_paths.len() - decision.max_traces_to_show;
-            println!("  {}", style(format!("...and {} more trace file(s)", hidden)).dim());
-        }
     }
 
     if let Some(count) = decision.pending_note {

@@ -1,6 +1,5 @@
 ---
-source: tests-integration/tests/lowering.rs
-assertion_line: 209
+source: tests-integration/tests/lowering_unit.rs
 expression: lowered.errors
 ---
 [
