@@ -297,8 +297,15 @@ where
                 types::check_kind(state, context, signature_id, context.prim.t)?;
 
             if let Some(class_member_type) = class_member_type {
-                let unified =
-                    unification::unify(state, context, signature_member_type, class_member_type)?;
+                let unified = state.with_implication(|state| {
+                    let class_member_type =
+                        normalise::normalise(state, context, class_member_type)?;
+                    let class_member_type =
+                        toolkit::skolemise_forall(state, context, class_member_type)?;
+                    let class_member_type =
+                        toolkit::collect_givens(state, context, class_member_type)?;
+                    unification::subtype(state, context, signature_member_type, class_member_type)
+                })?;
                 if !unified {
                     let expected = state.pretty_id(context, class_member_type)?;
                     let actual = state.pretty_id(context, signature_member_type)?;

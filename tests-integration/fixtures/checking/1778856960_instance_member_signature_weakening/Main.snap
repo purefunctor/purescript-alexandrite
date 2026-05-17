@@ -60,60 +60,7 @@ Roles
 Wrap = [Representational, Nominal]
 
 Diagnostics
-error[CannotUnify]: Cannot unify '(f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with 'Functor (f :: Type -> Type) =>
-(f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 12:1..14:14
-   |
-12 | instance Transform Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'forall (a :: Type). (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with 'forall (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 12:1..14:14
-   |
-12 | instance Transform Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'forall (f :: Type -> Type) (a :: Type).
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with 'forall (f :: Type -> Type) (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 12:1..14:14
-   |
-12 | instance Transform Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[InstanceMemberTypeMismatch]: Instance member type mismatch: expected 'forall (f :: Type -> Type) (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)', got 'forall (f :: Type -> Type) (a :: Type).
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 12:1..14:14
-   |
-12 | instance Transform Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Functor (f :: Type -> Type) =>
-(f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with '(f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 30:1..32:19
-   |
-30 | instance TransformPlain Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'forall (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with 'forall (a :: Type). (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 30:1..32:19
-   |
-30 | instance TransformPlain Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'forall (f :: Type -> Type) (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)' with 'forall (f :: Type -> Type) (a :: Type).
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
-  --> 30:1..32:19
-   |
-30 | instance TransformPlain Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[InstanceMemberTypeMismatch]: Instance member type mismatch: expected 'forall (f :: Type -> Type) (a :: Type).
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)', got 'forall (f :: Type -> Type) (a :: Type).
-  Functor (f :: Type -> Type) =>
-  (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)'
+error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
   --> 30:1..32:19
    |
 30 | instance TransformPlain Wrap where
