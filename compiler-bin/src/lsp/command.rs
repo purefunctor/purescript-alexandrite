@@ -1,7 +1,6 @@
-use std::io;
 use std::process::{self, Child, Output};
-use std::thread;
 use std::time::{Duration, Instant};
+use std::{io, thread};
 
 const CHILD_CLEANUP_TIMEOUT: Duration = Duration::from_secs(1);
 
