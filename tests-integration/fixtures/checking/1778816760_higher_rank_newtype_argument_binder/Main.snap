@@ -1,6 +1,6 @@
 ---
-source: target/debug/build/tests-integration-6275ac7a2b26d932/out/checking_generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 39
 expression: report
 ---
 Terms

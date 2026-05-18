@@ -7,8 +7,6 @@ pub struct DecisionInput {
     pub total_lines_changed: usize,
     pub showed_diffs: bool,
     pub ran_all: bool,
-    pub debug: bool,
-    pub trace_count: usize,
     pub max_count: usize,
 }
 
@@ -21,9 +19,7 @@ pub enum Outcome {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FailureDecision {
-    pub show_debug_hint: bool,
-    pub show_trace_hint: bool,
-    pub max_traces_to_show: usize,
+    pub show_verbose_hint: bool,
     pub pending_note: Option<usize>,
 }
 
@@ -47,7 +43,6 @@ pub struct SnapshotDisplayLimits {
 
 pub fn decide_outcome(input: &DecisionInput) -> Outcome {
     let has_pending = input.pending_count > 0;
-    let has_traces = input.trace_count > 0;
 
     if input.tests_passed && !has_pending {
         return Outcome::Clean;
@@ -55,9 +50,7 @@ pub fn decide_outcome(input: &DecisionInput) -> Outcome {
 
     if !input.tests_passed {
         return Outcome::Failure(FailureDecision {
-            show_debug_hint: !input.debug,
-            show_trace_hint: input.debug && has_traces,
-            max_traces_to_show: 3,
+            show_verbose_hint: true,
             pending_note: if has_pending { Some(input.pending_count) } else { None },
         });
     }
@@ -95,8 +88,6 @@ mod tests {
             total_lines_changed: 0,
             showed_diffs: false,
             ran_all: true,
-            debug: false,
-            trace_count: 0,
             max_count: 3,
         }
     }
@@ -108,24 +99,12 @@ mod tests {
     }
 
     #[test]
-    fn failure_suggests_debug_when_not_in_debug_mode() {
+    fn failure_suggests_verbose_output() {
         let input = DecisionInput { tests_passed: false, ..base_input() };
         let Outcome::Failure(decision) = decide_outcome(&input) else {
             panic!("expected Failure");
         };
-        assert!(decision.show_debug_hint);
-        assert!(!decision.show_trace_hint);
-    }
-
-    #[test]
-    fn failure_suggests_traces_when_in_debug_mode_with_traces() {
-        let input =
-            DecisionInput { tests_passed: false, debug: true, trace_count: 2, ..base_input() };
-        let Outcome::Failure(decision) = decide_outcome(&input) else {
-            panic!("expected Failure");
-        };
-        assert!(!decision.show_debug_hint);
-        assert!(decision.show_trace_hint);
+        assert!(decision.show_verbose_hint);
     }
 
     #[test]

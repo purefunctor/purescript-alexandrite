@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/lowering/generated.rs
-assertion_line: 12
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
 expression: report
 ---
 module Main
