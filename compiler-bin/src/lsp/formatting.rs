@@ -247,9 +247,8 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn run_reports_exit_output() {
-        let error =
-            run("sh -c 'cat >/dev/null; printf err >&2; printf out; exit 7'", b"input")
-                .unwrap_err();
+        let error = run("sh -c 'cat >/dev/null; printf err >&2; printf out; exit 7'", b"input")
+            .unwrap_err();
 
         assert_eq!(error.to_string(), "formatter exited with exit status: 7: err\nout");
     }
