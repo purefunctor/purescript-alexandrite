@@ -937,8 +937,6 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
- "allocator-api2",
- "equivalent",
  "foldhash 0.1.5",
 ]
 
@@ -947,6 +945,15 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "foldhash 0.2.0",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "allocator-api2",
  "equivalent",
@@ -1204,7 +1211,7 @@ name = "interner"
 version = "0.1.0"
 dependencies = [
  "boxcar",
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "papaya",
  "parking_lot",
  "rustc-hash 2.1.1",
@@ -2358,7 +2365,7 @@ dependencies = [
 name = "stabilizing"
 version = "0.1.0"
 dependencies = [
- "hashbrown 0.16.1",
+ "hashbrown 0.17.1",
  "la-arena",
  "paste",
  "rowan",
@@ -2374,11 +2381,11 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "string-interner"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23de088478b31c349c9ba67816fa55d9355232d63c3afea8bf513e31f0f1d2c0"
+checksum = "ad3df9b59e2eded8d825c7c4363ad339a20fb6bc0b9a4778560f518f59910b15"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "serde",
 ]
 
@@ -2441,7 +2448,7 @@ dependencies = [
 name = "syntax"
 version = "0.1.0"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "la-arena",
  "paste",
  "rowan",
