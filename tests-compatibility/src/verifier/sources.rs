@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 
-use crate::error::VerifierError;
+use super::error::VerifierError;
 
 #[derive(Debug, Clone)]
 pub struct SourceFile {

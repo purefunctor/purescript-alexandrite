@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use rayon::prelude::*;
-use tests_package_set::all_source_files;
+use tests_compatibility::all_source_files;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut g = c.benchmark_group("parsing");

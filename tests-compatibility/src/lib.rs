@@ -6,31 +6,43 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use building::{QueryEngine, prim};
+use clap::ValueEnum;
 use files::{FileId, Files};
 use globset::Glob;
 use rayon::prelude::*;
 use walkdir::WalkDir;
 
+pub mod package_cache;
+pub mod registry;
+
+pub use package_cache::PackageCache;
+
 const CORE_JSON: &str = include_str!("../purescript-core.json");
 const ACME_JSON: &str = include_str!("../purescript-acme.json");
 
-pub fn all_source_files() -> Vec<PathBuf> {
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let packages = manifest.join("packages");
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Preset {
+    Core,
+    Acme,
+}
 
-    let mut source_files = Vec::new();
-    let Ok(entries) = fs::read_dir(&packages) else {
-        return source_files;
-    };
-
-    for entry in entries.flatten() {
-        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-            continue;
+impl Preset {
+    pub fn packages_json(self) -> &'static str {
+        match self {
+            Preset::Core => CORE_JSON,
+            Preset::Acme => ACME_JSON,
         }
-        let entry = entry.path();
-        source_files.extend(package_purs_files(&entry));
     }
+}
 
+pub fn default_cache_dir() -> PathBuf {
+    workspace_root().join("target/compatibility")
+}
+
+pub fn all_source_files() -> Vec<PathBuf> {
+    let mut source_files = cache_source_files_for(None);
+    source_files.sort();
+    source_files.dedup();
     source_files
 }
 
@@ -55,7 +67,11 @@ pub fn acme_source_files() -> Vec<PathBuf> {
     source_files_for(&parse_package_list(ACME_JSON))
 }
 
-fn parse_package_list(text: &str) -> HashSet<String> {
+pub fn preset_package_names(presets: &[Preset]) -> HashSet<String> {
+    presets.iter().flat_map(|preset| parse_package_list(preset.packages_json())).collect()
+}
+
+pub fn parse_package_list(text: &str) -> HashSet<String> {
     let names: Vec<String> =
         serde_json::from_str(text).expect("package list must be a JSON array of strings");
     names
@@ -65,32 +81,49 @@ fn parse_package_list(text: &str) -> HashSet<String> {
 }
 
 fn source_files_for(names: &HashSet<String>) -> Vec<PathBuf> {
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let packages = manifest.join("packages");
+    let mut source_files = cache_source_files_for(Some(names));
+    source_files.sort();
+    source_files.dedup();
+    source_files
+}
+
+fn cache_source_files_for(names: Option<&HashSet<String>>) -> Vec<PathBuf> {
+    let sources = default_cache_dir().join("sources");
 
     let mut source_files = vec![];
-    let entries = match fs::read_dir(&packages) {
+    let package_entries = match fs::read_dir(&sources) {
         Ok(entries) => entries,
         Err(_) => return source_files,
     };
 
-    for entry in entries.flatten() {
-        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+    for package_entry in package_entries.flatten() {
+        if !package_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
             continue;
         }
 
-        let directory = entry.file_name().to_string_lossy().into_owned();
-        let Some((package_name, _)) = directory.rsplit_once('-') else { continue };
-
-        if !names.contains(package_name) {
+        let package_name = package_entry.file_name().to_string_lossy().into_owned();
+        if names.is_some_and(|names| !names.contains(package_name.as_str())) {
             continue;
         }
 
-        let entry = entry.path();
-        source_files.extend(package_purs_files(&entry));
+        let Ok(version_entries) = fs::read_dir(package_entry.path()) else { continue };
+        for version_entry in version_entries.flatten() {
+            if !version_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                continue;
+            }
+            source_files.extend(package_purs_files(&version_entry.path()));
+        }
     }
 
     source_files
+}
+
+fn manifest_dir() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn workspace_root() -> PathBuf {
+    manifest_dir().parent().expect("tests-compatibility is under workspace root").to_path_buf()
 }
 
 pub fn load_sources(paths: Vec<PathBuf>) -> Arc<[(String, String)]> {

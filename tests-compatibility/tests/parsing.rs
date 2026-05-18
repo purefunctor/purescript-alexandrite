@@ -3,9 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use building::prim;
+use building::{QueryEngine, prim};
+use diagnostics::{DiagnosticsContext, Severity, ToDiagnostics};
 use files::Files;
-use tests_package_set::all_source_files;
+use tests_compatibility::all_source_files;
 
 type ErrorPerFile<E> = HashMap<PathBuf, E>;
 
@@ -33,21 +34,69 @@ fn test_parse_package_set() {
 #[test]
 fn test_index_package_set() {
     let mut all_errors = ErrorPerFile::default();
+    let mut engine = QueryEngine::default();
+    let mut files = Files::default();
+    prim::configure(&mut engine, &mut files);
 
+    let mut sources = Vec::new();
     for file in all_source_files() {
         let Ok(source) = fs::read_to_string(&file) else {
             continue;
         };
+        let url = url::Url::from_file_path(&file).unwrap();
+        let id = files.insert(url.to_string(), source.clone());
+        engine.set_content(id, source.clone());
+        sources.push((file, id, source));
+    }
 
-        let lexed = lexing::lex(&source);
-        let tokens = lexing::layout(&lexed);
+    for (_, id, _) in &sources {
+        let Ok((parsed, _)) = engine.parsed(*id) else { continue };
+        if let Some(module_name) = parsed.module_name() {
+            engine.set_module_file(&module_name.to_string(), *id);
+        }
+    }
 
-        let (parsed, _) = parsing::parse(&lexed, &tokens);
-        let stabilized = stabilizing::stabilize_module(&parsed.syntax_node());
-        let indexed = indexing::index_module(&parsed.cst(), &stabilized);
+    for (file, id, source) in sources {
+        let Ok((parsed, _)) = engine.parsed(id) else {
+            continue;
+        };
+        let Ok(stabilized) = engine.stabilized(id) else {
+            continue;
+        };
+        let Ok(indexed) = engine.indexed(id) else {
+            continue;
+        };
 
-        if !indexed.errors.is_empty() {
-            all_errors.insert(file, indexed.errors);
+        let root = parsed.syntax_node();
+        let Ok(lowered) = engine.lowered(id) else {
+            if !indexed.errors.is_empty() {
+                all_errors.insert(
+                    file,
+                    indexed.errors.iter().map(|error| format!("{error:?}")).collect(),
+                );
+            }
+            continue;
+        };
+
+        let context =
+            DiagnosticsContext::new(&engine, &source, &root, &stabilized, &indexed, &lowered);
+        let errors: Vec<_> = indexed
+            .errors
+            .iter()
+            .filter_map(|error| {
+                let diagnostics = error.to_diagnostics(&context);
+                if diagnostics.is_empty()
+                    || diagnostics.iter().any(|diagnostic| diagnostic.severity == Severity::Error)
+                {
+                    Some(format!("{error:?}"))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if !errors.is_empty() {
+            all_errors.insert(file, errors);
         }
     }
 
