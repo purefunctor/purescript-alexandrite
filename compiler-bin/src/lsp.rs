@@ -561,7 +561,10 @@ pub async fn start(config: Arc<cli::Config>) {
 mod tests {
     use super::*;
 
-    use async_lsp::lsp_types::{ClientCapabilities, InitializeParams, Url, WorkspaceFolder};
+    use async_lsp::lsp_types::{
+        ClientCapabilities, DocumentFormattingParams, InitializeParams, Position,
+        TextDocumentIdentifier, Url, WorkspaceFolder,
+    };
 
     fn mk_state_with(config: cli::Config) -> State {
         // ClientSocket isn't used by initialize/formatting logic in tests.
@@ -592,6 +595,25 @@ mod tests {
             diagnostics_on_open: true,
             diagnostics_on_save: true,
             diagnostics_on_change: false,
+        }
+    }
+
+    fn snapshot(state: &State) -> StateSnapshot {
+        StateSnapshot {
+            client: state.client.clone(),
+            config: Arc::clone(&state.config),
+            engine: state.engine.snapshot(),
+            files: Arc::clone(&state.files),
+            workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
+            suggestions_cache: Arc::clone(&state.suggestions_cache),
+        }
+    }
+
+    fn formatting_params(uri: Url) -> DocumentFormattingParams {
+        DocumentFormattingParams {
+            text_document: TextDocumentIdentifier { uri },
+            options: FormattingOptions::default(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
         }
     }
 
@@ -626,5 +648,64 @@ mod tests {
         .unwrap();
 
         assert!(res.capabilities.document_formatting_provider.is_some());
+    }
+
+    #[test]
+    fn formatting_returns_none_without_command() {
+        let state = mk_state_with(base_config(None));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+
+        let edits = formatting(snapshot(&state), formatting_params(uri)).unwrap();
+
+        assert!(edits.is_none());
+    }
+
+    #[test]
+    fn formatting_returns_none_for_unknown_document() {
+        let state = mk_state_with(base_config(Some("cat".to_string())));
+        let uri = Url::parse("file:///test/Missing.purs").unwrap();
+
+        let edits = formatting(snapshot(&state), formatting_params(uri)).unwrap();
+
+        assert!(edits.is_none());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formatting_returns_empty_edits_for_noop_formatter() {
+        let mut state = mk_state_with(base_config(Some("cat".to_string())));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+        on_change(&mut state, uri.as_str(), "module Main where\nfoo = bar\n").unwrap();
+
+        let edits = formatting(snapshot(&state), formatting_params(uri)).unwrap().unwrap();
+
+        assert!(edits.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formatting_returns_full_document_edit() {
+        let mut state = mk_state_with(base_config(Some("tr a-z A-Z".to_string())));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+        on_change(&mut state, uri.as_str(), "module Main where\nfoo = bar\n").unwrap();
+
+        let edits = formatting(snapshot(&state), formatting_params(uri)).unwrap().unwrap();
+
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].new_text, "MODULE MAIN WHERE\nFOO = BAR\n");
+        assert_eq!(edits[0].range.start, Position::new(0, 0));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formatting_reports_non_utf8_output() {
+        let mut state = mk_state_with(base_config(Some("perl -e 'print chr 255'".to_string())));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+        on_change(&mut state, uri.as_str(), "module Main where\nfoo = bar\n").unwrap();
+
+        let error = formatting(snapshot(&state), formatting_params(uri)).unwrap_err();
+
+        assert!(matches!(error, LspError::FormattingFailed(_)));
+        assert!(error.message().starts_with("formatter output was not utf-8:"));
     }
 }

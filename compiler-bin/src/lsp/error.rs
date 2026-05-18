@@ -87,3 +87,16 @@ impl<T> AnalyzerResultExt<T> for Result<T, AnalyzerError> {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn formatting_failed_message_is_forwarded() {
+        let error = LspError::FormattingFailed("formatter failed".to_string());
+
+        assert_eq!(error.message(), "formatter failed");
+        assert_eq!(error.code(), ErrorCode::REQUEST_FAILED);
+    }
+}

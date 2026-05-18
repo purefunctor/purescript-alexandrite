@@ -115,7 +115,36 @@ fn wait_for_cleanup(child: &mut Child) -> Option<io::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::split;
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn write_stdin_and_wait_with_output_timeout_capture_output() {
+        let mut child = piped("cat", std::iter::empty::<String>()).spawn().unwrap();
+        write_stdin(&mut child, b"hello").unwrap();
+
+        let output = wait_with_output_timeout(child, Duration::from_secs(1)).unwrap();
+
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"hello");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_with_output_timeout_cleans_up_timed_out_process() {
+        let child = piped("sh", ["-c".to_string(), "sleep 2".to_string()]).spawn().unwrap();
+
+        let error = wait_with_output_timeout(child, Duration::from_millis(10)).unwrap_err();
+
+        match error {
+            WaitWithOutputTimeoutError::TimedOut(cleanup) => {
+                assert_eq!(cleanup.timeout, Duration::from_millis(10));
+                assert!(cleanup.kill_error.is_none());
+                assert!(cleanup.wait_error.is_none());
+            }
+            other => panic!("expected timeout, got {other:?}"),
+        }
+    }
 
     #[test]
     fn split_handles_shell_quoted_args() {

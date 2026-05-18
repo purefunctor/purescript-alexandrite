@@ -189,3 +189,100 @@ fn format_output(stderr: &[u8], stdout: &[u8]) -> String {
     }
     details
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_parse_failure() {
+        let error = run("\"", b"input").unwrap_err();
+
+        assert_eq!(error.to_string(), "failed to parse --format-command: \"");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_empty_command() {
+        let error = run("\"\"", b"input").unwrap_err();
+
+        assert_eq!(error.to_string(), "--format-command is empty");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_spawn_failure() {
+        let error = run("command-that-does-not-exist", b"input").unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .starts_with("failed to spawn formatter 'command-that-does-not-exist':")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_exit_output() {
+        let error = run("sh -c 'printf err >&2; printf out; exit 7'", b"input").unwrap_err();
+
+        assert_eq!(error.to_string(), "formatter exited with exit status: 7: err\nout");
+    }
+
+    #[test]
+    fn timed_out_error_includes_cleanup_failures() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::TimedOut {
+                command: "formatter".to_string(),
+                input_len: 3,
+                cleanup: command::ChildCleanup {
+                    timeout: Duration::from_secs(10),
+                    kill_error: Some(io::Error::other("kill failed")),
+                    wait_error: Some(io::Error::other("wait failed")),
+                },
+            },
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "formatter timed out after 10s (input 3 bytes): formatter; kill failed: kill failed; wait failed: wait failed"
+        );
+    }
+
+    #[test]
+    fn poll_error_includes_cleanup_failures() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::Poll {
+                command: "formatter".to_string(),
+                input_len: 3,
+                source: io::Error::other("poll failed"),
+                cleanup: command::ChildCleanup {
+                    timeout: Duration::from_secs(10),
+                    kill_error: Some(io::Error::other("kill failed")),
+                    wait_error: Some(io::Error::other("wait failed")),
+                },
+            },
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "failed waiting for formatter 'formatter' (input 3 bytes): poll failed; kill failed: kill failed; wait failed: wait failed"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn exited_error_without_output_reports_placeholder() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::Exited {
+                status: std::process::Command::new("sh").args(["-c", "exit 1"]).status().unwrap(),
+                stderr: vec![],
+                stdout: vec![],
+            },
+        };
+
+        assert_eq!(error.to_string(), "formatter exited with exit status: 1: <no output>");
+    }
+}
