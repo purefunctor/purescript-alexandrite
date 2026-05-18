@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+DocumentHighlight at Position { line: 4, character: 6 }
+
+```
+foo = bar
+--    &
+```
+
+4:6..4:9
+7:2..7:5
+9:2..9:5
+
+
+DocumentHighlight at Position { line: 7, character: 2 }
+
+```
+  bar :: Int
+--&
+```
+
+4:6..4:9
+7:2..7:5
+9:2..9:5
+
+
+DocumentHighlight at Position { line: 9, character: 2 }
+
+```
+  bar = Int
+--&
+```
+
+4:6..4:9
+7:2..7:5
+9:2..9:5
