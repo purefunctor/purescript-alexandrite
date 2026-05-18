@@ -9,8 +9,7 @@ use globset::{Glob, GlobSetBuilder};
 use path_absolutize::Absolutize;
 use serde_json::Value;
 use tokio::io::AsyncReadExt;
-use tokio::process as tokio_process;
-use tokio::time;
+use tokio::{process as tokio_process, time};
 use walkdir::WalkDir;
 
 use crate::cli;

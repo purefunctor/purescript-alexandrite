@@ -1,5 +1,4 @@
-use clap::ValueEnum;
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, ValueEnum};
 use tracing::level_filters::LevelFilter;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
