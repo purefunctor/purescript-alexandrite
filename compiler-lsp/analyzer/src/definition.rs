@@ -1,10 +1,12 @@
+use std::iter;
+
 use async_lsp::lsp_types::*;
 use building::QueryEngine;
 use files::{FileId, Files};
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, ImplicitTypeVariable,
-    TermVariableResolution, TypeId, TypeKind, TypeVariableResolution,
+    LetBindingNameGroupId, TermVariableResolution, TypeId, TypeKind, TypeVariableResolution,
 };
 use rowan::ast::{AstNode, AstPtr};
 use smol_str::ToSmolStr;
@@ -59,6 +61,9 @@ pub fn implementation(
         }
         locate::Located::TypeItem(type_id) => {
             definition_file_type(engine, files, current_file, type_id)
+        }
+        locate::Located::LetBinding(let_id) => {
+            definition_let_binding(engine, files, current_file, let_id)
         }
         locate::Located::Pun(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
@@ -343,4 +348,29 @@ fn definition_file_type(
     let uri = common::file_uri(engine, files, file_id)?;
     let location = common::file_type_location(engine, uri, file_id, type_id)?;
     Ok(Some(GotoDefinitionResponse::Scalar(location)))
+}
+
+fn definition_let_binding(
+    engine: &QueryEngine,
+    files: &Files,
+    file_id: FileId,
+    let_id: LetBindingNameGroupId,
+) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
+    let content = engine.content(file_id);
+    let (parsed, _) = engine.parsed(file_id)?;
+    let stabilized = engine.stabilized(file_id)?;
+    let lowered = engine.lowered(file_id)?;
+
+    let root = parsed.syntax_node();
+
+    let uri = common::file_uri(engine, files, file_id)?;
+    let group = lowered.info.get_let_binding_group(let_id);
+
+    let signature = group.signature.and_then(|signature| stabilized.syntax_ptr(signature));
+    let equations = group.equations.iter().filter_map(|&equation| stabilized.syntax_ptr(equation));
+
+    let pointers = iter::chain(signature, equations);
+    let range = common::pointers_range(&content, root, pointers)?;
+
+    Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
 }

@@ -5,7 +5,10 @@ use building::QueryEngine;
 use files::FileId;
 use indexing::{ImportItemId, IndexedModule, TermItemId, TypeItemId};
 use line_index::{LineCol, LineIndex};
-use lowering::{BinderId, ExpressionId, RecordPunId, TermOperatorId, TypeId, TypeOperatorId};
+use lowering::{
+    BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordPunId, TermOperatorId,
+    TypeId, TypeOperatorId,
+};
 use rowan::ast::{AstNode, AstPtr};
 use rowan::{TextRange, TextSize, TokenAtOffset};
 use stabilizing::StabilizedModule;
@@ -90,6 +93,7 @@ pub enum Located {
     TypeOperator(TypeOperatorId),
     TermItem(TermItemId),
     TypeItem(TypeItemId),
+    LetBinding(LetBindingNameGroupId),
     Nothing,
 }
 
@@ -103,6 +107,7 @@ pub fn locate(
     let (parsed, _) = engine.parsed(id)?;
     let stabilized = engine.stabilized(id)?;
     let indexed = engine.indexed(id)?;
+    let lowered = engine.lowered(id)?;
 
     let Some(offset) = position_to_offset(&content, position) else {
         return Ok(Located::Nothing);
@@ -113,25 +118,29 @@ pub fn locate(
 
     Ok(match token {
         TokenAtOffset::None => Located::Nothing,
-        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, token),
-        TokenAtOffset::Between(left, right) => locate_between(&stabilized, &indexed, left, right),
+        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, &lowered, token),
+        TokenAtOffset::Between(left, right) => {
+            locate_between(&stabilized, &indexed, &lowered, left, right)
+        }
     })
 }
 
 fn locate_single(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     token: SyntaxToken,
 ) -> Located {
     token
         .parent_ancestors()
-        .find_map(|node| locate_node(stabilized, indexed, node))
+        .find_map(|node| locate_node(stabilized, indexed, lowered, node))
         .unwrap_or(Located::Nothing)
 }
 
 fn locate_node(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     node: SyntaxNode,
 ) -> Option<Located> {
     let kind = node.kind();
@@ -174,6 +183,21 @@ fn locate_node(
         let id = stabilized.lookup_ptr(&ptr)?;
         None.or_else(|| indexed.pairs.declaration_to_term(id).map(Located::TermItem))
             .or_else(|| indexed.pairs.declaration_to_type(id).map(Located::TypeItem))
+    } else if cst::LetBinding::can_cast(kind) {
+        let node = cst::LetBinding::cast(node)?;
+        match node {
+            cst::LetBinding::LetBindingPattern(_) => None,
+            cst::LetBinding::LetBindingSignature(signature) => {
+                let ptr = AstPtr::new(&signature);
+                let id = stabilized.lookup_ptr(&ptr)?;
+                lowered.info.find_let_binding_group_by_signature(id).map(Located::LetBinding)
+            }
+            cst::LetBinding::LetBindingEquation(equation) => {
+                let ptr = AstPtr::new(&equation);
+                let id = stabilized.lookup_ptr(&ptr)?;
+                lowered.info.find_let_binding_group_by_equation(id).map(Located::LetBinding)
+            }
+        }
     } else if cst::DataConstructor::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
@@ -192,11 +216,12 @@ fn locate_node(
 fn locate_between(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     left: SyntaxToken,
     right: SyntaxToken,
 ) -> Located {
-    let left = locate_single(stabilized, indexed, left);
-    let right = locate_single(stabilized, indexed, right);
+    let left = locate_single(stabilized, indexed, lowered, left);
+    let right = locate_single(stabilized, indexed, lowered, right);
     match (&left, &right) {
         // If left/right share an ancestor;
         (_, _) if left == right => left,

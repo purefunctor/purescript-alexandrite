@@ -3,7 +3,8 @@ use building::QueryEngine;
 use files::{FileId, Files};
 use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
 use lowering::{
-    BinderId, BinderKind, ExpressionId, ExpressionKind, TermVariableResolution, TypeId, TypeKind,
+    BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId,
+    TermVariableResolution, TypeId, TypeKind,
 };
 use parsing::ParsedModule;
 use resolving::ResolvedImport;
@@ -60,6 +61,7 @@ pub fn implementation(
         locate::Located::TypeItem(type_id) => {
             references_file_type(engine, files, current_file, current_file, type_id)
         }
+        locate::Located::LetBinding(let_id) => references_let(engine, files, current_file, let_id),
         locate::Located::Pun(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
@@ -459,4 +461,37 @@ fn probe_imports_for(
     }
 
     Ok(probe)
+}
+
+fn references_let(
+    engine: &QueryEngine,
+    files: &Files,
+    current_file: FileId,
+    let_id: LetBindingNameGroupId,
+) -> Result<Option<Vec<Location>>, AnalyzerError> {
+    let uri = common::file_uri(engine, files, current_file)?;
+
+    let content = engine.content(current_file);
+    let (parsed, _) = engine.parsed(current_file)?;
+
+    let stabilized = engine.stabilized(current_file)?;
+    let lowered = engine.lowered(current_file)?;
+
+    let mut locations = vec![];
+
+    for (expression_id, expression_kind) in lowered.info.iter_expression() {
+        if let ExpressionKind::Variable {
+            resolution: Some(TermVariableResolution::Let(candidate_id)),
+            ..
+        } = expression_kind
+            && *candidate_id == let_id
+        {
+            let uri = Url::clone(&uri);
+            let range = id_range(&content, &parsed, &stabilized, expression_id)
+                .ok_or(AnalyzerError::NonFatal)?;
+            locations.push(Location { uri, range });
+        }
+    }
+
+    Ok(Some(locations))
 }

@@ -490,4 +490,25 @@ impl LoweringInfo {
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
         self.type_operator.get(&id).copied()
     }
+
+    pub fn find_let_binding_group_by_signature(
+        &self,
+        signature_id: LetBindingSignatureId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+            let_binding_group
+                .signature
+                .is_some_and(|candidate_id| candidate_id == signature_id)
+                .then_some(let_binding_id)
+        })
+    }
+
+    pub fn find_let_binding_group_by_equation(
+        &self,
+        equation_id: LetBindingEquationId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+            let_binding_group.equations.contains(&equation_id).then_some(let_binding_id)
+        })
+    }
 }

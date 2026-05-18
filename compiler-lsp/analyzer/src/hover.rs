@@ -36,6 +36,7 @@ pub fn implementation(
             hover_expression(engine, current_file, expression_id)
         }
         locate::Located::Type(type_id) => hover_type(engine, current_file, type_id),
+        locate::Located::Pun(pun_id) => hover_pun(engine, current_file, pun_id),
         locate::Located::TermOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
@@ -50,7 +51,7 @@ pub fn implementation(
         }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
         locate::Located::TypeItem(type_id) => hover_file_type(engine, current_file, type_id),
-        locate::Located::Pun(pun_id) => hover_pun(engine, current_file, pun_id),
+        locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),
         locate::Located::Nothing => Ok(None),
     }
 }
