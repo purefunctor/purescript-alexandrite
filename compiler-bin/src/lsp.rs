@@ -101,6 +101,9 @@ impl StateSnapshot {
     }
 }
 
+const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
+const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn initialize(
     state: &mut State,
     p: extension::CustomInitializeParams,
@@ -115,7 +118,10 @@ fn initialize(
         .or_else(|| env::current_dir().ok());
     async move {
         Ok(InitializeResult {
-            server_info: None,
+            server_info: Some(ServerInfo {
+                name: PACKAGE_NAME.to_string(),
+                version: Some(PACKAGE_VERSION.to_string()),
+            }),
             capabilities: ServerCapabilities {
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(true),
