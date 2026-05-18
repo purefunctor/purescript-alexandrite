@@ -23,8 +23,10 @@ fn run_with_timeout(
         kind: FormattingErrorKind::Spawn { command: format_command.to_string(), source },
     })?;
 
-    command::write_stdin(&mut child, input)
-        .map_err(|source| FormattingError { kind: FormattingErrorKind::WriteStdin { source } })?;
+    command::write_stdin(&mut child, input).map_err(|source| {
+        cleanup_write_failure_child(&mut child);
+        FormattingError { kind: FormattingErrorKind::WriteStdin { source } }
+    })?;
 
     let output = command::wait_with_output_timeout(child, timeout)
         .map_err(|error| map_wait_with_output_error(format_command, input.len(), error))?;
@@ -40,6 +42,11 @@ fn run_with_timeout(
     }
 
     Ok(output.stdout)
+}
+
+fn cleanup_write_failure_child(child: &mut std::process::Child) {
+    let _ = child.kill();
+    let _ = child.wait();
 }
 
 fn map_wait_with_output_error(
