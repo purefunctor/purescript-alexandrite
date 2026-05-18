@@ -77,12 +77,12 @@ jobs:
           just coverage
           just coverage-codecov
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v6
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: purefunctor/purescript-alexandrite
           files: codecov.json
-          fail_ci_if_error: true
 
   formatting:
     name: Formatting
