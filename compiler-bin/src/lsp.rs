@@ -661,6 +661,16 @@ mod tests {
     }
 
     #[test]
+    fn formatting_returns_none_for_blank_command() {
+        let state = mk_state_with(base_config(Some("   ".to_string())));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+
+        let edits = formatting(snapshot(&state), formatting_params(uri)).unwrap();
+
+        assert!(edits.is_none());
+    }
+
+    #[test]
     fn formatting_returns_none_for_unknown_document() {
         let state = mk_state_with(base_config(Some("cat".to_string())));
         let uri = Url::parse("file:///test/Missing.purs").unwrap();
@@ -707,5 +717,19 @@ mod tests {
 
         assert!(matches!(error, LspError::FormattingFailed(_)));
         assert!(error.message().starts_with("formatter output was not utf-8:"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formatting_reports_formatter_failure() {
+        let mut state =
+            mk_state_with(base_config(Some("sh -c 'printf err >&2; exit 7'".to_string())));
+        let uri = Url::parse("file:///test/Main.purs").unwrap();
+        on_change(&mut state, uri.as_str(), "module Main where\nfoo = bar\n").unwrap();
+
+        let error = formatting(snapshot(&state), formatting_params(uri)).unwrap_err();
+
+        assert!(matches!(error, LspError::FormattingFailed(_)));
+        assert_eq!(error.message(), "formatter exited with exit status: 7: err");
     }
 }

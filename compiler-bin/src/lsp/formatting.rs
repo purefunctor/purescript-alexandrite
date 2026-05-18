@@ -6,6 +6,14 @@ use super::command;
 const FORMATTER_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub fn run(format_command: &str, input: &[u8]) -> Result<Vec<u8>, FormattingError> {
+    run_with_timeout(format_command, input, FORMATTER_TIMEOUT)
+}
+
+fn run_with_timeout(
+    format_command: &str,
+    input: &[u8],
+    timeout: Duration,
+) -> Result<Vec<u8>, FormattingError> {
     let parts = command::split(format_command)
         .ok_or_else(|| FormattingError::parse(format_command.to_string()))?;
     let mut parts = parts.into_iter();
@@ -19,28 +27,26 @@ pub fn run(format_command: &str, input: &[u8]) -> Result<Vec<u8>, FormattingErro
         .map_err(|source| FormattingError { kind: FormattingErrorKind::WriteStdin { source } })?;
 
     let output =
-        command::wait_with_output_timeout(child, FORMATTER_TIMEOUT).map_err(
-            |error| match error {
-                command::WaitWithOutputTimeoutError::Wait(source) => FormattingError {
-                    kind: FormattingErrorKind::Wait { command: format_command.to_string(), source },
-                },
-                command::WaitWithOutputTimeoutError::TimedOut(cleanup) => FormattingError {
-                    kind: FormattingErrorKind::TimedOut {
-                        command: format_command.to_string(),
-                        input_len: input.len(),
-                        cleanup,
-                    },
-                },
-                command::WaitWithOutputTimeoutError::Poll { source, cleanup } => FormattingError {
-                    kind: FormattingErrorKind::Poll {
-                        command: format_command.to_string(),
-                        input_len: input.len(),
-                        source,
-                        cleanup,
-                    },
+        command::wait_with_output_timeout(child, timeout).map_err(|error| match error {
+            command::WaitWithOutputTimeoutError::Wait(source) => FormattingError {
+                kind: FormattingErrorKind::Wait { command: format_command.to_string(), source },
+            },
+            command::WaitWithOutputTimeoutError::TimedOut(cleanup) => FormattingError {
+                kind: FormattingErrorKind::TimedOut {
+                    command: format_command.to_string(),
+                    input_len: input.len(),
+                    cleanup,
                 },
             },
-        )?;
+            command::WaitWithOutputTimeoutError::Poll { source, cleanup } => FormattingError {
+                kind: FormattingErrorKind::Poll {
+                    command: format_command.to_string(),
+                    input_len: input.len(),
+                    source,
+                    cleanup,
+                },
+            },
+        })?;
 
     if !output.status.success() {
         return Err(FormattingError {
@@ -231,6 +237,27 @@ mod tests {
         assert_eq!(error.to_string(), "formatter exited with exit status: 7: err\nout");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_stdin_write_failure() {
+        let input = vec![b'x'; 1_000_000];
+        let error = run("sh -c 'exec 0<&-; sleep 1'", &input).unwrap_err();
+
+        assert!(error.to_string().starts_with("failed writing to formatter stdin:"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_reports_timeout() {
+        let error =
+            run_with_timeout("sh -c 'sleep 1'", b"", Duration::from_millis(10)).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "formatter timed out after 10ms (input 0 bytes): sh -c 'sleep 1'"
+        );
+    }
+
     #[test]
     fn timed_out_error_includes_cleanup_failures() {
         let error = FormattingError {
@@ -284,5 +311,56 @@ mod tests {
         };
 
         assert_eq!(error.to_string(), "formatter exited with exit status: 1: <no output>");
+    }
+
+    #[test]
+    fn write_stdin_error_formats_message() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::WriteStdin { source: io::Error::other("broken pipe") },
+        };
+
+        assert_eq!(error.to_string(), "failed writing to formatter stdin: broken pipe");
+    }
+
+    #[test]
+    fn wait_error_formats_message() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::Wait {
+                command: "formatter".to_string(),
+                source: io::Error::other("wait failed"),
+            },
+        };
+
+        assert_eq!(error.to_string(), "failed to wait for formatter 'formatter': wait failed");
+    }
+
+    #[test]
+    fn timed_out_error_without_cleanup_failures_stays_compact() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::TimedOut {
+                command: "formatter".to_string(),
+                input_len: 3,
+                cleanup: command::ChildCleanup {
+                    timeout: Duration::from_secs(10),
+                    kill_error: None,
+                    wait_error: None,
+                },
+            },
+        };
+
+        assert_eq!(error.to_string(), "formatter timed out after 10s (input 3 bytes): formatter");
+    }
+
+    #[test]
+    fn exited_error_with_stdout_only_omits_newline() {
+        let error = FormattingError {
+            kind: FormattingErrorKind::Exited {
+                status: std::process::Command::new("sh").args(["-c", "exit 1"]).status().unwrap(),
+                stderr: vec![],
+                stdout: b"out\n".to_vec(),
+            },
+        };
+
+        assert_eq!(error.to_string(), "formatter exited with exit status: 1: out");
     }
 }
