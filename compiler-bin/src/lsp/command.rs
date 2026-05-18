@@ -3,6 +3,8 @@ use std::process::{self, Child, Output};
 use std::thread;
 use std::time::{Duration, Instant};
 
+const CHILD_CLEANUP_TIMEOUT: Duration = Duration::from_secs(1);
+
 pub(super) fn split(command: &str) -> Option<Vec<String>> {
     let mut command = command.trim();
 
@@ -82,7 +84,33 @@ pub(super) struct ChildCleanup {
 }
 
 fn cleanup_child(child: &mut Child, timeout: Duration) -> ChildCleanup {
-    ChildCleanup { timeout, kill_error: child.kill().err(), wait_error: child.wait().err() }
+    let kill_error = child.kill().err();
+    let wait_error = wait_for_cleanup(child);
+
+    ChildCleanup { timeout, kill_error, wait_error }
+}
+
+fn wait_for_cleanup(child: &mut Child) -> Option<io::Error> {
+    let start = Instant::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return None,
+            Ok(None) => {
+                if start.elapsed() >= CHILD_CLEANUP_TIMEOUT {
+                    return Some(io::Error::new(
+                        io::ErrorKind::TimedOut,
+                        format!(
+                            "timed out waiting {:?} for killed child process to exit",
+                            CHILD_CLEANUP_TIMEOUT
+                        ),
+                    ));
+                }
+                thread::sleep(Duration::from_millis(10));
+            }
+            Err(error) => return Some(error),
+        }
+    }
 }
 
 #[cfg(test)]
