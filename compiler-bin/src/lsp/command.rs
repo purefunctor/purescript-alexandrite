@@ -1,4 +1,4 @@
-use std::process::{self, Child, Output};
+use std::process::{self, Child, ExitStatus, Output};
 use std::time::{Duration, Instant};
 use std::{io, thread};
 
@@ -58,14 +58,17 @@ pub(super) fn wait_with_output_timeout(
                 }
                 thread::sleep(Duration::from_millis(10));
             }
-            Err(source) => {
-                return Err(WaitWithOutputTimeoutError::Poll {
-                    source,
-                    cleanup: cleanup_child(&mut child, timeout),
-                });
-            }
+            Err(source) => return Err(poll_wait_error(source, &mut child, timeout)),
         }
     }
+}
+
+fn poll_wait_error(
+    source: io::Error,
+    child: &mut Child,
+    timeout: Duration,
+) -> WaitWithOutputTimeoutError {
+    WaitWithOutputTimeoutError::Poll { source, cleanup: cleanup_child(child, timeout) }
 }
 
 #[derive(Debug)]
@@ -93,22 +96,40 @@ fn wait_for_cleanup(child: &mut Child) -> Option<io::Error> {
     let start = Instant::now();
 
     loop {
-        match child.try_wait() {
-            Ok(Some(_)) => return None,
-            Ok(None) => {
-                if start.elapsed() >= CHILD_CLEANUP_TIMEOUT {
-                    return Some(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        format!(
-                            "timed out waiting {:?} for killed child process to exit",
-                            CHILD_CLEANUP_TIMEOUT
-                        ),
-                    ));
-                }
-                thread::sleep(Duration::from_millis(10));
-            }
-            Err(error) => return Some(error),
+        match cleanup_wait_state(child.try_wait(), start.elapsed()) {
+            CleanupWaitState::Exited => return None,
+            CleanupWaitState::Pending => thread::sleep(Duration::from_millis(10)),
+            CleanupWaitState::Failed(error) => return Some(error),
         }
+    }
+}
+
+enum CleanupWaitState {
+    Exited,
+    Pending,
+    Failed(io::Error),
+}
+
+fn cleanup_wait_state(
+    result: io::Result<Option<ExitStatus>>,
+    elapsed: Duration,
+) -> CleanupWaitState {
+    match result {
+        Ok(Some(_)) => CleanupWaitState::Exited,
+        Ok(None) => {
+            if elapsed >= CHILD_CLEANUP_TIMEOUT {
+                CleanupWaitState::Failed(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    format!(
+                        "timed out waiting {:?} for killed child process to exit",
+                        CHILD_CLEANUP_TIMEOUT
+                    ),
+                ))
+            } else {
+                CleanupWaitState::Pending
+            }
+        }
+        Err(error) => CleanupWaitState::Failed(error),
     }
 }
 
@@ -142,6 +163,59 @@ mod tests {
                 assert!(cleanup.wait_error.is_none());
             }
             other => panic!("expected timeout, got {other:?}"),
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_stdin_succeeds_without_pipe() {
+        let mut child = process::Command::new("cat")
+            .stdin(process::Stdio::null())
+            .stdout(process::Stdio::null())
+            .spawn()
+            .unwrap();
+
+        write_stdin(&mut child, b"hello").unwrap();
+        child.wait().unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn poll_wait_error_cleans_up_child() {
+        let mut child = piped("sh", ["-c".to_string(), "sleep 2".to_string()]).spawn().unwrap();
+
+        let error =
+            poll_wait_error(io::Error::other("poll failed"), &mut child, Duration::from_millis(10));
+
+        match error {
+            WaitWithOutputTimeoutError::Poll { source, cleanup } => {
+                assert_eq!(source.kind(), io::ErrorKind::Other);
+                assert_eq!(source.to_string(), "poll failed");
+                assert_eq!(cleanup.timeout, Duration::from_millis(10));
+            }
+            other => panic!("expected poll error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cleanup_wait_state_times_out() {
+        let state = cleanup_wait_state(Ok(None), CHILD_CLEANUP_TIMEOUT);
+
+        match state {
+            CleanupWaitState::Failed(error) => assert_eq!(error.kind(), io::ErrorKind::TimedOut),
+            CleanupWaitState::Exited => panic!("expected timeout, got exited"),
+            CleanupWaitState::Pending => panic!("expected timeout, got pending"),
+        }
+    }
+
+    #[test]
+    fn cleanup_wait_state_propagates_errors() {
+        let state = cleanup_wait_state(Err(io::Error::other("wait failed")), Duration::ZERO);
+
+        match state {
+            CleanupWaitState::Failed(error) => assert_eq!(error.to_string(), "wait failed"),
+            CleanupWaitState::Exited => panic!("expected error, got exited"),
+            CleanupWaitState::Pending => panic!("expected error, got pending"),
         }
     }
 

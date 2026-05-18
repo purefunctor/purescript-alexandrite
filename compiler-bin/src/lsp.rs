@@ -650,6 +650,31 @@ mod tests {
         assert!(res.capabilities.document_formatting_provider.is_some());
     }
 
+    #[tokio::test]
+    async fn state_spawn_captures_snapshot_config() {
+        let state = mk_state_with(base_config(Some("formatter".to_string())));
+
+        let format_command =
+            state.spawn(|snapshot| snapshot.config.format_command.clone()).await.unwrap();
+
+        assert_eq!(format_command.as_deref(), Some("formatter"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn initialized_manual_parses_shell_command() {
+        let root =
+            std::env::temp_dir().join(format!("alexandrite-lsp-test-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+
+        let mut state = mk_state_with(base_config(None));
+        state.root = Some(root.clone());
+
+        initialized_manual(&mut state, "sh -c 'exit 0'").unwrap();
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn formatting_returns_none_without_command() {
         let state = mk_state_with(base_config(None));

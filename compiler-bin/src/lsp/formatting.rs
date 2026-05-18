@@ -26,27 +26,8 @@ fn run_with_timeout(
     command::write_stdin(&mut child, input)
         .map_err(|source| FormattingError { kind: FormattingErrorKind::WriteStdin { source } })?;
 
-    let output =
-        command::wait_with_output_timeout(child, timeout).map_err(|error| match error {
-            command::WaitWithOutputTimeoutError::Wait(source) => FormattingError {
-                kind: FormattingErrorKind::Wait { command: format_command.to_string(), source },
-            },
-            command::WaitWithOutputTimeoutError::TimedOut(cleanup) => FormattingError {
-                kind: FormattingErrorKind::TimedOut {
-                    command: format_command.to_string(),
-                    input_len: input.len(),
-                    cleanup,
-                },
-            },
-            command::WaitWithOutputTimeoutError::Poll { source, cleanup } => FormattingError {
-                kind: FormattingErrorKind::Poll {
-                    command: format_command.to_string(),
-                    input_len: input.len(),
-                    source,
-                    cleanup,
-                },
-            },
-        })?;
+    let output = command::wait_with_output_timeout(child, timeout)
+        .map_err(|error| map_wait_with_output_error(format_command, input.len(), error))?;
 
     if !output.status.success() {
         return Err(FormattingError {
@@ -59,6 +40,33 @@ fn run_with_timeout(
     }
 
     Ok(output.stdout)
+}
+
+fn map_wait_with_output_error(
+    format_command: &str,
+    input_len: usize,
+    error: command::WaitWithOutputTimeoutError,
+) -> FormattingError {
+    match error {
+        command::WaitWithOutputTimeoutError::Wait(source) => FormattingError {
+            kind: FormattingErrorKind::Wait { command: format_command.to_string(), source },
+        },
+        command::WaitWithOutputTimeoutError::TimedOut(cleanup) => FormattingError {
+            kind: FormattingErrorKind::TimedOut {
+                command: format_command.to_string(),
+                input_len,
+                cleanup,
+            },
+        },
+        command::WaitWithOutputTimeoutError::Poll { source, cleanup } => FormattingError {
+            kind: FormattingErrorKind::Poll {
+                command: format_command.to_string(),
+                input_len,
+                source,
+                cleanup,
+            },
+        },
+    }
 }
 
 #[derive(Debug)]
@@ -255,6 +263,38 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "formatter timed out after 10ms (input 0 bytes): sh -c 'sleep 1'"
+        );
+    }
+
+    #[test]
+    fn map_wait_with_output_error_formats_wait_error() {
+        let error = map_wait_with_output_error(
+            "formatter",
+            3,
+            command::WaitWithOutputTimeoutError::Wait(io::Error::other("wait failed")),
+        );
+
+        assert_eq!(error.to_string(), "failed to wait for formatter 'formatter': wait failed");
+    }
+
+    #[test]
+    fn map_wait_with_output_error_formats_poll_error() {
+        let error = map_wait_with_output_error(
+            "formatter",
+            3,
+            command::WaitWithOutputTimeoutError::Poll {
+                source: io::Error::other("poll failed"),
+                cleanup: command::ChildCleanup {
+                    timeout: Duration::from_secs(10),
+                    kill_error: None,
+                    wait_error: None,
+                },
+            },
+        );
+
+        assert_eq!(
+            error.to_string(),
+            "failed waiting for formatter 'formatter' (input 3 bytes): poll failed"
         );
     }
 

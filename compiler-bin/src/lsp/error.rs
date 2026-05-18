@@ -102,6 +102,13 @@ mod tests {
     }
 
     #[test]
+    fn default_message_is_request_failed() {
+        let error = LspError::MissingRoot;
+
+        assert_eq!(error.message(), "Request failed");
+    }
+
+    #[test]
     fn on_non_fatal_returns_item() {
         let result: Result<u32, AnalyzerError> = Err(AnalyzerError::NonFatal);
 
