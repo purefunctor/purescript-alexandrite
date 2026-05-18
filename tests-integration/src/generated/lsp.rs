@@ -289,33 +289,10 @@ fn dispatch_cursor(
             }
         }
         CursorKind::DocumentSymbols => {
-            let render_symbol = |s: SymbolInformation| -> String {
-                let SymbolInformation { name, kind, location, .. } = s;
-                format!(
-                    "{name} :: {kind:?} @ {}:{}..{}:{}",
-                    location.range.start.line,
-                    location.range.start.character,
-                    location.range.end.line,
-                    location.range.end.character,
-                )
-            };
-
             if let Ok(Some(response)) =
                 analyzer::document_symbols::implementation(engine, files, uri)
             {
-                match response {
-                    DocumentSymbolResponse::Flat(symbols) => {
-                        if symbols.is_empty() {
-                            writeln!(result, "<empty>").unwrap();
-                        } else {
-                            let symbols = symbols.into_iter().map(render_symbol).join("\n");
-                            writeln!(result, "{symbols}").unwrap();
-                        }
-                    }
-                    DocumentSymbolResponse::Nested(_) => {
-                        writeln!(result, "<nested>").unwrap();
-                    }
-                }
+                writeln!(result, "{}", render_document_symbols_response(response)).unwrap();
             } else {
                 writeln!(result, "<empty>").unwrap();
             }
@@ -372,6 +349,30 @@ fn dispatch_workspace_symbols(
     }
 }
 
+fn render_document_symbols_response(response: DocumentSymbolResponse) -> String {
+    match response {
+        DocumentSymbolResponse::Flat(symbols) => {
+            if symbols.is_empty() {
+                "<empty>".into()
+            } else {
+                symbols.into_iter().map(render_symbol_information).join("\n")
+            }
+        }
+        DocumentSymbolResponse::Nested(_) => "<nested>".into(),
+    }
+}
+
+fn render_symbol_information(symbol: SymbolInformation) -> String {
+    let SymbolInformation { name, kind, location, .. } = symbol;
+    format!(
+        "{name} :: {kind:?} @ {}:{}..{}:{}",
+        location.range.start.line,
+        location.range.start.character,
+        location.range.end.line,
+        location.range.end.character,
+    )
+}
+
 fn redact_paths(mut result: String) -> String {
     let manifest_directory = env!("CARGO_MANIFEST_DIR");
     let temporary_directory = prim::TEMPORARY_DIRECTORY.path();
@@ -388,4 +389,57 @@ fn redact_paths(mut result: String) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use async_lsp::lsp_types::{DocumentSymbol, Location, Range, SymbolKind};
+
+    use super::*;
+
+    fn location() -> Location {
+        Location {
+            uri: Url::parse("file:///Main.purs").unwrap(),
+            range: Range::new(Position::new(1, 2), Position::new(3, 4)),
+        }
+    }
+
+    #[test]
+    fn renders_empty_document_symbols_response() {
+        let response = DocumentSymbolResponse::Flat(vec![]);
+
+        assert_eq!(render_document_symbols_response(response), "<empty>");
+    }
+
+    #[test]
+    fn renders_flat_document_symbols_response() {
+        let response = DocumentSymbolResponse::Flat(vec![SymbolInformation {
+            name: "example".into(),
+            kind: SymbolKind::FUNCTION,
+            tags: None,
+            #[allow(deprecated)]
+            deprecated: None,
+            location: location(),
+            container_name: None,
+        }]);
+
+        assert_eq!(render_document_symbols_response(response), "example :: Function @ 1:2..3:4");
+    }
+
+    #[test]
+    fn renders_nested_document_symbols_response() {
+        let response = DocumentSymbolResponse::Nested(vec![DocumentSymbol {
+            name: "example".into(),
+            detail: None,
+            kind: SymbolKind::FUNCTION,
+            tags: None,
+            #[allow(deprecated)]
+            deprecated: None,
+            range: Range::new(Position::new(0, 0), Position::new(0, 7)),
+            selection_range: Range::new(Position::new(0, 0), Position::new(0, 7)),
+            children: None,
+        }]);
+
+        assert_eq!(render_document_symbols_response(response), "<nested>");
+    }
 }
