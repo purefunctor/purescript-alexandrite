@@ -1,10 +1,19 @@
 use std::fmt::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use itertools::Itertools;
 use spago::lockfile::Lockfile;
 
 const SPAGO_LOCK: &str = include_str!("./fixture/spago.lock");
+
+fn source_snapshot(lockfile: &Lockfile) -> String {
+    lockfile.sources().sorted().filter_map(normalize_source).join("\n")
+}
+
+fn normalize_source(source: PathBuf) -> Option<String> {
+    let source = source.to_str()?;
+    Some(source.replace('\\', "/"))
+}
 
 #[test]
 fn test_parse_lockfile() {
@@ -29,30 +38,12 @@ fn test_lockfile_sources_subdir_precedence_packages_over_workspace_extra_package
     )
     .unwrap();
 
-    let sources = lockfile
-        .sources()
-        .filter_map(|source| source.to_str().map(|s| s.replace('\\', "/")))
-        .collect::<Vec<_>>();
-
-    assert!(sources.iter().any(|s| s == ".spago/p/foo/abcd/src"), "sources: {sources:?}");
-    assert!(sources.iter().any(|s| s == ".spago/p/foo/abcd/test"), "sources: {sources:?}");
-
-    assert!(
-        sources.iter().any(|s| s == ".spago/p/foo/abcd/from-packages/src"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().any(|s| s == ".spago/p/foo/abcd/from-packages/test"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().all(|s| s != ".spago/p/foo/abcd/from-workspace/src"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().all(|s| s != ".spago/p/foo/abcd/from-workspace/test"),
-        "sources: {sources:?}"
-    );
+    insta::assert_snapshot!(source_snapshot(&lockfile), @"
+    .spago/p/foo/abcd/from-packages/src
+    .spago/p/foo/abcd/from-packages/test
+    .spago/p/foo/abcd/src
+    .spago/p/foo/abcd/test
+    ");
 }
 
 #[test]
@@ -72,27 +63,12 @@ fn test_lockfile_sources_subdir_fallback_to_workspace_extra_packages() {
     )
     .unwrap();
 
-    let sources = lockfile
-        .sources()
-        .filter_map(|source| source.to_str().map(|s| s.replace('\\', "/")))
-        .collect::<Vec<_>>();
-
-    assert!(
-        sources.iter().any(|s| s == ".spago/p/deku-core/65d6e9d/deku-core/src"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().any(|s| s == ".spago/p/deku-core/65d6e9d/deku-core/test"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().all(|s| s != ".spago/p/deku-core/65d6e9d/from-packages/src"),
-        "sources: {sources:?}"
-    );
-    assert!(
-        sources.iter().all(|s| s != ".spago/p/deku-core/65d6e9d/from-packages/test"),
-        "sources: {sources:?}"
-    );
+    insta::assert_snapshot!(source_snapshot(&lockfile), @"
+    .spago/p/deku-core/65d6e9d/deku-core/src
+    .spago/p/deku-core/65d6e9d/deku-core/test
+    .spago/p/deku-core/65d6e9d/src
+    .spago/p/deku-core/65d6e9d/test
+    ");
 }
 
 #[test]
@@ -102,27 +78,20 @@ fn test_parse_lockfile_without_extra_packages() {
   "workspace": { "packages": {} },
   "packages": { "foo": { "type": "git", "rev": "abcd" } }
 }"#,
-    );
-    assert!(lockfile.is_ok(), "{lockfile:?}");
+    )
+    .unwrap();
+
+    insta::assert_snapshot!(source_snapshot(&lockfile), @"
+    .spago/p/foo/abcd/src
+    .spago/p/foo/abcd/test
+    ");
 }
 
 #[test]
 fn test_lockfile_sources() {
     let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
     assert!(lockfile.is_ok(), "{lockfile:?}");
-
-    let lockfile = lockfile.unwrap();
-    let sources = lockfile
-        .sources()
-        .sorted()
-        .filter_map(|source| {
-            let source = source.to_str()?;
-            let source = source.replace('\\', "/");
-            Some(source.to_string())
-        })
-        .join("\n");
-
-    insta::assert_snapshot!(sources);
+    insta::assert_snapshot!(source_snapshot(&lockfile.unwrap()));
 }
 
 #[test]
