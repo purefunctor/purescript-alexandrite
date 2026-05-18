@@ -9,8 +9,8 @@ use lowering::{
 };
 use rowan::TokenAtOffset;
 use rowan::ast::{AstNode, AstPtr};
-use stabilizing::StabilizedModule;
-use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
+use stabilizing::{AstId, StabilizedModule};
+use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::position::{Utf8Position, Utf8Range};
@@ -19,6 +19,56 @@ use crate::{AnalyzerError, position};
 pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
     let range = AnnotationSyntaxRange::from_ptr(root, ptr);
     range.syntax.and_then(|range| position::text_range_to_utf8_range(content, range))
+}
+
+pub fn id_range<T>(
+    content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    item_id: AstId<T>,
+) -> Option<Utf8Range>
+where
+    T: AstNode<Language = PureScript>,
+{
+    let root = parsed.syntax_node();
+    let ptr = stabilized.syntax_ptr(item_id)?;
+    syntax_range(content, &root, &ptr)
+}
+
+pub fn value_equation_ranges(
+    content: &str,
+    root: &SyntaxNode,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    term_id: TermItemId,
+) -> Option<Vec<Utf8Range>> {
+    let indexing::TermItemKind::Value { signature, equations } = &indexed.items[term_id].kind
+    else {
+        return None;
+    };
+
+    let mut ranges = vec![];
+
+    if let Some(sig_id) = signature
+        && let Some(ptr) = stabilized.ast_ptr(*sig_id)
+        && let Some(node) = ptr.try_to_node(root)
+        && let Some(tok) = node.name_token()
+        && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+    {
+        ranges.push(range);
+    }
+
+    for eq_id in equations {
+        if let Some(ptr) = stabilized.ast_ptr(*eq_id)
+            && let Some(node) = ptr.try_to_node(root)
+            && let Some(tok) = node.name_token()
+            && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+        {
+            ranges.push(range);
+        }
+    }
+
+    Some(ranges)
 }
 
 type ModuleNamePtr = AstPtr<cst::ModuleName>;

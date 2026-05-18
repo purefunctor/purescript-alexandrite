@@ -2,72 +2,40 @@ use async_lsp::lsp_types::*;
 use building::QueryEngine;
 use files::{FileId, Files};
 use lowering::{
-    BinderId, ExpressionId, ExpressionKind, LetBindingNameGroupId, TermVariableResolution,
+    BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId,
+    TermVariableResolution,
 };
 use rowan::ast::AstNode;
-use stabilizing::{AstId, StabilizedModule};
-use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, cst};
+use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::{AnalyzerError, locate};
-
-fn top_level_definition_name_ranges(
-    engine: &QueryEngine,
-    file_id: FileId,
-    term_id: indexing::TermItemId,
-) -> Result<Vec<Range>, AnalyzerError> {
-    let content = engine.content(file_id);
-    let (parsed, _) = engine.parsed(file_id)?;
-    let stabilized = engine.stabilized(file_id)?;
-    let indexed = engine.indexed(file_id)?;
-
-    let root = parsed.syntax_node();
-    let mut ranges = vec![];
-
-    if let indexing::TermItemKind::Value { signature, equations } = &indexed.items[term_id].kind {
-        if let Some(sig_id) = signature
-            && let Some(ptr) = stabilized.ast_ptr(*sig_id)
-            && let Some(node) = ptr.try_to_node(&root)
-            && let Some(tok) = node.name_token()
-            && let Some(range) = locate::text_range_to_range(&content, tok.text_range())
-        {
-            ranges.push(range);
-        }
-
-        for eq_id in equations {
-            if let Some(ptr) = stabilized.ast_ptr(*eq_id)
-                && let Some(node) = ptr.try_to_node(&root)
-                && let Some(tok) = node.name_token()
-                && let Some(range) = locate::text_range_to_range(&content, tok.text_range())
-            {
-                ranges.push(range);
-            }
-        }
-    }
-
-    Ok(ranges)
-}
-
-fn id_range<T>(
-    content: &str,
-    parsed: &parsing::ParsedModule,
-    stabilized: &StabilizedModule,
-    item_id: AstId<T>,
-) -> Option<Range>
-where
-    T: AstNode<Language = PureScript>,
-{
-    let root = parsed.syntax_node();
-    let ptr = stabilized.syntax_ptr(item_id)?;
-    locate::syntax_range(content, &root, &ptr)
-}
 
 fn current_file_id(files: &Files, uri: &Url) -> Result<FileId, AnalyzerError> {
     let uri = uri.as_str();
     files.id(uri).ok_or(AnalyzerError::NonFatal)
 }
 
-fn token_range(content: &str, range: rowan::TextRange) -> Option<Range> {
-    locate::text_range_to_range(content, range)
+fn push_highlight(highlights: &mut Vec<DocumentHighlight>, range: Option<Range>) {
+    if let Some(range) = range {
+        highlights.push(DocumentHighlight { range, kind: None });
+    }
+}
+
+fn push_highlights(
+    highlights: &mut Vec<DocumentHighlight>,
+    ranges: impl IntoIterator<Item = Range>,
+) {
+    highlights.extend(ranges.into_iter().map(|range| DocumentHighlight { range, kind: None }));
+}
+
+fn finish_highlights(mut highlights: Vec<DocumentHighlight>) -> Option<Vec<DocumentHighlight>> {
+    highlights.sort_by_key(|DocumentHighlight { range, .. }| {
+        (range.start.line, range.start.character, range.end.line, range.end.character)
+    });
+    highlights.dedup_by(|left, right| left.range == right.range);
+
+    let has_highlights = !highlights.is_empty();
+    has_highlights.then_some(highlights)
 }
 
 fn binder_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Range> {
@@ -75,12 +43,12 @@ fn binder_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> O
 
     if let Some(binder) = cst::BinderVariable::cast(node.clone()) {
         let tok = binder.name_token()?;
-        return token_range(content, tok.text_range());
+        return locate::text_range_to_range(content, tok.text_range());
     }
 
     if let Some(binder) = cst::BinderNamed::cast(node) {
         let tok = binder.name_token()?;
-        return token_range(content, tok.text_range());
+        return locate::text_range_to_range(content, tok.text_range());
     }
 
     None
@@ -94,14 +62,14 @@ fn let_signature_name_range(
     let node = ptr.try_to_node(root)?;
     let sig = cst::LetBindingSignature::cast(node)?;
     let tok = sig.name_token()?;
-    token_range(content, tok.text_range())
+    locate::text_range_to_range(content, tok.text_range())
 }
 
 fn let_equation_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Range> {
     let node = ptr.try_to_node(root)?;
     let eq = cst::LetBindingEquation::cast(node)?;
     let tok = eq.name_token()?;
-    token_range(content, tok.text_range())
+    locate::text_range_to_range(content, tok.text_range())
 }
 
 fn highlight_binder(
@@ -117,30 +85,26 @@ fn highlight_binder(
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(binder_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let mut ranges: Vec<Range> = vec![];
+    let mut highlights: Vec<DocumentHighlight> = vec![];
 
-    if let Some(range) = binder_name_range(&content, &root, &ptr)
-        .or_else(|| locate::syntax_range(&content, &root, &ptr))
-    {
-        ranges.push(range);
-    }
+    push_highlight(
+        &mut highlights,
+        binder_name_range(&content, &root, &ptr)
+            .or_else(|| locate::syntax_range(&content, &root, &ptr)),
+    );
 
     for (expr_id, expr_kind) in lowered.info.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::Binder(id)), ..
         } = expr_kind
             && *id == binder_id
-            && let Some(range) = id_range(&content, &parsed, &stabilized, expr_id)
+            && let Some(range) = locate::id_range(&content, &parsed, &stabilized, expr_id)
         {
-            ranges.push(range);
+            highlights.push(DocumentHighlight { range, kind: None });
         }
     }
 
-    ranges.sort_by_key(|r| (r.start.line, r.start.character, r.end.line, r.end.character));
-    ranges.dedup();
-
-    Ok((!ranges.is_empty())
-        .then(|| ranges.into_iter().map(|range| DocumentHighlight { range, kind: None }).collect()))
+    Ok(finish_highlights(highlights))
 }
 
 fn highlight_let(
@@ -156,24 +120,24 @@ fn highlight_let(
     let root = parsed.syntax_node();
     let binding = lowered.info.get_let_binding_group(let_binding_id);
 
-    let mut ranges: Vec<Range> = vec![];
+    let mut highlights: Vec<DocumentHighlight> = vec![];
 
     if let Some(sig) = binding.signature {
         let ptr = stabilized.syntax_ptr(sig).ok_or(AnalyzerError::NonFatal)?;
-        if let Some(range) = let_signature_name_range(&content, &root, &ptr)
-            .or_else(|| locate::syntax_range(&content, &root, &ptr))
-        {
-            ranges.push(range);
-        }
+        push_highlight(
+            &mut highlights,
+            let_signature_name_range(&content, &root, &ptr)
+                .or_else(|| locate::syntax_range(&content, &root, &ptr)),
+        );
     }
 
     for &eq in binding.equations.iter() {
         let ptr = stabilized.syntax_ptr(eq).ok_or(AnalyzerError::NonFatal)?;
-        if let Some(range) = let_equation_name_range(&content, &root, &ptr)
-            .or_else(|| locate::syntax_range(&content, &root, &ptr))
-        {
-            ranges.push(range);
-        }
+        push_highlight(
+            &mut highlights,
+            let_equation_name_range(&content, &root, &ptr)
+                .or_else(|| locate::syntax_range(&content, &root, &ptr)),
+        );
     }
 
     for (expr_id, expr_kind) in lowered.info.iter_expression() {
@@ -181,17 +145,13 @@ fn highlight_let(
             resolution: Some(TermVariableResolution::Let(id)), ..
         } = expr_kind
             && *id == let_binding_id
-            && let Some(range) = id_range(&content, &parsed, &stabilized, expr_id)
+            && let Some(range) = locate::id_range(&content, &parsed, &stabilized, expr_id)
         {
-            ranges.push(range);
+            highlights.push(DocumentHighlight { range, kind: None });
         }
     }
 
-    ranges.sort_by_key(|r| (r.start.line, r.start.character, r.end.line, r.end.character));
-    ranges.dedup();
-
-    Ok((!ranges.is_empty())
-        .then(|| ranges.into_iter().map(|range| DocumentHighlight { range, kind: None }).collect()))
+    Ok(finish_highlights(highlights))
 }
 
 fn highlight_expression(
@@ -218,6 +178,28 @@ fn highlight_expression(
     }
 }
 
+fn value_equation_highlights(
+    engine: &QueryEngine,
+    current_file: FileId,
+    term_id: indexing::TermItemId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let content = engine.content(current_file);
+    let (parsed, _) = engine.parsed(current_file)?;
+    let stabilized = engine.stabilized(current_file)?;
+    let indexed = engine.indexed(current_file)?;
+
+    let root = parsed.syntax_node();
+    let Some(ranges) =
+        locate::value_equation_ranges(&content, &root, &stabilized, &indexed, term_id)
+    else {
+        return Ok(None);
+    };
+
+    let mut highlights = vec![];
+    push_highlights(&mut highlights, ranges);
+    Ok(finish_highlights(highlights))
+}
+
 pub fn implementation(
     engine: &QueryEngine,
     files: &Files,
@@ -228,7 +210,7 @@ pub fn implementation(
 
     // If the cursor resolves to a top-level value in the current file, include
     // the definition name tokens alongside the reference highlights.
-    let mut extra_ranges: Vec<Range> = vec![];
+    let mut extra_highlights: Vec<DocumentHighlight> = vec![];
 
     // Local binders/lets do not have stable (file, item) identities in the workspace
     // index, so `textDocument/references` intentionally returns `None` for them.
@@ -236,7 +218,11 @@ pub fn implementation(
     let located = locate::locate(engine, current_file, position)?;
     match located {
         locate::Located::Binder(binder_id) => {
-            if let Some(highlights) = highlight_binder(engine, current_file, binder_id)? {
+            let lowered = engine.lowered(current_file)?;
+            let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+            if !matches!(kind, BinderKind::Constructor { .. })
+                && let Some(highlights) = highlight_binder(engine, current_file, binder_id)?
+            {
                 return Ok(Some(highlights));
             }
         }
@@ -251,8 +237,14 @@ pub fn implementation(
                 ..
             }) = lowered.info.get_expression_kind(expression_id)
                 && (*f_id) == current_file
+                && let Some(highlights) = value_equation_highlights(engine, current_file, *t_id)?
             {
-                extra_ranges = top_level_definition_name_ranges(engine, current_file, *t_id)?;
+                extra_highlights = highlights;
+            }
+        }
+        locate::Located::TermItem(term_id) => {
+            if let Some(highlights) = value_equation_highlights(engine, current_file, term_id)? {
+                extra_highlights = highlights;
             }
         }
         _ => {}
@@ -301,15 +293,12 @@ pub fn implementation(
         return Ok(None);
     };
 
-    let mut ranges: Vec<Range> = locations
+    let mut highlights: Vec<DocumentHighlight> = locations
         .into_iter()
         .filter(|location| location.uri == uri)
-        .map(|location| location.range)
+        .map(|location| DocumentHighlight { range: location.range, kind: None })
         .collect();
-    ranges.extend(extra_ranges);
+    highlights.extend(extra_highlights);
 
-    ranges.sort_by_key(|r| (r.start.line, r.start.character, r.end.line, r.end.character));
-    ranges.dedup();
-
-    Ok(Some(ranges.into_iter().map(|range| DocumentHighlight { range, kind: None }).collect()))
+    Ok(finish_highlights(highlights))
 }
