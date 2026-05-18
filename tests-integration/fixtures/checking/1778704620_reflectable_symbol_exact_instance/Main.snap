@@ -15,10 +15,3 @@ instance Reflectable @Symbol "hello" Tag
 
 Roles
 Tag = []
-
-Diagnostics
-error[CannotUnify]: Cannot unify 'String' with 'Tag'
-  --> 12:8..12:43
-   |
-12 | test = reflectType (Proxy :: Proxy "hello")
-   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
