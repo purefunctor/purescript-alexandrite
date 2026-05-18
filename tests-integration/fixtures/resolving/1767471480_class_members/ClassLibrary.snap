@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/resolving/generated.rs
-assertion_line: 12
+source: tests-integration/src/fixtures.rs
+assertion_line: 73
 expression: report
 ---
 module ClassLibrary
