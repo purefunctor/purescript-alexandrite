@@ -42,5 +42,5 @@ licenses:
   cargo bundle-licenses --prefer MIT -o ../THIRDPARTY.toml
 
 [doc("Format imports with module granularity")]
-@format-imports *args="":
+@format *args="":
   cargo +nightly fmt {{args}} -- --config imports_granularity=Module

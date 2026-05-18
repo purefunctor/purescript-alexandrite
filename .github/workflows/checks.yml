@@ -100,4 +100,4 @@ jobs:
           tool: just
 
       - name: Run formatter
-        run: just format-imports --check
+        run: just format --check
