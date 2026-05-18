@@ -748,7 +748,7 @@ mod tests {
     #[test]
     fn formatting_reports_formatter_failure() {
         let mut state =
-            mk_state_with(base_config(Some("sh -c 'printf err >&2; exit 7'".to_string())));
+            mk_state_with(base_config(Some("sh -c 'cat >/dev/null; printf err >&2; exit 7'".to_string())));
         let uri = Url::parse("file:///test/Main.purs").unwrap();
         on_change(&mut state, uri.as_str(), "module Main where\nfoo = bar\n").unwrap();
 
