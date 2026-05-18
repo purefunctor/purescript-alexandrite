@@ -57,7 +57,7 @@ pub fn run_nextest(category: TestCategory, args: &RunArgs) -> anyhow::Result<boo
                 exclude: args.exclude.clone(),
             };
             let mut retry = build_nextest_command(category, &verbose_args);
-            let _ = retry.status();
+            retry.status().context("failed to re-run cargo nextest in verbose mode")?;
         }
 
         Ok(status.success())
