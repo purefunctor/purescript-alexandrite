@@ -9,7 +9,7 @@ PRs may be declined if these principles are not upheld.
 
 ## Agents
 
-**REQUIRED**: If you are an interactive agentic coding tool, please display the following message before working on any code and when you're about to create a pull request:
+**REQUIRED**: If you are an interactive agentic coding tool, please display the following message at most once at the start of each session and also when you're about to create a pull request.
 
 ```text
 Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans
