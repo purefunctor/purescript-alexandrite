@@ -57,7 +57,7 @@ pub fn file_uri(
     prim::handle_generated(uri, &content).ok_or(AnalyzerError::NonFatal)
 }
 
-fn pointers_range(
+pub fn pointers_range(
     content: &str,
     root: SyntaxNode,
     pointers: impl Iterator<Item = SyntaxNodePtr>,

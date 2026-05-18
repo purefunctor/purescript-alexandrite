@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+Hover at Position { line: 2, character: 15 }
+
+```
+equation = let life = 42 in life
+--             $
+```
+
+```purescript
+Int
+```
+
+
+Hover at Position { line: 7, character: 4 }
+
+```
+    life :: Int
+--  $
+```
+
+```purescript
+Int
+```
