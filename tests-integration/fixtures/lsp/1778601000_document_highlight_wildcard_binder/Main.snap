@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+DocumentHighlight at Position { line: 2, character: 4 }
+
+```
+foo _ = 1
+--  &
+```
+
+2:4..2:5

@@ -170,8 +170,9 @@ fn highlight_expression(
             TermVariableResolution::Let(let_binding_id) => {
                 highlight_let(engine, current_file, *let_binding_id)
             }
-            TermVariableResolution::RecordPun(_) => Ok(None),
-            TermVariableResolution::Reference(..) => Ok(None),
+            TermVariableResolution::RecordPun(_) | TermVariableResolution::Reference(..) => {
+                Ok(None)
+            }
         }
     } else {
         Ok(None)

@@ -312,12 +312,8 @@ fn dispatch_cursor(
             if let Ok(Some(highlights)) =
                 analyzer::document_highlight::implementation(engine, files, uri, position)
             {
-                if highlights.is_empty() {
-                    writeln!(result, "<empty>").unwrap();
-                } else {
-                    let highlights = highlights.into_iter().map(render_highlight).join("\n");
-                    writeln!(result, "{highlights}").unwrap();
-                }
+                let highlights = highlights.into_iter().map(render_highlight).join("\n");
+                writeln!(result, "{highlights}").unwrap();
             } else {
                 writeln!(result, "<empty>").unwrap();
             }
