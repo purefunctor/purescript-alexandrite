@@ -1,4 +1,5 @@
 pub mod capabilities;
+mod command;
 pub mod error;
 pub mod event;
 pub mod extension;
@@ -7,6 +8,7 @@ use std::borrow::BorrowMut;
 use std::ops::{ControlFlow, Deref};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 use std::{env, fs, mem, process};
 
 use analyzer::completion::SuggestionsCache;
@@ -199,7 +201,7 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
 
     tracing::info!("Using '{}'", command);
 
-    let mut parts = command.split(" ");
+    let mut parts = command::split(command).ok_or(LspError::InvalidSourceCommand)?.into_iter();
     let program = parts.next().ok_or(LspError::InvalidSourceCommand)?;
 
     let mut command = process::Command::new(program);
@@ -377,22 +379,7 @@ fn formatting(
 
     let input = snapshot.engine.content(current_file);
 
-    let mut cmd_str = format_command.trim();
-
-    // Users sometimes include extra quoting in editor configs, e.g.
-    // `--format-command "\"purs-tidy format\""`. If the whole command is wrapped
-    // in a single pair of quotes, strip it and re-parse.
-    if cmd_str.len() >= 2 {
-        let bytes = cmd_str.as_bytes();
-        let first = bytes[0];
-        let last = bytes[bytes.len() - 1];
-        let is_wrapped = (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'');
-        if is_wrapped {
-            cmd_str = &cmd_str[1..cmd_str.len() - 1];
-        }
-    }
-
-    let parts = shlex::split(cmd_str).ok_or_else(|| {
+    let parts = command::split(format_command).ok_or_else(|| {
         LspError::FormattingFailed(format!("failed to parse --format-command: {format_command}"))
     })?;
     let mut parts = parts.into_iter();
@@ -400,75 +387,49 @@ fn formatting(
         .next()
         .ok_or_else(|| LspError::FormattingFailed("--format-command is empty".to_string()))?;
 
-    let mut cmd = process::Command::new(program);
-    cmd.args(parts);
-    cmd.stdin(process::Stdio::piped());
-    cmd.stdout(process::Stdio::piped());
-    cmd.stderr(process::Stdio::piped());
+    let mut cmd = command::piped(&program, parts);
 
     let mut child = cmd.spawn().map_err(|e| {
         LspError::FormattingFailed(format!("failed to spawn formatter '{format_command}': {e}"))
     })?;
 
-    if let Some(mut stdin) = child.stdin.take() {
-        use std::io::Write;
-        stdin.write_all(input.as_bytes()).map_err(|e| {
-            LspError::FormattingFailed(format!("failed writing to formatter stdin: {e}"))
-        })?;
-    }
+    command::write_stdin(&mut child, input.as_bytes()).map_err(|e| {
+        LspError::FormattingFailed(format!("failed writing to formatter stdin: {e}"))
+    })?;
 
-    let output = {
-        use std::thread;
-        use std::time::{Duration, Instant};
-
-        // Avoid hanging indefinitely if the formatter never exits.
-        let timeout = Duration::from_secs(10);
-        let start = Instant::now();
-        loop {
-            match child.try_wait() {
-                Ok(Some(_status)) => {
-                    break child.wait_with_output().map_err(|e| {
-                        LspError::FormattingFailed(format!(
-                            "failed to wait for formatter '{format_command}': {e}"
-                        ))
-                    })?;
+    let output =
+        command::wait_with_output_timeout(child, Duration::from_secs(10)).map_err(|e| match e {
+            command::WaitWithOutputTimeoutError::Wait(e) => LspError::FormattingFailed(format!(
+                "failed to wait for formatter '{format_command}': {e}"
+            )),
+            command::WaitWithOutputTimeoutError::TimedOut(cleanup) => {
+                let mut details = format!(
+                    "formatter timed out after {:?} (input {} bytes): {format_command}",
+                    cleanup.timeout,
+                    input.len()
+                );
+                if let Some(e) = cleanup.kill_error {
+                    details.push_str(&format!("; kill failed: {e}"));
                 }
-                Ok(None) => {
-                    if start.elapsed() >= timeout {
-                        let kill_err = child.kill().err();
-                        let wait_err = child.wait().err();
-                        let mut details = format!(
-                            "formatter timed out after {timeout:?} (input {} bytes): {format_command}",
-                            input.len()
-                        );
-                        if let Some(e) = kill_err {
-                            details.push_str(&format!("; kill failed: {e}"));
-                        }
-                        if let Some(e) = wait_err {
-                            details.push_str(&format!("; wait failed: {e}"));
-                        }
-                        return Err(LspError::FormattingFailed(details));
-                    }
-                    thread::sleep(Duration::from_millis(10));
+                if let Some(e) = cleanup.wait_error {
+                    details.push_str(&format!("; wait failed: {e}"));
                 }
-                Err(e) => {
-                    let kill_err = child.kill().err();
-                    let wait_err = child.wait().err();
-                    let mut details = format!(
-                        "failed waiting for formatter '{format_command}' (input {} bytes): {e}",
-                        input.len()
-                    );
-                    if let Some(e) = kill_err {
-                        details.push_str(&format!("; kill failed: {e}"));
-                    }
-                    if let Some(e) = wait_err {
-                        details.push_str(&format!("; wait failed: {e}"));
-                    }
-                    return Err(LspError::FormattingFailed(details));
-                }
+                LspError::FormattingFailed(details)
             }
-        }
-    };
+            command::WaitWithOutputTimeoutError::Poll { source, cleanup } => {
+                let mut details = format!(
+                    "failed waiting for formatter '{format_command}' (input {} bytes): {source}",
+                    input.len()
+                );
+                if let Some(e) = cleanup.kill_error {
+                    details.push_str(&format!("; kill failed: {e}"));
+                }
+                if let Some(e) = cleanup.wait_error {
+                    details.push_str(&format!("; wait failed: {e}"));
+                }
+                LspError::FormattingFailed(details)
+            }
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

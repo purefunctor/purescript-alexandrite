@@ -60,7 +60,7 @@ impl LspError {
         if let LspError::FormattingFailed(message) = self {
             return message;
         }
-        
+
         "Request failed"
     }
 
