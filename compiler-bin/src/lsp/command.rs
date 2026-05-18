@@ -5,21 +5,22 @@ use std::{io, thread};
 const CHILD_CLEANUP_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(super) fn split(command: &str) -> Option<Vec<String>> {
-    let mut command = command.trim();
+    let command = command.trim();
+    let parts = shlex::split(command)?;
 
     // Users sometimes include extra quoting in editor configs, e.g.
     // `--format-command "\"purs-tidy format\""`.
-    if command.len() >= 2 {
+    if parts.len() == 1 && command.len() >= 2 {
         let bytes = command.as_bytes();
         let first = bytes[0];
         let last = bytes[bytes.len() - 1];
         let is_wrapped = (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'');
         if is_wrapped {
-            command = &command[1..command.len() - 1];
+            return shlex::split(&parts[0]);
         }
     }
 
-    shlex::split(command)
+    Some(parts)
 }
 
 pub(super) fn piped(program: &str, args: impl IntoIterator<Item = String>) -> process::Command {
@@ -227,5 +228,10 @@ mod tests {
     #[test]
     fn split_strips_outer_quotes_before_parsing() {
         assert_eq!(split("\"tr a-z A-Z\""), Some(vec!["tr".into(), "a-z".into(), "A-Z".into()]));
+    }
+
+    #[test]
+    fn split_preserves_normal_shell_quoted_arguments() {
+        assert_eq!(split("'tr' 'a-z' 'A-Z'"), Some(vec!["tr".into(), "a-z".into(), "A-Z".into()]));
     }
 }
