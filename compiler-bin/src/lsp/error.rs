@@ -57,12 +57,11 @@ impl LspError {
             return "Request cancelled";
         }
 
-        // Prefer returning a concrete error message to the client so editors
-        // can show useful feedback (e.g. formatter stderr).
-        match self {
-            LspError::FormattingFailed(message) => message,
-            _ => "Request failed",
+        if let LspError::FormattingFailed(message) = self {
+            return message;
         }
+        
+        "Request failed"
     }
 
     pub fn emit_trace(&self) {
