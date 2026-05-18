@@ -5,9 +5,8 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit};
-use crate::source::binder;
-use crate::source::terms;
 use crate::source::terms::form_let;
+use crate::source::{binder, terms};
 use crate::state::CheckState;
 
 #[derive(Copy, Clone, Debug)]
