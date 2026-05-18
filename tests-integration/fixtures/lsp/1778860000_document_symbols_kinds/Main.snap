@@ -20,4 +20,4 @@ wrap :: Method @ 13:2..13:16
 plus :: Function @ 20:0..21:12
 ++ :: Operator @ 23:0..23:19
 Add :: Struct @ 25:0..25:18
-+:+: :: Operator @ 27:0..27:24
+:+: :: Operator @ 27:0..27:24
