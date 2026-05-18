@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use tests_compatibility::registry::RegistryError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -7,7 +8,7 @@ pub enum VerifierError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
-    Registry(#[from] registry::RegistryError),
+    Registry(#[from] RegistryError),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error(transparent)]
@@ -16,6 +17,4 @@ pub enum VerifierError {
     Url(#[from] url::ParseError),
     #[error("failed to convert path to file URL: {0}")]
     FileUrl(PathBuf),
-    #[error("archive entry escapes extraction directory: {0}")]
-    UnsafeArchivePath(PathBuf),
 }

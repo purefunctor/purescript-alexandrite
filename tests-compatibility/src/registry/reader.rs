@@ -1,9 +1,9 @@
 use std::fs;
 use std::io::BufRead;
 
-use crate::error::{RegistryError, Result};
-use crate::layout::RegistryLayout;
-use crate::types::{Manifest, Metadata, PackageSet};
+use super::error::{RegistryError, Result};
+use super::layout::RegistryLayout;
+use super::types::{Manifest, Metadata, PackageSet};
 
 pub trait RegistryReader {
     fn list_package_sets(&self) -> Result<Vec<String>>;

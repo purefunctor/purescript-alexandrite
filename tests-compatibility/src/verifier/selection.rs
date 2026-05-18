@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
-use std::path::Path;
-use std::{fs, io};
+use std::io;
 
-use registry::{Manifest, PackageSet, RegistryError, RegistryReader};
 use serde::{Deserialize, Serialize};
+use tests_compatibility::registry::{Manifest, PackageSet, RegistryError, RegistryReader};
+use tests_compatibility::{Preset, preset_package_names};
 
-use crate::error::VerifierError;
-use crate::report::VerifierIssue;
+use super::error::VerifierError;
+use super::report::VerifierIssue;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -33,37 +33,30 @@ pub fn package_map(package_set: &PackageSet) -> HashMap<String, String> {
     package_set.packages.packages.clone()
 }
 
+#[cfg(test)]
 pub fn normalize_core_package(name: &str) -> String {
     name.strip_prefix("purescript-").unwrap_or(name).to_string()
-}
-
-pub fn read_core_packages(path: &Path) -> Result<Vec<String>, VerifierError> {
-    let content = fs::read_to_string(path)?;
-    let names: Vec<String> = serde_json::from_str(&content)?;
-    Ok(names.into_iter().map(|name| normalize_core_package(&name)).collect())
 }
 
 pub fn resolve_selection(
     registry: &impl RegistryReader,
     package_versions: &HashMap<String, String>,
     requested: &[String],
-    include_core: bool,
+    presets: &[Preset],
 ) -> Result<ResolvedSelection, VerifierError> {
+    let presets = if requested.is_empty() && presets.is_empty() {
+        vec![Preset::Core]
+    } else {
+        presets.to_vec()
+    };
     let mut roots: BTreeSet<String> = requested.iter().cloned().collect();
-    let mode = match (requested.is_empty(), include_core) {
-        (true, false) | (true, true) => SelectionMode::Core,
-        (false, false) => SelectionMode::Packages,
-        (false, true) => SelectionMode::Combined,
+    let mode = match (requested.is_empty(), presets.as_slice()) {
+        (true, [Preset::Core]) => SelectionMode::Core,
+        (_, []) => SelectionMode::Packages,
+        _ => SelectionMode::Combined,
     };
 
-    if requested.is_empty() || include_core {
-        let core_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .expect("verifier crate is under compiler-compatibility/verifier")
-            .join("tests-package-set/purescript-core.json");
-        roots.extend(read_core_packages(&core_path)?);
-    }
+    roots.extend(preset_package_names(&presets));
 
     let mut manifests: HashMap<String, Manifest> = HashMap::new();
     let mut selection = resolve_closure_with(roots, package_versions, |name| {
@@ -143,7 +136,7 @@ where
 mod tests {
     use std::collections::{BTreeSet, HashMap};
 
-    use registry::{Location, Manifest};
+    use tests_compatibility::registry::{Location, Manifest};
 
     use super::{normalize_core_package, resolve_closure_with};
 

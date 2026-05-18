@@ -8,9 +8,9 @@ use diagnostics::{
 use files::{FileId, Files};
 use url::Url;
 
-use crate::error::VerifierError;
-use crate::report::{CompilerDiagnostic, SpanReport, VerifierIssue};
-use crate::sources::SourceFile;
+use super::error::VerifierError;
+use super::report::{CompilerDiagnostic, SpanReport, VerifierIssue};
+use super::sources::SourceFile;
 
 #[derive(Debug, Default)]
 pub struct CompileReport {
@@ -300,7 +300,7 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use crate::sources::SourceFile;
+    use super::super::sources::SourceFile;
 
     use super::compile_sources;
 

@@ -11,7 +11,7 @@ coverage:
 
 [doc("Generate coverage with the package set")]
 coverage-full: coverage
-  cargo llvm-cov nextest --no-report -p tests-package-set
+  cargo llvm-cov nextest --no-report -p tests-compatibility
 
 [doc("Generate coverage report for Codecov")]
 coverage-codecov:
@@ -30,7 +30,7 @@ coverage-html:
 
 [doc("Run package-set benchmarks (e.g. just bench --bench checking_single_core)")]
 @bench *args="":
-  cargo criterion -p tests-package-set "$@"
+  cargo criterion -p tests-compatibility "$@"
 
 [doc("Apply clippy fixes and format")]
 fix:

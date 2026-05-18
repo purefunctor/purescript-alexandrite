@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::VerifierError;
-use crate::selection::{SelectedPackage, SelectionMode};
+use super::error::VerifierError;
+use super::selection::{SelectedPackage, SelectionMode};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -210,7 +210,7 @@ impl Report {
 mod tests {
     use tempfile::tempdir;
 
-    use crate::selection::{SelectedPackage, SelectionMode};
+    use super::super::selection::{SelectedPackage, SelectionMode};
 
     use super::{
         CompilerDiagnostic, PackageSetReport, Report, SelectionReport, SpanReport, VerifierIssue,
