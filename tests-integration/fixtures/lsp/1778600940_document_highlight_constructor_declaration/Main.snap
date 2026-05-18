@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+DocumentHighlight at Position { line: 2, character: 12 }
+
+```
+data Used = Used
+--          &
+```
+
+5:4..5:8
+5:11..5:15
+
+
+DocumentHighlight at Position { line: 7, character: 14 }
+
+```
+data Unused = Unused
+--            &
+```
+
+<empty>
