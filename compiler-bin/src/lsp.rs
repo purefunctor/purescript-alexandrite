@@ -3,12 +3,12 @@ mod command;
 pub mod error;
 pub mod event;
 pub mod extension;
+pub mod formatting;
 
 use std::borrow::BorrowMut;
 use std::ops::{ControlFlow, Deref};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
 use std::{env, fs, mem, process};
 
 use analyzer::completion::SuggestionsCache;
@@ -379,86 +379,10 @@ fn formatting(
 
     let input = snapshot.engine.content(current_file);
 
-    let parts = command::split(format_command).ok_or_else(|| {
-        LspError::FormattingFailed(format!("failed to parse --format-command: {format_command}"))
-    })?;
-    let mut parts = parts.into_iter();
-    let program = parts
-        .next()
-        .ok_or_else(|| LspError::FormattingFailed("--format-command is empty".to_string()))?;
+    let output = formatting::run(format_command, input.as_bytes())
+        .map_err(|e| LspError::FormattingFailed(e.to_string()))?;
 
-    let mut cmd = command::piped(&program, parts);
-
-    let mut child = cmd.spawn().map_err(|e| {
-        LspError::FormattingFailed(format!("failed to spawn formatter '{format_command}': {e}"))
-    })?;
-
-    command::write_stdin(&mut child, input.as_bytes()).map_err(|e| {
-        LspError::FormattingFailed(format!("failed writing to formatter stdin: {e}"))
-    })?;
-
-    let output =
-        command::wait_with_output_timeout(child, Duration::from_secs(10)).map_err(|e| match e {
-            command::WaitWithOutputTimeoutError::Wait(e) => LspError::FormattingFailed(format!(
-                "failed to wait for formatter '{format_command}': {e}"
-            )),
-            command::WaitWithOutputTimeoutError::TimedOut(cleanup) => {
-                let mut details = format!(
-                    "formatter timed out after {:?} (input {} bytes): {format_command}",
-                    cleanup.timeout,
-                    input.len()
-                );
-                if let Some(e) = cleanup.kill_error {
-                    details.push_str(&format!("; kill failed: {e}"));
-                }
-                if let Some(e) = cleanup.wait_error {
-                    details.push_str(&format!("; wait failed: {e}"));
-                }
-                LspError::FormattingFailed(details)
-            }
-            command::WaitWithOutputTimeoutError::Poll { source, cleanup } => {
-                let mut details = format!(
-                    "failed waiting for formatter '{format_command}' (input {} bytes): {source}",
-                    input.len()
-                );
-                if let Some(e) = cleanup.kill_error {
-                    details.push_str(&format!("; kill failed: {e}"));
-                }
-                if let Some(e) = cleanup.wait_error {
-                    details.push_str(&format!("; wait failed: {e}"));
-                }
-                LspError::FormattingFailed(details)
-            }
-        })?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-
-        let stderr = stderr.trim();
-        let stdout = stdout.trim();
-
-        let mut details = String::new();
-        if !stderr.is_empty() {
-            details.push_str(stderr);
-        }
-        if !stdout.is_empty() {
-            if !details.is_empty() {
-                details.push('\n');
-            }
-            details.push_str(stdout);
-        }
-        if details.is_empty() {
-            details.push_str("<no output>");
-        }
-
-        return Err(LspError::FormattingFailed(format!(
-            "formatter exited with {}: {}",
-            output.status, details
-        )));
-    }
-
-    let formatted = String::from_utf8(output.stdout)
+    let formatted = String::from_utf8(output)
         .map_err(|e| LspError::FormattingFailed(format!("formatter output was not utf-8: {e}")))?;
 
     if formatted.as_str() == input.as_ref() {
@@ -637,10 +561,7 @@ pub async fn start(config: Arc<cli::Config>) {
 mod tests {
     use super::*;
 
-    use async_lsp::lsp_types::{
-        ClientCapabilities, DocumentFormattingParams, InitializeParams, Position,
-        TextDocumentIdentifier, Url, WorkspaceFolder,
-    };
+    use async_lsp::lsp_types::{ClientCapabilities, InitializeParams, Url, WorkspaceFolder};
 
     fn mk_state_with(config: cli::Config) -> State {
         // ClientSocket isn't used by initialize/formatting logic in tests.
@@ -650,19 +571,12 @@ mod tests {
 
     fn mk_init_params(root: &std::path::Path) -> InitializeParams {
         InitializeParams {
-            process_id: None,
-            root_path: None,
-            root_uri: None,
-            initialization_options: None,
             capabilities: ClientCapabilities::default(),
-            trace: None,
             workspace_folders: Some(vec![WorkspaceFolder {
                 uri: Url::from_file_path(root).unwrap(),
                 name: "workspace".to_string(),
             }]),
-            work_done_progress_params: WorkDoneProgressParams::default(),
-            client_info: None,
-            locale: None,
+            ..InitializeParams::default()
         }
     }
 
@@ -712,125 +626,5 @@ mod tests {
         .unwrap();
 
         assert!(res.capabilities.document_formatting_provider.is_some());
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn formatting_returns_full_document_edit() {
-        let mut state = mk_state_with(base_config(Some("tr a-z A-Z".to_string())));
-
-        let uri = Url::parse("file:///test/Main.purs").unwrap();
-        let input = "module Main where\nfoo = bar\n";
-        on_change(&mut state, uri.as_str(), input).unwrap();
-
-        let snapshot = StateSnapshot {
-            client: state.client.clone(),
-            config: Arc::clone(&state.config),
-            engine: state.engine.snapshot(),
-            files: Arc::clone(&state.files),
-            workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
-            suggestions_cache: Arc::clone(&state.suggestions_cache),
-        };
-
-        let p = DocumentFormattingParams {
-            text_document: TextDocumentIdentifier { uri: uri.clone() },
-            options: FormattingOptions {
-                tab_size: 2,
-                insert_spaces: true,
-                ..FormattingOptions::default()
-            },
-            work_done_progress_params: WorkDoneProgressParams::default(),
-        };
-
-        let edits = formatting(snapshot, p).unwrap().unwrap();
-        assert_eq!(edits.len(), 1);
-        assert_eq!(edits[0].new_text, "MODULE MAIN WHERE\nFOO = BAR\n");
-        assert_eq!(edits[0].range.start, Position::new(0, 0));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn formatting_noop_returns_empty_edits() {
-        let mut state = mk_state_with(base_config(Some("cat".to_string())));
-
-        let uri = Url::parse("file:///test/Main.purs").unwrap();
-        let input = "module Main where\nfoo = bar\n";
-        on_change(&mut state, uri.as_str(), input).unwrap();
-
-        let snapshot = StateSnapshot {
-            client: state.client.clone(),
-            config: Arc::clone(&state.config),
-            engine: state.engine.snapshot(),
-            files: Arc::clone(&state.files),
-            workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
-            suggestions_cache: Arc::clone(&state.suggestions_cache),
-        };
-
-        let p = DocumentFormattingParams {
-            text_document: TextDocumentIdentifier { uri },
-            options: FormattingOptions::default(),
-            work_done_progress_params: WorkDoneProgressParams::default(),
-        };
-
-        let edits = formatting(snapshot, p).unwrap().unwrap();
-        assert!(edits.is_empty());
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn formatting_parses_quoted_args() {
-        let mut state = mk_state_with(base_config(Some("tr 'a-z' 'A-Z'".to_string())));
-
-        let uri = Url::parse("file:///test/Main.purs").unwrap();
-        let input = "module Main where\nfoo = bar\n";
-        on_change(&mut state, uri.as_str(), input).unwrap();
-
-        let snapshot = StateSnapshot {
-            client: state.client.clone(),
-            config: Arc::clone(&state.config),
-            engine: state.engine.snapshot(),
-            files: Arc::clone(&state.files),
-            workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
-            suggestions_cache: Arc::clone(&state.suggestions_cache),
-        };
-
-        let p = DocumentFormattingParams {
-            text_document: TextDocumentIdentifier { uri },
-            options: FormattingOptions::default(),
-            work_done_progress_params: WorkDoneProgressParams::default(),
-        };
-
-        let edits = formatting(snapshot, p).unwrap().unwrap();
-        assert_eq!(edits.len(), 1);
-        assert_eq!(edits[0].new_text, "MODULE MAIN WHERE\nFOO = BAR\n");
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn formatting_tolerates_outer_quoted_command_string() {
-        let mut state = mk_state_with(base_config(Some("\"tr a-z A-Z\"".to_string())));
-
-        let uri = Url::parse("file:///test/Main.purs").unwrap();
-        let input = "module Main where\nfoo = bar\n";
-        on_change(&mut state, uri.as_str(), input).unwrap();
-
-        let snapshot = StateSnapshot {
-            client: state.client.clone(),
-            config: Arc::clone(&state.config),
-            engine: state.engine.snapshot(),
-            files: Arc::clone(&state.files),
-            workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
-            suggestions_cache: Arc::clone(&state.suggestions_cache),
-        };
-
-        let p = DocumentFormattingParams {
-            text_document: TextDocumentIdentifier { uri },
-            options: FormattingOptions::default(),
-            work_done_progress_params: WorkDoneProgressParams::default(),
-        };
-
-        let edits = formatting(snapshot, p).unwrap().unwrap();
-        assert_eq!(edits.len(), 1);
-        assert_eq!(edits[0].new_text, "MODULE MAIN WHERE\nFOO = BAR\n");
     }
 }

@@ -2569,6 +2569,7 @@ dependencies = [
  "itertools 0.14.0",
  "line-index",
  "lowering",
+ "purescript-analyzer",
  "rowan",
  "serde_json",
  "stabilizing",

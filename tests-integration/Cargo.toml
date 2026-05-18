@@ -25,6 +25,7 @@ url = "2.5.7"
 
 [dev-dependencies]
 datatest-stable = "0.3"
+purescript-analyzer = { version = "0.0.12", path = "../compiler-bin" }
 serde_json = "1.0"
 
 [[test]]
