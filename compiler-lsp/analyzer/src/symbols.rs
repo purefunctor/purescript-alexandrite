@@ -1,19 +1,14 @@
 use std::sync::Arc;
 
 use async_lsp::lsp_types::*;
-use building::QueryEngine;
-use files::Files;
 use radix_trie::Trie;
 
-use crate::position::PositionEncoding;
-use crate::{AnalyzerError, common};
+use crate::{AnalyzerError, LanguageContext, common};
 
 pub fn workspace(
-    engine: &QueryEngine,
-    files: &Files,
+    context: &LanguageContext,
     cache: &mut WorkspaceSymbolsCache,
     query: &str,
-    encoding: PositionEncoding,
 ) -> Result<Option<WorkspaceSymbolResponse>, AnalyzerError> {
     if query.is_empty() {
         return Ok(None);
@@ -37,7 +32,7 @@ pub fn workspace(
         }
     } else {
         tracing::debug!("Initialising cache for '{query}'");
-        let filtered_symbols = build_symbol_list(engine, files, &query, encoding)?;
+        let filtered_symbols = build_symbol_list(context, &query)?;
         Arc::new(filtered_symbols)
     };
 
@@ -54,23 +49,20 @@ fn filter_symbols(cached: &[SymbolInformation], query: &str) -> Vec<SymbolInform
 }
 
 fn build_symbol_list(
-    engine: &QueryEngine,
-    files: &Files,
+    context: &LanguageContext,
     query: &str,
-    encoding: PositionEncoding,
 ) -> Result<Vec<SymbolInformation>, AnalyzerError> {
     let mut symbols = vec![];
 
-    for file_id in files.iter_id() {
-        let resolved = engine.resolved(file_id)?;
-        let uri = common::file_uri(engine, files, file_id)?;
+    for file_id in context.files.iter_id() {
+        let resolved = context.engine.resolved(file_id)?;
+        let uri = common::file_uri(context, file_id)?;
 
         for (name, _, term_id) in resolved.locals.iter_terms() {
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location =
-                common::file_term_location(engine, uri.clone(), file_id, term_id, encoding)?;
+            let location = common::file_term_location(context, uri.clone(), file_id, term_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
@@ -86,8 +78,7 @@ fn build_symbol_list(
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location =
-                common::file_type_location(engine, uri.clone(), file_id, type_id, encoding)?;
+            let location = common::file_type_location(context, uri.clone(), file_id, type_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::CLASS,
@@ -103,8 +94,7 @@ fn build_symbol_list(
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location =
-                common::file_type_location(engine, uri.clone(), file_id, type_id, encoding)?;
+            let location = common::file_type_location(context, uri.clone(), file_id, type_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::CLASS,

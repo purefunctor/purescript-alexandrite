@@ -12,7 +12,7 @@ use std::{env, fs, mem, process};
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
-use analyzer::{Files, QueryEngine, prim};
+use analyzer::{Files, LanguageContext, QueryEngine, prim};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
 use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::lsp_types::notification::Notification;
@@ -114,6 +114,12 @@ struct StateSnapshot {
 impl StateSnapshot {
     fn files(&self) -> impl Deref<Target = Files> {
         self.files.read()
+    }
+
+    fn with_language_context<T>(&self, f: impl FnOnce(&LanguageContext) -> T) -> T {
+        let files = self.files();
+        let context = LanguageContext::new(&self.engine, &files, self.position_encoding);
+        f(&context)
     }
 }
 
@@ -267,13 +273,9 @@ fn definition(
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
 
-    let result = analyzer::definition::implementation(
-        &snapshot.engine,
-        &snapshot.files(),
-        uri,
-        position,
-        snapshot.position_encoding,
-    );
+    let result = snapshot.with_language_context(|context| {
+        analyzer::definition::implementation(context, uri, position)
+    });
 
     result.on_non_fatal(None)
 }
@@ -283,13 +285,8 @@ fn hover(snapshot: StateSnapshot, p: HoverParams) -> Result<Option<Hover>, LspEr
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
 
-    let result = analyzer::hover::implementation(
-        &snapshot.engine,
-        &snapshot.files(),
-        uri,
-        position,
-        snapshot.position_encoding,
-    );
+    let result = snapshot
+        .with_language_context(|context| analyzer::hover::implementation(context, uri, position));
 
     result.on_non_fatal(None)
 }
@@ -304,14 +301,9 @@ fn completion(
 
     let mut cache = snapshot.suggestions_cache.write();
 
-    let result = analyzer::completion::implementation(
-        &snapshot.engine,
-        &snapshot.files(),
-        &mut cache,
-        uri,
-        position,
-        snapshot.position_encoding,
-    );
+    let result = snapshot.with_language_context(|context| {
+        analyzer::completion::implementation(context, &mut cache, uri, position)
+    });
 
     result.on_non_fatal(None)
 }
@@ -333,13 +325,9 @@ fn references(
     let uri = p.text_document_position.text_document.uri;
     let position = p.text_document_position.position;
 
-    let result = analyzer::references::implementation(
-        &snapshot.engine,
-        &snapshot.files(),
-        uri,
-        position,
-        snapshot.position_encoding,
-    );
+    let result = snapshot.with_language_context(|context| {
+        analyzer::references::implementation(context, uri, position)
+    });
 
     result.on_non_fatal(None)
 }
@@ -352,13 +340,9 @@ fn workspace_symbols(
 
     let mut cache = snapshot.workspace_symbols_cache.write();
 
-    let result = analyzer::symbols::workspace(
-        &snapshot.engine,
-        &snapshot.files(),
-        &mut cache,
-        &p.query,
-        snapshot.position_encoding,
-    );
+    let result = snapshot.with_language_context(|context| {
+        analyzer::symbols::workspace(context, &mut cache, &p.query)
+    });
 
     result.on_non_fatal(None)
 }

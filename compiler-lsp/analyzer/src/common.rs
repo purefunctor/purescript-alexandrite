@@ -1,19 +1,19 @@
 use async_lsp::lsp_types::*;
-use building::{QueryEngine, prim};
-use files::{FileId, Files};
+use building::prim;
+use files::FileId;
 use indexing::{TermItemId, TypeItemId};
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
-use crate::position::{PositionEncoding, Utf8Range};
-use crate::{AnalyzerError, locate, position};
+use crate::position::Utf8Range;
+use crate::{AnalyzerError, LanguageContext, locate, position};
 
 pub fn file_term_location(
-    engine: &QueryEngine,
+    context: &LanguageContext,
     uri: Url,
     file_id: FileId,
     term_id: TermItemId,
-    encoding: PositionEncoding,
 ) -> Result<Location, AnalyzerError> {
+    let engine = context.engine;
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
 
@@ -24,18 +24,18 @@ pub fn file_term_location(
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
     let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, encoding)
+    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
         .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
 pub fn file_type_location(
-    engine: &QueryEngine,
+    context: &LanguageContext,
     uri: Url,
     file_id: FileId,
     type_id: TypeItemId,
-    encoding: PositionEncoding,
 ) -> Result<Location, AnalyzerError> {
+    let engine = context.engine;
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
 
@@ -46,19 +46,15 @@ pub fn file_type_location(
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
     let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, encoding)
+    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
         .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
 
-pub fn file_uri(
-    engine: &QueryEngine,
-    files: &Files,
-    file_id: FileId,
-) -> Result<Url, AnalyzerError> {
-    let path = files.path(file_id);
-    let content = engine.content(file_id);
+pub fn file_uri(context: &LanguageContext, file_id: FileId) -> Result<Url, AnalyzerError> {
+    let path = context.files.path(file_id);
+    let content = context.engine.content(file_id);
 
     let uri = Url::parse(&path)?;
     prim::handle_generated(uri, &content).ok_or(AnalyzerError::NonFatal)

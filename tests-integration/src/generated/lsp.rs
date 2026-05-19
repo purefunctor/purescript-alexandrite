@@ -121,6 +121,7 @@ fn dispatch_cursor(
     uri: Url,
 ) {
     let encoding = PositionEncoding::Utf16;
+    let context = analyzer::LanguageContext::new(engine, files, encoding);
 
     let render_location = |location: Location| -> String {
         format!(
@@ -136,7 +137,7 @@ fn dispatch_cursor(
     match cursor {
         CursorKind::GotoDefinition => {
             if let Ok(Some(response)) =
-                analyzer::definition::implementation(engine, files, uri, position, encoding)
+                analyzer::definition::implementation(&context, uri, position)
             {
                 match response {
                     GotoDefinitionResponse::Scalar(location) => {
@@ -154,9 +155,7 @@ fn dispatch_cursor(
             }
         }
         CursorKind::Hover => {
-            if let Ok(Some(response)) =
-                analyzer::hover::implementation(engine, files, uri, position, encoding)
-            {
+            if let Ok(Some(response)) = analyzer::hover::implementation(&context, uri, position) {
                 let convert = |marked: MarkedString| -> String {
                     match marked {
                         MarkedString::String(string) => string,
@@ -197,7 +196,7 @@ fn dispatch_cursor(
         }
         CursorKind::Completion | CursorKind::CompletionCached => {
             if let Ok(Some(response)) =
-                analyzer::completion::implementation(engine, files, cache, uri, position, encoding)
+                analyzer::completion::implementation(&context, cache, uri, position)
             {
                 match response {
                     CompletionResponse::Array(items)
@@ -233,7 +232,7 @@ fn dispatch_cursor(
         }
         CursorKind::References => {
             if let Ok(Some(location)) =
-                analyzer::references::implementation(engine, files, uri, position, encoding)
+                analyzer::references::implementation(&context, uri, position)
             {
                 let location = location.into_iter().map(render_location).join("\n");
                 writeln!(result, "{location}").unwrap();
