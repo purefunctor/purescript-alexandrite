@@ -306,8 +306,9 @@ fn dispatch_workspace_symbols(
     query: &str,
 ) {
     let encoding = PositionEncoding::Utf16;
+    let context = analyzer::LanguageContext::new(engine, files, encoding);
 
-    match analyzer::symbols::workspace(engine, files, cache, query, encoding) {
+    match analyzer::symbols::workspace(&context, cache, query) {
         Ok(Some(WorkspaceSymbolResponse::Flat(symbols))) => {
             let mut lines = symbols
                 .into_iter()
