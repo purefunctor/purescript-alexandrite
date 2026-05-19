@@ -1,75 +1,74 @@
-use async_lsp::lsp_types::Position;
 use rowan::TextSize;
 
-use crate::locate::position_to_offset;
+use crate::position::{Utf8Position, utf8_position_to_offset};
 
 #[test]
 fn zero_on_blank_line() {
     let content = "";
-    let position = Position::new(0, 0);
+    let position = Utf8Position { line: 0, column: 0 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(0)));
 }
 
 #[test]
 fn zero_or_lf_line() {
     let content = "\n";
-    let position = Position::new(0, 0);
+    let position = Utf8Position { line: 0, column: 0 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(0)));
 }
 
 #[test]
 fn zero_or_crlf_line() {
     let content = "\r\n";
-    let position = Position::new(0, 0);
+    let position = Utf8Position { line: 0, column: 0 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(0)));
 }
 
 #[test]
 fn last_on_line() {
     let content = "abcdef";
-    let position = Position::new(0, 6);
+    let position = Utf8Position { line: 0, column: 6 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(6)));
 }
 
 #[test]
 fn last_on_line_clamp() {
     let content = "abcdef";
-    let position = Position::new(0, 600);
+    let position = Utf8Position { line: 0, column: 600 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(6)));
 }
 
 #[test]
 fn last_on_lf_line() {
     let content = "abcdef\n";
-    let position = Position::new(0, 6);
+    let position = Utf8Position { line: 0, column: 6 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(6)));
 }
 
 #[test]
 fn last_on_crlf_line_clamp() {
     let content = "abcdef\r\n";
-    let position = Position::new(0, 600);
+    let position = Utf8Position { line: 0, column: 600 };
 
-    let offset = position_to_offset(content, position);
+    let offset = utf8_position_to_offset(content, position);
     assert_eq!(offset, Some(TextSize::new(6)));
 }
 
 mod text_range_to_range {
     use rowan::{TextRange, TextSize};
 
-    use crate::locate::{position_to_offset, text_range_to_range};
+    use crate::position::{text_range_to_utf8_range, utf8_position_to_offset};
 
     /// Extracts a slice from `content` using `_` anchors to mark
     /// the start and end. The content is returned with the anchors
@@ -97,20 +96,20 @@ mod text_range_to_range {
     fn format_test_case(input: &str) -> String {
         let (content, range) = extract_range(input);
 
-        let lsp_range = text_range_to_range(&content, range).unwrap();
+        let utf8_range = text_range_to_utf8_range(&content, range).unwrap();
         let text_range = {
-            let start = position_to_offset(&content, lsp_range.start).unwrap();
-            let end = position_to_offset(&content, lsp_range.end).unwrap();
+            let start = utf8_position_to_offset(&content, utf8_range.start).unwrap();
+            let end = utf8_position_to_offset(&content, utf8_range.end).unwrap();
             TextRange::new(start, end)
         };
 
         format!(
             "Content: {}\nRange: {}:{} -> {}:{}\nRoundtrip: {}",
             &content[range],
-            lsp_range.start.line,
-            lsp_range.start.character,
-            lsp_range.end.line,
-            lsp_range.end.character,
+            utf8_range.start.line,
+            utf8_range.start.column,
+            utf8_range.end.line,
+            utf8_range.end.column,
             range == text_range,
         )
     }
@@ -137,7 +136,7 @@ mod text_range_to_range {
     fn unicode_full() {
         insta::assert_snapshot!(format_test_case("_content ∷ Type_"), @r"
         Content: content ∷ Type
-        Range: 0:0 -> 0:14
+        Range: 0:0 -> 0:16
         Roundtrip: true
         ");
     }
@@ -146,7 +145,7 @@ mod text_range_to_range {
     fn unicode_partial() {
         insta::assert_snapshot!(format_test_case("content _∷ Type_"), @r"
         Content: ∷ Type
-        Range: 0:8 -> 0:14
+        Range: 0:8 -> 0:16
         Roundtrip: true
         ");
     }
@@ -155,7 +154,7 @@ mod text_range_to_range {
     fn unicode_ending() {
         insta::assert_snapshot!(format_test_case("_content ∷_ Type"), @r"
         Content: content ∷
-        Range: 0:0 -> 0:9
+        Range: 0:0 -> 0:11
         Roundtrip: true
         ");
     }
@@ -173,7 +172,7 @@ mod text_range_to_range {
     fn emoji_single() {
         insta::assert_snapshot!(format_test_case("hello _😀_ world"), @r"
         Content: 😀
-        Range: 0:6 -> 0:7
+        Range: 0:6 -> 0:10
         Roundtrip: true
         ");
     }
@@ -182,7 +181,7 @@ mod text_range_to_range {
     fn emoji_multiple() {
         insta::assert_snapshot!(format_test_case("_🎉🎊🎈_"), @r"
         Content: 🎉🎊🎈
-        Range: 0:0 -> 0:3
+        Range: 0:0 -> 0:12
         Roundtrip: true
         ");
     }
@@ -241,7 +240,7 @@ mod text_range_to_range {
         insta::assert_snapshot!(format_test_case("type _∷ Type\nvalue ∷_ Int\ndata ∷ Data"), @r"
         Content: ∷ Type
         value ∷
-        Range: 0:5 -> 1:7
+        Range: 0:5 -> 1:9
         Roundtrip: true
         ");
     }

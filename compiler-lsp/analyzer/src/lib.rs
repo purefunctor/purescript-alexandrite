@@ -5,6 +5,7 @@ pub mod error;
 pub mod extract;
 pub mod hover;
 pub mod locate;
+pub mod position;
 pub mod references;
 pub mod symbols;
 

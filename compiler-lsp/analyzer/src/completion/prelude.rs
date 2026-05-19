@@ -9,7 +9,8 @@ use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
 use syntax::{SyntaxKind, SyntaxToken, cst};
 
-use crate::{AnalyzerError, locate};
+use crate::position::{PositionEncoding, Utf8Position};
+use crate::{AnalyzerError, position};
 
 pub struct Context<'c, 'a> {
     pub engine: &'c QueryEngine,
@@ -24,6 +25,7 @@ pub struct Context<'c, 'a> {
     pub prim_id: FileId,
     pub prim_resolved: &'a ResolvedModule,
 
+    pub encoding: PositionEncoding,
     pub semantics: CursorSemantics,
     pub text: CursorText,
     pub range: Option<Range>,
@@ -41,11 +43,12 @@ impl Context<'_, '_> {
             |cst| Some(cst.syntax().text_range()),
         )?;
 
-        let mut position = locate::offset_to_position(self.content, range.end())?;
+        let mut position = position::offset_to_utf8_position(self.content, range.end())?;
 
         position.line += 1;
-        position.character = 0;
+        position.column = 0;
 
+        let position = position::utf8_position_to_protocol(self.content, position, self.encoding)?;
         Some(Range::new(position, position))
     }
 
@@ -108,7 +111,7 @@ pub enum CursorSemantics {
 const COMPLETION_MARKER: &str = "Z'PureScript'Z";
 
 impl CursorSemantics {
-    pub fn new(content: &str, position: Position) -> CursorSemantics {
+    pub fn new(content: &str, position: Utf8Position) -> CursorSemantics {
         // We insert a placeholder identifier at the current position of the
         // text cursor. This is done as an effort to produce as valid of a
         // parse tree as possible before we perform further analysis.
@@ -124,7 +127,7 @@ impl CursorSemantics {
         //
         // component = Halogen.Z'PureScript'Z
 
-        let Some(offset) = locate::position_to_offset(content, position) else {
+        let Some(offset) = position::utf8_position_to_offset(content, position) else {
             return CursorSemantics::General;
         };
 
@@ -183,14 +186,22 @@ pub enum CursorText {
 }
 
 impl CursorText {
-    pub fn new(content: &str, token: &SyntaxToken) -> (CursorText, Option<Range>) {
-        CursorText::of_qualified(content, token)
-            .or_else(|| CursorText::of_qualifier(content, token))
-            .or_else(|| CursorText::of_module_name(content, token))
+    pub fn new(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> (CursorText, Option<Range>) {
+        CursorText::of_qualified(content, token, encoding)
+            .or_else(|| CursorText::of_qualifier(content, token, encoding))
+            .or_else(|| CursorText::of_module_name(content, token, encoding))
             .unwrap_or((CursorText::None, None))
     }
 
-    fn of_qualified(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_qualified(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let qualified = cst::QualifiedName::cast(node)?;
 
@@ -227,7 +238,8 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range = range.and_then(|range| locate::text_range_to_range(content, range));
+            let range =
+                range.and_then(|range| position::text_range_to_protocol(content, range, encoding));
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),
@@ -239,7 +251,11 @@ impl CursorText {
         })
     }
 
-    fn of_qualifier(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_qualifier(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let qualifier = cst::Qualifier::cast(node)?;
             let token = qualifier.text()?;
@@ -248,7 +264,7 @@ impl CursorText {
             let prefix = SmolStr::new(prefix);
 
             let range = token.text_range();
-            let range = locate::text_range_to_range(content, range)?;
+            let range = position::text_range_to_protocol(content, range, encoding)?;
 
             let range = Some(range);
             let text = CursorText::Prefix(prefix);
@@ -257,7 +273,11 @@ impl CursorText {
         })
     }
 
-    fn of_module_name(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_module_name(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let module_name = cst::ModuleName::cast(node)?;
 
@@ -276,7 +296,8 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range = range.map(|range| locate::text_range_to_range(content, range))?;
+            let range =
+                range.map(|range| position::text_range_to_protocol(content, range, encoding))?;
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),

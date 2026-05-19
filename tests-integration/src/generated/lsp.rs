@@ -3,6 +3,7 @@ pub mod render;
 use std::fmt::Write;
 
 use analyzer::completion::SuggestionsCache;
+use analyzer::position::PositionEncoding;
 use analyzer::{QueryEngine, prim};
 use async_lsp::lsp_types::{
     CompletionItemKind, CompletionList, CompletionResponse, GotoDefinitionResponse, HoverContents,
@@ -119,6 +120,8 @@ fn dispatch_cursor(
     cursor: CursorKind,
     uri: Url,
 ) {
+    let encoding = PositionEncoding::Utf16;
+
     let render_location = |location: Location| -> String {
         format!(
             "{} @ {}:{}..{}:{}",
@@ -133,7 +136,7 @@ fn dispatch_cursor(
     match cursor {
         CursorKind::GotoDefinition => {
             if let Ok(Some(response)) =
-                analyzer::definition::implementation(engine, files, uri, position)
+                analyzer::definition::implementation(engine, files, uri, position, encoding)
             {
                 match response {
                     GotoDefinitionResponse::Scalar(location) => {
@@ -152,7 +155,7 @@ fn dispatch_cursor(
         }
         CursorKind::Hover => {
             if let Ok(Some(response)) =
-                analyzer::hover::implementation(engine, files, uri, position)
+                analyzer::hover::implementation(engine, files, uri, position, encoding)
             {
                 let convert = |marked: MarkedString| -> String {
                     match marked {
@@ -194,7 +197,7 @@ fn dispatch_cursor(
         }
         CursorKind::Completion | CursorKind::CompletionCached => {
             if let Ok(Some(response)) =
-                analyzer::completion::implementation(engine, files, cache, uri, position)
+                analyzer::completion::implementation(engine, files, cache, uri, position, encoding)
             {
                 match response {
                     CompletionResponse::Array(items)
@@ -230,7 +233,7 @@ fn dispatch_cursor(
         }
         CursorKind::References => {
             if let Ok(Some(location)) =
-                analyzer::references::implementation(engine, files, uri, position)
+                analyzer::references::implementation(engine, files, uri, position, encoding)
             {
                 let location = location.into_iter().map(render_location).join("\n");
                 writeln!(result, "{location}").unwrap();

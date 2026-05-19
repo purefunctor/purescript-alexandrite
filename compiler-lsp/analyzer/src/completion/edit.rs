@@ -9,7 +9,7 @@ use rowan::ast::AstNode;
 use smol_str::{SmolStrBuilder, ToSmolStr};
 
 use crate::completion::Context;
-use crate::locate;
+use crate::{locate, position};
 
 fn import_item<F, G>(
     context: &Context,
@@ -79,7 +79,9 @@ where
 
         let import_range = {
             let ptr = ptr.syntax_node_ptr();
-            locate::syntax_range(context.content, &root, &ptr)
+            locate::syntax_range(context.content, &root, &ptr).and_then(|range| {
+                position::utf8_range_to_protocol(context.content, range, context.encoding)
+            })
         };
 
         (Some(import_text), import_range)

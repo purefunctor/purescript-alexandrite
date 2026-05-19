@@ -1,4 +1,4 @@
-use analyzer::{common, locate};
+use analyzer::{common, position};
 use async_lsp::LanguageClient;
 use async_lsp::lsp_types::*;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
@@ -67,7 +67,10 @@ fn collect_diagnostics_core(
         all_diagnostics.extend(error.to_diagnostics(&context));
     }
 
-    let to_position = |offset: u32| locate::offset_to_position(&content, TextSize::from(offset));
+    let to_position = |offset: u32| {
+        let position = position::offset_to_utf8_position(&content, TextSize::from(offset))?;
+        position::utf8_position_to_protocol(&content, position, snapshot.position_encoding)
+    };
 
     let diagnostics = all_diagnostics
         .iter()
