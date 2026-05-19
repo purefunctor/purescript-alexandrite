@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+WorkspaceSymbols query ""
+
+<none>
+
+
+WorkspaceSymbols query "main"
+
+MainClass Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 7:0..7:17
+MainConstructor Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 5:16..5:31
+MainType Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 5:0..5:31
+mainValue Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 2:0..3:14
+
+
+WorkspaceSymbols query "MAIN"
+
+MainClass Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 7:0..7:17
+MainConstructor Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 5:16..5:31
+MainType Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 5:0..5:31
+mainValue Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 2:0..3:14
+
+
+WorkspaceSymbols query "mainv"
+
+mainValue Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Main.purs @ 2:0..3:14
+
+
+WorkspaceSymbols query "library"
+
+LibraryClass Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 7:0..7:20
+LibraryConstructor Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 5:19..5:37
+LibraryType Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 5:0..5:37
+libraryValue Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 2:0..3:16
+
+
+WorkspaceSymbols query "libraryc"
+
+LibraryClass Class file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 7:0..7:20
+LibraryConstructor Function file:///tests-integration/fixtures/lsp/1779213180_workspace_symbols/Library.purs @ 5:19..5:37
+
+
+WorkspaceSymbols query "missing"
+
+<empty>

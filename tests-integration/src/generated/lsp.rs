@@ -7,7 +7,7 @@ use analyzer::position::PositionEncoding;
 use analyzer::{QueryEngine, prim};
 use async_lsp::lsp_types::{
     CompletionItemKind, CompletionList, CompletionResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, Position, Url,
+    LanguageString, Location, MarkedString, Position, Url, WorkspaceSymbolResponse,
 };
 use files::{FileId, Files};
 use itertools::Itertools;
@@ -44,7 +44,14 @@ impl CursorKind {
     }
 }
 
-fn extract_cursors(content: &str) -> Vec<(Position, CursorKind)> {
+enum Request {
+    Cursor(Position, CursorKind),
+    WorkspaceSymbols(String),
+}
+
+const WORKSPACE_SYMBOLS_DIRECTIVE: &str = "-- #";
+
+fn extract_cursors(content: &str) -> Vec<(usize, Request)> {
     let line_index = LineIndex::new(content);
     let mut cursors = vec![];
 
@@ -60,10 +67,41 @@ fn extract_cursors(content: &str) -> Vec<(Position, CursorKind)> {
         let position = Position::new(line, character);
         let Some(kind) = CursorKind::parse(text) else { continue };
 
-        cursors.push((position, kind));
+        cursors.push((index, Request::Cursor(position, kind)));
     }
 
     cursors
+}
+
+fn extract_workspace_symbol_queries(content: &str) -> Vec<(usize, Request)> {
+    let line_index = LineIndex::new(content);
+    let mut queries = vec![];
+
+    for (index, _) in content.match_indices(WORKSPACE_SYMBOLS_DIRECTIVE) {
+        let line_col = line_index.line_col(TextSize::new(index as u32));
+        let line_range = line_index.line(line_col.line).unwrap();
+        let line = &content[line_range];
+        if !line.starts_with(WORKSPACE_SYMBOLS_DIRECTIVE) {
+            continue;
+        }
+
+        let query = line
+            .strip_prefix(WORKSPACE_SYMBOLS_DIRECTIVE)
+            .expect("line starts with workspace symbols directive")
+            .trim()
+            .to_string();
+
+        queries.push((index, Request::WorkspaceSymbols(query)));
+    }
+
+    queries
+}
+
+fn extract_requests(content: &str) -> Vec<Request> {
+    let mut requests = extract_cursors(content);
+    requests.extend(extract_workspace_symbol_queries(content));
+    requests.sort_by_key(|(index, _)| *index);
+    requests.into_iter().map(|(_, request)| request).collect()
 }
 
 pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
@@ -76,39 +114,67 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
 
     let content = engine.content(id);
     let line_index = LineIndex::new(&content);
-    let cursors = extract_cursors(&content);
+    let requests = extract_requests(&content);
 
-    let mut cache = SuggestionsCache::default();
+    let mut suggestions_cache = SuggestionsCache::default();
+    let mut symbols_cache = analyzer::symbols::WorkspaceSymbolsCache::default();
     let mut result = String::new();
-    for (index, (position, cursor)) in cursors.iter().enumerate() {
+    for (index, request) in requests.iter().enumerate() {
         let uri = uri.clone();
 
         if index > 0 {
             writeln!(result, "\n").unwrap();
         }
 
-        writeln!(result, "{cursor:#?} at {position:?}\n").unwrap();
+        match request {
+            Request::Cursor(position, cursor) => {
+                writeln!(result, "{cursor:#?} at {position:?}\n").unwrap();
 
-        let line_0 = line_index.line(position.line);
-        let line_1 = line_index.line(position.line + 1);
-        if let Some((line_0, line_1)) = line_0.zip(line_1) {
-            let line_0 = &content[line_0];
-            let line_1 = &content[line_1];
-            writeln!(result, "```").unwrap();
-            write!(result, "{line_0}").unwrap();
-            write!(result, "{line_1}").unwrap();
-            writeln!(result, "```").unwrap();
+                let line_0 = line_index.line(position.line);
+                let line_1 = line_index.line(position.line + 1);
+                if let Some((line_0, line_1)) = line_0.zip(line_1) {
+                    let line_0 = &content[line_0];
+                    let line_1 = &content[line_1];
+                    writeln!(result, "```").unwrap();
+                    write!(result, "{line_0}").unwrap();
+                    write!(result, "{line_1}").unwrap();
+                    writeln!(result, "```").unwrap();
+                }
+                writeln!(result).unwrap();
+
+                if matches!(cursor, CursorKind::Completion) {
+                    suggestions_cache = SuggestionsCache::default();
+                }
+
+                dispatch_cursor(
+                    &mut result,
+                    engine,
+                    files,
+                    &mut suggestions_cache,
+                    *position,
+                    *cursor,
+                    uri,
+                );
+            }
+            Request::WorkspaceSymbols(query) => {
+                writeln!(result, "WorkspaceSymbols query {query:?}\n").unwrap();
+                dispatch_workspace_symbols(&mut result, engine, files, &mut symbols_cache, query);
+            }
         }
-        writeln!(result).unwrap();
-
-        if matches!(cursor, CursorKind::Completion) {
-            cache = SuggestionsCache::default();
-        }
-
-        dispatch_cursor(&mut result, engine, files, &mut cache, *position, *cursor, uri);
     }
 
     redact_paths(result)
+}
+
+fn render_location(location: Location) -> String {
+    format!(
+        "{} @ {}:{}..{}:{}",
+        location.uri,
+        location.range.start.line,
+        location.range.start.character,
+        location.range.end.line,
+        location.range.end.character,
+    )
 }
 
 fn dispatch_cursor(
@@ -121,17 +187,6 @@ fn dispatch_cursor(
     uri: Url,
 ) {
     let encoding = PositionEncoding::Utf16;
-
-    let render_location = |location: Location| -> String {
-        format!(
-            "{} @ {}:{}..{}:{}",
-            location.uri,
-            location.range.start.line,
-            location.range.start.character,
-            location.range.end.line,
-            location.range.end.character,
-        )
-    };
 
     match cursor {
         CursorKind::GotoDefinition => {
@@ -240,6 +295,44 @@ fn dispatch_cursor(
             } else {
                 writeln!(result, "<empty>").unwrap();
             }
+        }
+    }
+}
+
+fn dispatch_workspace_symbols(
+    result: &mut String,
+    engine: &QueryEngine,
+    files: &Files,
+    cache: &mut analyzer::symbols::WorkspaceSymbolsCache,
+    query: &str,
+) {
+    let encoding = PositionEncoding::Utf16;
+
+    match analyzer::symbols::workspace(engine, files, cache, query, encoding) {
+        Ok(Some(WorkspaceSymbolResponse::Flat(symbols))) => {
+            let mut lines = symbols
+                .into_iter()
+                .map(|symbol| {
+                    let location = render_location(symbol.location);
+                    format!("{} {:?} {location}", symbol.name, symbol.kind)
+                })
+                .collect_vec();
+
+            if lines.is_empty() {
+                writeln!(result, "<empty>").unwrap();
+            } else {
+                lines.sort();
+                writeln!(result, "{}", lines.join("\n")).unwrap();
+            }
+        }
+        Ok(Some(_)) => {
+            writeln!(result, "<unsupported>").unwrap();
+        }
+        Ok(None) => {
+            writeln!(result, "<none>").unwrap();
+        }
+        Err(_) => {
+            writeln!(result, "<empty>").unwrap();
         }
     }
 }
