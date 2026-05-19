@@ -46,14 +46,11 @@ where
 {
     let required = equations.iter().map(|equation| equation.binders.len()).max().unwrap_or(0);
 
-    let signature::SkolemisedSignature {
-        substitution,
-        mut constraints,
-        mut arguments,
-        mut result,
-    } = signature::expect_term_signature(state, context, expected_type, required)?;
+    let signature::SkolemisedSignature { substitution, mut constraints, mut arguments, mut result } =
+        signature::expect_term_signature(state, context, expected_type, required)?;
 
-    let given_substitution = constraint::elaborate_given_substitution(state, context, &constraints)?;
+    let given_substitution =
+        constraint::elaborate_given_substitution(state, context, &constraints)?;
     if !given_substitution.is_empty() {
         let original_constraints = constraints.clone();
         constraints = constraints
