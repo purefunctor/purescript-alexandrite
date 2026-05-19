@@ -1,3 +1,4 @@
+pub mod capabilities;
 pub mod error;
 pub mod event;
 pub mod extension;
@@ -9,6 +10,7 @@ use std::sync::Arc;
 use std::{env, fs, mem, process};
 
 use analyzer::completion::SuggestionsCache;
+use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
 use analyzer::{Files, QueryEngine, prim};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
@@ -28,6 +30,7 @@ use tower::ServiceBuilder;
 use walkdir::WalkDir;
 
 use crate::cli;
+use crate::lsp::capabilities::negotiate_position_encoding;
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 
 pub struct State {
@@ -41,6 +44,7 @@ pub struct State {
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
 
     pub root: Option<PathBuf>,
+    pub position_encoding: PositionEncoding,
 }
 
 impl State {
@@ -58,8 +62,18 @@ impl State {
         let suggestions_cache = Arc::new(RwLock::new(suggestions_cache));
 
         let root = None;
+        let position_encoding = PositionEncoding::Utf16;
 
-        State { config, client, engine, files, workspace_symbols_cache, suggestions_cache, root }
+        State {
+            config,
+            client,
+            engine,
+            files,
+            workspace_symbols_cache,
+            suggestions_cache,
+            root,
+            position_encoding,
+        }
     }
 
     fn spawn<T>(&self, f: impl FnOnce(StateSnapshot) -> T + Send + 'static) -> task::JoinHandle<T>
@@ -72,6 +86,7 @@ impl State {
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
+            position_encoding: self.position_encoding,
         };
         task::spawn_blocking(move || f(snapshot))
     }
@@ -93,6 +108,7 @@ struct StateSnapshot {
     files: Arc<RwLock<Files>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
+    position_encoding: PositionEncoding,
 }
 
 impl StateSnapshot {
@@ -108,6 +124,9 @@ fn initialize(
     state: &mut State,
     p: extension::CustomInitializeParams,
 ) -> impl Future<Output = Result<InitializeResult, ResponseError>> + use<> {
+    let position_encoding = negotiate_position_encoding(&p.initialize_params);
+    state.position_encoding = position_encoding;
+
     state.root = p
         .initialize_params
         .workspace_folders
@@ -142,11 +161,11 @@ fn initialize(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
                         change: Some(TextDocumentSyncKind::FULL),
-                        // Clients may not send didSave unless we advertise it.
                         save: Some(TextDocumentSyncSaveOptions::Supported(true)),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
+                position_encoding: Some(PositionEncodingKind::from(position_encoding)),
                 ..ServerCapabilities::default()
             },
         })
@@ -247,16 +266,32 @@ fn definition(
     let _span = tracing::info_span!("definition").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    analyzer::definition::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = analyzer::definition::implementation(
+        &snapshot.engine,
+        &snapshot.files(),
+        uri,
+        position,
+        snapshot.position_encoding,
+    );
+
+    result.on_non_fatal(None)
 }
 
 fn hover(snapshot: StateSnapshot, p: HoverParams) -> Result<Option<Hover>, LspError> {
     let _span = tracing::info_span!("hover").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    analyzer::hover::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = analyzer::hover::implementation(
+        &snapshot.engine,
+        &snapshot.files(),
+        uri,
+        position,
+        snapshot.position_encoding,
+    );
+
+    result.on_non_fatal(None)
 }
 
 fn completion(
@@ -269,14 +304,16 @@ fn completion(
 
     let mut cache = snapshot.suggestions_cache.write();
 
-    analyzer::completion::implementation(
+    let result = analyzer::completion::implementation(
         &snapshot.engine,
         &snapshot.files(),
         &mut cache,
         uri,
         position,
-    )
-    .on_non_fatal(None)
+        snapshot.position_encoding,
+    );
+
+    result.on_non_fatal(None)
 }
 
 fn resolve_completion_item(
@@ -295,8 +332,16 @@ fn references(
     let _span = tracing::info_span!("references").entered();
     let uri = p.text_document_position.text_document.uri;
     let position = p.text_document_position.position;
-    analyzer::references::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = analyzer::references::implementation(
+        &snapshot.engine,
+        &snapshot.files(),
+        uri,
+        position,
+        snapshot.position_encoding,
+    );
+
+    result.on_non_fatal(None)
 }
 
 fn workspace_symbols(
@@ -306,8 +351,16 @@ fn workspace_symbols(
     let _span = tracing::info_span!("workspace_symbols").entered();
 
     let mut cache = snapshot.workspace_symbols_cache.write();
-    analyzer::symbols::workspace(&snapshot.engine, &snapshot.files(), &mut cache, &p.query)
-        .on_non_fatal(None)
+
+    let result = analyzer::symbols::workspace(
+        &snapshot.engine,
+        &snapshot.files(),
+        &mut cache,
+        &p.query,
+        snapshot.position_encoding,
+    );
+
+    result.on_non_fatal(None)
 }
 
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {

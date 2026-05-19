@@ -5,6 +5,7 @@ use building::QueryEngine;
 use files::Files;
 use radix_trie::Trie;
 
+use crate::position::PositionEncoding;
 use crate::{AnalyzerError, common};
 
 pub fn workspace(
@@ -12,6 +13,7 @@ pub fn workspace(
     files: &Files,
     cache: &mut WorkspaceSymbolsCache,
     query: &str,
+    encoding: PositionEncoding,
 ) -> Result<Option<WorkspaceSymbolResponse>, AnalyzerError> {
     if query.is_empty() {
         return Ok(None);
@@ -35,7 +37,7 @@ pub fn workspace(
         }
     } else {
         tracing::debug!("Initialising cache for '{query}'");
-        let filtered_symbols = build_symbol_list(engine, files, &query)?;
+        let filtered_symbols = build_symbol_list(engine, files, &query, encoding)?;
         Arc::new(filtered_symbols)
     };
 
@@ -55,6 +57,7 @@ fn build_symbol_list(
     engine: &QueryEngine,
     files: &Files,
     query: &str,
+    encoding: PositionEncoding,
 ) -> Result<Vec<SymbolInformation>, AnalyzerError> {
     let mut symbols = vec![];
 
@@ -66,7 +69,8 @@ fn build_symbol_list(
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location = common::file_term_location(engine, uri.clone(), file_id, term_id)?;
+            let location =
+                common::file_term_location(engine, uri.clone(), file_id, term_id, encoding)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
@@ -82,7 +86,8 @@ fn build_symbol_list(
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location = common::file_type_location(engine, uri.clone(), file_id, type_id)?;
+            let location =
+                common::file_type_location(engine, uri.clone(), file_id, type_id, encoding)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::CLASS,
@@ -98,7 +103,8 @@ fn build_symbol_list(
             if !name.to_lowercase().starts_with(query) {
                 continue;
             }
-            let location = common::file_type_location(engine, uri.clone(), file_id, type_id)?;
+            let location =
+                common::file_type_location(engine, uri.clone(), file_id, type_id, encoding)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::CLASS,

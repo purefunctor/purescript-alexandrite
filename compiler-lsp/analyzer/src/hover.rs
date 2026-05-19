@@ -10,19 +10,25 @@ use rowan::ast::{AstNode, AstPtr};
 use smol_str::ToSmolStr;
 use syntax::{SyntaxNode, cst};
 
-use crate::extract::{self, AnnotationSyntaxRange};
-use crate::{AnalyzerError, locate};
+use crate::extract::AnnotationSyntaxRange;
+use crate::position::PositionEncoding;
+use crate::{AnalyzerError, extract, locate, position};
 
 pub fn implementation(
     engine: &QueryEngine,
     files: &Files,
     uri: Url,
     position: Position,
+    encoding: PositionEncoding,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
         files.id(uri).ok_or(AnalyzerError::NonFatal)?
     };
+
+    let content = engine.content(current_file);
+    let position = position::protocol_position_to_utf8(&content, position, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
 
     let located = locate::locate(engine, current_file, position)?;
 

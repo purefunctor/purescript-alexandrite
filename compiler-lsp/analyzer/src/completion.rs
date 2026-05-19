@@ -24,7 +24,8 @@ use sources::{
 };
 use syntax::SyntaxKind;
 
-use crate::{AnalyzerError, locate};
+use crate::position::PositionEncoding;
+use crate::{AnalyzerError, position};
 
 #[derive(Clone, Default)]
 pub struct SuggestionsCacheEntry {
@@ -42,6 +43,7 @@ pub fn implementation(
     cache: &mut SuggestionsCache,
     uri: Url,
     position: Position,
+    encoding: PositionEncoding,
 ) -> Result<Option<CompletionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
@@ -50,9 +52,12 @@ pub fn implementation(
 
     let prim_id = engine.prim_id();
     let content = engine.content(current_file);
+    let position = position::protocol_position_to_utf8(&content, position, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
-    let offset = locate::position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
@@ -70,7 +75,7 @@ pub fn implementation(
     };
 
     let semantics = CursorSemantics::new(&content, position);
-    let (text, range) = CursorText::new(&content, &token);
+    let (text, range) = CursorText::new(&content, &token, encoding);
 
     let stabilized = engine.stabilized(current_file)?;
     let resolved = engine.resolved(current_file)?;
@@ -86,6 +91,7 @@ pub fn implementation(
         resolved: &resolved,
         prim_id,
         prim_resolved: &prim_resolved,
+        encoding,
         semantics,
         text,
         range,

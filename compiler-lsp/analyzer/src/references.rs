@@ -14,54 +14,64 @@ use smol_str::ToSmolStr;
 use stabilizing::{AstId, StabilizedModule};
 use syntax::{PureScript, cst};
 
-use crate::{AnalyzerError, common, locate};
+use crate::position::PositionEncoding;
+use crate::{AnalyzerError, common, locate, position};
 
 pub fn implementation(
     engine: &QueryEngine,
     files: &Files,
     uri: Url,
     position: Position,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
         files.id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
+    let content = engine.content(current_file);
+    let position = position::protocol_position_to_utf8(&content, position, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
+
     let located = locate::locate(engine, current_file, position)?;
 
     match located {
         locate::Located::ModuleName(module_name) => {
-            references_module_name(engine, files, current_file, module_name)
+            references_module_name(engine, files, current_file, module_name, encoding)
         }
         locate::Located::ImportItem(import_id) => {
-            references_import(engine, files, current_file, import_id)
+            references_import(engine, files, current_file, import_id, encoding)
         }
         locate::Located::Binder(binder_id) => {
-            references_binder(engine, files, current_file, binder_id)
+            references_binder(engine, files, current_file, binder_id, encoding)
         }
         locate::Located::Expression(expression_id) => {
-            references_expression(engine, files, current_file, expression_id)
+            references_expression(engine, files, current_file, expression_id, encoding)
         }
-        locate::Located::Type(type_id) => references_type(engine, files, current_file, type_id),
+        locate::Located::Type(type_id) => {
+            references_type(engine, files, current_file, type_id, encoding)
+        }
         locate::Located::TermOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
-            references_file_term(engine, files, current_file, f_id, t_id)
+            references_file_term(engine, files, current_file, f_id, t_id, encoding)
         }
         locate::Located::TypeOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
-            references_file_type(engine, files, current_file, f_id, t_id)
+            references_file_type(engine, files, current_file, f_id, t_id, encoding)
         }
         locate::Located::TermItem(term_id) => {
-            references_file_term(engine, files, current_file, current_file, term_id)
+            references_file_term(engine, files, current_file, current_file, term_id, encoding)
         }
         locate::Located::TypeItem(type_id) => {
-            references_file_type(engine, files, current_file, current_file, type_id)
+            references_file_type(engine, files, current_file, current_file, type_id, encoding)
         }
-        locate::Located::LetBinding(let_id) => references_let(engine, files, current_file, let_id),
+        locate::Located::LetBinding(let_id) => {
+            references_let(engine, files, current_file, let_id, encoding)
+        }
         locate::Located::Pun(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
@@ -72,6 +82,7 @@ fn references_module_name(
     files: &Files,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let (parsed, _) = engine.parsed(current_file)?;
 
@@ -94,6 +105,8 @@ fn references_module_name(
         let stabilized = engine.stabilized(candidate_id)?;
         let ptr = stabilized.syntax_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
         let range = locate::syntax_range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
+        let range = position::utf8_range_to_protocol(&content, range, encoding)
+            .ok_or(AnalyzerError::NonFatal)?;
 
         locations.push(Location { uri, range });
     }
@@ -106,6 +119,7 @@ fn references_import(
     files: &Files,
     current_file: FileId,
     import_id: ImportItemId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
@@ -130,7 +144,7 @@ fn references_import(
         let name = name.trim_start_matches("(").trim_end_matches(")");
         let (f_id, t_id) =
             import_resolved.exports.lookup_term(name).ok_or(AnalyzerError::NonFatal)?;
-        references_file_term(engine, files, current_file, f_id, t_id)
+        references_file_term(engine, files, current_file, f_id, t_id, encoding)
     };
 
     let references_type = |engine: &QueryEngine, files: &Files, name: &str| {
@@ -140,7 +154,7 @@ fn references_import(
             .lookup_type(name)
             .or_else(|| import_resolved.exports.lookup_class(name))
             .ok_or(AnalyzerError::NonFatal)?;
-        references_file_type(engine, files, current_file, f_id, t_id)
+        references_file_type(engine, files, current_file, f_id, t_id, encoding)
     };
 
     let references_class = |engine: &QueryEngine, files: &Files, name: &str| {
@@ -150,7 +164,7 @@ fn references_import(
             .lookup_class(name)
             .or_else(|| import_resolved.exports.lookup_type(name))
             .ok_or(AnalyzerError::NonFatal)?;
-        references_file_type(engine, files, current_file, f_id, t_id)
+        references_file_type(engine, files, current_file, f_id, t_id, encoding)
     };
 
     match node {
@@ -187,13 +201,14 @@ fn references_binder(
     files: &Files,
     current_file: FileId,
     binder_id: BinderId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
     let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         lowering::BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
-            references_file_term(engine, files, current_file, *f_id, *t_id)
+            references_file_term(engine, files, current_file, *f_id, *t_id, encoding)
         }
         _ => Ok(None),
     }
@@ -204,13 +219,14 @@ fn references_expression(
     files: &Files,
     current_file: FileId,
     expression_id: ExpressionId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
     let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
-            references_file_term(engine, files, current_file, *f_id, *t_id)
+            references_file_term(engine, files, current_file, *f_id, *t_id, encoding)
         }
         ExpressionKind::Variable { resolution, .. } => {
             let resolution = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -219,13 +235,13 @@ fn references_expression(
                 TermVariableResolution::Let(_) => Ok(None),
                 TermVariableResolution::RecordPun(_) => Ok(None),
                 TermVariableResolution::Reference(f_id, t_id) => {
-                    references_file_term(engine, files, current_file, *f_id, *t_id)
+                    references_file_term(engine, files, current_file, *f_id, *t_id, encoding)
                 }
             }
         }
         ExpressionKind::OperatorName { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
-            references_file_term(engine, files, current_file, *f_id, *t_id)
+            references_file_term(engine, files, current_file, *f_id, *t_id, encoding)
         }
         _ => Ok(None),
     }
@@ -236,17 +252,18 @@ fn references_type(
     files: &Files,
     current_file: FileId,
     type_id: TypeId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
     let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         TypeKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
-            references_file_type(engine, files, current_file, *f_id, *t_id)
+            references_file_type(engine, files, current_file, *f_id, *t_id, encoding)
         }
         TypeKind::Operator { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
-            references_file_type(engine, files, current_file, *f_id, *t_id)
+            references_file_type(engine, files, current_file, *f_id, *t_id, encoding)
         }
         _ => Ok(None),
     }
@@ -257,13 +274,15 @@ fn id_range<T>(
     parsed: &ParsedModule,
     stabilized: &StabilizedModule,
     item_id: AstId<T>,
+    encoding: PositionEncoding,
 ) -> Option<Range>
 where
     T: AstNode<Language = PureScript>,
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
-    locate::syntax_range(content, &root, &ptr)
+    let range = locate::syntax_range(content, &root, &ptr)?;
+    position::utf8_range_to_protocol(content, range, encoding)
 }
 
 fn references_file_term(
@@ -272,6 +291,7 @@ fn references_file_term(
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let candidates = probe_term_references(engine, files, current_file, file_id, term_id)?;
 
@@ -289,21 +309,21 @@ fn references_file_term(
             if let ExpressionKind::Constructor { resolution: Some((f_id, t_id)) } = expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, expr_id)
+                let range = id_range(&content, &parsed, &stabilized, expr_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::OperatorName { resolution: Some((f_id, t_id)) } =
                 expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, expr_id)
+                let range = id_range(&content, &parsed, &stabilized, expr_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::Variable { resolution: Some(resolution) } = expr_kind
                 && let TermVariableResolution::Reference(f_id, t_id) = resolution
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, expr_id)
+                let range = id_range(&content, &parsed, &stabilized, expr_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -313,7 +333,7 @@ fn references_file_term(
             if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, binder_id)
+                let range = id_range(&content, &parsed, &stabilized, binder_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -321,7 +341,7 @@ fn references_file_term(
 
         for (operator_id, f_id, t_id) in lowered.info.iter_term_operator() {
             if (f_id, t_id) == (file_id, term_id) {
-                let range = id_range(&content, &parsed, &stabilized, operator_id)
+                let range = id_range(&content, &parsed, &stabilized, operator_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -337,6 +357,7 @@ fn references_file_type(
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let candidates = probe_type_references(engine, files, current_file, file_id, type_id)?;
 
@@ -354,14 +375,14 @@ fn references_file_type(
             if let TypeKind::Constructor { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, ty_id)
+                let range = id_range(&content, &parsed, &stabilized, ty_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
             if let TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(&content, &parsed, &stabilized, ty_id)
+                let range = id_range(&content, &parsed, &stabilized, ty_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -369,7 +390,7 @@ fn references_file_type(
 
         for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
             if (f_id, t_id) == (file_id, type_id) {
-                let range = id_range(&content, &parsed, &stabilized, operator_id)
+                let range = id_range(&content, &parsed, &stabilized, operator_id, encoding)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -468,6 +489,7 @@ fn references_let(
     files: &Files,
     current_file: FileId,
     let_id: LetBindingNameGroupId,
+    encoding: PositionEncoding,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let uri = common::file_uri(engine, files, current_file)?;
 
@@ -487,7 +509,7 @@ fn references_let(
             && *candidate_id == let_id
         {
             let uri = Url::clone(&uri);
-            let range = id_range(&content, &parsed, &stabilized, expression_id)
+            let range = id_range(&content, &parsed, &stabilized, expression_id, encoding)
                 .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri, range });
         }

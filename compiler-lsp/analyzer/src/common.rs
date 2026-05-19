@@ -4,13 +4,15 @@ use files::{FileId, Files};
 use indexing::{TermItemId, TypeItemId};
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
-use crate::{AnalyzerError, locate};
+use crate::position::{PositionEncoding, Utf8Range};
+use crate::{AnalyzerError, locate, position};
 
 pub fn file_term_location(
     engine: &QueryEngine,
     uri: Url,
     file_id: FileId,
     term_id: TermItemId,
+    encoding: PositionEncoding,
 ) -> Result<Location, AnalyzerError> {
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
@@ -22,6 +24,8 @@ pub fn file_term_location(
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
     let range = pointers_range(&content, root, pointers)?;
+    let range = position::utf8_range_to_protocol(&content, range, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
@@ -30,6 +34,7 @@ pub fn file_type_location(
     uri: Url,
     file_id: FileId,
     type_id: TypeItemId,
+    encoding: PositionEncoding,
 ) -> Result<Location, AnalyzerError> {
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
@@ -41,6 +46,8 @@ pub fn file_type_location(
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
     let range = pointers_range(&content, root, pointers)?;
+    let range = position::utf8_range_to_protocol(&content, range, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
@@ -61,9 +68,9 @@ pub fn pointers_range(
     content: &str,
     root: SyntaxNode,
     pointers: impl Iterator<Item = SyntaxNodePtr>,
-) -> Result<Range, AnalyzerError> {
+) -> Result<Utf8Range, AnalyzerError> {
     pointers
         .filter_map(|ptr| locate::syntax_range(content, &root, &ptr))
-        .reduce(|start, end| Range { start: start.start, end: end.end })
+        .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
         .ok_or(AnalyzerError::NonFatal)
 }

@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use analyzer::{QueryEngine, locate};
+use analyzer::{QueryEngine, position};
 use checking::core::pretty as pretty2;
 use checking::{ExternalQueries, core as core2};
 use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};
@@ -18,8 +18,8 @@ macro_rules! pos {
     ($content:expr, $stabilized:expr, $id:expr) => {{
         let cst = $stabilized.ast_ptr($id).unwrap();
         let range = cst.syntax_node_ptr().text_range();
-        let p = locate::offset_to_position($content, range.start()).unwrap();
-        format!("{}:{}", p.line, p.character)
+        let p = position::offset_to_utf8_position($content, range.start()).unwrap();
+        format!("{}:{}", p.line, p.column)
     }};
 }
 
@@ -349,9 +349,9 @@ fn write_term_resolution(
     let cst = stabilized.ast_ptr(expression_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
     let text = node.text().to_string();
-    let position = locate::offset_to_position(content, node.text_range().start()).unwrap();
+    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
 
-    writeln!(out, "{}@{}:{}", text.trim(), position.line, position.character).unwrap();
+    writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
 
     match resolution {
         Some(TermVariableResolution::Binder(id)) => {
