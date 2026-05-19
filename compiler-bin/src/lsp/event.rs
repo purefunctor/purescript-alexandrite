@@ -45,10 +45,7 @@ fn collect_diagnostics_core(
     let lowered = snapshot.engine.lowered(id)?;
     let checked = snapshot.engine.checked(id)?;
 
-    let uri = {
-        let files = snapshot.files.read();
-        common::file_uri(&snapshot.engine, &files, id)?
-    };
+    let uri = snapshot.with_language_context(|context| common::file_uri(context, id))?;
 
     let context =
         DiagnosticsContext::new(&snapshot.engine, &content, &root, &stabilized, &indexed, &lowered);

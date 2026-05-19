@@ -1,6 +1,5 @@
 use async_lsp::lsp_types::*;
-use building::QueryEngine;
-use files::{FileId, Files};
+use files::FileId;
 use parsing::ParsedModule;
 use resolving::ResolvedModule;
 use rowan::ast::AstNode;
@@ -10,12 +9,10 @@ use stabilizing::StabilizedModule;
 use syntax::{SyntaxKind, SyntaxToken, cst};
 
 use crate::position::{PositionEncoding, Utf8Position};
-use crate::{AnalyzerError, position};
+use crate::{AnalyzerError, LanguageContext, position};
 
-pub struct Context<'c, 'a> {
-    pub engine: &'c QueryEngine,
-    pub files: &'c Files,
-
+pub struct CompletionContext<'c, 'a> {
+    pub language: &'c LanguageContext<'c>,
     pub current_file: FileId,
     pub content: &'a str,
     pub stabilized: &'a StabilizedModule,
@@ -25,13 +22,12 @@ pub struct Context<'c, 'a> {
     pub prim_id: FileId,
     pub prim_resolved: &'a ResolvedModule,
 
-    pub encoding: PositionEncoding,
     pub semantics: CursorSemantics,
     pub text: CursorText,
     pub range: Option<Range>,
 }
 
-impl Context<'_, '_> {
+impl CompletionContext<'_, '_> {
     pub fn insert_import_range(&self) -> Option<Range> {
         let cst = self.parsed.cst();
 
@@ -48,7 +44,8 @@ impl Context<'_, '_> {
         position.line += 1;
         position.column = 0;
 
-        let position = position::utf8_position_to_protocol(self.content, position, self.encoding)?;
+        let position =
+            position::utf8_position_to_protocol(self.content, position, self.language.encoding)?;
         Some(Range::new(position, position))
     }
 
@@ -88,7 +85,7 @@ pub trait CompletionSource {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError>;

@@ -1,7 +1,7 @@
 use async_lsp::lsp_types::*;
 use building::QueryEngine;
 use checking::core::pretty::Pretty;
-use files::{FileId, Files};
+use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
@@ -11,23 +11,21 @@ use smol_str::ToSmolStr;
 use syntax::{SyntaxNode, cst};
 
 use crate::extract::AnnotationSyntaxRange;
-use crate::position::PositionEncoding;
-use crate::{AnalyzerError, extract, locate, position};
+use crate::{AnalyzerError, LanguageContext, extract, locate, position};
 
 pub fn implementation(
-    engine: &QueryEngine,
-    files: &Files,
+    context: &LanguageContext,
     uri: Url,
     position: Position,
-    encoding: PositionEncoding,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
+    let engine = context.engine;
     let content = engine.content(current_file);
-    let position = position::protocol_position_to_utf8(&content, position, encoding)
+    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
         .ok_or(AnalyzerError::NonFatal)?;
 
     let located = locate::locate(engine, current_file, position)?;
