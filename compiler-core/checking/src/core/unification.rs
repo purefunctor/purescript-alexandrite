@@ -236,7 +236,7 @@ where
             if let (Type::Row(t1_row_id), Type::Row(t2_row_id)) =
                 (t1_argument_core, t2_argument_core)
             {
-                subtype_rows::<P, Q>(state, context, t1_row_id, t2_row_id)
+                subtype_rows::<NonElaborating, Q>(state, context, t1_row_id, t2_row_id)
             } else {
                 unify(state, context, t1, t2)
             }
