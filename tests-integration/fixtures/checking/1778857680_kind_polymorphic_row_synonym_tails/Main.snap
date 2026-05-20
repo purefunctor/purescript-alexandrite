@@ -1,0 +1,28 @@
+---
+source: target/debug/build/tests-integration-6275ac7a2b26d932/out/checking_generated.rs
+assertion_line: 28
+expression: report
+---
+Terms
+defaultOptions :: {| Optional @Type }
+
+Types
+Optional :: forall (k :: Type). Row (k :: Type)
+All :: Row Type
+ConvertOptions ::
+  forall (t6 :: Type) (t5 :: Type) (t4 :: Type).
+    (t6 :: Type) -> (t5 :: Type) -> (t4 :: Type) -> Constraint
+
+Synonyms
+type Optional = ()
+type All = ( value :: Int | Optional @Type )
+
+Classes
+class forall (t6 :: Type) (t5 :: Type) (t4 :: Type) (defaults :: (t6 :: Type)) (provided :: (t5 :: Type)) (all :: (t4 :: Type)). ConvertOptions @(t6 :: Type) @(t5 :: Type) @(t4 :: Type)
+  (defaults :: (t6 :: Type))
+  (provided :: (t5 :: Type))
+  (all :: (t4 :: Type))
+
+Instances
+instance forall (t7 :: Row Type).
+  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t7 :: Row Type) } {| All }

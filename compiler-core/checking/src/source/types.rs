@@ -297,7 +297,8 @@ where
         }
 
         lowering::TypeKind::Record { items, tail } => {
-            let (row_type, row_kind) = infer_row_kind(state, context, items, tail)?;
+            let (row_type, row_kind) =
+                infer_row_kind(state, context, items, tail, EmptyRowTail::Check)?;
             unification::subtype(state, context, row_kind, context.prim.row_type)?;
 
             let t = context.intern_application(context.prim.record, row_type);
@@ -306,7 +307,9 @@ where
             Ok((t, k))
         }
 
-        lowering::TypeKind::Row { items, tail } => infer_row_kind(state, context, items, tail),
+        lowering::TypeKind::Row { items, tail } => {
+            infer_row_kind(state, context, items, tail, EmptyRowTail::Infer)
+        }
 
         lowering::TypeKind::Parenthesized { parenthesized } => {
             if let Some(parenthesized) = parenthesized {
@@ -403,23 +406,33 @@ where
     Ok((result_type, result_kind))
 }
 
+#[derive(Clone, Copy)]
+enum EmptyRowTail {
+    Check,
+    Infer,
+}
+
 fn infer_row_kind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     items: &Arc<[lowering::TypeRowItem]>,
     tail: &Option<lowering::TypeId>,
+    empty_tail: EmptyRowTail,
 ) -> QueryResult<(TypeId, TypeId)>
 where
     Q: ExternalQueries,
 {
+    let field_kind = state.fresh_unification(context.queries, context.prim.t);
+    let row_kind = context.intern_application(context.prim.row, field_kind);
+
     if items.is_empty()
         && let Some(tail) = tail
     {
-        return infer_kind(state, context, *tail);
+        return match empty_tail {
+            EmptyRowTail::Check => check_kind(state, context, *tail, row_kind),
+            EmptyRowTail::Infer => infer_kind(state, context, *tail),
+        };
     }
-
-    let field_kind = state.fresh_unification(context.queries, context.prim.t);
-    let row_kind = context.intern_application(context.prim.row, field_kind);
 
     let fields = items.iter().map(|item| {
         let label = item.name.clone().unwrap_or(MISSING_NAME);
@@ -436,8 +449,7 @@ where
     let fields = fields.collect::<QueryResult<Vec<_>>>()?;
 
     let tail = if let Some(tail) = tail {
-        let (tail_type, tail_kind) = infer_kind(state, context, *tail)?;
-        unification::subtype(state, context, tail_kind, row_kind)?;
+        let (tail_type, _) = check_kind(state, context, *tail, row_kind)?;
         Some(tail_type)
     } else {
         None
