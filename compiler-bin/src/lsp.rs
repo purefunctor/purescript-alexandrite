@@ -340,8 +340,11 @@ fn document_highlight(
     let _span = tracing::info_span!("document_highlight").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    analyzer::document_highlight::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+    let result = snapshot.with_language_context(|context| {
+        analyzer::document_highlight::implementation(context, uri, position)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn workspace_symbols(
