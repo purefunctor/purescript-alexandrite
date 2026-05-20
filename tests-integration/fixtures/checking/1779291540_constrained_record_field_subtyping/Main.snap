@@ -1,0 +1,75 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+recordDef ::
+  forall (@token :: Type) (@row :: Row Type).
+    RecordDef (token :: Type) (row :: Row Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    String
+recordDefRowList ::
+  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
+    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    Proxy @Type (rowList :: Type) ->
+    String
+
+Types
+Encode :: Type -> Type -> Constraint
+RecordDef :: Type -> Row Type -> Constraint
+RecordDefRowList :: Type -> Row Type -> Type -> Constraint
+
+Classes
+class forall (token :: Type) (a :: Type). Encode (token :: Type) (a :: Type)
+class forall (token :: Type) (row :: Row Type). RecordDef (token :: Type) (row :: Row Type)
+  recordDef ::
+  forall (@token :: Type) (@row :: Row Type).
+    RecordDef (token :: Type) (row :: Row Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    String
+class forall (token :: Type) (row :: Row Type) (rowList :: Type). RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type)
+  recordDefRowList ::
+  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
+    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    Proxy @Type (rowList :: Type) ->
+    String
+
+Instances
+instance forall (t9 :: Type) (t10 :: Row Type) (t11 :: Type).
+  RecordDefRowList (t9 :: Type) (t10 :: Row Type) (t11 :: Type) =>
+  RecordDef (t9 :: Type) (t10 :: Row Type)
+
+Diagnostics
+error[CannotUnify]: Cannot unify '(t15 :: Type) -> Proxy @Type ?13 -> String' with 'Encode ?10 (a :: Type) => ?10 -> Proxy @Type (a :: Type) -> String'
+  --> 27:22..27:31
+   |
+27 |     recordDefRowList interface token row (Proxy :: _ rowList)
+   |                      ^~~~~~~~~
+error[NoInstanceFound]: No instance found for: Encode (t15 :: Type) ?13
+  --> 25:1..27:62
+   |
+25 | instance RecordDefRowList token row rowList => RecordDef token row where
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
