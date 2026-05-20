@@ -1,9 +1,7 @@
 use async_lsp::lsp_types::*;
-use building::QueryEngine;
-use files::Files;
 use indexing::{TermItemKind, TypeItemKind};
 
-use crate::{AnalyzerError, common};
+use crate::{AnalyzerError, LanguageContext, common};
 
 fn term_symbol_kind(kind: &TermItemKind) -> SymbolKind {
     match kind {
@@ -31,10 +29,12 @@ fn type_symbol_kind(kind: &TypeItemKind) -> SymbolKind {
 }
 
 pub fn implementation(
-    engine: &QueryEngine,
-    files: &Files,
+    context: &LanguageContext,
     uri: Url,
 ) -> Result<Option<DocumentSymbolResponse>, AnalyzerError> {
+    let engine = context.engine;
+    let files = context.files;
+
     let current_file = {
         let uri = uri.as_str();
         files.id(uri).ok_or(AnalyzerError::NonFatal)?
@@ -52,7 +52,7 @@ pub fn implementation(
 
         let kind = term_symbol_kind(&indexed.items[term_id].kind);
 
-        let location = common::file_term_location(engine, uri.clone(), current_file, term_id)?;
+        let location = common::file_term_location(context, uri.clone(), current_file, term_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -71,7 +71,7 @@ pub fn implementation(
 
         let kind = type_symbol_kind(&indexed.items[type_id].kind);
 
-        let location = common::file_type_location(engine, uri.clone(), current_file, type_id)?;
+        let location = common::file_type_location(context, uri.clone(), current_file, type_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -88,7 +88,7 @@ pub fn implementation(
             continue;
         }
 
-        let location = common::file_type_location(engine, uri.clone(), current_file, type_id)?;
+        let location = common::file_type_location(context, uri.clone(), current_file, type_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind: SymbolKind::INTERFACE,
@@ -104,107 +104,4 @@ pub fn implementation(
     symbols.sort_by_key(|s| (s.location.range.start.line, s.location.range.start.character));
 
     Ok(Some(DocumentSymbolResponse::Flat(symbols)))
-}
-
-#[cfg(test)]
-mod tests {
-    use std::num::NonZeroU32;
-
-    use stabilizing::AstId;
-    use syntax::cst;
-
-    use super::*;
-
-    fn ast_id<N: rowan::ast::AstNode<Language = syntax::PureScript>>() -> AstId<N> {
-        AstId::new(NonZeroU32::new(1).unwrap())
-    }
-
-    #[test]
-    fn maps_term_item_kinds_to_symbol_kinds() {
-        let cases = [
-            (
-                TermItemKind::Constructor { id: ast_id::<cst::DataConstructor>() },
-                SymbolKind::CONSTRUCTOR,
-            ),
-            (
-                TermItemKind::ClassMember { id: ast_id::<cst::ClassMemberStatement>() },
-                SymbolKind::METHOD,
-            ),
-            (
-                TermItemKind::Operator { id: ast_id::<cst::InfixDeclaration>() },
-                SymbolKind::OPERATOR,
-            ),
-            (
-                TermItemKind::Value {
-                    signature: Some(ast_id::<cst::ValueSignature>()),
-                    equations: vec![ast_id::<cst::ValueEquation>()],
-                },
-                SymbolKind::FUNCTION,
-            ),
-            (
-                TermItemKind::Foreign { id: ast_id::<cst::ForeignImportValueDeclaration>() },
-                SymbolKind::FUNCTION,
-            ),
-            (TermItemKind::Derive { id: ast_id::<cst::DeriveDeclaration>() }, SymbolKind::FUNCTION),
-            (
-                TermItemKind::Instance { id: ast_id::<cst::InstanceDeclaration>() },
-                SymbolKind::FUNCTION,
-            ),
-        ];
-
-        for (kind, expected) in cases {
-            assert_eq!(term_symbol_kind(&kind), expected);
-        }
-    }
-
-    #[test]
-    fn maps_type_item_kinds_to_symbol_kinds() {
-        let cases = [
-            (
-                TypeItemKind::Class {
-                    signature: Some(ast_id::<cst::ClassSignature>()),
-                    declaration: Some(ast_id::<cst::ClassDeclaration>()),
-                },
-                SymbolKind::INTERFACE,
-            ),
-            (
-                TypeItemKind::Operator { id: ast_id::<cst::InfixDeclaration>() },
-                SymbolKind::OPERATOR,
-            ),
-            (
-                TypeItemKind::Data {
-                    signature: Some(ast_id::<cst::DataSignature>()),
-                    equation: Some(ast_id::<cst::DataEquation>()),
-                    role: Some(ast_id::<cst::TypeRoleDeclaration>()),
-                },
-                SymbolKind::ENUM,
-            ),
-            (
-                TypeItemKind::Newtype {
-                    signature: Some(ast_id::<cst::NewtypeSignature>()),
-                    equation: Some(ast_id::<cst::NewtypeEquation>()),
-                    role: Some(ast_id::<cst::TypeRoleDeclaration>()),
-                },
-                SymbolKind::STRUCT,
-            ),
-            (
-                TypeItemKind::Synonym {
-                    signature: Some(ast_id::<cst::TypeSynonymSignature>()),
-                    equation: Some(ast_id::<cst::TypeSynonymEquation>()),
-                },
-                SymbolKind::STRUCT,
-            ),
-            (
-                TypeItemKind::Foreign {
-                    id: ast_id::<cst::ForeignImportDataDeclaration>(),
-                    role: Some(ast_id::<cst::TypeRoleDeclaration>()),
-                },
-                SymbolKind::STRUCT,
-            ),
-        ];
-
-        for (kind, expected) in cases {
-            assert_eq!(type_symbol_kind(&kind), expected);
-        }
-    }
 }

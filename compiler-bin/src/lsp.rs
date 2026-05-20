@@ -354,8 +354,11 @@ fn document_symbols(
 ) -> Result<Option<DocumentSymbolResponse>, LspError> {
     let _span = tracing::info_span!("document_symbols").entered();
     let uri = p.text_document.uri;
-    analyzer::document_symbols::implementation(&snapshot.engine, &snapshot.files(), uri)
-        .on_non_fatal(None)
+    let result = snapshot.with_language_context(|context| {
+        analyzer::document_symbols::implementation(context, uri)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
