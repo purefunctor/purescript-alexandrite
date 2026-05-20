@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::{env, fs, mem, process};
 
 use analyzer::completion::SuggestionsCache;
-use analyzer::position::PositionEncoding;
+use analyzer::position::{self, PositionEncoding};
 use analyzer::symbols::WorkspaceSymbolsCache;
 use analyzer::{Files, LanguageContext, QueryEngine, prim};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
@@ -389,9 +389,15 @@ fn formatting(
         return Ok(Some(vec![]));
     }
 
-    let end =
-        analyzer::locate::offset_to_position(input.as_ref(), TextSize::from(input.len() as u32))
-            .unwrap_or(Position { line: 0, character: 0 });
+    let end = position::offset_to_utf8_position(input.as_ref(), TextSize::from(input.len() as u32))
+        .and_then(|position| {
+            position::utf8_position_to_protocol(
+                input.as_ref(),
+                position,
+                snapshot.position_encoding,
+            )
+        })
+        .unwrap_or(Position { line: 0, character: 0 });
     let range = Range { start: Position { line: 0, character: 0 }, end };
 
     Ok(Some(vec![TextEdit { range, new_text: formatted }]))
@@ -606,6 +612,7 @@ mod tests {
             files: Arc::clone(&state.files),
             workspace_symbols_cache: Arc::clone(&state.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&state.suggestions_cache),
+            position_encoding: state.position_encoding,
         }
     }
 
