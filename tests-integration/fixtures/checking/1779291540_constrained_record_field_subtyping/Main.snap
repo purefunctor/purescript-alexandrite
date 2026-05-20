@@ -61,15 +61,3 @@ Instances
 instance forall (t9 :: Type) (t10 :: Row Type) (t11 :: Type).
   RecordDefRowList (t9 :: Type) (t10 :: Row Type) (t11 :: Type) =>
   RecordDef (t9 :: Type) (t10 :: Row Type)
-
-Diagnostics
-error[CannotUnify]: Cannot unify '(t15 :: Type) -> Proxy @Type ?13 -> String' with 'Encode ?10 (a :: Type) => ?10 -> Proxy @Type (a :: Type) -> String'
-  --> 27:22..27:31
-   |
-27 |     recordDefRowList interface token row (Proxy :: _ rowList)
-   |                      ^~~~~~~~~
-error[NoInstanceFound]: No instance found for: Encode (t15 :: Type) ?13
-  --> 25:1..27:62
-   |
-25 | instance RecordDefRowList token row rowList => RecordDef token row where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
