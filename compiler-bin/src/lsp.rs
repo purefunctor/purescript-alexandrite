@@ -354,9 +354,8 @@ fn document_symbols(
 ) -> Result<Option<DocumentSymbolResponse>, LspError> {
     let _span = tracing::info_span!("document_symbols").entered();
     let uri = p.text_document.uri;
-    let result = snapshot.with_language_context(|context| {
-        analyzer::document_symbols::implementation(context, uri)
-    });
+    let result = snapshot
+        .with_language_context(|context| analyzer::document_symbols::implementation(context, uri));
 
     result.on_non_fatal(None)
 }
