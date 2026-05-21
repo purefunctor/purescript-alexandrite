@@ -111,6 +111,29 @@ type Stuck = FxHashMap<u32, Vec<CanonicalConstraintId>>;
 type Awake = IndexSet<CanonicalConstraintId, FxBuildHasher>;
 type Skolem = Vec<CanonicalConstraintId>;
 
+fn handle_compiler_match(
+    work: &mut WorkList,
+    blocked: &mut FxHashSet<u32>,
+    blocked_on_skolem: &mut bool,
+    match_instance: Option<matching::MatchInstance>,
+) -> bool {
+    match match_instance {
+        Some(matching::MatchInstance::Match { unifications, constraints }) => {
+            work.extend_from_parts(unifications, constraints);
+            true
+        }
+        Some(matching::MatchInstance::Stuck { stuck }) => {
+            blocked.extend(stuck);
+            false
+        }
+        Some(matching::MatchInstance::Skolem) => {
+            *blocked_on_skolem = true;
+            false
+        }
+        Some(matching::MatchInstance::Apart) | None => false,
+    }
+}
+
 fn wake_constraints(work: &mut WorkList, stuck: &mut Stuck, state: &CheckState) {
     let mut awake = Awake::default();
 
@@ -202,18 +225,19 @@ where
             }
         }
 
-        match compiler::match_compiler_instance(state, context, wanted, &given)? {
-            Some(matching::MatchInstance::Match { unifications, constraints }) => {
-                work.extend_from_parts(unifications, constraints);
+        let canonical = &state.canonicals[wanted];
+        let prefer_declared_instances =
+            context.known_reflectable.reflectable == Some((canonical.file_id, canonical.type_id));
+
+        if !prefer_declared_instances {
+            if handle_compiler_match(
+                &mut work,
+                &mut blocked,
+                &mut blocked_on_skolem,
+                compiler::match_compiler_instance(state, context, wanted, &given)?,
+            ) {
                 continue 'work;
             }
-            Some(matching::MatchInstance::Stuck { stuck }) => {
-                blocked.extend(stuck);
-            }
-            Some(matching::MatchInstance::Skolem) => {
-                blocked_on_skolem = true;
-            }
-            Some(matching::MatchInstance::Apart) | None => (),
         }
 
         let search = instances::collect_instance_chains(state, context, wanted)?;
@@ -234,6 +258,17 @@ where
                     }
                     matching::MatchInstance::Apart => (),
                 }
+            }
+        }
+
+        if prefer_declared_instances {
+            if handle_compiler_match(
+                &mut work,
+                &mut blocked,
+                &mut blocked_on_skolem,
+                compiler::match_compiler_instance(state, context, wanted, &given)?,
+            ) {
+                continue 'work;
             }
         }
 

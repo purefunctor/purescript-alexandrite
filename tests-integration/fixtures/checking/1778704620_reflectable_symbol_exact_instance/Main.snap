@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Tag :: Tag
+test :: Tag
+
+Types
+Tag :: Type
+
+Instances
+instance Reflectable @Symbol "hello" Tag
+
+Roles
+Tag = []
