@@ -21,8 +21,7 @@ use crate::state::CheckState;
 pub enum MatchType {
     Match { bindings: Vec<(Name, TypeId)> },
     Apart,
-    Stuck { stuck: Vec<u32> },
-    Skolem,
+    Stuck { stuck: Vec<u32>, skolem: bool },
 }
 
 impl MatchType {
@@ -34,15 +33,17 @@ impl MatchType {
 
             (MatchType::Apart, _) | (_, MatchType::Apart) => MatchType::Apart,
 
-            (MatchType::Stuck { stuck: left }, MatchType::Stuck { stuck: right }) => {
-                MatchType::Stuck { stuck: iter::chain(left, right).collect() }
-            }
+            (
+                MatchType::Stuck { stuck: left, skolem: left_skolem },
+                MatchType::Stuck { stuck: right, skolem: right_skolem },
+            ) => MatchType::Stuck {
+                stuck: iter::chain(left, right).collect(),
+                skolem: left_skolem || right_skolem,
+            },
 
-            (MatchType::Stuck { stuck }, _) | (_, MatchType::Stuck { stuck }) => {
-                MatchType::Stuck { stuck }
+            (MatchType::Stuck { stuck, skolem }, _) | (_, MatchType::Stuck { stuck, skolem }) => {
+                MatchType::Stuck { stuck, skolem }
             }
-
-            (MatchType::Skolem, _) | (_, MatchType::Skolem) => MatchType::Skolem,
         }
     }
 
@@ -55,7 +56,7 @@ impl MatchType {
     }
 
     pub fn is_unknown(&self) -> bool {
-        matches!(self, MatchType::Stuck { .. } | MatchType::Skolem)
+        matches!(self, MatchType::Stuck { .. })
     }
 }
 
@@ -83,7 +84,7 @@ where
             if left == right {
                 Ok(MatchType::Match { bindings: vec![] })
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left, right] })
+                Ok(MatchType::Stuck { stuck: vec![left, right], skolem: false })
             }
         }
 
@@ -98,11 +99,11 @@ where
         }
 
         (Type::Unification(unification), _) | (_, Type::Unification(unification)) => {
-            Ok(MatchType::Stuck { stuck: vec![unification] })
+            Ok(MatchType::Stuck { stuck: vec![unification], skolem: false })
         }
 
         (Type::Rigid(name, _, _), _) | (_, Type::Rigid(name, _, _)) if !pattern.contains(&name) => {
-            Ok(MatchType::Skolem)
+            Ok(MatchType::Stuck { stuck: vec![], skolem: true })
         }
 
         (Type::Constructor(left_file, left_item), Type::Constructor(right_file, right_item))
@@ -275,7 +276,7 @@ where
             if left == right {
                 Ok(MatchType::Match { bindings: vec![] })
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left, right] })
+                Ok(MatchType::Stuck { stuck: vec![left, right], skolem: false })
             }
         }
 
@@ -283,7 +284,7 @@ where
             if left == right {
                 Ok(MatchType::Match { bindings: vec![] })
             } else {
-                Ok(MatchType::Skolem)
+                Ok(MatchType::Stuck { stuck: vec![], skolem: true })
             }
         }
 
@@ -291,7 +292,7 @@ where
             if toolkit::contains_unification(state, context, right, left)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left] })
+                Ok(MatchType::Stuck { stuck: vec![left], skolem: false })
             }
         }
 
@@ -299,7 +300,7 @@ where
             if toolkit::contains_unification(state, context, left, right)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Stuck { stuck: vec![right] })
+                Ok(MatchType::Stuck { stuck: vec![right], skolem: false })
             }
         }
 
@@ -307,7 +308,7 @@ where
             if toolkit::contains_rigid(state, context, right, left)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Skolem)
+                Ok(MatchType::Stuck { stuck: vec![], skolem: true })
             }
         }
 
@@ -315,7 +316,7 @@ where
             if toolkit::contains_rigid(state, context, left, right)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Skolem)
+                Ok(MatchType::Stuck { stuck: vec![], skolem: true })
             }
         }
 
@@ -459,8 +460,7 @@ fn covers(fd: &[Fd], types: &[MatchType]) -> QueryResult<bool> {
 pub enum MatchInstance {
     Match { unifications: Vec<(TypeId, TypeId)>, constraints: Vec<CanonicalConstraintId> },
     Apart,
-    Stuck { stuck: Vec<u32> },
-    Skolem,
+    Stuck { stuck: Vec<u32>, skolem: bool },
 }
 
 impl MatchInstance {
@@ -529,7 +529,11 @@ where
     Q: ExternalQueries,
 {
     let stuck = collect_blocking(state, context, id)?;
-    if !stuck.is_empty() { Ok(MatchInstance::Stuck { stuck }) } else { Ok(MatchInstance::Apart) }
+    if !stuck.is_empty() {
+        Ok(MatchInstance::Stuck { stuck, skolem: false })
+    } else {
+        Ok(MatchInstance::Apart)
+    }
 }
 
 pub fn match_provided<Q>(
@@ -583,8 +587,7 @@ where
             Ok(MatchInstance::Match { unifications, constraints: vec![] })
         }
         MatchType::Apart => Ok(MatchInstance::Apart),
-        MatchType::Stuck { stuck } => Ok(MatchInstance::Stuck { stuck }),
-        MatchType::Skolem => Ok(MatchInstance::Skolem),
+        MatchType::Stuck { stuck, skolem } => Ok(MatchInstance::Stuck { stuck, skolem }),
     }
 }
 
@@ -668,8 +671,7 @@ where
             Ok(MatchInstance::Match { unifications, constraints })
         }
         MatchType::Apart => Ok(MatchInstance::Apart),
-        MatchType::Stuck { stuck } => Ok(MatchInstance::Stuck { stuck }),
-        MatchType::Skolem => Ok(MatchInstance::Skolem),
+        MatchType::Stuck { stuck, skolem } => Ok(MatchInstance::Stuck { stuck, skolem }),
     }
 }
 

@@ -43,11 +43,11 @@ where
     }
 
     if let Some(stuck) = unification_head(state, context, left)? {
-        return Ok(Some(MatchInstance::Stuck { stuck: vec![stuck] }));
+        return Ok(Some(MatchInstance::Stuck { stuck: vec![stuck], skolem: false }));
     }
 
     if let Some(stuck) = unification_head(state, context, right)? {
-        return Ok(Some(MatchInstance::Stuck { stuck: vec![stuck] }));
+        return Ok(Some(MatchInstance::Stuck { stuck: vec![stuck], skolem: false }));
     }
 
     if try_refl(state, context, left, right)? {

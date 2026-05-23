@@ -163,8 +163,10 @@ where
 
     let message = match render_doc(state, context, doc) {
         Ok(Some(message)) => message,
-        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![] })),
-        Err(RenderStuck::Blocked(u)) => return Ok(Some(MatchInstance::Stuck { stuck: vec![u] })),
+        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![], skolem: false })),
+        Err(RenderStuck::Blocked(u)) => {
+            return Ok(Some(MatchInstance::Stuck { stuck: vec![u], skolem: false }));
+        }
         Err(RenderStuck::Query(cycle)) => return Err(cycle),
     };
 
@@ -186,8 +188,10 @@ where
 
     let message = match render_doc(state, context, doc) {
         Ok(Some(message)) => message,
-        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![] })),
-        Err(RenderStuck::Blocked(u)) => return Ok(Some(MatchInstance::Stuck { stuck: vec![u] })),
+        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![], skolem: false })),
+        Err(RenderStuck::Blocked(u)) => {
+            return Ok(Some(MatchInstance::Stuck { stuck: vec![u], skolem: false }));
+        }
         Err(RenderStuck::Query(cycle)) => return Err(cycle),
     };
 

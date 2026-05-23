@@ -192,11 +192,9 @@ where
                     work.extend_from_parts(unifications, constraints);
                     continue 'work;
                 }
-                matching::MatchInstance::Stuck { stuck } => {
+                matching::MatchInstance::Stuck { stuck, skolem } => {
                     blocked.extend(stuck);
-                }
-                matching::MatchInstance::Skolem => {
-                    blocked_on_skolem = true;
+                    blocked_on_skolem |= skolem;
                 }
                 matching::MatchInstance::Apart => (),
             }
@@ -207,11 +205,9 @@ where
                 work.extend_from_parts(unifications, constraints);
                 continue 'work;
             }
-            Some(matching::MatchInstance::Stuck { stuck }) => {
+            Some(matching::MatchInstance::Stuck { stuck, skolem }) => {
                 blocked.extend(stuck);
-            }
-            Some(matching::MatchInstance::Skolem) => {
-                blocked_on_skolem = true;
+                blocked_on_skolem |= skolem;
             }
             Some(matching::MatchInstance::Apart) | None => (),
         }
@@ -224,12 +220,9 @@ where
                         work.extend_from_parts(unifications, constraints);
                         continue 'work;
                     }
-                    matching::MatchInstance::Stuck { stuck } => {
+                    matching::MatchInstance::Stuck { stuck, skolem } => {
                         blocked.extend(stuck);
-                        continue 'chain;
-                    }
-                    matching::MatchInstance::Skolem => {
-                        blocked_on_skolem = true;
+                        blocked_on_skolem |= skolem;
                         continue 'chain;
                     }
                     matching::MatchInstance::Apart => (),
