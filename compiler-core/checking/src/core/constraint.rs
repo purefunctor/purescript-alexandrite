@@ -16,6 +16,7 @@ pub mod matching;
 pub use canonical::{CanonicalConstraint, CanonicalConstraintId, Canonicals};
 
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::{iter, mem};
 
 use building_types::QueryResult;
@@ -26,7 +27,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, unification};
-use crate::error::ErrorKind;
+use crate::error::{CheckError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
 use crate::state::{CheckState, UnificationState};
 
@@ -274,4 +275,94 @@ where
     Ok(canonical.file_id == context.prim_type_error.file_id
         && (canonical.type_id == context.prim_type_error.warn
             || canonical.type_id == context.prim_type_error.fail))
+}
+
+#[derive(Default, Clone)]
+struct GivenInScope {
+    constraints: Vec<CanonicalConstraintId>,
+    seen: IndexSet<CanonicalConstraintId, FxBuildHasher>,
+}
+
+impl GivenInScope {
+    fn insert(&mut self, constraint: CanonicalConstraintId) {
+        if self.seen.insert(constraint) {
+            self.constraints.push(constraint);
+        }
+    }
+
+    fn contains(&self, constraint: CanonicalConstraintId) -> bool {
+        self.seen.contains(&constraint)
+    }
+}
+
+struct WantedInScope {
+    given: Rc<[CanonicalConstraintId]>,
+    wanted: CanonicalConstraintId,
+}
+
+fn collect_scoped_constraints<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    root: ImplicationId,
+) -> QueryResult<VecDeque<WantedInScope>>
+where
+    Q: ExternalQueries,
+{
+    let partial = canonical::canonicalise(state, context, context.prim.partial)?;
+
+    let mut constraints = VecDeque::default();
+    let mut stack = vec![(root, GivenInScope::default())];
+
+    while let Some((implication_id, mut implication_given)) = stack.pop() {
+        let (given, wanted, children, patterns) = {
+            let implication = &mut state.implications[implication_id];
+            (
+                mem::take(&mut implication.given),
+                mem::take(&mut implication.wanted),
+                mem::take(&mut implication.children),
+                mem::take(&mut implication.patterns),
+            )
+        };
+
+        for given in given {
+            if let Some(given) = canonical::canonicalise(state, context, given)? {
+                implication_given.insert(given);
+            }
+        }
+
+        let elide_missing_patterns =
+            partial.is_some_and(|partial| implication_given.contains(partial));
+
+        if !elide_missing_patterns {
+            for Patterns { patterns, crumbs } in patterns {
+                let kind = ErrorKind::MissingPatterns { patterns };
+                state.checked.errors.push(CheckError { kind, crumbs });
+            }
+        }
+
+        if !wanted.is_empty() {
+            let elaborate::ElaboratedGiven { given, substitution } =
+                elaborate::elaborate_given(state, context, &implication_given.constraints)?;
+
+            let given: Rc<[CanonicalConstraintId]> = Rc::from(given);
+
+            for wanted in wanted {
+                if let Some(wanted) = canonical::canonicalise(state, context, wanted)? {
+                    let given = Rc::clone(&given);
+                    let wanted =
+                        canonical::substitute_canonical(state, context, &substitution, wanted)?;
+                    constraints.push_back(WantedInScope { given, wanted });
+                }
+            }
+        }
+
+        let children = children
+            .into_iter()
+            .rev()
+            .map(|child| (child, GivenInScope::clone(&implication_given)));
+
+        stack.extend(children)
+    }
+
+    Ok(constraints)
 }
