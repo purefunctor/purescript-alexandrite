@@ -26,7 +26,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::{TypeId, unification};
+use crate::core::fd::compute_closure;
+use crate::core::{KindOrType, TypeId, unification};
 use crate::error::{CheckError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
 use crate::state::{CheckState, UnificationState};
@@ -44,12 +45,17 @@ where
     Ok(constraints.iter().map(|constraint| constraint.wanted).collect_vec())
 }
 
-pub struct WorkList {
+pub struct Work {
     unifications: Vec<(TypeId, TypeId)>,
+    unclassified: VecDeque<WantedInScope>,
     constraints: VecDeque<WantedInScope>,
 }
 
-impl WorkList {
+impl Work {
+    fn new(unclassified: VecDeque<WantedInScope>) -> Work {
+        Work { unifications: vec![], unclassified, constraints: VecDeque::default() }
+    }
+
     fn extend_from_parts<Unifications, Constraints>(
         &mut self,
         unifications: Unifications,
@@ -59,16 +65,86 @@ impl WorkList {
         Constraints: IntoIterator<Item = WantedInScope>,
     {
         self.unifications.extend(unifications);
-        self.constraints.extend(constraints);
+        self.extend_constraints(constraints);
+    }
+
+    fn extend_constraints<Constraints>(&mut self, constraints: Constraints)
+    where
+        Constraints: IntoIterator<Item = WantedInScope>,
+    {
+        self.unclassified.extend(constraints);
+    }
+
+    fn pop_next<Q>(
+        &mut self,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+    ) -> QueryResult<Option<WantedInScope>>
+    where
+        Q: ExternalQueries,
+    {
+        while let Some(constraint) = self.unclassified.pop_front() {
+            if is_improving_constraint(state, context, constraint.wanted)? {
+                return Ok(Some(constraint));
+            }
+
+            self.constraints.push_back(constraint);
+        }
+
+        Ok(self.constraints.pop_front())
     }
 }
 
 type Stuck = FxHashMap<u32, Vec<WantedInScope>>;
-type Awake = IndexSet<WantedInScope, FxBuildHasher>;
+type ConstraintSet = IndexSet<WantedInScope, FxBuildHasher>;
 type Skolem = Vec<WantedInScope>;
 
-fn wake_constraints(work: &mut WorkList, stuck: &mut Stuck, state: &CheckState) {
-    let mut awake = Awake::default();
+fn is_improving_constraint<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    let CanonicalConstraint { file_id, type_id, arguments } = &state.canonicals[constraint];
+
+    let functional_dependencies =
+        matching::get_functional_dependencies(context, *file_id, *type_id)?;
+
+    if functional_dependencies.is_empty() {
+        return Ok(false);
+    }
+
+    let arguments = arguments.iter().filter_map(|argument| {
+        if let KindOrType::Type(argument) = argument { Some(*argument) } else { None }
+    });
+
+    let arguments = arguments.collect_vec();
+
+    let mut known_positions = FxHashSet::default();
+    let mut blocking_by_position = vec![];
+
+    for (position, &argument) in arguments.iter().enumerate() {
+        let blocking = matching::collect_blocking(state, context, &[argument])?;
+        if blocking.is_empty() {
+            known_positions.insert(position);
+        }
+        blocking_by_position.push(blocking);
+    }
+
+    let closure = compute_closure(&functional_dependencies, &known_positions);
+    for position in closure.difference(&known_positions) {
+        if blocking_by_position.get(*position).is_some_and(|blocking| !blocking.is_empty()) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &CheckState) {
+    let mut awake = ConstraintSet::default();
 
     stuck.retain(|&id, constraints| {
         if let UnificationState::Solved(_) = state.unifications.get(id).state {
@@ -92,7 +168,7 @@ fn wake_constraints(work: &mut WorkList, stuck: &mut Stuck, state: &CheckState) 
     // and keep only the non-empty constraint sets.
     stuck.retain(|_, constraints| !constraints.is_empty());
 
-    work.constraints.extend(awake);
+    work.extend_constraints(awake);
 }
 
 fn solve_constraints<Q>(
@@ -103,7 +179,7 @@ fn solve_constraints<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut work = WorkList { unifications: vec![], constraints };
+    let mut work = Work::new(constraints);
     let mut stuck = Stuck::default();
     let mut skolem = Skolem::default();
     let mut residuals = vec![];
@@ -116,10 +192,10 @@ where
 
         if has_unification {
             wake_constraints(&mut work, &mut stuck, state);
-            work.constraints.extend(mem::take(&mut skolem));
+            work.extend_constraints(mem::take(&mut skolem));
         }
 
-        let Some(WantedInScope { given, wanted }) = work.constraints.pop_front() else {
+        let Some(WantedInScope { given, wanted }) = work.pop_next(state, context)? else {
             break 'work;
         };
 
@@ -201,7 +277,7 @@ where
         }
     }
 
-    let mut unique_residuals = Awake::default();
+    let mut unique_residuals = ConstraintSet::default();
     unique_residuals.extend(residuals);
 
     for (_, constraints) in stuck {

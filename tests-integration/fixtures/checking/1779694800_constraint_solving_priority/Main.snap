@@ -52,15 +52,3 @@ instance forall (t10 :: Row Type) (t11 :: RowList Type) (t9 :: Row Type).
 
 Roles
 M = [Phantom, Representational]
-
-Diagnostics
-error[NoInstanceFound]: No instance found for: RowToList @Type (input :: Row Type) ?35
-  --> 27:1..32:18
-   |
-27 | test
-   | ^~~~
-error[NoInstanceFound]: No instance found for: RowToList @Type (input :: Row Type) ?36
-  --> 27:1..32:18
-   |
-27 | test
-   | ^~~~

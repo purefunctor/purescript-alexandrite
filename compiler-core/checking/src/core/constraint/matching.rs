@@ -675,7 +675,7 @@ where
     }
 }
 
-fn get_functional_dependencies<Q>(
+pub fn get_functional_dependencies<Q>(
     context: &CheckContext<Q>,
     file_id: FileId,
     type_id: TypeItemId,
