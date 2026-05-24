@@ -14,14 +14,14 @@ pub mod instances;
 pub mod matching;
 
 pub use canonical::{CanonicalConstraint, CanonicalConstraintId, Canonicals};
+use itertools::Itertools;
 
 use std::collections::VecDeque;
+use std::mem;
 use std::rc::Rc;
-use std::{iter, mem};
 
 use building_types::QueryResult;
 use indexmap::IndexSet;
-use itertools::Itertools;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::ExternalQueries;
@@ -39,87 +39,40 @@ where
     Q: ExternalQueries,
 {
     let implication = state.implications.current();
-    solve_implication_id(state, context, implication, &[])
-}
-
-pub fn solve_implication_id<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    implication: ImplicationId,
-    inherited: &[TypeId],
-) -> QueryResult<Vec<CanonicalConstraintId>>
-where
-    Q: ExternalQueries,
-{
-    let (wanted, given, patterns, children) = {
-        let node = &mut state.implications[implication];
-        (
-            mem::take(&mut node.wanted),
-            mem::take(&mut node.given),
-            mem::take(&mut node.patterns),
-            mem::take(&mut node.children),
-        )
-    };
-
-    let inherited_given = {
-        let inherited = inherited.iter();
-        let given = given.iter();
-        iter::chain(inherited, given).copied().collect_vec()
-    };
-
-    let mut wanted = wanted
-        .iter()
-        .filter_map(|id| canonical::canonicalise(state, context, *id).transpose())
-        .collect::<QueryResult<VecDeque<_>>>()?;
-
-    for child in &children {
-        let residual = solve_implication_id(state, context, *child, &inherited_given)?;
-        wanted.extend(residual);
-    }
-
-    let residual = solve_constraints(state, context, wanted, &inherited_given)?;
-    let elide_missing_patterns = inherited_given.contains(&context.prim.partial);
-
-    if !elide_missing_patterns {
-        for Patterns { patterns, crumbs } in patterns {
-            state.checked.errors.push(crate::error::CheckError {
-                kind: ErrorKind::MissingPatterns { patterns },
-                crumbs,
-            });
-        }
-    }
-
-    Ok(residual)
+    let constraints = collect_scoped_constraints(state, context, implication)?;
+    let constraints = solve_constraints(state, context, constraints)?;
+    Ok(constraints.iter().map(|constraint| constraint.wanted).collect_vec())
 }
 
 pub struct WorkList {
     unifications: Vec<(TypeId, TypeId)>,
-    constraints: VecDeque<CanonicalConstraintId>,
+    constraints: VecDeque<WantedInScope>,
 }
 
 impl WorkList {
-    pub fn extend_from_parts(
+    fn extend_from_parts<Unifications, Constraints>(
         &mut self,
-        unifications: Vec<(TypeId, TypeId)>,
-        constraints: Vec<CanonicalConstraintId>,
-    ) {
+        unifications: Unifications,
+        constraints: Constraints,
+    ) where
+        Unifications: IntoIterator<Item = (TypeId, TypeId)>,
+        Constraints: IntoIterator<Item = WantedInScope>,
+    {
         self.unifications.extend(unifications);
         self.constraints.extend(constraints);
     }
 }
 
-type Stuck = FxHashMap<u32, Vec<CanonicalConstraintId>>;
-type Awake = IndexSet<CanonicalConstraintId, FxBuildHasher>;
-type Skolem = Vec<CanonicalConstraintId>;
+type Stuck = FxHashMap<u32, Vec<WantedInScope>>;
+type Awake = IndexSet<WantedInScope, FxBuildHasher>;
+type Skolem = Vec<WantedInScope>;
 
 fn wake_constraints(work: &mut WorkList, stuck: &mut Stuck, state: &CheckState) {
     let mut awake = Awake::default();
 
     stuck.retain(|&id, constraints| {
         if let UnificationState::Solved(_) = state.unifications.get(id).state {
-            for &constraint in constraints.iter() {
-                awake.insert(constraint);
-            }
+            awake.extend(constraints.iter().cloned());
             false
         } else {
             true
@@ -142,29 +95,15 @@ fn wake_constraints(work: &mut WorkList, stuck: &mut Stuck, state: &CheckState) 
     work.constraints.extend(awake);
 }
 
-pub fn solve_constraints<Q>(
+fn solve_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    wanted: VecDeque<CanonicalConstraintId>,
-    given: &[TypeId],
-) -> QueryResult<Vec<CanonicalConstraintId>>
+    constraints: VecDeque<WantedInScope>,
+) -> QueryResult<VecDeque<WantedInScope>>
 where
     Q: ExternalQueries,
 {
-    let given = given
-        .iter()
-        .filter_map(|id| canonical::canonicalise(state, context, *id).transpose())
-        .collect::<QueryResult<Vec<_>>>()?;
-
-    let elaborate::ElaboratedGiven { given, substitution } =
-        elaborate::elaborate_given(state, context, &given)?;
-
-    let wanted = wanted
-        .into_iter()
-        .map(|wanted| canonical::substitute_canonical(state, context, &substitution, wanted))
-        .collect::<QueryResult<VecDeque<_>>>()?;
-
-    let mut work = WorkList { unifications: vec![], constraints: wanted };
+    let mut work = WorkList { unifications: vec![], constraints };
     let mut stuck = Stuck::default();
     let mut skolem = Skolem::default();
     let mut residuals = vec![];
@@ -180,16 +119,20 @@ where
             work.constraints.extend(mem::take(&mut skolem));
         }
 
-        let Some(wanted) = work.constraints.pop_front() else {
+        let Some(WantedInScope { given, wanted }) = work.constraints.pop_front() else {
             break 'work;
         };
 
         let mut blocked = FxHashSet::default();
         let mut blocked_on_skolem = false;
 
-        for &provided in &given {
+        for &provided in &*given {
             match matching::match_provided(state, context, wanted, provided)? {
                 matching::MatchInstance::Match { unifications, constraints } => {
+                    let constraints = constraints.into_iter().map(|wanted| {
+                        let given = Rc::clone(&given);
+                        WantedInScope { given, wanted }
+                    });
                     work.extend_from_parts(unifications, constraints);
                     continue 'work;
                 }
@@ -203,6 +146,10 @@ where
 
         match compiler::match_compiler_instance(state, context, wanted, &given)? {
             Some(matching::MatchInstance::Match { unifications, constraints }) => {
+                let constraints = constraints.into_iter().map(|wanted| {
+                    let given = Rc::clone(&given);
+                    WantedInScope { given, wanted }
+                });
                 work.extend_from_parts(unifications, constraints);
                 continue 'work;
             }
@@ -218,6 +165,10 @@ where
             for candidate in chain {
                 match matching::match_declared(state, context, wanted, candidate)? {
                     matching::MatchInstance::Match { unifications, constraints } => {
+                        let constraints = constraints.into_iter().map(|wanted| {
+                            let given = Rc::clone(&given);
+                            WantedInScope { given, wanted }
+                        });
                         work.extend_from_parts(unifications, constraints);
                         continue 'work;
                     }
@@ -235,15 +186,17 @@ where
         // due to unsolved unification variables; we will wait for them to be solved.
         blocked.extend(search.blocking);
 
+        let constraint = WantedInScope { given, wanted };
         if blocked.is_empty() {
             if blocked_on_skolem {
-                skolem.push(wanted);
+                skolem.push(constraint);
             } else {
-                residuals.push(wanted);
+                residuals.push(constraint);
             }
         } else {
             for id in blocked {
-                stuck.entry(id).or_default().push(wanted);
+                let constraint = WantedInScope::clone(&constraint);
+                stuck.entry(id).or_default().push(constraint);
             }
         }
     }
@@ -295,7 +248,8 @@ impl GivenInScope {
     }
 }
 
-struct WantedInScope {
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct WantedInScope {
     given: Rc<[CanonicalConstraintId]>,
     wanted: CanonicalConstraintId,
 }
