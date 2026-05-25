@@ -98,6 +98,7 @@ pub enum ErrorKind {
         type_message: SmolStrId,
     },
     NoInstanceFound {
+        given: Arc<[SmolStrId]>,
         constraint: SmolStrId,
     },
     NoVisibleTypeVariable {

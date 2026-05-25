@@ -8,6 +8,7 @@ use checking::core::pretty;
 use checking::{core, ExternalQueries};
 use engine::WasmQueryEngine;
 use indexing::{TermItem, TypeItem};
+use itertools::Itertools;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 use web_sys::{js_sys, WorkerGlobalScope};
@@ -287,16 +288,25 @@ pub fn check(source: &str) -> JsValue {
 
         let mut errors = Vec::new();
         for error in &checked.errors {
-            let message = |id| engine.lookup_smol_str(id).to_string();
+            let lookup_message = |id| engine.lookup_smol_str(id).to_string();
             let (kind, message) = match &error.kind {
-                checking::error::ErrorKind::CannotUnify { t1, t2 } => {
-                    ("CannotUnify".to_string(), format!("{} ~ {}", message(*t1), message(*t2)))
-                }
-                checking::error::ErrorKind::NoInstanceFound { constraint } => {
-                    ("NoInstanceFound".to_string(), message(*constraint))
+                checking::error::ErrorKind::CannotUnify { t1, t2 } => (
+                    "CannotUnify".to_string(),
+                    format!("{} ~ {}", lookup_message(*t1), lookup_message(*t2)),
+                ),
+                checking::error::ErrorKind::NoInstanceFound { scope, constraint } => {
+                    let constraint = lookup_message(*constraint);
+
+                    let mut message = format!("No instance found for: {constraint}");
+                    if !scope.is_empty() {
+                        let scope = scope.iter().map(|given| lookup_message(*given)).join(", ");
+                        message.push_str(&format!(" given {scope}"));
+                    }
+
+                    ("NoInstanceFound".to_string(), message)
                 }
                 checking::error::ErrorKind::AmbiguousConstraint { constraint } => {
-                    ("AmbiguousConstraint".to_string(), message(*constraint))
+                    ("AmbiguousConstraint".to_string(), lookup_message(*constraint))
                 }
                 _ => (format!("{:?}", error.kind), String::new()),
             };

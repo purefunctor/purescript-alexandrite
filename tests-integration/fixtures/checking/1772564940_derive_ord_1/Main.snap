@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -75,16 +75,27 @@ NoOrd = [Representational]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Eq ((t43 :: Type -> Type) (t56 :: Type))
+	given
+	Eq1 (t42 :: Type -> Type)
+	Eq (t56 :: Type)
   --> 25:1..25:43
    |
 25 | derive instance Eq1 f => Eq1 (Compose f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Ord ((t47 :: Type -> Type) (t57 :: Type))
+	given
+	Ord1 (t46 :: Type -> Type)
+	Ord (t57 :: Type)
+	Eq1 (t46 :: Type -> Type)
+	Eq (t57 :: Type)
   --> 26:1..26:45
    |
 26 | derive instance Ord1 f => Ord1 (Compose f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Ord (NoOrd (t59 :: Type))
+	given
+	Ord (t59 :: Type)
+	Eq (t59 :: Type)
   --> 32:1..32:27
    |
 32 | derive instance Ord1 NoOrd

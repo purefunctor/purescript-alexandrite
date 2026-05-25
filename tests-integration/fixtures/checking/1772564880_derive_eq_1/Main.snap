@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -76,11 +76,16 @@ NoEq = [Representational]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Eq ((t37 :: Type -> Type) (t47 :: Type))
+	given
+	Eq1 (t36 :: Type -> Type)
+	Eq (t47 :: Type)
   --> 34:1..34:43
    |
 34 | derive instance Eq1 f => Eq1 (Compose f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Eq (NoEq (t49 :: Type))
+	given
+	Eq (t49 :: Type)
   --> 43:1..43:25
    |
 43 | derive instance Eq1 NoEq

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -97,6 +97,12 @@ Tuple = [Representational, Representational]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Discard (m :: Type -> Type)
+	given
+	Monad (m :: Type -> Type)
+	Bind (m :: Type -> Type)
+	Applicative (m :: Type -> Type)
+	Apply (m :: Type -> Type)
+	Functor (m :: Type -> Type)
   --> 44:1..44:44
    |
 44 | testDoDiscard :: forall m. Monad m => m Int

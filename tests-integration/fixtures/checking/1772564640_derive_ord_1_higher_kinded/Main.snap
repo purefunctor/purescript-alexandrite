@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -37,11 +37,17 @@ WrapNoOrd1 = [Representational, Nominal]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Ord1 (t18 :: Type -> Type)
+	given
+	Ord (t19 :: Type)
+	Eq (t19 :: Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Eq1 (t18 :: Type -> Type)
+	given
+	Ord (t19 :: Type)
+	Eq (t19 :: Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -29,11 +29,25 @@ Compose = [Representational, Representational, Nominal]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Functor (Compose @Type @Type (t5 :: Type -> Type) (t6 :: Type -> Type))
+	given
+	Traversable (t5 :: Type -> Type)
+	Traversable (t6 :: Type -> Type)
+	Functor (t5 :: Type -> Type)
+	Foldable (t5 :: Type -> Type)
+	Functor (t6 :: Type -> Type)
+	Foldable (t6 :: Type -> Type)
   --> 6:1..6:76
   |
 6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Foldable (Compose @Type @Type (t5 :: Type -> Type) (t6 :: Type -> Type))
+	given
+	Traversable (t5 :: Type -> Type)
+	Traversable (t6 :: Type -> Type)
+	Functor (t5 :: Type -> Type)
+	Foldable (t5 :: Type -> Type)
+	Functor (t6 :: Type -> Type)
+	Foldable (t6 :: Type -> Type)
   --> 6:1..6:76
   |
 6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)

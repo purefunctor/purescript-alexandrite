@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
@@ -83,8 +85,14 @@ where
         let attached = state.canonical_errors.remove(&residual.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
+        let given = residual
+            .given
+            .iter()
+            .map(|&given| state.pretty_constraint_id(context, given))
+            .collect::<QueryResult<Arc<[_]>>>()?;
+
         let constraint = state.pretty_constraint_id(context, residual.wanted)?;
-        state.insert_error(ErrorKind::NoInstanceFound { constraint });
+        state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
     }
     Ok(())
 }

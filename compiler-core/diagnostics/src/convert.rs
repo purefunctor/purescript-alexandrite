@@ -310,9 +310,16 @@ impl ToDiagnostics for CheckError {
                 let msg = lookup_message(*type_message);
                 (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {msg}"))
             }
-            ErrorKind::NoInstanceFound { constraint } => {
-                let msg = lookup_message(*constraint);
-                (Severity::Error, "NoInstanceFound", format!("No instance found for: {msg}"))
+            ErrorKind::NoInstanceFound { given, constraint } => {
+                let constraint = lookup_message(*constraint);
+
+                let mut message = format!("No instance found for: {constraint}");
+                if !given.is_empty() {
+                    let given = given.iter().map(|given| lookup_message(*given)).join("\n\t");
+                    message.push_str(&format!("\n\tgiven\n\t{given}"));
+                }
+
+                (Severity::Error, "NoInstanceFound", message)
             }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
                 let msg = lookup_message(*function_type);

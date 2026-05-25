@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,6 +16,8 @@ class forall (a :: Type). Given (a :: Type)
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Given Int
+	given
+	Given (a :: Type)
   --> 6:1..6:41
   |
 6 | testGiven :: forall a. Given a => a -> a

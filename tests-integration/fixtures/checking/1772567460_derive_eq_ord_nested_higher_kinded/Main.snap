@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -44,21 +44,31 @@ V = [Representational, Representational]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Eq ((t9 :: Type -> Type) Int)
+	given
+	Eq1 (t8 :: Type -> Type)
   --> 8:1..8:36
   |
 8 | derive instance Eq1 f => Eq (T f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Ord ((t13 :: Type -> Type) Int)
+	given
+	Ord1 (t12 :: Type -> Type)
+	Eq1 (t12 :: Type -> Type)
   --> 9:1..9:38
   |
 9 | derive instance Ord1 f => Ord (T f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Eq ((t25 :: Int -> Type) 42)
+	given
+	Eq1 (t24 :: Type -> Type)
   --> 23:1..23:36
    |
 23 | derive instance Eq1 f => Eq (V f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[NoInstanceFound]: No instance found for: Ord ((t29 :: Int -> Type) 42)
+	given
+	Ord1 (t28 :: Type -> Type)
+	Eq1 (t28 :: Type -> Type)
   --> 24:1..24:38
    |
 24 | derive instance Ord1 f => Ord (V f g)
