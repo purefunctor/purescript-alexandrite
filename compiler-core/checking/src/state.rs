@@ -8,7 +8,7 @@ use files::FileId;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
-use crate::core::constraint::{CanonicalConstraintId, Canonicals};
+use crate::core::constraint::{CanonicalConstraintId, Canonicals, ConstraintInScope};
 use crate::core::exhaustive::{
     ExhaustivenessReport, Pattern, PatternConstructor, PatternId, PatternInterner, PatternKind,
 };
@@ -319,7 +319,7 @@ impl CheckState {
     pub fn solve_constraints<Q>(
         &mut self,
         context: &CheckContext<Q>,
-    ) -> QueryResult<Vec<constraint::CanonicalConstraintId>>
+    ) -> QueryResult<Vec<ConstraintInScope>>
     where
         Q: ExternalQueries,
     {

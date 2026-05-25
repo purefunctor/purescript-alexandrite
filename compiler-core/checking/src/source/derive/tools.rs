@@ -80,10 +80,10 @@ where
     Q: ExternalQueries,
 {
     for residual in state.solve_constraints(context)? {
-        let attached = state.canonical_errors.remove(&residual);
+        let attached = state.canonical_errors.remove(&residual.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
-        let constraint = state.pretty_constraint_id(context, residual)?;
+        let constraint = state.pretty_constraint_id(context, residual.wanted)?;
         state.insert_error(ErrorKind::NoInstanceFound { constraint });
     }
     Ok(())

@@ -24,35 +24,34 @@ use building_types::QueryResult;
 use indexmap::IndexSet;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::fd::{compute_closure, get_functional_dependencies};
 use crate::core::{KindOrType, TypeId, unification};
 use crate::error::{CheckError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
 use crate::state::{CheckState, UnificationState};
+use crate::{ExternalQueries, Type};
 
 pub fn solve_implication<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-) -> QueryResult<Vec<CanonicalConstraintId>>
+) -> QueryResult<Vec<ConstraintInScope>>
 where
     Q: ExternalQueries,
 {
     let implication = state.implications.current();
-    let constraints = collect_scoped_constraints(state, context, implication)?;
-    let constraints = solve_constraints(state, context, constraints)?;
-    Ok(constraints.iter().map(|constraint| constraint.wanted).collect_vec())
+    let constraints = collect_constraints(state, context, implication)?;
+    solve_constraints(state, context, constraints)
 }
 
 pub struct Work {
     unifications: Vec<(TypeId, TypeId)>,
-    unclassified: VecDeque<WantedInScope>,
-    constraints: VecDeque<WantedInScope>,
+    unclassified: VecDeque<ConstraintInScope>,
+    constraints: VecDeque<ConstraintInScope>,
 }
 
 impl Work {
-    fn new(unclassified: VecDeque<WantedInScope>) -> Work {
+    fn new(unclassified: VecDeque<ConstraintInScope>) -> Work {
         Work { unifications: vec![], unclassified, constraints: VecDeque::default() }
     }
 
@@ -62,7 +61,7 @@ impl Work {
         constraints: Constraints,
     ) where
         Unifications: IntoIterator<Item = (TypeId, TypeId)>,
-        Constraints: IntoIterator<Item = WantedInScope>,
+        Constraints: IntoIterator<Item = ConstraintInScope>,
     {
         self.unifications.extend(unifications);
         self.extend_constraints(constraints);
@@ -70,7 +69,7 @@ impl Work {
 
     fn extend_constraints<Constraints>(&mut self, constraints: Constraints)
     where
-        Constraints: IntoIterator<Item = WantedInScope>,
+        Constraints: IntoIterator<Item = ConstraintInScope>,
     {
         self.unclassified.extend(constraints);
     }
@@ -79,7 +78,7 @@ impl Work {
         &mut self,
         state: &mut CheckState,
         context: &CheckContext<Q>,
-    ) -> QueryResult<Option<WantedInScope>>
+    ) -> QueryResult<Option<ConstraintInScope>>
     where
         Q: ExternalQueries,
     {
@@ -95,9 +94,9 @@ impl Work {
     }
 }
 
-type Stuck = FxHashMap<u32, Vec<WantedInScope>>;
-type ConstraintSet = IndexSet<WantedInScope, FxBuildHasher>;
-type Skolem = Vec<WantedInScope>;
+type Stuck = FxHashMap<u32, Vec<ConstraintInScope>>;
+type ConstraintSet = IndexSet<ConstraintInScope, FxBuildHasher>;
+type Skolem = Vec<ConstraintInScope>;
 
 fn is_improving_constraint<Q>(
     state: &mut CheckState,
@@ -172,8 +171,8 @@ fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &CheckState) {
 fn solve_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    constraints: VecDeque<WantedInScope>,
-) -> QueryResult<VecDeque<WantedInScope>>
+    constraints: VecDeque<ConstraintInScope>,
+) -> QueryResult<Vec<ConstraintInScope>>
 where
     Q: ExternalQueries,
 {
@@ -193,19 +192,19 @@ where
             work.extend_constraints(mem::take(&mut skolem));
         }
 
-        let Some(WantedInScope { given, wanted }) = work.pop_next(state, context)? else {
+        let Some(constraint) = work.pop_next(state, context)? else {
             break 'work;
         };
 
         let mut blocked = FxHashSet::default();
         let mut blocked_on_skolem = false;
 
-        for &provided in &*given {
-            match matching::match_provided(state, context, wanted, provided)? {
+        for &provided in &*constraint.given {
+            match matching::match_provided(state, context, constraint.wanted, provided)? {
                 matching::MatchInstance::Match { unifications, constraints } => {
                     let constraints = constraints.into_iter().map(|wanted| {
-                        let given = Rc::clone(&given);
-                        WantedInScope { given, wanted }
+                        let given = Rc::clone(&constraint.given);
+                        ConstraintInScope { given, wanted }
                     });
                     work.extend_from_parts(unifications, constraints);
                     continue 'work;
@@ -218,11 +217,16 @@ where
             }
         }
 
-        match compiler::match_compiler_instance(state, context, wanted, &given)? {
+        match compiler::match_compiler_instance(
+            state,
+            context,
+            constraint.wanted,
+            &constraint.given,
+        )? {
             Some(matching::MatchInstance::Match { unifications, constraints }) => {
                 let constraints = constraints.into_iter().map(|wanted| {
-                    let given = Rc::clone(&given);
-                    WantedInScope { given, wanted }
+                    let given = Rc::clone(&constraint.given);
+                    ConstraintInScope { given, wanted }
                 });
                 work.extend_from_parts(unifications, constraints);
                 continue 'work;
@@ -234,14 +238,14 @@ where
             Some(matching::MatchInstance::Apart) | None => (),
         }
 
-        let search = instances::collect_instance_chains(state, context, wanted)?;
+        let search = instances::collect_instance_chains(state, context, constraint.wanted)?;
         'chain: for chain in search.chains {
             for candidate in chain {
-                match matching::match_declared(state, context, wanted, candidate)? {
+                match matching::match_declared(state, context, constraint.wanted, candidate)? {
                     matching::MatchInstance::Match { unifications, constraints } => {
                         let constraints = constraints.into_iter().map(|wanted| {
-                            let given = Rc::clone(&given);
-                            WantedInScope { given, wanted }
+                            let given = Rc::clone(&constraint.given);
+                            ConstraintInScope { given, wanted }
                         });
                         work.extend_from_parts(unifications, constraints);
                         continue 'work;
@@ -260,7 +264,6 @@ where
         // due to unsolved unification variables; we will wait for them to be solved.
         blocked.extend(search.blocking);
 
-        let constraint = WantedInScope { given, wanted };
         if blocked.is_empty() {
             if blocked_on_skolem {
                 skolem.push(constraint);
@@ -269,7 +272,7 @@ where
             }
         } else {
             for id in blocked {
-                let constraint = WantedInScope::clone(&constraint);
+                let constraint = ConstraintInScope::clone(&constraint);
                 stuck.entry(id).or_default().push(constraint);
             }
         }
@@ -323,16 +326,55 @@ impl GivenInScope {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct WantedInScope {
-    given: Rc<[CanonicalConstraintId]>,
-    wanted: CanonicalConstraintId,
+pub struct ConstraintInScope {
+    pub given: Rc<[CanonicalConstraintId]>,
+    pub wanted: CanonicalConstraintId,
 }
 
-fn collect_scoped_constraints<Q>(
+impl ConstraintInScope {
+    pub fn zonk<Q>(
+        &self,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+    ) -> QueryResult<ConstraintInScope>
+    where
+        Q: ExternalQueries,
+    {
+        let given = self
+            .given
+            .iter()
+            .map(|&given| canonical::zonk_canonical(state, context, given))
+            .collect::<QueryResult<Rc<[_]>>>()?;
+        let wanted = canonical::zonk_canonical(state, context, self.wanted)?;
+        Ok(ConstraintInScope { given, wanted })
+    }
+
+    pub fn canonical<Q>(&self, state: &CheckState, context: &CheckContext<Q>) -> TypeId
+    where
+        Q: ExternalQueries,
+    {
+        state.canonicals.type_id(context, self.wanted)
+    }
+
+    pub fn is_partial<Q>(&self, state: &CheckState, context: &CheckContext<Q>) -> bool
+    where
+        Q: ExternalQueries,
+    {
+        let Type::Constructor(file_id, type_id) = context.lookup_type(context.prim.partial) else {
+            unreachable!("critical violation: Partial is not Partial");
+        };
+        let constraint = &state.canonicals[self.wanted];
+        constraint.file_id == file_id
+            && constraint.type_id == type_id
+            && constraint.arguments.is_empty()
+    }
+}
+
+fn collect_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     root: ImplicationId,
-) -> QueryResult<VecDeque<WantedInScope>>
+) -> QueryResult<VecDeque<ConstraintInScope>>
 where
     Q: ExternalQueries,
 {
@@ -379,7 +421,7 @@ where
                     let given = Rc::clone(&given);
                     let wanted =
                         canonical::substitute_canonical(state, context, &substitution, wanted)?;
-                    constraints.push_back(WantedInScope { given, wanted });
+                    constraints.push_back(ConstraintInScope { given, wanted });
                 }
             }
         }
