@@ -26,7 +26,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::fd::compute_closure;
+use crate::core::fd::{compute_closure, get_functional_dependencies};
 use crate::core::{KindOrType, TypeId, unification};
 use crate::error::{CheckError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
@@ -107,10 +107,8 @@ fn is_improving_constraint<Q>(
 where
     Q: ExternalQueries,
 {
-    let CanonicalConstraint { file_id, type_id, arguments } = &state.canonicals[constraint];
-
-    let functional_dependencies =
-        matching::get_functional_dependencies(context, *file_id, *type_id)?;
+    let CanonicalConstraint { file_id, type_id, arguments } = state.canonicals[constraint].clone();
+    let functional_dependencies = get_functional_dependencies(state, context, file_id, type_id)?;
 
     if functional_dependencies.is_empty() {
         return Ok(false);

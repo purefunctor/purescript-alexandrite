@@ -3,12 +3,11 @@
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{IndexedModule, InstanceChainId, TypeItemId};
-use lowering::TypeItemIr;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::CanonicalConstraintId;
-use crate::core::fd::{Fd, get_all_determined};
+use crate::core::fd::{get_all_determined, get_functional_dependencies};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{CheckedInstance, KindOrType, Type, TypeId, normalise};
 use crate::error::ErrorKind;
@@ -139,7 +138,8 @@ pub fn validate_rows<Q>(
 where
     Q: ExternalQueries,
 {
-    let functional_dependencies = get_functional_dependencies(context, class_file, class_item)?;
+    let functional_dependencies =
+        get_functional_dependencies(state, context, class_file, class_item)?;
     let all_determined = get_all_determined(&functional_dependencies);
 
     for (position, &argument_type) in arguments.iter().enumerate() {
@@ -159,41 +159,6 @@ where
     }
 
     Ok(())
-}
-
-fn get_functional_dependencies<Q>(
-    context: &CheckContext<Q>,
-    class_file: FileId,
-    class_id: TypeItemId,
-) -> QueryResult<Vec<Fd>>
-where
-    Q: ExternalQueries,
-{
-    fn extract(type_item: Option<&TypeItemIr>) -> Vec<Fd> {
-        let Some(TypeItemIr::ClassGroup { class: Some(class), .. }) = type_item else {
-            return vec![];
-        };
-
-        class
-            .functional_dependencies
-            .iter()
-            .map(|dependency| {
-                Fd::new(
-                    dependency.determiners.iter().map(|position| *position as usize),
-                    dependency.determined.iter().map(|position| *position as usize),
-                )
-            })
-            .collect()
-    }
-
-    let dependencies = if class_file == context.id {
-        extract(context.lowered.info.get_type_item(class_id))
-    } else {
-        let lowered = context.queries.lowered(class_file)?;
-        extract(lowered.info.get_type_item(class_id))
-    };
-
-    Ok(dependencies)
 }
 
 struct CollectFileReferences<'a> {

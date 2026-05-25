@@ -1,17 +1,14 @@
 use std::iter;
 
 use building_types::QueryResult;
-use files::FileId;
-use indexing::TypeItemId;
 use itertools::Itertools;
-use lowering::TypeItemIr;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::constraint::instances::InstanceCandidate;
 use crate::core::constraint::{CanonicalConstraintId, canonical};
-use crate::core::fd::{Fd, compute_closure, get_all_determined};
+use crate::core::fd::{Fd, compute_closure, get_all_determined, get_functional_dependencies};
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{KindOrType, Name, RowField, RowTypeId, Type, TypeId, normalise, toolkit};
@@ -560,7 +557,7 @@ where
     let pattern_variables = FxHashSet::default();
 
     let functional_dependencies =
-        get_functional_dependencies(context, wanted.file_id, wanted.type_id)?;
+        get_functional_dependencies(state, context, wanted.file_id, wanted.type_id)?;
 
     let wanted_arguments = wanted
         .arguments
@@ -616,7 +613,7 @@ where
         declared.binders.iter().map(|binder| binder.name).collect();
 
     let functional_dependencies =
-        get_functional_dependencies(context, wanted.file_id, wanted.type_id)?;
+        get_functional_dependencies(state, context, wanted.file_id, wanted.type_id)?;
 
     let wanted_arguments = wanted
         .arguments
@@ -672,36 +669,5 @@ where
         }
         MatchType::Apart => Ok(MatchInstance::Apart),
         MatchType::Stuck { stuck, skolem } => Ok(MatchInstance::Stuck { stuck, skolem }),
-    }
-}
-
-pub fn get_functional_dependencies<Q>(
-    context: &CheckContext<Q>,
-    file_id: FileId,
-    type_id: TypeItemId,
-) -> QueryResult<Vec<Fd>>
-where
-    Q: ExternalQueries,
-{
-    fn extract(type_item: Option<&TypeItemIr>) -> Vec<Fd> {
-        let Some(TypeItemIr::ClassGroup { class: Some(class), .. }) = type_item else {
-            return vec![];
-        };
-
-        let fd = class.functional_dependencies.iter().map(|functional_dependency| {
-            Fd::new(
-                functional_dependency.determiners.iter().map(|&x| x as usize),
-                functional_dependency.determined.iter().map(|&x| x as usize),
-            )
-        });
-
-        fd.collect_vec()
-    }
-
-    if file_id == context.id {
-        Ok(extract(context.lowered.info.get_type_item(type_id)))
-    } else {
-        let lowered = context.queries.lowered(file_id)?;
-        Ok(extract(lowered.info.get_type_item(type_id)))
     }
 }

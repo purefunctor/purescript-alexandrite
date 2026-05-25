@@ -1,6 +1,13 @@
+use std::sync::Arc;
+
+use building_types::QueryResult;
+use files::FileId;
+use indexing::TypeItemId;
 use rustc_hash::FxHashSet;
 
-use crate::safe_loop;
+use crate::context::CheckContext;
+use crate::state::CheckState;
+use crate::{ExternalQueries, safe_loop};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Fd {
@@ -18,6 +25,32 @@ impl Fd {
             determined: determined.into_iter().collect(),
         }
     }
+
+    pub fn from_lowering(functional_dependency: &lowering::FunctionalDependency) -> Fd {
+        Fd::new(
+            functional_dependency.determiners.iter().map(|&position| position as usize),
+            functional_dependency.determined.iter().map(|&position| position as usize),
+        )
+    }
+}
+
+pub fn get_functional_dependencies<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    type_id: TypeItemId,
+) -> QueryResult<Arc<[Fd]>>
+where
+    Q: ExternalQueries,
+{
+    let functional_dependencies = if file_id == context.id {
+        state.checked.classes.get(&type_id).map(|class| Arc::clone(&class.functional_dependencies))
+    } else {
+        let checked = context.queries.checked(file_id)?;
+        checked.classes.get(&type_id).map(|class| Arc::clone(&class.functional_dependencies))
+    };
+
+    Ok(functional_dependencies.unwrap_or_default())
 }
 
 pub fn get_all_determined(functional_dependencies: &[Fd]) -> FxHashSet<usize> {

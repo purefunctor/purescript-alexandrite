@@ -13,8 +13,8 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, Role, Type, TypeId, fold, generalise, signature,
-    toolkit, unification, zonk,
+    CheckedClass, CheckedSynonym, ForallBinder, Role, Type, TypeId, fd, fold, generalise,
+    signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
 use crate::source::types;
@@ -35,7 +35,7 @@ struct PendingSynonymType {
 struct PendingClassType {
     parameters: Vec<ForallBinder>,
     superclasses: Vec<TypeId>,
-    functional_dependencies: Arc<[lowering::FunctionalDependency]>,
+    functional_dependencies: Arc<[fd::Fd]>,
     members: Vec<(TermItemId, TypeId)>,
 }
 
@@ -739,7 +739,9 @@ where
         superclasses.push(superclass);
     }
 
-    let functional_dependencies = Arc::clone(functional_dependencies);
+    let functional_dependencies =
+        functional_dependencies.iter().map(fd::Fd::from_lowering).collect();
+
     let members = check_class_members(state, context, item_id)?;
 
     scc.class.push((
