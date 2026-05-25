@@ -27,6 +27,8 @@ pub enum LspError {
     JoinError(#[from] task::JoinError),
     #[error("Utf8Error: {0}")]
     Utf8Error(#[from] str::Utf8Error),
+    #[error("Formatting failed: {0}")]
+    FormattingFailed(String),
     #[error("GlobSetError: {0}")]
     GlobSetError(#[from] globset::Error),
     #[error("async_lsp::Error: {0}")]
@@ -54,6 +56,11 @@ impl LspError {
         if let Some(QueryError::Cancelled) = self.as_query_error() {
             return "Request cancelled";
         }
+
+        if let LspError::FormattingFailed(message) = self {
+            return message;
+        }
+
         "Request failed"
     }
 
@@ -78,5 +85,33 @@ impl<T> AnalyzerResultExt<T> for Result<T, AnalyzerError> {
             AnalyzerError::NonFatal => Ok(item),
             _ => Err(LspError::from(error)),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use analyzer::AnalyzerError;
+
+    #[test]
+    fn formatting_failed_message_is_forwarded() {
+        let error = LspError::FormattingFailed("formatter failed".to_string());
+
+        assert_eq!(error.message(), "formatter failed");
+        assert_eq!(error.code(), ErrorCode::REQUEST_FAILED);
+    }
+
+    #[test]
+    fn default_message_is_request_failed() {
+        let error = LspError::MissingRoot;
+
+        assert_eq!(error.message(), "Request failed");
+    }
+
+    #[test]
+    fn on_non_fatal_returns_item() {
+        let result: Result<u32, AnalyzerError> = Err(AnalyzerError::NonFatal);
+
+        assert_eq!(result.on_non_fatal(7).unwrap(), 7);
     }
 }

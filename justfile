@@ -7,6 +7,7 @@ set positional-arguments
 coverage:
   cargo llvm-cov clean --workspace
   cargo llvm-cov nextest --no-report
+  cargo llvm-cov nextest --no-report -p purescript-analyzer
   cargo llvm-cov nextest --no-report -p tests-integration
 
 [doc("Generate coverage with the package set")]
