@@ -1,0 +1,54 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
+M :: forall (@context :: Row Type) (@a :: Type). (a :: Type) -> M (context :: Row Type) (a :: Type)
+bind ::
+  forall (context :: Row Type) (a :: Type) (b :: Type).
+    M (context :: Row Type) (a :: Type) ->
+    ((a :: Type) -> M (context :: Row Type) (b :: Type)) ->
+    M (context :: Row Type) (b :: Type)
+ask ::
+  forall (@context :: Row Type) (@m :: Type -> Type).
+    Ask (context :: Row Type) (m :: Type -> Type) => (m :: Type -> Type) {| (context :: Row Type) }
+consume ::
+  forall (row :: Row Type) (list :: RowList Type).
+    RowToList @Type (row :: Row Type) (list :: RowList Type) => {| (row :: Row Type) } -> {}
+produce ::
+  forall (@context :: Row Type) (@input :: Row Type) (@output :: Row Type).
+    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
+    {| (context :: Row Type) } -> {| (input :: Row Type) } -> {| (output :: Row Type) }
+test ::
+  forall (context :: Row Type) (input :: Row Type) (output :: Row Type)
+    (outputList :: RowList Type).
+    RowToList @Type (output :: Row Type) (outputList :: RowList Type) =>
+    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
+    {| (input :: Row Type) } -> M (context :: Row Type) {}
+
+Types
+M :: Row Type -> Type -> Type
+Ask :: Row Type -> (Type -> Type) -> Constraint
+Produce :: Row Type -> Row Type -> Row Type -> Constraint
+
+Classes
+class forall (context :: Row Type) (m :: Type -> Type). Ask (context :: Row Type) (m :: Type -> Type)
+  ask ::
+  forall (@context :: Row Type) (@m :: Type -> Type).
+    Ask (context :: Row Type) (m :: Type -> Type) => (m :: Type -> Type) {| (context :: Row Type) }
+class forall (context :: Row Type) (input :: Row Type) (output :: Row Type). Produce (context :: Row Type) (input :: Row Type) (output :: Row Type)
+  produce ::
+  forall (@context :: Row Type) (@input :: Row Type) (@output :: Row Type).
+    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
+    {| (context :: Row Type) } -> {| (input :: Row Type) } -> {| (output :: Row Type) }
+
+Instances
+instance forall (t7 :: Row Type). Ask (t7 :: Row Type) (M (t7 :: Row Type))
+instance forall (t10 :: Row Type) (t11 :: RowList Type) (t9 :: Row Type).
+  RowToList @Type (t10 :: Row Type) (t11 :: RowList Type) =>
+  Produce (t9 :: Row Type) (t10 :: Row Type) (t10 :: Row Type)
+
+Roles
+M = [Phantom, Representational]
