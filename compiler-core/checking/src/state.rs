@@ -347,18 +347,8 @@ impl CheckState {
         self.pretty_id(context, id)
     }
 
-    pub fn report_exhaustiveness<Q>(
-        &mut self,
-        context: &CheckContext<Q>,
-        exhaustiveness: ExhaustivenessReport,
-    ) where
-        Q: ExternalQueries,
-    {
+    pub fn report_exhaustiveness(&mut self, exhaustiveness: ExhaustivenessReport) {
         if let Some(patterns) = exhaustiveness.missing {
-            let patterns: Vec<_> = patterns
-                .into_iter()
-                .map(|pattern| context.queries.intern_smol_str(pattern))
-                .collect();
             let crumbs = self.crumbs.iter().copied().collect();
             let patterns = Patterns { patterns: Arc::from(patterns), crumbs };
             self.implications.current_mut().patterns.push(patterns);

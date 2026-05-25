@@ -327,7 +327,7 @@ where
                 &member.equations,
             )?;
 
-            state.report_exhaustiveness(context, exhaustiveness);
+            state.report_exhaustiveness(exhaustiveness);
             state.solve_constraints(context)?
         } else if let Some(expected_type) = class_member_type {
             let equation_patterns = equations::check_value_equations(
@@ -344,7 +344,7 @@ where
                 &member.equations,
             )?;
 
-            state.report_exhaustiveness(context, exhaustiveness);
+            state.report_exhaustiveness(exhaustiveness);
             state.solve_constraints(context)?
         } else {
             vec![]
@@ -687,7 +687,7 @@ where
     )?;
     let exhaustiveness =
         exhaustive::check_equation_patterns(state, context, &equation_patterns, equations)?;
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
     state.solve_constraints(context)
 }
 
@@ -706,7 +706,7 @@ where
         equations::infer_value_equations(state, context, group_type, equations)?;
     let exhaustiveness =
         exhaustive::check_equation_patterns(state, context, &equation_patterns, equations)?;
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
 
     state.solve_constraints(context)
 }

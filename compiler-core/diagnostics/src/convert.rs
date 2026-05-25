@@ -363,7 +363,7 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::MissingPatterns { patterns } => {
-                let patterns = patterns.iter().map(|pattern| lookup_message(*pattern)).join(", ");
+                let patterns = patterns.join(", ");
                 (
                     Severity::Warning,
                     "MissingPatterns",

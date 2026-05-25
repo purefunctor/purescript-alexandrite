@@ -136,7 +136,7 @@ pub enum ErrorKind {
         patterns: Arc<[SmolStr]>,
     },
     MissingPatterns {
-        patterns: Arc<[SmolStrId]>,
+        patterns: Arc<[SmolStr]>,
     },
     CustomFailure {
         message_id: SmolStrId,
