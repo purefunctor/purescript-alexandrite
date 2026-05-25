@@ -721,7 +721,7 @@ where
     Q: ExternalQueries,
 {
     struct Pending {
-        t: TypeId,
+        marker: TypeId,
         unsolved: Vec<u32>,
         errors: generalise::ConstraintErrors,
     }
@@ -729,35 +729,41 @@ where
     let mut pending = vec![];
 
     for &item_id in items {
-        let Some(t) = state.checked.terms.get(&item_id).copied() else {
+        let Some(marker) = state.checked.terms.get(&item_id).copied() else {
             continue;
         };
 
         let group = scc.value_groups.remove(&item_id);
-        let t = zonk::zonk(state, context, t)?;
+        let marker = zonk::zonk(state, context, marker)?;
 
         let mut errors = generalise::ConstraintErrors::default();
 
-        let t = match group {
+        let marker = match group {
             Some(PendingValueGroup::Checked { residuals }) => {
                 errors.unsatisfied.extend(residuals);
-                t
+                marker
             }
             Some(PendingValueGroup::Inferred { residuals }) => {
-                generalise::insert_inferred_residuals(state, context, t, residuals, &mut errors)?
+                generalise::insert_inferred_residuals(
+                    state,
+                    context,
+                    marker,
+                    residuals,
+                    &mut errors,
+                )?
             }
-            None => t,
+            None => marker,
         };
 
-        let t = zonk::zonk(state, context, t)?;
-        let unsolved = generalise::unsolved_unifications(state, context, t)?;
+        let marker = zonk::zonk(state, context, marker)?;
+        let unsolved = generalise::unsolved_unifications(state, context, marker)?;
 
-        pending.push((item_id, Pending { t, unsolved, errors }));
+        pending.push((item_id, Pending { marker, unsolved, errors }));
     }
 
-    for (item_id, Pending { t, unsolved, errors }) in pending {
-        let t = generalise::generalise_unsolved(state, context, t, &unsolved)?;
-        state.checked.terms.insert(item_id, t);
+    for (item_id, Pending { marker, unsolved, errors }) in pending {
+        let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
+        state.checked.terms.insert(item_id, marker);
 
         for error in errors.ambiguous {
             let constraint = state.pretty_constraint_id(context, error.wanted)?;
