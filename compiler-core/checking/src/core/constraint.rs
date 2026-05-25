@@ -265,6 +265,22 @@ where
     Ok(unique_residuals.into_iter().collect())
 }
 
+pub fn elaborate_given_substitution<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    given: &[TypeId],
+) -> QueryResult<crate::core::substitute::NameToType>
+where
+    Q: ExternalQueries,
+{
+    let given = given
+        .iter()
+        .filter_map(|id| canonical::canonicalise(state, context, *id).transpose())
+        .collect::<QueryResult<Vec<_>>>()?;
+
+    elaborate::elaborate_given_substitution(state, context, &given)
+}
+
 pub fn is_type_error<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
