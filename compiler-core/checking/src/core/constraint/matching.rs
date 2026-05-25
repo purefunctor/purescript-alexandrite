@@ -229,26 +229,43 @@ where
     Q: ExternalQueries,
     Compare: FnMut(&mut CheckState, &CheckContext<Q>, TypeId, TypeId) -> QueryResult<MatchType>,
 {
-    let left_tail = context.intern_row(left_fields, left_tail);
-    let right_tail = context.intern_row(right_fields, right_tail);
+    enum RowRest {
+        Additional,
+        Open(TypeId),
+        Closed,
+    }
 
-    if let (Type::Row(left_row), Type::Row(right_row)) =
-        (context.lookup_type(left_tail), context.lookup_type(right_tail))
-    {
-        let left_row = context.lookup_row_type(left_row);
-        let right_row = context.lookup_row_type(right_row);
-
-        if left_row.fields.is_empty()
-            && left_row.tail.is_none()
-            && right_row.fields.is_empty()
-            && right_row.tail.is_none()
-        {
-            Ok(MatchType::Match { bindings: vec![] })
-        } else {
-            Ok(MatchType::Apart)
+    impl RowRest {
+        fn new(fields: &[RowField], tail: Option<TypeId>) -> RowRest {
+            if !fields.is_empty() {
+                RowRest::Additional
+            } else if let Some(tail) = tail {
+                RowRest::Open(tail)
+            } else {
+                RowRest::Closed
+            }
         }
-    } else {
-        compare(state, context, left_tail, right_tail)
+    }
+
+    use RowRest::*;
+
+    let left_rest = RowRest::new(&left_fields, left_tail);
+    let right_rest = RowRest::new(&right_fields, right_tail);
+
+    match right_rest {
+        Additional => match left_rest {
+            Closed | Additional => Ok(MatchType::Apart),
+            Open(left_tail) => blocking_type(state, context, left_tail),
+        },
+        Open(right_tail) => {
+            let left = context.intern_row(left_fields, left_tail);
+            compare(state, context, left, right_tail)
+        }
+        Closed => match left_rest {
+            Additional => Ok(MatchType::Apart),
+            Open(left_tail) => blocking_type(state, context, left_tail),
+            Closed => Ok(MatchType::Match { bindings: vec![] }),
+        },
     }
 }
 
@@ -518,6 +535,18 @@ where
     }
 
     Ok(walker.blocking)
+}
+
+pub fn blocking_type<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+) -> QueryResult<MatchType>
+where
+    Q: ExternalQueries,
+{
+    let stuck = collect_blocking(state, context, &[id])?;
+    if !stuck.is_empty() { Ok(MatchType::Stuck { stuck }) } else { Ok(MatchType::Apart) }
 }
 
 pub fn blocking_constraint<Q>(
