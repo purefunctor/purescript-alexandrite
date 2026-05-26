@@ -14,7 +14,7 @@ use crate::core::exhaustive::{
 };
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
-use crate::error::{CheckError, ErrorCrumb, ErrorKind};
+use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
 use crate::implication::{Implications, Patterns};
 use crate::{CheckedModule, ExternalQueries};
 
@@ -278,7 +278,7 @@ impl CheckState {
 
     pub fn insert_error(&mut self, kind: ErrorKind) {
         let crumbs = self.crumbs.iter().copied().collect();
-        self.checked.errors.push(CheckError { kind, crumbs });
+        self.checked.errors.push(CheckingError { kind, crumbs });
     }
 
     pub fn push_wanted(&mut self, constraint: TypeId) {

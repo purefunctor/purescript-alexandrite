@@ -136,8 +136,7 @@ where
             DerivedParameter { name: *b, expected: second_expected, class: second_class },
         ),
         _ => {
-            let type_message = derived_type;
-            state.insert_error(ErrorKind::CannotDeriveForType { type_message });
+            state.insert_error(ErrorKind::CannotDeriveForType { type_id: derived_type });
             DerivedRigids::Invalid
         }
     };
@@ -219,11 +218,9 @@ fn emit_variance_error(
     }
 
     match actual {
-        Variance::Covariant => {
-            state.insert_error(ErrorKind::CovariantOccurrence { type_message: type_id })
-        }
+        Variance::Covariant => state.insert_error(ErrorKind::CovariantOccurrence { type_id }),
         Variance::Contravariant => {
-            state.insert_error(ErrorKind::ContravariantOccurrence { type_message: type_id })
+            state.insert_error(ErrorKind::ContravariantOccurrence { type_id })
         }
     }
 }

@@ -6,7 +6,7 @@ use building_types::QueryResult;
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
-use crate::error::{CheckError, ErrorKind};
+use crate::error::{CheckingError, ErrorKind};
 use crate::state::CheckState;
 use crate::{ExternalQueries, OperatorBranchTypes};
 
@@ -72,9 +72,9 @@ pub fn zonk_errors<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> Quer
 where
     Q: ExternalQueries,
 {
-    for CheckError { kind, crumbs } in mem::take(&mut state.checked.errors) {
+    for CheckingError { kind, crumbs } in mem::take(&mut state.checked.errors) {
         let kind = zonk_error_kind(state, context, kind)?;
-        state.checked.errors.push(CheckError { kind, crumbs });
+        state.checked.errors.push(CheckingError { kind, crumbs });
     }
 
     Ok(())
@@ -93,26 +93,26 @@ where
             let constraint = zonk(state, context, constraint)?;
             ErrorKind::AmbiguousConstraint { constraint }
         }
-        ErrorKind::CannotDeriveForType { type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::CannotDeriveForType { type_message }
+        ErrorKind::CannotDeriveForType { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::CannotDeriveForType { type_id }
         }
-        ErrorKind::ContravariantOccurrence { type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::ContravariantOccurrence { type_message }
+        ErrorKind::ContravariantOccurrence { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::ContravariantOccurrence { type_id }
         }
-        ErrorKind::CovariantOccurrence { type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::CovariantOccurrence { type_message }
+        ErrorKind::CovariantOccurrence { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::CovariantOccurrence { type_id }
         }
         ErrorKind::CannotUnify { t1, t2 } => {
             let t1 = zonk(state, context, t1)?;
             let t2 = zonk(state, context, t2)?;
             ErrorKind::CannotUnify { t1, t2 }
         }
-        ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_message }
+        ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id }
         }
         ErrorKind::InstanceMemberTypeMismatch { expected, actual } => {
             let expected = zonk(state, context, expected)?;
@@ -125,13 +125,13 @@ where
             let argument_type = zonk(state, context, argument_type)?;
             ErrorKind::InvalidTypeApplication { function_type, function_kind, argument_type }
         }
-        ErrorKind::ExpectedNewtype { type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::ExpectedNewtype { type_message }
+        ErrorKind::ExpectedNewtype { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::ExpectedNewtype { type_id }
         }
-        ErrorKind::NonLocalNewtype { type_message } => {
-            let type_message = zonk(state, context, type_message)?;
-            ErrorKind::NonLocalNewtype { type_message }
+        ErrorKind::NonLocalNewtype { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::NonLocalNewtype { type_id }
         }
         ErrorKind::NoInstanceFound { given, constraint } => {
             let given = given

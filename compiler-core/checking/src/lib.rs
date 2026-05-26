@@ -24,7 +24,7 @@ use crate::core::{
     CheckedClass, CheckedInstance, CheckedSynonym, ForallBinder, ForallBinderId, Name, Role,
     RowType, RowTypeId, SmolStrId,
 };
-use crate::error::CheckError;
+use crate::error::CheckingError;
 
 pub trait ExternalQueries:
     QueryProxy<
@@ -63,7 +63,7 @@ pub struct CheckedModule {
     pub derived: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
     pub nodes: CheckedNodes,
-    pub errors: Vec<CheckError>,
+    pub errors: Vec<CheckingError>,
     pub names: FxHashMap<Name, SmolStrId>,
 }
 

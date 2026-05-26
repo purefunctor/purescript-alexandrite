@@ -1,4 +1,4 @@
-use checking::error::{CheckError, ErrorKind};
+use checking::error::{CheckingError, ErrorKind};
 use indexing::{IndexingError, TypeItemKind};
 use itertools::Itertools;
 use lowering::LoweringError;
@@ -204,7 +204,7 @@ impl ToDiagnostics for IndexingError {
     }
 }
 
-impl ToDiagnostics for CheckError {
+impl ToDiagnostics for CheckingError {
     fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
     where
         Q: ExternalQueries,
@@ -215,30 +215,30 @@ impl ToDiagnostics for CheckError {
 
         let (severity, code, message) = match &self.kind {
             ErrorKind::AmbiguousConstraint { constraint } => {
-                let msg = render_type(*constraint);
-                (Severity::Error, "AmbiguousConstraint", format!("Ambiguous constraint: {msg}"))
+                let message = render_type(*constraint);
+                (Severity::Error, "AmbiguousConstraint", format!("Ambiguous constraint: {message}"))
             }
             ErrorKind::CannotDeriveClass { .. } => {
                 (Severity::Error, "CannotDeriveClass", "Cannot derive this class".to_string())
             }
-            ErrorKind::CannotDeriveForType { type_message } => {
-                let msg = render_type(*type_message);
-                (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {msg}"))
+            ErrorKind::CannotDeriveForType { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {message}"))
             }
-            ErrorKind::ContravariantOccurrence { type_message } => {
-                let msg = render_type(*type_message);
+            ErrorKind::ContravariantOccurrence { type_id } => {
+                let message = render_type(*type_id);
                 (
                     Severity::Error,
                     "ContravariantOccurrence",
-                    format!("Type variable occurs in contravariant position: {msg}"),
+                    format!("Type variable occurs in contravariant position: {message}"),
                 )
             }
-            ErrorKind::CovariantOccurrence { type_message } => {
-                let msg = render_type(*type_message);
+            ErrorKind::CovariantOccurrence { type_id } => {
+                let message = render_type(*type_id);
                 (
                     Severity::Error,
                     "CovariantOccurrence",
-                    format!("Type variable occurs in covariant position: {msg}"),
+                    format!("Type variable occurs in covariant position: {message}"),
                 )
             }
             ErrorKind::CannotUnify { t1, t2 } => {
@@ -282,8 +282,8 @@ impl ToDiagnostics for CheckError {
                 "InstanceHeadMismatch",
                 format!("Instance head mismatch: expected {expected} arguments, got {actual}"),
             ),
-            ErrorKind::InstanceHeadLabeledRow { position, type_message, .. } => {
-                let type_msg = render_type(*type_message);
+            ErrorKind::InstanceHeadLabeledRow { position, type_id, .. } => {
+                let type_msg = render_type(*type_id);
                 (
                     Severity::Error,
                     "InstanceHeadLabeledRow",
@@ -316,9 +316,9 @@ impl ToDiagnostics for CheckError {
                     ),
                 )
             }
-            ErrorKind::ExpectedNewtype { type_message } => {
-                let msg = render_type(*type_message);
-                (Severity::Error, "ExpectedNewtype", format!("Expected a newtype, got: {msg}"))
+            ErrorKind::ExpectedNewtype { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "ExpectedNewtype", format!("Expected a newtype, got: {message}"))
             }
             ErrorKind::InvalidNewtypeDeriveSkolemArguments => (
                 Severity::Error,
@@ -326,9 +326,9 @@ impl ToDiagnostics for CheckError {
                 "Cannot derive newtype instance where skolemised arguments do not appear trailing in the inner type."
                     .to_string(),
             ),
-            ErrorKind::NonLocalNewtype { type_message } => {
-                let msg = render_type(*type_message);
-                (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {msg}"))
+            ErrorKind::NonLocalNewtype { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {message}"))
             }
             ErrorKind::NoInstanceFound { constraint, .. } => {
                 let constraint = render_type(*constraint);
@@ -336,11 +336,11 @@ impl ToDiagnostics for CheckError {
                 (Severity::Error, "NoInstanceFound", message)
             }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
-                let msg = render_type(*function_type);
+                let message = render_type(*function_type);
                 (
                     Severity::Error,
                     "NoVisibleTypeVariable",
-                    format!("No visible type variable for type application in: {msg}"),
+                    format!("No visible type variable for type application in: {message}"),
                 )
             }
             ErrorKind::PartialSynonymApplication { .. } => (
@@ -392,12 +392,12 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::CustomWarning { message_id } => {
-                let msg = lookup_message(*message_id);
-                (Severity::Warning, "CustomWarning", msg.to_string())
+                let message = lookup_message(*message_id);
+                (Severity::Warning, "CustomWarning", message.to_string())
             }
             ErrorKind::CustomFailure { message_id } => {
-                let msg = lookup_message(*message_id);
-                (Severity::Error, "CustomFailure", msg.to_string())
+                let message = lookup_message(*message_id);
+                (Severity::Error, "CustomFailure", message.to_string())
             }
             ErrorKind::PropertyIsMissing { labels } => {
                 let labels_str = labels.join(", ");

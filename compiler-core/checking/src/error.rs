@@ -42,13 +42,13 @@ pub enum ErrorKind {
         class_id: indexing::TypeItemId,
     },
     CannotDeriveForType {
-        type_message: TypeId,
+        type_id: TypeId,
     },
     ContravariantOccurrence {
-        type_message: TypeId,
+        type_id: TypeId,
     },
     CovariantOccurrence {
-        type_message: TypeId,
+        type_id: TypeId,
     },
     CannotUnify {
         t1: TypeId,
@@ -79,7 +79,7 @@ pub enum ErrorKind {
         class_file: files::FileId,
         class_item: indexing::TypeItemId,
         position: usize,
-        type_message: TypeId,
+        type_id: TypeId,
     },
     InstanceMemberTypeMismatch {
         expected: TypeId,
@@ -91,11 +91,11 @@ pub enum ErrorKind {
         argument_type: TypeId,
     },
     ExpectedNewtype {
-        type_message: TypeId,
+        type_id: TypeId,
     },
     InvalidNewtypeDeriveSkolemArguments,
     NonLocalNewtype {
-        type_message: TypeId,
+        type_id: TypeId,
     },
     NoInstanceFound {
         given: Arc<[TypeId]>,
@@ -151,7 +151,7 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CheckError {
+pub struct CheckingError {
     pub kind: ErrorKind,
     pub crumbs: Arc<[ErrorCrumb]>,
 }

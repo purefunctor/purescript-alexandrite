@@ -27,7 +27,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use crate::context::CheckContext;
 use crate::core::fd::{compute_closure, get_functional_dependencies};
 use crate::core::{KindOrType, TypeId, unification};
-use crate::error::{CheckError, ErrorKind};
+use crate::error::{CheckingError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
 use crate::state::{CheckState, UnificationState};
 use crate::{ExternalQueries, Type};
@@ -406,7 +406,7 @@ where
         if !elide_missing_patterns {
             for Patterns { patterns, crumbs } in patterns {
                 let kind = ErrorKind::MissingPatterns { patterns };
-                state.checked.errors.push(CheckError { kind, crumbs });
+                state.checked.errors.push(CheckingError { kind, crumbs });
             }
         }
 
