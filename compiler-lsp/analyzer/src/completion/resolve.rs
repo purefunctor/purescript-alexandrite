@@ -32,10 +32,10 @@ pub fn implementation(
             }
         }
         CompletionResolveData::TermItem(file_id, term_id) => {
-            resolve_term_item(engine, file_id, term_id, item)
+            resolve_term_item(engine, file_id, term_id, item).map_err(|error| *error)
         }
         CompletionResolveData::TypeItem(file_id, type_id) => {
-            resolve_type_item(engine, file_id, type_id, item)
+            resolve_type_item(engine, file_id, type_id, item).map_err(|error| *error)
         }
     }
 }
@@ -64,7 +64,7 @@ fn resolve_term_item(
     file_id: FileId,
     term_id: TermItemId,
     mut item: CompletionItem,
-) -> Result<CompletionItem, (AnalyzerError, CompletionItem)> {
+) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
     if let Ok((root, range)) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&root, range));
         item.documentation = annotation.map(|annotation| {
@@ -103,7 +103,7 @@ fn resolve_type_item(
     file_id: FileId,
     type_id: TypeItemId,
     mut item: CompletionItem,
-) -> Result<CompletionItem, (AnalyzerError, CompletionItem)> {
+) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
     if let Ok((root, range)) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&root, range));
         item.documentation = annotation.map(|annotation| {
