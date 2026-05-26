@@ -25,7 +25,7 @@ use petgraph::prelude::DiGraphMap;
 use rustc_hash::FxHashSet;
 
 use crate::context::CheckContext;
-use crate::core::constraint::{ConstraintInScope, elaborate};
+use crate::core::constraint::{CanonicalConstraintId, ConstraintInScope, elaborate};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{ForallBinder, Name, Type, TypeId, normalise, zonk};
 use crate::state::{CheckState, UnificationEntry, UnificationState};
@@ -243,7 +243,7 @@ where
 
 #[derive(Default)]
 pub struct ConstraintErrors {
-    pub ambiguous: Vec<ConstraintInScope>,
+    pub ambiguous: Vec<CanonicalConstraintId>,
     pub unsatisfied: Vec<ConstraintInScope>,
 }
 
@@ -268,34 +268,29 @@ where
         let residual = residual.zonk(state, context)?;
 
         if residual.is_partial(state, context) {
-            latent.push(residual);
+            latent.push(residual.wanted);
             continue;
         }
 
-        let canonical = residual.canonical(state, context);
+        let canonical = state.canonicals.type_id(context, residual.wanted);
         let unification: FxHashSet<_> =
             collect_unification(state, context, canonical)?.nodes().collect();
 
         if unification.is_empty() {
             errors.unsatisfied.push(residual);
         } else {
-            pending.push((residual, unification));
+            pending.push((residual.wanted, unification));
         }
     }
 
     let unifications = collect_unification(state, context, type_id)?.nodes().collect();
-    let generalised = classify_constraints(pending, unifications, errors);
+    let generalised = classify_constraints(pending, latent, unifications, errors);
 
-    let generalised = latent
-        .into_iter()
-        .chain(generalised)
-        .sorted_by_key(|constraint| constraint.wanted)
-        .collect_vec();
-
+    let generalised = generalised.into_iter().sorted().collect_vec();
     let generalised = minimize_by_superclasses(state, context, generalised)?;
 
     let constrained = generalised.into_iter().rfold(type_id, |inner, constraint| {
-        let constraint = constraint.canonical(state, context);
+        let constraint = state.canonicals.type_id(context, constraint);
         context.intern_constrained(constraint, inner)
     });
 
@@ -305,8 +300,8 @@ where
 fn minimize_by_superclasses<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    constraints: Vec<ConstraintInScope>,
-) -> QueryResult<Vec<ConstraintInScope>>
+    constraints: Vec<CanonicalConstraintId>,
+) -> QueryResult<Vec<CanonicalConstraintId>>
 where
     Q: ExternalQueries,
 {
@@ -315,27 +310,25 @@ where
     }
 
     let mut superclasses = FxHashSet::default();
-    for constraint in &constraints {
-        for superclass in elaborate::elaborate_superclasses(state, context, &[constraint.wanted])? {
-            if superclass != constraint.wanted {
+    for &constraint in &constraints {
+        for superclass in elaborate::elaborate_superclasses(state, context, &[constraint])? {
+            if superclass != constraint {
                 superclasses.insert(superclass);
             }
         }
     }
 
-    Ok(constraints
-        .into_iter()
-        .filter(|constraint| !superclasses.contains(&constraint.wanted))
-        .collect())
+    Ok(constraints.into_iter().filter(|constraint| !superclasses.contains(constraint)).collect())
 }
 
 fn classify_constraints(
-    pending: Vec<(ConstraintInScope, FxHashSet<u32>)>,
+    pending: Vec<(CanonicalConstraintId, FxHashSet<u32>)>,
+    latent: Vec<CanonicalConstraintId>,
     unifications: FxHashSet<u32>,
     errors: &mut ConstraintErrors,
-) -> FxHashSet<ConstraintInScope> {
+) -> FxHashSet<CanonicalConstraintId> {
     let mut reachable = unifications;
-    let mut valid = FxHashSet::default();
+    let mut valid: FxHashSet<_> = latent.into_iter().collect();
     let mut remaining = pending;
 
     safe_loop! {

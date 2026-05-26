@@ -774,7 +774,7 @@ where
         state.checked.terms.insert(item_id, marker);
 
         for error in errors.ambiguous {
-            let constraint = state.canonicals.type_id(context, error.wanted);
+            let constraint = state.canonicals.type_id(context, error);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 state.insert_error(ErrorKind::AmbiguousConstraint { constraint });
             });
