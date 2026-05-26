@@ -1,10 +1,12 @@
 //! Implements the pretty printer for core types.
 
+use std::num::NonZeroU32;
+
 use itertools::Itertools;
 use lowering::StringKind;
 use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
-use smol_str::{SmolStr, SmolStrBuilder};
+use smol_str::{SmolStr, SmolStrBuilder, format_smolstr};
 
 use crate::core::{
     ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, SmolStrId, Type, TypeId,
@@ -12,17 +14,95 @@ use crate::core::{
 use crate::{CheckedModule, ExternalQueries};
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+const FIRST_SUFFIX: NonZeroU32 = NonZeroU32::new(1).unwrap();
 
-pub struct Pretty<'a, Q> {
-    queries: &'a Q,
-    width: usize,
-    signature: Option<&'a str>,
-    checked: &'a CheckedModule,
+#[derive(Debug, Default)]
+struct PrettyNames {
+    display_by_name: FxHashMap<Name, SmolStr>,
+    next_suffix: FxHashMap<SmolStr, NonZeroU32>,
 }
 
-impl<'a, Q: ExternalQueries> Pretty<'a, Q> {
+impl PrettyNames {
+    fn new() -> PrettyNames {
+        PrettyNames::default()
+    }
+
+    fn reset(&mut self) {
+        self.display_by_name.clear();
+        self.next_suffix.clear();
+    }
+
+    fn display_name<Q>(
+        &mut self,
+        queries: &Q,
+        names: &FxHashMap<Name, SmolStrId>,
+        name: Name,
+    ) -> SmolStr
+    where
+        Q: ExternalQueries + ?Sized,
+    {
+        if let Some(display) = self.display_by_name.get(&name) {
+            return SmolStr::clone(display);
+        }
+
+        let base = names
+            .get(&name)
+            .map(|&id| queries.lookup_smol_str(id))
+            .unwrap_or_else(|| SmolStr::new("t"));
+
+        let display = self.allocate_display_name(base);
+        self.display_by_name.insert(name, SmolStr::clone(&display));
+        display
+    }
+
+    fn allocate_display_name(&mut self, base: SmolStr) -> SmolStr {
+        if !self.next_suffix.contains_key(&base) {
+            self.next_suffix.insert(SmolStr::clone(&base), FIRST_SUFFIX);
+            return base;
+        }
+
+        let mut suffix = self
+            .next_suffix
+            .get(&base)
+            .copied()
+            .expect("critical failure: display name missing suffix state");
+
+        loop {
+            let next_suffix = next_display_name_suffix(suffix);
+            let display = format_smolstr!("{base}{suffix}");
+
+            if !self.next_suffix.contains_key(&display) {
+                self.next_suffix.insert(SmolStr::clone(&display), FIRST_SUFFIX);
+                self.next_suffix.insert(base, next_suffix);
+                return display;
+            }
+
+            suffix = next_suffix;
+        }
+    }
+}
+
+fn next_display_name_suffix(suffix: NonZeroU32) -> NonZeroU32 {
+    suffix
+        .get()
+        .checked_add(1)
+        .and_then(NonZeroU32::new)
+        .expect("critical failure: exhausted display-name suffixes")
+}
+
+pub struct Pretty<'a, Q: ?Sized> {
+    queries: &'a Q,
+    width: usize,
+    checked: &'a CheckedModule,
+    names: PrettyNames,
+}
+
+impl<'a, Q> Pretty<'a, Q>
+where
+    Q: ExternalQueries + ?Sized,
+{
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Self {
-        Pretty { queries, width: 100, signature: None, checked }
+        Pretty { queries, width: 100, checked, names: PrettyNames::new() }
     }
 
     pub fn width(mut self, width: usize) -> Self {
@@ -30,16 +110,27 @@ impl<'a, Q: ExternalQueries> Pretty<'a, Q> {
         self
     }
 
-    pub fn signature(mut self, name: &'a str) -> Self {
-        self.signature = Some(name);
-        self
+    pub fn reset(&mut self) {
+        self.names.reset();
     }
 
-    pub fn render(self, id: TypeId) -> SmolStr {
-        let arena = Arena::new();
-        let mut printer = Printer::new(&arena, self.queries, &self.checked.names);
+    pub fn display_name(&mut self, name: Name) -> SmolStr {
+        self.names.display_name(self.queries, &self.checked.names, name)
+    }
 
-        let document = if let Some(name) = self.signature {
+    pub fn render(&mut self, id: TypeId) -> SmolStr {
+        self.render_with_signature(None, id)
+    }
+
+    pub fn render_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
+        self.render_with_signature(Some(name), id)
+    }
+
+    fn render_with_signature(&mut self, signature: Option<&str>, id: TypeId) -> SmolStr {
+        let arena = Arena::new();
+        let mut printer = Printer::new(&arena, self.queries, &self.checked.names, &mut self.names);
+
+        let document = if let Some(name) = signature {
             printer.signature(name, id)
         } else {
             printer.traverse(Precedence::Top, id)
@@ -62,25 +153,27 @@ enum Precedence {
     Atom,
 }
 
-struct Printer<'a, Q>
+struct Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries,
+    Q: ExternalQueries + ?Sized,
 {
-    arena: &'a Arena<'a>,
-    queries: &'a Q,
-    names: &'a FxHashMap<Name, SmolStrId>,
+    arena: &'arena Arena<'arena>,
+    queries: &'context Q,
+    names: &'context FxHashMap<Name, SmolStrId>,
+    pretty_names: &'names mut PrettyNames,
 }
 
-impl<'a, Q> Printer<'a, Q>
+impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries,
+    Q: ExternalQueries + ?Sized,
 {
     fn new(
-        arena: &'a Arena<'a>,
-        queries: &'a Q,
-        names: &'a FxHashMap<Name, SmolStrId>,
-    ) -> Printer<'a, Q> {
-        Printer { arena, queries, names }
+        arena: &'arena Arena<'arena>,
+        queries: &'context Q,
+        names: &'context FxHashMap<Name, SmolStrId>,
+        pretty_names: &'names mut PrettyNames,
+    ) -> Printer<'arena, 'context, 'names, Q> {
+        Printer { arena, queries, names, pretty_names }
     }
 
     fn lookup_type(&self, id: TypeId) -> Type {
@@ -118,17 +211,17 @@ where
         false
     }
 
-    fn parens_if(&self, condition: bool, doc: Doc<'a>) -> Doc<'a> {
+    fn parens_if(&self, condition: bool, doc: Doc<'arena>) -> Doc<'arena> {
         if condition { self.arena.text("(").append(doc).append(self.arena.text(")")) } else { doc }
     }
 
-    fn signature(&mut self, name: &str, id: TypeId) -> Doc<'a> {
+    fn signature(&mut self, name: &str, id: TypeId) -> Doc<'arena> {
         let signature = self.traverse(Precedence::Top, id);
         let signature = self.arena.line().append(signature).nest(2);
         self.arena.text(format!("{name} ::")).append(signature).group()
     }
 
-    fn traverse(&mut self, precedence: Precedence, id: TypeId) -> Doc<'a> {
+    fn traverse(&mut self, precedence: Precedence, id: TypeId) -> Doc<'arena> {
         match self.lookup_type(id) {
             Type::Application(function, argument) => {
                 self.traverse_application(precedence, function, argument)
@@ -185,10 +278,7 @@ where
             }
 
             Type::Rigid(name, _, kind) => {
-                let text = match self.names.get(&name) {
-                    Some(&id) => self.lookup_smol_str(id),
-                    None => name.as_text(),
-                };
+                let text = self.pretty_names.display_name(self.queries, self.names, name);
                 let kind = self.traverse(Precedence::Top, kind);
                 self.arena.text(format!("({text} :: ")).append(kind).append(self.arena.text(")"))
             }
@@ -208,16 +298,16 @@ where
     }
 }
 
-impl<'a, Q> Printer<'a, Q>
+impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries,
+    Q: ExternalQueries + ?Sized,
 {
     fn traverse_application(
         &mut self,
         precedence: Precedence,
         mut function: TypeId,
         argument: TypeId,
-    ) -> Doc<'a> {
+    ) -> Doc<'arena> {
         if self.is_record_constructor(function) {
             return self.format_record_application(argument);
         }
@@ -245,7 +335,7 @@ where
         self.parens_if(precedence > Precedence::Application, application)
     }
 
-    fn format_record_application(&mut self, argument: TypeId) -> Doc<'a> {
+    fn format_record_application(&mut self, argument: TypeId) -> Doc<'arena> {
         match self.lookup_type(argument) {
             Type::Row(row_id) => {
                 let row = self.lookup_row_type(row_id);
@@ -263,7 +353,7 @@ where
         precedence: Precedence,
         mut function: TypeId,
         argument: TypeId,
-    ) -> Doc<'a> {
+    ) -> Doc<'arena> {
         let mut arguments = vec![argument];
 
         while let Type::KindApplication(inner_function, argument) = self.lookup_type(function) {
@@ -288,16 +378,16 @@ where
     }
 }
 
-impl<'a, Q> Printer<'a, Q>
+impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries,
+    Q: ExternalQueries + ?Sized,
 {
     fn traverse_forall(
         &mut self,
         precedence: Precedence,
         binder_id: ForallBinderId,
         mut inner: TypeId,
-    ) -> Doc<'a> {
+    ) -> Doc<'arena> {
         let binder = self.lookup_forall_binder(binder_id);
         let mut binders = vec![binder];
 
@@ -309,10 +399,7 @@ where
         let binders = binders
             .iter()
             .map(|binder| {
-                let name = match self.names.get(&binder.name) {
-                    Some(&id) => self.lookup_smol_str(id),
-                    None => binder.name.as_text(),
-                };
+                let name = self.pretty_names.display_name(self.queries, self.names, binder.name);
                 let text = if binder.visible { format!("@{name}") } else { name.to_string() };
                 let kind = self.traverse(Precedence::Top, binder.kind);
                 self.arena
@@ -345,7 +432,7 @@ where
         precedence: Precedence,
         constraint: TypeId,
         mut inner: TypeId,
-    ) -> Doc<'a> {
+    ) -> Doc<'arena> {
         let mut constraints = vec![constraint];
 
         while let Type::Constrained(constraint, next_inner) = self.lookup_type(inner) {
@@ -374,7 +461,7 @@ where
         precedence: Precedence,
         argument: TypeId,
         mut result: TypeId,
-    ) -> Doc<'a> {
+    ) -> Doc<'arena> {
         let mut arguments = vec![argument];
 
         while let Type::Function(argument, next_result) = self.lookup_type(result) {
@@ -399,11 +486,11 @@ where
     }
 }
 
-impl<'a, Q> Printer<'a, Q>
+impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries,
+    Q: ExternalQueries + ?Sized,
 {
-    fn format_record(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'a> {
+    fn format_record(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'arena> {
         if fields.is_empty() && tail.is_none() {
             return self.arena.text("{}");
         }
@@ -416,7 +503,7 @@ where
             .group()
     }
 
-    fn format_row(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'a> {
+    fn format_row(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'arena> {
         let body = self.format_row_body(fields, tail);
         self.arena
             .text("( ")
@@ -426,7 +513,7 @@ where
             .group()
     }
 
-    fn format_row_body(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'a> {
+    fn format_row_body(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'arena> {
         if fields.is_empty() {
             return if let Some(tail) = tail {
                 let tail = self.traverse(Precedence::Top, tail);
@@ -444,10 +531,11 @@ where
             })
             .collect_vec();
 
-        let format_field = |arena: &'a Arena<'a>, label: String, field_type: Doc<'a>| {
-            let field_type = arena.line().append(field_type).nest(2).group();
-            arena.text(format!("{label} ::")).append(field_type).align()
-        };
+        let format_field =
+            |arena: &'arena Arena<'arena>, label: String, field_type: Doc<'arena>| {
+                let field_type = arena.line().append(field_type).nest(2).group();
+                arena.text(format!("{label} ::")).append(field_type).align()
+            };
 
         let mut fields = fields.into_iter();
         let (first_label, first_type) = fields.next().unwrap();
@@ -470,5 +558,45 @@ where
         } else {
             fields
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn smol_str(text: &str) -> SmolStr {
+        SmolStr::new(text)
+    }
+
+    #[test]
+    fn allocate_display_name_skips_reserved_suffixes() {
+        let mut names = PrettyNames::new();
+
+        assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t"));
+        assert_eq!(names.allocate_display_name(smol_str("t1")), smol_str("t1"));
+        assert_eq!(names.allocate_display_name(smol_str("t3")), smol_str("t3"));
+        assert_eq!(names.allocate_display_name(smol_str("t2")), smol_str("t2"));
+        assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t4"));
+    }
+
+    #[test]
+    fn allocate_display_name_checks_actual_candidates() {
+        let mut names = PrettyNames::new();
+
+        assert_eq!(names.allocate_display_name(smol_str("t01")), smol_str("t01"));
+        assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t"));
+        assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t1"));
+        assert_eq!(names.allocate_display_name(smol_str("t0")), smol_str("t0"));
+        assert_eq!(names.allocate_display_name(smol_str("t0")), smol_str("t02"));
+    }
+
+    #[test]
+    #[should_panic(expected = "critical failure: exhausted display-name suffixes")]
+    fn allocate_display_name_reports_suffix_exhaustion() {
+        let mut names = PrettyNames::new();
+        names.next_suffix.insert(smol_str("t"), NonZeroU32::new(u32::MAX).unwrap());
+
+        names.allocate_display_name(smol_str("t"));
     }
 }

@@ -94,8 +94,8 @@ fn render_term_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_term(term_id)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    Some(pretty.render(signature).to_string())
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    Some(pretty.render_signature(name, signature).to_string())
 }
 
 fn resolve_type_item(
@@ -133,8 +133,8 @@ fn render_type_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_type(type_id)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    Some(pretty.render(signature).to_string())
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    Some(pretty.render_signature(name, signature).to_string())
 }
 
 #[derive(Serialize, Deserialize)]
