@@ -2,7 +2,8 @@ use building_types::QueryResult;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Type, TypeId, normalise, toolkit, unification};
+use crate::core::{KindOrType, Type, TypeId, normalise, unification};
+use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -134,13 +135,11 @@ where
                 let invalid_type = context.intern_application(function_type, argument_type);
                 let unknown_kind = context.unknown(options.message);
 
-                toolkit::report_invalid_type_application(
-                    state,
-                    context,
+                state.insert_error(ErrorKind::InvalidTypeApplication {
                     function_type,
                     function_kind,
                     argument_type,
-                )?;
+                });
 
                 records.push(KindOrType::Type(argument_type));
                 break Ok(((invalid_type, unknown_kind), records));

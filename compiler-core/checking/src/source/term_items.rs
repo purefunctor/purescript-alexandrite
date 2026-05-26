@@ -309,8 +309,8 @@ where
                     unification::subtype(state, context, signature_member_type, class_member_type)
                 })?;
                 if !unified {
-                    let expected = state.pretty_id(context, class_member_type)?;
-                    let actual = state.pretty_id(context, signature_member_type)?;
+                    let expected = class_member_type;
+                    let actual = signature_member_type;
                     state.insert_error(ErrorKind::InstanceMemberTypeMismatch { expected, actual });
                 }
             }
@@ -359,10 +359,10 @@ where
             let given = residual
                 .given
                 .iter()
-                .map(|&given| state.pretty_constraint_id(context, given))
-                .collect::<QueryResult<Arc<[_]>>>()?;
+                .map(|given| state.canonicals.type_id(context, *given))
+                .collect::<Arc<[_]>>();
 
-            let constraint = state.pretty_constraint_id(context, residual.wanted)?;
+            let constraint = state.canonicals.type_id(context, residual.wanted);
             state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
         }
 
@@ -774,7 +774,7 @@ where
         state.checked.terms.insert(item_id, marker);
 
         for error in errors.ambiguous {
-            let constraint = state.pretty_constraint_id(context, error.wanted)?;
+            let constraint = state.canonicals.type_id(context, error.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 state.insert_error(ErrorKind::AmbiguousConstraint { constraint });
             });
@@ -788,10 +788,10 @@ where
             let given = error
                 .given
                 .iter()
-                .map(|&given| state.pretty_constraint_id(context, given))
-                .collect::<QueryResult<Arc<[_]>>>()?;
+                .map(|given| state.canonicals.type_id(context, *given))
+                .collect::<Arc<[_]>>();
 
-            let constraint = state.pretty_constraint_id(context, error.wanted)?;
+            let constraint = state.canonicals.type_id(context, error.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
             });

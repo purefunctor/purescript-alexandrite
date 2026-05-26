@@ -13,7 +13,7 @@ use crate::core::exhaustive::{
     ExhaustivenessReport, Pattern, PatternConstructor, PatternId, PatternInterner, PatternKind,
 };
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint, pretty, zonk};
+use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckError, ErrorCrumb, ErrorKind};
 use crate::implication::{Implications, Patterns};
 use crate::{CheckedModule, ExternalQueries};
@@ -324,27 +324,6 @@ impl CheckState {
         Q: ExternalQueries,
     {
         constraint::solve_implication(self, context)
-    }
-
-    pub fn pretty_id<Q>(&mut self, context: &CheckContext<Q>, id: TypeId) -> QueryResult<SmolStrId>
-    where
-        Q: ExternalQueries,
-    {
-        let id = zonk::zonk(self, context, id)?;
-        let pretty = pretty::Pretty::new(context.queries, &self.checked).render(id);
-        Ok(context.queries.intern_smol_str(pretty))
-    }
-
-    pub fn pretty_constraint_id<Q>(
-        &mut self,
-        context: &CheckContext<Q>,
-        id: constraint::CanonicalConstraintId,
-    ) -> QueryResult<SmolStrId>
-    where
-        Q: ExternalQueries,
-    {
-        let id = self.canonicals.type_id(context, id);
-        self.pretty_id(context, id)
     }
 
     pub fn report_exhaustiveness(&mut self, exhaustiveness: ExhaustivenessReport) {

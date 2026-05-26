@@ -191,21 +191,22 @@ impl ToDiagnostics for CheckError {
     fn to_diagnostics(&self, context: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
         let span = context.primary_span_from_crumbs(&self.crumbs);
         let lookup_message = |id| context.queries.lookup_checking_smol_str(id);
+        let render_type = |id| context.render_type(id);
 
         let (severity, code, message) = match &self.kind {
             ErrorKind::AmbiguousConstraint { constraint } => {
-                let msg = lookup_message(*constraint);
+                let msg = render_type(*constraint);
                 (Severity::Error, "AmbiguousConstraint", format!("Ambiguous constraint: {msg}"))
             }
             ErrorKind::CannotDeriveClass { .. } => {
                 (Severity::Error, "CannotDeriveClass", "Cannot derive this class".to_string())
             }
             ErrorKind::CannotDeriveForType { type_message } => {
-                let msg = lookup_message(*type_message);
+                let msg = render_type(*type_message);
                 (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {msg}"))
             }
             ErrorKind::ContravariantOccurrence { type_message } => {
-                let msg = lookup_message(*type_message);
+                let msg = render_type(*type_message);
                 (
                     Severity::Error,
                     "ContravariantOccurrence",
@@ -213,7 +214,7 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::CovariantOccurrence { type_message } => {
-                let msg = lookup_message(*type_message);
+                let msg = render_type(*type_message);
                 (
                     Severity::Error,
                     "CovariantOccurrence",
@@ -221,8 +222,8 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::CannotUnify { t1, t2 } => {
-                let t1 = lookup_message(*t1);
-                let t2 = lookup_message(*t2);
+                let t1 = render_type(*t1);
+                let t2 = render_type(*t2);
                 (Severity::Error, "CannotUnify", format!("Cannot unify '{t1}' with '{t2}'"))
             }
             ErrorKind::DeriveInvalidArity { expected, actual, .. } => (
@@ -262,7 +263,7 @@ impl ToDiagnostics for CheckError {
                 format!("Instance head mismatch: expected {expected} arguments, got {actual}"),
             ),
             ErrorKind::InstanceHeadLabeledRow { position, type_message, .. } => {
-                let type_msg = lookup_message(*type_message);
+                let type_msg = render_type(*type_message);
                 (
                     Severity::Error,
                     "InstanceHeadLabeledRow",
@@ -274,8 +275,8 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::InstanceMemberTypeMismatch { expected, actual } => {
-                let expected = lookup_message(*expected);
-                let actual = lookup_message(*actual);
+                let expected = render_type(*expected);
+                let actual = render_type(*actual);
                 (
                     Severity::Error,
                     "InstanceMemberTypeMismatch",
@@ -283,9 +284,9 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::InvalidTypeApplication { function_type, function_kind, argument_type } => {
-                let function_type = lookup_message(*function_type);
-                let function_kind = lookup_message(*function_kind);
-                let argument_type = lookup_message(*argument_type);
+                let function_type = render_type(*function_type);
+                let function_kind = render_type(*function_kind);
+                let argument_type = render_type(*argument_type);
                 (
                     Severity::Error,
                     "InvalidTypeApplication",
@@ -296,7 +297,7 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::ExpectedNewtype { type_message } => {
-                let msg = lookup_message(*type_message);
+                let msg = render_type(*type_message);
                 (Severity::Error, "ExpectedNewtype", format!("Expected a newtype, got: {msg}"))
             }
             ErrorKind::InvalidNewtypeDeriveSkolemArguments => (
@@ -306,16 +307,16 @@ impl ToDiagnostics for CheckError {
                     .to_string(),
             ),
             ErrorKind::NonLocalNewtype { type_message } => {
-                let msg = lookup_message(*type_message);
+                let msg = render_type(*type_message);
                 (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {msg}"))
             }
             ErrorKind::NoInstanceFound { constraint, .. } => {
-                let constraint = lookup_message(*constraint);
+                let constraint = render_type(*constraint);
                 let message = format!("No instance found for: {constraint}");
                 (Severity::Error, "NoInstanceFound", message)
             }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
-                let msg = lookup_message(*function_type);
+                let msg = render_type(*function_type);
                 (
                     Severity::Error,
                     "NoVisibleTypeVariable",
@@ -403,7 +404,7 @@ impl ToDiagnostics for CheckError {
 
         if let ErrorKind::NoInstanceFound { given, .. } = &self.kind {
             for &given in given.iter() {
-                let given = lookup_message(given);
+                let given = render_type(given);
                 let trivia = format!("{given} is in scope");
                 diagnostic = diagnostic.with_trivia(trivia)
             }

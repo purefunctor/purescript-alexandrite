@@ -5,7 +5,6 @@ use std::cell::RefCell;
 
 use building_types::QueryProxy;
 use checking::core::pretty;
-use checking::{core, ExternalQueries};
 use diagnostics::{Diagnostic, DiagnosticsContext, ToDiagnostics};
 use engine::WasmQueryEngine;
 use indexing::{TermItem, TypeItem};
@@ -276,42 +275,36 @@ pub fn check(source: &str) -> JsValue {
             }
         };
         let check_time = performance.now() - start;
-
-        let name_text = |name: core::Name| -> String {
-            checked
-                .lookup_name(name)
-                .map(|id| engine.lookup_smol_str(id).to_string())
-                .unwrap_or_else(|| name.as_text().to_string())
-        };
-
-        let pretty = |type_id| pretty::Pretty::new(engine, &checked).render(type_id);
-
-        let pretty_signature = |name: &str, type_id| {
-            pretty::Pretty::new(engine, &checked).signature(name).render(type_id)
-        };
+        let mut pretty = pretty::Pretty::new(engine, &checked);
 
         // Extract results
         let mut terms = Vec::new();
         for (term_id, TermItem { name, .. }) in indexed.items.iter_terms() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_term(term_id) else { continue };
-            terms.push(pretty_signature(n.as_str(), t).to_string());
+            pretty.reset();
+            terms.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut types = Vec::new();
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_type(type_id) else { continue };
-            types.push(pretty_signature(n.as_str(), t).to_string());
+            pretty.reset();
+            types.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut synonyms = Vec::new();
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(group) = checked.lookup_synonym(type_id) else { continue };
-            let expansion = pretty(group.synonym);
-            let parameters =
-                group.parameters.iter().map(|binder| name_text(binder.name)).collect::<Vec<_>>();
+            pretty.reset();
+            let expansion = pretty.render(group.synonym);
+            let parameters = group
+                .parameters
+                .iter()
+                .map(|binder| pretty.display_name(binder.name))
+                .collect::<Vec<_>>();
             synonyms.push(SynonymExpansion {
                 name: n.to_string(),
                 expansion: if parameters.is_empty() {
@@ -327,8 +320,15 @@ pub fn check(source: &str) -> JsValue {
 
         let (parsed, _) = engine.parsed(id).expect("parsed module should be available");
         let root = parsed.syntax_node();
-        let context =
-            DiagnosticsContext::new(engine, source, &root, &stabilized, &indexed, &lowered);
+        let context = DiagnosticsContext::new(
+            engine,
+            source,
+            &root,
+            &stabilized,
+            &indexed,
+            &lowered,
+            &checked,
+        );
 
         let mut diagnostics = Vec::new();
         for error in &indexed.errors {

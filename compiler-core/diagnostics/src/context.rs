@@ -1,3 +1,8 @@
+use std::cell::RefCell;
+
+use checking::CheckedModule;
+use checking::core::TypeId;
+use checking::core::pretty::Pretty;
 use checking::error::ErrorCrumb;
 use indexing::IndexedModule;
 use lowering::LoweredModule;
@@ -8,7 +13,7 @@ use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr};
 
 use crate::Span;
 
-pub trait ExternalQueries {
+pub trait ExternalQueries: checking::ExternalQueries {
     fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr;
 }
 
@@ -95,6 +100,8 @@ pub struct DiagnosticsContext<'a> {
     pub stabilized: &'a StabilizedModule,
     pub indexed: &'a IndexedModule,
     pub lowered: &'a LoweredModule,
+    pub checked: &'a CheckedModule,
+    pretty: RefCell<Pretty<'a, dyn ExternalQueries + 'a>>,
 }
 
 impl<'a> DiagnosticsContext<'a> {
@@ -105,8 +112,22 @@ impl<'a> DiagnosticsContext<'a> {
         stabilized: &'a StabilizedModule,
         indexed: &'a IndexedModule,
         lowered: &'a LoweredModule,
+        checked: &'a CheckedModule,
     ) -> DiagnosticsContext<'a> {
-        DiagnosticsContext { queries, content, root, stabilized, indexed, lowered }
+        DiagnosticsContext {
+            queries,
+            content,
+            root,
+            stabilized,
+            indexed,
+            lowered,
+            checked,
+            pretty: RefCell::new(Pretty::new(queries, checked)),
+        }
+    }
+
+    pub fn render_type(&self, id: TypeId) -> smol_str::SmolStr {
+        self.pretty.borrow_mut().render(id)
     }
 
     pub fn span_from_syntax_ptr(&self, ptr: &SyntaxNodePtr) -> Option<Span> {

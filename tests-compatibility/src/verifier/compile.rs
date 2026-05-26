@@ -222,7 +222,18 @@ fn with_diagnostics_context(
     let Ok(lowered) = engine.lowered(file_id) else {
         return;
     };
-    f(DiagnosticsContext::new(engine, &meta.content, root, &stabilized, &indexed, &lowered));
+    let Ok(checked) = engine.checked(file_id) else {
+        return;
+    };
+    f(DiagnosticsContext::new(
+        engine,
+        &meta.content,
+        root,
+        &stabilized,
+        &indexed,
+        &lowered,
+        &checked,
+    ));
 }
 
 fn parse_diagnostics(meta: &FileMeta, errors: &[parsing::ParseError]) -> Vec<CompilerDiagnostic> {

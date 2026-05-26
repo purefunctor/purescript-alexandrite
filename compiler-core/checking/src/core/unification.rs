@@ -413,8 +413,6 @@ where
     };
 
     if !unifies {
-        let t1 = state.pretty_id(context, t1)?;
-        let t2 = state.pretty_id(context, t2)?;
         state.insert_error(ErrorKind::CannotUnify { t1, t2 });
     }
 
@@ -533,8 +531,8 @@ where
     match promote_type(state, context, id, solution)? {
         PromoteResult::Ok => {}
         PromoteResult::OccursCheck | PromoteResult::SkolemEscape => {
-            let t1 = state.pretty_id(context, unification)?;
-            let t2 = state.pretty_id(context, solution)?;
+            let t1 = unification;
+            let t2 = solution;
             state.insert_error(ErrorKind::CannotUnify { t1, t2 });
             return Ok(false);
         }

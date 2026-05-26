@@ -68,7 +68,7 @@ where
     };
 
     if toolkit::extract_type_constructor(state, context, *derived_type)?.is_none() {
-        let type_message = state.pretty_id(context, *derived_type)?;
+        let type_message = *derived_type;
         state.insert_error(ErrorKind::CannotDeriveForType { type_message });
         return Ok(None);
     }

@@ -148,7 +148,7 @@ where
         }
 
         if HasLabeledRole::contains(state, context, argument_type)? {
-            let type_message = state.pretty_id(context, argument_type)?;
+            let type_message = argument_type;
             state.insert_error(ErrorKind::InstanceHeadLabeledRow {
                 class_file,
                 class_item,

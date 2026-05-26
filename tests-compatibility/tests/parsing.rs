@@ -77,9 +77,19 @@ fn test_index_package_set() {
             }
             continue;
         };
+        let Ok(checked) = engine.checked(id) else {
+            continue;
+        };
 
-        let context =
-            DiagnosticsContext::new(&engine, &source, &root, &stabilized, &indexed, &lowered);
+        let context = DiagnosticsContext::new(
+            &engine,
+            &source,
+            &root,
+            &stabilized,
+            &indexed,
+            &lowered,
+            &checked,
+        );
         let errors: Vec<_> = indexed
             .errors
             .iter()

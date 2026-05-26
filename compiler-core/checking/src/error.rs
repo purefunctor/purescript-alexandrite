@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use smol_str::SmolStr;
 
-use crate::core::SmolStrId;
+use crate::core::{SmolStrId, TypeId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCrumb {
@@ -35,24 +35,24 @@ pub enum ErrorCrumb {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     AmbiguousConstraint {
-        constraint: SmolStrId,
+        constraint: TypeId,
     },
     CannotDeriveClass {
         class_file: files::FileId,
         class_id: indexing::TypeItemId,
     },
     CannotDeriveForType {
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     ContravariantOccurrence {
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     CovariantOccurrence {
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     CannotUnify {
-        t1: SmolStrId,
-        t2: SmolStrId,
+        t1: TypeId,
+        t2: TypeId,
     },
     DeriveInvalidArity {
         class_file: files::FileId,
@@ -79,30 +79,30 @@ pub enum ErrorKind {
         class_file: files::FileId,
         class_item: indexing::TypeItemId,
         position: usize,
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     InstanceMemberTypeMismatch {
-        expected: SmolStrId,
-        actual: SmolStrId,
+        expected: TypeId,
+        actual: TypeId,
     },
     InvalidTypeApplication {
-        function_type: SmolStrId,
-        function_kind: SmolStrId,
-        argument_type: SmolStrId,
+        function_type: TypeId,
+        function_kind: TypeId,
+        argument_type: TypeId,
     },
     ExpectedNewtype {
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     InvalidNewtypeDeriveSkolemArguments,
     NonLocalNewtype {
-        type_message: SmolStrId,
+        type_message: TypeId,
     },
     NoInstanceFound {
-        given: Arc<[SmolStrId]>,
-        constraint: SmolStrId,
+        given: Arc<[TypeId]>,
+        constraint: TypeId,
     },
     NoVisibleTypeVariable {
-        function_type: SmolStrId,
+        function_type: TypeId,
     },
     PartialSynonymApplication {
         id: lowering::TypeId,

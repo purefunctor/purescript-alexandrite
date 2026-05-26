@@ -88,10 +88,10 @@ where
         let given = residual
             .given
             .iter()
-            .map(|&given| state.pretty_constraint_id(context, given))
-            .collect::<QueryResult<Arc<[_]>>>()?;
+            .map(|given| state.canonicals.type_id(context, *given))
+            .collect::<Arc<[_]>>();
 
-        let constraint = state.pretty_constraint_id(context, residual.wanted)?;
+        let constraint = state.canonicals.type_id(context, residual.wanted);
         state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
     }
     Ok(())
