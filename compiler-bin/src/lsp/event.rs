@@ -72,8 +72,8 @@ fn collect_diagnostics_core(
     let diagnostics = all_diagnostics
         .iter()
         .filter_map(|diagnostic| {
-            let start = to_position(diagnostic.primary.start)?;
-            let end = to_position(diagnostic.primary.end)?;
+            let start = to_position(diagnostic.span.start)?;
+            let end = to_position(diagnostic.span.end)?;
             let range = Range { start, end };
 
             let severity = match diagnostic.severity {

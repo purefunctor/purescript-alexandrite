@@ -105,7 +105,7 @@ fn diagnostic_to_error_info(diagnostic: &Diagnostic) -> CheckErrorInfo {
     CheckErrorInfo {
         kind: diagnostic.code.to_string(),
         message: diagnostic.message.clone(),
-        location: Some(format!("{}..{}", diagnostic.primary.start, diagnostic.primary.end)),
+        location: Some(format!("{}..{}", diagnostic.span.start, diagnostic.span.end)),
     }
 }
 

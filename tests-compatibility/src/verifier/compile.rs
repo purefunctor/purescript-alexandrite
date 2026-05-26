@@ -280,7 +280,7 @@ fn compiler_diagnostic(meta: &FileMeta, stage: &str, diagnostic: Diagnostic) -> 
         severity: severity.to_string(),
         code: diagnostic.code.to_string(),
         message: diagnostic.message,
-        span: SpanReport { start: diagnostic.primary.start, end: diagnostic.primary.end },
+        span: SpanReport { start: diagnostic.span.start, end: diagnostic.span.end },
         human,
     }
 }

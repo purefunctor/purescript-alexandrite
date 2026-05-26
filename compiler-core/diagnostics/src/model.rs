@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Span {
     pub start: u32,
@@ -22,8 +24,6 @@ pub enum Severity {
     Warning,
 }
 
-use std::fmt;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DiagnosticCode(&'static str);
 
@@ -39,21 +39,29 @@ impl fmt::Display for DiagnosticCode {
     }
 }
 
+/// A diagnostic produced by the compiler.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
+    /// The severity of the diagnostic.
     pub severity: Severity,
+    /// The stable code for the diagnostic.
     pub code: DiagnosticCode,
+    /// The message attached to the diagnostic.
     pub message: String,
-    pub primary: Span,
+    /// The span this diagnostic is attached to.
+    pub span: Span,
+    /// Related information attached to other spans.
     pub related: Vec<RelatedSpan>,
+    /// The crate this diagnostic is attached to.
     pub source: &'static str,
 }
 
 impl Diagnostic {
+    /// Creates a [`Severity::Error`]-level [`Diagnostic`].
     pub fn error(
         code: &'static str,
         message: impl Into<String>,
-        primary: Span,
+        span: Span,
         source: &'static str,
     ) -> Diagnostic {
         let message = message.into();
@@ -62,16 +70,17 @@ impl Diagnostic {
             severity: Severity::Error,
             code: DiagnosticCode::new(code),
             message,
-            primary,
+            span,
             related,
             source,
         }
     }
 
+    /// Creates a [`Severity::Warning`]-level [`Diagnostic`].
     pub fn warning(
         code: &'static str,
         message: impl Into<String>,
-        primary: Span,
+        span: Span,
         source: &'static str,
     ) -> Diagnostic {
         let message = message.into();
@@ -80,12 +89,13 @@ impl Diagnostic {
             severity: Severity::Warning,
             code: DiagnosticCode::new(code),
             message,
-            primary,
+            span,
             related,
             source,
         }
     }
 
+    /// Attaches a [`RelatedSpan`] to a [`Diagnostic`].
     pub fn with_related(mut self, span: Span, message: impl Into<String>) -> Diagnostic {
         let message = message.into();
         self.related.push(RelatedSpan { span, message });
