@@ -1,33 +1,32 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Wrap ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@a :: (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) ->
-    Wrap @(t2 :: Type) (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 WrapNoFunctor ::
-  forall (t5 :: Type) (@f :: (t5 :: Type) -> Type) (@a :: (t5 :: Type)).
-    (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type)) ->
-    WrapNoFunctor @(t5 :: Type) (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    WrapNoFunctor @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 
 Types
-Wrap :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (t2 :: Type) -> Type
-WrapNoFunctor :: forall (t5 :: Type). ((t5 :: Type) -> Type) -> (t5 :: Type) -> Type
+Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+WrapNoFunctor :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 
 Derived
-derive forall (t6 :: Type -> Type).
-  Functor (t6 :: Type -> Type) => Functor (Wrap @Type (t6 :: Type -> Type))
-derive forall (t8 :: Type -> Type). Functor (WrapNoFunctor @Type (t8 :: Type -> Type))
+derive forall (t :: Type -> Type). Functor (t :: Type -> Type) => Functor (Wrap @Type (t :: Type -> Type))
+derive forall (t :: Type -> Type). Functor (WrapNoFunctor @Type (t :: Type -> Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoFunctor = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (t8 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Functor (t :: Type -> Type)
   --> 9:1..9:42
   |
 9 | derive instance Functor (WrapNoFunctor f)

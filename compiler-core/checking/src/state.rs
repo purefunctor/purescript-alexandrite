@@ -8,13 +8,13 @@ use files::FileId;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
-use crate::core::constraint::{CanonicalConstraintId, Canonicals};
+use crate::core::constraint::{CanonicalConstraintId, Canonicals, ConstraintInScope};
 use crate::core::exhaustive::{
     ExhaustivenessReport, Pattern, PatternConstructor, PatternId, PatternInterner, PatternKind,
 };
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint, pretty, zonk};
-use crate::error::{CheckError, ErrorCrumb, ErrorKind};
+use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
+use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
 use crate::implication::{Implications, Patterns};
 use crate::{CheckedModule, ExternalQueries};
 
@@ -278,7 +278,7 @@ impl CheckState {
 
     pub fn insert_error(&mut self, kind: ErrorKind) {
         let crumbs = self.crumbs.iter().copied().collect();
-        self.checked.errors.push(CheckError { kind, crumbs });
+        self.checked.errors.push(CheckingError { kind, crumbs });
     }
 
     pub fn push_wanted(&mut self, constraint: TypeId) {
@@ -319,46 +319,15 @@ impl CheckState {
     pub fn solve_constraints<Q>(
         &mut self,
         context: &CheckContext<Q>,
-    ) -> QueryResult<Vec<constraint::CanonicalConstraintId>>
+    ) -> QueryResult<Vec<ConstraintInScope>>
     where
         Q: ExternalQueries,
     {
         constraint::solve_implication(self, context)
     }
 
-    pub fn pretty_id<Q>(&mut self, context: &CheckContext<Q>, id: TypeId) -> QueryResult<SmolStrId>
-    where
-        Q: ExternalQueries,
-    {
-        let id = zonk::zonk(self, context, id)?;
-        let pretty = pretty::Pretty::new(context.queries, &self.checked).render(id);
-        Ok(context.queries.intern_smol_str(pretty))
-    }
-
-    pub fn pretty_constraint_id<Q>(
-        &mut self,
-        context: &CheckContext<Q>,
-        id: constraint::CanonicalConstraintId,
-    ) -> QueryResult<SmolStrId>
-    where
-        Q: ExternalQueries,
-    {
-        let id = self.canonicals.type_id(context, id);
-        self.pretty_id(context, id)
-    }
-
-    pub fn report_exhaustiveness<Q>(
-        &mut self,
-        context: &CheckContext<Q>,
-        exhaustiveness: ExhaustivenessReport,
-    ) where
-        Q: ExternalQueries,
-    {
+    pub fn report_exhaustiveness(&mut self, exhaustiveness: ExhaustivenessReport) {
         if let Some(patterns) = exhaustiveness.missing {
-            let patterns: Vec<_> = patterns
-                .into_iter()
-                .map(|pattern| context.queries.intern_smol_str(pattern))
-                .collect();
             let crumbs = self.crumbs.iter().copied().collect();
             let patterns = Patterns { patterns: Arc::from(patterns), crumbs };
             self.implications.current_mut().patterns.push(patterns);

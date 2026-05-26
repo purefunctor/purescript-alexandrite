@@ -1,24 +1,24 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Fn :: forall (@a :: Type) (@b :: Type). ((a :: Type) -> (b :: Type)) -> Fn (a :: Type) (b :: Type)
 ConstR ::
-  forall (t5 :: Type) (@r :: Type) (@a :: Type) (@b :: (t5 :: Type)).
-    ((a :: Type) -> (r :: Type)) -> ConstR @(t5 :: Type) (r :: Type) (a :: Type) (b :: (t5 :: Type))
+  forall (t :: Type) (@r :: Type) (@a :: Type) (@b :: (t :: Type)).
+    ((a :: Type) -> (r :: Type)) -> ConstR @(t :: Type) (r :: Type) (a :: Type) (b :: (t :: Type))
 GoLeft :: forall (@a :: Type) (@b :: Type). ((a :: Type) -> Int) -> Choice (a :: Type) (b :: Type)
 GoRight :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Choice (a :: Type) (b :: Type)
 
 Types
 Fn :: Type -> Type -> Type
-ConstR :: forall (t5 :: Type). Type -> Type -> (t5 :: Type) -> Type
+ConstR :: forall (t :: Type). Type -> Type -> (t :: Type) -> Type
 Choice :: Type -> Type -> Type
 
 Derived
 derive Profunctor Fn
-derive forall (t8 :: Type). Profunctor (ConstR @Type (t8 :: Type))
+derive forall (t :: Type). Profunctor (ConstR @Type (t :: Type))
 derive Profunctor Choice
 
 Roles

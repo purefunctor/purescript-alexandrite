@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Identity :: forall (t1 :: Type). (t1 :: Type) -> (t1 :: Type)
-+ :: forall (t1 :: Type). (t1 :: Type) -> (t1 :: Type)
+Identity :: forall (t :: Type). (t :: Type) -> (t :: Type)
++ :: forall (t :: Type). (t :: Type) -> (t :: Type)
 
 Synonyms
-type Identity a = (a :: (t1 :: Type))
+type Identity a = (a :: (t :: Type))

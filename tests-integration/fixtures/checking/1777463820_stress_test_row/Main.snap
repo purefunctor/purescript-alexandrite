@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
 build ::
-  forall (t25 :: Type) (t24 :: Type) (n :: (t25 :: Type)) (r :: (t24 :: Type)).
-    Build @(t25 :: Type) @(t24 :: Type) (n :: (t25 :: Type)) (r :: (t24 :: Type)) =>
-    Proxy @(t25 :: Type) (n :: (t25 :: Type)) -> Proxy @(t24 :: Type) (r :: (t24 :: Type))
+  forall (t :: Type) (t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)).
+    Build @(t :: Type) @(t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)) =>
+    Proxy @(t :: Type) (n :: (t :: Type)) -> Proxy @(t1 :: Type) (r :: (t1 :: Type))
 test ::
   Proxy @(Row Int)
     ( n1 :: 1
@@ -10015,20 +10015,20 @@ test ::
 
 Types
 Proxy :: forall (k :: Type). (k :: Type) -> Type
-Build :: forall (t5 :: Type) (t4 :: Type). (t5 :: Type) -> (t4 :: Type) -> Constraint
+Build :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> Constraint
 
 Classes
-class forall (t5 :: Type) (t4 :: Type) (n :: (t5 :: Type)) (r :: (t4 :: Type)). Build @(t5 :: Type) @(t4 :: Type) (n :: (t5 :: Type)) (r :: (t4 :: Type))
+class forall (t :: Type) (t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)). Build @(t :: Type) @(t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type))
 
 Instances
-instance forall (t6 :: Type). Build @Int @(Row (t6 :: Type)) 0 ()
-instance forall (t10 :: Int) (t8 :: Int) (t11 :: Symbol) (t12 :: Symbol) (t13 :: Row Int) (t9 :: Row Int).
-  Add (t10 :: Int) 1 (t8 :: Int) =>
-  ToString (t8 :: Int) (t11 :: Symbol) =>
-  Append "n" (t11 :: Symbol) (t12 :: Symbol) =>
-  Build @Int @(Row Int) (t10 :: Int) (t13 :: Row Int) =>
-  Cons @Int (t12 :: Symbol) (t8 :: Int) (t13 :: Row Int) (t9 :: Row Int) =>
-  Build @Int @(Row Int) (t8 :: Int) (t9 :: Row Int)
+instance forall (t :: Type). Build @Int @(Row (t :: Type)) 0 ()
+instance forall (t :: Int) (t1 :: Int) (t2 :: Symbol) (t3 :: Symbol) (t4 :: Row Int) (t5 :: Row Int).
+  Add (t :: Int) 1 (t1 :: Int) =>
+  ToString (t1 :: Int) (t2 :: Symbol) =>
+  Append "n" (t2 :: Symbol) (t3 :: Symbol) =>
+  Build @Int @(Row Int) (t :: Int) (t4 :: Row Int) =>
+  Cons @Int (t3 :: Symbol) (t1 :: Int) (t4 :: Row Int) (t5 :: Row Int) =>
+  Build @Int @(Row Int) (t1 :: Int) (t5 :: Row Int)
 
 Roles
 Proxy = [Phantom]

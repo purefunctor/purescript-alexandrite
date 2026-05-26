@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,7 +16,7 @@ class forall (a :: Type). Show (a :: Type)
   show :: forall (@a :: Type). Show (a :: Type) => (a :: Type) -> String
 
 Instances
-instance forall (t2 :: Type). Show (t2 :: Type) => Show (Box (t2 :: Type))
+instance forall (t :: Type). Show (t :: Type) => Show (Box (t :: Type))
 
 Roles
 Box = [Representational]

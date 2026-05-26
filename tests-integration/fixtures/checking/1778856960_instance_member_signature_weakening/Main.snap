@@ -65,3 +65,4 @@ error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
    |
 30 | instance TransformPlain Wrap where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Functor (f1 :: Type -> Type) is in scope

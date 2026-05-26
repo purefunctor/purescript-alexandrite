@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
-test :: forall (t1 :: Type). Maybe (t1 :: Type) -> Int
+test :: forall (t :: Type). Maybe (t :: Type) -> Int
 
 Types
 Maybe :: Type -> Type

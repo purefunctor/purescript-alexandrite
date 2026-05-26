@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,5 +16,5 @@ class forall (a :: Type). HeytingAlgebra (a :: Type)
 
 Instances
 instance HeytingAlgebra Boolean
-instance forall (t2 :: Type) (t1 :: Type).
-  HeytingAlgebra (t2 :: Type) => HeytingAlgebra ((t1 :: Type) -> (t2 :: Type))
+instance forall (t :: Type) (t1 :: Type).
+  HeytingAlgebra (t :: Type) => HeytingAlgebra ((t1 :: Type) -> (t :: Type))

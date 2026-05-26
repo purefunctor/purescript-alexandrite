@@ -52,7 +52,7 @@ fn test_index_package_set() {
     for (_, id, _) in &sources {
         let Ok((parsed, _)) = engine.parsed(*id) else { continue };
         if let Some(module_name) = parsed.module_name() {
-            engine.set_module_file(&module_name.to_string(), *id);
+            engine.set_module_file(module_name.as_ref(), *id);
         }
     }
 
@@ -77,9 +77,19 @@ fn test_index_package_set() {
             }
             continue;
         };
+        let Ok(checked) = engine.checked(id) else {
+            continue;
+        };
 
-        let context =
-            DiagnosticsContext::new(&engine, &source, &root, &stabilized, &indexed, &lowered);
+        let context = DiagnosticsContext::new(
+            &engine,
+            &source,
+            &root,
+            &stabilized,
+            &indexed,
+            &lowered,
+            &checked,
+        );
         let errors: Vec<_> = indexed
             .errors
             .iter()

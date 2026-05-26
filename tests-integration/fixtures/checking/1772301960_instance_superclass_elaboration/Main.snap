@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 eq :: forall (@a :: Type). Eq (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean
 compare :: forall (@a :: Type). Ord (a :: Type) => (a :: Type) -> (a :: Type) -> Int
-test :: forall (t2 :: Type). Ord (t2 :: Type) => (t2 :: Type) -> Int
+test :: forall (t :: Type). Ord (t :: Type) => (t :: Type) -> Int
 
 Types
 Eq :: Type -> Constraint

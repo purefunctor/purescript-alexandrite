@@ -1,56 +1,56 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 singleFieldUpdate ::
-  forall (t1 :: Type) (t0 :: Row Type).
-    { a :: (t1 :: Type) | (t0 :: Row Type) } -> { a :: Int | (t0 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type).
+    { a :: (t :: Type) | (t1 :: Row Type) } -> { a :: Int | (t1 :: Row Type) }
 multipleFieldUpdate ::
-  forall (t5 :: Type) (t4 :: Type) (t3 :: Type) (t2 :: Row Type).
-    { a :: (t5 :: Type), b :: (t4 :: Type), c :: (t3 :: Type) | (t2 :: Row Type) } ->
-    { a :: Int, b :: Boolean, c :: String | (t2 :: Row Type) }
+  forall (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Row Type).
+    { a :: (t :: Type), b :: (t1 :: Type), c :: (t2 :: Type) | (t3 :: Row Type) } ->
+    { a :: Int, b :: Boolean, c :: String | (t3 :: Row Type) }
 nestedRecordUpdate ::
-  forall (t9 :: Type) (t8 :: Row Type) (t7 :: Row Type) (t6 :: Row Type).
-    { a :: { b :: { c :: (t9 :: Type) | (t8 :: Row Type) } | (t7 :: Row Type) }
-    | (t6 :: Row Type)
+  forall (t :: Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type).
+    { a :: { b :: { c :: (t :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) }
+    | (t3 :: Row Type)
     } ->
-    { a :: { b :: { c :: Int | (t8 :: Row Type) } | (t7 :: Row Type) } | (t6 :: Row Type) }
+    { a :: { b :: { c :: Int | (t1 :: Row Type) } | (t2 :: Row Type) } | (t3 :: Row Type) }
 updateWithValueSection ::
-  forall (t11 :: Type) (t10 :: Row Type).
-    { a :: (t11 :: Type) | (t10 :: Row Type) } -> { a :: Int -> Int | (t10 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type).
+    { a :: (t :: Type) | (t1 :: Row Type) } -> { a :: Int -> Int | (t1 :: Row Type) }
 updateWithSectionInteraction ::
-  forall (t14 :: Type) (t13 :: Row Type) (t12 :: Type).
-    { a :: (t14 :: Type) | (t13 :: Row Type) } ->
-    (t12 :: Type) ->
-    { a :: (t12 :: Type) | (t13 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
+    { a :: (t :: Type) | (t1 :: Row Type) } ->
+    (t2 :: Type) ->
+    { a :: (t2 :: Type) | (t1 :: Row Type) }
 polymorphicRecordUpdate ::
-  forall (t16 :: Type) (t15 :: Row Type).
-    { foo :: (t16 :: Type) | (t15 :: Row Type) } -> { foo :: Int | (t15 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type).
+    { foo :: (t :: Type) | (t1 :: Row Type) } -> { foo :: Int | (t1 :: Row Type) }
 higherOrderContext ::
-  forall (t22 :: Type) (t21 :: Row Type).
-    Array { x :: (t22 :: Type) | (t21 :: Row Type) } -> Array { x :: Int | (t21 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type).
+    Array { x :: (t :: Type) | (t1 :: Row Type) } -> Array { x :: Int | (t1 :: Row Type) }
 multipleSectionsInteraction ::
-  forall (t27 :: Type) (t26 :: Type) (t25 :: Row Type) (t24 :: Type) (t23 :: Type).
-    { x :: (t27 :: Type), y :: (t26 :: Type) | (t25 :: Row Type) } ->
-    (t24 :: Type) ->
-    (t23 :: Type) ->
-    { x :: (t24 :: Type), y :: (t23 :: Type) | (t25 :: Row Type) }
+  forall (t :: Type) (t1 :: Type) (t2 :: Row Type) (t3 :: Type) (t4 :: Type).
+    { x :: (t :: Type), y :: (t1 :: Type) | (t2 :: Row Type) } ->
+    (t3 :: Type) ->
+    (t4 :: Type) ->
+    { x :: (t3 :: Type), y :: (t4 :: Type) | (t2 :: Row Type) }
 nestedSectionInteraction ::
-  forall (t31 :: Type) (t30 :: Row Type) (t29 :: Row Type) (t28 :: Type).
-    { a :: { b :: (t31 :: Type) | (t30 :: Row Type) } | (t29 :: Row Type) } ->
-    (t28 :: Type) ->
-    { a :: { b :: (t28 :: Type) | (t30 :: Row Type) } | (t29 :: Row Type) }
+  forall (t :: Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Type).
+    { a :: { b :: (t :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) } ->
+    (t3 :: Type) ->
+    { a :: { b :: (t3 :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) }
 mixedSections ::
-  forall (t34 :: Type) (t33 :: Type) (t32 :: Row Type).
-    { a :: (t34 :: Type), b :: (t33 :: Type) | (t32 :: Row Type) } ->
-    { a :: Int -> Int, b :: Int | (t32 :: Row Type) }
+  forall (t :: Type) (t1 :: Type) (t2 :: Row Type).
+    { a :: (t :: Type), b :: (t1 :: Type) | (t2 :: Row Type) } ->
+    { a :: Int -> Int, b :: Int | (t2 :: Row Type) }
 recordAccessSectionUpdate ::
-  forall (t38 :: Type) (t37 :: Row Type) (t36 :: Type) (t35 :: Row Type).
-    { a :: (t38 :: Type) | (t37 :: Row Type) } ->
-    { a :: { b :: (t36 :: Type) | (t35 :: Row Type) } -> (t36 :: Type) | (t37 :: Row Type) }
-concreteRecordUpdateSection :: forall (t39 :: Type). (t39 :: Type) -> { a :: (t39 :: Type) }
+  forall (t :: Type) (t1 :: Row Type) (t2 :: Type) (t3 :: Row Type).
+    { a :: (t :: Type) | (t1 :: Row Type) } ->
+    { a :: { b :: (t2 :: Type) | (t3 :: Row Type) } -> (t2 :: Type) | (t1 :: Row Type) }
+concreteRecordUpdateSection :: forall (t :: Type). (t :: Type) -> { a :: (t :: Type) }
 map ::
   forall (a :: Type) (b :: Type).
     ((a :: Type) -> (b :: Type)) -> Array (a :: Type) -> Array (b :: Type)

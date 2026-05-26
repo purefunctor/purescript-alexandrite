@@ -276,7 +276,7 @@ fn hover_checked_type(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80);
+    let mut pretty = Pretty::new(engine, &checked).width(80);
     let value = pretty.render(type_id).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
@@ -300,8 +300,8 @@ fn hover_file_term(
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    let value = pretty.render(signature).to_string();
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
     let array = [Some(value), annotation].into_iter().flatten();
@@ -328,8 +328,8 @@ fn hover_file_type(
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    let value = pretty.render(signature).to_string();
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
     let array = [Some(value), annotation].into_iter().flatten();

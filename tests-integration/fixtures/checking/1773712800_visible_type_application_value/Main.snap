@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 identity :: forall (@a :: Type). (a :: Type) -> (a :: Type)
 const :: forall (a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
 testIdentity :: Int -> Int
-testConst :: forall (t6 :: Type). (t6 :: Type) -> String -> (t6 :: Type)
+testConst :: forall (t :: Type). (t :: Type) -> String -> (t :: Type)
 
 Types

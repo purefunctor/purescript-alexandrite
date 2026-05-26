@@ -1,10 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-f :: forall (t1 :: Type) (t0 :: Type). (t1 :: Type) -> (t0 :: Type)
-g :: forall (t1 :: Type) (t0 :: Type). (t1 :: Type) -> (t0 :: Type)
+f :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type)
+g :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type)
 
 Types

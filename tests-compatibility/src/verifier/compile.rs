@@ -211,7 +211,7 @@ fn with_diagnostics_context(
     file_id: FileId,
     root: &syntax::SyntaxNode,
     meta: &FileMeta,
-    f: impl FnOnce(DiagnosticsContext<'_>),
+    f: impl FnOnce(DiagnosticsContext<'_, QueryEngine>),
 ) {
     let Ok(stabilized) = engine.stabilized(file_id) else {
         return;
@@ -222,7 +222,18 @@ fn with_diagnostics_context(
     let Ok(lowered) = engine.lowered(file_id) else {
         return;
     };
-    f(DiagnosticsContext::new(engine, &meta.content, root, &stabilized, &indexed, &lowered));
+    let Ok(checked) = engine.checked(file_id) else {
+        return;
+    };
+    f(DiagnosticsContext::new(
+        engine,
+        &meta.content,
+        root,
+        &stabilized,
+        &indexed,
+        &lowered,
+        &checked,
+    ));
 }
 
 fn parse_diagnostics(meta: &FileMeta, errors: &[parsing::ParseError]) -> Vec<CompilerDiagnostic> {
@@ -280,7 +291,7 @@ fn compiler_diagnostic(meta: &FileMeta, stage: &str, diagnostic: Diagnostic) -> 
         severity: severity.to_string(),
         code: diagnostic.code.to_string(),
         message: diagnostic.message,
-        span: SpanReport { start: diagnostic.primary.start, end: diagnostic.primary.end },
+        span: SpanReport { start: diagnostic.span.start, end: diagnostic.span.end },
         human,
     }
 }

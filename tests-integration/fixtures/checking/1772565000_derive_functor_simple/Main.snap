@@ -1,24 +1,24 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
 Const ::
-  forall (t3 :: Type) (@e :: Type) (@a :: (t3 :: Type)).
-    (e :: Type) -> Const @(t3 :: Type) (e :: Type) (a :: (t3 :: Type))
+  forall (t :: Type) (@e :: Type) (@a :: (t :: Type)).
+    (e :: Type) -> Const @(t :: Type) (e :: Type) (a :: (t :: Type))
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
 
 Types
 Identity :: Type -> Type
-Const :: forall (t3 :: Type). Type -> (t3 :: Type) -> Type
+Const :: forall (t :: Type). Type -> (t :: Type) -> Type
 Maybe :: Type -> Type
 
 Derived
 derive Functor Identity
-derive forall (t5 :: Type). Functor (Const @Type (t5 :: Type))
+derive forall (t :: Type). Functor (Const @Type (t :: Type))
 derive Functor Maybe
 
 Roles

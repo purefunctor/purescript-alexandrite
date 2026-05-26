@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -12,7 +12,7 @@ run ::
     (forall (r :: Type) (mode :: Type). Z3 (r :: Type) (mode :: Type) (a :: Type)) ->
     Aff (a :: Type)
 Box :: forall (@a :: Type). (a :: Type) -> Box (a :: Type)
-unbox :: (forall (a :: Type). Box (a :: Type)) -> (forall (a :: Type). (a :: Type))
+unbox :: (forall (a :: Type). Box (a :: Type)) -> (forall (a1 :: Type). (a1 :: Type))
 
 Types
 Aff :: Type -> Type

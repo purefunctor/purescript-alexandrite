@@ -1,51 +1,56 @@
-use checking::error::{CheckError, ErrorKind};
+use checking::error::{CheckingError, ErrorKind};
 use indexing::{IndexingError, TypeItemKind};
 use itertools::Itertools;
 use lowering::LoweringError;
 use resolving::ResolvingError;
 use rowan::ast::AstNode;
 
-use crate::{Diagnostic, DiagnosticsContext, Severity};
+use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity};
 
 pub trait ToDiagnostics {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic>;
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries;
 }
 
 impl ToDiagnostics for LoweringError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             LoweringError::NotInScope(not_in_scope) => {
                 let (ptr, name) = match not_in_scope {
                     lowering::NotInScope::ExprConstructor { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::ExprVariable { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::ExprOperatorName { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeConstructor { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeVariable { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeOperatorName { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::NegateFn { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), Some("negate"))
+                        (context.stabilized.syntax_ptr(*id), Some("negate"))
                     }
                     lowering::NotInScope::DoFn { kind, id } => (
-                        ctx.stabilized.syntax_ptr(*id),
+                        context.stabilized.syntax_ptr(*id),
                         match kind {
                             lowering::DoFn::Bind => Some("bind"),
                             lowering::DoFn::Discard => Some("discard"),
                         },
                     ),
                     lowering::NotInScope::AdoFn { kind, id } => (
-                        ctx.stabilized.syntax_ptr(*id),
+                        context.stabilized.syntax_ptr(*id),
                         match kind {
                             lowering::AdoFn::Map => Some("map"),
                             lowering::AdoFn::Apply => Some("apply"),
@@ -53,20 +58,20 @@ impl ToDiagnostics for LoweringError {
                         },
                     ),
                     lowering::NotInScope::TermOperator { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeOperator { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                 };
 
                 let Some(ptr) = ptr else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
                 let message = if let Some(name) = name {
                     format!("'{name}' is not in scope")
                 } else {
-                    let text = ctx.text_of(span).trim();
+                    let text = context.text_of(span).trim();
                     format!("'{text}' is not in scope")
                 };
 
@@ -74,33 +79,39 @@ impl ToDiagnostics for LoweringError {
             }
 
             LoweringError::RecursiveSynonym(group) => convert_recursive_group(
-                ctx,
+                context,
                 &group.group,
                 "RecursiveSynonym",
                 "Invalid type synonym cycle",
             ),
 
-            LoweringError::RecursiveKinds(group) => {
-                convert_recursive_group(ctx, &group.group, "RecursiveKinds", "Invalid kind cycle")
-            }
+            LoweringError::RecursiveKinds(group) => convert_recursive_group(
+                context,
+                &group.group,
+                "RecursiveKinds",
+                "Invalid kind cycle",
+            ),
         }
     }
 }
 
-fn convert_recursive_group(
-    ctx: &DiagnosticsContext<'_>,
+fn convert_recursive_group<Q>(
+    context: &DiagnosticsContext<'_, Q>,
     group: &[indexing::TypeItemId],
     code: &'static str,
     message: &'static str,
-) -> Vec<Diagnostic> {
+) -> Vec<Diagnostic>
+where
+    Q: ExternalQueries,
+{
     let spans = group.iter().filter_map(|id| {
-        let ptr = match ctx.indexed.items[*id].kind {
-            TypeItemKind::Synonym { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Data { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Newtype { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
+        let ptr = match context.indexed.items[*id].kind {
+            TypeItemKind::Synonym { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
+            TypeItemKind::Data { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
+            TypeItemKind::Newtype { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
             _ => return None,
         };
-        ctx.span_from_syntax_ptr(&ptr)
+        context.span_from_syntax_ptr(&ptr)
     });
 
     let spans = spans.collect_vec();
@@ -117,7 +128,10 @@ fn convert_recursive_group(
 }
 
 impl ToDiagnostics for ResolvingError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             ResolvingError::TermExportConflict { .. }
             | ResolvingError::TypeExportConflict { .. }
@@ -127,28 +141,28 @@ impl ToDiagnostics for ResolvingError {
             }
 
             ResolvingError::InvalidImportStatement { id } => {
-                let Some(ptr) = ctx.stabilized.ast_ptr(*id) else { return vec![] };
+                let Some(ptr) = context.stabilized.ast_ptr(*id) else { return vec![] };
 
                 let message = {
-                    let cst = ptr.to_node(ctx.root);
+                    let cst = ptr.to_node(context.root);
                     let name = cst.module_name().map(|cst| {
                         let range = cst.syntax().text_range();
-                        ctx.content[range].trim()
+                        context.content[range].trim()
                     });
                     let name = name.unwrap_or("<ParseError>");
                     format!("Cannot import module '{name}'")
                 };
 
-                let Some(span) = ctx.span_from_ast_ptr(&ptr) else { return vec![] };
+                let Some(span) = context.span_from_ast_ptr(&ptr) else { return vec![] };
 
                 vec![Diagnostic::error("InvalidImportStatement", message, span, "resolving")]
             }
 
             ResolvingError::InvalidImportItem { id } => {
-                let Some(ptr) = ctx.stabilized.syntax_ptr(*id) else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(ptr) = context.stabilized.syntax_ptr(*id) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
-                let text = ctx.text_of(span).trim();
+                let text = context.text_of(span).trim();
                 let message = format!("Cannot import item '{text}'");
 
                 vec![Diagnostic::error("InvalidImportItem", message, span, "resolving")]
@@ -158,20 +172,23 @@ impl ToDiagnostics for ResolvingError {
 }
 
 impl ToDiagnostics for IndexingError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             IndexingError::DuplicateImport { duplicate, existing } => {
-                let Some(ptr) = ctx.stabilized.syntax_ptr(*duplicate) else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(ptr) = context.stabilized.syntax_ptr(*duplicate) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
-                let text = ctx.text_of(span).trim();
+                let text = context.text_of(span).trim();
                 let message = format!("Import list contains multiple references to '{text}'");
 
                 let mut diagnostic =
                     Diagnostic::warning("DuplicateImport", message, span, "indexing");
 
-                if let Some(existing_ptr) = ctx.stabilized.syntax_ptr(*existing)
-                    && let Some(existing_span) = ctx.span_from_syntax_ptr(&existing_ptr)
+                if let Some(existing_ptr) = context.stabilized.syntax_ptr(*existing)
+                    && let Some(existing_span) = context.span_from_syntax_ptr(&existing_ptr)
                 {
                     diagnostic = diagnostic.with_related(existing_span, "First imported here");
                 }
@@ -187,43 +204,46 @@ impl ToDiagnostics for IndexingError {
     }
 }
 
-impl ToDiagnostics for CheckError {
-    fn to_diagnostics(&self, context: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
-        let primary = context.primary_span_from_crumbs(&self.crumbs);
-
+impl ToDiagnostics for CheckingError {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
+        let span = context.primary_span_from_crumbs(&self.crumbs);
         let lookup_message = |id| context.queries.lookup_checking_smol_str(id);
+        let render_type = |id| context.render_type(id);
 
         let (severity, code, message) = match &self.kind {
             ErrorKind::AmbiguousConstraint { constraint } => {
-                let msg = lookup_message(*constraint);
-                (Severity::Error, "AmbiguousConstraint", format!("Ambiguous constraint: {msg}"))
+                let message = render_type(*constraint);
+                (Severity::Error, "AmbiguousConstraint", format!("Ambiguous constraint: {message}"))
             }
             ErrorKind::CannotDeriveClass { .. } => {
                 (Severity::Error, "CannotDeriveClass", "Cannot derive this class".to_string())
             }
-            ErrorKind::CannotDeriveForType { type_message } => {
-                let msg = lookup_message(*type_message);
-                (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {msg}"))
+            ErrorKind::CannotDeriveForType { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {message}"))
             }
-            ErrorKind::ContravariantOccurrence { type_message } => {
-                let msg = lookup_message(*type_message);
+            ErrorKind::ContravariantOccurrence { type_id } => {
+                let message = render_type(*type_id);
                 (
                     Severity::Error,
                     "ContravariantOccurrence",
-                    format!("Type variable occurs in contravariant position: {msg}"),
+                    format!("Type variable occurs in contravariant position: {message}"),
                 )
             }
-            ErrorKind::CovariantOccurrence { type_message } => {
-                let msg = lookup_message(*type_message);
+            ErrorKind::CovariantOccurrence { type_id } => {
+                let message = render_type(*type_id);
                 (
                     Severity::Error,
                     "CovariantOccurrence",
-                    format!("Type variable occurs in covariant position: {msg}"),
+                    format!("Type variable occurs in covariant position: {message}"),
                 )
             }
             ErrorKind::CannotUnify { t1, t2 } => {
-                let t1 = lookup_message(*t1);
-                let t2 = lookup_message(*t2);
+                let t1 = render_type(*t1);
+                let t2 = render_type(*t2);
                 (Severity::Error, "CannotUnify", format!("Cannot unify '{t1}' with '{t2}'"))
             }
             ErrorKind::DeriveInvalidArity { expected, actual, .. } => (
@@ -262,8 +282,8 @@ impl ToDiagnostics for CheckError {
                 "InstanceHeadMismatch",
                 format!("Instance head mismatch: expected {expected} arguments, got {actual}"),
             ),
-            ErrorKind::InstanceHeadLabeledRow { position, type_message, .. } => {
-                let type_msg = lookup_message(*type_message);
+            ErrorKind::InstanceHeadLabeledRow { position, type_id, .. } => {
+                let type_msg = render_type(*type_id);
                 (
                     Severity::Error,
                     "InstanceHeadLabeledRow",
@@ -275,8 +295,8 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::InstanceMemberTypeMismatch { expected, actual } => {
-                let expected = lookup_message(*expected);
-                let actual = lookup_message(*actual);
+                let expected = render_type(*expected);
+                let actual = render_type(*actual);
                 (
                     Severity::Error,
                     "InstanceMemberTypeMismatch",
@@ -284,9 +304,9 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::InvalidTypeApplication { function_type, function_kind, argument_type } => {
-                let function_type = lookup_message(*function_type);
-                let function_kind = lookup_message(*function_kind);
-                let argument_type = lookup_message(*argument_type);
+                let function_type = render_type(*function_type);
+                let function_kind = render_type(*function_kind);
+                let argument_type = render_type(*argument_type);
                 (
                     Severity::Error,
                     "InvalidTypeApplication",
@@ -296,9 +316,9 @@ impl ToDiagnostics for CheckError {
                     ),
                 )
             }
-            ErrorKind::ExpectedNewtype { type_message } => {
-                let msg = lookup_message(*type_message);
-                (Severity::Error, "ExpectedNewtype", format!("Expected a newtype, got: {msg}"))
+            ErrorKind::ExpectedNewtype { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "ExpectedNewtype", format!("Expected a newtype, got: {message}"))
             }
             ErrorKind::InvalidNewtypeDeriveSkolemArguments => (
                 Severity::Error,
@@ -306,20 +326,21 @@ impl ToDiagnostics for CheckError {
                 "Cannot derive newtype instance where skolemised arguments do not appear trailing in the inner type."
                     .to_string(),
             ),
-            ErrorKind::NonLocalNewtype { type_message } => {
-                let msg = lookup_message(*type_message);
-                (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {msg}"))
+            ErrorKind::NonLocalNewtype { type_id } => {
+                let message = render_type(*type_id);
+                (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {message}"))
             }
-            ErrorKind::NoInstanceFound { constraint } => {
-                let msg = lookup_message(*constraint);
-                (Severity::Error, "NoInstanceFound", format!("No instance found for: {msg}"))
+            ErrorKind::NoInstanceFound { constraint, .. } => {
+                let constraint = render_type(*constraint);
+                let message = format!("No instance found for: {constraint}");
+                (Severity::Error, "NoInstanceFound", message)
             }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
-                let msg = lookup_message(*function_type);
+                let message = render_type(*function_type);
                 (
                     Severity::Error,
                     "NoVisibleTypeVariable",
-                    format!("No visible type variable for type application in: {msg}"),
+                    format!("No visible type variable for type application in: {message}"),
                 )
             }
             ErrorKind::PartialSynonymApplication { .. } => (
@@ -363,7 +384,7 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::MissingPatterns { patterns } => {
-                let patterns = patterns.iter().map(|pattern| lookup_message(*pattern)).join(", ");
+                let patterns = patterns.join(", ");
                 (
                     Severity::Warning,
                     "MissingPatterns",
@@ -371,12 +392,12 @@ impl ToDiagnostics for CheckError {
                 )
             }
             ErrorKind::CustomWarning { message_id } => {
-                let msg = lookup_message(*message_id);
-                (Severity::Warning, "CustomWarning", msg.to_string())
+                let message = lookup_message(*message_id);
+                (Severity::Warning, "CustomWarning", message.to_string())
             }
             ErrorKind::CustomFailure { message_id } => {
-                let msg = lookup_message(*message_id);
-                (Severity::Error, "CustomFailure", msg.to_string())
+                let message = lookup_message(*message_id);
+                (Severity::Error, "CustomFailure", message.to_string())
             }
             ErrorKind::PropertyIsMissing { labels } => {
                 let labels_str = labels.join(", ");
@@ -396,10 +417,18 @@ impl ToDiagnostics for CheckError {
             }
         };
 
-        let diagnostic = match severity {
-            Severity::Error => Diagnostic::error(code, message, primary, "checking"),
-            Severity::Warning => Diagnostic::warning(code, message, primary, "checking"),
+        let mut diagnostic = match severity {
+            Severity::Error => Diagnostic::error(code, message, span, "checking"),
+            Severity::Warning => Diagnostic::warning(code, message, span, "checking"),
         };
+
+        if let ErrorKind::NoInstanceFound { given, .. } = &self.kind {
+            for &given in given.iter() {
+                let given = render_type(given);
+                let trivia = format!("{given} is in scope");
+                diagnostic = diagnostic.with_trivia(trivia)
+            }
+        }
 
         vec![diagnostic]
     }

@@ -608,6 +608,7 @@ dependencies = [
  "building-types",
  "checking",
  "console_error_panic_hook",
+ "diagnostics",
  "files",
  "indexing",
  "interner",

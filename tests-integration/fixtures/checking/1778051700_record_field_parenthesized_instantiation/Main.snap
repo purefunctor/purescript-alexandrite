@@ -1,14 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 const :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
 choose :: Int -> (forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type))
 normal ::
-  forall (t9 :: Type) (t8 :: Type).
-    { parenthesised :: (t9 :: Type) -> (t8 :: Type) -> (t9 :: Type) }
+  forall (t :: Type) (t1 :: Type). { parenthesised :: (t :: Type) -> (t1 :: Type) -> (t :: Type) }
 prenex ::
   { application :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
   , variable :: Int -> (forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type))

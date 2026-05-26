@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -43,18 +43,18 @@ openLeftPrefixMany ::
     Union @Type ( a :: Int, b :: String | (rest :: Row Type) ) ( c :: Boolean ) (u :: Row Type) =>
     Proxy @(Row Type) (u :: Row Type)
 forceSolve ::
-  forall (t34 :: Row Type) (t33 :: Row Type) (t32 :: Row Type) (t31 :: Row Type) (t30 :: Row Type)
-    (t29 :: Row Type) (t28 :: Row Type).
-    Union @Type (t34 :: Row Type) ( b :: String | (t33 :: Row Type) ) (t32 :: Row Type) =>
-    Union @Type (t31 :: Row Type) ( c :: Boolean ) (t30 :: Row Type) =>
-    { closedLeftEmpty :: Proxy @(Row Type) ( b :: String | (t29 :: Row Type) )
+  forall (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type) (t4 :: Row Type)
+    (t5 :: Row Type) (t6 :: Row Type).
+    Union @Type (t :: Row Type) ( b :: String | (t1 :: Row Type) ) (t2 :: Row Type) =>
+    Union @Type (t3 :: Row Type) ( c :: Boolean ) (t4 :: Row Type) =>
+    { closedLeftEmpty :: Proxy @(Row Type) ( b :: String | (t5 :: Row Type) )
     , closedLeftKnownFields :: Proxy @(Row Type) ( a :: Int, b :: String )
-    , closedLeftOpenRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t28 :: Row Type) )
+    , closedLeftOpenRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t6 :: Row Type) )
     , closedRightOutputDuplicate :: Proxy @(Row Type) ( x :: Int )
     , closedRightOutputKnownLeft :: Proxy @(Row Type) ( c :: Boolean )
     , closedRightOutputOpenLeft :: Proxy @(Row Type) ( a :: Int )
-    , openLeftPrefixMany :: Proxy @(Row Type) ( a :: Int, b :: String | (t30 :: Row Type) )
-    , openLeftPrefixOne :: Proxy @(Row Type) ( a :: Int | (t32 :: Row Type) )
+    , openLeftPrefixMany :: Proxy @(Row Type) ( a :: Int, b :: String | (t4 :: Row Type) )
+    , openLeftPrefixOne :: Proxy @(Row Type) ( a :: Int | (t2 :: Row Type) )
     }
 
 Types

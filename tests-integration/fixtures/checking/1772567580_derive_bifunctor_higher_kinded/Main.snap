@@ -1,57 +1,57 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 WrapBoth ::
-  forall (t5 :: Type) (t4 :: Type) (@f :: (t5 :: Type) -> Type) (@g :: (t4 :: Type) -> Type)
-    (@a :: (t5 :: Type)) (@b :: (t4 :: Type)).
-    (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type)) ->
-    (g :: (t4 :: Type) -> Type) (b :: (t4 :: Type)) ->
-    WrapBoth @(t5 :: Type) @(t4 :: Type)
-      (f :: (t5 :: Type) -> Type)
-      (g :: (t4 :: Type) -> Type)
-      (a :: (t5 :: Type))
-      (b :: (t4 :: Type))
+  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> Type)
+    (@a :: (t :: Type)) (@b :: (t1 :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    (g :: (t1 :: Type) -> Type) (b :: (t1 :: Type)) ->
+    WrapBoth @(t :: Type) @(t1 :: Type)
+      (f :: (t :: Type) -> Type)
+      (g :: (t1 :: Type) -> Type)
+      (a :: (t :: Type))
+      (b :: (t1 :: Type))
 WrapBothNoConstraint ::
-  forall (t11 :: Type) (t10 :: Type) (@f :: (t11 :: Type) -> Type) (@g :: (t10 :: Type) -> Type)
-    (@a :: (t11 :: Type)) (@b :: (t10 :: Type)).
-    (f :: (t11 :: Type) -> Type) (a :: (t11 :: Type)) ->
-    (g :: (t10 :: Type) -> Type) (b :: (t10 :: Type)) ->
-    WrapBothNoConstraint @(t11 :: Type) @(t10 :: Type)
-      (f :: (t11 :: Type) -> Type)
-      (g :: (t10 :: Type) -> Type)
-      (a :: (t11 :: Type))
-      (b :: (t10 :: Type))
+  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> Type)
+    (@a :: (t :: Type)) (@b :: (t1 :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    (g :: (t1 :: Type) -> Type) (b :: (t1 :: Type)) ->
+    WrapBothNoConstraint @(t :: Type) @(t1 :: Type)
+      (f :: (t :: Type) -> Type)
+      (g :: (t1 :: Type) -> Type)
+      (a :: (t :: Type))
+      (b :: (t1 :: Type))
 
 Types
 WrapBoth ::
-  forall (t5 :: Type) (t4 :: Type).
-    ((t5 :: Type) -> Type) -> ((t4 :: Type) -> Type) -> (t5 :: Type) -> (t4 :: Type) -> Type
+  forall (t :: Type) (t1 :: Type).
+    ((t :: Type) -> Type) -> ((t1 :: Type) -> Type) -> (t :: Type) -> (t1 :: Type) -> Type
 WrapBothNoConstraint ::
-  forall (t11 :: Type) (t10 :: Type).
-    ((t11 :: Type) -> Type) -> ((t10 :: Type) -> Type) -> (t11 :: Type) -> (t10 :: Type) -> Type
+  forall (t :: Type) (t1 :: Type).
+    ((t :: Type) -> Type) -> ((t1 :: Type) -> Type) -> (t :: Type) -> (t1 :: Type) -> Type
 
 Derived
-derive forall (t12 :: Type -> Type) (t13 :: Type -> Type).
-  Functor (t12 :: Type -> Type) =>
-  Functor (t13 :: Type -> Type) =>
-  Bifunctor (WrapBoth @Type @Type (t12 :: Type -> Type) (t13 :: Type -> Type))
-derive forall (t16 :: Type -> Type) (t17 :: Type -> Type).
-  Bifunctor (WrapBothNoConstraint @Type @Type (t16 :: Type -> Type) (t17 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Functor (t :: Type -> Type) =>
+  Functor (t1 :: Type -> Type) =>
+  Bifunctor (WrapBoth @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Bifunctor (WrapBothNoConstraint @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
 
 Roles
 WrapBoth = [Representational, Representational, Nominal, Nominal]
 WrapBothNoConstraint = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (t16 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Functor (t :: Type -> Type)
   --> 10:1..10:53
    |
 10 | derive instance Bifunctor (WrapBothNoConstraint f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Functor (t17 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Functor (t1 :: Type -> Type)
   --> 10:1..10:53
    |
 10 | derive instance Bifunctor (WrapBothNoConstraint f g)

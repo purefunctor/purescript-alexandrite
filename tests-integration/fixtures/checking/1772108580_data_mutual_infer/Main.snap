@@ -1,19 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 F ::
-  forall (t2 :: Type) (@a :: (t2 :: Type)).
-    G (a :: (t2 :: Type)) -> F @(t2 :: Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@a :: (t :: Type)). G (a :: (t :: Type)) -> F @(t :: Type) (a :: (t :: Type))
 G ::
-  forall (t2 :: Type) (@a :: (t2 :: Type)).
-    F (a :: (t2 :: Type)) -> G @(t2 :: Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@a :: (t :: Type)). F (a :: (t :: Type)) -> G @(t :: Type) (a :: (t :: Type))
 
 Types
-F :: forall (t2 :: Type). (t2 :: Type) -> Type
-G :: forall (t2 :: Type). (t2 :: Type) -> Type
+F :: forall (t :: Type). (t :: Type) -> Type
+G :: forall (t :: Type). (t :: Type) -> Type
 
 Roles
 F = [Representational]

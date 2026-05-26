@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -14,8 +14,8 @@ testSkolemRight :: forall (x :: Type). (x :: Type) -> Output
 testSkolemLeft :: forall (x :: Type). (x :: Type) -> Output
 testSkolemIsEq :: forall (x :: Type) (y :: Type). (x :: Type) -> (y :: Type) -> Output
 typeEquals ::
-  forall (t35 :: Type) (@a :: (t35 :: Type)) (@b :: (t35 :: Type)).
-    TypeEquals @(t35 :: Type) (a :: (t35 :: Type)) (b :: (t35 :: Type)) => Unit
+  forall (t :: Type) (@a :: (t :: Type)) (@b :: (t :: Type)).
+    TypeEquals @(t :: Type) (a :: (t :: Type)) (b :: (t :: Type)) => Unit
 testOpenRows :: Unit
 rowSame ::
   forall (k :: Type) (@a :: (k :: Type)) (@b :: (k :: Type)).
@@ -41,12 +41,11 @@ class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). RowSame @(k :: T
     RowSame @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type)) => Unit
 
 Instances
-instance forall (t9 :: Type). IsEq (t9 :: Type) (t9 :: Type) Output
-instance forall (t11 :: Type) (t12 :: Type). IsEq (t11 :: Type) (t12 :: Type) Output
-instance forall (t16 :: Type) (t15 :: (t16 :: Type)).
-  TypeEquals @(t16 :: Type) (t15 :: (t16 :: Type)) (t15 :: (t16 :: Type))
-instance forall (t20 :: Type) (t19 :: (t20 :: Type)).
-  RowSame @(t20 :: Type) (t19 :: (t20 :: Type)) (t19 :: (t20 :: Type))
+instance forall (t :: Type). IsEq (t :: Type) (t :: Type) Output
+instance forall (t :: Type) (t1 :: Type). IsEq (t :: Type) (t1 :: Type) Output
+instance forall (t :: Type) (t1 :: (t :: Type)).
+  TypeEquals @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)). RowSame @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
 
 Roles
 Unit = []
@@ -58,12 +57,12 @@ error[NoInstanceFound]: No instance found for: IsEq (x :: Type) Unit Output
    |
 17 | testSkolemRight :: forall x. x -> Output
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq Unit (x :: Type) Output
+error[NoInstanceFound]: No instance found for: IsEq Unit (x1 :: Type) Output
   --> 20:1..20:40
    |
 20 | testSkolemLeft :: forall x. x -> Output
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq (y :: Type) (x :: Type) Output
+error[NoInstanceFound]: No instance found for: IsEq (y :: Type) (x2 :: Type) Output
   --> 23:1..23:47
    |
 23 | testSkolemIsEq :: forall x y. x -> y -> Output

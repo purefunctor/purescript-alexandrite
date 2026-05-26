@@ -1,6 +1,6 @@
 ---
-source: target/debug/build/tests-integration-6275ac7a2b26d932/out/checking_generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -10,19 +10,19 @@ Types
 Optional :: forall (k :: Type). Row (k :: Type)
 All :: Row Type
 ConvertOptions ::
-  forall (t6 :: Type) (t5 :: Type) (t4 :: Type).
-    (t6 :: Type) -> (t5 :: Type) -> (t4 :: Type) -> Constraint
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
 
 Synonyms
 type Optional = ()
 type All = ( value :: Int | Optional @Type )
 
 Classes
-class forall (t6 :: Type) (t5 :: Type) (t4 :: Type) (defaults :: (t6 :: Type)) (provided :: (t5 :: Type)) (all :: (t4 :: Type)). ConvertOptions @(t6 :: Type) @(t5 :: Type) @(t4 :: Type)
-  (defaults :: (t6 :: Type))
-  (provided :: (t5 :: Type))
-  (all :: (t4 :: Type))
+class forall (t :: Type) (t1 :: Type) (t2 :: Type) (defaults :: (t :: Type)) (provided :: (t1 :: Type)) (all :: (t2 :: Type)). ConvertOptions @(t :: Type) @(t1 :: Type) @(t2 :: Type)
+  (defaults :: (t :: Type))
+  (provided :: (t1 :: Type))
+  (all :: (t2 :: Type))
 
 Instances
-instance forall (t7 :: Row Type).
-  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t7 :: Row Type) } {| All }
+instance forall (t :: Row Type).
+  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t :: Row Type) } {| All }

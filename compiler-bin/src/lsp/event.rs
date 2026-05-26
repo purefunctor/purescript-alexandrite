@@ -47,8 +47,15 @@ fn collect_diagnostics_core(
 
     let uri = snapshot.with_language_context(|context| common::file_uri(context, id))?;
 
-    let context =
-        DiagnosticsContext::new(&snapshot.engine, &content, &root, &stabilized, &indexed, &lowered);
+    let context = DiagnosticsContext::new(
+        &snapshot.engine,
+        &content,
+        &root,
+        &stabilized,
+        &indexed,
+        &lowered,
+        &checked,
+    );
 
     let mut all_diagnostics = vec![];
 
@@ -72,8 +79,8 @@ fn collect_diagnostics_core(
     let diagnostics = all_diagnostics
         .iter()
         .filter_map(|diagnostic| {
-            let start = to_position(diagnostic.primary.start)?;
-            let end = to_position(diagnostic.primary.end)?;
+            let start = to_position(diagnostic.span.start)?;
+            let end = to_position(diagnostic.span.end)?;
             let range = Range { start, end };
 
             let severity = match diagnostic.severity {

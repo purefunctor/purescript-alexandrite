@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -18,10 +18,10 @@ openOutputBackwards ::
     Union @Type (l :: Row Type) ( b :: String ) ( a :: Int, b :: String | (r :: Row Type) ) =>
     Proxy @(Row Type) (l :: Row Type)
 forceSolve ::
-  forall (t11 :: Row Type) (t10 :: Row Type).
-    Union @Type (t11 :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t10 :: Row Type) ) =>
+  forall (t :: Row Type) (t1 :: Row Type).
+    Union @Type (t :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t1 :: Row Type) ) =>
     { leftmostDuplicateMismatch :: Proxy @(Row Type) ( a :: String )
-    , openOutputBackwards :: Proxy @(Row Type) (t11 :: Row Type)
+    , openOutputBackwards :: Proxy @(Row Type) (t :: Row Type)
     , rightmostDuplicate :: Proxy @(Row Type) ( a :: Int )
     }
 

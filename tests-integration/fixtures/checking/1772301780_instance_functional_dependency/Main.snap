@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -20,5 +20,4 @@ class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEq @(k :: Ty
 
 Instances
 instance Convert Int String
-instance forall (t6 :: Type) (t5 :: (t6 :: Type)).
-  TypeEq @(t6 :: Type) (t5 :: (t6 :: Type)) (t5 :: (t6 :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)). TypeEq @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))

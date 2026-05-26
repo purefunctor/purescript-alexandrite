@@ -25,7 +25,7 @@ use petgraph::prelude::DiGraphMap;
 use rustc_hash::FxHashSet;
 
 use crate::context::CheckContext;
-use crate::core::constraint::{CanonicalConstraintId, canonical, elaborate};
+use crate::core::constraint::{CanonicalConstraintId, ConstraintInScope, elaborate};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{ForallBinder, Name, Type, TypeId, normalise, zonk};
 use crate::state::{CheckState, UnificationEntry, UnificationState};
@@ -244,14 +244,14 @@ where
 #[derive(Default)]
 pub struct ConstraintErrors {
     pub ambiguous: Vec<CanonicalConstraintId>,
-    pub unsatisfied: Vec<CanonicalConstraintId>,
+    pub unsatisfied: Vec<ConstraintInScope>,
 }
 
 pub fn insert_inferred_residuals<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     type_id: TypeId,
-    residuals: Vec<CanonicalConstraintId>,
+    residuals: Vec<ConstraintInScope>,
     errors: &mut ConstraintErrors,
 ) -> QueryResult<TypeId>
 where
@@ -265,28 +265,28 @@ where
     let mut latent = vec![];
 
     for residual in residuals {
-        let residual = canonical::zonk_canonical(state, context, residual)?;
+        let residual = residual.zonk(state, context)?;
 
-        if is_partial_constraint(state, context, residual) {
-            latent.push(residual);
+        if residual.is_partial(state, context) {
+            latent.push(residual.wanted);
             continue;
         }
 
-        let residual_type = state.canonicals.type_id(context, residual);
+        let canonical = state.canonicals.type_id(context, residual.wanted);
         let unification: FxHashSet<_> =
-            collect_unification(state, context, residual_type)?.nodes().collect();
+            collect_unification(state, context, canonical)?.nodes().collect();
 
         if unification.is_empty() {
             errors.unsatisfied.push(residual);
         } else {
-            pending.push((residual, unification));
+            pending.push((residual.wanted, unification));
         }
     }
 
     let unifications = collect_unification(state, context, type_id)?.nodes().collect();
-    let generalised = classify_constraints(pending, unifications, errors);
+    let generalised = classify_constraints(pending, latent, unifications, errors);
 
-    let generalised = latent.into_iter().chain(generalised).sorted().collect_vec();
+    let generalised = generalised.into_iter().sorted().collect_vec();
     let generalised = minimize_by_superclasses(state, context, generalised)?;
 
     let constrained = generalised.into_iter().rfold(type_id, |inner, constraint| {
@@ -295,23 +295,6 @@ where
     });
 
     Ok(constrained)
-}
-
-fn is_partial_constraint<Q>(
-    state: &CheckState,
-    context: &CheckContext<Q>,
-    constraint: CanonicalConstraintId,
-) -> bool
-where
-    Q: ExternalQueries,
-{
-    let Type::Constructor(file_id, type_id) = context.lookup_type(context.prim.partial) else {
-        return false;
-    };
-    let constraint = &state.canonicals[constraint];
-    constraint.file_id == file_id
-        && constraint.type_id == type_id
-        && constraint.arguments.is_empty()
 }
 
 fn minimize_by_superclasses<Q>(
@@ -340,11 +323,12 @@ where
 
 fn classify_constraints(
     pending: Vec<(CanonicalConstraintId, FxHashSet<u32>)>,
+    latent: Vec<CanonicalConstraintId>,
     unifications: FxHashSet<u32>,
     errors: &mut ConstraintErrors,
 ) -> FxHashSet<CanonicalConstraintId> {
     let mut reachable = unifications;
-    let mut valid = FxHashSet::default();
+    let mut valid: FxHashSet<_> = latent.into_iter().collect();
     let mut remaining = pending;
 
     safe_loop! {

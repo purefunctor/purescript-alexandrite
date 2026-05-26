@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -11,7 +11,7 @@ Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b 
 Tuple ::
   forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
 Wrapper :: forall (@a :: Type). (a :: Type) -> Wrapper (a :: Type)
-Proxy :: forall (t7 :: Type) (@a :: (t7 :: Type)). Proxy @(t7 :: Type) (a :: (t7 :: Type))
+Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
 getVoid :: forall (rep :: Type). Generic Void (rep :: Type) => Proxy @Type (rep :: Type)
 getMyUnit :: forall (rep :: Type). Generic MyUnit (rep :: Type) => Proxy @Type (rep :: Type)
 getIdentity ::
@@ -27,19 +27,18 @@ getWrapper ::
   forall (a :: Type) (rep :: Type).
     Generic (Wrapper (a :: Type)) (rep :: Type) => Proxy @Type (rep :: Type)
 forceSolve ::
-  forall (t49 :: Type) (t48 :: Type) (t47 :: Type) (t46 :: Type) (t45 :: Type) (t44 :: Type).
+  forall (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Type) (t4 :: Type) (t5 :: Type).
     { getEither ::
         Proxy @Type
           (Sum
-            (Constructor "Left" (Argument (t49 :: Type)))
-            (Constructor "Right" (Argument (t48 :: Type))))
-    , getIdentity :: Proxy @Type (Constructor "Identity" (Argument (t47 :: Type)))
+            (Constructor "Left" (Argument (t :: Type)))
+            (Constructor "Right" (Argument (t1 :: Type))))
+    , getIdentity :: Proxy @Type (Constructor "Identity" (Argument (t2 :: Type)))
     , getMyUnit :: Proxy @Type (Constructor "MyUnit" NoArguments)
     , getTuple ::
-        Proxy @Type
-          (Constructor "Tuple" (Product (Argument (t46 :: Type)) (Argument (t45 :: Type))))
+        Proxy @Type (Constructor "Tuple" (Product (Argument (t3 :: Type)) (Argument (t4 :: Type))))
     , getVoid :: Proxy @Type NoConstructors
-    , getWrapper :: Proxy @Type (Constructor "Wrapper" (Argument (t44 :: Type)))
+    , getWrapper :: Proxy @Type (Constructor "Wrapper" (Argument (t5 :: Type)))
     }
 
 Types
@@ -49,25 +48,21 @@ Identity :: Type -> Type
 Either :: Type -> Type -> Type
 Tuple :: Type -> Type -> Type
 Wrapper :: Type -> Type
-Proxy :: forall (t7 :: Type). (t7 :: Type) -> Type
+Proxy :: forall (t :: Type). (t :: Type) -> Type
 
 Derived
 derive Generic Void NoConstructors
 derive Generic MyUnit (Constructor "MyUnit" NoArguments)
-derive forall (t8 :: Type).
-  Generic (Identity (t8 :: Type)) (Constructor "Identity" (Argument (t8 :: Type)))
-derive forall (t10 :: Type) (t11 :: Type).
+derive forall (t :: Type). Generic (Identity (t :: Type)) (Constructor "Identity" (Argument (t :: Type)))
+derive forall (t :: Type) (t1 :: Type).
   Generic
-    (Either (t10 :: Type) (t11 :: Type))
-    (Sum
-      (Constructor "Left" (Argument (t10 :: Type)))
-      (Constructor "Right" (Argument (t11 :: Type))))
-derive forall (t14 :: Type) (t15 :: Type).
+    (Either (t :: Type) (t1 :: Type))
+    (Sum (Constructor "Left" (Argument (t :: Type))) (Constructor "Right" (Argument (t1 :: Type))))
+derive forall (t :: Type) (t1 :: Type).
   Generic
-    (Tuple (t14 :: Type) (t15 :: Type))
-    (Constructor "Tuple" (Product (Argument (t14 :: Type)) (Argument (t15 :: Type))))
-derive forall (t18 :: Type).
-  Generic (Wrapper (t18 :: Type)) (Constructor "Wrapper" (Argument (t18 :: Type)))
+    (Tuple (t :: Type) (t1 :: Type))
+    (Constructor "Tuple" (Product (Argument (t :: Type)) (Argument (t1 :: Type))))
+derive forall (t :: Type). Generic (Wrapper (t :: Type)) (Constructor "Wrapper" (Argument (t :: Type)))
 
 Roles
 Void = []
