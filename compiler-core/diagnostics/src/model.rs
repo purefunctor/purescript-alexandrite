@@ -52,6 +52,8 @@ pub struct Diagnostic {
     pub span: Span,
     /// Related information attached to other spans.
     pub related: Vec<RelatedSpan>,
+    /// Additional information for context.
+    pub trivia: Vec<String>,
     /// The crate this diagnostic is attached to.
     pub source: &'static str,
 }
@@ -66,12 +68,14 @@ impl Diagnostic {
     ) -> Diagnostic {
         let message = message.into();
         let related = vec![];
+        let trivia = vec![];
         Diagnostic {
             severity: Severity::Error,
             code: DiagnosticCode::new(code),
             message,
             span,
             related,
+            trivia,
             source,
         }
     }
@@ -85,12 +89,14 @@ impl Diagnostic {
     ) -> Diagnostic {
         let message = message.into();
         let related = vec![];
+        let trivia = vec![];
         Diagnostic {
             severity: Severity::Warning,
             code: DiagnosticCode::new(code),
             message,
             span,
             related,
+            trivia,
             source,
         }
     }
@@ -99,6 +105,13 @@ impl Diagnostic {
     pub fn with_related(mut self, span: Span, message: impl Into<String>) -> Diagnostic {
         let message = message.into();
         self.related.push(RelatedSpan { span, message });
+        self
+    }
+
+    /// Attaches triva to a [`Diagnostic`].
+    pub fn with_trivia(mut self, trivia: impl Into<String>) -> Diagnostic {
+        let trivia = trivia.into();
+        self.trivia.push(trivia);
         self
     }
 }

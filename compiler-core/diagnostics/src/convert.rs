@@ -189,8 +189,7 @@ impl ToDiagnostics for IndexingError {
 
 impl ToDiagnostics for CheckError {
     fn to_diagnostics(&self, context: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
-        let primary = context.primary_span_from_crumbs(&self.crumbs);
-
+        let span = context.primary_span_from_crumbs(&self.crumbs);
         let lookup_message = |id| context.queries.lookup_checking_smol_str(id);
 
         let (severity, code, message) = match &self.kind {
@@ -310,15 +309,9 @@ impl ToDiagnostics for CheckError {
                 let msg = lookup_message(*type_message);
                 (Severity::Error, "NonLocalNewtype", format!("Expected a local newtype, got: {msg}"))
             }
-            ErrorKind::NoInstanceFound { given, constraint } => {
+            ErrorKind::NoInstanceFound { constraint, .. } => {
                 let constraint = lookup_message(*constraint);
-
-                let mut message = format!("No instance found for: {constraint}");
-                if !given.is_empty() {
-                    let given = given.iter().map(|given| lookup_message(*given)).join("\n\t");
-                    message.push_str(&format!("\n\tgiven\n\t{given}"));
-                }
-
+                let message = format!("No instance found for: {constraint}");
                 (Severity::Error, "NoInstanceFound", message)
             }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
@@ -403,10 +396,18 @@ impl ToDiagnostics for CheckError {
             }
         };
 
-        let diagnostic = match severity {
-            Severity::Error => Diagnostic::error(code, message, primary, "checking"),
-            Severity::Warning => Diagnostic::warning(code, message, primary, "checking"),
+        let mut diagnostic = match severity {
+            Severity::Error => Diagnostic::error(code, message, span, "checking"),
+            Severity::Warning => Diagnostic::warning(code, message, span, "checking"),
         };
+
+        if let ErrorKind::NoInstanceFound { given, .. } = &self.kind {
+            for &given in given.iter() {
+                let given = lookup_message(given);
+                let trivia = format!("{given} is in scope");
+                diagnostic = diagnostic.with_trivia(trivia)
+            }
+        }
 
         vec![diagnostic]
     }

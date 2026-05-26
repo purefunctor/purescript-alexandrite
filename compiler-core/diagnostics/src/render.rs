@@ -121,6 +121,10 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
             }
         }
 
+        for trivia in &diagnostic.trivia {
+            output.push_str(&format!("  trivia: {trivia}\n"));
+        }
+
         for related in &diagnostic.related {
             output.push_str(&format!("  note: {}\n", related.message));
 

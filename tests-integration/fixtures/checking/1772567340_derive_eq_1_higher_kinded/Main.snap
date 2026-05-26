@@ -29,9 +29,8 @@ WrapNoEq1 = [Representational, Nominal]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Eq1 (t10 :: Type -> Type)
-	given
-	Eq (t11 :: Type)
   --> 11:1..11:43
    |
 11 | derive instance Eq a => Eq (WrapNoEq1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Eq (t11 :: Type) is in scope

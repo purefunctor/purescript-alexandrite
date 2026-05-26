@@ -97,13 +97,12 @@ Tuple = [Representational, Representational]
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Discard (m :: Type -> Type)
-	given
-	Monad (m :: Type -> Type)
-	Bind (m :: Type -> Type)
-	Applicative (m :: Type -> Type)
-	Apply (m :: Type -> Type)
-	Functor (m :: Type -> Type)
   --> 44:1..44:44
    |
 44 | testDoDiscard :: forall m. Monad m => m Int
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Monad (m :: Type -> Type) is in scope
+  trivia: Bind (m :: Type -> Type) is in scope
+  trivia: Applicative (m :: Type -> Type) is in scope
+  trivia: Apply (m :: Type -> Type) is in scope
+  trivia: Functor (m :: Type -> Type) is in scope

@@ -16,9 +16,8 @@ class forall (a :: Type). Given (a :: Type)
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Given Int
-	given
-	Given (a :: Type)
   --> 6:1..6:41
   |
 6 | testGiven :: forall a. Given a => a -> a
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Given (a :: Type) is in scope
