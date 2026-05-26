@@ -58,6 +58,6 @@ class forall (token :: Type) (row :: Row Type) (rowList :: Type). RecordDefRowLi
     String
 
 Instances
-instance forall (t9 :: Type) (t10 :: Row Type) (t11 :: Type).
-  RecordDefRowList (t9 :: Type) (t10 :: Row Type) (t11 :: Type) =>
-  RecordDef (t9 :: Type) (t10 :: Row Type)
+instance forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
+  RecordDefRowList (t :: Type) (t1 :: Row Type) (t2 :: Type) =>
+  RecordDef (t :: Type) (t1 :: Row Type)

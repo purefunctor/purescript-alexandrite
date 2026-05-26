@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -17,7 +17,7 @@ Wrapper :: Type -> Type
 
 Derived
 derive Newtype @Type UserId Int
-derive forall (t1 :: Type). Newtype @Type (Wrapper (t1 :: Type)) (t1 :: Type)
+derive forall (t :: Type). Newtype @Type (Wrapper (t :: Type)) (t :: Type)
 
 Roles
 UserId = []

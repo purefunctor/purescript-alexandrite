@@ -45,10 +45,10 @@ class forall (context :: Row Type) (input :: Row Type) (output :: Row Type). Pro
     {| (context :: Row Type) } -> {| (input :: Row Type) } -> {| (output :: Row Type) }
 
 Instances
-instance forall (t7 :: Row Type). Ask (t7 :: Row Type) (M (t7 :: Row Type))
-instance forall (t10 :: Row Type) (t11 :: RowList Type) (t9 :: Row Type).
-  RowToList @Type (t10 :: Row Type) (t11 :: RowList Type) =>
-  Produce (t9 :: Row Type) (t10 :: Row Type) (t10 :: Row Type)
+instance forall (t :: Row Type). Ask (t :: Row Type) (M (t :: Row Type))
+instance forall (t :: Row Type) (t1 :: RowList Type) (t2 :: Row Type).
+  RowToList @Type (t :: Row Type) (t1 :: RowList Type) =>
+  Produce (t2 :: Row Type) (t :: Row Type) (t :: Row Type)
 
 Roles
 M = [Phantom, Representational]

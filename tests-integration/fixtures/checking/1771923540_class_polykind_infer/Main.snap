@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 reflectKind' ::
-  forall (t2 :: Type) (@a :: (t2 :: Type)) (p :: (t2 :: Type) -> Type).
-    HasKind' @(t2 :: Type) (a :: (t2 :: Type)) =>
-    (p :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) -> String
+  forall (t :: Type) (@a :: (t :: Type)) (p :: (t :: Type) -> Type).
+    HasKind' @(t :: Type) (a :: (t :: Type)) =>
+    (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String
 
 Types
-HasKind' :: forall (t2 :: Type). (t2 :: Type) -> Constraint
+HasKind' :: forall (t :: Type). (t :: Type) -> Constraint
 
 Classes
-class forall (t2 :: Type) (a :: (t2 :: Type)). HasKind' @(t2 :: Type) (a :: (t2 :: Type))
+class forall (t :: Type) (a :: (t :: Type)). HasKind' @(t :: Type) (a :: (t :: Type))
   reflectKind' ::
-  forall (t2 :: Type) (@a :: (t2 :: Type)) (p :: (t2 :: Type) -> Type).
-    HasKind' @(t2 :: Type) (a :: (t2 :: Type)) =>
-    (p :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) -> String
+  forall (t :: Type) (@a :: (t :: Type)) (p :: (t :: Type) -> Type).
+    HasKind' @(t :: Type) (a :: (t :: Type)) =>
+    (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String

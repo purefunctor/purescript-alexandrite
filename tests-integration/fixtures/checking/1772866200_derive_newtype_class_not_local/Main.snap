@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive forall (t0 :: Type). Newtype @Type Wrapper (t0 :: Type)
+derive forall (t :: Type). Newtype @Type Wrapper (t :: Type)
 
 Diagnostics
 error[NonLocalNewtype]: Expected a local newtype, got: Wrapper

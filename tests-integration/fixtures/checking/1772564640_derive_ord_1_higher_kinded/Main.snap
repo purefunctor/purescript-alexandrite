@@ -5,48 +5,46 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@a :: (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) ->
-    Wrap @(t2 :: Type) (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 MkWrapNoOrd1 ::
-  forall (t5 :: Type) (@f :: (t5 :: Type) -> Type) (@a :: (t5 :: Type)).
-    (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type)) ->
-    WrapNoOrd1 @(t5 :: Type) (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    WrapNoOrd1 @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 
 Types
-Wrap :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (t2 :: Type) -> Type
-WrapNoOrd1 :: forall (t5 :: Type). ((t5 :: Type) -> Type) -> (t5 :: Type) -> Type
+Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+WrapNoOrd1 :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 
 Derived
-derive forall (t6 :: Type -> Type) (t7 :: Type).
-  Eq1 (t6 :: Type -> Type) => Eq (t7 :: Type) => Eq (Wrap @Type (t6 :: Type -> Type) (t7 :: Type))
-derive forall (t10 :: Type -> Type) (t11 :: Type).
-  Ord1 (t10 :: Type -> Type) =>
-  Ord (t11 :: Type) =>
-  Ord (Wrap @Type (t10 :: Type -> Type) (t11 :: Type))
-derive forall (t14 :: Type -> Type) (t15 :: Type).
-  Eq1 (t14 :: Type -> Type) =>
-  Eq (t15 :: Type) =>
-  Eq (WrapNoOrd1 @Type (t14 :: Type -> Type) (t15 :: Type))
-derive forall (t19 :: Type) (t18 :: Type -> Type).
-  Ord (t19 :: Type) => Ord (WrapNoOrd1 @Type (t18 :: Type -> Type) (t19 :: Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Ord1 (t :: Type -> Type) => Ord (t1 :: Type) => Ord (Wrap @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Eq1 (t :: Type -> Type) =>
+  Eq (t1 :: Type) =>
+  Eq (WrapNoOrd1 @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type) (t1 :: Type -> Type).
+  Ord (t :: Type) => Ord (WrapNoOrd1 @Type (t1 :: Type -> Type) (t :: Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoOrd1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Ord1 (t18 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Ord1 (t :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t19 :: Type) is in scope
-  trivia: Eq (t19 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq1 (t18 :: Type -> Type)
+  trivia: Ord (t1 :: Type) is in scope
+  trivia: Eq (t1 :: Type) is in scope
+error[NoInstanceFound]: No instance found for: Eq1 (t :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t19 :: Type) is in scope
-  trivia: Eq (t19 :: Type) is in scope
+  trivia: Ord (t1 :: Type) is in scope
+  trivia: Eq (t1 :: Type) is in scope

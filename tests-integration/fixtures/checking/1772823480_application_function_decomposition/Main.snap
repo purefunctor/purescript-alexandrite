@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -50,26 +50,25 @@ class forall (i :: Type) (f :: Type -> Type). Foldable (f :: Type -> Type) <= Fo
     FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
     ((i :: Type) -> (a :: Type) -> (m :: Type)) -> (f :: Type -> Type) (a :: Type) -> (m :: Type)
   foldlWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@i :: Type) (@f :: Type -> Type) (a1 :: Type) (b :: Type).
     FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    ((i :: Type) -> (b :: Type) -> (a :: Type) -> (b :: Type)) ->
+    ((i :: Type) -> (b :: Type) -> (a1 :: Type) -> (b :: Type)) ->
     (b :: Type) ->
-    (f :: Type -> Type) (a :: Type) ->
+    (f :: Type -> Type) (a1 :: Type) ->
     (b :: Type)
   foldrWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@i :: Type) (@f :: Type -> Type) (a2 :: Type) (b1 :: Type).
     FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    ((i :: Type) -> (a :: Type) -> (b :: Type) -> (b :: Type)) ->
-    (b :: Type) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (b :: Type)
+    ((i :: Type) -> (a2 :: Type) -> (b1 :: Type) -> (b1 :: Type)) ->
+    (b1 :: Type) ->
+    (f :: Type -> Type) (a2 :: Type) ->
+    (b1 :: Type)
 
 Instances
-instance forall (t14 :: Type -> Type).
-  Foldable (t14 :: Type -> Type) => Foldable (NonEmpty (t14 :: Type -> Type))
-instance forall (t16 :: Type) (t17 :: Type -> Type).
-  FoldableWithIndex (t16 :: Type) (t17 :: Type -> Type) =>
-  FoldableWithIndex (Maybe (t16 :: Type)) (NonEmpty (t17 :: Type -> Type))
+instance forall (t :: Type -> Type). Foldable (t :: Type -> Type) => Foldable (NonEmpty (t :: Type -> Type))
+instance forall (t :: Type) (t1 :: Type -> Type).
+  FoldableWithIndex (t :: Type) (t1 :: Type -> Type) =>
+  FoldableWithIndex (Maybe (t :: Type)) (NonEmpty (t1 :: Type -> Type))
 
 Roles
 Maybe = [Representational]

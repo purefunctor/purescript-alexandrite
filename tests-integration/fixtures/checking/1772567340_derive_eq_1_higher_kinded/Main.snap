@@ -5,32 +5,32 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@a :: (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) ->
-    Wrap @(t2 :: Type) (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 MkWrapNoEq1 ::
-  forall (t5 :: Type) (@f :: (t5 :: Type) -> Type) (@a :: (t5 :: Type)).
-    (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type)) ->
-    WrapNoEq1 @(t5 :: Type) (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    WrapNoEq1 @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 
 Types
-Wrap :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (t2 :: Type) -> Type
-WrapNoEq1 :: forall (t5 :: Type). ((t5 :: Type) -> Type) -> (t5 :: Type) -> Type
+Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+WrapNoEq1 :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 
 Derived
-derive forall (t6 :: Type -> Type) (t7 :: Type).
-  Eq1 (t6 :: Type -> Type) => Eq (t7 :: Type) => Eq (Wrap @Type (t6 :: Type -> Type) (t7 :: Type))
-derive forall (t11 :: Type) (t10 :: Type -> Type).
-  Eq (t11 :: Type) => Eq (WrapNoEq1 @Type (t10 :: Type -> Type) (t11 :: Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type) (t1 :: Type -> Type).
+  Eq (t :: Type) => Eq (WrapNoEq1 @Type (t1 :: Type -> Type) (t :: Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoEq1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq1 (t10 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Eq1 (t :: Type -> Type)
   --> 11:1..11:43
    |
 11 | derive instance Eq a => Eq (WrapNoEq1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (t11 :: Type) is in scope
+  trivia: Eq (t1 :: Type) is in scope

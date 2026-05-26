@@ -1,23 +1,23 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 identity ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> (t2 :: Type) -> Type) (a :: (t2 :: Type)).
-    Category @(t2 :: Type) (f :: (t2 :: Type) -> (t2 :: Type) -> Type) =>
-    (f :: (t2 :: Type) -> (t2 :: Type) -> Type) (a :: (t2 :: Type)) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)).
+    Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type) =>
+    (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type))
 
 Types
-Category :: forall (t2 :: Type). ((t2 :: Type) -> (t2 :: Type) -> Type) -> Constraint
+Category :: forall (t :: Type). ((t :: Type) -> (t :: Type) -> Type) -> Constraint
 
 Classes
-class forall (t2 :: Type) (f :: (t2 :: Type) -> (t2 :: Type) -> Type). Category @(t2 :: Type) (f :: (t2 :: Type) -> (t2 :: Type) -> Type)
+class forall (t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type). Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type)
   identity ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> (t2 :: Type) -> Type) (a :: (t2 :: Type)).
-    Category @(t2 :: Type) (f :: (t2 :: Type) -> (t2 :: Type) -> Type) =>
-    (f :: (t2 :: Type) -> (t2 :: Type) -> Type) (a :: (t2 :: Type)) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)).
+    Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type) =>
+    (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type))
 
 Instances
 instance Category @Type Function

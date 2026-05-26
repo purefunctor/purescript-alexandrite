@@ -1,28 +1,28 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Add :: forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> (t2 :: Type) -> (t3 :: Type)
-:+: :: forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> (t2 :: Type) -> (t3 :: Type)
-Mul :: forall (t7 :: Type) (t6 :: Type). (t7 :: Type) -> (t6 :: Type) -> (t7 :: Type)
-:*: :: forall (t7 :: Type) (t6 :: Type). (t7 :: Type) -> (t6 :: Type) -> (t7 :: Type)
+Add :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
+:+: :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
+Mul :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
+:*: :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
 Chain ::
-  forall (t13 :: Type) (t12 :: Type) (t11 :: Type).
-    (t13 :: Type) -> (t12 :: Type) -> (t11 :: Type) -> (t13 :: Type)
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> (t :: Type)
 ChainParen ::
-  forall (t19 :: Type) (t18 :: Type) (t17 :: Type).
-    (t19 :: Type) -> (t18 :: Type) -> (t17 :: Type) -> (t19 :: Type)
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> (t :: Type)
 
 Synonyms
-type Add a b = (a :: (t3 :: Type))
-type Mul a b = (a :: (t7 :: Type))
-type Chain a b c = Add @(t13 :: Type) @(t12 :: Type)
-  (a :: (t13 :: Type))
-  (Mul @(t12 :: Type) @(t11 :: Type) (b :: (t12 :: Type)) (c :: (t11 :: Type)))
-type ChainParen a b c = Mul @(t19 :: Type) @(t17 :: Type)
-  (Add @(t19 :: Type) @(t18 :: Type) (a :: (t19 :: Type)) (b :: (t18 :: Type)))
-  (c :: (t17 :: Type))
+type Add a b = (a :: (t :: Type))
+type Mul a b = (a :: (t :: Type))
+type Chain a b c = Add @(t :: Type) @(t1 :: Type)
+  (a :: (t :: Type))
+  (Mul @(t1 :: Type) @(t2 :: Type) (b :: (t1 :: Type)) (c :: (t2 :: Type)))
+type ChainParen a b c = Mul @(t :: Type) @(t1 :: Type)
+  (Add @(t :: Type) @(t2 :: Type) (a :: (t :: Type)) (b :: (t2 :: Type)))
+  (c :: (t1 :: Type))

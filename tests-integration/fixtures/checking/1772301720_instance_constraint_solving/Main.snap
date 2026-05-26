@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 eq :: forall (@a :: Type). Eq (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean
 test :: Boolean
 test2 :: Boolean
-test3 :: forall (t3 :: Type). Eq (t3 :: Type) => (t3 :: Type) -> (t3 :: Type) -> Boolean
+test3 :: forall (t :: Type). Eq (t :: Type) => (t :: Type) -> (t :: Type) -> Boolean
 
 Types
 Eq :: Type -> Constraint
@@ -18,4 +18,4 @@ class forall (a :: Type). Eq (a :: Type)
 
 Instances
 instance Eq Int
-instance forall (t1 :: Type). Eq (t1 :: Type) => Eq (Array (t1 :: Type))
+instance forall (t :: Type). Eq (t :: Type) => Eq (Array (t :: Type))

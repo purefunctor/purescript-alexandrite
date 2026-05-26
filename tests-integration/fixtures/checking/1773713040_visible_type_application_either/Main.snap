@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,10 +8,10 @@ Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :
 Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
 testBothLeft :: Int -> Either Int String
 testBothRight :: String -> Either Int String
-testLeftLeft :: forall (t2 :: Type). Int -> Either Int (t2 :: Type)
-testLeftRight :: forall (t3 :: Type). (t3 :: Type) -> Either (t3 :: Type) String
-testRightLeft :: forall (t4 :: Type). (t4 :: Type) -> Either Int (t4 :: Type)
-testRightRight :: forall (t5 :: Type). String -> Either (t5 :: Type) String
+testLeftLeft :: forall (t :: Type). Int -> Either Int (t :: Type)
+testLeftRight :: forall (t :: Type). (t :: Type) -> Either (t :: Type) String
+testRightLeft :: forall (t :: Type). (t :: Type) -> Either Int (t :: Type)
+testRightRight :: forall (t :: Type). String -> Either (t :: Type) String
 
 Types
 Either :: Type -> Type -> Type

@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
 NonZeroInt :: Type
-Identity :: forall (t1 :: Type). (t1 :: Type) -> (t1 :: Type)
+Identity :: forall (t :: Type). (t :: Type) -> (t :: Type)
 FourtyTwo :: Int
 
 Synonyms
 type NonZeroInt = Int
-type Identity a = (a :: (t1 :: Type))
+type Identity a = (a :: (t :: Type))
 type FourtyTwo = 42

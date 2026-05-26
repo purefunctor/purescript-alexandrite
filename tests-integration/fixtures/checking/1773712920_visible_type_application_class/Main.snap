@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -11,8 +11,8 @@ map ::
     (f :: Type -> Type) (a :: Type) ->
     (f :: Type -> Type) (b :: Type)
 testMap ::
-  forall (t4 :: Type) (t3 :: Type).
-    ((t4 :: Type) -> (t3 :: Type)) -> Array (t4 :: Type) -> Array (t3 :: Type)
+  forall (t :: Type) (t1 :: Type).
+    ((t :: Type) -> (t1 :: Type)) -> Array (t :: Type) -> Array (t1 :: Type)
 
 Types
 Functor :: (Type -> Type) -> Constraint

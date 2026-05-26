@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -14,12 +14,12 @@ useUnion ::
     Union @Type (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) =>
     Proxy @(Row Type) (r3 :: Row Type) -> {| (r1 :: Row Type) } -> {| (r2 :: Row Type) } -> Int
 testMin ::
-  forall (t20 :: Row Type) (t19 :: Row Type) (t18 :: Row Type).
-    Merge @Type (t20 :: Row Type) (t19 :: Row Type) (t18 :: Row Type) =>
-    Proxy @(Row Type) (t18 :: Row Type) -> {| (t20 :: Row Type) } -> {| (t19 :: Row Type) } -> Int
+  forall (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type).
+    Merge @Type (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type) =>
+    Proxy @(Row Type) (t2 :: Row Type) -> {| (t :: Row Type) } -> {| (t1 :: Row Type) } -> Int
 
 Types
-Merge :: forall (t3 :: Type). Row (t3 :: Type) -> Row (t3 :: Type) -> Row (t3 :: Type) -> Constraint
+Merge :: forall (t :: Type). Row (t :: Type) -> Row (t :: Type) -> Row (t :: Type) -> Constraint
 
 Classes
-class forall (t3 :: Type) (r1 :: Row (t3 :: Type)) (r2 :: Row (t3 :: Type)) (r3 :: Row (t3 :: Type)). Union @(t3 :: Type) (r1 :: Row (t3 :: Type)) (r2 :: Row (t3 :: Type)) (r3 :: Row (t3 :: Type)) <= Merge @(t3 :: Type) (r1 :: Row (t3 :: Type)) (r2 :: Row (t3 :: Type)) (r3 :: Row (t3 :: Type))
+class forall (t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type)). Union @(t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type)) <= Merge @(t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type))
