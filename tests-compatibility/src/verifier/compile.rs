@@ -211,7 +211,7 @@ fn with_diagnostics_context(
     file_id: FileId,
     root: &syntax::SyntaxNode,
     meta: &FileMeta,
-    f: impl FnOnce(DiagnosticsContext<'_>),
+    f: impl FnOnce(DiagnosticsContext<'_, QueryEngine>),
 ) {
     let Ok(stabilized) = engine.stabilized(file_id) else {
         return;

@@ -5,47 +5,52 @@ use lowering::LoweringError;
 use resolving::ResolvingError;
 use rowan::ast::AstNode;
 
-use crate::{Diagnostic, DiagnosticsContext, Severity};
+use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity};
 
 pub trait ToDiagnostics {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic>;
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries;
 }
 
 impl ToDiagnostics for LoweringError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             LoweringError::NotInScope(not_in_scope) => {
                 let (ptr, name) = match not_in_scope {
                     lowering::NotInScope::ExprConstructor { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::ExprVariable { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::ExprOperatorName { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeConstructor { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeVariable { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeOperatorName { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::NegateFn { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), Some("negate"))
+                        (context.stabilized.syntax_ptr(*id), Some("negate"))
                     }
                     lowering::NotInScope::DoFn { kind, id } => (
-                        ctx.stabilized.syntax_ptr(*id),
+                        context.stabilized.syntax_ptr(*id),
                         match kind {
                             lowering::DoFn::Bind => Some("bind"),
                             lowering::DoFn::Discard => Some("discard"),
                         },
                     ),
                     lowering::NotInScope::AdoFn { kind, id } => (
-                        ctx.stabilized.syntax_ptr(*id),
+                        context.stabilized.syntax_ptr(*id),
                         match kind {
                             lowering::AdoFn::Map => Some("map"),
                             lowering::AdoFn::Apply => Some("apply"),
@@ -53,20 +58,20 @@ impl ToDiagnostics for LoweringError {
                         },
                     ),
                     lowering::NotInScope::TermOperator { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeOperator { id } => {
-                        (ctx.stabilized.syntax_ptr(*id), None)
+                        (context.stabilized.syntax_ptr(*id), None)
                     }
                 };
 
                 let Some(ptr) = ptr else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
                 let message = if let Some(name) = name {
                     format!("'{name}' is not in scope")
                 } else {
-                    let text = ctx.text_of(span).trim();
+                    let text = context.text_of(span).trim();
                     format!("'{text}' is not in scope")
                 };
 
@@ -74,33 +79,39 @@ impl ToDiagnostics for LoweringError {
             }
 
             LoweringError::RecursiveSynonym(group) => convert_recursive_group(
-                ctx,
+                context,
                 &group.group,
                 "RecursiveSynonym",
                 "Invalid type synonym cycle",
             ),
 
-            LoweringError::RecursiveKinds(group) => {
-                convert_recursive_group(ctx, &group.group, "RecursiveKinds", "Invalid kind cycle")
-            }
+            LoweringError::RecursiveKinds(group) => convert_recursive_group(
+                context,
+                &group.group,
+                "RecursiveKinds",
+                "Invalid kind cycle",
+            ),
         }
     }
 }
 
-fn convert_recursive_group(
-    ctx: &DiagnosticsContext<'_>,
+fn convert_recursive_group<Q>(
+    context: &DiagnosticsContext<'_, Q>,
     group: &[indexing::TypeItemId],
     code: &'static str,
     message: &'static str,
-) -> Vec<Diagnostic> {
+) -> Vec<Diagnostic>
+where
+    Q: ExternalQueries,
+{
     let spans = group.iter().filter_map(|id| {
-        let ptr = match ctx.indexed.items[*id].kind {
-            TypeItemKind::Synonym { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Data { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Newtype { equation, .. } => ctx.stabilized.syntax_ptr(equation?)?,
+        let ptr = match context.indexed.items[*id].kind {
+            TypeItemKind::Synonym { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
+            TypeItemKind::Data { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
+            TypeItemKind::Newtype { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
             _ => return None,
         };
-        ctx.span_from_syntax_ptr(&ptr)
+        context.span_from_syntax_ptr(&ptr)
     });
 
     let spans = spans.collect_vec();
@@ -117,7 +128,10 @@ fn convert_recursive_group(
 }
 
 impl ToDiagnostics for ResolvingError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             ResolvingError::TermExportConflict { .. }
             | ResolvingError::TypeExportConflict { .. }
@@ -127,28 +141,28 @@ impl ToDiagnostics for ResolvingError {
             }
 
             ResolvingError::InvalidImportStatement { id } => {
-                let Some(ptr) = ctx.stabilized.ast_ptr(*id) else { return vec![] };
+                let Some(ptr) = context.stabilized.ast_ptr(*id) else { return vec![] };
 
                 let message = {
-                    let cst = ptr.to_node(ctx.root);
+                    let cst = ptr.to_node(context.root);
                     let name = cst.module_name().map(|cst| {
                         let range = cst.syntax().text_range();
-                        ctx.content[range].trim()
+                        context.content[range].trim()
                     });
                     let name = name.unwrap_or("<ParseError>");
                     format!("Cannot import module '{name}'")
                 };
 
-                let Some(span) = ctx.span_from_ast_ptr(&ptr) else { return vec![] };
+                let Some(span) = context.span_from_ast_ptr(&ptr) else { return vec![] };
 
                 vec![Diagnostic::error("InvalidImportStatement", message, span, "resolving")]
             }
 
             ResolvingError::InvalidImportItem { id } => {
-                let Some(ptr) = ctx.stabilized.syntax_ptr(*id) else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(ptr) = context.stabilized.syntax_ptr(*id) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
-                let text = ctx.text_of(span).trim();
+                let text = context.text_of(span).trim();
                 let message = format!("Cannot import item '{text}'");
 
                 vec![Diagnostic::error("InvalidImportItem", message, span, "resolving")]
@@ -158,20 +172,23 @@ impl ToDiagnostics for ResolvingError {
 }
 
 impl ToDiagnostics for IndexingError {
-    fn to_diagnostics(&self, ctx: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         match self {
             IndexingError::DuplicateImport { duplicate, existing } => {
-                let Some(ptr) = ctx.stabilized.syntax_ptr(*duplicate) else { return vec![] };
-                let Some(span) = ctx.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let Some(ptr) = context.stabilized.syntax_ptr(*duplicate) else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
 
-                let text = ctx.text_of(span).trim();
+                let text = context.text_of(span).trim();
                 let message = format!("Import list contains multiple references to '{text}'");
 
                 let mut diagnostic =
                     Diagnostic::warning("DuplicateImport", message, span, "indexing");
 
-                if let Some(existing_ptr) = ctx.stabilized.syntax_ptr(*existing)
-                    && let Some(existing_span) = ctx.span_from_syntax_ptr(&existing_ptr)
+                if let Some(existing_ptr) = context.stabilized.syntax_ptr(*existing)
+                    && let Some(existing_span) = context.span_from_syntax_ptr(&existing_ptr)
                 {
                     diagnostic = diagnostic.with_related(existing_span, "First imported here");
                 }
@@ -188,7 +205,10 @@ impl ToDiagnostics for IndexingError {
 }
 
 impl ToDiagnostics for CheckError {
-    fn to_diagnostics(&self, context: &DiagnosticsContext<'_>) -> Vec<Diagnostic> {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
         let span = context.primary_span_from_crumbs(&self.crumbs);
         let lookup_message = |id| context.queries.lookup_checking_smol_str(id);
         let render_type = |id| context.render_type(id);

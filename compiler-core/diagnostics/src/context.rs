@@ -77,8 +77,9 @@ fn significant_ranges(node: &SyntaxNode) -> Option<TextRange> {
     Some(start.cover(end))
 }
 
-fn pointers_span<I>(context: &DiagnosticsContext<'_>, iterator: I) -> Option<Span>
+fn pointers_span<Q, I>(context: &DiagnosticsContext<'_, Q>, iterator: I) -> Option<Span>
 where
+    Q: ExternalQueries,
     I: IntoIterator<Item = SyntaxNodePtr>,
     I::IntoIter: DoubleEndedIterator,
 {
@@ -93,27 +94,33 @@ where
     Some(Span::new(start_span.start, end_span.end))
 }
 
-pub struct DiagnosticsContext<'a> {
-    pub queries: &'a dyn ExternalQueries,
+pub struct DiagnosticsContext<'a, Q>
+where
+    Q: ExternalQueries,
+{
+    pub queries: &'a Q,
     pub content: &'a str,
     pub root: &'a SyntaxNode,
     pub stabilized: &'a StabilizedModule,
     pub indexed: &'a IndexedModule,
     pub lowered: &'a LoweredModule,
     pub checked: &'a CheckedModule,
-    pretty: RefCell<Pretty<'a, dyn ExternalQueries + 'a>>,
+    pretty: RefCell<Pretty<'a, Q>>,
 }
 
-impl<'a> DiagnosticsContext<'a> {
+impl<'a, Q> DiagnosticsContext<'a, Q>
+where
+    Q: ExternalQueries,
+{
     pub fn new(
-        queries: &'a dyn ExternalQueries,
+        queries: &'a Q,
         content: &'a str,
         root: &'a SyntaxNode,
         stabilized: &'a StabilizedModule,
         indexed: &'a IndexedModule,
         lowered: &'a LoweredModule,
         checked: &'a CheckedModule,
-    ) -> DiagnosticsContext<'a> {
+    ) -> DiagnosticsContext<'a, Q> {
         DiagnosticsContext {
             queries,
             content,
