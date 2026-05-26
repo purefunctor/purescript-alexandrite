@@ -68,26 +68,23 @@ impl PrettyNames {
             .expect("critical failure: display name missing suffix state");
 
         loop {
-            let next_suffix = next_display_name_suffix(suffix);
             let display = format_smolstr!("{base}{suffix}");
 
             if !self.next_suffix.contains_key(&display) {
                 self.next_suffix.insert(SmolStr::clone(&display), FIRST_SUFFIX);
-                self.next_suffix.insert(base, next_suffix);
+                if let Some(next_suffix) = try_next_suffix(suffix) {
+                    self.next_suffix.insert(base, next_suffix);
+                }
                 return display;
             }
 
-            suffix = next_suffix;
+            suffix = try_next_suffix(suffix).expect("critical failure: exhausted suffixes");
         }
     }
 }
 
-fn next_display_name_suffix(suffix: NonZeroU32) -> NonZeroU32 {
-    suffix
-        .get()
-        .checked_add(1)
-        .and_then(NonZeroU32::new)
-        .expect("critical failure: exhausted display-name suffixes")
+fn try_next_suffix(suffix: NonZeroU32) -> Option<NonZeroU32> {
+    suffix.get().checked_add(1).and_then(NonZeroU32::new)
 }
 
 pub struct Pretty<'a, Q: ?Sized> {
@@ -592,10 +589,19 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "critical failure: exhausted display-name suffixes")]
+    fn allocate_display_name_allows_max_suffix_candidate() {
+        let mut names = PrettyNames::new();
+        names.next_suffix.insert(smol_str("t"), NonZeroU32::new(u32::MAX).unwrap());
+
+        assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t4294967295"));
+    }
+
+    #[test]
+    #[should_panic(expected = "critical failure: exhausted suffixes")]
     fn allocate_display_name_reports_suffix_exhaustion() {
         let mut names = PrettyNames::new();
         names.next_suffix.insert(smol_str("t"), NonZeroU32::new(u32::MAX).unwrap());
+        names.next_suffix.insert(smol_str("t4294967295"), FIRST_SUFFIX);
 
         names.allocate_display_name(smol_str("t"));
     }
