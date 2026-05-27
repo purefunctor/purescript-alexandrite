@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Y :: Y
+value :: Int
+
+Types
+Y :: Type
+
+Instances
+instance C X Y
+
+Roles
+Y = []

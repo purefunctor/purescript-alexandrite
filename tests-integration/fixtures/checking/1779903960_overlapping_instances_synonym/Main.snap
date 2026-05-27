@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+convert ::
+  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+value :: String
+
+Types
+Convert :: Type -> Type -> Constraint
+Bar :: Type
+
+Synonyms
+type Bar = String
+
+Classes
+class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+  convert ::
+  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+
+Instances
+instance Convert String Bar
+instance Convert String String

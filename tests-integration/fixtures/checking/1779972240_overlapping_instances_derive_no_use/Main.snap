@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Box :: Box
+
+Types
+Box :: Type
+
+Instances
+instance Eq Box
+
+Derived
+derive Eq Box
+
+Roles
+Box = []

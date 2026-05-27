@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
+test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+
+Types
+Pair :: Type -> Type -> Type
+Test :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Test (a :: Type)
+  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+
+Instances
+instance forall (t :: Type). Test (Pair (t :: Type) Int)
+instance forall (t :: Type). Test (Pair String (t :: Type))
+
+Roles
+Pair = [Representational, Representational]

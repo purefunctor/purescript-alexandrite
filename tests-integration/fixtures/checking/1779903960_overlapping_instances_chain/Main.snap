@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
+value :: Int
+
+Types
+Test :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Test (a :: Type)
+  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
+
+Instances
+instance Test Int
+instance forall (t :: Type). Test (t :: Type)

@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+showP ::
+  forall (k :: Type) (@a :: (k :: Type)).
+    ShowP @(k :: Type) (a :: (k :: Type)) => Proxy @(k :: Type) (a :: (k :: Type)) -> String
+value :: String
+
+Types
+Proxy :: forall (k :: Type). (k :: Type) -> Type
+ShowP :: forall (k :: Type). (k :: Type) -> Constraint
+
+Classes
+class forall (k :: Type) (a :: (k :: Type)). ShowP @(k :: Type) (a :: (k :: Type))
+  showP ::
+  forall (k :: Type) (@a :: (k :: Type)).
+    ShowP @(k :: Type) (a :: (k :: Type)) => Proxy @(k :: Type) (a :: (k :: Type)) -> String
+
+Instances
+instance forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type))
+
+Roles
+Proxy = [Phantom]

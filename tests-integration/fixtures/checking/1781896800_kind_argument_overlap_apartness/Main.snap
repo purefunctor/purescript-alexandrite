@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+
+Types
+ResultA :: Type
+ResultB :: Type
+Inner :: forall (left :: Type) (right :: Type). (left :: Type) -> (right :: Type) -> Type
+Outer :: forall (left :: Type) (right :: Type). (left :: Type) -> (right :: Type) -> Type
+Test :: forall (input :: Type). (input :: Type) -> Type -> Constraint
+
+Classes
+class forall (input :: Type) (input1 :: (input :: Type)) (output :: Type). Test @(input :: Type) (input1 :: (input :: Type)) (output :: Type)
+
+Instances
+instance forall (t :: Type) (t1 :: Type) (t2 :: (t :: Type)) (t3 :: (t1 :: Type)).
+  Test @Type (Outer @(t :: Type) @(t1 :: Type) (t2 :: (t :: Type)) (t3 :: (t1 :: Type))) ResultA
+instance forall (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: (t1 :: Type)) (t4 :: (t2 :: Type))
+  (t5 :: (t :: Type)).
+  Test @Type
+    (Outer @Type @(t :: Type)
+      (Inner @(t1 :: Type) @(t2 :: Type) (t3 :: (t1 :: Type)) (t4 :: (t2 :: Type)))
+      (t5 :: (t :: Type)))
+    ResultB
+
+Roles
+ResultA = []
+ResultB = []
+Inner = [Phantom, Phantom]
+Outer = [Phantom, Phantom]
