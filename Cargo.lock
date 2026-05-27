@@ -1796,7 +1796,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "purescript-analyzer"
+name = "purescript-alexandrite"
 version = "0.0.12"
 dependencies = [
  "analyzer",

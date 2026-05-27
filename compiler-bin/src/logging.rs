@@ -37,7 +37,7 @@ where
 
 pub fn temporary_log_file() -> PathBuf {
     let temporary_directory = env::temp_dir();
-    temporary_directory.join("purescript-analyzer.log")
+    temporary_directory.join("purescript-alexandrite.log")
 }
 
 pub fn start(config: Arc<cli::Config>) {

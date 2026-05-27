@@ -1,7 +1,7 @@
 [package]
 name = "docs-lib"
 version = "0.1.0"
-authors = ["Justin Garcia <purefunctor@gmail.com>"]
+authors = ["Justin Garcia <git@purefunctor.me>"]
 edition = "2021"
 
 [lib]
