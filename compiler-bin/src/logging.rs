@@ -50,13 +50,13 @@ pub fn start(config: Arc<cli::Config>) {
 
     let fmt_filter = filter::Targets::new()
         .with_target("building::engine", config.query_log)
-        .with_target("purescript_analyzer::lsp", config.lsp_log)
+        .with_target("purescript_alexandrite::lsp", config.lsp_log)
         .with_target("checking", config.checking_log)
         .with_default(LevelFilter::INFO);
     let fmt = fmt::layer().with_writer(file).with_filter(fmt_filter);
 
     let timing_filter = filter::Targets::new()
-        .with_target("purescript_analyzer::lsp", config.lsp_log)
+        .with_target("purescript_alexandrite::lsp", config.lsp_log)
         .with_default(LevelFilter::OFF);
     let timing = SpanTimingLayer.with_filter(timing_filter);
 
