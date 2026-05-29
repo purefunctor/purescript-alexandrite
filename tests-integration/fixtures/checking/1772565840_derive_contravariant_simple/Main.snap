@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,7 +16,7 @@ Op :: Type -> Type -> Type
 Derived
 derive Contravariant Predicate
 derive Contravariant Comparison
-derive forall (t4 :: Type). Contravariant (Op (t4 :: Type))
+derive forall (t :: Type). Contravariant (Op (t :: Type))
 
 Roles
 Predicate = [Representational]

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -14,6 +14,5 @@ class forall (a :: Type). Eq (a :: Type)
 class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEq @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
 
 Instances
-instance forall (t4 :: Type). Eq (t4 :: Type) => Eq (Array (t4 :: Type))
-instance forall (t7 :: Type) (t6 :: (t7 :: Type)).
-  TypeEq @(t7 :: Type) (t6 :: (t7 :: Type)) (t6 :: (t7 :: Type))
+instance forall (t :: Type). Eq (t :: Type) => Eq (Array (t :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)). TypeEq @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))

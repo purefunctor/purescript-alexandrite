@@ -236,7 +236,7 @@ where
             if let (Type::Row(t1_row_id), Type::Row(t2_row_id)) =
                 (t1_argument_core, t2_argument_core)
             {
-                subtype_rows::<P, Q>(state, context, t1_row_id, t2_row_id)
+                subtype_rows::<NonElaborating, Q>(state, context, t1_row_id, t2_row_id)
             } else {
                 unify(state, context, t1, t2)
             }
@@ -413,8 +413,6 @@ where
     };
 
     if !unifies {
-        let t1 = state.pretty_id(context, t1)?;
-        let t2 = state.pretty_id(context, t2)?;
         state.insert_error(ErrorKind::CannotUnify { t1, t2 });
     }
 
@@ -533,8 +531,8 @@ where
     match promote_type(state, context, id, solution)? {
         PromoteResult::Ok => {}
         PromoteResult::OccursCheck | PromoteResult::SkolemEscape => {
-            let t1 = state.pretty_id(context, unification)?;
-            let t2 = state.pretty_id(context, solution)?;
+            let t1 = unification;
+            let t2 = solution;
             state.insert_error(ErrorKind::CannotUnify { t1, t2 });
             return Ok(false);
         }

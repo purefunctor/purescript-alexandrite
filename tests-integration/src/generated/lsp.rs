@@ -7,8 +7,8 @@ use analyzer::position::PositionEncoding;
 use analyzer::{QueryEngine, prim};
 use async_lsp::lsp_types::{
     CompletionItemKind, CompletionList, CompletionResponse, DocumentHighlight,
-    GotoDefinitionResponse, HoverContents, LanguageString, Location, MarkedString, Position, Url,
-    WorkspaceSymbolResponse,
+    DocumentSymbolResponse, GotoDefinitionResponse, HoverContents, LanguageString, Location,
+    MarkedString, Position, SymbolInformation, Url, WorkspaceSymbolResponse,
 };
 use files::{FileId, Files};
 use itertools::Itertools;
@@ -25,10 +25,11 @@ enum CursorKind {
     CompletionCached,
     References,
     DocumentHighlight,
+    DocumentSymbols,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '&'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!', '&'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -38,6 +39,7 @@ impl CursorKind {
             "~" => Some(CursorKind::CompletionCached),
             "%" => Some(CursorKind::References),
             "&" => Some(CursorKind::DocumentHighlight),
+            "!" => Some(CursorKind::DocumentSymbols),
             _ => None,
         }
     }
@@ -288,6 +290,13 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+        CursorKind::DocumentSymbols => {
+            if let Ok(Some(response)) = analyzer::document_symbols::implementation(&context, uri) {
+                writeln!(result, "{}", render_document_symbols_response(response)).unwrap();
+            } else {
+                writeln!(result, "<empty>").unwrap();
+            }
+        }
         CursorKind::References => {
             if let Ok(Some(location)) =
                 analyzer::references::implementation(&context, uri, position)
@@ -358,6 +367,30 @@ fn dispatch_workspace_symbols(
             writeln!(result, "<empty>").unwrap();
         }
     }
+}
+
+fn render_document_symbols_response(response: DocumentSymbolResponse) -> String {
+    match response {
+        DocumentSymbolResponse::Flat(symbols) => {
+            if symbols.is_empty() {
+                "<empty>".into()
+            } else {
+                symbols.into_iter().map(render_symbol_information).join("\n")
+            }
+        }
+        DocumentSymbolResponse::Nested(_) => "<nested>".into(),
+    }
+}
+
+fn render_symbol_information(symbol: SymbolInformation) -> String {
+    let SymbolInformation { name, kind, location, .. } = symbol;
+    format!(
+        "{name} :: {kind:?} @ {}:{}..{}:{}",
+        location.range.start.line,
+        location.range.start.character,
+        location.range.end.line,
+        location.range.end.character,
+    )
 }
 
 fn redact_paths(mut result: String) -> String {

@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Tuple ::
   forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
 testBoth :: Int -> String -> Tuple Int String
-testLeft :: forall (t2 :: Type). Int -> (t2 :: Type) -> Tuple Int (t2 :: Type)
-testRight :: forall (t3 :: Type). (t3 :: Type) -> String -> Tuple (t3 :: Type) String
+testLeft :: forall (t :: Type). Int -> (t :: Type) -> Tuple Int (t :: Type)
+testRight :: forall (t :: Type). (t :: Type) -> String -> Tuple (t :: Type) String
 
 Types
 Tuple :: Type -> Type -> Type

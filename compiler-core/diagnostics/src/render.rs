@@ -22,7 +22,7 @@ pub fn format_text(diagnostics: &[Diagnostic]) -> String {
             Severity::Warning => "warning",
         };
 
-        let primary = diagnostic.primary;
+        let primary = diagnostic.span;
         output.push_str(&format!(
             "{severity}[{}] at {}..{}: {}\n",
             diagnostic.code, primary.start, primary.end, diagnostic.message
@@ -89,7 +89,7 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
 
         output.push_str(&format!("{severity}[{}]: {}\n", diagnostic.code, diagnostic.message));
 
-        let primary = diagnostic.primary;
+        let primary = diagnostic.span;
         if let Some(((start_line, start_col), (end_line, end_col))) =
             span_location(&line_index, content, primary)
         {
@@ -119,6 +119,10 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
                 let marker = caret_marker(line, start_col, marker_end_col);
                 output.push_str(&format!("{:>width$} | {}\n", "", marker, width = line_num_width));
             }
+        }
+
+        for trivia in &diagnostic.trivia {
+            output.push_str(&format!("  trivia: {trivia}\n"));
         }
 
         for related in &diagnostic.related {
@@ -209,9 +213,8 @@ pub fn to_lsp_diagnostic(
     let to_position =
         |offset: u32| offset_to_lsp_position(&line_index, TextSize::from(offset), encoding);
 
-    let primary = diagnostic.primary;
-    let start = to_position(primary.start)?;
-    let end = to_position(primary.end)?;
+    let start = to_position(diagnostic.span.start)?;
+    let end = to_position(diagnostic.span.end)?;
     let range = Range { start, end };
 
     let severity = match diagnostic.severity {

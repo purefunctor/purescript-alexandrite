@@ -32,10 +32,10 @@ pub fn implementation(
             }
         }
         CompletionResolveData::TermItem(file_id, term_id) => {
-            resolve_term_item(engine, file_id, term_id, item)
+            resolve_term_item(engine, file_id, term_id, item).map_err(|error| *error)
         }
         CompletionResolveData::TypeItem(file_id, type_id) => {
-            resolve_type_item(engine, file_id, type_id, item)
+            resolve_type_item(engine, file_id, type_id, item).map_err(|error| *error)
         }
     }
 }
@@ -64,7 +64,7 @@ fn resolve_term_item(
     file_id: FileId,
     term_id: TermItemId,
     mut item: CompletionItem,
-) -> Result<CompletionItem, (AnalyzerError, CompletionItem)> {
+) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
     if let Ok((root, range)) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&root, range));
         item.documentation = annotation.map(|annotation| {
@@ -94,8 +94,8 @@ fn render_term_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_term(term_id)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    Some(pretty.render(signature).to_string())
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    Some(pretty.render_signature(name, signature).to_string())
 }
 
 fn resolve_type_item(
@@ -103,7 +103,7 @@ fn resolve_type_item(
     file_id: FileId,
     type_id: TypeItemId,
     mut item: CompletionItem,
-) -> Result<CompletionItem, (AnalyzerError, CompletionItem)> {
+) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
     if let Ok((root, range)) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&root, range));
         item.documentation = annotation.map(|annotation| {
@@ -133,8 +133,8 @@ fn render_type_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_type(type_id)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    Some(pretty.render(signature).to_string())
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    Some(pretty.render_signature(name, signature).to_string())
 }
 
 #[derive(Serialize, Deserialize)]

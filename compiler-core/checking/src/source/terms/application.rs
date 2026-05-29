@@ -202,7 +202,7 @@ where
         )?;
 
     let Some(index) = binders.iter().position(|binder| binder.visible) else {
-        let function_type = state.pretty_id(context, function)?;
+        let function_type = function;
         state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
         return Ok(context.unknown("invalid visible type application"));
     };

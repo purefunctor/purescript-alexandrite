@@ -1,4 +1,4 @@
-root_name = "purescript-analyzer"
+root_name = "purescript-alexandrite"
 
 [[third_party_libraries]]
 package_name = "aho-corasick"

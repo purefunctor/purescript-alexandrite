@@ -1,0 +1,63 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+recordDef ::
+  forall (@token :: Type) (@row :: Row Type).
+    RecordDef (token :: Type) (row :: Row Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    String
+recordDefRowList ::
+  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
+    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    Proxy @Type (rowList :: Type) ->
+    String
+
+Types
+Encode :: Type -> Type -> Constraint
+RecordDef :: Type -> Row Type -> Constraint
+RecordDefRowList :: Type -> Row Type -> Type -> Constraint
+
+Classes
+class forall (token :: Type) (a :: Type). Encode (token :: Type) (a :: Type)
+class forall (token :: Type) (row :: Row Type). RecordDef (token :: Type) (row :: Row Type)
+  recordDef ::
+  forall (@token :: Type) (@row :: Row Type).
+    RecordDef (token :: Type) (row :: Row Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    String
+class forall (token :: Type) (row :: Row Type) (rowList :: Type). RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type)
+  recordDefRowList ::
+  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
+    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+    { handle ::
+        forall (a :: Type).
+          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+    } ->
+    (token :: Type) ->
+    {| (row :: Row Type) } ->
+    Proxy @Type (rowList :: Type) ->
+    String
+
+Instances
+instance forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
+  RecordDefRowList (t :: Type) (t1 :: Row Type) (t2 :: Type) =>
+  RecordDef (t :: Type) (t1 :: Row Type)

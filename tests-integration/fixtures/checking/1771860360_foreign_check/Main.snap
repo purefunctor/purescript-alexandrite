@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,7 +8,7 @@ Terms
 Types
 M :: Type -> Type
 P :: forall (k :: Type). (k :: Type) -> Type
-T :: forall (t2 :: Type) (k :: (t2 :: Type)). P @(t2 :: Type) (k :: (t2 :: Type)) -> Type
+T :: forall (t :: Type) (k :: (t :: Type)). P @(t :: Type) (k :: (t :: Type)) -> Type
 
 Roles
 M = [Nominal]

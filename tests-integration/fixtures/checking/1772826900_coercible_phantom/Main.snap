@@ -1,17 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (t1 :: Type) (@a :: (t1 :: Type)). Proxy @(t1 :: Type) (a :: (t1 :: Type))
+Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
 coerceProxy ::
-  forall (t7 :: Type) (t6 :: Type) (a :: (t7 :: Type)) (b :: (t6 :: Type)).
-    Proxy @(t7 :: Type) (a :: (t7 :: Type)) -> Proxy @(t6 :: Type) (b :: (t6 :: Type))
+  forall (t :: Type) (t1 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type)).
+    Proxy @(t :: Type) (a :: (t :: Type)) -> Proxy @(t1 :: Type) (b :: (t1 :: Type))
 coerceProxyIntString :: Proxy @Type Int -> Proxy @Type String
 
 Types
-Proxy :: forall (t1 :: Type). (t1 :: Type) -> Type
+Proxy :: forall (t :: Type). (t :: Type) -> Type
 
 Roles
 Proxy = [Phantom]

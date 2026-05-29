@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,19 +8,19 @@ Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :
 Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
 Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
 Const2 ::
-  forall (t8 :: Type) (t7 :: Type) (@e :: Type) (@a :: (t8 :: Type)) (@b :: (t7 :: Type)).
+  forall (t :: Type) (t1 :: Type) (@e :: Type) (@a :: (t :: Type)) (@b :: (t1 :: Type)).
     (e :: Type) ->
-    Const2 @(t8 :: Type) @(t7 :: Type) (e :: Type) (a :: (t8 :: Type)) (b :: (t7 :: Type))
+    Const2 @(t :: Type) @(t1 :: Type) (e :: Type) (a :: (t :: Type)) (b :: (t1 :: Type))
 
 Types
 Either :: Type -> Type -> Type
 Pair :: Type -> Type -> Type
-Const2 :: forall (t8 :: Type) (t7 :: Type). Type -> (t8 :: Type) -> (t7 :: Type) -> Type
+Const2 :: forall (t :: Type) (t1 :: Type). Type -> (t :: Type) -> (t1 :: Type) -> Type
 
 Derived
 derive Bifunctor Either
 derive Bifunctor Pair
-derive forall (t9 :: Type). Bifunctor (Const2 @Type @Type (t9 :: Type))
+derive forall (t :: Type). Bifunctor (Const2 @Type @Type (t :: Type))
 
 Roles
 Either = [Representational, Representational]

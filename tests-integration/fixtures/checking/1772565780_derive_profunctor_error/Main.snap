@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -23,17 +23,17 @@ WrongFirst = [Representational, Representational]
 WrongSecond = [Representational, Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t4 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: (t :: Type)
   --> 6:1..6:38
   |
 6 | derive instance Profunctor WrongFirst
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t7 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t1 :: Type)
   --> 9:1..9:39
   |
 9 | derive instance Profunctor WrongSecond
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t6 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: (t2 :: Type)
   --> 9:1..9:39
   |
 9 | derive instance Profunctor WrongSecond

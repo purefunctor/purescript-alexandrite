@@ -59,8 +59,7 @@ where
     let Some((data_file, data_id)) =
         toolkit::extract_type_constructor(state, context, *derived_type)?
     else {
-        let type_message = state.pretty_id(context, *derived_type)?;
-        state.insert_error(ErrorKind::CannotDeriveForType { type_message });
+        state.insert_error(ErrorKind::CannotDeriveForType { type_id: *derived_type });
         return Ok(None);
     };
 

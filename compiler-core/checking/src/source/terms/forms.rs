@@ -107,7 +107,7 @@ where
         exhaustive::check_lambda_patterns(state, context, &argument_types, binders)?;
 
     let has_missing = exhaustiveness.missing.is_some();
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
         Ok(context.intern_constrained(context.prim.partial, function_type))
@@ -158,7 +158,7 @@ where
     let exhaustiveness = exhaustive::check_lambda_patterns(state, context, &arguments, binders)?;
 
     let has_missing = exhaustiveness.missing.is_some();
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
         state.push_wanted(context.prim.partial);
@@ -253,7 +253,7 @@ where
     let exhaustiveness = exhaustive::check_case_patterns(state, context, &trunk_types, branches)?;
 
     let has_missing = exhaustiveness.missing.is_some();
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
         if let CaseOfMode::Infer = mode {

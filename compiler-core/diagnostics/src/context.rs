@@ -1,3 +1,8 @@
+use std::cell::RefCell;
+
+use checking::CheckedModule;
+use checking::core::TypeId;
+use checking::core::pretty::Pretty;
 use checking::error::ErrorCrumb;
 use indexing::IndexedModule;
 use lowering::LoweredModule;
@@ -8,7 +13,7 @@ use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr};
 
 use crate::Span;
 
-pub trait ExternalQueries {
+pub trait ExternalQueries: checking::ExternalQueries {
     fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr;
 }
 
@@ -72,8 +77,9 @@ fn significant_ranges(node: &SyntaxNode) -> Option<TextRange> {
     Some(start.cover(end))
 }
 
-fn pointers_span<I>(context: &DiagnosticsContext<'_>, iterator: I) -> Option<Span>
+fn pointers_span<Q, I>(context: &DiagnosticsContext<'_, Q>, iterator: I) -> Option<Span>
 where
+    Q: ExternalQueries,
     I: IntoIterator<Item = SyntaxNodePtr>,
     I::IntoIter: DoubleEndedIterator,
 {
@@ -88,25 +94,47 @@ where
     Some(Span::new(start_span.start, end_span.end))
 }
 
-pub struct DiagnosticsContext<'a> {
-    pub queries: &'a dyn ExternalQueries,
+pub struct DiagnosticsContext<'a, Q>
+where
+    Q: ExternalQueries,
+{
+    pub queries: &'a Q,
     pub content: &'a str,
     pub root: &'a SyntaxNode,
     pub stabilized: &'a StabilizedModule,
     pub indexed: &'a IndexedModule,
     pub lowered: &'a LoweredModule,
+    pub checked: &'a CheckedModule,
+    pretty: RefCell<Pretty<'a, Q>>,
 }
 
-impl<'a> DiagnosticsContext<'a> {
+impl<'a, Q> DiagnosticsContext<'a, Q>
+where
+    Q: ExternalQueries,
+{
     pub fn new(
-        queries: &'a dyn ExternalQueries,
+        queries: &'a Q,
         content: &'a str,
         root: &'a SyntaxNode,
         stabilized: &'a StabilizedModule,
         indexed: &'a IndexedModule,
         lowered: &'a LoweredModule,
-    ) -> DiagnosticsContext<'a> {
-        DiagnosticsContext { queries, content, root, stabilized, indexed, lowered }
+        checked: &'a CheckedModule,
+    ) -> DiagnosticsContext<'a, Q> {
+        DiagnosticsContext {
+            queries,
+            content,
+            root,
+            stabilized,
+            indexed,
+            lowered,
+            checked,
+            pretty: RefCell::new(Pretty::new(queries, checked)),
+        }
+    }
+
+    pub fn render_type(&self, id: TypeId) -> smol_str::SmolStr {
+        self.pretty.borrow_mut().render(id)
     }
 
     pub fn span_from_syntax_ptr(&self, ptr: &SyntaxNodePtr) -> Option<Span> {

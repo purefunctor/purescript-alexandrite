@@ -1,40 +1,40 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 T ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@g :: Type -> (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) ((g :: Type -> (t2 :: Type)) Int) ->
-    T @(t2 :: Type) (f :: (t2 :: Type) -> Type) (g :: Type -> (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@g :: Type -> (t :: Type)).
+    (f :: (t :: Type) -> Type) ((g :: Type -> (t :: Type)) Int) ->
+    T @(t :: Type) (f :: (t :: Type) -> Type) (g :: Type -> (t :: Type))
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
 U :: forall (@f :: Type -> Type). (f :: Type -> Type) (Maybe Int) -> U (f :: Type -> Type)
 V ::
-  forall (t7 :: Type) (@f :: (t7 :: Type) -> Type) (@g :: Int -> (t7 :: Type)).
-    (f :: (t7 :: Type) -> Type) ((g :: Int -> (t7 :: Type)) 42) ->
-    V @(t7 :: Type) (f :: (t7 :: Type) -> Type) (g :: Int -> (t7 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@g :: Int -> (t :: Type)).
+    (f :: (t :: Type) -> Type) ((g :: Int -> (t :: Type)) 42) ->
+    V @(t :: Type) (f :: (t :: Type) -> Type) (g :: Int -> (t :: Type))
 
 Types
-T :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (Type -> (t2 :: Type)) -> Type
+T :: forall (t :: Type). ((t :: Type) -> Type) -> (Type -> (t :: Type)) -> Type
 Maybe :: Type -> Type
 U :: (Type -> Type) -> Type
-V :: forall (t7 :: Type). ((t7 :: Type) -> Type) -> (Int -> (t7 :: Type)) -> Type
+V :: forall (t :: Type). ((t :: Type) -> Type) -> (Int -> (t :: Type)) -> Type
 
 Derived
-derive forall (t8 :: Type -> Type) (t9 :: Type -> Type).
-  Eq1 (t8 :: Type -> Type) => Eq (T @Type (t8 :: Type -> Type) (t9 :: Type -> Type))
-derive forall (t12 :: Type -> Type) (t13 :: Type -> Type).
-  Ord1 (t12 :: Type -> Type) => Ord (T @Type (t12 :: Type -> Type) (t13 :: Type -> Type))
-derive forall (t16 :: Type). Eq (t16 :: Type) => Eq (Maybe (t16 :: Type))
-derive forall (t18 :: Type). Ord (t18 :: Type) => Ord (Maybe (t18 :: Type))
-derive forall (t20 :: Type -> Type). Eq1 (t20 :: Type -> Type) => Eq (U (t20 :: Type -> Type))
-derive forall (t22 :: Type -> Type). Ord1 (t22 :: Type -> Type) => Ord (U (t22 :: Type -> Type))
-derive forall (t24 :: Type -> Type) (t25 :: Int -> Type).
-  Eq1 (t24 :: Type -> Type) => Eq (V @Type (t24 :: Type -> Type) (t25 :: Int -> Type))
-derive forall (t28 :: Type -> Type) (t29 :: Int -> Type).
-  Ord1 (t28 :: Type -> Type) => Ord (V @Type (t28 :: Type -> Type) (t29 :: Int -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Eq1 (t :: Type -> Type) => Eq (T @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Ord1 (t :: Type -> Type) => Ord (T @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type). Eq (t :: Type) => Eq (Maybe (t :: Type))
+derive forall (t :: Type). Ord (t :: Type) => Ord (Maybe (t :: Type))
+derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq (U (t :: Type -> Type))
+derive forall (t :: Type -> Type). Ord1 (t :: Type -> Type) => Ord (U (t :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Int -> Type).
+  Eq1 (t :: Type -> Type) => Eq (V @Type (t :: Type -> Type) (t1 :: Int -> Type))
+derive forall (t :: Type -> Type) (t1 :: Int -> Type).
+  Ord1 (t :: Type -> Type) => Ord (V @Type (t :: Type -> Type) (t1 :: Int -> Type))
 
 Roles
 T = [Representational, Representational]
@@ -43,23 +43,29 @@ U = [Representational]
 V = [Representational, Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq ((t9 :: Type -> Type) Int)
+error[NoInstanceFound]: No instance found for: Eq ((t :: Type -> Type) Int)
   --> 8:1..8:36
   |
 8 | derive instance Eq1 f => Eq (T f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Ord ((t13 :: Type -> Type) Int)
+  trivia: Eq1 (t1 :: Type -> Type) is in scope
+error[NoInstanceFound]: No instance found for: Ord ((t2 :: Type -> Type) Int)
   --> 9:1..9:38
   |
 9 | derive instance Ord1 f => Ord (T f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Eq ((t25 :: Int -> Type) 42)
+  trivia: Ord1 (t3 :: Type -> Type) is in scope
+  trivia: Eq1 (t3 :: Type -> Type) is in scope
+error[NoInstanceFound]: No instance found for: Eq ((t4 :: Int -> Type) 42)
   --> 23:1..23:36
    |
 23 | derive instance Eq1 f => Eq (V f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Ord ((t29 :: Int -> Type) 42)
+  trivia: Eq1 (t5 :: Type -> Type) is in scope
+error[NoInstanceFound]: No instance found for: Ord ((t6 :: Int -> Type) 42)
   --> 24:1..24:38
    |
 24 | derive instance Ord1 f => Ord (V f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Ord1 (t7 :: Type -> Type) is in scope
+  trivia: Eq1 (t7 :: Type -> Type) is in scope

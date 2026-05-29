@@ -4,8 +4,9 @@ pub mod event;
 pub mod extension;
 
 use std::borrow::BorrowMut;
+use std::collections::BTreeSet;
 use std::ops::{ControlFlow, Deref};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fs, mem, process};
 
@@ -164,6 +165,7 @@ fn initialize(
                 references_provider: Some(OneOf::Left(true)),
                 document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
+                document_symbol_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
@@ -206,12 +208,18 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
     let mut files = vec![];
     let mut globs = GlobSetBuilder::new();
 
+    // The shallowest directory each glob may match. Walking these instead of
+    // `root` lets patterns escape the workspace through parent directories,
+    // such as `../shared/src/**/*.purs`.
+    let mut walk_roots = BTreeSet::new();
+
     for line in output.lines() {
         let path = root.join(line);
         if let Ok(path) = path.absolutize()
             && let Some(path) = path.to_str()
             && let Ok(glob) = Glob::new(path)
         {
+            walk_roots.insert(glob_literal_base(path));
             globs.add(glob);
         } else {
             files.push(path);
@@ -223,16 +231,34 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
     tracing::info!("Found {} file literals", files.len());
     tracing::info!("Found {} glob patterns", globs.len());
 
-    let files_from_glob = WalkDir::new(root).into_iter().filter_map(move |entry| {
-        let entry = entry.ok()?;
-        let path = entry.path();
-        if globs.matches(path).is_empty() { None } else { Some(path.to_path_buf()) }
-    });
+    let files_from_glob: BTreeSet<PathBuf> = walk_roots
+        .into_iter()
+        .flat_map(|base| WalkDir::new(base).into_iter())
+        .filter_map(|entry| Some(entry.ok()?.into_path()))
+        .filter(|path| !globs.matches(path).is_empty())
+        .collect();
 
     files.extend(files_from_glob);
     load_files(state, &files)?;
 
     Ok(())
+}
+
+/// Extracts the longest leading run of path components with no glob syntax.
+fn glob_literal_base(pattern: &str) -> PathBuf {
+    let mut base = PathBuf::new();
+    for component in Path::new(pattern).components() {
+        if component.as_os_str().to_string_lossy().chars().any(glob_syntax_character) {
+            break;
+        }
+        base.push(component);
+    }
+    base
+}
+
+fn glob_syntax_character(character: char) -> bool {
+    matches!(character, '*' | '?' | '[' | '{')
+        || (character == '\\' && !std::path::is_separator('\\'))
 }
 
 fn initialized_spago(state: &mut State) -> Result<(), LspError> {
@@ -362,6 +388,18 @@ fn workspace_symbols(
     result.on_non_fatal(None)
 }
 
+fn document_symbols(
+    snapshot: StateSnapshot,
+    p: DocumentSymbolParams,
+) -> Result<Option<DocumentSymbolResponse>, LspError> {
+    let _span = tracing::info_span!("document_symbols").entered();
+    let uri = p.text_document.uri;
+    let result = snapshot
+        .with_language_context(|context| analyzer::document_symbols::implementation(context, uri));
+
+    result.on_non_fatal(None)
+}
+
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
     let uri = p.text_document.uri.as_str();
 
@@ -487,6 +525,7 @@ pub async fn start(config: Arc<cli::Config>) {
             .request_snapshot::<request::References>(references)
             .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
+            .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)
             .notification_ext::<notification::Initialized>(initialized)
             .notification_ext::<notification::DidOpenTextDocument>(did_open)
             .notification_ext::<notification::DidSaveTextDocument>(did_save)
@@ -519,5 +558,58 @@ pub async fn start(config: Arc<cli::Config>) {
     if let Err(error) = server.run_buffered(stdin, stdout).await {
         tracing::error!(?error, "LSP main loop exited");
         process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn literal_base_stops_at_the_first_wildcard() {
+        let base = glob_literal_base("/workspace/src/**/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src"));
+    }
+
+    #[test]
+    fn literal_base_excludes_a_wildcard_in_the_final_component() {
+        let base = glob_literal_base("/workspace/src/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src"));
+    }
+
+    #[test]
+    fn literal_base_retains_parent_directories() {
+        let base = glob_literal_base("/workspace/../shared/src/**/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/../shared/src"));
+    }
+
+    #[test]
+    fn literal_base_of_a_pattern_without_wildcards_is_the_whole_path() {
+        let base = glob_literal_base("/workspace/src/Main.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src/Main.purs"));
+    }
+
+    #[test]
+    fn literal_base_recognises_every_metacharacter() {
+        for pattern in ["/a/b/*.purs", "/a/b/?.purs", "/a/b/[abc].purs", "/a/b/{x,y}.purs"] {
+            assert_eq!(glob_literal_base(pattern), PathBuf::from("/a/b"), "pattern: {pattern}");
+        }
+    }
+
+    #[test]
+    fn literal_base_keeps_class_closer_as_a_literal() {
+        let pattern = "/workspace/src/Main].purs";
+
+        assert!(Glob::new(pattern).is_ok());
+        assert_eq!(glob_literal_base(pattern), PathBuf::from(pattern));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn literal_base_stops_at_backslash_escape() {
+        let pattern = "/workspace/src/\\*.purs";
+
+        assert!(Glob::new(pattern).is_ok());
+        assert_eq!(glob_literal_base(pattern), PathBuf::from("/workspace/src"));
     }
 }

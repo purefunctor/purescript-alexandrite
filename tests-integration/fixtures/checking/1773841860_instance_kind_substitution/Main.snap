@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -21,9 +21,9 @@ class forall (k :: Type) (a :: (k :: Type)). Use @(k :: Type) (a :: (k :: Type))
     Use @(k :: Type) (a :: (k :: Type)) => Proxy @(k :: Type) (a :: (k :: Type))
 
 Instances
-instance forall (t6 :: Type) (t4 :: (t6 :: Type)) (t5 :: RowList (t6 :: Type)).
-  RowToList @(t6 :: Type) ( x :: (t4 :: (t6 :: Type)) ) (t5 :: RowList (t6 :: Type)) =>
-  Use @(t6 :: Type) (t4 :: (t6 :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)) (t2 :: RowList (t :: Type)).
+  RowToList @(t :: Type) ( x :: (t1 :: (t :: Type)) ) (t2 :: RowList (t :: Type)) =>
+  Use @(t :: Type) (t1 :: (t :: Type))
 
 Roles
 Proxy = [Phantom]

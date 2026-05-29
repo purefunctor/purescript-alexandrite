@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (t1 :: Type) (@a :: (t1 :: Type)). Proxy @(t1 :: Type) (a :: (t1 :: Type))
+Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
 MkNoEq :: NoEq
 MkContainsNoEq :: NoEq -> ContainsNoEq
 
 Types
-Proxy :: forall (t1 :: Type). (t1 :: Type) -> Type
+Proxy :: forall (t :: Type). (t :: Type) -> Type
 NoEq :: Type
 ContainsNoEq :: Type
 
 Derived
-derive forall (t3 :: Type) (t2 :: (t3 :: Type)). Eq (Proxy @(t3 :: Type) (t2 :: (t3 :: Type)))
+derive forall (t :: Type) (t1 :: (t :: Type)). Eq (Proxy @(t :: Type) (t1 :: (t :: Type)))
 derive Eq ContainsNoEq
 
 Roles

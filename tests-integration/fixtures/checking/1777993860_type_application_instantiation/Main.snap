@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,10 +8,10 @@ const :: forall (@a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Ty
 Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
 Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
 forceSolve ::
-  forall (t8 :: Type) (t7 :: Type) (t6 :: Type).
-    { const :: Int -> (t8 :: Type) -> Int
-    , left :: Int -> Either Int (t7 :: Type)
-    , right :: (t6 :: Type) -> Either Int (t6 :: Type)
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    { const :: Int -> (t :: Type) -> Int
+    , left :: Int -> Either Int (t1 :: Type)
+    , right :: (t2 :: Type) -> Either Int (t2 :: Type)
     }
 
 Types

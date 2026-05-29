@@ -60,7 +60,7 @@ where
         exhaustive::check_lambda_patterns(state, context, &[binder_type], &[binder])?;
 
     let has_missing = exhaustiveness.missing.is_some();
-    state.report_exhaustiveness(context, exhaustiveness);
+    state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
         state.push_wanted(context.prim.partial);
@@ -152,7 +152,7 @@ where
             &equation_patterns,
             &name.equations,
         )?;
-        state.report_exhaustiveness(context, exhaustiveness);
+        state.report_exhaustiveness(exhaustiveness);
     } else {
         if let [equation] = name.equations.as_ref()
             && equation.binders.is_empty()
@@ -175,7 +175,7 @@ where
                 &equation_patterns,
                 &name.equations,
             )?;
-            state.report_exhaustiveness(context, exhaustiveness);
+            state.report_exhaustiveness(exhaustiveness);
         }
     }
 

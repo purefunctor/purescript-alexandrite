@@ -1,21 +1,21 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 empty :: forall (@f :: Type -> Type). Empty (f :: Type -> Type) => (f :: Type -> Type) Int
 Vector ::
-  forall (t3 :: Type) (@n :: (t3 :: Type)) (@a :: Type).
-    Array (a :: Type) -> Vector @(t3 :: Type) (n :: (t3 :: Type)) (a :: Type)
+  forall (t :: Type) (@n :: (t :: Type)) (@a :: Type).
+    Array (a :: Type) -> Vector @(t :: Type) (n :: (t :: Type)) (a :: Type)
 InvalidVector ::
-  forall (t6 :: Type) (@a :: Type) (@n :: (t6 :: Type)).
-    Array (a :: Type) -> InvalidVector @(t6 :: Type) (a :: Type) (n :: (t6 :: Type))
+  forall (t :: Type) (@a :: Type) (@n :: (t :: Type)).
+    Array (a :: Type) -> InvalidVector @(t :: Type) (a :: Type) (n :: (t :: Type))
 
 Types
 Empty :: (Type -> Type) -> Constraint
-Vector :: forall (t3 :: Type). (t3 :: Type) -> Type -> Type
-InvalidVector :: forall (t6 :: Type). Type -> (t6 :: Type) -> Type
+Vector :: forall (t :: Type). (t :: Type) -> Type -> Type
+InvalidVector :: forall (t :: Type). Type -> (t :: Type) -> Type
 
 Classes
 class forall (f :: Type -> Type). Empty (f :: Type -> Type)
@@ -25,7 +25,7 @@ Instances
 instance Empty Array
 
 Derived
-derive forall (t9 :: Type) (t7 :: (t9 :: Type)). Empty (Vector @(t9 :: Type) (t7 :: (t9 :: Type)))
+derive forall (t :: Type) (t1 :: (t :: Type)). Empty (Vector @(t :: Type) (t1 :: (t :: Type)))
 derive Empty (InvalidVector @Type Int)
 
 Roles
