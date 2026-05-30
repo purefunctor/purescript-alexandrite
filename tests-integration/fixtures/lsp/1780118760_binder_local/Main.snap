@@ -21,7 +21,8 @@ tuple value = [value, value]
 --    %        %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:15..2:20
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:22..2:27
 
 
 References at Position { line: 5, character: 6 }
@@ -42,4 +43,5 @@ named value @ {} = [value, value]
 --    %             %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:20..5:25
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:27..5:32

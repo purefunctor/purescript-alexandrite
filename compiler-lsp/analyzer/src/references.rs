@@ -241,7 +241,9 @@ fn references_expression(
         ExpressionKind::Variable { resolution, .. } => {
             let resolution = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
             match resolution {
-                TermVariableResolution::Binder(_) => Ok(None),
+                TermVariableResolution::Binder(binder_id) => {
+                    references_binder(context, current_file, *binder_id)
+                }
                 TermVariableResolution::Let(_) => Ok(None),
                 TermVariableResolution::RecordPun(_) => Ok(None),
                 TermVariableResolution::Reference(f_id, t_id) => {
