@@ -244,7 +244,9 @@ fn references_expression(
                 TermVariableResolution::Binder(binder_id) => {
                     references_binder(context, current_file, *binder_id)
                 }
-                TermVariableResolution::Let(_) => Ok(None),
+                TermVariableResolution::Let(let_id) => {
+                    references_let(context, current_file, *let_id)
+                }
                 TermVariableResolution::RecordPun(_) => Ok(None),
                 TermVariableResolution::Reference(f_id, t_id) => {
                     references_file_term(context, current_file, *f_id, *t_id)
