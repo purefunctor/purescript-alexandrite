@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+DocumentHighlight at Position { line: 4, character: 4 }
+
+```
+  { bar } = record
+--  &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 7, character: 6 }
+
+```
+baz = 1
+--    &
+```
+
+<empty>
