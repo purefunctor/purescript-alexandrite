@@ -44,7 +44,8 @@ pub fn implementation(
         locate::Located::ModuleName(_)
         | locate::Located::ImportItem(_)
         | locate::Located::Type(_)
-        | locate::Located::Pun(_)
+        | locate::Located::BinderPun(_)
+        | locate::Located::ExpressionPun(_)
         | locate::Located::TypeOperator(_)
         | locate::Located::TypeItem(_)
         | locate::Located::Nothing => Ok(None),

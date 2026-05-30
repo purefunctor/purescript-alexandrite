@@ -1,5 +1,7 @@
 //! Abstractions for identifying syntax at a given location.
 
+use std::iter;
+
 use building::QueryEngine;
 use files::FileId;
 use indexing::{ImportItemId, IndexedModule, TermItemId, TypeItemId};
@@ -80,7 +82,8 @@ pub enum Located {
     Binder(BinderId),
     Expression(ExpressionId),
     Type(TypeId),
-    Pun(RecordPunId),
+    BinderPun(RecordPunId),
+    ExpressionPun(RecordPunId),
     TermOperator(TermOperatorId),
     TypeOperator(TypeOperatorId),
     TermItem(TermItemId),
@@ -161,7 +164,18 @@ fn locate_node(
     } else if cst::RecordPun::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
-        Some(Located::Pun(id))
+
+        let mut parents = iter::successors(Some(node), |node| node.parent());
+        parents.find_map(|node| {
+            let kind = node.kind();
+            if cst::Binder::can_cast(kind) {
+                Some(Located::BinderPun(id))
+            } else if cst::Expression::can_cast(kind) {
+                Some(Located::ExpressionPun(id))
+            } else {
+                None
+            }
+        })
     } else if cst::TermOperator::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;

@@ -60,7 +60,8 @@ pub fn implementation(
         locate::Located::LetBinding(let_id) => {
             definition_let_binding(context, current_file, let_id)
         }
-        locate::Located::Pun(_) => Ok(None),
+        locate::Located::BinderPun(_) => Ok(None),
+        locate::Located::ExpressionPun(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
 }

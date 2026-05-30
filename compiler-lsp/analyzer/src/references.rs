@@ -62,7 +62,8 @@ pub fn implementation(
             references_file_type(context, current_file, current_file, type_id)
         }
         locate::Located::LetBinding(let_id) => references_let(context, current_file, let_id),
-        locate::Located::Pun(_) => Ok(None),
+        locate::Located::BinderPun(_) => Ok(None),
+        locate::Located::ExpressionPun(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
 }
