@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+References at Position { line: 2, character: 6 }
+
+```
+tuple value = [value, value]
+--    %
+```
+
+<empty>
+
+
+References at Position { line: 5, character: 6 }
+
+```
+named value @ {} = [value, value]
+--    %
+```
+
+<empty>
