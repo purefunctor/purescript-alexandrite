@@ -116,6 +116,16 @@ impl State {
         self.nodes.type_node.insert(id, node);
     }
 
+    fn associate_record_pun(
+        &mut self,
+        id: RecordPunId,
+        resolution: Option<TermVariableResolution>,
+    ) {
+        if let Some(resolution) = resolution {
+            self.info.expression_pun.insert(id, resolution);
+        }
+    }
+
     fn associate_do_statement(&mut self, id: DoStatementId, statement: DoStatement) {
         self.info.do_statement.insert(id, statement);
     }

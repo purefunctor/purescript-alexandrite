@@ -424,6 +424,7 @@ pub struct LoweringInfo {
 
     pub(crate) term_operator: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
     pub(crate) type_operator: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
+    pub(crate) expression_pun: FxHashMap<RecordPunId, TermVariableResolution>,
 }
 
 impl LoweringInfo {
@@ -507,6 +508,10 @@ impl LoweringInfo {
 
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
         self.type_operator.get(&id).copied()
+    }
+
+    pub fn get_expression_pun(&self, id: RecordPunId) -> Option<TermVariableResolution> {
+        self.expression_pun.get(&id).copied()
     }
 
     pub fn find_let_binding_group_by_signature(
