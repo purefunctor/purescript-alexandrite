@@ -190,12 +190,37 @@ fn references_binder(
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
+    let uri = common::file_uri(context, current_file)?;
+
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+
+    let stabilized = context.engine.stabilized(current_file)?;
     let lowered = context.engine.lowered(current_file)?;
+
     let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         lowering::BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
             references_file_term(context, current_file, *f_id, *t_id)
+        }
+        lowering::BinderKind::Named { .. } | lowering::BinderKind::Variable { .. } => {
+            let mut locations = vec![];
+
+            for (expression_id, expression_kind) in lowered.info.iter_expression() {
+                if let ExpressionKind::Variable {
+                    resolution: Some(TermVariableResolution::Binder(candidate_id)),
+                } = expression_kind
+                    && *candidate_id == binder_id
+                {
+                    let uri = Url::clone(&uri);
+                    let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                        .ok_or(AnalyzerError::NonFatal)?;
+                    locations.push(Location { uri, range });
+                }
+            }
+
+            Ok(Some(locations))
         }
         _ => Ok(None),
     }
