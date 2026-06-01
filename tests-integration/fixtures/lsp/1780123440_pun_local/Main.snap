@@ -49,7 +49,17 @@ References at Position { line: 8, character: 15 }
 
 ```
 letBound = let value = 42 in { value }
---             %
+--             %               %
+```
+
+file:///tests-integration/fixtures/lsp/1780123440_pun_local/Main.purs @ 8:30..8:36
+
+
+References at Position { line: 8, character: 31 }
+
+```
+letBound = let value = 42 in { value }
+--             %               %
 ```
 
 file:///tests-integration/fixtures/lsp/1780123440_pun_local/Main.purs @ 8:30..8:36
@@ -59,7 +69,17 @@ References at Position { line: 11, character: 15 }
 
 ```
 binderBound = \value -> { value }
---             %
+--             %          %
+```
+
+file:///tests-integration/fixtures/lsp/1780123440_pun_local/Main.purs @ 11:25..11:31
+
+
+References at Position { line: 11, character: 26 }
+
+```
+binderBound = \value -> { value }
+--             %          %
 ```
 
 file:///tests-integration/fixtures/lsp/1780123440_pun_local/Main.purs @ 11:25..11:31
