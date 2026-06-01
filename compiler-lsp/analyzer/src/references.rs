@@ -222,6 +222,17 @@ fn references_binder(
                 }
             }
 
+            for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+                if let TermVariableResolution::Binder(resolution_id) = resolution
+                    && resolution_id == binder_id
+                {
+                    let uri = Url::clone(&uri);
+                    let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                        .ok_or(AnalyzerError::NonFatal)?;
+                    locations.push(Location { uri, range });
+                }
+            }
+
             Ok(Some(locations))
         }
         _ => Ok(None),
@@ -515,6 +526,17 @@ fn references_let(
             ..
         } = expression_kind
             && *candidate_id == let_id
+        {
+            let uri = Url::clone(&uri);
+            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                .ok_or(AnalyzerError::NonFatal)?;
+            locations.push(Location { uri, range });
+        }
+    }
+
+    for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+        if let TermVariableResolution::Let(resolution_id) = resolution
+            && resolution_id == let_id
         {
             let uri = Url::clone(&uri);
             let range = id_range(context, &content, &parsed, &stabilized, expression_id)
