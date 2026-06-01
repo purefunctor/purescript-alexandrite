@@ -543,26 +543,21 @@ fn references_binder_pun(
     let mut locations = vec![];
 
     for (expression_id, expression_kind) in lowered.info.iter_expression() {
-        if let ExpressionKind::Record { record } = expression_kind {
-            for item in record.iter() {
-                if let lowering::ExpressionRecordItem::RecordPun {
-                    id: candidate_id,
-                    resolution: Some(TermVariableResolution::RecordPun(resolution_id)),
-                    ..
-                } = item
-                    && *resolution_id == pun_id
-                {
-                    let uri = Url::clone(&uri);
-                    let range = id_range(context, &content, &parsed, &stabilized, *candidate_id)
-                        .ok_or(AnalyzerError::NonFatal)?;
-                    locations.push(Location { uri, range });
-                }
-            }
-        }
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::RecordPun(candidate_id)),
         } = expression_kind
             && *candidate_id == pun_id
+        {
+            let uri = Url::clone(&uri);
+            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                .ok_or(AnalyzerError::NonFatal)?;
+            locations.push(Location { uri, range });
+        }
+    }
+
+    for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+        if let TermVariableResolution::RecordPun(resolution_id) = resolution
+            && resolution_id == pun_id
         {
             let uri = Url::clone(&uri);
             let range = id_range(context, &content, &parsed, &stabilized, expression_id)

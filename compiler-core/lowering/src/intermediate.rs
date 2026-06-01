@@ -452,6 +452,12 @@ impl LoweringInfo {
         self.type_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
     }
 
+    pub fn iter_expression_pun(
+        &self,
+    ) -> impl Iterator<Item = (RecordPunId, TermVariableResolution)> {
+        self.expression_pun.iter().map(|(k, v)| (*k, *v))
+    }
+
     pub fn get_binder_kind(&self, id: BinderId) -> Option<&BinderKind> {
         self.binder_kind.get(&id)
     }
