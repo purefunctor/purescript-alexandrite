@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+References at Position { line: 2, character: 6 }
+
+```
+tuple value = [value, value]
+--    %        %
+```
+
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:15..2:20
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:22..2:27
+
+
+References at Position { line: 2, character: 15 }
+
+```
+tuple value = [value, value]
+--    %        %
+```
+
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:15..2:20
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 2:22..2:27
+
+
+References at Position { line: 5, character: 6 }
+
+```
+named value @ {} = [value, value]
+--    %             %
+```
+
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:20..5:25
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:27..5:32
+
+
+References at Position { line: 5, character: 20 }
+
+```
+named value @ {} = [value, value]
+--    %             %
+```
+
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:20..5:25
+file:///tests-integration/fixtures/lsp/1780118760_binder_local/Main.purs @ 5:27..5:32

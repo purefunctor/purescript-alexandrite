@@ -504,6 +504,8 @@ fn lower_expression_kind(
                         let qualifier: Option<&str> = None;
                         state.resolve_term_full(context, qualifier, name)
                     });
+
+                    state.associate_record_pun(id, resolution);
                     ExpressionRecordItem::RecordPun { id, name, resolution }
                 }
             };

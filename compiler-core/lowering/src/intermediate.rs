@@ -424,6 +424,7 @@ pub struct LoweringInfo {
 
     pub(crate) term_operator: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
     pub(crate) type_operator: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
+    pub(crate) expression_pun: FxHashMap<RecordPunId, TermVariableResolution>,
 }
 
 impl LoweringInfo {
@@ -449,6 +450,12 @@ impl LoweringInfo {
 
     pub fn iter_type_operator(&self) -> impl Iterator<Item = (TypeOperatorId, FileId, TypeItemId)> {
         self.type_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+    }
+
+    pub fn iter_expression_pun(
+        &self,
+    ) -> impl Iterator<Item = (RecordPunId, TermVariableResolution)> {
+        self.expression_pun.iter().map(|(k, v)| (*k, *v))
     }
 
     pub fn get_binder_kind(&self, id: BinderId) -> Option<&BinderKind> {
@@ -507,6 +514,10 @@ impl LoweringInfo {
 
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
         self.type_operator.get(&id).copied()
+    }
+
+    pub fn get_expression_pun(&self, id: RecordPunId) -> Option<TermVariableResolution> {
+        self.expression_pun.get(&id).copied()
     }
 
     pub fn find_let_binding_group_by_signature(
