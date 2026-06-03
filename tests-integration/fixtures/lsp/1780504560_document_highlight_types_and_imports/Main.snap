@@ -1,0 +1,296 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+DocumentHighlight at Position { line: 2, character: 12 }
+
+```
+import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
+--          &      &    &                    &           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 2, character: 19 }
+
+```
+import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
+--          &      &    &                    &           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 2, character: 24 }
+
+```
+import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
+--          &      &    &                    &           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 2, character: 45 }
+
+```
+import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
+--          &      &    &                    &           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 2, character: 57 }
+
+```
+import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
+--          &      &    &                    &           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 5, character: 20 }
+
+```
+foreign import data Local :: Type
+--                  &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 8, character: 22 }
+
+```
+infixr 6 type Local as :+:
+--                    &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 11, character: 5 }
+
+```
+data LocalData = LocalData
+--   &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 14, character: 12 }
+
+```
+localData = LocalData
+--          &
+```
+
+14:12..14:21
+
+
+DocumentHighlight at Position { line: 17, character: 8 }
+
+```
+newtype LocalNewtype = LocalNewtype Local
+--      &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 20, character: 6 }
+
+```
+class LocalClass a where
+--    &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 22, character: 4 }
+
+```
+  localMember :: a -> Local
+--  &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 25, character: 15 }
+
+```
+foreign import localForeign :: Local
+--             &
+```
+
+46:16..46:28
+46:33..46:45
+
+
+DocumentHighlight at Position { line: 28, character: 9 }
+
+```
+instance localClassLocal :: LocalClass Local where
+--       &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 34, character: 9 }
+
+```
+infixr 5 plus as <+>
+--       &        &
+```
+
+46:29..46:32
+
+
+DocumentHighlight at Position { line: 34, character: 18 }
+
+```
+infixr 5 plus as <+>
+--       &        &
+```
+
+46:29..46:32
+
+
+DocumentHighlight at Position { line: 37, character: 5 }
+
+```
+type LocalAlias = Local
+--   &          &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 37, character: 16 }
+
+```
+type LocalAlias = Local
+--   &          &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 40, character: 16 }
+
+```
+importedValue = value
+--              &
+```
+
+40:16..40:21
+43:19..43:24
+43:30..43:35
+
+
+DocumentHighlight at Position { line: 43, character: 25 }
+
+```
+importedOperator = value <++> value
+--                       &
+```
+
+43:25..43:29
+
+
+DocumentHighlight at Position { line: 46, character: 29 }
+
+```
+localOperator = localForeign <+> localForeign
+--                           &
+```
+
+46:29..46:32
+
+
+DocumentHighlight at Position { line: 49, character: 45 }
+
+```
+foreign import importedClassUse :: forall a. ImportedClass a => a -> a
+--                                           &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 52, character: 42 }
+
+```
+foreign import localClassUse :: forall a. LocalClass a => a -> a
+--                                        &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 55, character: 5 }
+
+```
+type ImportedBox = Box
+--   &             &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 55, character: 19 }
+
+```
+type ImportedBox = Box
+--   &             &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 58, character: 5 }
+
+```
+type ImportedOperator = Box :*: Box
+--   &                    &   &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 58, character: 26 }
+
+```
+type ImportedOperator = Box :*: Box
+--   &                    &   &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 58, character: 30 }
+
+```
+type ImportedOperator = Box :*: Box
+--   &                    &   &
+```
+
+<empty>
+
+
+DocumentHighlight at Position { line: 61, character: 27 }
+
+```
+type LocalOperator = Local :+: Local
+--                         &
+```
+
+<empty>
