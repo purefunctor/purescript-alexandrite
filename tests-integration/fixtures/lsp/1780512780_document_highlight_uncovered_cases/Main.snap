@@ -1,0 +1,79 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+DocumentHighlight at Position { line: 6, character: 16 }
+
+```
+derive instance eqBox :: Eq Box
+--              &
+```
+
+6:16..6:21
+
+
+DocumentHighlight at Position { line: 9, character: 25 }
+
+```
+binderPun = \binder -> { binder }
+--                       &
+```
+
+9:13..9:19
+9:24..9:31
+
+
+DocumentHighlight at Position { line: 12, character: 30 }
+
+```
+letPun = let local = Box in { local }
+--                            &
+```
+
+12:13..12:18
+12:29..12:35
+
+
+DocumentHighlight at Position { line: 15, character: 21 }
+
+```
+recordPunReference { field } = field
+--                   &         &
+```
+
+15:20..15:26
+15:31..15:36
+
+
+DocumentHighlight at Position { line: 15, character: 31 }
+
+```
+recordPunReference { field } = field
+--                   &         &
+```
+
+15:20..15:26
+15:31..15:36
+
+
+DocumentHighlight at Position { line: 22, character: 16 }
+
+```
+operatorName = (<+>)
+--              &
+```
+
+20:17..20:20
+22:15..22:20
+
+
+DocumentHighlight at Position { line: 29, character: 19 }
+
+```
+type ProductName = (:*:)
+--                 &
+```
+
+27:25..27:28
+29:19..29:24

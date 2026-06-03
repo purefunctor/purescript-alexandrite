@@ -233,7 +233,7 @@ pub fn infix_operator_range(
 
 #[cfg(test)]
 mod tests {
-    use async_lsp::lsp_types::Position;
+    use async_lsp::lsp_types::{Position, PositionEncodingKind};
     use rowan::TextSize;
 
     use super::{
@@ -272,6 +272,33 @@ mod tests {
         let position =
             utf8_position_to_protocol(content, position, PositionEncoding::Utf16).unwrap();
         assert_eq!(position, Position::new(0, 3));
+    }
+
+    #[test]
+    fn utf8_protocol_positions_use_utf8_columns() {
+        let content = "a😀b";
+        let position = Position::new(0, 5);
+
+        let position =
+            protocol_position_to_utf8(content, position, PositionEncoding::Utf8).unwrap();
+        assert_eq!(position, Utf8Position { line: 0, column: 5 });
+
+        let position =
+            utf8_position_to_protocol(content, position, PositionEncoding::Utf8).unwrap();
+        assert_eq!(position, Position::new(0, 5));
+    }
+
+    #[test]
+    fn position_encoding_converts_to_lsp_encoding_kind() {
+        assert_eq!(PositionEncodingKind::from(PositionEncoding::Utf8), PositionEncodingKind::UTF8);
+        assert_eq!(
+            PositionEncodingKind::from(PositionEncoding::Utf16),
+            PositionEncodingKind::UTF16
+        );
+        assert_eq!(
+            PositionEncodingKind::from(PositionEncoding::Utf32),
+            PositionEncodingKind::UTF32
+        );
     }
 
     #[test]
