@@ -1,6 +1,8 @@
 use async_lsp::lsp_types;
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
+use rowan::ast::AstNode;
 use rowan::{TextRange, TextSize};
+use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PositionEncoding {
@@ -140,9 +142,110 @@ pub fn text_range_to_protocol(
     utf8_range_to_protocol(content, range, encoding)
 }
 
+pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Option<Utf8Range> {
+    let range = match import_item {
+        cst::ImportItem::ImportValue(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportClass(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportType(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportOperator(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportTypeOperator(cst) => cst.name_token()?.text_range(),
+    };
+
+    text_range_to_utf8_range(content, range)
+}
+
+pub fn declaration_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let declaration = cst::Declaration::cast(node.clone())?;
+
+    macro_rules! declaration_name_range {
+        ($declaration:expr, $($variant:ident),+ $(,)?) => {
+            match $declaration {
+                $(cst::Declaration::$variant(declaration) => declaration.name_token()?.text_range(),)+
+                _ => return None,
+            }
+        };
+    }
+
+    let range = match declaration {
+        cst::Declaration::ClassDeclaration(declaration) => {
+            declaration.class_head()?.name_token()?.text_range()
+        }
+        cst::Declaration::DeriveDeclaration(declaration) => {
+            declaration.instance_name()?.name_token()?.text_range()
+        }
+        cst::Declaration::InstanceChain(_) => return None,
+        declaration => declaration_name_range!(
+            declaration,
+            ValueSignature,
+            ValueEquation,
+            DataSignature,
+            DataEquation,
+            NewtypeSignature,
+            NewtypeEquation,
+            TypeSynonymSignature,
+            TypeSynonymEquation,
+            ClassSignature,
+            TypeRoleDeclaration,
+            ForeignImportDataDeclaration,
+            ForeignImportValueDeclaration,
+        ),
+    };
+
+    text_range_to_utf8_range(content, range)
+}
+
+pub fn data_constructor_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let constructor = cst::DataConstructor::cast(node)?;
+    let token = constructor.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn class_member_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let member = cst::ClassMemberStatement::cast(node)?;
+    let token = member.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn instance_declaration_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let instance = cst::InstanceDeclaration::cast(node)?;
+    let token = instance.instance_name()?.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn infix_operator_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let declaration = cst::InfixDeclaration::cast(node)?;
+    let token = declaration.operator_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
 #[cfg(test)]
 mod tests {
-    use async_lsp::lsp_types::Position;
+    use async_lsp::lsp_types::{Position, PositionEncodingKind};
     use rowan::TextSize;
 
     use super::{
@@ -181,6 +284,33 @@ mod tests {
         let position =
             utf8_position_to_protocol(content, position, PositionEncoding::Utf16).unwrap();
         assert_eq!(position, Position::new(0, 3));
+    }
+
+    #[test]
+    fn utf8_protocol_positions_use_utf8_columns() {
+        let content = "a😀b";
+        let position = Position::new(0, 5);
+
+        let position =
+            protocol_position_to_utf8(content, position, PositionEncoding::Utf8).unwrap();
+        assert_eq!(position, Utf8Position { line: 0, column: 5 });
+
+        let position =
+            utf8_position_to_protocol(content, position, PositionEncoding::Utf8).unwrap();
+        assert_eq!(position, Position::new(0, 5));
+    }
+
+    #[test]
+    fn position_encoding_converts_to_lsp_encoding_kind() {
+        assert_eq!(PositionEncodingKind::from(PositionEncoding::Utf8), PositionEncodingKind::UTF8);
+        assert_eq!(
+            PositionEncodingKind::from(PositionEncoding::Utf16),
+            PositionEncodingKind::UTF16
+        );
+        assert_eq!(
+            PositionEncodingKind::from(PositionEncoding::Utf32),
+            PositionEncodingKind::UTF32
+        );
     }
 
     #[test]

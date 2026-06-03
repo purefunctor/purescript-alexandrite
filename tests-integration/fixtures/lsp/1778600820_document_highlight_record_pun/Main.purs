@@ -1,9 +1,9 @@
 module Main where
 
-foo record = record
-  where
-  { bar } = record
---  &
+binder { bar } = { bar }
+--       &         &
 
-baz = 1
---    &
+value = 1
+
+record = { value }
+--         &
