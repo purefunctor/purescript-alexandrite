@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 101
 expression: report
 ---
 DocumentHighlight at Position { line: 2, character: 12 }
@@ -9,6 +10,7 @@ data Used = Used
 --          &
 ```
 
+2:12..2:16
 5:4..5:8
 5:11..5:15
 
@@ -20,4 +22,4 @@ data Unused = Unused
 --            &
 ```
 
-<empty>
+7:14..7:20

@@ -10,7 +10,10 @@ import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
 --          &      &    &                    &           &
 ```
 
-<empty>
+2:12..2:17
+40:16..40:21
+43:19..43:24
+43:30..43:35
 
 
 DocumentHighlight at Position { line: 2, character: 19 }
@@ -20,7 +23,10 @@ import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
 --          &      &    &                    &           &
 ```
 
-<empty>
+2:19..2:22
+55:19..55:22
+58:24..58:27
+58:32..58:35
 
 
 DocumentHighlight at Position { line: 2, character: 24 }
@@ -30,7 +36,8 @@ import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
 --          &      &    &                    &           &
 ```
 
-<empty>
+2:24..2:43
+49:45..49:58
 
 
 DocumentHighlight at Position { line: 2, character: 45 }
@@ -40,7 +47,8 @@ import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
 --          &      &    &                    &           &
 ```
 
-<empty>
+2:45..2:55
+58:28..58:31
 
 
 DocumentHighlight at Position { line: 2, character: 57 }
@@ -50,7 +58,8 @@ import Lib (value, Box, class ImportedClass, type (:*:), (<++>))
 --          &      &    &                    &           &
 ```
 
-<empty>
+2:57..2:63
+43:25..43:29
 
 
 DocumentHighlight at Position { line: 5, character: 20 }
@@ -60,7 +69,14 @@ foreign import data Local :: Type
 --                  &
 ```
 
-<empty>
+5:20..5:25
+17:36..17:41
+22:22..22:27
+25:31..25:36
+28:39..28:44
+37:18..37:23
+61:21..61:26
+61:31..61:36
 
 
 DocumentHighlight at Position { line: 8, character: 22 }
@@ -70,7 +86,8 @@ infixr 6 type Local as :+:
 --                    &
 ```
 
-<empty>
+8:23..8:26
+61:27..61:30
 
 
 DocumentHighlight at Position { line: 11, character: 5 }
@@ -80,7 +97,7 @@ data LocalData = LocalData
 --   &
 ```
 
-<empty>
+11:5..11:14
 
 
 DocumentHighlight at Position { line: 14, character: 12 }
@@ -90,6 +107,7 @@ localData = LocalData
 --          &
 ```
 
+11:17..11:26
 14:12..14:21
 
 
@@ -100,7 +118,7 @@ newtype LocalNewtype = LocalNewtype Local
 --      &
 ```
 
-<empty>
+17:8..17:20
 
 
 DocumentHighlight at Position { line: 20, character: 6 }
@@ -110,7 +128,8 @@ class LocalClass a where
 --    &
 ```
 
-<empty>
+20:6..20:16
+52:42..52:52
 
 
 DocumentHighlight at Position { line: 22, character: 4 }
@@ -120,7 +139,7 @@ DocumentHighlight at Position { line: 22, character: 4 }
 --  &
 ```
 
-<empty>
+22:2..22:13
 
 
 DocumentHighlight at Position { line: 25, character: 15 }
@@ -130,6 +149,7 @@ foreign import localForeign :: Local
 --             &
 ```
 
+25:15..25:27
 46:16..46:28
 46:33..46:45
 
@@ -141,7 +161,7 @@ instance localClassLocal :: LocalClass Local where
 --       &
 ```
 
-<empty>
+28:9..28:24
 
 
 DocumentHighlight at Position { line: 34, character: 9 }
@@ -151,6 +171,7 @@ infixr 5 plus as <+>
 --       &        &
 ```
 
+34:17..34:20
 46:29..46:32
 
 
@@ -161,6 +182,7 @@ infixr 5 plus as <+>
 --       &        &
 ```
 
+34:17..34:20
 46:29..46:32
 
 
@@ -171,7 +193,7 @@ type LocalAlias = Local
 --   &          &
 ```
 
-<empty>
+37:5..37:15
 
 
 DocumentHighlight at Position { line: 37, character: 16 }
@@ -181,7 +203,7 @@ type LocalAlias = Local
 --   &          &
 ```
 
-<empty>
+37:5..37:15
 
 
 DocumentHighlight at Position { line: 40, character: 16 }
@@ -191,6 +213,7 @@ importedValue = value
 --              &
 ```
 
+2:12..2:17
 40:16..40:21
 43:19..43:24
 43:30..43:35
@@ -203,6 +226,7 @@ importedOperator = value <++> value
 --                       &
 ```
 
+2:57..2:63
 43:25..43:29
 
 
@@ -213,6 +237,7 @@ localOperator = localForeign <+> localForeign
 --                           &
 ```
 
+34:17..34:20
 46:29..46:32
 
 
@@ -223,7 +248,8 @@ foreign import importedClassUse :: forall a. ImportedClass a => a -> a
 --                                           &
 ```
 
-<empty>
+2:24..2:43
+49:45..49:58
 
 
 DocumentHighlight at Position { line: 52, character: 42 }
@@ -233,7 +259,8 @@ foreign import localClassUse :: forall a. LocalClass a => a -> a
 --                                        &
 ```
 
-<empty>
+20:6..20:16
+52:42..52:52
 
 
 DocumentHighlight at Position { line: 55, character: 5 }
@@ -243,7 +270,7 @@ type ImportedBox = Box
 --   &             &
 ```
 
-<empty>
+55:5..55:16
 
 
 DocumentHighlight at Position { line: 55, character: 19 }
@@ -253,7 +280,10 @@ type ImportedBox = Box
 --   &             &
 ```
 
-<empty>
+2:19..2:22
+55:19..55:22
+58:24..58:27
+58:32..58:35
 
 
 DocumentHighlight at Position { line: 58, character: 5 }
@@ -263,7 +293,7 @@ type ImportedOperator = Box :*: Box
 --   &                    &   &
 ```
 
-<empty>
+58:5..58:21
 
 
 DocumentHighlight at Position { line: 58, character: 26 }
@@ -273,7 +303,10 @@ type ImportedOperator = Box :*: Box
 --   &                    &   &
 ```
 
-<empty>
+2:19..2:22
+55:19..55:22
+58:24..58:27
+58:32..58:35
 
 
 DocumentHighlight at Position { line: 58, character: 30 }
@@ -283,7 +316,8 @@ type ImportedOperator = Box :*: Box
 --   &                    &   &
 ```
 
-<empty>
+2:45..2:55
+58:28..58:31
 
 
 DocumentHighlight at Position { line: 61, character: 27 }
@@ -293,4 +327,5 @@ type LocalOperator = Local :+: Local
 --                         &
 ```
 
-<empty>
+8:23..8:26
+61:27..61:30

@@ -1,6 +1,8 @@
 use async_lsp::lsp_types;
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
+use rowan::ast::AstNode;
 use rowan::{TextRange, TextSize};
+use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PositionEncoding {
@@ -138,6 +140,95 @@ pub fn text_range_to_protocol(
 ) -> Option<lsp_types::Range> {
     let range = text_range_to_utf8_range(content, range)?;
     utf8_range_to_protocol(content, range, encoding)
+}
+
+pub fn declaration_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let declaration = cst::Declaration::cast(node.clone())?;
+
+    macro_rules! declaration_name_range {
+        ($declaration:expr, $($variant:ident),+ $(,)?) => {
+            match $declaration {
+                $(cst::Declaration::$variant(declaration) => declaration.name_token()?.text_range(),)+
+                _ => return None,
+            }
+        };
+    }
+
+    let range = match declaration {
+        cst::Declaration::ClassDeclaration(declaration) => {
+            declaration.class_head()?.name_token()?.text_range()
+        }
+        cst::Declaration::DeriveDeclaration(declaration) => {
+            declaration.instance_name()?.name_token()?.text_range()
+        }
+        cst::Declaration::InstanceChain(_) => return None,
+        declaration => declaration_name_range!(
+            declaration,
+            ValueSignature,
+            ValueEquation,
+            DataSignature,
+            DataEquation,
+            NewtypeSignature,
+            NewtypeEquation,
+            TypeSynonymSignature,
+            TypeSynonymEquation,
+            ClassSignature,
+            TypeRoleDeclaration,
+            ForeignImportDataDeclaration,
+            ForeignImportValueDeclaration,
+        ),
+    };
+
+    text_range_to_utf8_range(content, range)
+}
+
+pub fn data_constructor_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let constructor = cst::DataConstructor::cast(node)?;
+    let token = constructor.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn class_member_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let member = cst::ClassMemberStatement::cast(node)?;
+    let token = member.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn instance_declaration_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let instance = cst::InstanceDeclaration::cast(node)?;
+    let token = instance.instance_name()?.name_token()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
+pub fn infix_operator_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let declaration = cst::InfixDeclaration::cast(node)?;
+    let token = declaration.operator_token()?;
+    text_range_to_utf8_range(content, token.text_range())
 }
 
 #[cfg(test)]

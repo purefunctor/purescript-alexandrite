@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 101
 expression: report
 ---
 DocumentHighlight at Position { line: 4, character: 5 }
@@ -9,5 +10,6 @@ foo (Just x) = Just x
 --   &
 ```
 
+2:15..2:19
 4:5..4:11
 4:15..4:19

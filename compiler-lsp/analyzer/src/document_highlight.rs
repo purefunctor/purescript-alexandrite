@@ -1,12 +1,16 @@
+use std::iter;
+
 use async_lsp::lsp_types::*;
 use files::FileId;
-use indexing::TermItemId;
+use indexing::{ImportItemId, ImportKind, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
-    TermOperatorId, TermVariableResolution,
+    TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
 };
 use rowan::ast::AstNode;
-use syntax::{SyntaxNode, SyntaxNodePtr, cst};
+use smol_str::ToSmolStr;
+use stabilizing::AstId;
+use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::position::{PositionEncoding, Utf8Range};
 use crate::{AnalyzerError, LanguageContext, locate, position};
@@ -27,12 +31,19 @@ pub fn implementation(
 
     let located = locate::locate(context.engine, current_file, position)?;
     match located {
+        locate::Located::ImportItem(import_id) => {
+            highlight_import(context, current_file, import_id)
+        }
         locate::Located::Binder(binder_id) => highlight_binder(context, current_file, binder_id),
         locate::Located::Expression(expression_id) => {
             highlight_expression(context, current_file, expression_id)
         }
+        locate::Located::Type(type_id) => highlight_type(context, current_file, type_id),
         locate::Located::TermItem(term_id) => {
             highlight_file_term(context, current_file, current_file, term_id)
+        }
+        locate::Located::TypeItem(type_id) => {
+            highlight_file_type(context, current_file, current_file, type_id)
         }
         locate::Located::LetBinding(let_binding_id) => {
             highlight_let(context, current_file, let_binding_id)
@@ -44,12 +55,118 @@ pub fn implementation(
         locate::Located::TermOperator(operator_id) => {
             highlight_term_operator(context, current_file, operator_id)
         }
-        locate::Located::ModuleName(_)
-        | locate::Located::ImportItem(_)
-        | locate::Located::Type(_)
-        | locate::Located::TypeOperator(_)
-        | locate::Located::TypeItem(_)
-        | locate::Located::Nothing => Ok(None),
+        locate::Located::TypeOperator(operator_id) => {
+            highlight_type_operator(context, current_file, operator_id)
+        }
+        locate::Located::ModuleName(_) | locate::Located::Nothing => Ok(None),
+    }
+}
+
+enum HighlightTarget {
+    Term(FileId, TermItemId),
+    Type(FileId, TypeItemId),
+}
+
+fn highlight_import(
+    context: &LanguageContext,
+    current_file: FileId,
+    import_id: ImportItemId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let target = import_target(context, current_file, import_id)?;
+
+    let mut highlights = match target {
+        HighlightTarget::Term(file_id, term_id) => {
+            highlight_file_term(context, current_file, file_id, term_id)?
+        }
+        HighlightTarget::Type(file_id, type_id) => {
+            highlight_file_type(context, current_file, file_id, type_id)?
+        }
+    }
+    .unwrap_or_default();
+
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let stabilized = context.engine.stabilized(current_file)?;
+
+    highlights.extend(
+        locate::id_range(&content, &parsed, &stabilized, import_id)
+            .and_then(|range| document_highlight(&content, context.encoding, range)),
+    );
+
+    Ok(finish_highlights(highlights))
+}
+
+fn import_target(
+    context: &LanguageContext,
+    current_file: FileId,
+    import_id: ImportItemId,
+) -> Result<HighlightTarget, AnalyzerError> {
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let stabilized = context.engine.stabilized(current_file)?;
+
+    let root = parsed.syntax_node();
+    let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
+    let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+
+    let statement = node
+        .syntax()
+        .ancestors()
+        .find_map(cst::ImportStatement::cast)
+        .ok_or(AnalyzerError::NonFatal)?;
+    let module_name =
+        statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().text().to_smolstr();
+
+    let imported_file = context.engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
+    let imported_resolved = context.engine.resolved(imported_file)?;
+
+    let term_target = |name: &str| {
+        let name = name.trim_start_matches("(").trim_end_matches(")");
+        let (file_id, term_id) =
+            imported_resolved.exports.lookup_term(name).ok_or(AnalyzerError::NonFatal)?;
+        Ok(HighlightTarget::Term(file_id, term_id))
+    };
+
+    let type_target = |name: &str| {
+        let name = name.trim_start_matches("(").trim_end_matches(")");
+        let (file_id, type_id) = imported_resolved
+            .exports
+            .lookup_type(name)
+            .or_else(|| imported_resolved.exports.lookup_class(name))
+            .ok_or(AnalyzerError::NonFatal)?;
+        Ok(HighlightTarget::Type(file_id, type_id))
+    };
+
+    let class_target = |name: &str| {
+        let name = name.trim_start_matches("(").trim_end_matches(")");
+        let (file_id, type_id) = imported_resolved
+            .exports
+            .lookup_class(name)
+            .or_else(|| imported_resolved.exports.lookup_type(name))
+            .ok_or(AnalyzerError::NonFatal)?;
+        Ok(HighlightTarget::Type(file_id, type_id))
+    };
+
+    match node {
+        cst::ImportItem::ImportValue(cst) => {
+            let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
+            term_target(token.text())
+        }
+        cst::ImportItem::ImportClass(cst) => {
+            let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
+            class_target(token.text())
+        }
+        cst::ImportItem::ImportType(cst) => {
+            let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
+            type_target(token.text())
+        }
+        cst::ImportItem::ImportOperator(cst) => {
+            let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
+            term_target(token.text())
+        }
+        cst::ImportItem::ImportTypeOperator(cst) => {
+            let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
+            type_target(token.text())
+        }
     }
 }
 
@@ -138,6 +255,23 @@ fn highlight_expression(
     }
 }
 
+fn highlight_type(
+    context: &LanguageContext,
+    current_file: FileId,
+    type_id: TypeId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let lowered = context.engine.lowered(current_file)?;
+    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+
+    match kind {
+        TypeKind::Constructor { resolution: Some((file_id, type_id)) }
+        | TypeKind::Operator { resolution: Some((file_id, type_id)) } => {
+            highlight_file_type(context, current_file, *file_id, *type_id)
+        }
+        _ => Ok(None),
+    }
+}
+
 fn highlight_file_term(
     context: &LanguageContext,
     current_file: FileId,
@@ -148,6 +282,8 @@ fn highlight_file_term(
     let (parsed, _) = context.engine.parsed(current_file)?;
     let stabilized = context.engine.stabilized(current_file)?;
     let lowered = context.engine.lowered(current_file)?;
+    let indexed = context.engine.indexed(current_file)?;
+    let resolved = context.engine.resolved(current_file)?;
 
     let mut highlights = vec![];
 
@@ -198,9 +334,92 @@ fn highlight_file_term(
         }
     }
 
+    let unqualified = resolved.unqualified.values();
+    let qualified = resolved.qualified.values();
+
+    for imports in iter::chain(unqualified, qualified) {
+        for import in imports {
+            for (name, f_id, t_id, kind) in import.iter_terms() {
+                if kind != ImportKind::Hidden
+                    && (f_id, t_id) == (file_id, term_id)
+                    && let Some(indexed_import) = indexed.imports.get(&import.id)
+                    && let Some(import_item_id) = indexed_import.terms.get(name)
+                {
+                    highlights.extend(
+                        locate::id_range(&content, &parsed, &stabilized, *import_item_id).and_then(
+                            |range| document_highlight(&content, context.encoding, range),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
     if file_id == current_file
-        && let Some(definition_highlights) =
-            value_equation_highlights(context, current_file, term_id)?
+        && let Some(definition_highlights) = term_item_highlights(context, current_file, term_id)?
+    {
+        highlights.extend(definition_highlights);
+    }
+
+    Ok(finish_highlights(highlights))
+}
+
+fn highlight_file_type(
+    context: &LanguageContext,
+    current_file: FileId,
+    file_id: FileId,
+    type_id: TypeItemId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let stabilized = context.engine.stabilized(current_file)?;
+    let lowered = context.engine.lowered(current_file)?;
+    let indexed = context.engine.indexed(current_file)?;
+    let resolved = context.engine.resolved(current_file)?;
+
+    let mut highlights = vec![];
+
+    for (ty_id, ty_kind) in lowered.info.iter_type() {
+        if let TypeKind::Constructor { resolution: Some((f_id, t_id)) }
+        | TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
+            && (*f_id, *t_id) == (file_id, type_id)
+        {
+            highlights.extend(
+                locate::id_range(&content, &parsed, &stabilized, ty_id)
+                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+            );
+        }
+    }
+
+    for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
+        if (f_id, t_id) == (file_id, type_id) {
+            highlights.extend(
+                locate::id_range(&content, &parsed, &stabilized, operator_id)
+                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+            );
+        }
+    }
+
+    for imports in resolved.unqualified.values().chain(resolved.qualified.values()) {
+        for import in imports {
+            for (name, f_id, t_id, kind) in import.iter_types().chain(import.iter_classes()) {
+                if kind != ImportKind::Hidden
+                    && (f_id, t_id) == (file_id, type_id)
+                    && let Some(indexed_import) = indexed.imports.get(&import.id)
+                    && let Some((import_item_id, _)) = indexed_import.types.get(name)
+                {
+                    highlights.extend(
+                        locate::id_range(&content, &parsed, &stabilized, *import_item_id).and_then(
+                            |range| document_highlight(&content, context.encoding, range),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
+    if file_id == current_file
+        && let Some(definition_highlights) = type_item_highlights(context, current_file, type_id)?
     {
         highlights.extend(definition_highlights);
     }
@@ -217,6 +436,17 @@ fn highlight_term_operator(
     let (file_id, term_id) =
         lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
     highlight_file_term(context, current_file, file_id, term_id)
+}
+
+fn highlight_type_operator(
+    context: &LanguageContext,
+    current_file: FileId,
+    operator_id: TypeOperatorId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let lowered = context.engine.lowered(current_file)?;
+    let (file_id, type_id) =
+        lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+    highlight_file_type(context, current_file, file_id, type_id)
 }
 
 fn highlight_let(
@@ -345,31 +575,104 @@ fn highlight_expression_pun(
     }
 }
 
-fn value_equation_highlights(
+fn term_item_highlights(
     context: &LanguageContext,
     current_file: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let root = parsed.syntax_node();
-
-    let stabilized = context.engine.stabilized(current_file)?;
     let indexed = context.engine.indexed(current_file)?;
 
-    let Some(equations) =
-        locate::value_equation_ranges(&content, &root, &stabilized, &indexed, term_id)
-    else {
-        return Ok(None);
-    };
+    let mut highlights = vec![];
 
-    let highlights = equations.into_iter().filter_map(|range| {
-        let range = position::utf8_range_to_protocol(&content, range, context.encoding)?;
-        Some(DocumentHighlight { range, kind: None })
-    });
+    macro_rules! push_name_highlights {
+        ($range:expr; $($id:expr),+ $(,)?) => {
+            $(
+                push_name_highlight(
+                    context,
+                    current_file,
+                    &mut highlights,
+                    $id,
+                    $range,
+                )?;
+            )+
+        };
+    }
 
-    let highlights = highlights.collect();
+    match &indexed.items[term_id].kind {
+        TermItemKind::ClassMember { id } => {
+            push_name_highlights!(position::class_member_name_range; Some(*id));
+        }
+        TermItemKind::Constructor { id } => {
+            push_name_highlights!(position::data_constructor_name_range; Some(*id));
+        }
+        TermItemKind::Derive { id } => {
+            push_name_highlights!(position::declaration_name_range; Some(*id));
+        }
+        TermItemKind::Foreign { id } => {
+            push_name_highlights!(position::declaration_name_range; Some(*id));
+        }
+        TermItemKind::Instance { id } => {
+            push_name_highlights!(position::instance_declaration_name_range; Some(*id));
+        }
+        TermItemKind::Operator { id } => {
+            push_name_highlights!(position::infix_operator_range; Some(*id));
+        }
+        TermItemKind::Value { signature, equations } => {
+            push_name_highlights!(position::declaration_name_range; *signature);
+
+            for &equation in equations {
+                push_name_highlights!(position::declaration_name_range; Some(equation));
+            }
+        }
+    }
+
+    Ok(finish_highlights(highlights))
+}
+
+fn type_item_highlights(
+    context: &LanguageContext,
+    current_file: FileId,
+    type_id: TypeItemId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let indexed = context.engine.indexed(current_file)?;
+
+    let mut highlights = vec![];
+
+    macro_rules! push_name_highlights {
+        ($range:expr; $($id:expr),+ $(,)?) => {
+            $(
+                push_name_highlight(
+                    context,
+                    current_file,
+                    &mut highlights,
+                    $id,
+                    $range,
+                )?;
+            )+
+        };
+    }
+
+    match indexed.items[type_id].kind {
+        TypeItemKind::Data { signature, equation, role } => {
+            push_name_highlights!(position::declaration_name_range; signature, equation, role);
+        }
+        TypeItemKind::Newtype { signature, equation, role } => {
+            push_name_highlights!(position::declaration_name_range; signature, equation, role);
+        }
+        TypeItemKind::Synonym { signature, equation } => {
+            push_name_highlights!(position::declaration_name_range; signature, equation);
+        }
+        TypeItemKind::Class { signature, declaration } => {
+            push_name_highlights!(position::declaration_name_range; signature, declaration);
+        }
+        TypeItemKind::Foreign { id, role } => {
+            push_name_highlights!(position::declaration_name_range; Some(id), role);
+        }
+        TypeItemKind::Operator { id } => {
+            push_name_highlights!(position::infix_operator_range; Some(id));
+        }
+    }
+
     Ok(finish_highlights(highlights))
 }
 
@@ -409,6 +712,30 @@ fn let_equation_name_range(
     let equation = cst::LetBindingEquation::cast(node)?;
     let token = equation.name_token()?;
     position::text_range_to_utf8_range(content, token.text_range())
+}
+
+fn push_name_highlight<T>(
+    context: &LanguageContext,
+    current_file: FileId,
+    highlights: &mut Vec<DocumentHighlight>,
+    id: Option<AstId<T>>,
+    range: fn(&str, &SyntaxNode, &SyntaxNodePtr) -> Option<Utf8Range>,
+) -> Result<(), AnalyzerError>
+where
+    T: AstNode<Language = PureScript>,
+{
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(current_file)?;
+
+    highlights.extend(id.and_then(|id| {
+        let ptr = stabilized.syntax_ptr(id)?;
+        let range = range(&content, &root, &ptr)?;
+        document_highlight(&content, context.encoding, range)
+    }));
+
+    Ok(())
 }
 
 fn document_highlight(
