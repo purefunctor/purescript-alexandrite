@@ -28,8 +28,9 @@ foreign import localForeign :: Local
 
 instance localClassLocal :: LocalClass Local where
 --       &
-  localMember value = value
+  localMember localValue = localValue
 
+plus :: Local -> Local -> Local
 plus left right = left
 
 infixr 5 plus as <+>

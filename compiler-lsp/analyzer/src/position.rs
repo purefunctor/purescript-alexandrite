@@ -142,6 +142,18 @@ pub fn text_range_to_protocol(
     utf8_range_to_protocol(content, range, encoding)
 }
 
+pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Option<Utf8Range> {
+    let range = match import_item {
+        cst::ImportItem::ImportValue(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportClass(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportType(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportOperator(cst) => cst.name_token()?.text_range(),
+        cst::ImportItem::ImportTypeOperator(cst) => cst.name_token()?.text_range(),
+    };
+
+    text_range_to_utf8_range(content, range)
+}
+
 pub fn declaration_name_range(
     content: &str,
     root: &SyntaxNode,

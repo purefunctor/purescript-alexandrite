@@ -86,10 +86,14 @@ fn highlight_import(
 
     let content = context.engine.content(current_file);
     let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
     let stabilized = context.engine.stabilized(current_file)?;
 
+    let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
+    let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+
     highlights.extend(
-        locate::id_range(&content, &parsed, &stabilized, import_id)
+        position::import_item_name_range(&content, node)
             .and_then(|range| document_highlight(&content, context.encoding, range)),
     );
 
@@ -280,6 +284,7 @@ fn highlight_file_term(
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.engine.content(current_file);
     let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
     let stabilized = context.engine.stabilized(current_file)?;
     let lowered = context.engine.lowered(current_file)?;
     let indexed = context.engine.indexed(current_file)?;
@@ -345,11 +350,11 @@ fn highlight_file_term(
                     && let Some(indexed_import) = indexed.imports.get(&import.id)
                     && let Some(import_item_id) = indexed_import.terms.get(name)
                 {
-                    highlights.extend(
-                        locate::id_range(&content, &parsed, &stabilized, *import_item_id).and_then(
-                            |range| document_highlight(&content, context.encoding, range),
-                        ),
-                    );
+                    highlights.extend(stabilized.ast_ptr(*import_item_id).and_then(|ptr| {
+                        let node = ptr.try_to_node(&root)?;
+                        let range = position::import_item_name_range(&content, node)?;
+                        document_highlight(&content, context.encoding, range)
+                    }));
                 }
             }
         }
@@ -372,6 +377,7 @@ fn highlight_file_type(
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.engine.content(current_file);
     let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
     let stabilized = context.engine.stabilized(current_file)?;
     let lowered = context.engine.lowered(current_file)?;
     let indexed = context.engine.indexed(current_file)?;
@@ -408,11 +414,11 @@ fn highlight_file_type(
                     && let Some(indexed_import) = indexed.imports.get(&import.id)
                     && let Some((import_item_id, _)) = indexed_import.types.get(name)
                 {
-                    highlights.extend(
-                        locate::id_range(&content, &parsed, &stabilized, *import_item_id).and_then(
-                            |range| document_highlight(&content, context.encoding, range),
-                        ),
-                    );
+                    highlights.extend(stabilized.ast_ptr(*import_item_id).and_then(|ptr| {
+                        let node = ptr.try_to_node(&root)?;
+                        let range = position::import_item_name_range(&content, node)?;
+                        document_highlight(&content, context.encoding, range)
+                    }));
                 }
             }
         }
