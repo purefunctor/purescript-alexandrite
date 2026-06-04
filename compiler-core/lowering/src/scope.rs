@@ -93,6 +93,10 @@ impl ImplicitBindings {
         Idx::from_raw(RawIdx::from_u32(index as u32))
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &[TypeId])> {
+        self.inner.iter().map(|(name, id)| (name.as_str(), id.as_slice()))
+    }
+
     pub fn get(&self, name: &str) -> Option<ImplicitBindingId> {
         let (index, _, _) = self.inner.get_full(name)?;
         Some(Idx::from_raw(RawIdx::from_u32(index as u32)))
@@ -159,6 +163,24 @@ pub struct LoweringGraphNodes {
     pub(crate) expression_node: FxHashMap<ExpressionId, GraphNodeId>,
     pub(crate) type_node: FxHashMap<TypeId, GraphNodeId>,
     pub(crate) let_node: FxHashMap<LetBindingNameGroupId, GraphNodeId>,
+}
+
+impl LoweringGraphNodes {
+    pub fn binder_node(&self, id: BinderId) -> Option<GraphNodeId> {
+        self.binder_node.get(&id).copied()
+    }
+
+    pub fn expression_node(&self, id: ExpressionId) -> Option<GraphNodeId> {
+        self.expression_node.get(&id).copied()
+    }
+
+    pub fn type_node(&self, id: TypeId) -> Option<GraphNodeId> {
+        self.type_node.get(&id).copied()
+    }
+
+    pub fn let_node(&self, id: LetBindingNameGroupId) -> Option<GraphNodeId> {
+        self.let_node.get(&id).copied()
+    }
 }
 
 /// An iterator that traverses the [`LoweringGraph`].

@@ -264,6 +264,8 @@ where
                     let k = state.fresh_unification(context.queries, context.prim.t);
 
                     state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
+                    state.checked.nodes.implicit_bindings.insert((implicit.node, implicit.id), k);
+
                     let t = context.intern_rigid(n, state.depth, k);
 
                     Ok((t, k))
@@ -381,6 +383,7 @@ where
     let text = context.queries.intern_smol_str(text);
 
     state.checked.names.insert(name, text);
+    state.checked.nodes.forall_bindings.insert(binding.id, kind);
     state.bindings.bind_forall(binding.id, name, kind);
     Ok(ForallBinder { visible, name, kind })
 }
