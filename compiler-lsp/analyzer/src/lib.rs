@@ -3,7 +3,6 @@ pub mod completion;
 pub mod context;
 pub mod definition;
 pub mod document_highlight;
-pub mod document_symbols;
 pub mod error;
 pub mod extract;
 pub mod hover;

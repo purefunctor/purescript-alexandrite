@@ -291,7 +291,7 @@ fn dispatch_cursor(
             }
         }
         CursorKind::DocumentSymbols => {
-            if let Ok(Some(response)) = analyzer::document_symbols::implementation(&context, uri) {
+            if let Ok(Some(response)) = analyzer::symbols::document(&context, uri) {
                 writeln!(result, "{}", render_document_symbols_response(response)).unwrap();
             } else {
                 writeln!(result, "<empty>").unwrap();
