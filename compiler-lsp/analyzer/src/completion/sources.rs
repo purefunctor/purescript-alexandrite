@@ -1,7 +1,10 @@
 use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportKind, TermItemId, TypeItemId};
+use itertools::Itertools;
+use lowering::GraphNode;
 use resolving::ResolvedModule;
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::AnalyzerError;
@@ -56,6 +59,188 @@ impl CompletionSource for QualifiedModules {
 
         Ok(())
     }
+}
+
+/// Yields local terms visible from the current lexical scope.
+pub struct ScopeTerms;
+
+impl CompletionSource for ScopeTerms {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(scope_node) = context.scope_node()? else { return Ok(()) };
+
+        let lowered = context.language.engine.lowered(context.current_file)?;
+        let mut seen = FxHashSet::default();
+
+        for (_, node) in lowered.graph.traverse(scope_node) {
+            match node {
+                GraphNode::Binder { binders, puns, .. } => {
+                    let mut binders = binders.iter().collect_vec();
+                    binders.sort_by_key(|(left, _)| *left);
+
+                    for (name, binder_id) in binders {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VARIABLE,
+                            CompletionResolveData::Binder(context.current_file, *binder_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+
+                    let mut puns = puns.iter().collect_vec();
+                    puns.sort_by_key(|(left, _)| *left);
+
+                    for (name, pun_id) in puns {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VARIABLE,
+                            CompletionResolveData::RecordPun(context.current_file, *pun_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Let { bindings, .. } => {
+                    let mut bindings = bindings.iter().collect_vec();
+                    bindings.sort_by_key(|(left, _)| *left);
+
+                    for (name, let_id) in bindings {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VALUE,
+                            CompletionResolveData::Let(context.current_file, *let_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Forall { .. } | GraphNode::Implicit { .. } => {}
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Yields type variables visible from the current lexical scope.
+pub struct ScopeTypes;
+
+impl CompletionSource for ScopeTypes {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(scope_node) = context.scope_node()? else { return Ok(()) };
+
+        let lowered = context.language.engine.lowered(context.current_file)?;
+        let mut seen = FxHashSet::default();
+
+        for (node_id, node) in lowered.graph.traverse(scope_node) {
+            match node {
+                GraphNode::Forall { bindings, .. } => {
+                    let mut bindings = bindings.iter().collect_vec();
+                    bindings.sort_by_key(|(left, _)| *left);
+
+                    for (name, binding_id) in bindings {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::TYPE_PARAMETER,
+                            CompletionResolveData::ForallTypeVariable(
+                                context.current_file,
+                                *binding_id,
+                            ),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Implicit { bindings, .. } => {
+                    let mut entries = bindings.iter().collect_vec();
+                    entries.sort_by_key(|(left, _)| *left);
+
+                    for (name, type_id) in entries {
+                        if implicit_binding_at_cursor(context, type_id) {
+                            continue;
+                        }
+
+                        if !filter.matches(name) || !seen.insert(SmolStr::from(name)) {
+                            continue;
+                        }
+                        let Some(binding_id) = bindings.get(name) else { continue };
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::TYPE_PARAMETER,
+                            CompletionResolveData::ImplicitTypeVariable(
+                                context.current_file,
+                                node_id,
+                                binding_id,
+                            ),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Binder { .. } | GraphNode::Let { .. } => {}
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn implicit_binding_at_cursor(context: &CompletionContext, type_id: &[lowering::TypeId]) -> bool {
+    let root = context.parsed.syntax_node();
+
+    type_id.iter().any(|type_id| {
+        let Some(ptr) = context.stabilized.syntax_ptr(*type_id) else { return false };
+        let Some(node) = ptr.try_to_node(&root) else { return false };
+
+        let range = node.text_range();
+        range.start() <= context.offset && context.offset <= range.end()
+    })
 }
 
 /// Yields terms defined in the current module.
