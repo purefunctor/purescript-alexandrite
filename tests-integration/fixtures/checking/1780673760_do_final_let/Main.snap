@@ -9,7 +9,7 @@ bind ::
     Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
 before :: Effect { field :: Int }
 expectString :: String -> Int
-test :: ?[invalid final let]
+test :: forall (t :: Type). Effect (t :: Type)
 
 Types
 Effect :: Type -> Type
@@ -23,8 +23,8 @@ error[InvalidFinalLet]: Invalid final let statement in do expression
    |
 11 |   let _ = expectString record.field
    |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 9:1..11:36
-  |
-9 | test = do
-  | ^~~~~~~~~
+error[CannotUnify]: Cannot unify 'Int' with 'String'
+  --> 11:24..11:36
+   |
+11 |   let _ = expectString record.field
+   |                        ^~~~~~~~~~~~
