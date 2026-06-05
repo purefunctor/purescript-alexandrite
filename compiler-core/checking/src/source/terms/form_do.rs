@@ -27,6 +27,25 @@ enum DoStep<'a> {
     },
 }
 
+impl DoStep<'_> {
+    fn is_action(&self) -> bool {
+        matches!(self, Self::Bind { .. } | Self::Discard { .. })
+    }
+}
+
+enum DoBlockFinalStep {
+    Empty,
+    InvalidBind { statement: lowering::DoStatementId, expression: Option<lowering::ExpressionId> },
+    Discard { expression: Option<lowering::ExpressionId> },
+    InvalidLet { statement: lowering::DoStatementId },
+}
+
+impl DoBlockFinalStep {
+    fn is_invalid_let(&self) -> bool {
+        matches!(self, Self::InvalidLet { .. })
+    }
+}
+
 /// Lookup `bind` from resolution, or synthesize `?m ?a -> (?a -> ?m ?b) -> ?m ?b`.
 pub fn lookup_or_synthesise_bind<Q>(
     state: &mut CheckState,
@@ -131,7 +150,7 @@ pub fn infer_do<Q>(
     context: &CheckContext<Q>,
     bind: Option<lowering::TermVariableResolution>,
     discard: Option<lowering::TermVariableResolution>,
-    statement_ids: &[lowering::DoStatementId],
+    statement_id: &[lowering::DoStatementId],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
@@ -141,7 +160,7 @@ where
     // avoid premature solving of unification variables. Instead, they
     // are checked inline during the statement checking loop.
     let mut steps = vec![];
-    for &statement_id in statement_ids.iter() {
+    for &statement_id in statement_id.iter() {
         let Some(statement) = context.lowered.info.get_do_statement(statement_id) else {
             continue;
         };
@@ -167,10 +186,18 @@ where
         }
     }
 
-    let action_count = steps
-        .iter()
-        .filter(|step| matches!(step, DoStep::Bind { .. } | DoStep::Discard { .. }))
-        .count();
+    let final_step = match steps.last() {
+        Some(DoStep::Bind { statement, expression, .. }) => {
+            DoBlockFinalStep::InvalidBind { statement: *statement, expression: *expression }
+        }
+        Some(DoStep::Discard { expression, .. }) => {
+            DoBlockFinalStep::Discard { expression: *expression }
+        }
+        Some(DoStep::Let { statement, .. }) => {
+            DoBlockFinalStep::InvalidLet { statement: *statement }
+        }
+        None => DoBlockFinalStep::Empty,
+    };
 
     let (has_bind_step, has_discard_step) = {
         let mut has_bind = false;
@@ -198,45 +225,52 @@ where
         context.unknown("unused discard")
     };
 
-    let pure_expression = match steps.iter().last() {
-        Some(statement) => match statement {
-            // Technically valid, syntactically disallowed. This allows
-            // partially-written do expressions to infer, with a friendly
-            // warning to nudge the user that `bind` is prohibited.
-            DoStep::Bind { statement, expression, .. } => {
-                state.with_error_crumb(ErrorCrumb::InferringDoBind(*statement), |state| {
-                    state.insert_error(ErrorKind::InvalidFinalBind);
-                });
-                expression
-            }
-            DoStep::Discard { expression, .. } => expression,
-            DoStep::Let { statement, .. } => {
-                state.with_error_crumb(ErrorCrumb::CheckingDoLet(*statement), |state| {
-                    state.insert_error(ErrorKind::InvalidFinalLet);
-                });
-                return Ok(context.unknown("invalid final let"));
-            }
-        },
-        None => {
+    let final_expression = match final_step {
+        DoBlockFinalStep::Empty => {
             state.insert_error(ErrorKind::EmptyDoBlock);
             return Ok(context.unknown("empty do block"));
         }
-    };
-
-    // If either don't actually have expressions, it's empty!
-    let Some(pure_expression) = *pure_expression else {
-        state.insert_error(ErrorKind::EmptyDoBlock);
-        return Ok(context.unknown("empty do block"));
+        // Technically valid, syntactically disallowed. This allows
+        // partially-written do expressions to infer, with a friendly
+        // warning to nudge the user that `bind` is prohibited.
+        DoBlockFinalStep::InvalidBind { statement, expression } => {
+            state.with_error_crumb(ErrorCrumb::InferringDoBind(statement), |state| {
+                state.insert_error(ErrorKind::InvalidFinalBind);
+            });
+            let Some(expression) = expression else {
+                state.insert_error(ErrorKind::EmptyDoBlock);
+                return Ok(context.unknown("empty do block"));
+            };
+            Some(expression)
+        }
+        DoBlockFinalStep::Discard { expression } => {
+            let Some(expression) = expression else {
+                state.insert_error(ErrorKind::EmptyDoBlock);
+                return Ok(context.unknown("empty do block"));
+            };
+            Some(expression)
+        }
+        DoBlockFinalStep::InvalidLet { statement } => {
+            state.with_error_crumb(ErrorCrumb::CheckingDoLet(statement), |state| {
+                state.insert_error(ErrorKind::InvalidFinalLet);
+            });
+            None
+        }
     };
 
     // Create unification variables that each statement in the do expression
     // will unify against. The next section will get into more detail how
     // these are used. These unification variables are used to enable GHC-like
     // left-to-right checking of do expressions while maintaining the same
-    // semantics as rebindable `do` in PureScript.
+    // semantics as rebindable `do` in PureScript. When there is an invalid
+    // final let, we synthesise a placeholder continuation for the missing
+    // final expression, such that checking and inference proceeds as normal.
+    let mut continuation_count = steps.iter().filter(|step| step.is_action()).count();
+    continuation_count += usize::from(final_step.is_invalid_let());
+
     let continuation_types =
         iter::repeat_with(|| state.fresh_unification(context.queries, context.prim.t))
-            .take(action_count)
+            .take(continuation_count)
             .collect_vec();
 
     // Let's trace over the following example:
@@ -360,7 +394,9 @@ where
     let final_continuation =
         *continuation_types.last().expect("invariant violated: empty continuation_types");
 
-    super::check_expression(state, context, pure_expression, final_continuation)?;
+    if let Some(final_expression) = final_expression {
+        super::check_expression(state, context, final_expression, final_continuation)?;
+    }
 
     Ok(first_continuation)
 }

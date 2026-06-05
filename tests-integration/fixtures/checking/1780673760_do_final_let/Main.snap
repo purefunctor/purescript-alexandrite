@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+bind ::
+  forall (a :: Type) (b :: Type).
+    Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
+before :: Effect { field :: Int }
+expectString :: String -> Int
+test :: forall (t :: Type). Effect (t :: Type)
+
+Types
+Effect :: Type -> Type
+
+Roles
+Effect = [Nominal]
+
+Diagnostics
+error[InvalidFinalLet]: Invalid final let statement in do expression
+  --> 11:3..11:36
+   |
+11 |   let _ = expectString record.field
+   |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Int' with 'String'
+  --> 11:24..11:36
+   |
+11 |   let _ = expectString record.field
+   |                        ^~~~~~~~~~~~
