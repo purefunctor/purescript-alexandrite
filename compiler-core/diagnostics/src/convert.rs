@@ -1,4 +1,4 @@
-use checking::error::{CheckingError, ErrorKind};
+use checking::error::{CheckingError, ErrorKind, HoleBinding};
 use indexing::{IndexingError, TypeItemKind};
 use itertools::Itertools;
 use lowering::LoweringError;
@@ -267,6 +267,25 @@ impl ToDiagnostics for CheckingError {
             ErrorKind::EmptyDoBlock => {
                 (Severity::Error, "EmptyDoBlock", "Empty do block".to_string())
             }
+            ErrorKind::TermHole { type_id, .. } => {
+                let name = context.text_of(span).trim();
+                let type_id = render_type(*type_id);
+                (
+                    Severity::Error,
+                    "TermHole",
+                    format!("Hole '{name}' has inferred type: {type_id}"),
+                )
+            }
+            ErrorKind::TypeHole { type_id, kind_id, .. } => {
+                let name = context.text_of(span).trim();
+                let type_id = render_type(*type_id);
+                let kind = render_type(*kind_id);
+                (
+                    Severity::Error,
+                    "TypeHole",
+                    format!("Type hole '{name}' has inferred type: {type_id} :: {kind}"),
+                )
+            }
             ErrorKind::InvalidFinalBind => (
                 Severity::Warning,
                 "InvalidFinalBind",
@@ -430,6 +449,33 @@ impl ToDiagnostics for CheckingError {
             }
         }
 
+        if let ErrorKind::TermHole { bindings, .. } | ErrorKind::TypeHole { bindings, .. } =
+            &self.kind
+        {
+            diagnostic = attach_hole_binding_trivia(diagnostic, context, bindings);
+        }
+
         vec![diagnostic]
     }
+}
+
+const MAX_HOLE_BINDINGS: usize = 5;
+
+fn attach_hole_binding_trivia<Q>(
+    mut diagnostic: Diagnostic,
+    context: &DiagnosticsContext<'_, Q>,
+    bindings: &[HoleBinding],
+) -> Diagnostic
+where
+    Q: ExternalQueries,
+{
+    diagnostic.trivia.reserve(bindings.len().min(MAX_HOLE_BINDINGS));
+
+    for binding in bindings.iter().take(MAX_HOLE_BINDINGS) {
+        let type_id = context.render_type(binding.type_id);
+        let trivia = format!("{} :: {type_id} is in scope", binding.name);
+        diagnostic = diagnostic.with_trivia(trivia);
+    }
+
+    diagnostic
 }

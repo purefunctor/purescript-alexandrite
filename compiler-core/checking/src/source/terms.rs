@@ -7,13 +7,18 @@ pub mod form_let;
 pub mod forms;
 pub mod guarded;
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use itertools::Itertools;
+use lowering::GraphNode;
+use rustc_hash::FxHashSet;
+use smol_str::SmolStr;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
-use crate::error::ErrorCrumb;
+use crate::error::{ErrorCrumb, ErrorKind, HoleBinding};
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -311,7 +316,12 @@ where
 
         lowering::ExpressionKind::Hole => {
             let kind = state.fresh_unification(context.queries, context.prim.t);
-            Ok(state.fresh_unification(context.queries, kind))
+            let type_id = state.fresh_unification(context.queries, kind);
+
+            let bindings = term_hole_bindings(state, context, expression);
+            state.insert_error(ErrorKind::TermHole { type_id, bindings });
+
+            Ok(type_id)
         }
 
         lowering::ExpressionKind::String => Ok(context.prim.string),
@@ -348,4 +358,66 @@ where
             collections::infer_record_update(state, context, record, updates)
         }
     }
+}
+
+fn term_hole_bindings<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
+) -> Arc<[HoleBinding]>
+where
+    Q: ExternalQueries,
+{
+    let Some(scope_node) = context.lowered.nodes.expression_node(expression) else {
+        return Arc::from([]);
+    };
+
+    let mut seen = FxHashSet::default();
+    let mut result = vec![];
+
+    for (_, node) in context.lowered.graph.traverse(scope_node) {
+        match node {
+            GraphNode::Binder { binders, puns, .. } => {
+                let mut binders = binders.iter().collect_vec();
+                binders.sort_by_key(|(name, _)| *name);
+
+                for (name, binder_id) in binders {
+                    if seen.insert(name)
+                        && let Some(type_id) = state.checked.nodes.lookup_binder(*binder_id)
+                    {
+                        let name = SmolStr::clone(name);
+                        result.push(HoleBinding { name, type_id });
+                    }
+                }
+
+                let mut puns = puns.iter().collect_vec();
+                puns.sort_by_key(|(name, _)| *name);
+
+                for (name, pun_id) in puns {
+                    if seen.insert(name)
+                        && let Some(type_id) = state.checked.nodes.lookup_pun(*pun_id)
+                    {
+                        let name = SmolStr::clone(name);
+                        result.push(HoleBinding { name, type_id });
+                    }
+                }
+            }
+            GraphNode::Let { bindings, .. } => {
+                let mut bindings = bindings.iter().collect_vec();
+                bindings.sort_by_key(|(name, _)| *name);
+
+                for (name, let_id) in bindings {
+                    if seen.insert(name)
+                        && let Some(type_id) = state.checked.nodes.lookup_let(*let_id)
+                    {
+                        let name = SmolStr::clone(name);
+                        result.push(HoleBinding { name, type_id });
+                    }
+                }
+            }
+            GraphNode::Forall { .. } | GraphNode::Implicit { .. } => {}
+        }
+    }
+
+    Arc::from(result)
 }

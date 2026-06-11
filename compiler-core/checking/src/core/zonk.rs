@@ -2,11 +2,12 @@ use std::mem;
 use std::sync::Arc;
 
 use building_types::QueryResult;
+use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
-use crate::error::{CheckingError, ErrorKind};
+use crate::error::{CheckingError, ErrorKind, HoleBinding, holes};
 use crate::state::CheckState;
 use crate::{ExternalQueries, OperatorBranchTypes};
 
@@ -112,6 +113,19 @@ where
             let t2 = zonk(state, context, t2)?;
             ErrorKind::CannotUnify { t1, t2 }
         }
+        ErrorKind::TermHole { type_id, bindings } => {
+            let type_id = zonk(state, context, type_id)?;
+            let bindings = zonk_hole_bindings(state, context, &bindings)?;
+            let bindings = holes::refine_bindings(state, context, type_id, bindings)?;
+            ErrorKind::TermHole { type_id, bindings }
+        }
+        ErrorKind::TypeHole { type_id, kind_id, bindings } => {
+            let type_id = zonk(state, context, type_id)?;
+            let kind_id = zonk(state, context, kind_id)?;
+            let bindings = zonk_hole_bindings(state, context, &bindings)?;
+            let bindings = holes::refine_bindings(state, context, kind_id, bindings)?;
+            ErrorKind::TypeHole { type_id, kind_id, bindings }
+        }
         ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id } => {
             let type_id = zonk(state, context, type_id)?;
             ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id }
@@ -170,6 +184,22 @@ where
         | ErrorKind::PropertyIsMissing { .. }
         | ErrorKind::AdditionalProperty { .. }) => kind,
     })
+}
+
+fn zonk_hole_bindings<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    bindings: &[HoleBinding],
+) -> QueryResult<Vec<HoleBinding>>
+where
+    Q: ExternalQueries,
+{
+    let bindings = bindings.iter().map(|binding| {
+        let name = SmolStr::clone(&binding.name);
+        let type_id = zonk(state, context, binding.type_id)?;
+        Ok(HoleBinding { name, type_id })
+    });
+    bindings.collect()
 }
 
 fn zonk_operator_branch<Q>(

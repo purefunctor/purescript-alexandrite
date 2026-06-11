@@ -85,27 +85,38 @@ pub struct ImplicitBindings {
 pub type ImplicitBindingId = Idx<SmolStr>;
 
 impl ImplicitBindings {
+    fn binding_id(index: usize) -> ImplicitBindingId {
+        Idx::from_raw(RawIdx::from_u32(index as u32))
+    }
+
     pub(crate) fn bind(&mut self, name: &str, id: TypeId) -> ImplicitBindingId {
         let name = SmolStr::from(name);
         let entry = self.inner.entry(name);
         let index = entry.index();
         entry.or_default().push(id);
-        Idx::from_raw(RawIdx::from_u32(index as u32))
+        ImplicitBindings::binding_id(index)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &[TypeId])> {
         self.inner.iter().map(|(name, id)| (name.as_str(), id.as_slice()))
     }
 
+    pub fn iter_indexed(&self) -> impl Iterator<Item = (&SmolStr, ImplicitBindingId)> + '_ {
+        self.inner.iter().enumerate().map(|(index, (name, _))| {
+            let binding_id = ImplicitBindings::binding_id(index);
+            (name, binding_id)
+        })
+    }
+
     pub fn get(&self, name: &str) -> Option<ImplicitBindingId> {
         let (index, _, _) = self.inner.get_full(name)?;
-        Some(Idx::from_raw(RawIdx::from_u32(index as u32)))
+        Some(ImplicitBindings::binding_id(index))
     }
 
     pub fn get_index(&self, index: ImplicitBindingId) -> Option<(&str, &[TypeId])> {
         let index = index.into_raw().into_u32() as usize;
-        let (name, ids) = self.inner.get_index(index)?;
-        Some((name, ids))
+        let (name, id) = self.inner.get_index(index)?;
+        Some((name, id))
     }
 }
 

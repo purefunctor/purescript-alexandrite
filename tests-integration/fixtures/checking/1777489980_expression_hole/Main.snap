@@ -7,3 +7,10 @@ Terms
 hole :: forall (t :: Type). (t :: Type)
 
 Types
+
+Diagnostics
+error[TermHole]: Hole '?hole' has inferred type: (t :: Type)
+  --> 3:8..3:13
+  |
+3 | hole = ?hole
+  |        ^~~~~

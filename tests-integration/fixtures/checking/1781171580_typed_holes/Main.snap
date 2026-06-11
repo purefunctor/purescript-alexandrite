@@ -11,3 +11,18 @@ TypeHole :: forall (t :: Type). (t :: Type) -> Type
 
 Synonyms
 type TypeHole a = ?3
+
+Diagnostics
+error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type
+  --> 14:19..14:24
+   |
+14 | type TypeHole a = ?type :: Type
+   |                   ^~~~~
+  trivia: a :: (t :: Type) is in scope
+error[TermHole]: Hole '?term' has inferred type: Int
+  --> 12:5..12:10
+   |
+12 |     ?term
+   |     ^~~~~
+  trivia: argument :: Int is in scope
+  trivia: localInt :: Int is in scope
