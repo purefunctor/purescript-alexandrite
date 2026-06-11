@@ -14,6 +14,10 @@ impl<N: AstNode<Language = PureScript>> AstId<N> {
     pub const fn new(id: NonZeroU32) -> AstId<N> {
         AstId { id, phantom: PhantomData }
     }
+
+    pub const fn into_raw(self) -> NonZeroU32 {
+        self.id
+    }
 }
 
 impl<N: AstNode<Language = PureScript>> fmt::Debug for AstId<N> {

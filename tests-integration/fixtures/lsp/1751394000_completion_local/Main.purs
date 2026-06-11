@@ -5,8 +5,8 @@ vTop = 42
 
 data Maybe a = Just a | Nothing
 
-check :: Int -> Int -> INt
-check vBinder = 
+check :: Int -> { vPun :: Int } -> Int
+check vBinder { vPun } = 
   let
     vLet :: Int
     vLet = 42 
@@ -24,3 +24,11 @@ check3 = N
 
 type Check4 = M
 --             ^
+
+type Check5 localType = loc
+--                         ^
+
+class CheckClass a
+
+instance checkInstance :: CheckClass implicitType => CheckClass imp
+--                                                                 ^

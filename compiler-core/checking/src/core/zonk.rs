@@ -62,6 +62,8 @@ where
     zonk_type_map!(lets);
     zonk_type_map!(puns);
     zonk_type_map!(sections);
+    zonk_type_map!(forall_bindings);
+    zonk_type_map!(implicit_bindings);
     zonk_operator_map!(term_operator);
     zonk_operator_map!(type_operator);
 

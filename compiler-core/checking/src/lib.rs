@@ -75,6 +75,8 @@ pub struct CheckedNodes {
     pub lets: FxHashMap<lowering::LetBindingNameGroupId, TypeId>,
     pub puns: FxHashMap<lowering::RecordPunId, TypeId>,
     pub sections: FxHashMap<lowering::ExpressionId, TypeId>,
+    pub forall_bindings: FxHashMap<lowering::TypeVariableBindingId, TypeId>,
+    pub implicit_bindings: FxHashMap<(lowering::GraphNodeId, lowering::ImplicitBindingId), TypeId>,
     pub term_operator: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
     pub type_operator: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
 }
@@ -143,6 +145,18 @@ impl CheckedNodes {
 
     pub fn lookup_section(&self, id: lowering::ExpressionId) -> Option<TypeId> {
         self.sections.get(&id).copied()
+    }
+
+    pub fn lookup_forall_binding(&self, id: lowering::TypeVariableBindingId) -> Option<TypeId> {
+        self.forall_bindings.get(&id).copied()
+    }
+
+    pub fn lookup_implicit_binding(
+        &self,
+        node: lowering::GraphNodeId,
+        id: lowering::ImplicitBindingId,
+    ) -> Option<TypeId> {
+        self.implicit_bindings.get(&(node, id)).copied()
     }
 
     pub fn lookup_type_operator(

@@ -5,6 +5,10 @@ use building::QueryEngine;
 use checking::core::pretty::Pretty;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
+use lowering::{
+    BinderId, GraphNodeId, ImplicitBindingId, LetBindingNameGroupId, RecordPunId,
+    TypeVariableBindingId,
+};
 use serde::{Deserialize, Serialize};
 use syntax::SyntaxNode;
 
@@ -36,6 +40,21 @@ pub fn implementation(
         }
         CompletionResolveData::TypeItem(file_id, type_id) => {
             resolve_type_item(engine, file_id, type_id, item).map_err(|error| *error)
+        }
+        CompletionResolveData::Binder(file_id, binder_id) => {
+            Ok(resolve_binder(engine, file_id, binder_id, item))
+        }
+        CompletionResolveData::Let(file_id, let_id) => {
+            Ok(resolve_let(engine, file_id, let_id, item))
+        }
+        CompletionResolveData::RecordPun(file_id, pun_id) => {
+            Ok(resolve_record_pun(engine, file_id, pun_id, item))
+        }
+        CompletionResolveData::ForallTypeVariable(file_id, binding_id) => {
+            Ok(resolve_forall_type_variable(engine, file_id, binding_id, item))
+        }
+        CompletionResolveData::ImplicitTypeVariable(file_id, node_id, binding_id) => {
+            Ok(resolve_implicit_type_variable(engine, file_id, node_id, binding_id, item))
         }
     }
 }
@@ -137,11 +156,112 @@ fn render_type_signature(
     Some(pretty.render_signature(name, signature).to_string())
 }
 
+fn resolve_binder(
+    engine: &QueryEngine,
+    file_id: FileId,
+    binder_id: BinderId,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
+        checked.nodes.lookup_binder(binder_id)
+    }) {
+        item.detail = Some(signature);
+    }
+
+    item
+}
+
+fn resolve_let(
+    engine: &QueryEngine,
+    file_id: FileId,
+    let_id: LetBindingNameGroupId,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
+        checked.nodes.lookup_let(let_id)
+    }) {
+        item.detail = Some(signature);
+    }
+
+    item
+}
+
+fn resolve_record_pun(
+    engine: &QueryEngine,
+    file_id: FileId,
+    pun_id: RecordPunId,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
+        checked.nodes.lookup_pun(pun_id)
+    }) {
+        item.detail = Some(signature);
+    }
+
+    item
+}
+
+fn resolve_forall_type_variable(
+    engine: &QueryEngine,
+    file_id: FileId,
+    binding_id: TypeVariableBindingId,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
+        checked.nodes.lookup_forall_binding(binding_id)
+    }) {
+        item.detail = Some(signature);
+    }
+
+    item
+}
+
+fn resolve_implicit_type_variable(
+    engine: &QueryEngine,
+    file_id: FileId,
+    node_id: GraphNodeId,
+    binding_id: ImplicitBindingId,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
+        checked.nodes.lookup_implicit_binding(node_id, binding_id)
+    }) {
+        item.detail = Some(signature);
+    }
+
+    item
+}
+
+fn render_local_signature(
+    engine: &QueryEngine,
+    file_id: FileId,
+    name: &str,
+    lookup: impl FnOnce(&checking::CheckedModule) -> Option<checking::TypeId>,
+) -> Option<String> {
+    let checked = engine.checked(file_id).ok()?;
+    let signature = lookup(&checked)?;
+
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    Some(pretty.render_signature(name, signature).to_string())
+}
+
 #[derive(Serialize, Deserialize)]
 pub(crate) enum CompletionResolveData {
     Import(#[serde(with = "id")] FileId),
     TermItem(#[serde(with = "id")] FileId, #[serde(with = "id")] TermItemId),
     TypeItem(#[serde(with = "id")] FileId, #[serde(with = "id")] TypeItemId),
+    Binder(#[serde(with = "id")] FileId, #[serde(with = "ast_id")] BinderId),
+    Let(#[serde(with = "id")] FileId, #[serde(with = "id")] LetBindingNameGroupId),
+    RecordPun(#[serde(with = "id")] FileId, #[serde(with = "ast_id")] RecordPunId),
+    ForallTypeVariable(
+        #[serde(with = "id")] FileId,
+        #[serde(with = "ast_id")] TypeVariableBindingId,
+    ),
+    ImplicitTypeVariable(
+        #[serde(with = "id")] FileId,
+        #[serde(with = "id")] GraphNodeId,
+        #[serde(with = "id")] ImplicitBindingId,
+    ),
 }
 
 mod id {
@@ -161,5 +281,33 @@ mod id {
     {
         let value = u32::deserialize(deserializer)?;
         Ok(Idx::from_raw(RawIdx::from_u32(value)))
+    }
+}
+
+mod ast_id {
+    use std::num::NonZeroU32;
+
+    use rowan::ast::AstNode;
+    use serde::de::Error;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use stabilizing::AstId;
+    use syntax::PureScript;
+
+    pub(super) fn serialize<N, S>(index: &AstId<N>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        N: AstNode<Language = PureScript>,
+        S: Serializer,
+    {
+        index.into_raw().get().serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'d, N, D>(deserializer: D) -> Result<AstId<N>, D::Error>
+    where
+        N: AstNode<Language = PureScript>,
+        D: Deserializer<'d>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        let value = NonZeroU32::new(value).ok_or_else(|| D::Error::custom("invalid AstId"))?;
+        Ok(AstId::new(value))
     }
 }

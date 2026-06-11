@@ -1,12 +1,13 @@
 use async_lsp::lsp_types::*;
 use files::FileId;
+use lowering::{GraphNodeId, LoweredModule};
 use parsing::ParsedModule;
 use resolving::ResolvedModule;
-use rowan::ast::AstNode;
+use rowan::ast::{AstNode, AstPtr};
 use rowan::{TextRange, TextSize, TokenAtOffset};
 use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
-use syntax::{SyntaxKind, SyntaxToken, cst};
+use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
 
 use crate::position::{PositionEncoding, Utf8Position};
 use crate::{AnalyzerError, LanguageContext, position};
@@ -25,6 +26,7 @@ pub struct CompletionContext<'c, 'a> {
     pub semantics: CursorSemantics,
     pub text: CursorText,
     pub range: Option<Range>,
+    pub offset: TextSize,
 }
 
 impl CompletionContext<'_, '_> {
@@ -76,6 +78,74 @@ impl CompletionContext<'_, '_> {
     pub fn has_type_import(&self, qualifier: Option<&str>, name: &str) -> bool {
         self.resolved.lookup_type(self.prim_resolved, qualifier, name).is_some()
             || self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
+    }
+
+    pub fn scope_node(&self) -> Result<Option<GraphNodeId>, AnalyzerError> {
+        let lowered = self.language.engine.lowered(self.current_file)?;
+        let root = self.parsed.syntax_node();
+
+        let scope_node = match root.token_at_offset(self.offset) {
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) => self.scope_node_for_token(&lowered, token),
+            TokenAtOffset::Between(left, right) => {
+                let left = self.scope_node_for_token(&lowered, left);
+                let right = self.scope_node_for_token(&lowered, right);
+
+                if left == right { left } else { right.or(left) }
+            }
+        };
+
+        Ok(scope_node)
+    }
+
+    fn scope_node_for_token(
+        &self,
+        lowered: &LoweredModule,
+        token: SyntaxToken,
+    ) -> Option<GraphNodeId> {
+        token.parent_ancestors().find_map(|node| self.scope_node_for_syntax(lowered, node))
+    }
+
+    fn scope_node_for_syntax(
+        &self,
+        lowered: &LoweredModule,
+        node: SyntaxNode,
+    ) -> Option<GraphNodeId> {
+        let kind = node.kind();
+        let ptr = SyntaxNodePtr::new(&node);
+
+        if cst::Binder::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.binder_node(id)
+        } else if cst::Expression::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.expression_node(id)
+        } else if cst::Type::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.type_node(id)
+        } else if cst::LetBinding::can_cast(kind) {
+            let binding = cst::LetBinding::cast(node)?;
+            let id = match binding {
+                cst::LetBinding::LetBindingPattern(_) => None,
+                cst::LetBinding::LetBindingSignature(signature) => {
+                    let ptr = AstPtr::new(&signature);
+                    let id = self.stabilized.lookup_ptr(&ptr)?;
+                    lowered.info.find_let_binding_group_by_signature(id)
+                }
+                cst::LetBinding::LetBindingEquation(equation) => {
+                    let ptr = AstPtr::new(&equation);
+                    let id = self.stabilized.lookup_ptr(&ptr)?;
+                    lowered.info.find_let_binding_group_by_equation(id)
+                }
+            }?;
+
+            lowered.nodes.let_node(id)
+        } else {
+            None
+        }
     }
 }
 

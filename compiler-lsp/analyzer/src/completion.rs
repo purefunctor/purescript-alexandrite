@@ -9,16 +9,15 @@ pub mod resolve;
 use std::sync::Arc;
 
 use async_lsp::lsp_types::*;
+use filter::{FuzzyMatch, NoFilter, StartsWith};
+use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use radix_trie::Trie;
 use rowan::TokenAtOffset;
 use smol_str::SmolStr;
-
-use filter::{FuzzyMatch, NoFilter, StartsWith};
-use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use sources::{
     ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes, QualifiedModules,
     QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes, QualifiedTypesSuggestions,
-    SuggestedTerms, SuggestedTypes, WorkspaceModules,
+    ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes, WorkspaceModules,
 };
 use syntax::SyntaxKind;
 
@@ -90,6 +89,7 @@ pub fn implementation(
         semantics,
         text,
         range,
+        offset,
     };
 
     let items = collect(&context, cache)?;
@@ -113,10 +113,12 @@ fn collect(
                 QualifiedModules.collect_into(context, NoFilter, into)?;
             }
             if context.collect_terms() {
+                ScopeTerms.collect_into(context, NoFilter, into)?;
                 LocalTerms.collect_into(context, NoFilter, into)?;
                 ImportedTerms.collect_into(context, NoFilter, into)?;
             }
             if context.collect_types() {
+                ScopeTypes.collect_into(context, NoFilter, into)?;
                 LocalTypes.collect_into(context, NoFilter, into)?;
                 ImportedTypes.collect_into(context, NoFilter, into)?;
             }
@@ -154,6 +156,7 @@ fn collect(
                 QualifiedModules.collect_into(context, StartsWith(n), into)?;
             }
             if context.collect_terms() {
+                ScopeTerms.collect_into(context, FuzzyMatch(n), into)?;
                 LocalTerms.collect_into(context, FuzzyMatch(n), into)?;
                 ImportedTerms.collect_into(context, FuzzyMatch(n), into)?;
                 if context.collect_implicit_prim() {
@@ -161,6 +164,7 @@ fn collect(
                 }
             }
             if context.collect_types() {
+                ScopeTypes.collect_into(context, FuzzyMatch(n), into)?;
                 LocalTypes.collect_into(context, FuzzyMatch(n), into)?;
                 ImportedTypes.collect_into(context, FuzzyMatch(n), into)?;
                 if context.collect_implicit_prim() {
