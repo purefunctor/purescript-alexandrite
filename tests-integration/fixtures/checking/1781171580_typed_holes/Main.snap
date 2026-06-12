@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+termHole :: Int -> Int
+
+Types
+TypeHole :: forall (t :: Type). (t :: Type) -> Type
+
+Synonyms
+type TypeHole a = ?3
