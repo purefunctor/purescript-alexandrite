@@ -18,7 +18,8 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
-use crate::error::{ErrorCrumb, ErrorKind, HoleBinding};
+use crate::error::{ErrorCrumb, ErrorKind};
+use crate::holes::{HoleBinding, TermHole};
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -319,7 +320,8 @@ where
             let type_id = state.fresh_unification(context.queries, kind);
 
             let bindings = term_hole_bindings(state, context, expression);
-            state.insert_error(ErrorKind::TermHole { type_id, bindings });
+            state.checked.holes.terms.insert(expression, TermHole { type_id, bindings });
+            state.insert_error(ErrorKind::TermHole { source_term: expression });
 
             Ok(type_id)
         }

@@ -1,18 +1,10 @@
 //! Implements the errors emitted by the type checker.
 
-pub mod holes;
-
 use std::sync::Arc;
 
 use smol_str::SmolStr;
 
 use crate::core::{SmolStrId, TypeId};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HoleBinding {
-    pub name: SmolStr,
-    pub type_id: TypeId,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCrumb {
@@ -76,13 +68,10 @@ pub enum ErrorKind {
     EmptyAdoBlock,
     EmptyDoBlock,
     TermHole {
-        type_id: TypeId,
-        bindings: Arc<[HoleBinding]>,
+        source_term: lowering::ExpressionId,
     },
     TypeHole {
-        type_id: TypeId,
-        kind_id: TypeId,
-        bindings: Arc<[HoleBinding]>,
+        source_type: lowering::TypeId,
     },
     InvalidFinalBind,
     InvalidFinalLet,

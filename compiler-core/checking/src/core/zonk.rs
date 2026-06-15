@@ -7,9 +7,10 @@ use smol_str::SmolStr;
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
-use crate::error::{CheckingError, ErrorKind, HoleBinding, holes};
+use crate::error::{CheckingError, ErrorKind};
+use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
-use crate::{ExternalQueries, OperatorBranchTypes};
+use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
 
@@ -71,6 +72,32 @@ where
     Ok(())
 }
 
+pub fn zonk_holes<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for (source_term, hole) in mem::take(&mut state.checked.holes.terms) {
+        let type_id = zonk(state, context, hole.type_id)?;
+        let bindings = zonk_hole_bindings(state, context, &hole.bindings)?;
+        let bindings = holes::refine_bindings(state, context, type_id, bindings)?;
+
+        let hole = TermHole { type_id, bindings };
+        state.checked.holes.terms.insert(source_term, hole);
+    }
+
+    for (source_type, hole) in mem::take(&mut state.checked.holes.types) {
+        let type_id = zonk(state, context, hole.type_id)?;
+        let kind_id = zonk(state, context, hole.kind_id)?;
+        let bindings = zonk_hole_bindings(state, context, &hole.bindings)?;
+        let bindings = holes::refine_bindings(state, context, kind_id, bindings)?;
+
+        let hole = TypeHole { type_id, kind_id, bindings };
+        state.checked.holes.types.insert(source_type, hole);
+    }
+
+    Ok(())
+}
+
 pub fn zonk_errors<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
 where
     Q: ExternalQueries,
@@ -113,19 +140,6 @@ where
             let t2 = zonk(state, context, t2)?;
             ErrorKind::CannotUnify { t1, t2 }
         }
-        ErrorKind::TermHole { type_id, bindings } => {
-            let type_id = zonk(state, context, type_id)?;
-            let bindings = zonk_hole_bindings(state, context, &bindings)?;
-            let bindings = holes::refine_bindings(state, context, type_id, bindings)?;
-            ErrorKind::TermHole { type_id, bindings }
-        }
-        ErrorKind::TypeHole { type_id, kind_id, bindings } => {
-            let type_id = zonk(state, context, type_id)?;
-            let kind_id = zonk(state, context, kind_id)?;
-            let bindings = zonk_hole_bindings(state, context, &bindings)?;
-            let bindings = holes::refine_bindings(state, context, kind_id, bindings)?;
-            ErrorKind::TypeHole { type_id, kind_id, bindings }
-        }
         ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id } => {
             let type_id = zonk(state, context, type_id)?;
             ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id }
@@ -167,6 +181,8 @@ where
         | ErrorKind::DeriveMissingFunctor
         | ErrorKind::EmptyAdoBlock
         | ErrorKind::EmptyDoBlock
+        | ErrorKind::TermHole { .. }
+        | ErrorKind::TypeHole { .. }
         | ErrorKind::InvalidFinalBind
         | ErrorKind::InvalidFinalLet
         | ErrorKind::InstanceHeadMismatch { .. }

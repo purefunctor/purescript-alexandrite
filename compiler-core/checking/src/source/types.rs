@@ -13,7 +13,8 @@ use smol_str::SmolStr;
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{ForallBinder, RowField, Type, TypeId, normalise, toolkit, unification};
-use crate::error::{ErrorCrumb, ErrorKind, HoleBinding};
+use crate::error::{ErrorCrumb, ErrorKind};
+use crate::holes::{HoleBinding, TypeHole};
 use crate::source::{operator, synonym};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -192,7 +193,8 @@ where
             let type_id = state.fresh_unification(context.queries, kind_id);
 
             let bindings = type_hole_bindings(state, context, id);
-            state.insert_error(ErrorKind::TypeHole { type_id, kind_id, bindings });
+            state.checked.holes.types.insert(id, TypeHole { type_id, kind_id, bindings });
+            state.insert_error(ErrorKind::TypeHole { source_type: id });
 
             Ok((type_id, kind_id))
         }

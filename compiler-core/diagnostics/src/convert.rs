@@ -1,4 +1,5 @@
-use checking::error::{CheckingError, ErrorKind, HoleBinding};
+use checking::error::{CheckingError, ErrorKind};
+use checking::holes::HoleBinding;
 use indexing::{IndexingError, TypeItemKind};
 use itertools::Itertools;
 use lowering::LoweringError;
@@ -267,24 +268,32 @@ impl ToDiagnostics for CheckingError {
             ErrorKind::EmptyDoBlock => {
                 (Severity::Error, "EmptyDoBlock", "Empty do block".to_string())
             }
-            ErrorKind::TermHole { type_id, .. } => {
+            ErrorKind::TermHole { source_term } => {
                 let name = context.text_of(span).trim();
-                let type_id = render_type(*type_id);
-                (
-                    Severity::Error,
-                    "TermHole",
-                    format!("Hole '{name}' has inferred type: {type_id}"),
-                )
+                if let Some(hole) = context.checked.lookup_term_hole(*source_term) {
+                    let type_id = render_type(hole.type_id);
+                    (
+                        Severity::Error,
+                        "TermHole",
+                        format!("Hole '{name}' has inferred type: {type_id}"),
+                    )
+                } else {
+                    (Severity::Error, "TermHole", format!("Hole '{name}' has unknown type"))
+                }
             }
-            ErrorKind::TypeHole { type_id, kind_id, .. } => {
+            ErrorKind::TypeHole { source_type } => {
                 let name = context.text_of(span).trim();
-                let type_id = render_type(*type_id);
-                let kind = render_type(*kind_id);
-                (
-                    Severity::Error,
-                    "TypeHole",
-                    format!("Type hole '{name}' has inferred type: {type_id} :: {kind}"),
-                )
+                if let Some(hole) = context.checked.lookup_type_hole(*source_type) {
+                    let type_id = render_type(hole.type_id);
+                    let kind = render_type(hole.kind_id);
+                    (
+                        Severity::Error,
+                        "TypeHole",
+                        format!("Type hole '{name}' has inferred type: {type_id} :: {kind}"),
+                    )
+                } else {
+                    (Severity::Error, "TypeHole", format!("Type hole '{name}' has unknown kind"))
+                }
             }
             ErrorKind::InvalidFinalBind => (
                 Severity::Warning,
@@ -449,10 +458,18 @@ impl ToDiagnostics for CheckingError {
             }
         }
 
-        if let ErrorKind::TermHole { bindings, .. } | ErrorKind::TypeHole { bindings, .. } =
-            &self.kind
-        {
-            diagnostic = attach_hole_binding_trivia(diagnostic, context, bindings);
+        match &self.kind {
+            ErrorKind::TermHole { source_term } => {
+                if let Some(hole) = context.checked.lookup_term_hole(*source_term) {
+                    diagnostic = attach_hole_binding_trivia(diagnostic, context, &hole.bindings);
+                }
+            }
+            ErrorKind::TypeHole { source_type } => {
+                if let Some(hole) = context.checked.lookup_type_hole(*source_type) {
+                    diagnostic = attach_hole_binding_trivia(diagnostic, context, &hole.bindings);
+                }
+            }
+            _ => {}
         }
 
         vec![diagnostic]
