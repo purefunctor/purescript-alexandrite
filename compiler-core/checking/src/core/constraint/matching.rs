@@ -12,6 +12,7 @@ use crate::core::fd::{Fd, compute_closure, get_all_determined, get_functional_de
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{KindOrType, Name, RowField, RowTypeId, Type, TypeId, normalise, toolkit};
+use crate::source::types;
 use crate::state::CheckState;
 
 #[derive(PartialEq, Eq)]
@@ -636,6 +637,8 @@ where
         &declared_arguments,
     )? {
         MatchType::Match { bindings } => {
+            let matched_names: FxHashSet<_> = bindings.iter().map(|(name, _)| *name).collect();
+
             let mut substitution = FxHashMap::default();
             for &(name, bound) in &bindings {
                 substitution.entry(name).or_insert(bound);
@@ -651,6 +654,21 @@ where
             }
 
             let mut unifications = vec![];
+
+            for binder in &declared.binders {
+                if !matched_names.contains(&binder.name) {
+                    continue;
+                }
+
+                let expected_kind =
+                    SubstituteName::many(state, context, &substitution, binder.kind)?;
+
+                let actual_kind =
+                    types::elaborate_kind(state, context, substitution[&binder.name])?;
+
+                unifications.push((actual_kind, expected_kind));
+            }
+
             for (wanted, declared) in iter::zip(wanted_arguments, declared_arguments) {
                 let wanted = SubstituteName::many(state, context, &substitution, wanted)?;
                 let declared = SubstituteName::many(state, context, &substitution, declared)?;

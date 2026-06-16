@@ -35,3 +35,10 @@ instance forall (t :: Type) (t1 :: Type) (t2 :: (t :: Type)) (t3 :: (t1 :: Type)
     (t2 :: (t :: Type))
     (t3 :: (t1 :: Type))
     (t3 :: (t1 :: Type))
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Type' with 'Int'
+  --> 15:1..15:37
+   |
+15 | x = choose (Proxy @Int) (Proxy @Int)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
