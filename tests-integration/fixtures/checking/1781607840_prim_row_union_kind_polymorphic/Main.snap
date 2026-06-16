@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+openLeftHigherKinded ::
+  forall (tail :: Row (Type -> Type)) (output :: Row (Type -> Type)).
+    Union @(Type -> Type)
+      ( effect :: Effect | (tail :: Row (Type -> Type)) )
+      ()
+      (output :: Row (Type -> Type)) =>
+    Proxy @(Row (Type -> Type)) (output :: Row (Type -> Type))
+forceSolve ::
+  forall (tail :: Row (Type -> Type)) (output :: Row (Type -> Type)).
+    Union @(Type -> Type) (tail :: Row (Type -> Type)) () (output :: Row (Type -> Type)) =>
+    { openLeftHigherKinded ::
+        Proxy @(Row (Type -> Type)) ( effect :: Effect | (output :: Row (Type -> Type)) )
+    }
+
+Types
+Effect :: Type -> Type
+
+Roles
+Effect = [Nominal]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Type' with 'Type -> Type'
+  --> 14:1..17:67
+   |
+14 | forceSolve
+   | ^~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Row Type' with 'Row (Type -> Type)'
+  --> 14:1..17:67
+   |
+14 | forceSolve
+   | ^~~~~~~~~~
