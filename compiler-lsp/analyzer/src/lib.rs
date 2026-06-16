@@ -1,3 +1,4 @@
+pub mod code_action;
 pub mod common;
 pub mod completion;
 pub mod context;

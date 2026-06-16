@@ -6,9 +6,11 @@ use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::{QueryEngine, prim};
 use async_lsp::lsp_types::{
-    CompletionItemKind, CompletionList, CompletionResponse, DocumentHighlight,
-    DocumentSymbolResponse, GotoDefinitionResponse, HoverContents, LanguageString, Location,
-    MarkedString, Position, SymbolInformation, Url, WorkspaceSymbolResponse,
+    CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
+    CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
+    DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
+    LanguageString, Location, MarkedString, Position, Range, SymbolInformation, TextEdit, Url,
+    WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use files::{FileId, Files};
 use itertools::Itertools;
@@ -26,10 +28,11 @@ enum CursorKind {
     References,
     DocumentHighlight,
     DocumentSymbols,
+    CodeAction,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!', '&'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!', '&', '.'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -40,6 +43,7 @@ impl CursorKind {
             "%" => Some(CursorKind::References),
             "&" => Some(CursorKind::DocumentHighlight),
             "!" => Some(CursorKind::DocumentSymbols),
+            "." => Some(CursorKind::CodeAction),
             _ => None,
         }
     }
@@ -47,6 +51,11 @@ impl CursorKind {
     fn valid(c: char) -> bool {
         CursorKind::CHARACTERS.contains(&c)
     }
+}
+
+fn cursor_marker_line(line: &str) -> bool {
+    let Some(markers) = line.strip_prefix("--") else { return false };
+    markers.chars().all(|character| character.is_whitespace() || CursorKind::valid(character))
 }
 
 enum Request {
@@ -63,7 +72,7 @@ fn extract_cursors(content: &str) -> Vec<(usize, Request)> {
     for (index, text) in content.match_indices(CursorKind::valid) {
         let line_col = line_index.line_col(TextSize::new(index as u32));
         let line_range = line_index.line(line_col.line).unwrap();
-        if !content[line_range].starts_with("--") {
+        if !cursor_marker_line(&content[line_range]) {
             continue;
         }
 
@@ -182,6 +191,60 @@ fn render_location(location: Location) -> String {
     )
 }
 
+fn render_text_edit(edit: TextEdit) -> String {
+    format!(
+        "{}:{}..{}:{} => {:?}",
+        edit.range.start.line,
+        edit.range.start.character,
+        edit.range.end.line,
+        edit.range.end.character,
+        edit.new_text,
+    )
+}
+
+fn render_workspace_edit(edit: WorkspaceEdit) -> Vec<String> {
+    let mut result = vec![];
+
+    if let Some(changes) = edit.changes {
+        for edits in changes.into_values() {
+            result.extend(edits.into_iter().map(render_text_edit));
+        }
+    }
+
+    result.sort();
+    result
+}
+
+fn render_code_action_response(response: CodeActionResponse) -> String {
+    let mut result = vec![];
+
+    for action in response {
+        match action {
+            CodeActionOrCommand::CodeAction(action) => {
+                let kind = action.kind.as_ref().map(CodeActionKind::as_str).unwrap_or("<none>");
+
+                if let Some(edit) = action.edit {
+                    let edits = render_workspace_edit(edit);
+                    if edits.is_empty() {
+                        result.push(format!("{} [{kind}] <no edit>", action.title));
+                    } else {
+                        for edit in edits {
+                            result.push(format!("{} [{kind}] {edit}", action.title));
+                        }
+                    }
+                } else {
+                    result.push(format!("{} [{kind}] <no edit>", action.title));
+                }
+            }
+            CodeActionOrCommand::Command(command) => {
+                result.push(format!("{} [command:{}]", command.title, command.command));
+            }
+        }
+    }
+
+    if result.is_empty() { "<empty>".to_string() } else { result.join("\n") }
+}
+
 fn dispatch_cursor(
     result: &mut String,
     engine: &QueryEngine,
@@ -250,6 +313,22 @@ fn dispatch_cursor(
                         }
                     }
                 }
+            } else {
+                writeln!(result, "<empty>").unwrap();
+            }
+        }
+        CursorKind::CodeAction => {
+            let range = Range::new(position, position);
+            let action_context = CodeActionContext {
+                diagnostics: vec![],
+                only: Some(vec![CodeActionKind::QUICKFIX]),
+                trigger_kind: Some(CodeActionTriggerKind::INVOKED),
+            };
+
+            if let Ok(Some(response)) =
+                analyzer::code_action::implementation(&context, uri, range, action_context)
+            {
+                writeln!(result, "{}", render_code_action_response(response)).unwrap();
             } else {
                 writeln!(result, "<empty>").unwrap();
             }
