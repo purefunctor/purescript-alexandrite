@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 39
+expression: report
+---
+Terms
+
+Types
+TypeToType :: Type
+ApplyAliasKind :: TypeToType -> Type
+
+Synonyms
+type TypeToType = Type -> Type
+type ApplyAliasKind f = (f :: TypeToType) Int

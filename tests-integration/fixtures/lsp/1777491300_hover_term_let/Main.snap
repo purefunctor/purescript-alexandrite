@@ -1,6 +1,5 @@
 ---
-source: tests-integration/tests/lsp/generated.rs
-assertion_line: 12
+source: tests-integration/src/fixtures.rs
 expression: report
 ---
 Hover at Position { line: 6, character: 4 }
@@ -11,5 +10,5 @@ Hover at Position { line: 6, character: 4 }
 ```
 
 ```purescript
-(t0 :: Type) -> (t0 :: Type)
+(t :: Type) -> (t :: Type)
 ```

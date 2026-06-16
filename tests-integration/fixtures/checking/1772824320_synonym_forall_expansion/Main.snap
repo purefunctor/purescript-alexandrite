@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -11,8 +11,8 @@ apply ::
     (g :: Type -> Type) Int
 
 Types
-NatTrans :: forall (t3 :: Type). ((t3 :: Type) -> Type) -> ((t3 :: Type) -> Type) -> Type
+NatTrans :: forall (t :: Type). ((t :: Type) -> Type) -> ((t :: Type) -> Type) -> Type
 
 Synonyms
-type NatTrans f g = forall (a :: (t3 :: Type)).
-  (f :: (t3 :: Type) -> Type) (a :: (t3 :: Type)) -> (g :: (t3 :: Type) -> Type) (a :: (t3 :: Type))
+type NatTrans f g = forall (a :: (t :: Type)).
+  (f :: (t :: Type) -> Type) (a :: (t :: Type)) -> (g :: (t :: Type) -> Type) (a :: (t :: Type))

@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -36,9 +36,9 @@ class forall (f :: Type) (a :: Type) (r :: Type). Walk (f :: Type) (a :: Type) (
     Walk (f :: Type) (a :: Type) (r :: Type) => (f :: Type) -> (a :: Type) -> (r :: Type)
 
 Instances
-instance forall (t10 :: Type) (t11 :: Type) (t12 :: Type) (t14 :: Type) (t13 :: Type).
-  Step (t10 :: Type) (t11 :: Type) (t12 :: Type) (t14 :: Type) =>
-  Walk (t10 :: Type) (t14 :: Type) (t13 :: Type) =>
-  Walk (t10 :: Type) (t11 :: Type) ((t12 :: Type) -> (t13 :: Type))
-instance forall (t20 :: Type) (t21 :: Type) (t22 :: Type).
-  Done (t20 :: Type) (t21 :: Type) (t22 :: Type) => Walk (t20 :: Type) (t21 :: Type) (t22 :: Type)
+instance forall (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Type) (t4 :: Type).
+  Step (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Type) =>
+  Walk (t :: Type) (t3 :: Type) (t4 :: Type) =>
+  Walk (t :: Type) (t1 :: Type) ((t2 :: Type) -> (t4 :: Type))
+instance forall (t :: Type) (t1 :: Type) (t2 :: Type).
+  Done (t :: Type) (t1 :: Type) (t2 :: Type) => Walk (t :: Type) (t1 :: Type) (t2 :: Type)

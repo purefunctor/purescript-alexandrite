@@ -1,7 +1,7 @@
 use async_lsp::lsp_types::*;
 use building::QueryEngine;
 use checking::core::pretty::Pretty;
-use files::{FileId, Files};
+use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
@@ -10,19 +10,23 @@ use rowan::ast::{AstNode, AstPtr};
 use smol_str::ToSmolStr;
 use syntax::{SyntaxNode, cst};
 
-use crate::extract::{self, AnnotationSyntaxRange};
-use crate::{AnalyzerError, locate};
+use crate::extract::AnnotationSyntaxRange;
+use crate::{AnalyzerError, LanguageContext, extract, locate, position};
 
 pub fn implementation(
-    engine: &QueryEngine,
-    files: &Files,
+    context: &LanguageContext,
     uri: Url,
     position: Position,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
     };
+
+    let engine = context.engine;
+    let content = engine.content(current_file);
+    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
 
     let located = locate::locate(engine, current_file, position)?;
 
@@ -36,6 +40,8 @@ pub fn implementation(
             hover_expression(engine, current_file, expression_id)
         }
         locate::Located::Type(type_id) => hover_type(engine, current_file, type_id),
+        locate::Located::BinderPun(pun_id) => hover_pun(engine, current_file, pun_id),
+        locate::Located::ExpressionPun(pun_id) => hover_pun(engine, current_file, pun_id),
         locate::Located::TermOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
@@ -50,7 +56,7 @@ pub fn implementation(
         }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
         locate::Located::TypeItem(type_id) => hover_file_type(engine, current_file, type_id),
-        locate::Located::Pun(pun_id) => hover_pun(engine, current_file, pun_id),
+        locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),
         locate::Located::Nothing => Ok(None),
     }
 }
@@ -276,7 +282,7 @@ fn hover_checked_type(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80);
+    let mut pretty = Pretty::new(engine, &checked).width(80);
     let value = pretty.render(type_id).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
@@ -308,8 +314,8 @@ fn hover_file_term(
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    let value = pretty.render(signature).to_string();
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
     let array = [Some(value), annotation].into_iter().flatten();
@@ -336,8 +342,8 @@ fn hover_file_type(
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let pretty = Pretty::new(engine, &checked).width(80).signature(name);
-    let value = pretty.render(signature).to_string();
+    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
     let array = [Some(value), annotation].into_iter().flatten();

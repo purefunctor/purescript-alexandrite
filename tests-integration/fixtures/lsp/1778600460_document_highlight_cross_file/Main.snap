@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+DocumentHighlight at Position { line: 4, character: 6 }
+
+```
+bar = foo foo
+--    &
+```
+
+2:12..2:15
+4:6..4:9
+4:10..4:13

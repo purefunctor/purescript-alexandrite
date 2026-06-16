@@ -424,6 +424,7 @@ pub struct LoweringInfo {
 
     pub(crate) term_operator: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
     pub(crate) type_operator: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
+    pub(crate) expression_pun: FxHashMap<RecordPunId, TermVariableResolution>,
 }
 
 impl LoweringInfo {
@@ -449,6 +450,12 @@ impl LoweringInfo {
 
     pub fn iter_type_operator(&self) -> impl Iterator<Item = (TypeOperatorId, FileId, TypeItemId)> {
         self.type_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+    }
+
+    pub fn iter_expression_pun(
+        &self,
+    ) -> impl Iterator<Item = (RecordPunId, TermVariableResolution)> {
+        self.expression_pun.iter().map(|(k, v)| (*k, *v))
     }
 
     pub fn get_binder_kind(&self, id: BinderId) -> Option<&BinderKind> {
@@ -479,6 +486,24 @@ impl LoweringInfo {
         &self.let_binding[id]
     }
 
+    pub fn let_binding_group_for_signature(
+        &self,
+        signature: crate::source::LetBindingSignatureId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding
+            .iter()
+            .find_map(|(id, group)| (group.signature == Some(signature)).then_some(id))
+    }
+
+    pub fn let_binding_group_for_equation(
+        &self,
+        equation: crate::source::LetBindingEquationId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding
+            .iter()
+            .find_map(|(id, group)| group.equations.contains(&equation).then_some(id))
+    }
+
     pub fn get_let_binding(&self, id: LetBindingNameGroupId) -> Option<&LetBindingName> {
         self.let_binding_name.get(id)
     }
@@ -489,5 +514,30 @@ impl LoweringInfo {
 
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
         self.type_operator.get(&id).copied()
+    }
+
+    pub fn get_expression_pun(&self, id: RecordPunId) -> Option<TermVariableResolution> {
+        self.expression_pun.get(&id).copied()
+    }
+
+    pub fn find_let_binding_group_by_signature(
+        &self,
+        signature_id: LetBindingSignatureId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+            let_binding_group
+                .signature
+                .is_some_and(|candidate_id| candidate_id == signature_id)
+                .then_some(let_binding_id)
+        })
+    }
+
+    pub fn find_let_binding_group_by_equation(
+        &self,
+        equation_id: LetBindingEquationId,
+    ) -> Option<LetBindingNameGroupId> {
+        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+            let_binding_group.equations.contains(&equation_id).then_some(let_binding_id)
+        })
     }
 }

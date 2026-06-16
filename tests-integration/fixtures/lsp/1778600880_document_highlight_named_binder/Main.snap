@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+DocumentHighlight at Position { line: 4, character: 4 }
+
+```
+foo whole@(Just x) = whole
+--  &
+```
+
+4:4..4:9
+4:21..4:26

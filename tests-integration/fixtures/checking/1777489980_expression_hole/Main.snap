@@ -1,9 +1,17 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
-hole :: forall (t0 :: Type). (t0 :: Type)
+hole :: forall (t :: Type). (t :: Type)
 
 Types
+
+Diagnostics
+error[TermHole]: Hole '?hole' has inferred type: (t :: Type)
+  --> 3:8..3:13
+  |
+3 | hole = ?hole
+  |        ^~~~~
+  trivia: hole :: (t :: Type) is in scope

@@ -50,8 +50,9 @@ jobs:
       - name: Build and Release
         uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: purescript-analyzer
-          package: purescript-analyzer
+          bin: purescript-analyzer,purescript-alexandrite
+          package: purescript-alexandrite
+          archive: purescript-alexandrite-$target
           include: README.md,LICENSE,ACKNOWLEDGEMENTS.md,THIRDPARTY.toml
           leading-dir: true
           locked: true

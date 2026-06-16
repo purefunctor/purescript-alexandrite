@@ -1,7 +1,10 @@
 use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportKind, TermItemId, TypeItemId};
+use itertools::Itertools;
+use lowering::GraphNode;
 use resolving::ResolvedModule;
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::AnalyzerError;
@@ -9,7 +12,7 @@ use crate::AnalyzerError;
 use super::edit;
 use super::filter::PerfectSegmentFuzzy;
 use super::item::CompletionItemSpec;
-use super::prelude::*;
+use super::prelude::{CompletionContext, CompletionSource, Filter};
 use super::resolve::CompletionResolveData;
 
 /// Yields the qualified names of imports.
@@ -28,7 +31,7 @@ impl CompletionSource for QualifiedModules {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -37,7 +40,7 @@ impl CompletionSource for QualifiedModules {
 
         for (name, imports) in source {
             let Some(import) = imports.first() else { continue };
-            let (parsed, _) = context.engine.parsed(import.file)?;
+            let (parsed, _) = context.language.engine.parsed(import.file)?;
             let description = parsed.module_name().map(|name| name.to_string());
 
             let mut item = CompletionItemSpec::new(
@@ -58,6 +61,188 @@ impl CompletionSource for QualifiedModules {
     }
 }
 
+/// Yields local terms visible from the current lexical scope.
+pub struct ScopeTerms;
+
+impl CompletionSource for ScopeTerms {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(scope_node) = context.scope_node()? else { return Ok(()) };
+
+        let lowered = context.language.engine.lowered(context.current_file)?;
+        let mut seen = FxHashSet::default();
+
+        for (_, node) in lowered.graph.traverse(scope_node) {
+            match node {
+                GraphNode::Binder { binders, puns, .. } => {
+                    let mut binders = binders.iter().collect_vec();
+                    binders.sort_by_key(|(left, _)| *left);
+
+                    for (name, binder_id) in binders {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VARIABLE,
+                            CompletionResolveData::Binder(context.current_file, *binder_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+
+                    let mut puns = puns.iter().collect_vec();
+                    puns.sort_by_key(|(left, _)| *left);
+
+                    for (name, pun_id) in puns {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VARIABLE,
+                            CompletionResolveData::RecordPun(context.current_file, *pun_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Let { bindings, .. } => {
+                    let mut bindings = bindings.iter().collect_vec();
+                    bindings.sort_by_key(|(left, _)| *left);
+
+                    for (name, let_id) in bindings {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::VALUE,
+                            CompletionResolveData::Let(context.current_file, *let_id),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Forall { .. } | GraphNode::Implicit { .. } => {}
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Yields type variables visible from the current lexical scope.
+pub struct ScopeTypes;
+
+impl CompletionSource for ScopeTypes {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(scope_node) = context.scope_node()? else { return Ok(()) };
+
+        let lowered = context.language.engine.lowered(context.current_file)?;
+        let mut seen = FxHashSet::default();
+
+        for (node_id, node) in lowered.graph.traverse(scope_node) {
+            match node {
+                GraphNode::Forall { bindings, .. } => {
+                    let mut bindings = bindings.iter().collect_vec();
+                    bindings.sort_by_key(|(left, _)| *left);
+
+                    for (name, binding_id) in bindings {
+                        if !filter.matches(name) || !seen.insert(name.clone()) {
+                            continue;
+                        }
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::TYPE_PARAMETER,
+                            CompletionResolveData::ForallTypeVariable(
+                                context.current_file,
+                                *binding_id,
+                            ),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Implicit { bindings, .. } => {
+                    let mut entries = bindings.iter().collect_vec();
+                    entries.sort_by_key(|(left, _)| *left);
+
+                    for (name, type_id) in entries {
+                        if implicit_binding_at_cursor(context, type_id) {
+                            continue;
+                        }
+
+                        if !filter.matches(name) || !seen.insert(SmolStr::from(name)) {
+                            continue;
+                        }
+                        let Some(binding_id) = bindings.get(name) else { continue };
+
+                        let mut item = CompletionItemSpec::new(
+                            name.to_string(),
+                            context.range,
+                            CompletionItemKind::TYPE_PARAMETER,
+                            CompletionResolveData::ImplicitTypeVariable(
+                                context.current_file,
+                                node_id,
+                                binding_id,
+                            ),
+                        );
+
+                        item.label_description("Local".to_string());
+
+                        items.push(item.build());
+                    }
+                }
+                GraphNode::Binder { .. } | GraphNode::Let { .. } => {}
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn implicit_binding_at_cursor(context: &CompletionContext, type_id: &[lowering::TypeId]) -> bool {
+    let root = context.parsed.syntax_node();
+
+    type_id.iter().any(|type_id| {
+        let Some(ptr) = context.stabilized.syntax_ptr(*type_id) else { return false };
+        let Some(node) = ptr.try_to_node(&root) else { return false };
+
+        let range = node.text_range();
+        range.start() <= context.offset && context.offset <= range.end()
+    })
+}
+
 /// Yields terms defined in the current module.
 pub struct LocalTerms;
 
@@ -66,7 +251,7 @@ impl CompletionSource for LocalTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -98,7 +283,7 @@ impl CompletionSource for LocalTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -146,7 +331,7 @@ impl CompletionSource for ImportedTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -158,7 +343,7 @@ impl CompletionSource for ImportedTerms {
             });
 
             for (name, file_id, term_id, _) in source {
-                let (parsed, _) = context.engine.parsed(file_id)?;
+                let (parsed, _) = context.language.engine.parsed(file_id)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -188,7 +373,7 @@ impl CompletionSource for ImportedTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -199,7 +384,7 @@ impl CompletionSource for ImportedTypes {
                 filter.matches(name) && !matches!(kind, ImportKind::Hidden)
             });
             for (name, f, t, _) in source {
-                let (parsed, _) = context.engine.parsed(f)?;
+                let (parsed, _) = context.language.engine.parsed(f)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -220,7 +405,7 @@ impl CompletionSource for ImportedTypes {
                 filter.matches(name) && !matches!(kind, ImportKind::Hidden)
             });
             for (name, f, t, _) in source {
-                let (parsed, _) = context.engine.parsed(f)?;
+                let (parsed, _) = context.language.engine.parsed(f)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -250,7 +435,7 @@ impl CompletionSource for QualifiedTerms<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -264,7 +449,7 @@ impl CompletionSource for QualifiedTerms<'_> {
             });
 
             for (name, file_id, term_id, _) in source {
-                let (parsed, _) = context.engine.parsed(file_id)?;
+                let (parsed, _) = context.language.engine.parsed(file_id)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -295,7 +480,7 @@ impl CompletionSource for QualifiedTypes<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -309,7 +494,7 @@ impl CompletionSource for QualifiedTypes<'_> {
             });
 
             for (name, file_id, type_id, _) in source {
-                let (parsed, _) = context.engine.parsed(file_id)?;
+                let (parsed, _) = context.language.engine.parsed(file_id)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -332,7 +517,7 @@ impl CompletionSource for QualifiedTypes<'_> {
             });
 
             for (name, file_id, type_id, _) in source {
-                let (parsed, _) = context.engine.parsed(file_id)?;
+                let (parsed, _) = context.language.engine.parsed(file_id)?;
                 let description = parsed.module_name().map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
@@ -369,7 +554,7 @@ trait SuggestionsHelper {
 
     fn candidate(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -386,7 +571,7 @@ impl SuggestionsHelper for SuggestedTerms {
 
     fn candidate(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -398,7 +583,7 @@ impl SuggestionsHelper for SuggestedTerms {
             return Ok(None);
         }
 
-        let (parsed, _) = context.engine.parsed(file_id)?;
+        let (parsed, _) = context.language.engine.parsed(file_id)?;
         let Some(module_name) = parsed.module_name() else {
             return Ok(None);
         };
@@ -439,7 +624,7 @@ impl SuggestionsHelper for SuggestedTypes {
 
     fn candidate(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -451,7 +636,7 @@ impl SuggestionsHelper for SuggestedTypes {
             return Ok(None);
         }
 
-        let (parsed, _) = context.engine.parsed(file_id)?;
+        let (parsed, _) = context.language.engine.parsed(file_id)?;
         let Some(module_name) = parsed.module_name() else {
             return Ok(None);
         };
@@ -483,7 +668,7 @@ impl SuggestionsHelper for SuggestedTypes {
 
 fn suggestions_candidates<T: SuggestionsHelper>(
     this: &T,
-    context: &Context,
+    context: &CompletionContext,
     filter: impl Filter,
     items: &mut Vec<CompletionItem>,
 ) -> Result<(), AnalyzerError> {
@@ -494,14 +679,14 @@ fn suggestions_candidates<T: SuggestionsHelper>(
         .flatten()
         .any(|import| import.file == context.prim_id);
 
-    let file_ids = context.files.iter_id().filter(move |&id| {
+    let file_ids = context.language.files.iter_id().filter(move |&id| {
         let not_self = id != context.current_file;
         let not_prim = id != context.prim_id;
         not_self && (not_prim || has_prim)
     });
 
     for import_id in file_ids {
-        let resolved = context.engine.resolved(import_id)?;
+        let resolved = context.language.engine.resolved(import_id)?;
 
         let source = T::exports(&resolved)
             .filter(|(name, file_id, _)| filter.matches(name) && *file_id == import_id);
@@ -521,7 +706,7 @@ impl CompletionSource for SuggestedTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -534,7 +719,7 @@ impl CompletionSource for SuggestedTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -550,7 +735,7 @@ impl CompletionSource for PrimTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -585,7 +770,7 @@ impl CompletionSource for PrimTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -648,13 +833,13 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
 
     fn candidate(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
         item_id: Self::ItemId,
     ) -> Result<Option<CompletionItem>, AnalyzerError> {
-        let (parsed, _) = context.engine.parsed(import_id)?;
+        let (parsed, _) = context.language.engine.parsed(import_id)?;
         let Some(module_name) = parsed.module_name() else {
             return Ok(None);
         };
@@ -692,13 +877,13 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
 
     fn candidate(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
         item_id: Self::ItemId,
     ) -> Result<Option<CompletionItem>, AnalyzerError> {
-        let (parsed, _) = context.engine.parsed(import_id)?;
+        let (parsed, _) = context.language.engine.parsed(import_id)?;
         let Some(module_name) = parsed.module_name() else {
             return Ok(None);
         };
@@ -728,22 +913,22 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
 fn suggestions_candidates_qualified<T: SuggestionsHelper>(
     this: &T,
     prefix: &str,
-    context: &Context,
+    context: &CompletionContext,
     filter: impl Filter,
     items: &mut Vec<CompletionItem>,
 ) -> Result<(), AnalyzerError> {
     let has_prim =
         context.resolved.qualified.values().flatten().any(|import| import.file == context.prim_id);
 
-    let file_ids = context.files.iter_id().filter(move |&id| {
+    let file_ids = context.language.files.iter_id().filter(move |&id| {
         let not_self = id != context.current_file;
         let not_prim = id != context.prim_id;
         not_self && (not_prim || has_prim)
     });
 
     for import_id in file_ids {
-        let (parsed, _) = context.engine.parsed(import_id)?;
-        let resolved = context.engine.resolved(import_id)?;
+        let (parsed, _) = context.language.engine.parsed(import_id)?;
+        let resolved = context.language.engine.resolved(import_id)?;
 
         if parsed.module_name().is_some_and(|module_name| {
             let filter = PerfectSegmentFuzzy(&module_name);
@@ -769,7 +954,7 @@ impl CompletionSource for QualifiedTermsSuggestions<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -782,7 +967,7 @@ impl CompletionSource for QualifiedTypesSuggestions<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -798,12 +983,12 @@ impl CompletionSource for WorkspaceModules {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
-        for id in context.files.iter_id() {
-            let (parsed, _) = context.engine.parsed(id)?;
+        for id in context.language.files.iter_id() {
+            let (parsed, _) = context.language.engine.parsed(id)?;
 
             let Some(module_name) = parsed.module_name() else {
                 continue;

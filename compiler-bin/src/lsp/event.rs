@@ -1,4 +1,4 @@
-use analyzer::{common, locate};
+use analyzer::{common, position};
 use async_lsp::LanguageClient;
 use async_lsp::lsp_types::*;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
@@ -45,13 +45,17 @@ fn collect_diagnostics_core(
     let lowered = snapshot.engine.lowered(id)?;
     let checked = snapshot.engine.checked(id)?;
 
-    let uri = {
-        let files = snapshot.files.read();
-        common::file_uri(&snapshot.engine, &files, id)?
-    };
+    let uri = snapshot.with_language_context(|context| common::file_uri(context, id))?;
 
-    let context =
-        DiagnosticsContext::new(&snapshot.engine, &content, &root, &stabilized, &indexed, &lowered);
+    let context = DiagnosticsContext::new(
+        &snapshot.engine,
+        &content,
+        &root,
+        &stabilized,
+        &indexed,
+        &lowered,
+        &checked,
+    );
 
     let mut all_diagnostics = vec![];
 
@@ -67,13 +71,16 @@ fn collect_diagnostics_core(
         all_diagnostics.extend(error.to_diagnostics(&context));
     }
 
-    let to_position = |offset: u32| locate::offset_to_position(&content, TextSize::from(offset));
+    let to_position = |offset: u32| {
+        let position = position::offset_to_utf8_position(&content, TextSize::from(offset))?;
+        position::utf8_position_to_protocol(&content, position, snapshot.position_encoding)
+    };
 
     let diagnostics = all_diagnostics
         .iter()
         .filter_map(|diagnostic| {
-            let start = to_position(diagnostic.primary.start)?;
-            let end = to_position(diagnostic.primary.end)?;
+            let start = to_position(diagnostic.span.start)?;
+            let end = to_position(diagnostic.span.end)?;
             let range = Range { start, end };
 
             let severity = match diagnostic.severity {

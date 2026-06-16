@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -15,9 +15,9 @@ warnAbove ::
   forall (a :: Type). Warn (Above (Text "Line 1") (Text "Line 2")) => (a :: Type) -> (a :: Type)
 useWarnAbove :: Int
 warnQuote ::
-  forall (t10 :: Type) (a :: (t10 :: Type)).
-    Warn (Beside (Text "Got type: ") (Quote @(t10 :: Type) (a :: (t10 :: Type)))) =>
-    Proxy @(t10 :: Type) (a :: (t10 :: Type)) -> Proxy @(t10 :: Type) (a :: (t10 :: Type))
+  forall (t :: Type) (a :: (t :: Type)).
+    Warn (Beside (Text "Got type: ") (Quote @(t :: Type) (a :: (t :: Type)))) =>
+    Proxy @(t :: Type) (a :: (t :: Type)) -> Proxy @(t :: Type) (a :: (t :: Type))
 useWarnQuote :: Proxy @Type Int
 warnQuoteLabel ::
   forall (a :: Type).

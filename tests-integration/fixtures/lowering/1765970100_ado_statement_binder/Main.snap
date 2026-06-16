@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/lowering/generated.rs
-assertion_line: 12
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
 expression: report
 ---
 module Main
@@ -14,7 +14,7 @@ pure@10:6
 { x, y }@11:4
   -> binder@9:14
 x@10:11
-  -> binder@8:10
+  -> nothing
 pure@9:6
   -> top-level
 

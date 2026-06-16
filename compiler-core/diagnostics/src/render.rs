@@ -1,11 +1,17 @@
 use itertools::Itertools;
-use line_index::{LineCol, LineIndex};
+use line_index::{LineCol, LineIndex, WideEncoding};
 use lsp_types::{
     DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Position, Range,
 };
 use rowan::TextSize;
 
 use crate::{Diagnostic, Severity, Span};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DisplayPosition {
+    line: u32,
+    column: u32,
+}
 
 pub fn format_text(diagnostics: &[Diagnostic]) -> String {
     let mut output = String::new();
@@ -16,7 +22,7 @@ pub fn format_text(diagnostics: &[Diagnostic]) -> String {
             Severity::Warning => "warning",
         };
 
-        let primary = diagnostic.primary;
+        let primary = diagnostic.span;
         output.push_str(&format!(
             "{severity}[{}] at {}..{}: {}\n",
             diagnostic.code, primary.start, primary.end, diagnostic.message
@@ -57,9 +63,9 @@ fn span_location(
     content: &str,
     span: Span,
 ) -> Option<((u32, u32), (u32, u32))> {
-    let start = offset_to_position(line_index, content, TextSize::from(span.start))?;
-    let end = offset_to_position(line_index, content, TextSize::from(span.end))?;
-    Some(((start.line, start.character), (end.line, end.character)))
+    let start = offset_to_display_position(line_index, content, TextSize::from(span.start))?;
+    let end = offset_to_display_position(line_index, content, TextSize::from(span.end))?;
+    Some(((start.line, start.column), (end.line, end.column)))
 }
 
 pub fn format_rustc(diagnostics: &[Diagnostic], content: &str) -> String {
@@ -83,7 +89,7 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
 
         output.push_str(&format!("{severity}[{}]: {}\n", diagnostic.code, diagnostic.message));
 
-        let primary = diagnostic.primary;
+        let primary = diagnostic.span;
         if let Some(((start_line, start_col), (end_line, end_col))) =
             span_location(&line_index, content, primary)
         {
@@ -113,6 +119,10 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
                 let marker = caret_marker(line, start_col, marker_end_col);
                 output.push_str(&format!("{:>width$} | {}\n", "", marker, width = line_num_width));
             }
+        }
+
+        for trivia in &diagnostic.trivia {
+            output.push_str(&format!("  trivia: {trivia}\n"));
         }
 
         for related in &diagnostic.related {
@@ -159,31 +169,52 @@ fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&s
     output
 }
 
-fn offset_to_position(line_index: &LineIndex, content: &str, offset: TextSize) -> Option<Position> {
+fn offset_to_display_position(
+    line_index: &LineIndex,
+    content: &str,
+    offset: TextSize,
+) -> Option<DisplayPosition> {
     let LineCol { line, col } = line_index.line_col(offset);
 
     let line_text_range = line_index.line(line)?;
     let line_content = &content[line_text_range];
 
     let until_col = &line_content[..col as usize];
-    let character = until_col.chars().count() as u32;
+    let column = until_col.chars().count() as u32;
 
-    Some(Position { line, character })
+    Some(DisplayPosition { line, column })
+}
+
+fn offset_to_lsp_position(
+    line_index: &LineIndex,
+    offset: TextSize,
+    encoding: &lsp_types::PositionEncodingKind,
+) -> Option<Position> {
+    let line_col = line_index.try_line_col(offset)?;
+    let character = if encoding == &lsp_types::PositionEncodingKind::UTF8 {
+        line_col.col
+    } else if encoding == &lsp_types::PositionEncodingKind::UTF32 {
+        line_index.to_wide(WideEncoding::Utf32, line_col)?.col
+    } else {
+        line_index.to_wide(WideEncoding::Utf16, line_col)?.col
+    };
+
+    Some(Position { line: line_col.line, character })
 }
 
 pub fn to_lsp_diagnostic(
     diagnostic: &Diagnostic,
     content: &str,
     uri: &lsp_types::Url,
+    encoding: &lsp_types::PositionEncodingKind,
 ) -> Option<lsp_types::Diagnostic> {
     let line_index = LineIndex::new(content);
 
     let to_position =
-        |offset: u32| offset_to_position(&line_index, content, TextSize::from(offset));
+        |offset: u32| offset_to_lsp_position(&line_index, TextSize::from(offset), encoding);
 
-    let primary = diagnostic.primary;
-    let start = to_position(primary.start)?;
-    let end = to_position(primary.end)?;
+    let start = to_position(diagnostic.span.start)?;
+    let end = to_position(diagnostic.span.end)?;
     let range = Range { start, end };
 
     let severity = match diagnostic.severity {

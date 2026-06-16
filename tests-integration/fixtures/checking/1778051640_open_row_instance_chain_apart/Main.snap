@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -28,8 +28,7 @@ class forall (key :: Type) (row :: Row Type). C (key :: Type) (row :: Row Type)
 
 Instances
 instance C K1 ( a :: Int, b :: Boolean )
-instance forall (t4 :: Type) (t5 :: Row Type).
-  C (t4 :: Type) ( a :: String, b :: Boolean | (t5 :: Row Type) )
+instance forall (t :: Type) (t1 :: Row Type). C (t :: Type) ( a :: String, b :: Boolean | (t1 :: Row Type) )
 
 Roles
 Proxy = [Phantom]

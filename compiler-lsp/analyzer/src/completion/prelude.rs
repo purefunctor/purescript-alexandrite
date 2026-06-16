@@ -1,20 +1,19 @@
 use async_lsp::lsp_types::*;
-use building::QueryEngine;
-use files::{FileId, Files};
+use files::FileId;
+use lowering::{GraphNodeId, LoweredModule};
 use parsing::ParsedModule;
 use resolving::ResolvedModule;
-use rowan::ast::AstNode;
+use rowan::ast::{AstNode, AstPtr};
 use rowan::{TextRange, TextSize, TokenAtOffset};
 use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
-use syntax::{SyntaxKind, SyntaxToken, cst};
+use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
 
-use crate::{AnalyzerError, locate};
+use crate::position::{PositionEncoding, Utf8Position};
+use crate::{AnalyzerError, LanguageContext, position};
 
-pub struct Context<'c, 'a> {
-    pub engine: &'c QueryEngine,
-    pub files: &'c Files,
-
+pub struct CompletionContext<'c, 'a> {
+    pub language: &'c LanguageContext<'c>,
     pub current_file: FileId,
     pub content: &'a str,
     pub stabilized: &'a StabilizedModule,
@@ -27,9 +26,10 @@ pub struct Context<'c, 'a> {
     pub semantics: CursorSemantics,
     pub text: CursorText,
     pub range: Option<Range>,
+    pub offset: TextSize,
 }
 
-impl Context<'_, '_> {
+impl CompletionContext<'_, '_> {
     pub fn insert_import_range(&self) -> Option<Range> {
         let cst = self.parsed.cst();
 
@@ -41,11 +41,13 @@ impl Context<'_, '_> {
             |cst| Some(cst.syntax().text_range()),
         )?;
 
-        let mut position = locate::offset_to_position(self.content, range.end())?;
+        let mut position = position::offset_to_utf8_position(self.content, range.end())?;
 
         position.line += 1;
-        position.character = 0;
+        position.column = 0;
 
+        let position =
+            position::utf8_position_to_protocol(self.content, position, self.language.encoding)?;
         Some(Range::new(position, position))
     }
 
@@ -77,6 +79,74 @@ impl Context<'_, '_> {
         self.resolved.lookup_type(self.prim_resolved, qualifier, name).is_some()
             || self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
     }
+
+    pub fn scope_node(&self) -> Result<Option<GraphNodeId>, AnalyzerError> {
+        let lowered = self.language.engine.lowered(self.current_file)?;
+        let root = self.parsed.syntax_node();
+
+        let scope_node = match root.token_at_offset(self.offset) {
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) => self.scope_node_for_token(&lowered, token),
+            TokenAtOffset::Between(left, right) => {
+                let left = self.scope_node_for_token(&lowered, left);
+                let right = self.scope_node_for_token(&lowered, right);
+
+                if left == right { left } else { right.or(left) }
+            }
+        };
+
+        Ok(scope_node)
+    }
+
+    fn scope_node_for_token(
+        &self,
+        lowered: &LoweredModule,
+        token: SyntaxToken,
+    ) -> Option<GraphNodeId> {
+        token.parent_ancestors().find_map(|node| self.scope_node_for_syntax(lowered, node))
+    }
+
+    fn scope_node_for_syntax(
+        &self,
+        lowered: &LoweredModule,
+        node: SyntaxNode,
+    ) -> Option<GraphNodeId> {
+        let kind = node.kind();
+        let ptr = SyntaxNodePtr::new(&node);
+
+        if cst::Binder::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.binder_node(id)
+        } else if cst::Expression::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.expression_node(id)
+        } else if cst::Type::can_cast(kind) {
+            let ptr = ptr.cast()?;
+            let id = self.stabilized.lookup_ptr(&ptr)?;
+            lowered.nodes.type_node(id)
+        } else if cst::LetBinding::can_cast(kind) {
+            let binding = cst::LetBinding::cast(node)?;
+            let id = match binding {
+                cst::LetBinding::LetBindingPattern(_) => None,
+                cst::LetBinding::LetBindingSignature(signature) => {
+                    let ptr = AstPtr::new(&signature);
+                    let id = self.stabilized.lookup_ptr(&ptr)?;
+                    lowered.info.find_let_binding_group_by_signature(id)
+                }
+                cst::LetBinding::LetBindingEquation(equation) => {
+                    let ptr = AstPtr::new(&equation);
+                    let id = self.stabilized.lookup_ptr(&ptr)?;
+                    lowered.info.find_let_binding_group_by_equation(id)
+                }
+            }?;
+
+            lowered.nodes.let_node(id)
+        } else {
+            None
+        }
+    }
 }
 
 /// A trait for completion sources.
@@ -85,7 +155,7 @@ pub trait CompletionSource {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &Context,
+        context: &CompletionContext,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError>;
@@ -108,7 +178,7 @@ pub enum CursorSemantics {
 const COMPLETION_MARKER: &str = "Z'PureScript'Z";
 
 impl CursorSemantics {
-    pub fn new(content: &str, position: Position) -> CursorSemantics {
+    pub fn new(content: &str, position: Utf8Position) -> CursorSemantics {
         // We insert a placeholder identifier at the current position of the
         // text cursor. This is done as an effort to produce as valid of a
         // parse tree as possible before we perform further analysis.
@@ -124,7 +194,7 @@ impl CursorSemantics {
         //
         // component = Halogen.Z'PureScript'Z
 
-        let Some(offset) = locate::position_to_offset(content, position) else {
+        let Some(offset) = position::utf8_position_to_offset(content, position) else {
             return CursorSemantics::General;
         };
 
@@ -183,14 +253,22 @@ pub enum CursorText {
 }
 
 impl CursorText {
-    pub fn new(content: &str, token: &SyntaxToken) -> (CursorText, Option<Range>) {
-        CursorText::of_qualified(content, token)
-            .or_else(|| CursorText::of_qualifier(content, token))
-            .or_else(|| CursorText::of_module_name(content, token))
+    pub fn new(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> (CursorText, Option<Range>) {
+        CursorText::of_qualified(content, token, encoding)
+            .or_else(|| CursorText::of_qualifier(content, token, encoding))
+            .or_else(|| CursorText::of_module_name(content, token, encoding))
             .unwrap_or((CursorText::None, None))
     }
 
-    fn of_qualified(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_qualified(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let qualified = cst::QualifiedName::cast(node)?;
 
@@ -227,7 +305,8 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range = range.and_then(|range| locate::text_range_to_range(content, range));
+            let range =
+                range.and_then(|range| position::text_range_to_protocol(content, range, encoding));
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),
@@ -239,7 +318,11 @@ impl CursorText {
         })
     }
 
-    fn of_qualifier(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_qualifier(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let qualifier = cst::Qualifier::cast(node)?;
             let token = qualifier.text()?;
@@ -248,7 +331,7 @@ impl CursorText {
             let prefix = SmolStr::new(prefix);
 
             let range = token.text_range();
-            let range = locate::text_range_to_range(content, range)?;
+            let range = position::text_range_to_protocol(content, range, encoding)?;
 
             let range = Some(range);
             let text = CursorText::Prefix(prefix);
@@ -257,7 +340,11 @@ impl CursorText {
         })
     }
 
-    fn of_module_name(content: &str, token: &SyntaxToken) -> Option<(CursorText, Option<Range>)> {
+    fn of_module_name(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let module_name = cst::ModuleName::cast(node)?;
 
@@ -276,7 +363,8 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range = range.map(|range| locate::text_range_to_range(content, range))?;
+            let range =
+                range.map(|range| position::text_range_to_protocol(content, range, encoding))?;
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),

@@ -1,19 +1,27 @@
 [package]
-name = "purescript-analyzer"
-version = "0.0.9"
+name = "purescript-alexandrite"
+version = "0.0.12"
 edition = "2024"
-authors = ["Justin Garcia <purefunctor@gmail.com>"]
+authors = ["Justin Garcia <git@purefunctor.me>"]
 license = "BSD-3-Clause"
-description = "Language server implementation for the PureScript programming language."
+description = "Language implementation for the PureScript programming language."
 readme = "../README.md"
-homepage = "https://github.com/purefunctor/purescript-analyzer"
-repository = "https://github.com/purefunctor/purescript-analyzer"
+homepage = "https://github.com/purefunctor/purescript-alexandrite"
+repository = "https://github.com/purefunctor/purescript-alexandrite"
 keywords = ["purescript", "language server"]
 categories = ["compilers"]
 
 [features]
 default = []
 no-tracing = ["tracing/max_level_off"]
+
+[[bin]]
+name = "purescript-alexandrite"
+path = "src/bin/purescript-alexandrite.rs"
+
+[[bin]]
+name = "purescript-analyzer"
+path = "src/bin/purescript-analyzer.rs"
 
 [dependencies]
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }

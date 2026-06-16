@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -18,10 +18,10 @@ extractTail ::
     Cons @Type "x" Int (tail :: Row Type) ( a :: String, x :: Int | (r :: Row Type) ) =>
     Proxy @(Row Type) (tail :: Row Type)
 forceSolve ::
-  forall (t17 :: Row Type) (t16 :: Row Type).
-    { consOpen :: Proxy @(Row Type) ( a :: String, x :: Int | (t17 :: Row Type) )
+  forall (t :: Row Type) (t1 :: Row Type).
+    { consOpen :: Proxy @(Row Type) ( a :: String, x :: Int | (t :: Row Type) )
     , decomposeOpen :: Proxy @Type Int
-    , extractTail :: Proxy @(Row Type) ( a :: String | (t16 :: Row Type) )
+    , extractTail :: Proxy @(Row Type) ( a :: String | (t1 :: Row Type) )
     }
 
 Types

@@ -30,10 +30,6 @@ pub struct RunArgs {
     #[arg(short, long)]
     pub verbose: bool,
 
-    /// Enable tracing output for debugging
-    #[arg(long)]
-    pub debug: bool,
-
     /// Show full diffs (by default only shows summary to reduce output)
     #[arg(long)]
     pub diff: bool,

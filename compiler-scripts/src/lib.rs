@@ -2,64 +2,6 @@ pub use console;
 
 pub mod test_runner;
 
-pub mod fixtures {
-    use md5::{Digest, Md5};
-    use std::collections::HashMap;
-    use std::fs;
-    use std::path::Path;
-    use walkdir::WalkDir;
-
-    /// Hash all .purs files in a fixture directory (folder names + file contents)
-    pub fn hash_fixtures(dir: &Path) -> String {
-        let mut hasher = Md5::new();
-
-        let Ok(entries) = fs::read_dir(dir) else {
-            return String::new();
-        };
-
-        let mut folders: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-        folders.sort_by_key(|e| e.file_name());
-
-        for folder in folders {
-            let folder_path = folder.path();
-            if !folder_path.is_dir() {
-                continue;
-            }
-
-            // Hash folder name
-            hasher.update(folder.file_name().to_string_lossy().as_bytes());
-
-            // Hash all .purs files in the folder
-            let mut purs_files: Vec<_> = WalkDir::new(&folder_path)
-                .into_iter()
-                .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().is_some_and(|ext| ext == "purs"))
-                .collect();
-            purs_files.sort_by_key(|e| e.path().to_path_buf());
-
-            for file in purs_files {
-                if let Ok(content) = fs::read(file.path()) {
-                    hasher.update(&content);
-                }
-            }
-        }
-
-        let result = hasher.finalize();
-        format!("{:x}", result)[..16].to_string()
-    }
-
-    /// Get environment variables with hashes for all fixture directories
-    pub fn fixture_env() -> HashMap<String, String> {
-        let base = Path::new("tests-integration/fixtures");
-        HashMap::from([
-            ("LSP_FIXTURES_HASH".into(), hash_fixtures(&base.join("lsp"))),
-            ("LOWERING_FIXTURES_HASH".into(), hash_fixtures(&base.join("lowering"))),
-            ("RESOLVING_FIXTURES_HASH".into(), hash_fixtures(&base.join("resolving"))),
-            ("CHECKING_FIXTURES_HASH".into(), hash_fixtures(&base.join("checking"))),
-        ])
-    }
-}
-
 pub mod snapshots {
     use console::style;
     use similar::{ChangeTag, TextDiff};

@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,13 +8,13 @@ Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
 Const ::
-  forall (t4 :: Type) (@e :: Type) (@a :: (t4 :: Type)).
-    (e :: Type) -> Const @(t4 :: Type) (e :: Type) (a :: (t4 :: Type))
+  forall (t :: Type) (@e :: Type) (@a :: (t :: Type)).
+    (e :: Type) -> Const @(t :: Type) (e :: Type) (a :: (t :: Type))
 
 Types
 Identity :: Type -> Type
 Maybe :: Type -> Type
-Const :: forall (t4 :: Type). Type -> (t4 :: Type) -> Type
+Const :: forall (t :: Type). Type -> (t :: Type) -> Type
 
 Derived
 derive Functor Identity
@@ -23,9 +23,9 @@ derive Traversable Identity
 derive Functor Maybe
 derive Foldable Maybe
 derive Traversable Maybe
-derive forall (t5 :: Type). Functor (Const @Type (t5 :: Type))
-derive forall (t7 :: Type). Foldable (Const @Type (t7 :: Type))
-derive forall (t9 :: Type). Traversable (Const @Type (t9 :: Type))
+derive forall (t :: Type). Functor (Const @Type (t :: Type))
+derive forall (t :: Type). Foldable (Const @Type (t :: Type))
+derive forall (t :: Type). Traversable (Const @Type (t :: Type))
 
 Roles
 Identity = [Representational]

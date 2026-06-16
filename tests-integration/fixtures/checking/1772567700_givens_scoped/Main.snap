@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -20,3 +20,4 @@ error[NoInstanceFound]: No instance found for: Given Int
   |
 6 | testGiven :: forall a. Given a => a -> a
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Given (a :: Type) is in scope

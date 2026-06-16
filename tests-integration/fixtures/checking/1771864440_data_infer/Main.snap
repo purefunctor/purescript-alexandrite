@@ -1,13 +1,13 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (t1 :: Type) (@a :: (t1 :: Type)). Proxy @(t1 :: Type) (a :: (t1 :: Type))
+Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
 
 Types
-Proxy :: forall (t1 :: Type). (t1 :: Type) -> Type
+Proxy :: forall (t :: Type). (t :: Type) -> Type
 
 Roles
 Proxy = [Phantom]

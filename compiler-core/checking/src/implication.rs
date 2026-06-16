@@ -4,12 +4,14 @@ use std::collections::VecDeque;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use crate::core::{SmolStrId, TypeId};
+use smol_str::SmolStr;
+
+use crate::core::TypeId;
 use crate::error::ErrorCrumb;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Patterns {
-    pub patterns: Arc<[SmolStrId]>,
+    pub patterns: Arc<[SmolStr]>,
     pub crumbs: Arc<[ErrorCrumb]>,
 }
 

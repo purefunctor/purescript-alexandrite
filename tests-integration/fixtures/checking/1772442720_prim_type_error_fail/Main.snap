@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -9,10 +9,9 @@ failBasic ::
   forall (a :: Type). Fail (Text "This operation is not allowed") => (a :: Type) -> (a :: Type)
 useFailBasic :: Int
 failComplex ::
-  forall (t6 :: Type) (a :: (t6 :: Type)).
-    Fail
-      (Above (Text "Error:") (Beside (Text "Type ") (Quote @(t6 :: Type) (a :: (t6 :: Type))))) =>
-    Proxy @(t6 :: Type) (a :: (t6 :: Type)) -> Proxy @(t6 :: Type) (a :: (t6 :: Type))
+  forall (t :: Type) (a :: (t :: Type)).
+    Fail (Above (Text "Error:") (Beside (Text "Type ") (Quote @(t :: Type) (a :: (t :: Type))))) =>
+    Proxy @(t :: Type) (a :: (t :: Type)) -> Proxy @(t :: Type) (a :: (t :: Type))
 useFailComplex :: Proxy @Type String
 
 Types

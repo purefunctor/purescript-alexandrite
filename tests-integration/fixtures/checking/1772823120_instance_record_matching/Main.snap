@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -22,5 +22,5 @@ class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
   forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
 
 Instances
-instance forall (t4 :: Row Type). Make {| (t4 :: Row Type) } {| (t4 :: Row Type) }
-instance forall (t6 :: Row Type). Convert {| (t6 :: Row Type) } { converted :: {| (t6 :: Row Type) } }
+instance forall (t :: Row Type). Make {| (t :: Row Type) } {| (t :: Row Type) }
+instance forall (t :: Row Type). Convert {| (t :: Row Type) } { converted :: {| (t :: Row Type) } }

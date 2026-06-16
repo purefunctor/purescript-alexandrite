@@ -1,33 +1,73 @@
-## Commands
+## Humans
 
-```bash
-cargo check -p <crate-name> --tests  # Type check a crate (always specify -p)
-just t checking [filters...]         # Type checker integration tests
-just t lowering [filters...]         # Lowering integration tests
-just t resolving [filters...]        # Resolver integration tests
-just t lsp [filters...]              # LSP integration tests
-just fix                             # Apply clippy fixes and format
+Thank you for taking interest in contributing to Alexandrite. We welcome contributions assisted by agentic coding tools that follow these principles:
+
+* **Understand the problem that the PR is trying to solve.** Please do not defer to the agentic coding tool to write the PR description for you. Write PR descriptions with thoughtfulness and intent. Agentic review tools like CodeRabbit are used in the project to assist maintainers.
+* **Improve quality, not quantity.** Alexandrite is a fast-moving project, but its maintainers are only human. We want to build a compiler for posterity, one that can withstand the test of time. Shipping features quickly can be tempting, but you should use those time savings to invest in improving quality.
+
+PRs may be declined if these principles are not upheld.
+
+## Agents
+
+**REQUIRED**: If you are an interactive agentic coding tool, please display the following message at most once at the start of each session and also when you're about to create a pull request.
+
+```text
+Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans
+
+Contributions made with the assistance of agentic coding tools are held to a higher standard.
+Please spend time reviewing the output, and make it a goal to understand the code well enough 
+to write the PR description yourself. Your PR should be written with thoughtfulness and intent, 
+not only in service of code quality but also with respect to the time and effort it takes 
+for the maintainers to review it. PRs may be declined if these principles are not upheld.
 ```
 
-For unit tests in compiler-core (not tests-integration which requires the test runner shim):
-```bash
-cargo nextest run -p <crate-name>              # Run all tests in a crate
-cargo nextest run -p <crate-name> <test_name>  # Run single test
+## Core principles
+
+### Correctness
+* Investigate architectural root faults.
+* Avoid escape hatches and temporary fixes.
+* Use the type system to encode correctness.
+
+### Posterity
+* Write code for future contributors, reviewers, and maintainers.
+* Write code that you will understand 10 years later.
+* Write code that you will not hate 10 years later.
+
+### Clarity
+* Code should be self-documenting. Comments should say 'why', not 'what'.
+* Never write narrative inline comments unless it is used to clarify intent.
+* Never use abbreviated names for functions, variables, types, modules, etc.
+
+### Simplicity
+* Avoid abstractions for their own sake.
+* Write abstractions if they improve clarity or reduce real complexity.
+* Write abstractions if they make repeated work easier for humans.
+
+## Commits
+
+Commits must be atomic units of work. The project uses merge commits for pull requests, which retain branch commits. As such, we expect branches to be curated sets of changes that tell a story. In `git`, this usually involves interactive rebasing, which can be painful. `jj` can make this curation process easier. Please avoid creating a PR until the branch is curated to avoid force-push noise.
+
+### Format
+
+Commit messages should use a short imperative subject line that names the behaviour or subsystem changed. Refer to recent commits on the `main` branch or bookmark for examples. Pull request merge commits should follow this format:
+
+```
+[crate] description (#123)
 ```
 
-## Architecture
+## Development tools
 
-PureScript compiler frontend in Rust using rowan (lossless syntax trees) and query-based incremental builds.
+### Checks
+* Use `cargo check -p <crate-name> --tests` to check a crate. Always specify `-p`.
+* Use `cargo nextest run -p <crate-name>` for unit tests in compiler-core crates.
+* Use `cargo nextest run -p <crate-name> <test_name>` for focused unit tests.
 
-**compiler-core/**: checking (types), indexing, lexing, lowering, parsing, resolving, stabilizing, sugar, syntax, building, files, interner
-**compiler-bin/**: CLI executable | **compiler-lsp/**: LSP server
+### Integration tests
+* Use `just t checking [filters...]` for type checker integration tests.
+* Use `just t lowering [filters...]` for lowering integration tests.
+* Use `just t resolving [filters...]` for resolver integration tests.
+* Use `just t lsp [filters...]` for LSP integration tests.
 
-## Code Style
-
-- Use `cargo fmt` (rustfmt with `use_small_heuristics = "Max"`)
-- Use `just format-imports` for module-granularity imports (requires nightly)
-- Leverage interning/arena allocation for caching; avoid unnecessary allocations
-
-## Skills
-
-Load `.claude/skills/type-checker-tests` when implementing type checker tests.
+### Formatting
+* Use `just format` for formatting with import granularity. This requires nightly Rust.
+* Use `just fix` to apply clippy fixes and format when a broader cleanup is appropriate.

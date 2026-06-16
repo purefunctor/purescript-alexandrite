@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -11,16 +11,15 @@ test2 :: Test2 @Type @Type @Int Int String 42
 
 Types
 Proxy :: forall (k :: Type). (k :: Type) -> Type
-Test0 :: forall (t2 :: Type). (t2 :: Type) -> Type
-Test1 :: forall (t5 :: Type) (t4 :: Type). (t5 :: Type) -> (t4 :: Type) -> Type
+Test0 :: forall (t :: Type). (t :: Type) -> Type
+Test1 :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> Type
 Test2 ::
-  forall (t10 :: Type) (t9 :: Type) (t8 :: Type).
-    (t10 :: Type) -> (t9 :: Type) -> (t8 :: Type) -> Type
+  forall (t :: Type) (t1 :: Type) (t2 :: Type). (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Type
 
 Synonyms
-type Test0 = Proxy @(t2 :: Type)
-type Test1 a = Proxy @(t4 :: Type)
-type Test2 a b = Proxy @(t8 :: Type)
+type Test0 = Proxy @(t :: Type)
+type Test1 a = Proxy @(t :: Type)
+type Test2 a b = Proxy @(t :: Type)
 
 Roles
 Proxy = [Phantom]

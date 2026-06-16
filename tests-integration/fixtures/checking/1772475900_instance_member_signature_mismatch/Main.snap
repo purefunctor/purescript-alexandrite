@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 39
 expression: report
 ---
 Terms
@@ -18,11 +18,6 @@ instance Show Int
 
 Diagnostics
 error[CannotUnify]: Cannot unify 'Int' with 'String'
-  --> 7:1..9:13
-  |
-7 | instance Show Int where
-  | ^~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Int -> Int' with 'Int -> String'
   --> 7:1..9:13
   |
 7 | instance Show Int where

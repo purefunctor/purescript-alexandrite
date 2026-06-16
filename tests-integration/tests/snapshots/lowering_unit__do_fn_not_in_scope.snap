@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/lowering_unit.rs
+expression: lowered.errors
+---
+[
+    NotInScope(
+        ExprVariable {
+            id: AstId<syntax::cst::ExpressionVariable>(12),
+        },
+    ),
+]

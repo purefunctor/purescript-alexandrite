@@ -8,7 +8,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::constraint::canonical;
-use crate::core::constraint::matching::{self, InstanceMatch, MatchInstance};
+use crate::core::constraint::matching::{self, MatchInstance};
 use crate::core::{RowField, Type, TypeId, normalise};
 use crate::source::types;
 use crate::state::CheckState;
@@ -24,18 +24,18 @@ fn make_prim_row_constraint<Q>(
 where
     Q: ExternalQueries,
 {
-    let row_kind = infer_row_constraint_kind(state, context, arguments)?;
+    let row_element_kind = infer_prim_row_element_kind(state, context, arguments)?;
 
     let constructor =
         context.queries.intern_type(Type::Constructor(context.prim_row.file_id, class_id));
-    let mut constraint = context.intern_kind_application(constructor, row_kind);
-    for &argument in arguments {
-        constraint = context.intern_application(constraint, argument);
-    }
-    Ok(constraint)
+
+    Ok(arguments.iter().copied().fold(
+        context.intern_kind_application(constructor, row_element_kind),
+        |application, argument| context.intern_application(application, argument),
+    ))
 }
 
-fn infer_row_constraint_kind<Q>(
+fn infer_prim_row_element_kind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     arguments: &[TypeId],
@@ -47,10 +47,12 @@ where
         let argument_kind = types::elaborate_kind(state, context, argument)?;
         let argument_kind = normalise::expand(state, context, argument_kind)?;
 
-        if let Type::Application(row_constructor, row_kind) = context.lookup_type(argument_kind) {
+        if let Type::Application(row_constructor, row_element_kind) =
+            context.lookup_type(argument_kind)
+        {
             let row_constructor = normalise::expand(state, context, row_constructor)?;
             if row_constructor == context.prim.row {
-                return Ok(row_kind);
+                return Ok(row_element_kind);
             }
         }
     }
@@ -146,7 +148,7 @@ where
             let fields = iter::chain(left, right).cloned();
             let result = context.intern_row(fields, right_row.tail());
 
-            Ok(Some(MatchInstance::Match(InstanceMatch::from_unifications(vec![(union, result)]))))
+            Ok(Some(MatchInstance::from_unifications(vec![(union, result)])))
         }
 
         // Matches when the left row has a tail and both the right row and output
@@ -170,10 +172,10 @@ where
             let left_result = context.intern_row(left_fields, None);
             let right_result = context.intern_row(right_fields, None);
 
-            Ok(Some(MatchInstance::Match(InstanceMatch::from_unifications(vec![
+            Ok(Some(MatchInstance::from_unifications(vec![
                 (left, left_result),
                 (right, right_result),
-            ]))))
+            ])))
         }
 
         // Matches when the left row has a tail and at least one known field.
@@ -187,7 +189,10 @@ where
         // `Union ( a :: A, b :: B | t ) ( c :: C ) ( | u )` solves `u ~ ( a :: A, b :: B | f )`,
         // plus the remaining `Union ( | t ) ( c :: C ) ( | f )` constraint.
         (Some(RowView::Open { fields: left_fields, tail }), Some(_), _) => {
-            let fresh = state.fresh_unification(context.queries, context.prim.row_type);
+            let row_element_kind = infer_prim_row_element_kind(state, context, arguments)?;
+            let fresh_kind = context.intern_application(context.prim.row, row_element_kind);
+
+            let fresh = state.fresh_unification(context.queries, fresh_kind);
             let result = context.intern_row(left_fields.iter().cloned(), Some(fresh));
 
             let constraint = make_prim_row_constraint(
@@ -200,10 +205,7 @@ where
             let constraints =
                 canonical::canonicalise(state, context, constraint)?.into_iter().collect();
 
-            Ok(Some(MatchInstance::Match(InstanceMatch {
-                unifications: vec![(union, result)],
-                constraints,
-            })))
+            Ok(Some(MatchInstance::from_parts(vec![(union, result)], constraints)))
         }
 
         _ => Ok(Some(matching::blocking_constraint(state, context, &[left, right, union])?)),
@@ -233,7 +235,7 @@ where
 
             let result = context.intern_row(fields, tail_row.tail());
 
-            Ok(Some(MatchInstance::Match(InstanceMatch::from_unifications(vec![(row, result)]))))
+            Ok(Some(MatchInstance::from_unifications(vec![(row, result)])))
         }
         (Some(label_value), _, Some(row_row)) => {
             let mut remaining = vec![];
@@ -249,10 +251,10 @@ where
 
             if let Some(field_type) = found_type {
                 let tail_result = context.intern_row(remaining, row_row.tail());
-                Ok(Some(MatchInstance::Match(InstanceMatch::from_unifications(vec![
+                Ok(Some(MatchInstance::from_unifications(vec![
                     (a, field_type),
                     (tail, tail_result),
-                ]))))
+                ])))
             } else {
                 Ok(Some(MatchInstance::Apart))
             }
@@ -280,7 +282,7 @@ where
     if let RowView::Closed { fields } = &row_row
         && fields.is_empty()
     {
-        return Ok(Some(MatchInstance::Match(InstanceMatch::empty())));
+        return Ok(Some(MatchInstance::empty()));
     }
 
     let Some(label_value) = extract_symbol(state, context, label)? else {
@@ -293,7 +295,7 @@ where
             if has_label {
                 Ok(Some(MatchInstance::Apart))
             } else {
-                Ok(Some(MatchInstance::Match(InstanceMatch::empty())))
+                Ok(Some(MatchInstance::empty()))
             }
         }
         RowView::EmptyOpen { tail } => {
@@ -311,7 +313,7 @@ where
             let constraints =
                 canonical::canonicalise(state, context, constraint)?.into_iter().collect();
 
-            Ok(Some(MatchInstance::Match(InstanceMatch::from_constraints(constraints))))
+            Ok(Some(MatchInstance::from_constraints(constraints)))
         }
     }
 }

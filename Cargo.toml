@@ -1,13 +1,12 @@
 [workspace]
 members = [
   "compiler-bin",
-  "compiler-compatibility/*",
   "compiler-core/*",
   "compiler-lsp/*",
   "compiler-scripts",
   "docs/src/wasm",
+  "tests-compatibility",
   "tests-integration",
-  "tests-package-set",
 ]
 default-members = [
   "compiler-core/*",

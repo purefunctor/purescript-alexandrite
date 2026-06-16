@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -36,17 +36,15 @@ bind ::
 testDo ::
   forall (m :: Type -> Type). Monad (m :: Type -> Type) => (m :: Type -> Type) (Tuple Int String)
 testDo' ::
-  forall (t19 :: Type -> Type).
-    Bind (t19 :: Type -> Type) => (t19 :: Type -> Type) (Tuple Int String)
+  forall (t :: Type -> Type). Bind (t :: Type -> Type) => (t :: Type -> Type) (Tuple Int String)
 testAdo ::
   forall (f :: Type -> Type).
     Applicative (f :: Type -> Type) => (f :: Type -> Type) (Tuple Int String)
 testAdo' ::
-  forall (t22 :: Type -> Type).
-    Applicative (t22 :: Type -> Type) => (t22 :: Type -> Type) (Tuple Int String)
+  forall (t :: Type -> Type).
+    Applicative (t :: Type -> Type) => (t :: Type -> Type) (Tuple Int String)
 testDoDiscard :: forall (m :: Type -> Type). Monad (m :: Type -> Type) => (m :: Type -> Type) Int
-testDoDiscard' ::
-  forall (t25 :: Type -> Type). Discard (t25 :: Type -> Type) => (t25 :: Type -> Type) Int
+testDoDiscard' :: forall (t :: Type -> Type). Discard (t :: Type -> Type) => (t :: Type -> Type) Int
 
 Types
 Tuple :: Type -> Type -> Type
@@ -101,3 +99,8 @@ error[NoInstanceFound]: No instance found for: Discard (m :: Type -> Type)
    |
 44 | testDoDiscard :: forall m. Monad m => m Int
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Monad (m :: Type -> Type) is in scope
+  trivia: Bind (m :: Type -> Type) is in scope
+  trivia: Applicative (m :: Type -> Type) is in scope
+  trivia: Apply (m :: Type -> Type) is in scope
+  trivia: Functor (m :: Type -> Type) is in scope

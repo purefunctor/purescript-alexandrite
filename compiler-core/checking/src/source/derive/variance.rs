@@ -136,8 +136,7 @@ where
             DerivedParameter { name: *b, expected: second_expected, class: second_class },
         ),
         _ => {
-            let type_message = state.pretty_id(context, derived_type)?;
-            state.insert_error(ErrorKind::CannotDeriveForType { type_message });
+            state.insert_error(ErrorKind::CannotDeriveForType { type_id: derived_type });
             DerivedRigids::Invalid
         }
     };
@@ -163,7 +162,7 @@ where
     match context.lookup_type(type_id) {
         Type::Rigid(name, _, _) => {
             if let Some(parameter) = rigids.get(name) {
-                emit_variance_error(state, context, type_id, variance, parameter.expected)?;
+                emit_variance_error(state, type_id, variance, parameter.expected);
             }
         }
         Type::Function(argument, result) => {
@@ -176,8 +175,8 @@ where
                 check_variance_field(state, context, argument, variance, rigids)?;
             } else {
                 for parameter in rigids.iter() {
-                    if contains_rigid_name(state, context, argument, parameter.name)? {
-                        emit_variance_error(state, context, type_id, variance, parameter.expected)?;
+                    if toolkit::contains_rigid(state, context, argument, parameter.name)? {
+                        emit_variance_error(state, type_id, variance, parameter.expected);
                         if variance == parameter.expected {
                             if let Some(class) = parameter.class {
                                 tools::emit_constraint(context, state, class, function);
@@ -208,64 +207,20 @@ where
     Ok(())
 }
 
-fn emit_variance_error<Q>(
+fn emit_variance_error(
     state: &mut CheckState,
-    context: &CheckContext<Q>,
     type_id: TypeId,
     actual: Variance,
     expected: Variance,
-) -> QueryResult<()>
-where
-    Q: ExternalQueries,
-{
+) {
     if actual == expected {
-        return Ok(());
+        return;
     }
 
-    let type_message = state.pretty_id(context, type_id)?;
     match actual {
-        Variance::Covariant => state.insert_error(ErrorKind::CovariantOccurrence { type_message }),
+        Variance::Covariant => state.insert_error(ErrorKind::CovariantOccurrence { type_id }),
         Variance::Contravariant => {
-            state.insert_error(ErrorKind::ContravariantOccurrence { type_message })
+            state.insert_error(ErrorKind::ContravariantOccurrence { type_id })
         }
     }
-    Ok(())
-}
-
-fn contains_rigid_name<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    type_id: TypeId,
-    name: Name,
-) -> QueryResult<bool>
-where
-    Q: ExternalQueries,
-{
-    let type_id = normalise::expand(state, context, type_id)?;
-    Ok(match context.lookup_type(type_id) {
-        Type::Application(function, argument) | Type::KindApplication(function, argument) => {
-            contains_rigid_name(state, context, function, name)?
-                || contains_rigid_name(state, context, argument, name)?
-        }
-        Type::Forall(_, inner) | Type::Constrained(_, inner) | Type::Kinded(inner, _) => {
-            contains_rigid_name(state, context, inner, name)?
-        }
-        Type::Function(argument, result) => {
-            contains_rigid_name(state, context, argument, name)?
-                || contains_rigid_name(state, context, result, name)?
-        }
-        Type::Row(row_id) => {
-            let row = context.lookup_row_type(row_id);
-            let mut contains = false;
-            for field in row.fields.iter() {
-                contains |= contains_rigid_name(state, context, field.id, name)?;
-            }
-            if let Some(tail) = row.tail {
-                contains |= contains_rigid_name(state, context, tail, name)?;
-            }
-            contains
-        }
-        Type::Rigid(rigid_name, _, _) => rigid_name == name,
-        _ => false,
-    })
 }

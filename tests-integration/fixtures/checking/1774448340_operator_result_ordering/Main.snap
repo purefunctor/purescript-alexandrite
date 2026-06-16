@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -24,13 +24,12 @@ Types
 Wrap :: Type -> Type
 Profunctor :: (Type -> Type -> Type) -> Constraint
 Optic ::
-  forall (t9 :: Type).
-    ((t9 :: Type) -> (t9 :: Type) -> Type) -> (t9 :: Type) -> (t9 :: Type) -> Type
+  forall (t :: Type). ((t :: Type) -> (t :: Type) -> Type) -> (t :: Type) -> (t :: Type) -> Type
 Lens :: Type -> Type -> Type
 
 Synonyms
-type Optic p s a = (p :: (t9 :: Type) -> (t9 :: Type) -> Type) (a :: (t9 :: Type)) (a :: (t9 :: Type)) ->
-(p :: (t9 :: Type) -> (t9 :: Type) -> Type) (s :: (t9 :: Type)) (s :: (t9 :: Type))
+type Optic p s a = (p :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type)) ->
+(p :: (t :: Type) -> (t :: Type) -> Type) (s :: (t :: Type)) (s :: (t :: Type))
 type Lens s a = forall (p :: Type -> Type -> Type).
   Profunctor (p :: Type -> Type -> Type) =>
   Optic @Type (p :: Type -> Type -> Type) (s :: Type) (a :: Type)

@@ -1,36 +1,36 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Compose ::
-  forall (t4 :: Type) (t3 :: Type) (@f :: (t4 :: Type) -> Type) (@g :: (t3 :: Type) -> (t4 :: Type))
-    (@a :: (t3 :: Type)).
-    (f :: (t4 :: Type) -> Type) ((g :: (t3 :: Type) -> (t4 :: Type)) (a :: (t3 :: Type))) ->
-    Compose @(t4 :: Type) @(t3 :: Type)
-      (f :: (t4 :: Type) -> Type)
-      (g :: (t3 :: Type) -> (t4 :: Type))
-      (a :: (t3 :: Type))
+  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> (t :: Type))
+    (@a :: (t1 :: Type)).
+    (f :: (t :: Type) -> Type) ((g :: (t1 :: Type) -> (t :: Type)) (a :: (t1 :: Type))) ->
+    Compose @(t :: Type) @(t1 :: Type)
+      (f :: (t :: Type) -> Type)
+      (g :: (t1 :: Type) -> (t :: Type))
+      (a :: (t1 :: Type))
 
 Types
 Compose ::
-  forall (t4 :: Type) (t3 :: Type).
-    ((t4 :: Type) -> Type) -> ((t3 :: Type) -> (t4 :: Type)) -> (t3 :: Type) -> Type
+  forall (t :: Type) (t1 :: Type).
+    ((t :: Type) -> Type) -> ((t1 :: Type) -> (t :: Type)) -> (t1 :: Type) -> Type
 
 Derived
-derive forall (t5 :: Type -> Type) (t6 :: Type -> Type).
-  Functor (t5 :: Type -> Type) =>
-  Functor (t6 :: Type -> Type) =>
-  Functor (Compose @Type @Type (t5 :: Type -> Type) (t6 :: Type -> Type))
-derive forall (t9 :: Type -> Type) (t10 :: Type -> Type).
-  Foldable (t9 :: Type -> Type) =>
-  Foldable (t10 :: Type -> Type) =>
-  Foldable (Compose @Type @Type (t9 :: Type -> Type) (t10 :: Type -> Type))
-derive forall (t13 :: Type -> Type) (t14 :: Type -> Type).
-  Traversable (t13 :: Type -> Type) =>
-  Traversable (t14 :: Type -> Type) =>
-  Traversable (Compose @Type @Type (t13 :: Type -> Type) (t14 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Functor (t :: Type -> Type) =>
+  Functor (t1 :: Type -> Type) =>
+  Functor (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Foldable (t :: Type -> Type) =>
+  Foldable (t1 :: Type -> Type) =>
+  Foldable (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Traversable (t :: Type -> Type) =>
+  Traversable (t1 :: Type -> Type) =>
+  Traversable (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
 
 Roles
 Compose = [Representational, Representational, Nominal]

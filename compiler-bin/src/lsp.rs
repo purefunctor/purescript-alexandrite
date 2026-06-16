@@ -1,16 +1,19 @@
+pub mod capabilities;
 pub mod error;
 pub mod event;
 pub mod extension;
 
 use std::borrow::BorrowMut;
+use std::collections::BTreeSet;
 use std::ops::{ControlFlow, Deref};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fs, mem, process};
 
 use analyzer::completion::SuggestionsCache;
+use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
-use analyzer::{Files, QueryEngine, prim};
+use analyzer::{Files, LanguageContext, QueryEngine, prim};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
 use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::lsp_types::notification::Notification;
@@ -28,6 +31,7 @@ use tower::ServiceBuilder;
 use walkdir::WalkDir;
 
 use crate::cli;
+use crate::lsp::capabilities::negotiate_position_encoding;
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 
 pub struct State {
@@ -41,6 +45,7 @@ pub struct State {
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
 
     pub root: Option<PathBuf>,
+    pub position_encoding: PositionEncoding,
 }
 
 impl State {
@@ -58,8 +63,18 @@ impl State {
         let suggestions_cache = Arc::new(RwLock::new(suggestions_cache));
 
         let root = None;
+        let position_encoding = PositionEncoding::Utf16;
 
-        State { config, client, engine, files, workspace_symbols_cache, suggestions_cache, root }
+        State {
+            config,
+            client,
+            engine,
+            files,
+            workspace_symbols_cache,
+            suggestions_cache,
+            root,
+            position_encoding,
+        }
     }
 
     fn spawn<T>(&self, f: impl FnOnce(StateSnapshot) -> T + Send + 'static) -> task::JoinHandle<T>
@@ -72,6 +87,7 @@ impl State {
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
+            position_encoding: self.position_encoding,
         };
         task::spawn_blocking(move || f(snapshot))
     }
@@ -93,18 +109,31 @@ struct StateSnapshot {
     files: Arc<RwLock<Files>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
+    position_encoding: PositionEncoding,
 }
 
 impl StateSnapshot {
     fn files(&self) -> impl Deref<Target = Files> {
         self.files.read()
     }
+
+    fn with_language_context<T>(&self, f: impl FnOnce(&LanguageContext) -> T) -> T {
+        let files = self.files();
+        let context = LanguageContext::new(&self.engine, &files, self.position_encoding);
+        f(&context)
+    }
 }
+
+const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
+const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn initialize(
     state: &mut State,
     p: extension::CustomInitializeParams,
 ) -> impl Future<Output = Result<InitializeResult, ResponseError>> + use<> {
+    let position_encoding = negotiate_position_encoding(&p.initialize_params);
+    state.position_encoding = position_encoding;
+
     state.root = p
         .initialize_params
         .workspace_folders
@@ -116,8 +145,8 @@ fn initialize(
     async move {
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
-                name: env!("CARGO_PKG_NAME").to_string(),
-                version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                name: PACKAGE_NAME.to_string(),
+                version: Some(PACKAGE_VERSION.to_string()),
             }),
             capabilities: ServerCapabilities {
                 completion_provider: Some(CompletionOptions {
@@ -131,19 +160,27 @@ fn initialize(
                         label_details_support: Some(true),
                     }),
                 }),
+                code_action_provider: Some(CodeActionProviderCapability::Options(
+                    CodeActionOptions {
+                        code_action_kinds: Some(vec![CodeActionKind::QUICKFIX]),
+                        ..CodeActionOptions::default()
+                    },
+                )),
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
+                document_symbol_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
                         change: Some(TextDocumentSyncKind::FULL),
-                        // Clients may not send didSave unless we advertise it.
                         save: Some(TextDocumentSyncSaveOptions::Supported(true)),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
+                position_encoding: Some(PositionEncodingKind::from(position_encoding)),
                 ..ServerCapabilities::default()
             },
         })
@@ -177,12 +214,18 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
     let mut files = vec![];
     let mut globs = GlobSetBuilder::new();
 
+    // The shallowest directory each glob may match. Walking these instead of
+    // `root` lets patterns escape the workspace through parent directories,
+    // such as `../shared/src/**/*.purs`.
+    let mut walk_roots = BTreeSet::new();
+
     for line in output.lines() {
         let path = root.join(line);
         if let Ok(path) = path.absolutize()
             && let Some(path) = path.to_str()
             && let Ok(glob) = Glob::new(path)
         {
+            walk_roots.insert(glob_literal_base(path));
             globs.add(glob);
         } else {
             files.push(path);
@@ -194,16 +237,34 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
     tracing::info!("Found {} file literals", files.len());
     tracing::info!("Found {} glob patterns", globs.len());
 
-    let files_from_glob = WalkDir::new(root).into_iter().filter_map(move |entry| {
-        let entry = entry.ok()?;
-        let path = entry.path();
-        if globs.matches(path).is_empty() { None } else { Some(path.to_path_buf()) }
-    });
+    let files_from_glob: BTreeSet<PathBuf> = walk_roots
+        .into_iter()
+        .flat_map(|base| WalkDir::new(base).into_iter())
+        .filter_map(|entry| Some(entry.ok()?.into_path()))
+        .filter(|path| !globs.matches(path).is_empty())
+        .collect();
 
     files.extend(files_from_glob);
     load_files(state, &files)?;
 
     Ok(())
+}
+
+/// Extracts the longest leading run of path components with no glob syntax.
+fn glob_literal_base(pattern: &str) -> PathBuf {
+    let mut base = PathBuf::new();
+    for component in Path::new(pattern).components() {
+        if component.as_os_str().to_string_lossy().chars().any(glob_syntax_character) {
+            break;
+        }
+        base.push(component);
+    }
+    base
+}
+
+fn glob_syntax_character(character: char) -> bool {
+    matches!(character, '*' | '?' | '[' | '{')
+        || (character == '\\' && !std::path::is_separator('\\'))
 }
 
 fn initialized_spago(state: &mut State) -> Result<(), LspError> {
@@ -244,16 +305,39 @@ fn definition(
     let _span = tracing::info_span!("definition").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    analyzer::definition::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::definition::implementation(context, uri, position)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn hover(snapshot: StateSnapshot, p: HoverParams) -> Result<Option<Hover>, LspError> {
     let _span = tracing::info_span!("hover").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    analyzer::hover::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = snapshot
+        .with_language_context(|context| analyzer::hover::implementation(context, uri, position));
+
+    result.on_non_fatal(None)
+}
+
+fn code_action(
+    snapshot: StateSnapshot,
+    p: CodeActionParams,
+) -> Result<Option<CodeActionResponse>, LspError> {
+    let _span = tracing::info_span!("code_action").entered();
+    let uri = p.text_document.uri;
+    let range = p.range;
+    let action_context = p.context;
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::code_action::implementation(context, uri, range, action_context)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn completion(
@@ -266,14 +350,11 @@ fn completion(
 
     let mut cache = snapshot.suggestions_cache.write();
 
-    analyzer::completion::implementation(
-        &snapshot.engine,
-        &snapshot.files(),
-        &mut cache,
-        uri,
-        position,
-    )
-    .on_non_fatal(None)
+    let result = snapshot.with_language_context(|context| {
+        analyzer::completion::implementation(context, &mut cache, uri, position)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn resolve_completion_item(
@@ -292,8 +373,26 @@ fn references(
     let _span = tracing::info_span!("references").entered();
     let uri = p.text_document_position.text_document.uri;
     let position = p.text_document_position.position;
-    analyzer::references::implementation(&snapshot.engine, &snapshot.files(), uri, position)
-        .on_non_fatal(None)
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::references::implementation(context, uri, position)
+    });
+
+    result.on_non_fatal(None)
+}
+
+fn document_highlight(
+    snapshot: StateSnapshot,
+    p: DocumentHighlightParams,
+) -> Result<Option<Vec<DocumentHighlight>>, LspError> {
+    let _span = tracing::info_span!("document_highlight").entered();
+    let uri = p.text_document_position_params.text_document.uri;
+    let position = p.text_document_position_params.position;
+    let result = snapshot.with_language_context(|context| {
+        analyzer::document_highlight::implementation(context, uri, position)
+    });
+
+    result.on_non_fatal(None)
 }
 
 fn workspace_symbols(
@@ -303,8 +402,24 @@ fn workspace_symbols(
     let _span = tracing::info_span!("workspace_symbols").entered();
 
     let mut cache = snapshot.workspace_symbols_cache.write();
-    analyzer::symbols::workspace(&snapshot.engine, &snapshot.files(), &mut cache, &p.query)
-        .on_non_fatal(None)
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::symbols::workspace(context, &mut cache, &p.query)
+    });
+
+    result.on_non_fatal(None)
+}
+
+fn document_symbols(
+    snapshot: StateSnapshot,
+    p: DocumentSymbolParams,
+) -> Result<Option<DocumentSymbolResponse>, LspError> {
+    let _span = tracing::info_span!("document_symbols").entered();
+    let uri = p.text_document.uri;
+    let result =
+        snapshot.with_language_context(|context| analyzer::symbols::document(context, uri));
+
+    result.on_non_fatal(None)
 }
 
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
@@ -427,10 +542,13 @@ pub async fn start(config: Arc<cli::Config>) {
             .request::<extension::CustomInitialize, _>(initialize)
             .request_snapshot::<request::GotoDefinition>(definition)
             .request_snapshot::<request::HoverRequest>(hover)
+            .request_snapshot::<request::CodeActionRequest>(code_action)
             .request_snapshot::<request::Completion>(completion)
             .request_snapshot::<request::ResolveCompletionItem>(resolve_completion_item)
             .request_snapshot::<request::References>(references)
+            .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
+            .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)
             .notification_ext::<notification::Initialized>(initialized)
             .notification_ext::<notification::DidOpenTextDocument>(did_open)
             .notification_ext::<notification::DidSaveTextDocument>(did_save)
@@ -463,5 +581,58 @@ pub async fn start(config: Arc<cli::Config>) {
     if let Err(error) = server.run_buffered(stdin, stdout).await {
         tracing::error!(?error, "LSP main loop exited");
         process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn literal_base_stops_at_the_first_wildcard() {
+        let base = glob_literal_base("/workspace/src/**/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src"));
+    }
+
+    #[test]
+    fn literal_base_excludes_a_wildcard_in_the_final_component() {
+        let base = glob_literal_base("/workspace/src/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src"));
+    }
+
+    #[test]
+    fn literal_base_retains_parent_directories() {
+        let base = glob_literal_base("/workspace/../shared/src/**/*.purs");
+        assert_eq!(base, PathBuf::from("/workspace/../shared/src"));
+    }
+
+    #[test]
+    fn literal_base_of_a_pattern_without_wildcards_is_the_whole_path() {
+        let base = glob_literal_base("/workspace/src/Main.purs");
+        assert_eq!(base, PathBuf::from("/workspace/src/Main.purs"));
+    }
+
+    #[test]
+    fn literal_base_recognises_every_metacharacter() {
+        for pattern in ["/a/b/*.purs", "/a/b/?.purs", "/a/b/[abc].purs", "/a/b/{x,y}.purs"] {
+            assert_eq!(glob_literal_base(pattern), PathBuf::from("/a/b"), "pattern: {pattern}");
+        }
+    }
+
+    #[test]
+    fn literal_base_keeps_class_closer_as_a_literal() {
+        let pattern = "/workspace/src/Main].purs";
+
+        assert!(Glob::new(pattern).is_ok());
+        assert_eq!(glob_literal_base(pattern), PathBuf::from(pattern));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn literal_base_stops_at_backslash_escape() {
+        let pattern = "/workspace/src/\\*.purs";
+
+        assert!(Glob::new(pattern).is_ok());
+        assert_eq!(glob_literal_base(pattern), PathBuf::from("/workspace/src"));
     }
 }

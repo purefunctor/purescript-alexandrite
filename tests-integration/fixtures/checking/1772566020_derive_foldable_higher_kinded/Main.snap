@@ -1,33 +1,33 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Wrap ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@a :: (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) ->
-    Wrap @(t2 :: Type) (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 WrapNoFoldable ::
-  forall (t5 :: Type) (@f :: (t5 :: Type) -> Type) (@a :: (t5 :: Type)).
-    (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type)) ->
-    WrapNoFoldable @(t5 :: Type) (f :: (t5 :: Type) -> Type) (a :: (t5 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    WrapNoFoldable @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 
 Types
-Wrap :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (t2 :: Type) -> Type
-WrapNoFoldable :: forall (t5 :: Type). ((t5 :: Type) -> Type) -> (t5 :: Type) -> Type
+Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+WrapNoFoldable :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 
 Derived
-derive forall (t6 :: Type -> Type).
-  Foldable (t6 :: Type -> Type) => Foldable (Wrap @Type (t6 :: Type -> Type))
-derive forall (t8 :: Type -> Type). Foldable (WrapNoFoldable @Type (t8 :: Type -> Type))
+derive forall (t :: Type -> Type).
+  Foldable (t :: Type -> Type) => Foldable (Wrap @Type (t :: Type -> Type))
+derive forall (t :: Type -> Type). Foldable (WrapNoFoldable @Type (t :: Type -> Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoFoldable = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Foldable (t8 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Foldable (t :: Type -> Type)
   --> 9:1..9:44
   |
 9 | derive instance Foldable (WrapNoFoldable f)

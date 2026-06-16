@@ -29,22 +29,19 @@ where
     let Some((newtype_file, newtype_id)) =
         toolkit::extract_type_constructor(state, context, *newtype_type)?
     else {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::CannotDeriveForType { type_message });
+        state.insert_error(ErrorKind::CannotDeriveForType { type_id: *newtype_type });
         return Ok(None);
     };
 
     if newtype_file != context.id {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::NonLocalNewtype { type_message });
+        state.insert_error(ErrorKind::NonLocalNewtype { type_id: *newtype_type });
         return Ok(None);
     }
 
     let Some(toolkit::NewtypeInner { inner, rigids }) =
         toolkit::get_newtype_inner(state, context, newtype_file, newtype_id, *newtype_type)?
     else {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::ExpectedNewtype { type_message });
+        state.insert_error(ErrorKind::ExpectedNewtype { type_id: *newtype_type });
         return Ok(None);
     };
 
@@ -95,22 +92,19 @@ where
     let Some((newtype_file, newtype_id)) =
         toolkit::extract_type_constructor(state, context, *newtype_type)?
     else {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::CannotDeriveForType { type_message });
+        state.insert_error(ErrorKind::CannotDeriveForType { type_id: *newtype_type });
         return Ok(None);
     };
 
     if newtype_file != context.id {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::NonLocalNewtype { type_message });
+        state.insert_error(ErrorKind::NonLocalNewtype { type_id: *newtype_type });
         return Ok(None);
     }
 
     let Some(newtype_inner) =
         toolkit::get_newtype_inner(state, context, newtype_file, newtype_id, *newtype_type)?
     else {
-        let type_message = state.pretty_id(context, *newtype_type)?;
-        state.insert_error(ErrorKind::ExpectedNewtype { type_message });
+        state.insert_error(ErrorKind::ExpectedNewtype { type_id: *newtype_type });
         return Ok(None);
     };
 

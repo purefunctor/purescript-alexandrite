@@ -1,12 +1,12 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 test :: Effect Int
 test' ::
-  forall (t0 :: Type -> Type).
-    Bind (t0 :: Type -> Type) => Applicative (t0 :: Type -> Type) => (t0 :: Type -> Type) Int
+  forall (t :: Type -> Type).
+    Bind (t :: Type -> Type) => Applicative (t :: Type -> Type) => (t :: Type -> Type) Int
 
 Types

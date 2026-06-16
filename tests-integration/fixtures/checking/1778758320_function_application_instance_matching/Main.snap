@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+disj :: forall (@a :: Type). HeytingAlgebra (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+test :: Function Char Boolean -> Function Char Boolean -> Function Char Boolean
+
+Types
+HeytingAlgebra :: Type -> Constraint
+
+Classes
+class forall (a :: Type). HeytingAlgebra (a :: Type)
+  disj :: forall (@a :: Type). HeytingAlgebra (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+
+Instances
+instance HeytingAlgebra Boolean
+instance forall (t :: Type) (t1 :: Type).
+  HeytingAlgebra (t :: Type) => HeytingAlgebra ((t1 :: Type) -> (t :: Type))

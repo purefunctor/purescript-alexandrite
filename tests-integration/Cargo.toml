@@ -2,20 +2,18 @@
 name = "tests-integration"
 version = "0.1.0"
 edition = "2024"
-build = "build.rs"
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = "0.2.2"
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
-tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 glob = "0.3.3"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
 itertools = "0.14.0"
+insta = "1.45.1"
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 rowan = "0.16.1"
@@ -25,10 +23,22 @@ syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
 tabled = "0.20.0"
 url = "2.5.7"
 
-[build-dependencies]
-heck = "0.5"
-itertools = "0.14.0"
-
 [dev-dependencies]
-insta = "1.45.1"
+datatest-stable = "0.3"
 serde_json = "1.0"
+
+[[test]]
+name = "checking"
+harness = false
+
+[[test]]
+name = "lowering"
+harness = false
+
+[[test]]
+name = "resolving"
+harness = false
+
+[[test]]
+name = "lsp"
+harness = false

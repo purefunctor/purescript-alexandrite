@@ -120,8 +120,8 @@ pub struct CheckedClass {
     pub canonical: TypeId,
     /// Superclass constraints expressed in terms of the class head's rigids.
     pub superclasses: Vec<TypeId>,
-    /// Functional dependencies, carried from lowering.
-    pub functional_dependencies: Arc<[lowering::FunctionalDependency]>,
+    /// Functional dependencies.
+    pub functional_dependencies: Arc<[fd::Fd]>,
     /// Class member term item IDs.
     pub members: Vec<TermItemId>,
 }

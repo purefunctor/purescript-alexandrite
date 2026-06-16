@@ -1,12 +1,12 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 useLacksEmpty ::
-  forall (t2 :: Type) (name :: Symbol).
-    Lacks @(t2 :: Type) (name :: Symbol) () => Proxy @Symbol (name :: Symbol) -> Int
+  forall (t :: Type) (name :: Symbol).
+    Lacks @(t :: Type) (name :: Symbol) () => Proxy @Symbol (name :: Symbol) -> Int
 forwardLacksEmpty :: forall (name :: Symbol). Proxy @Symbol (name :: Symbol) -> Int
 
 Types

@@ -236,7 +236,7 @@ where
             if let (Type::Row(t1_row_id), Type::Row(t2_row_id)) =
                 (t1_argument_core, t2_argument_core)
             {
-                subtype_rows::<P, Q>(state, context, t1_row_id, t2_row_id)
+                subtype_rows::<NonElaborating, Q>(state, context, t1_row_id, t2_row_id)
             } else {
                 unify(state, context, t1, t2)
             }
@@ -349,14 +349,14 @@ where
             let text = state.checked.lookup_name(binder.name);
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
             let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
-            state.with_depth(|state| unify(state, context, inner, t2))?
+            unify(state, context, inner, t2)?
         }
         (_, Type::Forall(binder_id, inner)) => {
             let binder = context.lookup_forall_binder(binder_id);
             let text = state.checked.lookup_name(binder.name);
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
             let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
-            state.with_depth(|state| unify(state, context, t1, inner))?
+            unify(state, context, t1, inner)?
         }
 
         (
@@ -413,8 +413,6 @@ where
     };
 
     if !unifies {
-        let t1 = state.pretty_id(context, t1)?;
-        let t2 = state.pretty_id(context, t2)?;
         state.insert_error(ErrorKind::CannotUnify { t1, t2 });
     }
 
@@ -533,8 +531,8 @@ where
     match promote_type(state, context, id, solution)? {
         PromoteResult::Ok => {}
         PromoteResult::OccursCheck | PromoteResult::SkolemEscape => {
-            let t1 = state.pretty_id(context, unification)?;
-            let t2 = state.pretty_id(context, solution)?;
+            let t1 = unification;
+            let t2 = solution;
             state.insert_error(ErrorKind::CannotUnify { t1, t2 });
             return Ok(false);
         }

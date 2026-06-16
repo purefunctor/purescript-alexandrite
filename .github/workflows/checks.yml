@@ -32,18 +32,18 @@ jobs:
         uses: Swatinem/rust-cache@v2.9.1
         with:
           cache-bin: "false"
-          prefix-key: "v6-maho-${{ matrix.os }}-${{ matrix.toolchain }}"
+          prefix-key: "v7-nextest-workspace-${{ matrix.os }}-${{ matrix.toolchain }}"
 
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-nextest,just
+          tool: cargo-nextest
 
       - name: Build and Test
         run: |
           cargo build --workspace --verbose
           cargo nextest run
-          just integration
+          cargo nextest run -p tests-integration
 
   coverage:
     name: Coverage
@@ -64,7 +64,7 @@ jobs:
         uses: Swatinem/rust-cache@v2.9.1
         with:
           cache-bin: "false"
-          prefix-key: "v6-maho-${{ matrix.toolchain }}"
+          prefix-key: "v7-nextest-workspace-${{ matrix.toolchain }}"
 
       - name: Install tools
         uses: taiki-e/install-action@v2
@@ -77,12 +77,12 @@ jobs:
           just coverage
           just coverage-codecov
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v6
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: purefunctor/purescript-alexandrite
           files: codecov.json
-          fail_ci_if_error: true
 
   formatting:
     name: Formatting
@@ -91,5 +91,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Install Rust toolchain
+        run: rustup update nightly && rustup component add rustfmt --toolchain nightly
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Run formatter
-        run: cargo fmt --check
+        run: just format --check

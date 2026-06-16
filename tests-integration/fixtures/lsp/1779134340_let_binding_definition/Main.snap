@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+GotoDefinition at Position { line: 2, character: 15 }
+
+```
+equation = let life = 42 in life
+--             @
+```
+
+file:///tests-integration/fixtures/lsp/1779134340_let_binding_definition/Main.purs @ 2:15..2:24
+
+
+GotoDefinition at Position { line: 7, character: 4 }
+
+```
+    life :: Int
+--  @
+```
+
+file:///tests-integration/fixtures/lsp/1779134340_let_binding_definition/Main.purs @ 7:4..9:13

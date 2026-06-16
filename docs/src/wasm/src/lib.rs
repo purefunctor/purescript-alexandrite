@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use building_types::QueryProxy;
 use checking::core::pretty;
-use checking::{core, ExternalQueries};
+use diagnostics::{Diagnostic, DiagnosticsContext, ToDiagnostics};
 use engine::WasmQueryEngine;
 use indexing::{TermItem, TypeItem};
 use serde::Serialize;
@@ -100,6 +100,14 @@ pub struct CheckResult {
     timing: CheckTiming,
 }
 
+fn diagnostic_to_error_info(diagnostic: &Diagnostic) -> CheckErrorInfo {
+    CheckErrorInfo {
+        kind: diagnostic.code.to_string(),
+        message: diagnostic.message.clone(),
+        location: Some(format!("{}..{}", diagnostic.span.start, diagnostic.span.end)),
+    }
+}
+
 #[wasm_bindgen]
 pub fn check(source: &str) -> JsValue {
     let performance = get_performance();
@@ -124,7 +132,32 @@ pub fn check(source: &str) -> JsValue {
         let id = engine.set_user_source(source);
 
         let start = performance.now();
-        let _ = engine.stabilized(id);
+        let stabilized = match engine.stabilized(id) {
+            Ok(s) => s,
+            Err(e) => {
+                return CheckResult {
+                    terms: vec![],
+                    types: vec![],
+                    synonyms: vec![],
+                    errors: vec![CheckErrorInfo {
+                        kind: "StabilizeError".to_string(),
+                        message: format!("{e:?}"),
+                        location: None,
+                    }],
+                    timing: CheckTiming {
+                        lex: lex_time,
+                        layout: layout_time,
+                        parse: parse_time,
+                        stabilize: 0.0,
+                        index: 0.0,
+                        resolve: 0.0,
+                        lower: 0.0,
+                        check: 0.0,
+                        total: performance.now() - total_start,
+                    },
+                };
+            }
+        };
         let stabilize_time = performance.now() - start;
 
         let start = performance.now();
@@ -157,55 +190,61 @@ pub fn check(source: &str) -> JsValue {
         let index_time = performance.now() - start;
 
         let start = performance.now();
-        if let Err(e) = engine.resolved(id) {
-            return CheckResult {
-                terms: vec![],
-                types: vec![],
-                synonyms: vec![],
-                errors: vec![CheckErrorInfo {
-                    kind: "ResolveError".to_string(),
-                    message: format!("{e:?}"),
-                    location: None,
-                }],
-                timing: CheckTiming {
-                    lex: lex_time,
-                    layout: layout_time,
-                    parse: parse_time,
-                    stabilize: stabilize_time,
-                    index: index_time,
-                    resolve: 0.0,
-                    lower: 0.0,
-                    check: 0.0,
-                    total: performance.now() - total_start,
-                },
-            };
-        }
+        let resolved = match engine.resolved(id) {
+            Ok(r) => r,
+            Err(e) => {
+                return CheckResult {
+                    terms: vec![],
+                    types: vec![],
+                    synonyms: vec![],
+                    errors: vec![CheckErrorInfo {
+                        kind: "ResolveError".to_string(),
+                        message: format!("{e:?}"),
+                        location: None,
+                    }],
+                    timing: CheckTiming {
+                        lex: lex_time,
+                        layout: layout_time,
+                        parse: parse_time,
+                        stabilize: stabilize_time,
+                        index: index_time,
+                        resolve: 0.0,
+                        lower: 0.0,
+                        check: 0.0,
+                        total: performance.now() - total_start,
+                    },
+                };
+            }
+        };
         let resolve_time = performance.now() - start;
 
         let start = performance.now();
-        if let Err(e) = engine.lowered(id) {
-            return CheckResult {
-                terms: vec![],
-                types: vec![],
-                synonyms: vec![],
-                errors: vec![CheckErrorInfo {
-                    kind: "LowerError".to_string(),
-                    message: format!("{e:?}"),
-                    location: None,
-                }],
-                timing: CheckTiming {
-                    lex: lex_time,
-                    layout: layout_time,
-                    parse: parse_time,
-                    stabilize: stabilize_time,
-                    index: index_time,
-                    resolve: resolve_time,
-                    lower: 0.0,
-                    check: 0.0,
-                    total: performance.now() - total_start,
-                },
-            };
-        }
+        let lowered = match engine.lowered(id) {
+            Ok(l) => l,
+            Err(e) => {
+                return CheckResult {
+                    terms: vec![],
+                    types: vec![],
+                    synonyms: vec![],
+                    errors: vec![CheckErrorInfo {
+                        kind: "LowerError".to_string(),
+                        message: format!("{e:?}"),
+                        location: None,
+                    }],
+                    timing: CheckTiming {
+                        lex: lex_time,
+                        layout: layout_time,
+                        parse: parse_time,
+                        stabilize: stabilize_time,
+                        index: index_time,
+                        resolve: resolve_time,
+                        lower: 0.0,
+                        check: 0.0,
+                        total: performance.now() - total_start,
+                    },
+                };
+            }
+        };
         let lower_time = performance.now() - start;
 
         let start = performance.now();
@@ -236,42 +275,36 @@ pub fn check(source: &str) -> JsValue {
             }
         };
         let check_time = performance.now() - start;
-
-        let name_text = |name: core::Name| -> String {
-            checked
-                .lookup_name(name)
-                .map(|id| engine.lookup_smol_str(id).to_string())
-                .unwrap_or_else(|| name.as_text().to_string())
-        };
-
-        let pretty = |type_id| pretty::Pretty::new(engine, &checked).render(type_id);
-
-        let pretty_signature = |name: &str, type_id| {
-            pretty::Pretty::new(engine, &checked).signature(name).render(type_id)
-        };
+        let mut pretty = pretty::Pretty::new(engine, &checked);
 
         // Extract results
         let mut terms = Vec::new();
         for (term_id, TermItem { name, .. }) in indexed.items.iter_terms() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_term(term_id) else { continue };
-            terms.push(pretty_signature(n.as_str(), t).to_string());
+            pretty.reset();
+            terms.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut types = Vec::new();
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_type(type_id) else { continue };
-            types.push(pretty_signature(n.as_str(), t).to_string());
+            pretty.reset();
+            types.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut synonyms = Vec::new();
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(group) = checked.lookup_synonym(type_id) else { continue };
-            let expansion = pretty(group.synonym);
-            let parameters =
-                group.parameters.iter().map(|binder| name_text(binder.name)).collect::<Vec<_>>();
+            pretty.reset();
+            let expansion = pretty.render(group.synonym);
+            let parameters = group
+                .parameters
+                .iter()
+                .map(|binder| pretty.display_name(binder.name))
+                .collect::<Vec<_>>();
             synonyms.push(SynonymExpansion {
                 name: n.to_string(),
                 expansion: if parameters.is_empty() {
@@ -285,27 +318,38 @@ pub fn check(source: &str) -> JsValue {
             });
         }
 
-        let mut errors = Vec::new();
-        for error in &checked.errors {
-            let message = |id| engine.lookup_smol_str(id).to_string();
-            let (kind, message) = match &error.kind {
-                checking::error::ErrorKind::CannotUnify { t1, t2 } => {
-                    ("CannotUnify".to_string(), format!("{} ~ {}", message(*t1), message(*t2)))
-                }
-                checking::error::ErrorKind::NoInstanceFound { constraint } => {
-                    ("NoInstanceFound".to_string(), message(*constraint))
-                }
-                checking::error::ErrorKind::AmbiguousConstraint { constraint } => {
-                    ("AmbiguousConstraint".to_string(), message(*constraint))
-                }
-                _ => (format!("{:?}", error.kind), String::new()),
-            };
-            errors.push(CheckErrorInfo {
-                kind,
-                message,
-                location: Some(format!("{:?}", error.crumbs)),
-            });
+        let (parsed, _) = engine.parsed(id).expect("parsed module should be available");
+        let root = parsed.syntax_node();
+        let context = DiagnosticsContext::new(
+            engine,
+            source,
+            &root,
+            &stabilized,
+            &indexed,
+            &lowered,
+            &checked,
+        );
+
+        let mut diagnostics = Vec::new();
+        for error in &indexed.errors {
+            diagnostics.extend(error.to_diagnostics(&context));
         }
+        for error in &resolved.errors {
+            diagnostics.extend(error.to_diagnostics(&context));
+        }
+        for error in &lowered.errors {
+            diagnostics.extend(error.to_diagnostics(&context));
+        }
+        if let Ok(grouped) = engine.grouped(id) {
+            for error in &grouped.cycle_errors {
+                diagnostics.extend(error.to_diagnostics(&context));
+            }
+        }
+        for error in &checked.errors {
+            diagnostics.extend(error.to_diagnostics(&context));
+        }
+
+        let errors = diagnostics.iter().map(diagnostic_to_error_info).collect();
 
         let total_time = performance.now() - total_start;
 

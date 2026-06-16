@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -25,6 +25,6 @@ class forall (f :: Type -> Type). Build (f :: Type -> Type)
   forall (@f :: Type -> Type) (a :: Type).
     Build (f :: Type -> Type) => (a :: Type) -> (f :: Type -> Type) (a :: Type)
   produce ::
-  forall (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@f :: Type -> Type) (a1 :: Type) (b :: Type).
     Build (f :: Type -> Type) =>
-    ((b :: Type) -> (a :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a :: Type)
+    ((b :: Type) -> (a1 :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a1 :: Type)

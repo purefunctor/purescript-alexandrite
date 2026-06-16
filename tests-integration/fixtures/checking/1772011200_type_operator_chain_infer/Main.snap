@@ -1,25 +1,25 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Add :: forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> (t2 :: Type) -> (t3 :: Type)
-+ :: forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> (t2 :: Type) -> (t3 :: Type)
+Add :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
++ :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
 Chain ::
-  forall (t9 :: Type) (t8 :: Type) (t7 :: Type).
-    (t9 :: Type) -> (t8 :: Type) -> (t7 :: Type) -> (t9 :: Type)
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> (t :: Type)
 ChainParen ::
-  forall (t15 :: Type) (t14 :: Type) (t13 :: Type).
-    (t15 :: Type) -> (t14 :: Type) -> (t13 :: Type) -> (t15 :: Type)
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> (t :: Type)
 
 Synonyms
-type Add a b = (a :: (t3 :: Type))
-type Chain a b c = Add @(t9 :: Type) @(t7 :: Type)
-  (Add @(t9 :: Type) @(t8 :: Type) (a :: (t9 :: Type)) (b :: (t8 :: Type)))
-  (c :: (t7 :: Type))
-type ChainParen a b c = Add @(t15 :: Type) @(t13 :: Type)
-  (Add @(t15 :: Type) @(t14 :: Type) (a :: (t15 :: Type)) (b :: (t14 :: Type)))
-  (c :: (t13 :: Type))
+type Add a b = (a :: (t :: Type))
+type Chain a b c = Add @(t :: Type) @(t1 :: Type)
+  (Add @(t :: Type) @(t2 :: Type) (a :: (t :: Type)) (b :: (t2 :: Type)))
+  (c :: (t1 :: Type))
+type ChainParen a b c = Add @(t :: Type) @(t1 :: Type)
+  (Add @(t :: Type) @(t2 :: Type) (a :: (t :: Type)) (b :: (t2 :: Type)))
+  (c :: (t1 :: Type))

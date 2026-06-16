@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,7 +16,7 @@ class forall (a :: Type). Top (a :: Type)
   top :: forall (@a :: Type). Top (a :: Type) => (a :: Type)
 
 Instances
-instance forall (t4 :: Type) (t3 :: (t4 :: Type)). Top (Proxy @(t4 :: Type) (t3 :: (t4 :: Type)))
+instance forall (t :: Type) (t1 :: (t :: Type)). Top (Proxy @(t :: Type) (t1 :: (t :: Type)))
 
 Roles
 Proxy = [Phantom]

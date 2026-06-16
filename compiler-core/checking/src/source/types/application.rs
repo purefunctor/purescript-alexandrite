@@ -2,7 +2,8 @@ use building_types::QueryResult;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Type, TypeId, normalise, toolkit, unification};
+use crate::core::{KindOrType, Type, TypeId, normalise, unification};
+use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -19,6 +20,7 @@ pub enum Argument {
 #[derive(Debug, Clone, Copy)]
 pub struct Options {
     pub message: &'static str,
+    pub expand: bool,
 }
 
 pub enum Records {
@@ -39,9 +41,25 @@ impl Records {
 }
 
 impl Options {
-    pub const TYPES: Options = Options { message: "cannot apply function type" };
-    pub const SYNONYM: Options = Options { message: "cannot apply synonym type" };
-    pub const OPERATOR: Options = Options { message: "cannot apply operator type" };
+    pub const TYPES: Options = Options { message: "cannot apply function type", expand: true };
+    pub const SYNONYM: Options = Options { message: "cannot apply synonym type", expand: false };
+    pub const OPERATOR: Options = Options { message: "cannot apply operator type", expand: true };
+
+    fn normalise<Q>(
+        self,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        id: TypeId,
+    ) -> QueryResult<TypeId>
+    where
+        Q: ExternalQueries,
+    {
+        if self.expand {
+            normalise::expand(state, context, id)
+        } else {
+            normalise::normalise(state, context, id)
+        }
+    }
 }
 
 pub fn infer_application_kind<Q>(
@@ -56,7 +74,7 @@ where
     Q: ExternalQueries,
 {
     safe_loop! {
-        function_kind = normalise::normalise(state, context, function_kind)?;
+        function_kind = options.normalise(state, context, function_kind)?;
 
         match context.lookup_type(function_kind) {
             Type::Function(expected_kind, result_kind) => {
@@ -68,7 +86,7 @@ where
                 )?;
 
                 let result_type = context.intern_application(function_type, argument_type);
-                let result_kind = normalise::normalise(state, context, result_kind)?;
+                let result_kind = options.normalise(state, context, result_kind)?;
 
                 records.push(KindOrType::Type(argument_type));
                 break Ok(((result_type, result_kind), records));
@@ -89,7 +107,7 @@ where
                 )?;
 
                 let result_type = context.intern_application(function_type, argument_type);
-                let result_kind = normalise::normalise(state, context, result_kind)?;
+                let result_kind = options.normalise(state, context, result_kind)?;
 
                 records.push(KindOrType::Type(argument_type));
                 break Ok(((result_type, result_kind), records));
@@ -97,7 +115,7 @@ where
 
             Type::Forall(binder_id, inner_kind) => {
                 let binder = context.lookup_forall_binder(binder_id);
-                let binder_kind = normalise::normalise(state, context, binder.kind)?;
+                let binder_kind = options.normalise(state, context, binder.kind)?;
 
                 let kind_argument = state.fresh_unification(context.queries, binder_kind);
 
@@ -117,13 +135,11 @@ where
                 let invalid_type = context.intern_application(function_type, argument_type);
                 let unknown_kind = context.unknown(options.message);
 
-                toolkit::report_invalid_type_application(
-                    state,
-                    context,
+                state.insert_error(ErrorKind::InvalidTypeApplication {
                     function_type,
                     function_kind,
                     argument_type,
-                )?;
+                });
 
                 records.push(KindOrType::Type(argument_type));
                 break Ok(((invalid_type, unknown_kind), records));

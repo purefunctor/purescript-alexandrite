@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 39
+expression: report
+---
+Terms
+test :: Int -> Int
+
+Types
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Int' with 'Boolean'
+  --> 6:7..6:8
+  |
+6 |     | n -> 0
+  |       ^

@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -23,9 +23,9 @@ Classes
 class forall (t :: Type) (m :: Type -> Type). Convert (t :: Type) (m :: Type -> Type)
 
 Instances
-instance forall (t3 :: Type) (t4 :: Type -> Type).
-  Convert ((t3 :: Type) -> (t4 :: Type -> Type) Unit) (t4 :: Type -> Type)
-instance forall (t7 :: Type -> Type). Convert ((t7 :: Type -> Type) Unit) (t7 :: Type -> Type)
+instance forall (t :: Type) (t1 :: Type -> Type).
+  Convert ((t :: Type) -> (t1 :: Type -> Type) Unit) (t1 :: Type -> Type)
+instance forall (t :: Type -> Type). Convert ((t :: Type -> Type) Unit) (t :: Type -> Type)
 
 Roles
 Unit = []

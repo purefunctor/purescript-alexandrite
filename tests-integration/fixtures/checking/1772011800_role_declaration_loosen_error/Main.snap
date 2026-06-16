@@ -1,16 +1,16 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 F ::
-  forall (t2 :: Type) (@f :: (t2 :: Type) -> Type) (@a :: (t2 :: Type)).
-    (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type)) ->
-    F @(t2 :: Type) (f :: (t2 :: Type) -> Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    F @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 
 Types
-F :: forall (t2 :: Type). ((t2 :: Type) -> Type) -> (t2 :: Type) -> Type
+F :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 
 Roles
 F = [Representational, Nominal]

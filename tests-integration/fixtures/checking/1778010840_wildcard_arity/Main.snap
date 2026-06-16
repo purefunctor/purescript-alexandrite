@@ -1,9 +1,9 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
-example :: forall (t1 :: Type) (t0 :: Type). Int -> (t1 :: Type) -> (t0 :: Type) -> Int
+example :: forall (t :: Type) (t1 :: Type). Int -> (t :: Type) -> (t1 :: Type) -> Int
 
 Types

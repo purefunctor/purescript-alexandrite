@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -10,13 +10,13 @@ Types
 Identity :: Type -> Type
 
 Derived
-derive forall (t1 :: Type). Show (Identity (t1 :: Type))
+derive forall (t :: Type). Show (Identity (t :: Type))
 
 Roles
 Identity = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Show (t1 :: Type)
+error[NoInstanceFound]: No instance found for: Show (t :: Type)
   --> 7:1..7:42
   |
 7 | derive newtype instance Show (Identity a)

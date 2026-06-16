@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -24,4 +24,4 @@ class forall (row :: Row Type) (subrow :: Row Type). BuildRecord (row :: Row Typ
     BuildRecord (row :: Row Type) (subrow :: Row Type) => {| (subrow :: Row Type) }
 
 Instances
-instance forall (t2 :: Row Type) (t3 :: Row Type). BuildRecord (t2 :: Row Type) (t3 :: Row Type)
+instance forall (t :: Row Type) (t1 :: Row Type). BuildRecord (t :: Row Type) (t1 :: Row Type)

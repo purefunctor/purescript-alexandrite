@@ -5,12 +5,16 @@ pub mod application;
 use std::sync::Arc;
 
 use building_types::QueryResult;
+use itertools::Itertools;
+use lowering::GraphNode;
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{ForallBinder, RowField, Type, TypeId, normalise, toolkit, unification};
-use crate::error::ErrorCrumb;
+use crate::error::{ErrorCrumb, ErrorKind};
+use crate::holes::{HoleBinding, TypeHole};
 use crate::source::{operator, synonym};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -185,9 +189,14 @@ where
         }
 
         lowering::TypeKind::Hole => {
-            let k = state.fresh_unification(context.queries, context.prim.t);
-            let t = state.fresh_unification(context.queries, k);
-            Ok((t, k))
+            let kind_id = state.fresh_unification(context.queries, context.prim.t);
+            let type_id = state.fresh_unification(context.queries, kind_id);
+
+            let bindings = type_hole_bindings(state, context, id);
+            state.checked.holes.types.insert(id, TypeHole { type_id, kind_id, bindings });
+            state.insert_error(ErrorKind::TypeHole { source_type: id });
+
+            Ok((type_id, kind_id))
         }
 
         lowering::TypeKind::Integer { value } => {
@@ -264,6 +273,8 @@ where
                     let k = state.fresh_unification(context.queries, context.prim.t);
 
                     state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
+                    state.checked.nodes.implicit_bindings.insert((implicit.node, implicit.id), k);
+
                     let t = context.intern_rigid(n, state.depth, k);
 
                     Ok((t, k))
@@ -297,7 +308,8 @@ where
         }
 
         lowering::TypeKind::Record { items, tail } => {
-            let (row_type, row_kind) = infer_row_kind(state, context, items, tail)?;
+            let (row_type, row_kind) =
+                infer_row_kind(state, context, items, tail, EmptyRowTail::Check)?;
             unification::subtype(state, context, row_kind, context.prim.row_type)?;
 
             let t = context.intern_application(context.prim.record, row_type);
@@ -306,7 +318,9 @@ where
             Ok((t, k))
         }
 
-        lowering::TypeKind::Row { items, tail } => infer_row_kind(state, context, items, tail),
+        lowering::TypeKind::Row { items, tail } => {
+            infer_row_kind(state, context, items, tail, EmptyRowTail::Infer)
+        }
 
         lowering::TypeKind::Parenthesized { parenthesized } => {
             if let Some(parenthesized) = parenthesized {
@@ -315,6 +329,99 @@ where
                 Ok(unknown("missing parenthesized"))
             }
         }
+    }
+}
+
+fn type_hole_bindings<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    source_type: lowering::TypeId,
+) -> Arc<[HoleBinding]>
+where
+    Q: ExternalQueries,
+{
+    let mut seen: FxHashSet<&SmolStr> = FxHashSet::default();
+    let mut result = vec![];
+
+    if let Some(scope_node) = context.lowered.nodes.type_node(source_type) {
+        collect_graph_type_bindings(state, context, scope_node, &mut seen, &mut result);
+    }
+
+    Arc::from(result)
+}
+
+fn collect_graph_type_bindings<'a, Q>(
+    state: &CheckState,
+    context: &'a CheckContext<Q>,
+    scope_node: lowering::GraphNodeId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) where
+    Q: ExternalQueries,
+{
+    for (node_id, node) in context.lowered.graph.traverse(scope_node) {
+        match node {
+            GraphNode::Forall { bindings, .. } => {
+                let mut bindings = bindings.iter().collect_vec();
+                bindings.sort_by_key(|(name, _)| *name);
+
+                for (name, binding_id) in bindings {
+                    collect_forall_binding(state, name, *binding_id, seen, result);
+                }
+            }
+            GraphNode::Implicit { bindings, .. } => {
+                let mut entries = bindings.iter_indexed().collect_vec();
+                entries.sort_by_key(|(name, _)| *name);
+
+                for (name, binding_id) in entries {
+                    collect_implicit_binding(state, node_id, name, binding_id, seen, result);
+                }
+            }
+            GraphNode::Binder { .. } | GraphNode::Let { .. } => {}
+        }
+    }
+}
+
+fn collect_forall_binding<'a>(
+    state: &CheckState,
+    name: &'a SmolStr,
+    binding_id: lowering::TypeVariableBindingId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) {
+    let Some(type_id) = state
+        .checked
+        .nodes
+        .lookup_forall_binding(binding_id)
+        .or_else(|| state.bindings.lookup_forall(binding_id).map(|(_, kind)| kind))
+    else {
+        return;
+    };
+
+    if seen.insert(name) {
+        result.push(HoleBinding { name: SmolStr::clone(name), type_id });
+    }
+}
+
+fn collect_implicit_binding<'a>(
+    state: &CheckState,
+    node_id: lowering::GraphNodeId,
+    name: &'a SmolStr,
+    binding_id: lowering::ImplicitBindingId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) {
+    let Some(type_id) = state
+        .checked
+        .nodes
+        .lookup_implicit_binding(node_id, binding_id)
+        .or_else(|| state.bindings.lookup_implicit(node_id, binding_id).map(|(_, kind)| kind))
+    else {
+        return;
+    };
+
+    if seen.insert(name) {
+        result.push(HoleBinding { name: SmolStr::clone(name), type_id });
     }
 }
 
@@ -332,21 +439,21 @@ fn instantiate_kind_applications<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected_kind = normalise::normalise(state, context, expected_kind)?;
+    let expected_kind = normalise::expand(state, context, expected_kind)?;
 
     if matches!(context.lookup_type(expected_kind), Type::Forall(_, _)) {
         return Ok((t, k));
     }
 
     safe_loop! {
-        k = normalise::normalise(state, context, k)?;
+        k = normalise::expand(state, context, k)?;
 
         let Type::Forall(binder_id, inner_kind) = context.lookup_type(k) else {
             break;
         };
 
         let binder = context.lookup_forall_binder(binder_id);
-        let binder_kind = normalise::normalise(state, context, binder.kind)?;
+        let binder_kind = normalise::expand(state, context, binder.kind)?;
 
         let argument_type = state.fresh_unification(context.queries, binder_kind);
         t = context.intern_kind_application(t, argument_type);
@@ -378,6 +485,7 @@ where
     let text = context.queries.intern_smol_str(text);
 
     state.checked.names.insert(name, text);
+    state.checked.nodes.forall_bindings.insert(binding.id, kind);
     state.bindings.bind_forall(binding.id, name, kind);
     Ok(ForallBinder { visible, name, kind })
 }
@@ -403,23 +511,33 @@ where
     Ok((result_type, result_kind))
 }
 
+#[derive(Clone, Copy)]
+enum EmptyRowTail {
+    Check,
+    Infer,
+}
+
 fn infer_row_kind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     items: &Arc<[lowering::TypeRowItem]>,
     tail: &Option<lowering::TypeId>,
+    empty_tail: EmptyRowTail,
 ) -> QueryResult<(TypeId, TypeId)>
 where
     Q: ExternalQueries,
 {
+    let field_kind = state.fresh_unification(context.queries, context.prim.t);
+    let row_kind = context.intern_application(context.prim.row, field_kind);
+
     if items.is_empty()
         && let Some(tail) = tail
     {
-        return infer_kind(state, context, *tail);
+        return match empty_tail {
+            EmptyRowTail::Check => check_kind(state, context, *tail, row_kind),
+            EmptyRowTail::Infer => infer_kind(state, context, *tail),
+        };
     }
-
-    let field_kind = state.fresh_unification(context.queries, context.prim.t);
-    let row_kind = context.intern_application(context.prim.row, field_kind);
 
     let fields = items.iter().map(|item| {
         let label = item.name.clone().unwrap_or(MISSING_NAME);
@@ -436,8 +554,7 @@ where
     let fields = fields.collect::<QueryResult<Vec<_>>>()?;
 
     let tail = if let Some(tail) = tail {
-        let (tail_type, tail_kind) = infer_kind(state, context, *tail)?;
-        unification::subtype(state, context, tail_kind, row_kind)?;
+        let (tail_type, _) = check_kind(state, context, *tail, row_kind)?;
         Some(tail_type)
     } else {
         None
@@ -457,12 +574,12 @@ where
     Q: ExternalQueries,
 {
     let unknown = context.unknown("invalid kind");
-    let id = normalise::normalise(state, context, id)?;
+    let id = normalise::expand(state, context, id)?;
 
     let kind = match context.lookup_type(id) {
         Type::Application(function, _) => {
             let function_kind = elaborate_kind(state, context, function)?;
-            let function_kind = normalise::normalise(state, context, function_kind)?;
+            let function_kind = normalise::expand(state, context, function_kind)?;
 
             match context.lookup_type(function_kind) {
                 Type::Function(_, result_kind) => result_kind,
@@ -488,7 +605,7 @@ where
 
         Type::KindApplication(function, argument) => {
             let function_kind = elaborate_kind(state, context, function)?;
-            let function_kind = normalise::normalise(state, context, function_kind)?;
+            let function_kind = normalise::expand(state, context, function_kind)?;
 
             match context.lookup_type(function_kind) {
                 Type::Forall(binder_id, inner_kind) => {

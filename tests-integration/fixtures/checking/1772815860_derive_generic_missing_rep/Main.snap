@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -10,7 +10,7 @@ Types
 Box :: Type
 
 Derived
-derive forall (t0 :: Type). Generic Box (t0 :: Type)
+derive forall (t :: Type). Generic Box (t :: Type)
 
 Roles
 Box = []

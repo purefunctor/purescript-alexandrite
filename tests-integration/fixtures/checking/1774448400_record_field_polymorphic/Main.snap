@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,9 +8,9 @@ Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :
 Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
 FFIUtil ::
   { isLeft :: forall (a :: Type) (b :: Type). Either (a :: Type) (b :: Type) -> Boolean
-  , isRight :: forall (a :: Type) (b :: Type). Either (a :: Type) (b :: Type) -> Boolean
-  , left :: forall (a :: Type) (b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-  , right :: forall (a :: Type) (b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
+  , isRight :: forall (a1 :: Type) (b1 :: Type). Either (a1 :: Type) (b1 :: Type) -> Boolean
+  , left :: forall (a2 :: Type) (b2 :: Type). (a2 :: Type) -> Either (a2 :: Type) (b2 :: Type)
+  , right :: forall (a3 :: Type) (b3 :: Type). (b3 :: Type) -> Either (a3 :: Type) (b3 :: Type)
   } ->
   FFIUtil
 isLeft :: forall (a :: Type) (b :: Type). Either (a :: Type) (b :: Type) -> Boolean

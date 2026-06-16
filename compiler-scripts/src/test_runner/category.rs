@@ -1,4 +1,3 @@
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::bail;
@@ -30,19 +29,6 @@ impl TestCategory {
             format!("tests-integration/fixtures/{}", self.as_str()),
             format!("tests-integration/tests/snapshots/{}__", self.as_str()),
         ]
-    }
-
-    pub fn extra_env(&self, debug: bool) -> Vec<(&'static str, String)> {
-        if debug { vec![("TRACE_LEVEL", "debug".to_string())] } else { vec![] }
-    }
-
-    pub fn trace_for_snapshot(&self, snap_path: &Path, trace_paths: &[PathBuf]) -> Option<PathBuf> {
-        match self {
-            TestCategory::Checking => {
-                crate::test_runner::traces::match_snapshot_trace(snap_path, trace_paths)
-            }
-            _ => None,
-        }
     }
 }
 

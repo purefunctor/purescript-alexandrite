@@ -11,11 +11,11 @@ use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
+use crate::core::walk::{self, TypeWalker};
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Role, Type, TypeId, constraint,
+    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, Type, TypeId, constraint,
     normalise, unification,
 };
-use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -44,29 +44,6 @@ pub struct InstanceInfo {
 pub struct NewtypeInner {
     pub inner: TypeId,
     pub rigids: Vec<TypeId>,
-}
-
-pub fn report_invalid_type_application<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    function_type: TypeId,
-    function_kind: TypeId,
-    argument_type: TypeId,
-) -> QueryResult<()>
-where
-    Q: ExternalQueries,
-{
-    let function_type = state.pretty_id(context, function_type)?;
-    let function_kind = state.pretty_id(context, function_kind)?;
-    let argument_type = state.pretty_id(context, argument_type)?;
-
-    state.insert_error(ErrorKind::InvalidTypeApplication {
-        function_type,
-        function_kind,
-        argument_type,
-    });
-
-    Ok(())
 }
 
 pub fn extract_type_application<Q>(
@@ -583,6 +560,82 @@ where
 {
     let id = instantiate_unifications(state, context, id)?;
     collect_wanteds(state, context, id)
+}
+
+pub fn contains_unification<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+    unification: u32,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    struct ContainsUnification {
+        unification: u32,
+        contains: bool,
+    }
+
+    impl TypeWalker for ContainsUnification {
+        fn visit<Q: ExternalQueries>(
+            &mut self,
+            _state: &mut CheckState,
+            _context: &CheckContext<Q>,
+            _id: TypeId,
+            t: &Type,
+        ) -> QueryResult<walk::WalkAction> {
+            if let Type::Unification(unification) = t
+                && *unification == self.unification
+            {
+                self.contains = true;
+                Ok(walk::WalkAction::Stop)
+            } else {
+                Ok(walk::WalkAction::Continue)
+            }
+        }
+    }
+
+    let mut walker = ContainsUnification { unification, contains: false };
+    walk::walk_type(state, context, id, &mut walker)?;
+    Ok(walker.contains)
+}
+
+pub fn contains_rigid<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+    name: Name,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    struct ContainsRigid {
+        name: Name,
+        contains: bool,
+    }
+
+    impl TypeWalker for ContainsRigid {
+        fn visit<Q: ExternalQueries>(
+            &mut self,
+            _state: &mut CheckState,
+            _context: &CheckContext<Q>,
+            _id: TypeId,
+            t: &Type,
+        ) -> QueryResult<walk::WalkAction> {
+            if let Type::Rigid(name, _, _) = t
+                && *name == self.name
+            {
+                self.contains = true;
+                Ok(walk::WalkAction::Stop)
+            } else {
+                Ok(walk::WalkAction::Continue)
+            }
+        }
+    }
+
+    let mut walker = ContainsRigid { name, contains: false };
+    walk::walk_type(state, context, id, &mut walker)?;
+    Ok(walker.contains)
 }
 
 pub fn decompose_function<Q>(

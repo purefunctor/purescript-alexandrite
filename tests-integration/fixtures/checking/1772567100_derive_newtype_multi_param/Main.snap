@@ -1,15 +1,15 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Pair ::
-  forall (t2 :: Type) (@a :: Type) (@b :: (t2 :: Type)).
-    (a :: Type) -> Pair @(t2 :: Type) (a :: Type) (b :: (t2 :: Type))
+  forall (t :: Type) (@a :: Type) (@b :: (t :: Type)).
+    (a :: Type) -> Pair @(t :: Type) (a :: Type) (b :: (t :: Type))
 
 Types
-Pair :: forall (t2 :: Type). Type -> (t2 :: Type) -> Type
+Pair :: forall (t :: Type). Type -> (t :: Type) -> Type
 
 Derived
 derive Show (Pair @Type Int String)

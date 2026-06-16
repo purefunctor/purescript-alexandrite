@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -10,7 +10,7 @@ Types
 Wrapper :: Type -> Type
 
 Derived
-derive forall (t1 :: Type). Newtype @Type (Wrapper (t1 :: Type)) (t1 :: Type)
+derive forall (t :: Type). Newtype @Type (Wrapper (t :: Type)) (t :: Type)
 
 Roles
 Wrapper = [Representational]

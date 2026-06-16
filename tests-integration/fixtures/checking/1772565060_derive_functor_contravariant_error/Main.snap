@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -18,8 +18,8 @@ Cont :: Type -> Type -> Type
 
 Derived
 derive Functor Predicate
-derive forall (t5 :: Type). Functor (Reader (t5 :: Type))
-derive forall (t7 :: Type). Functor (Cont (t7 :: Type))
+derive forall (t :: Type). Functor (Reader (t :: Type))
+derive forall (t :: Type). Functor (Cont (t :: Type))
 
 Roles
 Predicate = [Representational]
@@ -27,7 +27,7 @@ Reader = [Representational, Representational]
 Cont = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t9 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t :: Type)
   --> 6:1..6:34
   |
 6 | derive instance Functor Predicate

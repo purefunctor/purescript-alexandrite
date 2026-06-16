@@ -1,69 +1,64 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Id :: forall (@a :: Type). (a :: Type) -> Id (a :: Type)
 Wrap ::
-  forall (t3 :: Type) (@f :: (t3 :: Type) -> Type) (@a :: (t3 :: Type)).
-    (f :: (t3 :: Type) -> Type) (a :: (t3 :: Type)) ->
-    Wrap @(t3 :: Type) (f :: (t3 :: Type) -> Type) (a :: (t3 :: Type))
+  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
+    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
+    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
 Compose ::
-  forall (t8 :: Type) (t7 :: Type) (@f :: (t8 :: Type) -> Type) (@g :: (t7 :: Type) -> (t8 :: Type))
-    (@a :: (t7 :: Type)).
-    (f :: (t8 :: Type) -> Type) ((g :: (t7 :: Type) -> (t8 :: Type)) (a :: (t7 :: Type))) ->
-    Compose @(t8 :: Type) @(t7 :: Type)
-      (f :: (t8 :: Type) -> Type)
-      (g :: (t7 :: Type) -> (t8 :: Type))
-      (a :: (t7 :: Type))
+  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> (t :: Type))
+    (@a :: (t1 :: Type)).
+    (f :: (t :: Type) -> Type) ((g :: (t1 :: Type) -> (t :: Type)) (a :: (t1 :: Type))) ->
+    Compose @(t :: Type) @(t1 :: Type)
+      (f :: (t :: Type) -> Type)
+      (g :: (t1 :: Type) -> (t :: Type))
+      (a :: (t1 :: Type))
 NoOrd :: forall (@a :: Type). (a :: Type) -> NoOrd (a :: Type)
 
 Types
 Id :: Type -> Type
-Wrap :: forall (t3 :: Type). ((t3 :: Type) -> Type) -> (t3 :: Type) -> Type
+Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
 Compose ::
-  forall (t8 :: Type) (t7 :: Type).
-    ((t8 :: Type) -> Type) -> ((t7 :: Type) -> (t8 :: Type)) -> (t7 :: Type) -> Type
+  forall (t :: Type) (t1 :: Type).
+    ((t :: Type) -> Type) -> ((t1 :: Type) -> (t :: Type)) -> (t1 :: Type) -> Type
 NoOrd :: Type -> Type
 
 Derived
-derive forall (t10 :: Type). Eq (t10 :: Type) => Eq (Id (t10 :: Type))
+derive forall (t :: Type). Eq (t :: Type) => Eq (Id (t :: Type))
 derive Eq1 Id
-derive forall (t12 :: Type). Ord (t12 :: Type) => Ord (Id (t12 :: Type))
+derive forall (t :: Type). Ord (t :: Type) => Ord (Id (t :: Type))
 derive Ord1 Id
-derive forall (t14 :: Type -> Type) (t15 :: Type).
-  Eq1 (t14 :: Type -> Type) =>
-  Eq (t15 :: Type) =>
-  Eq (Wrap @Type (t14 :: Type -> Type) (t15 :: Type))
-derive forall (t18 :: Type -> Type). Eq1 (t18 :: Type -> Type) => Eq1 (Wrap @Type (t18 :: Type -> Type))
-derive forall (t20 :: Type -> Type) (t21 :: Type).
-  Ord1 (t20 :: Type -> Type) =>
-  Ord (t21 :: Type) =>
-  Ord (Wrap @Type (t20 :: Type -> Type) (t21 :: Type))
-derive forall (t24 :: Type -> Type). Ord1 (t24 :: Type -> Type) => Ord1 (Wrap @Type (t24 :: Type -> Type))
-derive forall (t26 :: Type -> Type) (t29 :: Type) (t27 :: (t29 :: Type) -> Type) (t28 :: (t29 :: Type)).
-  Eq1 (t26 :: Type -> Type) =>
-  Eq ((t27 :: (t29 :: Type) -> Type) (t28 :: (t29 :: Type))) =>
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq1 (Wrap @Type (t :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Ord1 (t :: Type -> Type) => Ord (t1 :: Type) => Ord (Wrap @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type). Ord1 (t :: Type -> Type) => Ord1 (Wrap @Type (t :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type) (t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type)).
+  Eq1 (t :: Type -> Type) =>
+  Eq ((t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type))) =>
   Eq
-    (Compose @Type @(t29 :: Type)
-      (t26 :: Type -> Type)
-      (t27 :: (t29 :: Type) -> Type)
-      (t28 :: (t29 :: Type)))
-derive forall (t34 :: Type -> Type) (t37 :: Type) (t35 :: (t37 :: Type) -> Type) (t36 :: (t37 :: Type)).
-  Ord1 (t34 :: Type -> Type) =>
-  Ord ((t35 :: (t37 :: Type) -> Type) (t36 :: (t37 :: Type))) =>
+    (Compose @Type @(t1 :: Type)
+      (t :: Type -> Type)
+      (t2 :: (t1 :: Type) -> Type)
+      (t3 :: (t1 :: Type)))
+derive forall (t :: Type -> Type) (t1 :: Type) (t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type)).
+  Ord1 (t :: Type -> Type) =>
+  Ord ((t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type))) =>
   Ord
-    (Compose @Type @(t37 :: Type)
-      (t34 :: Type -> Type)
-      (t35 :: (t37 :: Type) -> Type)
-      (t36 :: (t37 :: Type)))
-derive forall (t42 :: Type -> Type) (t43 :: Type -> Type).
-  Eq1 (t42 :: Type -> Type) => Eq1 (Compose @Type @Type (t42 :: Type -> Type) (t43 :: Type -> Type))
-derive forall (t46 :: Type -> Type) (t47 :: Type -> Type).
-  Ord1 (t46 :: Type -> Type) =>
-  Ord1 (Compose @Type @Type (t46 :: Type -> Type) (t47 :: Type -> Type))
-derive forall (t50 :: Type). Eq (t50 :: Type) => Eq (NoOrd (t50 :: Type))
+    (Compose @Type @(t1 :: Type)
+      (t :: Type -> Type)
+      (t2 :: (t1 :: Type) -> Type)
+      (t3 :: (t1 :: Type)))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Eq1 (t :: Type -> Type) => Eq1 (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type -> Type).
+  Ord1 (t :: Type -> Type) => Ord1 (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Type). Eq (t :: Type) => Eq (NoOrd (t :: Type))
 derive Eq1 NoOrd
 derive Ord1 NoOrd
 
@@ -74,18 +69,26 @@ Compose = [Representational, Representational, Nominal]
 NoOrd = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq ((t43 :: Type -> Type) (t56 :: Type))
+error[NoInstanceFound]: No instance found for: Eq ((t :: Type -> Type) (t1 :: Type))
   --> 25:1..25:43
    |
 25 | derive instance Eq1 f => Eq1 (Compose f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Ord ((t47 :: Type -> Type) (t57 :: Type))
+  trivia: Eq1 (t2 :: Type -> Type) is in scope
+  trivia: Eq (t1 :: Type) is in scope
+error[NoInstanceFound]: No instance found for: Ord ((t3 :: Type -> Type) (t4 :: Type))
   --> 26:1..26:45
    |
 26 | derive instance Ord1 f => Ord1 (Compose f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Ord (NoOrd (t59 :: Type))
+  trivia: Ord1 (t5 :: Type -> Type) is in scope
+  trivia: Ord (t4 :: Type) is in scope
+  trivia: Eq1 (t5 :: Type -> Type) is in scope
+  trivia: Eq (t4 :: Type) is in scope
+error[NoInstanceFound]: No instance found for: Ord (NoOrd (t6 :: Type))
   --> 32:1..32:27
    |
 32 | derive instance Ord1 NoOrd
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Ord (t6 :: Type) is in scope
+  trivia: Eq (t6 :: Type) is in scope

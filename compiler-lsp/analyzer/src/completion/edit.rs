@@ -8,11 +8,11 @@ use resolving::ResolvedImport;
 use rowan::ast::AstNode;
 use smol_str::{SmolStrBuilder, ToSmolStr};
 
-use crate::completion::Context;
-use crate::locate;
+use crate::completion::CompletionContext;
+use crate::{locate, position};
 
 fn import_item<F, G>(
-    context: &Context,
+    context: &CompletionContext,
     module_name: &str,
     file_id: FileId,
     lookup_fn: F,
@@ -28,7 +28,7 @@ where
         .flatten()
         .find_map(|import| lookup_fn(import).map(|kind| (import, kind)));
 
-    let Ok(import_indexed) = context.engine.indexed(file_id) else {
+    let Ok(import_indexed) = context.language.engine.indexed(file_id) else {
         return (None, None);
     };
 
@@ -79,7 +79,9 @@ where
 
         let import_range = {
             let ptr = ptr.syntax_node_ptr();
-            locate::syntax_range(context.content, &root, &ptr)
+            locate::syntax_range(context.content, &root, &ptr).and_then(|range| {
+                position::utf8_range_to_protocol(context.content, range, context.language.encoding)
+            })
         };
 
         (Some(import_text), import_range)
@@ -92,7 +94,7 @@ where
 }
 
 pub(super) fn term_import_item(
-    context: &Context,
+    context: &CompletionContext,
     module_name: &str,
     term_name: &str,
     file_id: FileId,
@@ -112,7 +114,7 @@ pub(super) fn term_import_item(
 }
 
 pub(super) fn type_import_item(
-    context: &Context,
+    context: &CompletionContext,
     module_name: &str,
     type_name: &str,
     file_id: FileId,

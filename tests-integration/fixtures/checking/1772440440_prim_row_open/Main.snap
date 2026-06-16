@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -40,30 +40,30 @@ lacksPresent ::
   forall (r :: Row Type).
     Lacks @Type "a" ( a :: Int | (r :: Row Type) ) => Proxy @(Row Type) (r :: Row Type) -> Int
 forceSolve ::
-  forall (t41 :: Row Type) (t40 :: Row Type) (t39 :: Row Type) (t38 :: Row Type) (t37 :: Row Type)
-    (t36 :: Row Type) (t35 :: Row Type) (t34 :: Row Type).
-    Union @Type (t41 :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t40 :: Row Type) ) =>
-    Union @Type (t39 :: Row Type) ( b :: String ) (t38 :: Row Type) =>
-    { backwardLeft :: Proxy @(Row Type) (t41 :: Row Type)
-    , backwardRight :: Proxy @(Row Type) ( b :: String | (t37 :: Row Type) )
-    , consOpen :: Proxy @(Row Type) ( a :: String, x :: Int | (t36 :: Row Type) )
+  forall (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type) (t4 :: Row Type)
+    (t5 :: Row Type) (t6 :: Row Type) (t7 :: Row Type).
+    Union @Type (t :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t1 :: Row Type) ) =>
+    Union @Type (t2 :: Row Type) ( b :: String ) (t3 :: Row Type) =>
+    { backwardLeft :: Proxy @(Row Type) (t :: Row Type)
+    , backwardRight :: Proxy @(Row Type) ( b :: String | (t4 :: Row Type) )
+    , consOpen :: Proxy @(Row Type) ( a :: String, x :: Int | (t5 :: Row Type) )
     , decomposeOpen :: Proxy @Type Int
-    , extractTail :: Proxy @(Row Type) ( a :: String | (t35 :: Row Type) )
+    , extractTail :: Proxy @(Row Type) ( a :: String | (t6 :: Row Type) )
     , lacksOpen :: Int
     , lacksPresent :: Int
-    , openLeft :: Proxy @(Row Type) ( a :: Int | (t38 :: Row Type) )
-    , openRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t34 :: Row Type) )
+    , openLeft :: Proxy @(Row Type) ( a :: Int | (t3 :: Row Type) )
+    , openRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t7 :: Row Type) )
     }
 
 Types
 
 Diagnostics
-error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "missing" ?81
+error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "missing" ?79
   --> 33:1..43:4
    |
 33 | forceSolve =
    | ^~~~~~~~~~~~
-error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "a" ( a :: Int | ?84 )
+error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "a" ( a :: Int | ?82 )
   --> 33:1..43:4
    |
 33 | forceSolve =

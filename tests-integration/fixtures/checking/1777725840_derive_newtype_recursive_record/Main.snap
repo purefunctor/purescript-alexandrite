@@ -1,25 +1,25 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
 List ::
-  forall (t2 :: Type) (@a :: (t2 :: Type)).
-    { head :: Int, tail :: Maybe (List @(t2 :: Type) (a :: (t2 :: Type))) } ->
-    List @(t2 :: Type) (a :: (t2 :: Type))
+  forall (t :: Type) (@a :: (t :: Type)).
+    { head :: Int, tail :: Maybe (List @(t :: Type) (a :: (t :: Type))) } ->
+    List @(t :: Type) (a :: (t :: Type))
 
 Types
 Maybe :: Type -> Type
-List :: forall (t2 :: Type). (t2 :: Type) -> Type
+List :: forall (t :: Type). (t :: Type) -> Type
 
 Instances
-instance forall (t3 :: Type). Eq (t3 :: Type) => Eq (Maybe (t3 :: Type))
+instance forall (t :: Type). Eq (t :: Type) => Eq (Maybe (t :: Type))
 
 Derived
-derive forall (t5 :: Type). Eq (t5 :: Type) => Eq (List @Type (t5 :: Type))
+derive forall (t :: Type). Eq (t :: Type) => Eq (List @Type (t :: Type))
 
 Roles
 Maybe = [Representational]

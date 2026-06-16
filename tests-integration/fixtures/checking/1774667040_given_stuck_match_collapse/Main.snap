@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -18,26 +18,26 @@ B :: Type
 C :: Type
 TypeEquals :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
 Match3 ::
-  forall (t9 :: Type) (t8 :: Type) (t7 :: Type).
-    (t9 :: Type) -> (t8 :: Type) -> (t7 :: Type) -> Constraint
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
 
 Classes
 class forall (a :: Type). Show (a :: Type)
   show :: forall (@a :: Type). Show (a :: Type) => (a :: Type) -> String
 class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEquals @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
-class forall (t9 :: Type) (t8 :: Type) (t7 :: Type) (f :: (t9 :: Type)) (g :: (t8 :: Type)) (h :: (t7 :: Type)). Match3 @(t9 :: Type) @(t8 :: Type) @(t7 :: Type)
-  (f :: (t9 :: Type))
-  (g :: (t8 :: Type))
-  (h :: (t7 :: Type))
+class forall (t :: Type) (t1 :: Type) (t2 :: Type) (f :: (t :: Type)) (g :: (t1 :: Type)) (h :: (t2 :: Type)). Match3 @(t :: Type) @(t1 :: Type) @(t2 :: Type)
+  (f :: (t :: Type))
+  (g :: (t1 :: Type))
+  (h :: (t2 :: Type))
 
 Instances
-instance forall (t11 :: Type) (t10 :: (t11 :: Type)).
-  TypeEquals @(t11 :: Type) (t10 :: (t11 :: Type)) (t10 :: (t11 :: Type))
-instance forall (t14 :: Type) (t15 :: Type) (t16 :: Type).
-  TypeEquals @Type (t14 :: Type) (A -> String) =>
-  TypeEquals @Type (t15 :: Type) (B -> String) =>
-  TypeEquals @Type (t16 :: Type) (C -> String) =>
-  Match3 @Type @Type @Type (t14 :: Type) (t15 :: Type) (t16 :: Type)
+instance forall (t :: Type) (t1 :: (t :: Type)).
+  TypeEquals @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance forall (t :: Type) (t1 :: Type) (t2 :: Type).
+  TypeEquals @Type (t :: Type) (A -> String) =>
+  TypeEquals @Type (t1 :: Type) (B -> String) =>
+  TypeEquals @Type (t2 :: Type) (C -> String) =>
+  Match3 @Type @Type @Type (t :: Type) (t1 :: Type) (t2 :: Type)
 
 Roles
 A = []

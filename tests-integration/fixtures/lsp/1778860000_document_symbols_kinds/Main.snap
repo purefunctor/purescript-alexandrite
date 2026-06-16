@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+DocumentSymbols at Position { line: 1, character: 3 }
+
+```
+
+-- !
+```
+
+ForeignType :: Struct @ 4:0..4:39
+foreignValue :: Function @ 6:0..6:34
+Synonym :: TypeParameter @ 8:0..8:18
+Id :: Struct @ 10:0..10:19
+Id :: Constructor @ 10:15..10:19
+Wrap :: Interface @ 12:0..13:16
+wrap :: Method @ 13:2..13:16
+plus :: Function @ 20:0..21:12
+++ :: Operator @ 23:0..23:19
+Add :: TypeParameter @ 25:0..25:18
+:+: :: Operator @ 27:0..27:24

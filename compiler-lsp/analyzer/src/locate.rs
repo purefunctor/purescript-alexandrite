@@ -1,79 +1,76 @@
 //! Abstractions for identifying syntax at a given location.
 
-use async_lsp::lsp_types::*;
+use std::iter;
+
 use building::QueryEngine;
 use files::FileId;
 use indexing::{ImportItemId, IndexedModule, TermItemId, TypeItemId};
-use line_index::{LineCol, LineIndex};
-use lowering::{BinderId, ExpressionId, RecordPunId, TermOperatorId, TypeId, TypeOperatorId};
+use lowering::{
+    BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordPunId, TermOperatorId,
+    TypeId, TypeOperatorId,
+};
+use rowan::TokenAtOffset;
 use rowan::ast::{AstNode, AstPtr};
-use rowan::{TextRange, TextSize, TokenAtOffset};
-use stabilizing::StabilizedModule;
-use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
+use stabilizing::{AstId, StabilizedModule};
+use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
 
-use crate::AnalyzerError;
 use crate::extract::AnnotationSyntaxRange;
+use crate::position::{Utf8Position, Utf8Range};
+use crate::{AnalyzerError, position};
 
-pub fn position_to_offset(content: &str, position: Position) -> Option<TextSize> {
-    let line_index = LineIndex::new(content);
-
-    let line_range = line_index.line(position.line)?;
-    let line_content = content[line_range].trim_end_matches(['\n', '\r']);
-
-    let line = position.line;
-    let col = if line_content.is_empty() {
-        0
-    } else {
-        let last_column = || line_content.len() as u32;
-        line_content
-            .char_indices()
-            .nth(position.character as usize)
-            .map(|(column, _)| column as u32)
-            .unwrap_or_else(last_column)
-    };
-
-    let line_col = LineCol { line, col };
-    line_index.offset(line_col)
-}
-
-pub fn offset_to_position(content: &str, offset: TextSize) -> Option<Position> {
-    let line_index = LineIndex::new(content);
-
-    let LineCol { line, col } = line_index.line_col(offset);
-
-    let line_text_range = line_index.line(line)?;
-    let line_content = &content[line_text_range];
-
-    let until_col = &line_content[..col as usize];
-    let character = until_col.chars().count() as u32;
-
-    Some(Position { line, character })
-}
-
-pub fn text_range_to_range(content: &str, range: TextRange) -> Option<Range> {
-    let line_index = LineIndex::new(content);
-
-    let calculate = |offset: TextSize| {
-        let LineCol { line, col } = line_index.line_col(offset);
-
-        let line_text_range = line_index.line(line)?;
-        let line_content = &content[line_text_range];
-
-        let until_col = &line_content[..col as usize];
-        let character = until_col.chars().count() as u32;
-
-        Some(Position { line, character })
-    };
-
-    let start = calculate(range.start())?;
-    let end = calculate(range.end())?;
-
-    Some(Range { start, end })
-}
-
-pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Range> {
+pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
     let range = AnnotationSyntaxRange::from_ptr(root, ptr);
-    range.syntax.and_then(|range| text_range_to_range(content, range))
+    range.syntax.and_then(|range| position::text_range_to_utf8_range(content, range))
+}
+
+pub fn id_range<T>(
+    content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    item_id: AstId<T>,
+) -> Option<Utf8Range>
+where
+    T: AstNode<Language = PureScript>,
+{
+    let root = parsed.syntax_node();
+    let ptr = stabilized.syntax_ptr(item_id)?;
+    syntax_range(content, &root, &ptr)
+}
+
+pub fn value_equation_ranges(
+    content: &str,
+    root: &SyntaxNode,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    term_id: TermItemId,
+) -> Option<Vec<Utf8Range>> {
+    let indexing::TermItemKind::Value { signature, equations } = &indexed.items[term_id].kind
+    else {
+        return None;
+    };
+
+    let mut ranges = vec![];
+
+    if let Some(sig_id) = signature
+        && let Some(ptr) = stabilized.ast_ptr(*sig_id)
+        && let Some(node) = ptr.try_to_node(root)
+        && let Some(tok) = node.name_token()
+        && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+    {
+        ranges.push(range);
+    }
+
+    for eq_id in equations {
+        if let Some(ptr) = stabilized.ast_ptr(*eq_id)
+            && let Some(node) = ptr.try_to_node(root)
+            && let Some(tok) = node.name_token()
+            && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+        {
+            ranges.push(range);
+        }
+    }
+
+    Some(ranges)
 }
 
 type ModuleNamePtr = AstPtr<cst::ModuleName>;
@@ -85,26 +82,29 @@ pub enum Located {
     Binder(BinderId),
     Expression(ExpressionId),
     Type(TypeId),
-    Pun(RecordPunId),
+    BinderPun(RecordPunId),
+    ExpressionPun(RecordPunId),
     TermOperator(TermOperatorId),
     TypeOperator(TypeOperatorId),
     TermItem(TermItemId),
     TypeItem(TypeItemId),
+    LetBinding(LetBindingNameGroupId),
     Nothing,
 }
 
 pub fn locate(
     engine: &QueryEngine,
     id: FileId,
-    position: Position,
+    position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {
     let content = engine.content(id);
 
     let (parsed, _) = engine.parsed(id)?;
     let stabilized = engine.stabilized(id)?;
     let indexed = engine.indexed(id)?;
+    let lowered = engine.lowered(id)?;
 
-    let Some(offset) = position_to_offset(&content, position) else {
+    let Some(offset) = position::utf8_position_to_offset(&content, position) else {
         return Ok(Located::Nothing);
     };
 
@@ -113,25 +113,29 @@ pub fn locate(
 
     Ok(match token {
         TokenAtOffset::None => Located::Nothing,
-        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, token),
-        TokenAtOffset::Between(left, right) => locate_between(&stabilized, &indexed, left, right),
+        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, &lowered, token),
+        TokenAtOffset::Between(left, right) => {
+            locate_between(&stabilized, &indexed, &lowered, left, right)
+        }
     })
 }
 
 fn locate_single(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     token: SyntaxToken,
 ) -> Located {
     token
         .parent_ancestors()
-        .find_map(|node| locate_node(stabilized, indexed, node))
+        .find_map(|node| locate_node(stabilized, indexed, lowered, node))
         .unwrap_or(Located::Nothing)
 }
 
 fn locate_node(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     node: SyntaxNode,
 ) -> Option<Located> {
     let kind = node.kind();
@@ -160,7 +164,18 @@ fn locate_node(
     } else if cst::RecordPun::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
-        Some(Located::Pun(id))
+
+        let mut parents = iter::successors(Some(node), |node| node.parent());
+        parents.find_map(|node| {
+            let kind = node.kind();
+            if cst::Binder::can_cast(kind) {
+                Some(Located::BinderPun(id))
+            } else if cst::Expression::can_cast(kind) {
+                Some(Located::ExpressionPun(id))
+            } else {
+                None
+            }
+        })
     } else if cst::TermOperator::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
@@ -174,6 +189,21 @@ fn locate_node(
         let id = stabilized.lookup_ptr(&ptr)?;
         None.or_else(|| indexed.pairs.declaration_to_term(id).map(Located::TermItem))
             .or_else(|| indexed.pairs.declaration_to_type(id).map(Located::TypeItem))
+    } else if cst::LetBinding::can_cast(kind) {
+        let node = cst::LetBinding::cast(node)?;
+        match node {
+            cst::LetBinding::LetBindingPattern(_) => None,
+            cst::LetBinding::LetBindingSignature(signature) => {
+                let ptr = AstPtr::new(&signature);
+                let id = stabilized.lookup_ptr(&ptr)?;
+                lowered.info.find_let_binding_group_by_signature(id).map(Located::LetBinding)
+            }
+            cst::LetBinding::LetBindingEquation(equation) => {
+                let ptr = AstPtr::new(&equation);
+                let id = stabilized.lookup_ptr(&ptr)?;
+                lowered.info.find_let_binding_group_by_equation(id).map(Located::LetBinding)
+            }
+        }
     } else if cst::DataConstructor::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
@@ -192,11 +222,12 @@ fn locate_node(
 fn locate_between(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
+    lowered: &LoweredModule,
     left: SyntaxToken,
     right: SyntaxToken,
 ) -> Located {
-    let left = locate_single(stabilized, indexed, left);
-    let right = locate_single(stabilized, indexed, right);
+    let left = locate_single(stabilized, indexed, lowered, left);
+    let right = locate_single(stabilized, indexed, lowered, right);
     match (&left, &right) {
         // If left/right share an ancestor;
         (_, _) if left == right => left,

@@ -1,11 +1,11 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
 Age :: Int -> Age
-Proxy :: forall (t1 :: Type) (@a :: (t1 :: Type)). Proxy @(t1 :: Type) (a :: (t1 :: Type))
+Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
 coerceProxy :: Proxy @Type Int -> Proxy @Type String
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
@@ -16,7 +16,7 @@ coerceFunction :: (Int -> Age) -> Int -> Int
 
 Types
 Age :: Type
-Proxy :: forall (t1 :: Type). (t1 :: Type) -> Type
+Proxy :: forall (t :: Type). (t :: Type) -> Type
 Maybe :: Type -> Type
 
 Roles

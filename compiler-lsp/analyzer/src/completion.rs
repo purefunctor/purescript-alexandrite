@@ -9,22 +9,19 @@ pub mod resolve;
 use std::sync::Arc;
 
 use async_lsp::lsp_types::*;
-use building::QueryEngine;
-use files::Files;
+use filter::{FuzzyMatch, NoFilter, StartsWith};
+use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use radix_trie::Trie;
 use rowan::TokenAtOffset;
 use smol_str::SmolStr;
-
-use filter::{FuzzyMatch, NoFilter, StartsWith};
-use prelude::{CompletionSource, Context, CursorSemantics, CursorText, Filter};
 use sources::{
     ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes, QualifiedModules,
     QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes, QualifiedTypesSuggestions,
-    SuggestedTerms, SuggestedTypes, WorkspaceModules,
+    ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes, WorkspaceModules,
 };
 use syntax::SyntaxKind;
 
-use crate::{AnalyzerError, locate};
+use crate::{AnalyzerError, LanguageContext, position};
 
 #[derive(Clone, Default)]
 pub struct SuggestionsCacheEntry {
@@ -37,22 +34,26 @@ pub struct SuggestionsCacheEntry {
 pub type SuggestionsCache = Trie<String, Arc<SuggestionsCacheEntry>>;
 
 pub fn implementation(
-    engine: &QueryEngine,
-    files: &Files,
+    language: &LanguageContext,
     cache: &mut SuggestionsCache,
     uri: Url,
     position: Position,
 ) -> Result<Option<CompletionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        language.files.id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
+    let engine = language.engine;
+    let encoding = language.encoding;
     let prim_id = engine.prim_id();
     let content = engine.content(current_file);
+    let position = position::protocol_position_to_utf8(&content, position, encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
-    let offset = locate::position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
@@ -70,15 +71,14 @@ pub fn implementation(
     };
 
     let semantics = CursorSemantics::new(&content, position);
-    let (text, range) = CursorText::new(&content, &token);
+    let (text, range) = CursorText::new(&content, &token, encoding);
 
     let stabilized = engine.stabilized(current_file)?;
     let resolved = engine.resolved(current_file)?;
     let prim_resolved = engine.resolved(prim_id)?;
 
-    let context = Context {
-        engine,
-        files,
+    let context = CompletionContext {
+        language,
         current_file,
         content: &content,
         stabilized: &stabilized,
@@ -89,6 +89,7 @@ pub fn implementation(
         semantics,
         text,
         range,
+        offset,
     };
 
     let items = collect(&context, cache)?;
@@ -98,7 +99,7 @@ pub fn implementation(
 }
 
 fn collect(
-    context: &Context,
+    context: &CompletionContext,
     cache: &mut SuggestionsCache,
 ) -> Result<Vec<CompletionItem>, AnalyzerError> {
     let mut items = vec![];
@@ -112,10 +113,12 @@ fn collect(
                 QualifiedModules.collect_into(context, NoFilter, into)?;
             }
             if context.collect_terms() {
+                ScopeTerms.collect_into(context, NoFilter, into)?;
                 LocalTerms.collect_into(context, NoFilter, into)?;
                 ImportedTerms.collect_into(context, NoFilter, into)?;
             }
             if context.collect_types() {
+                ScopeTypes.collect_into(context, NoFilter, into)?;
                 LocalTypes.collect_into(context, NoFilter, into)?;
                 ImportedTypes.collect_into(context, NoFilter, into)?;
             }
@@ -153,6 +156,7 @@ fn collect(
                 QualifiedModules.collect_into(context, StartsWith(n), into)?;
             }
             if context.collect_terms() {
+                ScopeTerms.collect_into(context, FuzzyMatch(n), into)?;
                 LocalTerms.collect_into(context, FuzzyMatch(n), into)?;
                 ImportedTerms.collect_into(context, FuzzyMatch(n), into)?;
                 if context.collect_implicit_prim() {
@@ -160,6 +164,7 @@ fn collect(
                 }
             }
             if context.collect_types() {
+                ScopeTypes.collect_into(context, FuzzyMatch(n), into)?;
                 LocalTypes.collect_into(context, FuzzyMatch(n), into)?;
                 ImportedTypes.collect_into(context, FuzzyMatch(n), into)?;
                 if context.collect_implicit_prim() {
@@ -215,7 +220,7 @@ fn collect(
 fn get_or_populate_suggestions<F: Filter>(
     cache: &mut SuggestionsCache,
     query: &str,
-    context: &Context,
+    context: &CompletionContext,
     prefix: Option<&str>,
     filter: F,
 ) -> Result<Arc<SuggestionsCacheEntry>, AnalyzerError> {
@@ -269,7 +274,7 @@ fn filter_suggestions<F>(
     cached: &SuggestionsCacheEntry,
     prefix: Option<&str>,
     filter: &F,
-    context: &Context,
+    context: &CompletionContext,
 ) -> SuggestionsCacheEntry
 where
     F: Filter,
@@ -286,7 +291,7 @@ fn collect_entries<F>(
     items: &[CompletionItem],
     filter: &F,
     prefix: Option<&str>,
-    context: &Context,
+    context: &CompletionContext,
 ) -> Vec<CompletionItem>
 where
     F: Filter,

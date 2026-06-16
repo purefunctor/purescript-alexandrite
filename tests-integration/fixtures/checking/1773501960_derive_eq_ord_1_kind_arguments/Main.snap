@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -13,18 +13,16 @@ Types
 App :: forall (k :: Type). ((k :: Type) -> Type) -> (k :: Type) -> Type
 
 Derived
-derive forall (t5 :: Type) (t3 :: (t5 :: Type) -> Type) (t4 :: (t5 :: Type)).
+derive forall (t :: Type) (t1 :: (t :: Type) -> Type) (t2 :: (t :: Type)).
   Newtype @Type
-    (App @(t5 :: Type) (t3 :: (t5 :: Type) -> Type) (t4 :: (t5 :: Type)))
-    ((t3 :: (t5 :: Type) -> Type) (t4 :: (t5 :: Type)))
-derive forall (t9 :: Type -> Type) (t10 :: Type).
-  Eq1 (t9 :: Type -> Type) => Eq (t10 :: Type) => Eq (App @Type (t9 :: Type -> Type) (t10 :: Type))
-derive forall (t13 :: Type -> Type). Eq1 (t13 :: Type -> Type) => Eq1 (App @Type (t13 :: Type -> Type))
-derive forall (t15 :: Type -> Type) (t16 :: Type).
-  Ord1 (t15 :: Type -> Type) =>
-  Ord (t16 :: Type) =>
-  Ord (App @Type (t15 :: Type -> Type) (t16 :: Type))
-derive forall (t19 :: Type -> Type). Ord1 (t19 :: Type -> Type) => Ord1 (App @Type (t19 :: Type -> Type))
+    (App @(t :: Type) (t1 :: (t :: Type) -> Type) (t2 :: (t :: Type)))
+    ((t1 :: (t :: Type) -> Type) (t2 :: (t :: Type)))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (App @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq1 (App @Type (t :: Type -> Type))
+derive forall (t :: Type -> Type) (t1 :: Type).
+  Ord1 (t :: Type -> Type) => Ord (t1 :: Type) => Ord (App @Type (t :: Type -> Type) (t1 :: Type))
+derive forall (t :: Type -> Type). Ord1 (t :: Type -> Type) => Ord1 (App @Type (t :: Type -> Type))
 
 Roles
 App = [Representational, Nominal]

@@ -1,6 +1,0 @@
----
-source: tests-integration/tests/lowering.rs
-assertion_line: 269
-expression: errors
----
-[]

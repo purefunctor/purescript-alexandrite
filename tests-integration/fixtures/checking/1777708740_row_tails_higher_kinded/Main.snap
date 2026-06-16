@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -9,7 +9,7 @@ unify ::
     Box (r :: Row (Type -> Type)) -> Box (r :: Row (Type -> Type)) -> Box (r :: Row (Type -> Type))
 withF :: forall (r :: Row (Type -> Type)). Box ( f :: F | (r :: Row (Type -> Type)) )
 withG :: forall (r :: Row (Type -> Type)). Box ( g :: G | (r :: Row (Type -> Type)) )
-test :: forall (t3 :: Row (Type -> Type)). Box ( f :: F, g :: G | (t3 :: Row (Type -> Type)) )
+test :: forall (t :: Row (Type -> Type)). Box ( f :: F, g :: G | (t :: Row (Type -> Type)) )
 
 Types
 F :: Type -> Type

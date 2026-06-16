@@ -1,0 +1,49 @@
+[package]
+name = "tests-compatibility"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = "1"
+building = { version = "0.1.0", path = "../compiler-core/building" }
+checking = { version = "0.1.0", path = "../compiler-core/checking" }
+clap = { version = "4", features = ["derive"] }
+criterion = { version = "0.6.0", features = ["html_reports"] }
+diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
+files = { version = "0.1.0", path = "../compiler-core/files" }
+flate2 = "1"
+git2 = "0.20"
+globset = "0.4.18"
+indicatif = "0.18.3"
+indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
+lexing = { version = "0.1.0", path = "../compiler-core/lexing" }
+lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
+parsing = { version = "0.1.0", path = "../compiler-core/parsing" }
+rayon = "1.11.0"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
+semver = { version = "1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
+stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
+syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
+tar = "0.4"
+thiserror = "2"
+url = "2.5.7"
+walkdir = "2.5.0"
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bench]]
+name = "parsing"
+harness = false
+
+[[bench]]
+name = "checking_single_core"
+harness = false
+
+[[bench]]
+name = "checking_multi_core"
+harness = false

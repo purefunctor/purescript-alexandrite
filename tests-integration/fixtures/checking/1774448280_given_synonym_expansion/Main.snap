@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/checking/generated.rs
-assertion_line: 28
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -36,5 +36,5 @@ Classes
 class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEquals @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
 
 Instances
-instance forall (t10 :: Type) (t9 :: (t10 :: Type)).
-  TypeEquals @(t10 :: Type) (t9 :: (t10 :: Type)) (t9 :: (t10 :: Type))
+instance forall (t :: Type) (t1 :: (t :: Type)).
+  TypeEquals @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))

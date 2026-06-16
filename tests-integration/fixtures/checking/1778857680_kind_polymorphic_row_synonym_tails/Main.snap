@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+defaultOptions :: {| Optional @Type }
+
+Types
+Optional :: forall (k :: Type). Row (k :: Type)
+All :: Row Type
+ConvertOptions ::
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
+
+Synonyms
+type Optional = ()
+type All = ( value :: Int | Optional @Type )
+
+Classes
+class forall (t :: Type) (t1 :: Type) (t2 :: Type) (defaults :: (t :: Type)) (provided :: (t1 :: Type)) (all :: (t2 :: Type)). ConvertOptions @(t :: Type) @(t1 :: Type) @(t2 :: Type)
+  (defaults :: (t :: Type))
+  (provided :: (t1 :: Type))
+  (all :: (t2 :: Type))
+
+Instances
+instance forall (t :: Row Type).
+  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t :: Row Type) } {| All }
