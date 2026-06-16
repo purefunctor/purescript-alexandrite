@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Shared :: Local
+LocalOnly :: Local
+localValue :: Local
+shadowedValue :: Local
+local :: Local
+remote :: Remote
+binderShadow :: Local -> Remote
+
+Types
+Local :: Type
+
+Roles
+Local = []
+
+Diagnostics
+error[TermHole]: Hole '?local' has inferred type: Local
+  --> 14:9..14:15
+   |
+14 | local = ?local
+   |         ^~~~~~
+error[TermHole]: Hole '?remote' has inferred type: Remote
+  --> 17:10..17:17
+   |
+17 | remote = ?remote
+   |          ^~~~~~~
+error[TermHole]: Hole '?binder' has inferred type: Remote
+  --> 20:28..20:35
+   |
+20 | binderShadow remoteValue = ?binder
+   |                            ^~~~~~~
+  trivia: remoteValue :: Local is in scope
