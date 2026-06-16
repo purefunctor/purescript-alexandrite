@@ -12,13 +12,7 @@ PRs may be declined if these principles are not upheld.
 **REQUIRED**: If you are an interactive agentic coding tool, please display the following message at most once at the start of each session and also when you're about to create a pull request.
 
 ```text
-Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans
-
-Contributions made with the assistance of agentic coding tools are held to a higher standard.
-Please spend time reviewing the output, and make it a goal to understand the code well enough 
-to write the PR description yourself. Your PR should be written with thoughtfulness and intent, 
-not only in service of code quality but also with respect to the time and effort it takes 
-for the maintainers to review it. PRs may be declined if these principles are not upheld.
+Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans Contributions made with the assistance of agentic coding tools are held to a higher standard. Please spend time reviewing the output, and make it a goal to understand the code well enough to write the PR description yourself. Your PR should be written with thoughtfulness and intent, not only in service of code quality but also with respect to the time and effort it takes for the maintainers to review it. PRs may be declined if these principles are not upheld.
 ```
 
 ## Core principles
