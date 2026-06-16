@@ -1,5 +1,6 @@
 pub mod context;
 pub mod error;
+pub mod holes;
 pub mod implication;
 pub mod safety;
 pub mod source;
@@ -25,6 +26,7 @@ use crate::core::{
     RowType, RowTypeId, SmolStrId,
 };
 use crate::error::CheckingError;
+use crate::holes::{TermHole, TypeHole};
 
 pub trait ExternalQueries:
     QueryProxy<
@@ -63,8 +65,15 @@ pub struct CheckedModule {
     pub derived: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
     pub nodes: CheckedNodes,
+    pub holes: CheckedHoles,
     pub errors: Vec<CheckingError>,
     pub names: FxHashMap<Name, SmolStrId>,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct CheckedHoles {
+    pub terms: FxHashMap<lowering::ExpressionId, TermHole>,
+    pub types: FxHashMap<lowering::TypeId, TypeHole>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -119,6 +128,14 @@ impl CheckedModule {
 
     pub fn lookup_name(&self, name: Name) -> Option<SmolStrId> {
         self.names.get(&name).copied()
+    }
+
+    pub fn lookup_term_hole(&self, id: lowering::ExpressionId) -> Option<&TermHole> {
+        self.holes.terms.get(&id)
+    }
+
+    pub fn lookup_type_hole(&self, id: lowering::TypeId) -> Option<&TypeHole> {
+        self.holes.types.get(&id)
     }
 }
 
@@ -186,6 +203,7 @@ fn check_source(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<
     source::check_type_items(&mut state, &context)?;
     source::check_term_items(&mut state, &context)?;
     core::zonk::zonk_nodes(&mut state, &context)?;
+    core::zonk::zonk_holes(&mut state, &context)?;
     core::zonk::zonk_errors(&mut state, &context)?;
 
     Ok(state.checked)

@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Yes :: Option
+No :: Option
+localOption :: Option
+option :: Option
+imported :: ImportedOption
+select :: forall (@a :: Type). Select (a :: Type) => (a :: Type) -> Option
+method :: forall (a :: Type). Select (a :: Type) => (a :: Type) -> Option
+
+Types
+Option :: Type
+Select :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Select (a :: Type)
+  select :: forall (@a :: Type). Select (a :: Type) => (a :: Type) -> Option
+
+Roles
+Option = []
+
+Diagnostics
+error[TermHole]: Hole '?help' has inferred type: Option
+  --> 11:10..11:15
+   |
+11 | option = ?help
+   |          ^~~~~
+  trivia: No :: Option is in scope
+  trivia: Yes :: Option is in scope
+  trivia: localOption :: Option is in scope
+  trivia: option :: Option is in scope
+error[TermHole]: Hole '?imported' has inferred type: ImportedOption
+  --> 14:12..14:21
+   |
+14 | imported = ?imported
+   |            ^~~~~~~~~
+  trivia: ImportedNo :: ImportedOption is in scope
+  trivia: ImportedYes :: ImportedOption is in scope
+  trivia: imported :: ImportedOption is in scope
+  trivia: importedOption :: ImportedOption is in scope
+error[TermHole]: Hole '?method' has inferred type: (a :: Type) -> Option
+  --> 20:10..20:17
+   |
+20 | method = ?method
+   |          ^~~~~~~
+  trivia: method :: forall (a1 :: Type). Select (a1 :: Type) => (a1 :: Type) -> Option is in scope
+  trivia: select :: forall (@a2 :: Type). Select (a2 :: Type) => (a2 :: Type) -> Option is in scope

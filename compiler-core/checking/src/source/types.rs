@@ -5,12 +5,16 @@ pub mod application;
 use std::sync::Arc;
 
 use building_types::QueryResult;
+use itertools::Itertools;
+use lowering::GraphNode;
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{ForallBinder, RowField, Type, TypeId, normalise, toolkit, unification};
-use crate::error::ErrorCrumb;
+use crate::error::{ErrorCrumb, ErrorKind};
+use crate::holes::{HoleBinding, TypeHole};
 use crate::source::{operator, synonym};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -185,9 +189,14 @@ where
         }
 
         lowering::TypeKind::Hole => {
-            let k = state.fresh_unification(context.queries, context.prim.t);
-            let t = state.fresh_unification(context.queries, k);
-            Ok((t, k))
+            let kind_id = state.fresh_unification(context.queries, context.prim.t);
+            let type_id = state.fresh_unification(context.queries, kind_id);
+
+            let bindings = type_hole_bindings(state, context, id);
+            state.checked.holes.types.insert(id, TypeHole { type_id, kind_id, bindings });
+            state.insert_error(ErrorKind::TypeHole { source_type: id });
+
+            Ok((type_id, kind_id))
         }
 
         lowering::TypeKind::Integer { value } => {
@@ -320,6 +329,99 @@ where
                 Ok(unknown("missing parenthesized"))
             }
         }
+    }
+}
+
+fn type_hole_bindings<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    source_type: lowering::TypeId,
+) -> Arc<[HoleBinding]>
+where
+    Q: ExternalQueries,
+{
+    let mut seen: FxHashSet<&SmolStr> = FxHashSet::default();
+    let mut result = vec![];
+
+    if let Some(scope_node) = context.lowered.nodes.type_node(source_type) {
+        collect_graph_type_bindings(state, context, scope_node, &mut seen, &mut result);
+    }
+
+    Arc::from(result)
+}
+
+fn collect_graph_type_bindings<'a, Q>(
+    state: &CheckState,
+    context: &'a CheckContext<Q>,
+    scope_node: lowering::GraphNodeId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) where
+    Q: ExternalQueries,
+{
+    for (node_id, node) in context.lowered.graph.traverse(scope_node) {
+        match node {
+            GraphNode::Forall { bindings, .. } => {
+                let mut bindings = bindings.iter().collect_vec();
+                bindings.sort_by_key(|(name, _)| *name);
+
+                for (name, binding_id) in bindings {
+                    collect_forall_binding(state, name, *binding_id, seen, result);
+                }
+            }
+            GraphNode::Implicit { bindings, .. } => {
+                let mut entries = bindings.iter_indexed().collect_vec();
+                entries.sort_by_key(|(name, _)| *name);
+
+                for (name, binding_id) in entries {
+                    collect_implicit_binding(state, node_id, name, binding_id, seen, result);
+                }
+            }
+            GraphNode::Binder { .. } | GraphNode::Let { .. } => {}
+        }
+    }
+}
+
+fn collect_forall_binding<'a>(
+    state: &CheckState,
+    name: &'a SmolStr,
+    binding_id: lowering::TypeVariableBindingId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) {
+    let Some(type_id) = state
+        .checked
+        .nodes
+        .lookup_forall_binding(binding_id)
+        .or_else(|| state.bindings.lookup_forall(binding_id).map(|(_, kind)| kind))
+    else {
+        return;
+    };
+
+    if seen.insert(name) {
+        result.push(HoleBinding { name: SmolStr::clone(name), type_id });
+    }
+}
+
+fn collect_implicit_binding<'a>(
+    state: &CheckState,
+    node_id: lowering::GraphNodeId,
+    name: &'a SmolStr,
+    binding_id: lowering::ImplicitBindingId,
+    seen: &mut FxHashSet<&'a SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) {
+    let Some(type_id) = state
+        .checked
+        .nodes
+        .lookup_implicit_binding(node_id, binding_id)
+        .or_else(|| state.bindings.lookup_implicit(node_id, binding_id).map(|(_, kind)| kind))
+    else {
+        return;
+    };
+
+    if seen.insert(name) {
+        result.push(HoleBinding { name: SmolStr::clone(name), type_id });
     }
 }
 

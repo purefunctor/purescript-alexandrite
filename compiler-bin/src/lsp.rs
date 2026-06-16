@@ -160,6 +160,12 @@ fn initialize(
                         label_details_support: Some(true),
                     }),
                 }),
+                code_action_provider: Some(CodeActionProviderCapability::Options(
+                    CodeActionOptions {
+                        code_action_kinds: Some(vec![CodeActionKind::QUICKFIX]),
+                        ..CodeActionOptions::default()
+                    },
+                )),
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
@@ -314,6 +320,22 @@ fn hover(snapshot: StateSnapshot, p: HoverParams) -> Result<Option<Hover>, LspEr
 
     let result = snapshot
         .with_language_context(|context| analyzer::hover::implementation(context, uri, position));
+
+    result.on_non_fatal(None)
+}
+
+fn code_action(
+    snapshot: StateSnapshot,
+    p: CodeActionParams,
+) -> Result<Option<CodeActionResponse>, LspError> {
+    let _span = tracing::info_span!("code_action").entered();
+    let uri = p.text_document.uri;
+    let range = p.range;
+    let action_context = p.context;
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::code_action::implementation(context, uri, range, action_context)
+    });
 
     result.on_non_fatal(None)
 }
@@ -520,6 +542,7 @@ pub async fn start(config: Arc<cli::Config>) {
             .request::<extension::CustomInitialize, _>(initialize)
             .request_snapshot::<request::GotoDefinition>(definition)
             .request_snapshot::<request::HoverRequest>(hover)
+            .request_snapshot::<request::CodeActionRequest>(code_action)
             .request_snapshot::<request::Completion>(completion)
             .request_snapshot::<request::ResolveCompletionItem>(resolve_completion_item)
             .request_snapshot::<request::References>(references)

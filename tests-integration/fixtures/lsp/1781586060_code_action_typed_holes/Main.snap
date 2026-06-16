@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 101
+expression: report
+---
+CodeAction at Position { line: 11, character: 4 }
+
+```
+    ?term
+--  .
+```
+
+Replace hole with 'argument' [quickfix] 11:4..11:9 => "argument"
+Replace hole with 'localInt' [quickfix] 11:4..11:9 => "localInt"
+
+
+CodeAction at Position { line: 14, character: 18 }
+
+```
+type TypeHole a = ?type :: Type
+--                .
+```
+
+Replace hole with 'a' [quickfix] 14:18..14:23 => "a"
+
+
+CodeAction at Position { line: 20, character: 18 }
+
+```
+constructorHole = ?constructor
+--                .
+```
+
+Replace hole with 'No' [quickfix] 20:18..20:30 => "No"
+Replace hole with 'Yes' [quickfix] 20:18..20:30 => "Yes"
+Replace hole with 'constructorHole' [quickfix] 20:18..20:30 => "constructorHole"

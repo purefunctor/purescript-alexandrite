@@ -2,13 +2,15 @@ use std::mem;
 use std::sync::Arc;
 
 use building_types::QueryResult;
+use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
+use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
-use crate::{ExternalQueries, OperatorBranchTypes};
+use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
 
@@ -66,6 +68,32 @@ where
     zonk_type_map!(implicit_bindings);
     zonk_operator_map!(term_operator);
     zonk_operator_map!(type_operator);
+
+    Ok(())
+}
+
+pub fn zonk_holes<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for (source_term, hole) in mem::take(&mut state.checked.holes.terms) {
+        let type_id = zonk(state, context, hole.type_id)?;
+        let bindings = zonk_hole_bindings(state, context, &hole.bindings)?;
+        let bindings = holes::refine_bindings(state, context, type_id, bindings)?;
+
+        let hole = TermHole { type_id, bindings };
+        state.checked.holes.terms.insert(source_term, hole);
+    }
+
+    for (source_type, hole) in mem::take(&mut state.checked.holes.types) {
+        let type_id = zonk(state, context, hole.type_id)?;
+        let kind_id = zonk(state, context, hole.kind_id)?;
+        let bindings = zonk_hole_bindings(state, context, &hole.bindings)?;
+        let bindings = holes::refine_bindings(state, context, kind_id, bindings)?;
+
+        let hole = TypeHole { type_id, kind_id, bindings };
+        state.checked.holes.types.insert(source_type, hole);
+    }
 
     Ok(())
 }
@@ -153,6 +181,8 @@ where
         | ErrorKind::DeriveMissingFunctor
         | ErrorKind::EmptyAdoBlock
         | ErrorKind::EmptyDoBlock
+        | ErrorKind::TermHole { .. }
+        | ErrorKind::TypeHole { .. }
         | ErrorKind::InvalidFinalBind
         | ErrorKind::InvalidFinalLet
         | ErrorKind::InstanceHeadMismatch { .. }
@@ -170,6 +200,22 @@ where
         | ErrorKind::PropertyIsMissing { .. }
         | ErrorKind::AdditionalProperty { .. }) => kind,
     })
+}
+
+fn zonk_hole_bindings<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    bindings: &[HoleBinding],
+) -> QueryResult<Vec<HoleBinding>>
+where
+    Q: ExternalQueries,
+{
+    let bindings = bindings.iter().map(|binding| {
+        let name = SmolStr::clone(&binding.name);
+        let type_id = zonk(state, context, binding.type_id)?;
+        Ok(HoleBinding { name, type_id })
+    });
+    bindings.collect()
 }
 
 fn zonk_operator_branch<Q>(

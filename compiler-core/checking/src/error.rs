@@ -67,6 +67,12 @@ pub enum ErrorKind {
     DeriveMissingFunctor,
     EmptyAdoBlock,
     EmptyDoBlock,
+    TermHole {
+        source_term: lowering::ExpressionId,
+    },
+    TypeHole {
+        source_type: lowering::TypeId,
+    },
     InvalidFinalBind,
     InvalidFinalLet,
     InstanceHeadMismatch {
