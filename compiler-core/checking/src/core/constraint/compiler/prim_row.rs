@@ -24,18 +24,18 @@ fn make_prim_row_constraint<Q>(
 where
     Q: ExternalQueries,
 {
-    let row_kind = infer_row_constraint_kind(state, context, arguments)?;
+    let row_element_kind = infer_prim_row_element_kind(state, context, arguments)?;
 
     let constructor =
         context.queries.intern_type(Type::Constructor(context.prim_row.file_id, class_id));
-    let mut constraint = context.intern_kind_application(constructor, row_kind);
-    for &argument in arguments {
-        constraint = context.intern_application(constraint, argument);
-    }
-    Ok(constraint)
+
+    Ok(arguments.iter().copied().fold(
+        context.intern_kind_application(constructor, row_element_kind),
+        |application, argument| context.intern_application(application, argument),
+    ))
 }
 
-fn infer_row_constraint_kind<Q>(
+fn infer_prim_row_element_kind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     arguments: &[TypeId],
@@ -47,10 +47,12 @@ where
         let argument_kind = types::elaborate_kind(state, context, argument)?;
         let argument_kind = normalise::expand(state, context, argument_kind)?;
 
-        if let Type::Application(row_constructor, row_kind) = context.lookup_type(argument_kind) {
+        if let Type::Application(row_constructor, row_element_kind) =
+            context.lookup_type(argument_kind)
+        {
             let row_constructor = normalise::expand(state, context, row_constructor)?;
             if row_constructor == context.prim.row {
-                return Ok(row_kind);
+                return Ok(row_element_kind);
             }
         }
     }
@@ -187,7 +189,10 @@ where
         // `Union ( a :: A, b :: B | t ) ( c :: C ) ( | u )` solves `u ~ ( a :: A, b :: B | f )`,
         // plus the remaining `Union ( | t ) ( c :: C ) ( | f )` constraint.
         (Some(RowView::Open { fields: left_fields, tail }), Some(_), _) => {
-            let fresh = state.fresh_unification(context.queries, context.prim.row_type);
+            let row_element_kind = infer_prim_row_element_kind(state, context, arguments)?;
+            let fresh_kind = context.intern_application(context.prim.row, row_element_kind);
+
+            let fresh = state.fresh_unification(context.queries, fresh_kind);
             let result = context.intern_row(left_fields.iter().cloned(), Some(fresh));
 
             let constraint = make_prim_row_constraint(
