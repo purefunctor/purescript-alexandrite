@@ -23,15 +23,3 @@ Effect :: Type -> Type
 
 Roles
 Effect = [Nominal]
-
-Diagnostics
-error[CannotUnify]: Cannot unify 'Type' with 'Type -> Type'
-  --> 14:1..17:67
-   |
-14 | forceSolve
-   | ^~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Row Type' with 'Row (Type -> Type)'
-  --> 14:1..17:67
-   |
-14 | forceSolve
-   | ^~~~~~~~~~
