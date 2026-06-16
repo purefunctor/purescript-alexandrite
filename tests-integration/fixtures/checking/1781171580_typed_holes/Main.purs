@@ -12,3 +12,13 @@ termHole argument =
     ?term
 
 type TypeHole a = ?type :: Type
+
+recordPunHole :: { punInt :: Int, punString :: String } -> Int
+recordPunHole { punInt, punString } = ?pun
+
+class InstanceTypeHole implicit where
+  instanceTypeHoleMember :: implicit -> implicit
+
+instance InstanceTypeHole implicit where
+  instanceTypeHoleMember :: ?implicit -> implicit
+  instanceTypeHoleMember value = value
