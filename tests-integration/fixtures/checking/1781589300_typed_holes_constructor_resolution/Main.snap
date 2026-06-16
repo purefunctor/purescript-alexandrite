@@ -24,14 +24,23 @@ error[TermHole]: Hole '?local' has inferred type: Local
    |
 14 | local = ?local
    |         ^~~~~~
+  trivia: LocalOnly :: Local is in scope
+  trivia: Shared :: Local is in scope
+  trivia: local :: Local is in scope
+  trivia: localValue :: Local is in scope
+  trivia: shadowedValue :: Local is in scope
 error[TermHole]: Hole '?remote' has inferred type: Remote
   --> 17:10..17:17
    |
 17 | remote = ?remote
    |          ^~~~~~~
+  trivia: RemoteOnly :: Remote is in scope
+  trivia: remote :: Remote is in scope
+  trivia: remoteValue :: Remote is in scope
 error[TermHole]: Hole '?binder' has inferred type: Remote
   --> 20:28..20:35
    |
 20 | binderShadow remoteValue = ?binder
    |                            ^~~~~~~
-  trivia: remoteValue :: Local is in scope
+  trivia: RemoteOnly :: Remote is in scope
+  trivia: remote :: Remote is in scope

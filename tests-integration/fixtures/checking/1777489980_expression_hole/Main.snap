@@ -14,3 +14,4 @@ error[TermHole]: Hole '?hole' has inferred type: (t :: Type)
   |
 3 | hole = ?hole
   |        ^~~~~
+  trivia: hole :: (t :: Type) is in scope

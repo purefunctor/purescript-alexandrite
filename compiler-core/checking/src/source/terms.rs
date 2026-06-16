@@ -10,6 +10,8 @@ pub mod guarded;
 use std::sync::Arc;
 
 use building_types::QueryResult;
+use files::FileId;
+use indexing::{ImportKind, TermItemId};
 use itertools::Itertools;
 use lowering::GraphNode;
 use rustc_hash::FxHashSet;
@@ -319,7 +321,7 @@ where
             let kind = state.fresh_unification(context.queries, context.prim.t);
             let type_id = state.fresh_unification(context.queries, kind);
 
-            let bindings = term_hole_bindings(state, context, expression);
+            let bindings = term_hole_bindings(state, context, expression)?;
             state.checked.holes.terms.insert(expression, TermHole { type_id, bindings });
             state.insert_error(ErrorKind::TermHole { source_term: expression });
 
@@ -366,17 +368,30 @@ fn term_hole_bindings<Q>(
     state: &CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-) -> Arc<[HoleBinding]>
+) -> QueryResult<Arc<[HoleBinding]>>
 where
     Q: ExternalQueries,
 {
-    let Some(scope_node) = context.lowered.nodes.expression_node(expression) else {
-        return Arc::from([]);
-    };
-
     let mut seen = FxHashSet::default();
     let mut result = vec![];
 
+    if let Some(scope_node) = context.lowered.nodes.expression_node(expression) {
+        collect_graph_term_hole_bindings(state, context, scope_node, &mut seen, &mut result);
+    }
+
+    collect_resolved_term_hole_bindings(state, context, &mut seen, &mut result)?;
+    Ok(Arc::from(result))
+}
+
+fn collect_graph_term_hole_bindings<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    scope_node: lowering::GraphNodeId,
+    seen: &mut FxHashSet<SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) where
+    Q: ExternalQueries,
+{
     for (_, node) in context.lowered.graph.traverse(scope_node) {
         match node {
             GraphNode::Binder { binders, puns, .. } => {
@@ -384,7 +399,7 @@ where
                 binders.sort_by_key(|(name, _)| *name);
 
                 for (name, binder_id) in binders {
-                    if seen.insert(name)
+                    if seen.insert(SmolStr::clone(name))
                         && let Some(type_id) = state.checked.nodes.lookup_binder(*binder_id)
                     {
                         let name = SmolStr::clone(name);
@@ -396,7 +411,7 @@ where
                 puns.sort_by_key(|(name, _)| *name);
 
                 for (name, pun_id) in puns {
-                    if seen.insert(name)
+                    if seen.insert(SmolStr::clone(name))
                         && let Some(type_id) = state.checked.nodes.lookup_pun(*pun_id)
                     {
                         let name = SmolStr::clone(name);
@@ -409,7 +424,7 @@ where
                 bindings.sort_by_key(|(name, _)| *name);
 
                 for (name, let_id) in bindings {
-                    if seen.insert(name)
+                    if seen.insert(SmolStr::clone(name))
                         && let Some(type_id) = state.checked.nodes.lookup_let(*let_id)
                     {
                         let name = SmolStr::clone(name);
@@ -420,6 +435,73 @@ where
             GraphNode::Forall { .. } | GraphNode::Implicit { .. } => {}
         }
     }
+}
 
-    Arc::from(result)
+fn collect_resolved_term_hole_bindings<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    seen: &mut FxHashSet<SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for (name, file_id, term_id) in context.resolved.locals.iter_terms() {
+        collect_resolved_term_hole_binding(state, context, name, file_id, term_id, seen, result)?;
+    }
+
+    for import in context.resolved.unqualified.values().flatten() {
+        let visible_terms =
+            import.iter_terms().filter(|(_, _, _, kind)| !matches!(kind, ImportKind::Hidden));
+
+        for (name, file_id, term_id, _) in visible_terms {
+            collect_resolved_term_hole_binding(
+                state, context, name, file_id, term_id, seen, result,
+            )?;
+        }
+    }
+
+    if !context.resolved.unqualified.contains_key("Prim") {
+        for (name, file_id, term_id) in context.prim_resolved.exports.iter_terms() {
+            collect_resolved_term_hole_binding(
+                state, context, name, file_id, term_id, seen, result,
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+fn collect_resolved_term_hole_binding<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    name: &SmolStr,
+    file_id: FileId,
+    term_id: TermItemId,
+    seen: &mut FxHashSet<SmolStr>,
+    result: &mut Vec<HoleBinding>,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    if seen.contains(name) {
+        return Ok(());
+    }
+
+    let Some((resolved_file_id, resolved_term_id)) =
+        context.resolved.lookup_term(&context.prim_resolved, None, name)
+    else {
+        return Ok(());
+    };
+
+    if (resolved_file_id, resolved_term_id) != (file_id, term_id) {
+        return Ok(());
+    }
+
+    let type_id = toolkit::lookup_file_term(state, context, resolved_file_id, resolved_term_id)?;
+    let name = SmolStr::clone(name);
+    seen.insert(SmolStr::clone(&name));
+    result.push(HoleBinding { name, type_id });
+
+    Ok(())
 }
