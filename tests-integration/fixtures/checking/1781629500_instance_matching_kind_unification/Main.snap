@@ -1,0 +1,44 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+choose ::
+  forall (t :: Type) (t1 :: Type) (t2 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type))
+    (result :: (t2 :: Type)).
+    Pick @(t :: Type) @(t1 :: Type) @(t2 :: Type)
+      (a :: (t :: Type))
+      (b :: (t1 :: Type))
+      (result :: (t2 :: Type)) =>
+    Proxy @(t :: Type) (a :: (t :: Type)) ->
+    Proxy @(t1 :: Type) (b :: (t1 :: Type)) ->
+    Proxy @(t2 :: Type) (result :: (t2 :: Type))
+x :: Proxy @Type Int
+
+Types
+Pick ::
+  forall (t :: Type) (t1 :: Type) (t2 :: Type).
+    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
+
+Classes
+class forall (t :: Type) (t1 :: Type) (t2 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type)) (result :: (t2 :: Type)). Pick @(t :: Type) @(t1 :: Type) @(t2 :: Type)
+  (a :: (t :: Type))
+  (b :: (t1 :: Type))
+  (result :: (t2 :: Type))
+
+Instances
+instance forall (t :: Int).
+  Compare (t :: Int) (t :: Int) EQ => Pick @Int @Int @Int (t :: Int) (t :: Int) (t :: Int)
+instance forall (t :: Type) (t1 :: Type) (t2 :: (t :: Type)) (t3 :: (t1 :: Type)).
+  Pick @(t :: Type) @(t1 :: Type) @(t1 :: Type)
+    (t2 :: (t :: Type))
+    (t3 :: (t1 :: Type))
+    (t3 :: (t1 :: Type))
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Type' with 'Int'
+  --> 15:1..15:37
+   |
+15 | x = choose (Proxy @Int) (Proxy @Int)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
