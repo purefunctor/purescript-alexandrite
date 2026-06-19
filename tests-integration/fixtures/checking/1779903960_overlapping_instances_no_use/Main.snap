@@ -16,3 +16,12 @@ class forall (a :: Type). Test (a :: Type)
 Instances
 instance forall (t :: Type). Test (t :: Type)
 instance Test Int
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Test Int
+  --> 9:1..10:13
+  |
+9 | instance testInt :: Test Int where
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t :: Type). Test (t :: Type) is matching
+  trivia: Test Int is matching

@@ -17,3 +17,12 @@ derive Eq Box
 
 Roles
 Box = []
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Eq Box
+  --> 9:1..10:16
+  |
+9 | instance eqBox :: Eq Box where
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Eq Box is matching
+  trivia: Eq Box is matching

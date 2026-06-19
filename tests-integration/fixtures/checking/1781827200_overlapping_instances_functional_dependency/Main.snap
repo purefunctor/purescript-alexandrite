@@ -6,14 +6,9 @@ expression: report
 Terms
 convert ::
   forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-value :: String
 
 Types
 Convert :: Type -> Type -> Constraint
-Bar :: Type
-
-Synonyms
-type Bar = String
 
 Classes
 class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
@@ -21,14 +16,14 @@ class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
   forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
 
 Instances
-instance Convert String Bar
-instance Convert String String
+instance Convert String Int
+instance Convert String Boolean
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Convert String String
-  --> 11:1..12:16
-   |
-11 | instance convertSS :: Convert String String where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Convert String Bar is matching
-  trivia: Convert String String is matching
+error[OverlappingInstances]: Overlapping type class instances found for: Convert String Boolean
+  --> 9:1..10:19
+  |
+9 | instance convertSB :: Convert String Boolean where
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Convert String Int is matching
+  trivia: Convert String Boolean is matching

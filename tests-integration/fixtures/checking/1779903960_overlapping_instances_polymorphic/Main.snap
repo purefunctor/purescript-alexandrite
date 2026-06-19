@@ -26,3 +26,12 @@ instance forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t ::
 
 Roles
 Proxy = [Phantom]
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: ShowP @(t :: Type) (t1 :: (t :: Type))
+  --> 13:1..14:21
+   |
+13 | instance showPSecond :: ShowP a where
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t2 :: Type) (t3 :: (t2 :: Type)). ShowP @(t2 :: Type) (t3 :: (t2 :: Type)) is matching
+  trivia: forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type)) is matching

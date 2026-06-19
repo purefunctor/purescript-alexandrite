@@ -15,3 +15,12 @@ instance C X Y
 
 Roles
 Y = []
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: C X Y
+  --> 7:1..7:22
+  |
+7 | instance cxy :: C X Y
+  | ^~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t :: Type). C X (t :: Type) is matching
+  trivia: C X Y is matching

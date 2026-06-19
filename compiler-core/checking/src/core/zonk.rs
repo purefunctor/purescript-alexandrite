@@ -171,6 +171,14 @@ where
             let constraint = zonk(state, context, constraint)?;
             ErrorKind::NoInstanceFound { given, constraint }
         }
+        ErrorKind::OverlappingInstances { constraint, instances } => {
+            let constraint = zonk(state, context, constraint)?;
+            let instances = instances
+                .iter()
+                .map(|&instance| zonk(state, context, instance))
+                .collect::<QueryResult<Arc<[_]>>>()?;
+            ErrorKind::OverlappingInstances { constraint, instances }
+        }
         ErrorKind::NoVisibleTypeVariable { function_type } => {
             let function_type = zonk(state, context, function_type)?;
             ErrorKind::NoVisibleTypeVariable { function_type }

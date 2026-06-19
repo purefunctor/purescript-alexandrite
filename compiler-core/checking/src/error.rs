@@ -107,6 +107,10 @@ pub enum ErrorKind {
         given: Arc<[TypeId]>,
         constraint: TypeId,
     },
+    OverlappingInstances {
+        constraint: TypeId,
+        instances: Arc<[TypeId]>,
+    },
     NoVisibleTypeVariable {
         function_type: TypeId,
     },
