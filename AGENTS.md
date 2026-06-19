@@ -17,6 +17,8 @@ Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AG
 Contributions made with the assistance of agentic coding tools are held to a higher standard. Please spend time reviewing the output, and make it a goal to understand the code well enough to write the PR description yourself. Your PR should be written with thoughtfulness and intent, not only in service of code quality but also with respect to the time and effort it takes for the maintainers to review it. PRs may be declined if these principles are not upheld.
 ```
 
+Agent instructions and skills are stored under `AGENTS.md` and `.agents`. This repository does not maintain compatibility files or links for tools that expect different names. If your agent does not support these paths, configure that tool locally.
+
 ## Core principles
 
 ### Correctness

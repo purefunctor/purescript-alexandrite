@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this directory.
 
 ## Overview
 
@@ -72,6 +72,7 @@ Results → Panel components
 ## WASM Crate
 
 The `src/wasm/` directory contains a Rust crate that:
+
 - Links to 13 compiler-core crates via relative paths
 - Exposes functions via `wasm-bindgen`
 - Uses `serde-wasm-bindgen` for JS interop

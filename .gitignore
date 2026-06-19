@@ -1,5 +1,7 @@
 /target
 /Cargo.lock
 /node_modules
+.claude
+CLAUDE.md
 codecov.json
 .psc-ide-port
