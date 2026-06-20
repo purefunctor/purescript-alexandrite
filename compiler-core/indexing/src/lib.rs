@@ -7,6 +7,7 @@ pub use error::*;
 pub use items::*;
 pub use source::*;
 
+use std::collections::hash_map::Entry;
 use std::ops;
 
 use la_arena::Arena;
@@ -18,6 +19,7 @@ use syntax::{SyntaxNodePtr, cst};
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedModule {
     pub kind: ExportKind,
+    pub names: IndexedNames,
     pub items: IndexingItems,
     pub imports: IndexingImports,
     pub pairs: IndexingPairs,
@@ -56,6 +58,53 @@ impl IndexedModule {
 
         let declaration = self.pairs.declaration_to_type.iter().filter_map(aux(id));
         declaration.filter_map(|id| stabilized.syntax_ptr(id))
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IndexedNames {
+    pub terms: NameIndex<TermItemId>,
+    pub types: NameIndex<TypeItemId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct NameIndex<ItemId> {
+    first: FxHashMap<SmolStr, ItemId>,
+    entries: Vec<(SmolStr, ItemId)>,
+}
+
+impl<ItemId> Default for NameIndex<ItemId> {
+    fn default() -> Self {
+        NameIndex { first: FxHashMap::default(), entries: Vec::default() }
+    }
+}
+
+impl<ItemId> NameIndex<ItemId>
+where
+    ItemId: Copy + Eq,
+{
+    pub fn lookup(&self, name: &str) -> Option<ItemId> {
+        self.first.get(name).copied()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&SmolStr, ItemId)> {
+        self.entries.iter().map(|(name, id)| (name, *id))
+    }
+
+    pub(crate) fn insert(&mut self, name: SmolStr, id: ItemId) -> Option<ItemId> {
+        let existing = match self.first.entry(SmolStr::clone(&name)) {
+            Entry::Occupied(entry) => {
+                let id = entry.get();
+                Some(*id)
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(id);
+                None
+            }
+        };
+
+        self.entries.push((name, id));
+        existing.filter(|existing| *existing != id)
     }
 }
 
@@ -216,7 +265,7 @@ impl IndexingPairs {
 }
 
 pub fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> IndexedModule {
-    let algorithm::State { kind, items, imports, pairs, errors, .. } =
+    let algorithm::State { kind, names, items, imports, pairs, errors, .. } =
         algorithm::index_module(cst, stabilized);
-    IndexedModule { kind, items, imports, pairs, errors }
+    IndexedModule { kind, names, items, imports, pairs, errors }
 }

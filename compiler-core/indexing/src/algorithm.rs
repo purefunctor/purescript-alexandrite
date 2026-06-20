@@ -11,7 +11,7 @@ use crate::items::*;
 use crate::source::*;
 use crate::{
     ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexingError, IndexingImport,
-    IndexingImports, IndexingItems, IndexingPairs, ItemKind,
+    IndexedNames, IndexingImports, IndexingItems, IndexingPairs, ItemKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +25,7 @@ pub(super) struct State {
     name: Option<SmolStr>,
     current: Option<Current>,
     pub(super) kind: ExportKind,
+    pub(super) names: IndexedNames,
     pub(super) items: IndexingItems,
     pub(super) imports: IndexingImports,
     pub(super) pairs: IndexingPairs,
@@ -616,35 +617,21 @@ fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -
 }
 
 fn validate_items(state: &mut State) {
-    let mut terms = FxHashMap::default();
     for (id, item) in state.items.terms.iter() {
         let Some(name) = &item.name else { continue };
-        match terms.entry(name) {
-            Entry::Occupied(o) => {
-                let kind = ItemKind::Term(id);
-                let id = *o.get();
-                let existing = ExistingKind::Term(id);
-                state.errors.push(IndexingError::DuplicateItem { kind, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
+        if let Some(existing_id) = state.names.terms.insert(SmolStr::clone(name), id) {
+            let kind = ItemKind::Term(id);
+            let existing = ExistingKind::Term(existing_id);
+            state.errors.push(IndexingError::DuplicateItem { kind, existing });
         }
     }
 
-    let mut types = FxHashMap::default();
     for (id, item) in state.items.types.iter() {
         let Some(name) = &item.name else { continue };
-        match types.entry(name) {
-            Entry::Occupied(o) => {
-                let kind = ItemKind::Type(id);
-                let id = *o.get();
-                let existing = ExistingKind::Type(id);
-                state.errors.push(IndexingError::DuplicateItem { kind, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
+        if let Some(existing_id) = state.names.types.insert(SmolStr::clone(name), id) {
+            let kind = ItemKind::Type(id);
+            let existing = ExistingKind::Type(existing_id);
+            state.errors.push(IndexingError::DuplicateItem { kind, existing });
         }
     }
 }
