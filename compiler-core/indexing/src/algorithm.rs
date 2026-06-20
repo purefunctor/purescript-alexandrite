@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Current {
+enum OpenItemGroup {
     Term(TermItemId),
     Type(TypeItemId),
 }
@@ -24,7 +24,7 @@ enum Current {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(super) struct State {
     name: Option<SmolStr>,
-    current: Option<Current>,
+    open: Option<OpenItemGroup>,
     pub(super) kind: ExportKind,
     pub(super) names: IndexedNames,
     pub(super) exports: IndexedExports,
@@ -39,8 +39,8 @@ impl State {
         State { name, ..Default::default() }
     }
 
-    fn active_term(&mut self, name: &Option<SmolStr>) -> Option<(TermItemId, &mut TermItem)> {
-        let Current::Term(id) = self.current? else {
+    fn open_term_group(&mut self, name: &Option<SmolStr>) -> Option<(TermItemId, &mut TermItem)> {
+        let OpenItemGroup::Term(id) = self.open? else {
             return None;
         };
         let item = &mut self.items.terms[id];
@@ -50,8 +50,8 @@ impl State {
         Some((id, &mut self.items.terms[id]))
     }
 
-    fn active_type(&mut self, name: &Option<SmolStr>) -> Option<(TypeItemId, &mut TypeItem)> {
-        let Current::Type(id) = self.current? else {
+    fn open_type_group(&mut self, name: &Option<SmolStr>) -> Option<(TypeItemId, &mut TypeItem)> {
+        let OpenItemGroup::Type(id) = self.open? else {
             return None;
         };
         let item = &mut self.items.types[id];
@@ -63,15 +63,19 @@ impl State {
 
     fn alloc_term(&mut self, item: TermItem) -> TermItemId {
         let id = self.items.terms.alloc(item);
-        self.current = Some(Current::Term(id));
+        self.open = Some(OpenItemGroup::Term(id));
         id
     }
 
     fn alloc_type(&mut self, item: TypeItem) -> TypeItemId {
         let id = self.items.types.alloc(item);
-        self.current = Some(Current::Type(id));
+        self.open = Some(OpenItemGroup::Type(id));
         id
     }
+}
+
+fn name_from_token(token: Option<SyntaxToken>) -> Option<SmolStr> {
+    token.map(|token| SmolStr::from(token.text()))
 }
 
 pub(super) fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> State {
@@ -409,12 +413,9 @@ fn index_value_signature(
     id: ValueSignatureId,
     cst: &cst::ValueSignature,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_term(&name) else {
+    let Some((active_id, active)) = state.open_term_group(&name) else {
         let kind = TermItemKind::Value { signature: Some(id), equations: vec![] };
         return state.alloc_term(TermItem { name, kind, exported: false });
     };
@@ -441,12 +442,9 @@ fn index_value_equation(
     id: ValueEquationId,
     cst: &cst::ValueEquation,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_term(&name) else {
+    let Some((active_id, active)) = state.open_term_group(&name) else {
         let kind = TermItemKind::Value { signature: None, equations: vec![id] };
         return state.alloc_term(TermItem { name, kind, exported: false });
     };
@@ -471,10 +469,7 @@ fn index_infix(
     let type_token = cst.type_token();
     let operator_token = cst.operator_token();
 
-    let name = operator_token.map(|token| {
-        let text = token.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(operator_token);
 
     if type_token.is_some() {
         let kind = TypeItemKind::Operator { id: infix_id };
@@ -492,12 +487,9 @@ fn index_infix(
 }
 
 fn index_type_role(state: &mut State, id: TypeRoleId, cst: &cst::TypeRoleDeclaration) {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.errors.push(IndexingError::InvalidRole { id, existing: None });
     };
 
@@ -527,12 +519,9 @@ fn index_type_signature<T: AstNode<Language = PureScript>>(
     kind: MakeItemKind<T>,
     extract: Extract<T>,
 ) -> TypeItemId {
-    let name = token.map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(token);
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.alloc_type(item(name, id));
     };
 
@@ -562,12 +551,9 @@ fn index_type_declaration<T: AstNode<Language = PureScript>>(
     kind: MakeItemKind<T>,
     extract: Extract<T>,
 ) -> TypeItemId {
-    let name = token.map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(token);
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.alloc_type(item(name, id));
     };
 
@@ -594,10 +580,7 @@ fn index_data_constructor(
     id: DataConstructorId,
     cst: &cst::DataConstructor,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TermItemKind::Constructor { id };
     state.items.terms.alloc(TermItem { name, kind, exported: false })
 }
@@ -607,10 +590,7 @@ fn index_class_member(
     id: ClassMemberId,
     cst: &cst::ClassMemberStatement,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TermItemKind::ClassMember { id };
     state.items.terms.alloc(TermItem { name, kind, exported: false })
 }
@@ -620,10 +600,7 @@ fn index_foreign_data(
     id: ForeignDataId,
     cst: &cst::ForeignImportDataDeclaration,
 ) -> TypeItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TypeItemKind::Foreign { id, role: None };
     state.alloc_type(TypeItem { name, kind, exported: false })
 }
@@ -633,10 +610,7 @@ fn index_foreign_value(
     id: ForeignValueId,
     cst: &cst::ForeignImportValueDeclaration,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     state.alloc_term(TermItem { name, kind: TermItemKind::Foreign { id }, exported: false })
 }
 
@@ -783,11 +757,7 @@ fn merge_implicit_items(
     }
 }
 
-fn index_type_items(
-    state: &mut State,
-    id: ImportItemId,
-    items: cst::TypeItems,
-) -> ImplicitItems {
+fn index_type_items(state: &mut State, id: ImportItemId, items: cst::TypeItems) -> ImplicitItems {
     match items {
         cst::TypeItems::TypeItemsAll(_) => ImplicitItems::Everything,
         cst::TypeItems::TypeItemsList(cst) => {
