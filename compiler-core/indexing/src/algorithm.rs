@@ -11,8 +11,8 @@ use crate::items::*;
 use crate::source::*;
 use crate::{
     ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexedExport, IndexedExports,
-    IndexedModuleExport, IndexedNames, IndexedTypeExport, IndexingError, IndexingImport,
-    IndexingImports, IndexingItems, IndexingPairs, ItemKind, TypeSelection,
+    IndexedImport, IndexedImports, IndexedItems, IndexedModuleExport, IndexedNames, IndexedPairs,
+    IndexedTypeExport, IndexingError, ItemKind, TypeSelection,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,9 +28,9 @@ pub(super) struct State {
     pub(super) kind: ExportKind,
     pub(super) names: IndexedNames,
     pub(super) exports: IndexedExports,
-    pub(super) items: IndexingItems,
-    pub(super) imports: IndexingImports,
-    pub(super) pairs: IndexingPairs,
+    pub(super) items: IndexedItems,
+    pub(super) imports: IndexedImports,
+    pub(super) pairs: IndexedPairs,
     pub(super) errors: Vec<IndexingError>,
 }
 
@@ -660,7 +660,7 @@ fn index_import(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Imp
     let name = extract_name(cst);
     let alias = extract_alias(cst);
 
-    let mut import = IndexingImport::new(name, alias);
+    let mut import = IndexedImport::new(name, alias);
 
     if let Some(cst) = cst.import_list() {
         if cst.hiding().is_some() {
@@ -679,7 +679,7 @@ fn index_import(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Imp
 fn index_import_items(
     state: &mut State,
     stabilized: &StabilizedModule,
-    import: &mut IndexingImport,
+    import: &mut IndexedImport,
     cst: &cst::ImportItem,
 ) {
     let id = stabilized.lookup_cst(cst).expect_id();
@@ -714,7 +714,7 @@ fn index_import_items(
     }
 }
 
-fn index_term_import(state: &mut State, import: &mut IndexingImport, name: &str, id: ImportItemId) {
+fn index_term_import(state: &mut State, import: &mut IndexedImport, name: &str, id: ImportItemId) {
     let name = SmolStr::from(name);
     if let Some(&existing) = import.terms.get(&name) {
         state.errors.push(IndexingError::DuplicateImport { duplicate: id, existing });
@@ -725,7 +725,7 @@ fn index_term_import(state: &mut State, import: &mut IndexingImport, name: &str,
 
 fn index_type_import(
     state: &mut State,
-    import: &mut IndexingImport,
+    import: &mut IndexedImport,
     name: &str,
     id: ImportItemId,
     items: Option<cst::TypeItems>,

@@ -21,9 +21,9 @@ pub struct IndexedModule {
     pub kind: ExportKind,
     pub names: IndexedNames,
     pub exports: IndexedExports,
-    pub items: IndexingItems,
-    pub imports: IndexingImports,
-    pub pairs: IndexingPairs,
+    pub items: IndexedItems,
+    pub imports: IndexedImports,
+    pub pairs: IndexedPairs,
     pub errors: Vec<IndexingError>,
 }
 
@@ -173,12 +173,12 @@ pub enum TypeSelection {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingItems {
+pub struct IndexedItems {
     terms: Arena<TermItem>,
     types: Arena<TypeItem>,
 }
 
-impl IndexingItems {
+impl IndexedItems {
     pub fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, &TermItem)> {
         self.terms.iter()
     }
@@ -188,7 +188,7 @@ impl IndexingItems {
     }
 }
 
-impl ops::Index<TermItemId> for IndexingItems {
+impl ops::Index<TermItemId> for IndexedItems {
     type Output = TermItem;
 
     fn index(&self, index: TermItemId) -> &TermItem {
@@ -196,7 +196,7 @@ impl ops::Index<TermItemId> for IndexingItems {
     }
 }
 
-impl ops::Index<TypeItemId> for IndexingItems {
+impl ops::Index<TypeItemId> for IndexedItems {
     type Output = TypeItem;
 
     fn index(&self, index: TypeItemId) -> &TypeItem {
@@ -236,7 +236,7 @@ pub type ImportedTerms = FxHashMap<SmolStr, ImportItemId>;
 pub type ImportedTypes = FxHashMap<SmolStr, (ImportItemId, Option<ImplicitItems>)>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingImport {
+pub struct IndexedImport {
     pub name: Option<SmolStr>,
     pub alias: Option<SmolStr>,
     pub kind: ImportKind,
@@ -245,16 +245,16 @@ pub struct IndexingImport {
     pub exported: bool,
 }
 
-pub type IndexingImports = FxHashMap<ImportId, IndexingImport>;
+pub type IndexedImports = FxHashMap<ImportId, IndexedImport>;
 
-impl IndexingImport {
-    pub(crate) fn new(name: Option<SmolStr>, alias: Option<SmolStr>) -> IndexingImport {
-        IndexingImport { name, alias, ..Default::default() }
+impl IndexedImport {
+    pub(crate) fn new(name: Option<SmolStr>, alias: Option<SmolStr>) -> IndexedImport {
+        IndexedImport { name, alias, ..Default::default() }
     }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingPairs {
+pub struct IndexedPairs {
     instance_chain: Vec<(InstanceChainId, InstanceId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
@@ -264,7 +264,7 @@ pub struct IndexingPairs {
     class_member_to_term: Vec<(ClassMemberId, TermItemId)>,
 }
 
-impl IndexingPairs {
+impl IndexedPairs {
     pub fn declaration_to_term(&self, id: DeclarationId) -> Option<TermItemId> {
         self.declaration_to_term.iter().find_map(move |(declaration_id, term_id)| {
             if *declaration_id == id { Some(*term_id) } else { None }

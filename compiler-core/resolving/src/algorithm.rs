@@ -1,7 +1,7 @@
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{
-    ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedModule, IndexingImport, TermItemId,
+    ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedImport, IndexedModule, TermItemId,
     TermItemKind, TypeItemId, TypeItemKind,
 };
 use smol_str::SmolStr;
@@ -36,25 +36,25 @@ fn resolve_imports(
     state: &mut State,
     indexed: &IndexedModule,
 ) -> QueryResult<()> {
-    for (&indexing_import_id, indexing_import) in &indexed.imports {
-        let Some(name) = &indexing_import.name else {
-            state.errors.push(ResolvingError::InvalidImportStatement { id: indexing_import_id });
+    for (&indexed_import_id, indexed_import) in &indexed.imports {
+        let Some(name) = &indexed_import.name else {
+            state.errors.push(ResolvingError::InvalidImportStatement { id: indexed_import_id });
             continue;
         };
 
         let Some(import_file_id) = queries.module_file(name) else {
-            state.errors.push(ResolvingError::InvalidImportStatement { id: indexing_import_id });
+            state.errors.push(ResolvingError::InvalidImportStatement { id: indexed_import_id });
             continue;
         };
 
         let mut resolved_import = ResolvedImport::new(
-            indexing_import_id,
+            indexed_import_id,
             import_file_id,
-            indexing_import.kind,
-            indexing_import.exported,
+            indexed_import.kind,
+            indexed_import.exported,
         );
 
-        if let Some(alias) = &indexing_import.alias {
+        if let Some(alias) = &indexed_import.alias {
             let alias = SmolStr::clone(alias);
             let imports = state.qualified.entry(alias).or_default();
             imports.push(resolved_import);
@@ -64,7 +64,7 @@ fn resolve_imports(
                 &mut state.errors,
                 &mut state.class,
                 resolved_import,
-                indexing_import,
+                indexed_import,
                 import_file_id,
             )?;
         } else {
@@ -74,7 +74,7 @@ fn resolve_imports(
                 &mut state.errors,
                 &mut state.class,
                 &mut resolved_import,
-                indexing_import,
+                indexed_import,
                 import_file_id,
             )?;
             state.unqualified.entry(name).or_default().push(resolved_import);
@@ -89,10 +89,10 @@ fn resolve_import(
     errors: &mut Vec<ResolvingError>,
     class_members: &mut ResolvedClassMembers,
     resolved: &mut ResolvedImport,
-    indexing_import: &IndexingImport,
+    indexed_import: &IndexedImport,
     import_file_id: FileId,
 ) -> QueryResult<()> {
-    let kind = match indexing_import.kind {
+    let kind = match indexed_import.kind {
         ImportKind::Implicit => ImportKind::Implicit,
         ImportKind::Explicit => ImportKind::Hidden,
         ImportKind::Hidden => ImportKind::Implicit,
@@ -110,23 +110,23 @@ fn resolve_import(
     add_imported_classes(resolved, classes);
 
     // Adjust import kinds for explicit/hidden imports BEFORE copying class members
-    if !matches!(indexing_import.kind, ImportKind::Implicit) {
-        for (name, &id) in &indexing_import.terms {
+    if !matches!(indexed_import.kind, ImportKind::Implicit) {
+        for (name, &id) in &indexed_import.terms {
             if let Some((_, _, kind)) = resolved.terms.get_mut(name) {
-                *kind = indexing_import.kind;
+                *kind = indexed_import.kind;
             } else {
                 errors.push(ResolvingError::InvalidImportItem { id });
             }
         }
 
-        for (name, &(import_item_id, ref implicit)) in &indexing_import.types {
+        for (name, &(import_item_id, ref implicit)) in &indexed_import.types {
             if let Some((file, type_id, kind)) = resolved.types.get_mut(name) {
-                *kind = indexing_import.kind;
+                *kind = indexed_import.kind;
                 let Some(implicit) = implicit else { continue };
                 let item = (*file, *type_id, import_item_id, implicit);
-                resolve_implicit(queries, errors, resolved, indexing_import, item)?;
+                resolve_implicit(queries, errors, resolved, indexed_import, item)?;
             } else if let Some((_, _, kind)) = resolved.classes.get_mut(name) {
-                *kind = indexing_import.kind;
+                *kind = indexed_import.kind;
             } else {
                 errors.push(ResolvingError::InvalidImportItem { id: import_item_id });
             };
@@ -151,7 +151,7 @@ fn resolve_implicit(
     queries: &impl ExternalQueries,
     errors: &mut Vec<ResolvingError>,
     resolved: &mut ResolvedImport,
-    indexing_import: &IndexingImport,
+    indexed_import: &IndexedImport,
     item: (FileId, TypeItemId, ImportItemId, &ImplicitItems),
 ) -> QueryResult<()> {
     let (f_id, t_id, import_item_id, implicit) = item;
@@ -167,7 +167,7 @@ fn resolve_implicit(
                     continue;
                 };
                 if let Some((_, _, term_kind)) = resolved.terms.get_mut(name) {
-                    *term_kind = indexing_import.kind;
+                    *term_kind = indexed_import.kind;
                 }
             }
         }
@@ -188,7 +188,7 @@ fn resolve_implicit(
                 }
 
                 if let Some((_, _, term_kind)) = resolved.terms.get_mut(name) {
-                    *term_kind = indexing_import.kind;
+                    *term_kind = indexed_import.kind;
                 } else {
                     errors.push(ResolvingError::InvalidImportItem { id: import_item_id });
                 }
