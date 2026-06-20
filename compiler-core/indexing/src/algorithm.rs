@@ -10,8 +10,9 @@ use syntax::{PureScript, SyntaxToken, cst};
 use crate::items::*;
 use crate::source::*;
 use crate::{
-    ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexingError, IndexingImport,
-    IndexedNames, IndexingImports, IndexingItems, IndexingPairs, ItemKind,
+    ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexedExport, IndexedExports,
+    IndexedModuleExport, IndexedNames, IndexedTypeExport, IndexingError, IndexingImport,
+    IndexingImports, IndexingItems, IndexingPairs, ItemKind, TypeSelection,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,6 +27,7 @@ pub(super) struct State {
     current: Option<Current>,
     pub(super) kind: ExportKind,
     pub(super) names: IndexedNames,
+    pub(super) exports: IndexedExports,
     pub(super) items: IndexingItems,
     pub(super) imports: IndexingImports,
     pub(super) pairs: IndexingPairs,
@@ -778,77 +780,39 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
     let mut terms = FxHashMap::default();
     let mut types = FxHashMap::default();
 
-    let mut add_term = |e: &mut Vec<IndexingError>, n: &str, id: ExportItemId| {
-        let name = SmolStr::from(n);
-        match terms.entry(name) {
-            Entry::Occupied(o) => {
-                let existing = *o.get();
-                e.push(IndexingError::DuplicateExport { id, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
-        }
-    };
-
-    let mut add_type =
-        |e: &mut Vec<IndexingError>, n: &str, id: ExportItemId, cst: Option<cst::TypeItems>| {
-            let name = SmolStr::from(n);
-            match types.entry(name) {
-                Entry::Occupied(o) => {
-                    let (existing, _) = *o.get();
-                    e.push(IndexingError::DuplicateExport { id, existing });
-                }
-                Entry::Vacant(v) => {
-                    let items = cst.map(|cst| match cst {
-                        cst::TypeItems::TypeItemsAll(_) => ImplicitItems::Everything,
-                        cst::TypeItems::TypeItemsList(cst) => {
-                            let enumerated = cst.name_tokens().map(|token| {
-                                let name = token.text();
-                                SmolStr::from(name)
-                            });
-                            let enumerated = enumerated.collect();
-                            ImplicitItems::Enumerated(enumerated)
-                        }
-                    });
-                    v.insert((id, items));
-                }
-            }
-        };
-
     for cst in cst.children() {
         let id = stabilized.lookup_cst(&cst).expect_id();
         match cst {
             cst::ExportItem::ExportValue(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
-                add_term(&mut state.errors, name, id);
+                index_export_term(state, &mut terms, name, id);
             }
             cst::ExportItem::ExportClass(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
-                add_type(&mut state.errors, name, id, None);
+                index_export_type(state, &mut types, name, id, None);
             }
             cst::ExportItem::ExportType(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let items = cst.type_items();
-                add_type(&mut state.errors, name, id, items);
+                index_export_type(state, &mut types, name, id, items);
             }
             cst::ExportItem::ExportOperator(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let name = operator_name(name);
-                add_term(&mut state.errors, name, id);
+                index_export_term(state, &mut terms, name, id);
             }
             cst::ExportItem::ExportTypeOperator(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let name = operator_name(name);
-                add_type(&mut state.errors, name, id, None);
+                index_export_type(state, &mut types, name, id, None);
             }
             cst::ExportItem::ExportModule(cst) => {
-                index_module_export(state, &cst);
+                index_module_export(state, id, &cst);
             }
         }
     }
@@ -866,7 +830,7 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
                     }
                     ImplicitItems::Enumerated(names) => {
                         for name in names {
-                            add_term(&mut state.errors, name, *id);
+                            mark_exported_term(&mut state.errors, &mut terms, name, *id);
                         }
                     }
                 }
@@ -883,12 +847,104 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
     }
 }
 
+fn index_export_term(
+    state: &mut State,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: &str,
+    id: ExportItemId,
+) {
+    let name = SmolStr::from(name);
+    let item = state.names.terms.lookup(&name);
+    state.exports.terms.push(IndexedExport { id, name: SmolStr::clone(&name), item });
+
+    mark_exported_term_name(&mut state.errors, terms, name, id);
+}
+
+fn mark_exported_term(
+    errors: &mut Vec<IndexingError>,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: &str,
+    id: ExportItemId,
+) {
+    let name = SmolStr::from(name);
+    mark_exported_term_name(errors, terms, name, id);
+}
+
+fn mark_exported_term_name(
+    errors: &mut Vec<IndexingError>,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: SmolStr,
+    id: ExportItemId,
+) {
+    match terms.entry(name) {
+        Entry::Occupied(o) => {
+            let existing = *o.get();
+            errors.push(IndexingError::DuplicateExport { id, existing });
+        }
+        Entry::Vacant(v) => {
+            v.insert(id);
+        }
+    }
+}
+
+fn index_export_type(
+    state: &mut State,
+    types: &mut FxHashMap<SmolStr, (ExportItemId, Option<ImplicitItems>)>,
+    name: &str,
+    id: ExportItemId,
+    items: Option<cst::TypeItems>,
+) {
+    let name = SmolStr::from(name);
+    let item = state.names.types.lookup(&name);
+    let selection = items.map(type_selection);
+
+    state.exports.types.push(IndexedTypeExport {
+        id,
+        name: SmolStr::clone(&name),
+        item,
+        selection: selection.clone(),
+    });
+
+    match types.entry(name) {
+        Entry::Occupied(o) => {
+            let (existing, _) = *o.get();
+            state.errors.push(IndexingError::DuplicateExport { id, existing });
+        }
+        Entry::Vacant(v) => {
+            let items = selection.map(implicit_items_from_selection);
+            v.insert((id, items));
+        }
+    }
+}
+
+fn type_selection(cst: cst::TypeItems) -> TypeSelection {
+    match cst {
+        cst::TypeItems::TypeItemsAll(_) => TypeSelection::Everything,
+        cst::TypeItems::TypeItemsList(cst) => {
+            let enumerated = cst.name_tokens().map(|token| {
+                let name = token.text();
+                SmolStr::from(name)
+            });
+            let enumerated = enumerated.collect();
+            TypeSelection::Enumerated(enumerated)
+        }
+    }
+}
+
+fn implicit_items_from_selection(selection: TypeSelection) -> ImplicitItems {
+    match selection {
+        TypeSelection::Everything => ImplicitItems::Everything,
+        TypeSelection::Enumerated(items) => ImplicitItems::Enumerated(items),
+    }
+}
+
 fn operator_name(name: &str) -> &str {
     name.trim_start_matches("(").trim_end_matches(")")
 }
 
-fn index_module_export(state: &mut State, cst: &cst::ExportModule) {
+fn index_module_export(state: &mut State, id: ExportItemId, cst: &cst::ExportModule) {
     if let Some(n) = extracted_exported_module(cst) {
+        state.exports.modules.push(IndexedModuleExport { id, name: SmolStr::clone(&n) });
         if state.name.as_ref() == Some(&n) {
             state.kind = ExportKind::ExplicitSelf;
         } else {

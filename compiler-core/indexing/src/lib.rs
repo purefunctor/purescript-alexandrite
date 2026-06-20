@@ -20,6 +20,7 @@ use syntax::{SyntaxNodePtr, cst};
 pub struct IndexedModule {
     pub kind: ExportKind,
     pub names: IndexedNames,
+    pub exports: IndexedExports,
     pub items: IndexingItems,
     pub imports: IndexingImports,
     pub pairs: IndexingPairs,
@@ -106,6 +107,40 @@ where
         self.entries.push((name, id));
         existing.filter(|existing| *existing != id)
     }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IndexedExports {
+    pub terms: Vec<IndexedExport<TermItemId>>,
+    pub types: Vec<IndexedTypeExport>,
+    pub modules: Vec<IndexedModuleExport>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedExport<ItemId> {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+    pub item: Option<ItemId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedTypeExport {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+    pub item: Option<TypeItemId>,
+    pub selection: Option<TypeSelection>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedModuleExport {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeSelection {
+    Everything,
+    Enumerated(Box<[SmolStr]>),
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -265,7 +300,7 @@ impl IndexingPairs {
 }
 
 pub fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> IndexedModule {
-    let algorithm::State { kind, names, items, imports, pairs, errors, .. } =
+    let algorithm::State { kind, names, exports, items, imports, pairs, errors, .. } =
         algorithm::index_module(cst, stabilized);
-    IndexedModule { kind, names, items, imports, pairs, errors }
+    IndexedModule { kind, names, exports, items, imports, pairs, errors }
 }
