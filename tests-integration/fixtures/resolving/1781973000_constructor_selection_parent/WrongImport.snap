@@ -8,7 +8,6 @@ module WrongImport
 Unqualified Imports:
 
 Terms:
-  - B is Explicit
 
 Types:
   - A is Explicit
@@ -32,3 +31,4 @@ Local Classes:
 Class Members:
 
 Errors:
+  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(8) }

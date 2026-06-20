@@ -717,7 +717,7 @@ fn index_type_import(
     items: Option<cst::TypeItems>,
 ) {
     let name = SmolStr::from(name);
-    let items = items.map(|items| index_type_items(state, import, id, items));
+    let items = items.map(|items| index_type_items(state, id, items));
     if let Some((existing_id, existing_items)) = import.types.get_mut(&name) {
         let existing = *existing_id;
         *existing_items = merge_implicit_items(existing_items.take(), items);
@@ -745,17 +745,22 @@ fn merge_implicit_items(
 
 fn index_type_items(
     state: &mut State,
-    import: &mut IndexingImport,
     id: ImportItemId,
     items: cst::TypeItems,
 ) -> ImplicitItems {
     match items {
         cst::TypeItems::TypeItemsAll(_) => ImplicitItems::Everything,
         cst::TypeItems::TypeItemsList(cst) => {
+            let mut names = FxHashSet::default();
             let enumerated = cst.name_tokens().map(|token| {
                 let name = token.text();
-                index_term_import(state, import, name, id);
-                SmolStr::from(name)
+                let name = SmolStr::from(name);
+                if !names.insert(SmolStr::clone(&name)) {
+                    state
+                        .errors
+                        .push(IndexingError::DuplicateImport { duplicate: id, existing: id });
+                }
+                name
             });
             let enumerated = enumerated.collect();
             ImplicitItems::Enumerated(enumerated)
@@ -830,7 +835,17 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
                     }
                     ImplicitItems::Enumerated(names) => {
                         for name in names {
-                            mark_exported_term(&mut state.errors, &mut terms, name, *id);
+                            let term_id = state.pairs.data_constructors(type_id).find(|term_id| {
+                                let item = &state.items.terms[*term_id];
+                                item.name.as_deref() == Some(name.as_str())
+                            });
+
+                            if let Some(term_id) = term_id {
+                                state.items.terms[term_id].exported = true;
+                                mark_exported_term(&mut state.errors, &mut terms, name, *id);
+                            } else {
+                                state.errors.push(IndexingError::InvalidExport { id: *id });
+                            }
                         }
                     }
                 }
