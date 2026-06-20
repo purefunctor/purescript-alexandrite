@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+convert ::
+  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+
+Types
+Convert :: Type -> Type -> Constraint
+
+Classes
+class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+  convert ::
+  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+
+Instances
+instance Convert String Int
+instance Convert String Boolean
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Convert String Boolean
+  --> 9:1..10:19
+  |
+9 | instance convertSB :: Convert String Boolean where
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Convert String Int is matching
+  trivia: Convert String Boolean is matching

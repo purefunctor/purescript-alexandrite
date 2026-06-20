@@ -8,10 +8,14 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::constraint::instances::InstanceCandidate;
 use crate::core::constraint::{CanonicalConstraintId, canonical};
-use crate::core::fd::{Fd, compute_closure, get_all_determined, get_functional_dependencies};
+use crate::core::fd::{
+    Fd, compute_closure, compute_covering_sets, get_all_determined, get_functional_dependencies,
+};
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
-use crate::core::{KindOrType, Name, RowField, RowTypeId, Type, TypeId, normalise, toolkit};
+use crate::core::{
+    CheckedInstance, KindOrType, Name, RowField, RowTypeId, Type, TypeId, normalise, toolkit,
+};
 use crate::source::types;
 use crate::state::CheckState;
 
@@ -616,17 +620,8 @@ where
     let functional_dependencies =
         get_functional_dependencies(state, context, wanted.file_id, wanted.type_id)?;
 
-    let wanted_arguments = wanted
-        .arguments
-        .iter()
-        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
-        .collect_vec();
-
-    let declared_arguments = declared
-        .arguments
-        .iter()
-        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
-        .collect_vec();
+    let wanted_arguments = type_arguments(&wanted.arguments);
+    let declared_arguments = type_arguments(&declared.arguments);
 
     match match_instance(
         state,
@@ -640,7 +635,7 @@ where
             let matched_names: FxHashSet<_> = bindings.iter().map(|(name, _)| *name).collect();
 
             let mut substitution = FxHashMap::default();
-            for &(name, bound) in &bindings {
+            for (name, bound) in bindings {
                 substitution.entry(name).or_insert(bound);
             }
 
@@ -654,18 +649,14 @@ where
             }
 
             let mut unifications = vec![];
-
             for binder in &declared.binders {
                 if !matched_names.contains(&binder.name) {
                     continue;
                 }
-
                 let expected_kind =
                     SubstituteName::many(state, context, &substitution, binder.kind)?;
-
                 let actual_kind =
                     types::elaborate_kind(state, context, substitution[&binder.name])?;
-
                 unifications.push((actual_kind, expected_kind));
             }
 
@@ -687,5 +678,179 @@ where
         }
         MatchType::Apart => Ok(MatchInstance::Apart),
         MatchType::Stuck { stuck, skolem } => Ok(MatchInstance::Stuck { stuck, skolem }),
+    }
+}
+
+pub fn declared_instances_overlap<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    left: CheckedInstance,
+    right: CheckedInstance,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    if left.resolution != right.resolution {
+        return Ok(false);
+    }
+
+    let (file_id, type_id) = left.resolution;
+
+    let Some(left) = toolkit::instance_info(state, context, left.signature, left.resolution)?
+    else {
+        return Ok(false);
+    };
+    let Some(right) = toolkit::instance_info(state, context, right.signature, right.resolution)?
+    else {
+        return Ok(false);
+    };
+
+    let left_arguments = type_arguments(&left.arguments);
+    let right_arguments = type_arguments(&right.arguments);
+
+    if left_arguments.len() != right_arguments.len() {
+        return Ok(false);
+    }
+
+    let functional_dependencies = get_functional_dependencies(state, context, file_id, type_id)?;
+    let covering_sets = compute_covering_sets(&functional_dependencies, left_arguments.len());
+
+    Ok(!instances_are_apart(state, context, &covering_sets, &left_arguments, &right_arguments)?)
+}
+
+fn type_arguments(arguments: &[KindOrType]) -> Vec<TypeId> {
+    arguments
+        .iter()
+        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
+        .collect_vec()
+}
+
+fn instances_are_apart<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    covering_sets: &[FxHashSet<usize>],
+    left_arguments: &[TypeId],
+    right_arguments: &[TypeId],
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    for covering_set in covering_sets {
+        let mut covering_set_is_apart = false;
+
+        for &position in covering_set {
+            if types_apart(
+                state,
+                context,
+                left_arguments[position],
+                right_arguments[position],
+                false,
+            )?
+            .is_apart()
+            {
+                covering_set_is_apart = true;
+                break;
+            }
+        }
+
+        if !covering_set_is_apart {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+fn types_apart<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    left: TypeId,
+    right: TypeId,
+    comparing_kind_argument: bool,
+) -> QueryResult<MatchType>
+where
+    Q: ExternalQueries,
+{
+    // Declaration-time overlap checking follows PureScript's conservative
+    // head-apartness approximation rather than solver unification. In
+    // particular, kinded applications may be separated by their explicit
+    // kind arguments even when their value-level arguments could still unify;
+    // any remaining ambiguity is reported at instance-search sites.
+    let left = normalise::expand(state, context, left)?;
+    let right = normalise::expand(state, context, right)?;
+
+    let left_core = context.lookup_type(left);
+    let right_core = context.lookup_type(right);
+
+    match (left_core, right_core) {
+        (Type::Kinded(left, _), _) => {
+            types_apart(state, context, left, right, comparing_kind_argument)
+        }
+        (_, Type::Kinded(right, _)) => {
+            types_apart(state, context, left, right, comparing_kind_argument)
+        }
+
+        (Type::Rigid(_, _, _), Type::Rigid(_, _, _))
+        | (Type::Unification(_), Type::Unification(_)) => Ok(MatchType::Match { bindings: vec![] }),
+
+        (Type::Rigid(_, _, _) | Type::Unification(_), _)
+        | (_, Type::Rigid(_, _, _) | Type::Unification(_)) => Ok(if comparing_kind_argument {
+            MatchType::Apart
+        } else {
+            MatchType::Match { bindings: vec![] }
+        }),
+
+        (Type::Constructor(left_file, left_item), Type::Constructor(right_file, right_item)) => {
+            Ok(if (left_file, left_item) != (right_file, right_item) {
+                MatchType::Apart
+            } else {
+                MatchType::Match { bindings: vec![] }
+            })
+        }
+
+        (Type::String(_, left), Type::String(_, right)) => {
+            Ok(if left != right { MatchType::Apart } else { MatchType::Match { bindings: vec![] } })
+        }
+        (Type::Integer(left), Type::Integer(right)) => {
+            Ok(if left != right { MatchType::Apart } else { MatchType::Match { bindings: vec![] } })
+        }
+
+        (
+            Type::Application(left_function, left_argument),
+            Type::Application(right_function, right_argument),
+        ) => Ok(types_apart(state, context, left_function, right_function, false)?
+            .combine(types_apart(state, context, left_argument, right_argument, false)?)),
+
+        (Type::Application(_, _), Type::Function(right_argument, right_result)) => {
+            let right = context.intern_function_application(right_argument, right_result);
+            types_apart(state, context, left, right, comparing_kind_argument)
+        }
+
+        (Type::Function(left_argument, left_result), Type::Application(_, _)) => {
+            let left = context.intern_function_application(left_argument, left_result);
+            types_apart(state, context, left, right, comparing_kind_argument)
+        }
+
+        (
+            Type::KindApplication(left_function, left_argument),
+            Type::KindApplication(right_function, right_argument),
+        ) => Ok(types_apart(state, context, left_function, right_function, false)?
+            .combine(types_apart(state, context, left_argument, right_argument, true)?)),
+
+        (
+            Type::Function(left_argument, left_result),
+            Type::Function(right_argument, right_result),
+        ) => Ok(types_apart(state, context, left_argument, right_argument, false)?
+            .combine(types_apart(state, context, left_result, right_result, false)?)),
+
+        (Type::Row(left), Type::Row(right)) => compare_row_types_with(
+            state,
+            context,
+            left,
+            right,
+            &mut |state, context, left, right| types_apart(state, context, left, right, false),
+        ),
+
+        (_, _) => Ok(MatchType::Apart),
     }
 }

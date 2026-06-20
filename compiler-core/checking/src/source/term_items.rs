@@ -35,6 +35,7 @@ where
 {
     check_instance_declarations(state, context)?;
     let derive_results = derive::check_derive_declarations(state, context)?;
+    check_overlapping_instance_declarations(state, context)?;
     check_value_groups(state, context)?;
     check_instance_members(state, context)?;
     derive::check_derive_members(state, context, &derive_results)?;
@@ -62,6 +63,24 @@ where
 
         for item in items {
             check_instance_declaration(state, context, item)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn check_overlapping_instance_declarations<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for scc in &context.grouped.term_scc {
+        for &item_id in scc.as_slice() {
+            state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
+                constraint::instances::validate_declared_instance_overlap(state, context, item_id)
+            })?;
         }
     }
 

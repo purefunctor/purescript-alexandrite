@@ -1,25 +1,40 @@
 //! Implements searching for instance chains.
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{IndexedModule, InstanceChainId, TypeItemId};
+use indexing::{
+    DeriveId, IndexedModule, InstanceChainId, InstanceId, TermItemId, TermItemKind, TypeItemId,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
-use crate::core::constraint::CanonicalConstraintId;
+use crate::core::constraint::{CanonicalConstraint, CanonicalConstraintId};
 use crate::core::fd::{get_all_determined, get_functional_dependencies};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
-use crate::core::{CheckedInstance, KindOrType, Type, TypeId, normalise};
+use crate::core::{CheckedInstance, KindOrType, Type, TypeId, constraint, normalise, toolkit};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{CheckedModule, ExternalQueries};
 
+pub type InstanceChainKey = (FileId, InstanceChainId);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum InstanceCandidateOrigin {
+    Instance(FileId, InstanceId),
+    Derive(FileId, DeriveId),
+}
+
 /// A candidate found for a constraint.
+#[derive(Clone, Copy)]
 pub struct InstanceCandidate {
     /// The syntactic ID for the instance chain.
-    pub id: Option<InstanceChainId>,
+    pub chain: Option<InstanceChainKey>,
     /// The position of the instance in the chain.
     pub position: u32,
+    /// The provenance of the instance candidate.
+    pub origin: InstanceCandidateOrigin,
     /// Type information about the instance.
     pub instance: CheckedInstance,
 }
@@ -33,6 +48,133 @@ pub struct InstanceCandidate {
 pub struct InstanceChains {
     pub chains: Vec<Vec<InstanceCandidate>>,
     pub blocking: Vec<u32>,
+}
+
+pub fn validate_declared_instance_overlap<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    item_id: TermItemId,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let Some((origin, instance)) = declared_instance_candidate(state, context, item_id) else {
+        return Ok(());
+    };
+
+    let Some(OverlappingDeclaredCandidates { matches, wanted }) =
+        collect_overlapping_declared_candidates(state, context, origin, instance)?
+    else {
+        return Ok(());
+    };
+
+    let Some(current_position) = context
+        .indexed
+        .items
+        .iter_terms()
+        .position(|(candidate_item_id, _)| candidate_item_id == item_id)
+    else {
+        return Ok(());
+    };
+
+    let overlap = matches.iter().any(|candidate| {
+        should_report_overlap(context, candidate.origin, origin, current_position)
+    });
+
+    if overlap {
+        let constraint = state.canonicals.type_id(context, wanted);
+        let instances = matches.iter().map(|candidate| candidate.instance.signature).collect();
+        state.insert_error(ErrorKind::OverlappingInstances { constraint, instances });
+    }
+
+    Ok(())
+}
+
+fn declared_instance_candidate<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    item_id: TermItemId,
+) -> Option<(InstanceCandidateOrigin, CheckedInstance)>
+where
+    Q: ExternalQueries,
+{
+    match context.indexed.items[item_id].kind {
+        TermItemKind::Instance { id } => {
+            let instance = state.checked.lookup_instance(id)?;
+            let origin = InstanceCandidateOrigin::Instance(context.id, id);
+            Some((origin, instance))
+        }
+        TermItemKind::Derive { id } => {
+            let instance = state.checked.lookup_derived(id)?;
+            let origin = InstanceCandidateOrigin::Derive(context.id, id);
+            Some((origin, instance))
+        }
+        _ => None,
+    }
+}
+
+struct OverlappingDeclaredCandidates {
+    matches: Vec<InstanceCandidate>,
+    wanted: CanonicalConstraintId,
+}
+
+fn collect_overlapping_declared_candidates<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    origin: InstanceCandidateOrigin,
+    instance: CheckedInstance,
+) -> QueryResult<Option<OverlappingDeclaredCandidates>>
+where
+    Q: ExternalQueries,
+{
+    // An instance head is the dual of a constraint; we synthesise it here to reuse
+    // [`collect_instance_chains`]'s file-scoped enumeration, which scopes modules
+    // by walking the head's type constructors, not by matching against candidates.
+    let wanted = {
+        let Some(toolkit::InstanceInfo { arguments, .. }) =
+            toolkit::instance_info(state, context, instance.signature, instance.resolution)?
+        else {
+            return Ok(None);
+        };
+        let (file_id, type_id) = instance.resolution;
+        let arguments = Arc::from(arguments);
+        state.canonicals.intern(CanonicalConstraint { file_id, type_id, arguments })
+    };
+
+    let search = collect_instance_chains(state, context, wanted)?;
+    let current_chain = instance_candidate_chain(context, origin);
+
+    fn is_chain_sibling(
+        candidate: InstanceCandidate,
+        current_chain: Option<InstanceChainKey>,
+        origin: InstanceCandidateOrigin,
+    ) -> bool {
+        if let (Some(candidate_chain), Some(current_chain)) = (candidate.chain, current_chain) {
+            candidate_chain == current_chain && candidate.origin != origin
+        } else {
+            false
+        }
+    }
+
+    let mut matches = vec![];
+    'chain: for chain in search.chains {
+        for candidate in chain {
+            if is_chain_sibling(candidate, current_chain, origin) {
+                continue;
+            }
+            if constraint::matching::declared_instances_overlap(
+                state,
+                context,
+                instance,
+                candidate.instance,
+            )? {
+                matches.push(candidate);
+                continue 'chain;
+            }
+        }
+    }
+
+    Ok(Some(OverlappingDeclaredCandidates { matches, wanted }))
 }
 
 /// Collects [`InstanceCandidate`]s for a given constraint.
@@ -57,10 +199,11 @@ where
 
     let mut instances = vec![];
 
-    for &file_id in &files {
+    for file_id in files {
         if file_id == context.id {
             collect_instances_from_checked(
                 &mut instances,
+                file_id,
                 &state.checked,
                 &context.indexed,
                 constraint.file_id,
@@ -71,6 +214,7 @@ where
             let indexed = context.queries.indexed(file_id)?;
             collect_instances_from_checked(
                 &mut instances,
+                file_id,
                 &checked,
                 &indexed,
                 constraint.file_id,
@@ -79,14 +223,14 @@ where
         }
     }
 
-    type Grouped = FxHashMap<InstanceChainId, Vec<InstanceCandidate>>;
+    type Grouped = FxHashMap<InstanceChainKey, Vec<InstanceCandidate>>;
 
     let mut grouped = Grouped::default();
     let mut chains = vec![];
 
     for instance in instances {
-        if let Some(id) = instance.id {
-            grouped.entry(id).or_default().push(instance);
+        if let Some(chain) = instance.chain {
+            grouped.entry(chain).or_default().push(instance);
         } else {
             chains.push(vec![instance]);
         }
@@ -97,35 +241,101 @@ where
         chains.push(chain);
     }
 
+    chains.sort_by_key(|chain| {
+        chain
+            .first()
+            .map(|instance| (instance.chain, instance.position, instance.instance.signature))
+    });
+
     Ok(InstanceChains { chains, blocking })
+}
+
+fn instance_candidate_chain<Q>(
+    context: &CheckContext<Q>,
+    origin: InstanceCandidateOrigin,
+) -> Option<InstanceChainKey>
+where
+    Q: ExternalQueries,
+{
+    let InstanceCandidateOrigin::Instance(file_id, instance_id) = origin else {
+        return None;
+    };
+
+    if file_id != context.id {
+        return None;
+    }
+
+    context.indexed.pairs.instance_chain_id(instance_id).map(|chain_id| (file_id, chain_id))
+}
+
+fn instance_candidate_position<Q>(
+    context: &CheckContext<Q>,
+    origin: InstanceCandidateOrigin,
+) -> Option<usize>
+where
+    Q: ExternalQueries,
+{
+    context.indexed.items.iter_terms().position(|(_, item)| match (origin, &item.kind) {
+        (InstanceCandidateOrigin::Instance(file_id, origin_id), TermItemKind::Instance { id }) => {
+            file_id == context.id && origin_id == *id
+        }
+        (InstanceCandidateOrigin::Derive(file_id, origin_id), TermItemKind::Derive { id }) => {
+            file_id == context.id && origin_id == *id
+        }
+        _ => false,
+    })
+}
+
+fn should_report_overlap<Q>(
+    context: &CheckContext<Q>,
+    candidate: InstanceCandidateOrigin,
+    origin: InstanceCandidateOrigin,
+    origin_position: usize,
+) -> bool
+where
+    Q: ExternalQueries,
+{
+    if candidate == origin {
+        return false;
+    }
+
+    let Some(candidate_position) = instance_candidate_position(context, candidate) else {
+        return true;
+    };
+
+    candidate_position < origin_position
 }
 
 fn collect_instances_from_checked(
     output: &mut Vec<InstanceCandidate>,
+    file_id: FileId,
     checked: &CheckedModule,
     indexed: &IndexedModule,
     class_file: FileId,
     class_id: TypeItemId,
 ) {
-    output.extend(
-        checked
-            .instances
-            .iter()
-            .filter(|(_, instance)| instance.resolution == (class_file, class_id))
-            .map(|(&id, &instance)| InstanceCandidate {
-                id: indexed.pairs.instance_chain_id(id),
-                position: indexed.pairs.instance_chain_position(id).unwrap_or(0),
-                instance,
-            }),
-    );
+    let instances = checked
+        .instances
+        .iter()
+        .filter(|(_, instance)| instance.resolution == (class_file, class_id))
+        .map(|(&id, &instance)| {
+            let chain = indexed.pairs.instance_chain_id(id).map(|chain_id| (file_id, chain_id));
+            let position = indexed.pairs.instance_chain_position(id).unwrap_or(0);
+            let origin = InstanceCandidateOrigin::Instance(file_id, id);
+            InstanceCandidate { chain, position, origin, instance }
+        });
 
-    output.extend(
-        checked
-            .derived
-            .values()
-            .filter(|instance| instance.resolution == (class_file, class_id))
-            .map(|&instance| InstanceCandidate { id: None, position: 0, instance }),
-    );
+    let derived = checked
+        .derived
+        .iter()
+        .filter(|(_, instance)| instance.resolution == (class_file, class_id))
+        .map(|(&id, &instance)| {
+            let origin = InstanceCandidateOrigin::Derive(file_id, id);
+            InstanceCandidate { chain: None, position: 0, origin, instance }
+        });
+
+    output.extend(instances);
+    output.extend(derived);
 }
 
 pub fn validate_rows<Q>(

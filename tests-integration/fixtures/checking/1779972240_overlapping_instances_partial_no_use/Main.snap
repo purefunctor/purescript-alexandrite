@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
+test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+
+Types
+Pair :: Type -> Type -> Type
+Test :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Test (a :: Type)
+  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+
+Instances
+instance forall (t :: Type). Test (Pair (t :: Type) Int)
+instance forall (t :: Type). Test (Pair String (t :: Type))
+
+Roles
+Pair = [Representational, Representational]
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String (t :: Type))
+  --> 11:1..12:13
+   |
+11 | instance testRight :: Test (Pair String b) where
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t1 :: Type). Test (Pair (t1 :: Type) Int) is matching
+  trivia: forall (t :: Type). Test (Pair String (t :: Type)) is matching

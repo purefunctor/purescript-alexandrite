@@ -18,6 +18,13 @@ Roles
 Either = [Representational, Representational]
 
 Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Eq (Either Int (t :: Type))
+  --> 9:1..9:34
+  |
+9 | derive instance Eq (Either Int b)
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t1 :: Type). Eq (t1 :: Type) => Eq (Either Int (t1 :: Type)) is matching
+  trivia: forall (t :: Type). Eq (Either Int (t :: Type)) is matching
 error[NoInstanceFound]: No instance found for: Eq (t :: Type)
   --> 9:1..9:34
   |

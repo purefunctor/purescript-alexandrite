@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
+value :: Int
+
+Types
+Test :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Test (a :: Type)
+  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
+
+Instances
+instance forall (t :: Type). Test (t :: Type)
+instance Test Int
+
+Diagnostics
+error[OverlappingInstances]: Overlapping type class instances found for: Test Int
+  --> 9:1..10:13
+  |
+9 | instance testInt :: Test Int where
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: forall (t :: Type). Test (t :: Type) is matching
+  trivia: Test Int is matching

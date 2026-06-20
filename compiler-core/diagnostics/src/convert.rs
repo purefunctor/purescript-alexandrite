@@ -363,6 +363,11 @@ impl ToDiagnostics for CheckingError {
                 let message = format!("No instance found for: {constraint}");
                 (Severity::Error, "NoInstanceFound", message)
             }
+            ErrorKind::OverlappingInstances { constraint, .. } => {
+                let constraint = render_type(*constraint);
+                let message = format!("Overlapping type class instances found for: {constraint}");
+                (Severity::Error, "OverlappingInstances", message)
+            }
             ErrorKind::NoVisibleTypeVariable { function_type } => {
                 let message = render_type(*function_type);
                 (
@@ -459,6 +464,13 @@ impl ToDiagnostics for CheckingError {
         }
 
         match &self.kind {
+            ErrorKind::OverlappingInstances { instances, .. } => {
+                for &instance in instances.iter() {
+                    let instance = render_type(instance);
+                    let trivia = format!("{instance} is matching");
+                    diagnostic = diagnostic.with_trivia(trivia)
+                }
+            }
             ErrorKind::TermHole { source_term } => {
                 if let Some(hole) = context.checked.lookup_term_hole(*source_term) {
                     diagnostic = attach_hole_binding_trivia(diagnostic, context, &hole.bindings);
