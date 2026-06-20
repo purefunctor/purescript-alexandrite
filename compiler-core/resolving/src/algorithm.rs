@@ -329,19 +329,19 @@ fn add_local_class(
 }
 
 fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId) {
-    let local_terms = indexed.items.iter_terms().filter_map(|(id, item)| {
+    let local_terms = indexed.names.terms.iter().filter_map(|(name, id)| {
+        let item = &indexed.items[id];
         // Instances cannot be referred to directly by their given name yet.
         // They're simply assumed to exist in a global context for coherence.
         if matches!(item.kind, TermItemKind::Instance { .. } | TermItemKind::Derive { .. }) {
             return None;
         }
-        let name = item.name.as_ref()?;
         Some((name, file, id))
     });
 
-    let local_types = indexed.items.iter_types().filter_map(|(id, item)| {
-        let name = item.name.as_ref()?;
-        Some((name, file, id, &item.kind))
+    let local_types = indexed.names.types.iter().map(|(name, id)| {
+        let item = &indexed.items[id];
+        (name, file, id, &item.kind)
     });
 
     let (local_class_items, local_type_items): (Vec<_>, Vec<_>) =
@@ -354,22 +354,22 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
     add_local_types(&mut state.locals, &mut state.errors, local_types);
     add_local_classes(&mut state.locals, &mut state.errors, local_classes);
 
-    let exported_terms = indexed.items.iter_terms().filter_map(|(id, item)| {
+    let exported_terms = indexed.names.terms.iter().filter_map(|(name, id)| {
+        let item = &indexed.items[id];
         if matches!(item.kind, TermItemKind::Instance { .. } | TermItemKind::Derive { .. }) {
             return None;
         }
         if matches!(indexed.kind, ExportKind::Explicit) && !item.exported {
             return None;
         }
-        let name = item.name.as_ref()?;
         Some((name, file, id, ExportSource::Local))
     });
 
-    let exported_types = indexed.items.iter_types().filter_map(|(id, item)| {
+    let exported_types = indexed.names.types.iter().filter_map(|(name, id)| {
+        let item = &indexed.items[id];
         if matches!(indexed.kind, ExportKind::Explicit) && !item.exported {
             return None;
         }
-        let name = item.name.as_ref()?;
         Some((name, file, id, ExportSource::Local, &item.kind))
     });
 
