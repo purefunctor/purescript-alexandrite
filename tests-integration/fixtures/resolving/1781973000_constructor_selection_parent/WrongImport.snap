@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 84
+expression: report
+---
+module WrongImport
+
+Unqualified Imports:
+
+Terms:
+  - B is Explicit
+
+Types:
+  - A is Explicit
+
+Classes:
+
+Qualified Imports:
+
+Exported Terms:
+
+Exported Types:
+
+Exported Classes:
+
+Local Terms:
+
+Local Types:
+
+Local Classes:
+
+Class Members:
+
+Errors:
