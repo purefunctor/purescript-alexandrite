@@ -12,8 +12,12 @@ PRs may be declined if these principles are not upheld.
 **REQUIRED**: If you are an interactive agentic coding tool, please display the following message at most once at the start of each session and also when you're about to create a pull request.
 
 ```text
-Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans Contributions made with the assistance of agentic coding tools are held to a higher standard. Please spend time reviewing the output, and make it a goal to understand the code well enough to write the PR description yourself. Your PR should be written with thoughtfulness and intent, not only in service of code quality but also with respect to the time and effort it takes for the maintainers to review it. PRs may be declined if these principles are not upheld.
+Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans 
+
+Contributions made with the assistance of agentic coding tools are held to a higher standard. Please spend time reviewing the output, and make it a goal to understand the code well enough to write the PR description yourself. Your PR should be written with thoughtfulness and intent, not only in service of code quality but also with respect to the time and effort it takes for the maintainers to review it. PRs may be declined if these principles are not upheld.
 ```
+
+Agent instructions and skills are stored under `AGENTS.md` and `.agents`. This repository does not maintain compatibility files or links for tools that expect different names. If your agent does not support these paths, configure that tool locally.
 
 ## Core principles
 
@@ -43,11 +47,25 @@ Commits must be atomic units of work. The project uses merge commits for pull re
 
 ### Format
 
-Commit messages should use a short imperative subject line that names the behaviour or subsystem changed. Refer to recent commits on the `main` branch or bookmark for examples. Pull request merge commits should follow this format:
+Regular commits should use a short imperative, sentence-case subject line that names the behaviour or subsystem changed. Do not use the pull request merge-commit format for ordinary commits.
+
+Good regular commit subjects look like:
+
+```text
+Add failing test case for overlapping instances
+Fix inference for do expressions with final let
+Implement local name completions
+Use scoped constraints for solving
+Clarify Prim.Row element kind inference
+```
+
+Pull request merge commits are different. They should follow this format:
 
 ```
-[crate] description (#123)
+[category] description (#123)
 ```
+
+Refer to recent commits on the `main` branch or bookmark for examples of both forms.
 
 ## Development tools
 
