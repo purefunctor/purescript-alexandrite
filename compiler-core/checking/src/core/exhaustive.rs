@@ -841,13 +841,13 @@ where
             let indexed = context.queries.indexed(*file_id)?;
 
             // Find the type this constructor belongs to
-            let Some(type_item_id) = indexed.pairs.constructor_type(*item_id) else {
+            let Some(type_item_id) = indexed.constructor_type(*item_id) else {
                 return Ok(false);
             };
 
             // Get all constructors for this type
             let all_constructors: FxHashSet<TermItemId> =
-                indexed.pairs.data_constructors(type_item_id).collect();
+                indexed.data_constructors(type_item_id).collect();
 
             // Check if sigma covers all constructors
             let sigma_terms: FxHashSet<TermItemId> = sigma
@@ -898,7 +898,7 @@ where
         PatternConstructor::DataConstructor { file_id, item_id, .. } => {
             let indexed = context.queries.indexed(*file_id)?;
 
-            let Some(type_item_id) = indexed.pairs.constructor_type(*item_id) else {
+            let Some(type_item_id) = indexed.constructor_type(*item_id) else {
                 return Ok(vec![]);
             };
 
@@ -912,7 +912,7 @@ where
             let arguments = extract_all_applications(state, context, scrutinee_type)?;
 
             let mut missing = vec![];
-            for missing_item_id in indexed.pairs.data_constructors(type_item_id) {
+            for missing_item_id in indexed.data_constructors(type_item_id) {
                 if !sigma.contains(&missing_item_id) {
                     let fields = constructor_field_types(
                         state,

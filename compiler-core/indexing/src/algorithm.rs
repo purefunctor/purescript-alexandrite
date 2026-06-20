@@ -197,7 +197,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Class { signature: Some(id), declaration: None },
+                    kind: TypeItemKind::Class {
+                        signature: Some(id),
+                        declaration: None,
+                        members: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::ClassSignature,
@@ -220,7 +224,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Class { signature: None, declaration: Some(id) },
+                    kind: TypeItemKind::Class {
+                        signature: None,
+                        declaration: Some(id),
+                        members: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::ClassDeclaration,
@@ -236,7 +244,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 for cst in cst.children() {
                     let member_id = stabilized.lookup_cst(&cst).expect_id();
                     let term_id = index_class_member(state, member_id, &cst);
-                    state.pairs.class_members.push((type_id, term_id));
+                    if let TypeItemKind::Class { members, .. } =
+                        &mut state.items.types[type_id].kind
+                    {
+                        members.push(term_id);
+                    }
                     state.pairs.class_member_to_term.push((member_id, term_id));
                 }
             }
@@ -261,7 +273,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Newtype { signature: Some(id), equation: None, role: None },
+                    kind: TypeItemKind::Newtype {
+                        signature: Some(id),
+                        equation: None,
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::NewtypeSignature,
@@ -284,7 +301,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Newtype { signature: None, equation: Some(id), role: None },
+                    kind: TypeItemKind::Newtype {
+                        signature: None,
+                        equation: Some(id),
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::NewtypeEquation,
@@ -299,7 +321,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                state.pairs.data_constructors.push((type_id, term_id));
+                if let TypeItemKind::Newtype { constructors, .. } =
+                    &mut state.items.types[type_id].kind
+                {
+                    constructors.push(term_id);
+                }
                 state.pairs.constructor_to_term.push((constructor_id, term_id));
             }
             state.pairs.declaration_to_type.push((declaration_id, type_id));
@@ -313,7 +339,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Data { signature: Some(id), equation: None, role: None },
+                    kind: TypeItemKind::Data {
+                        signature: Some(id),
+                        equation: None,
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::DataSignature,
@@ -336,7 +367,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Data { signature: None, equation: Some(id), role: None },
+                    kind: TypeItemKind::Data {
+                        signature: None,
+                        equation: Some(id),
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::DataEquation,
@@ -351,7 +387,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                state.pairs.data_constructors.push((type_id, term_id));
+                if let TypeItemKind::Data { constructors, .. } =
+                    &mut state.items.types[type_id].kind
+                {
+                    constructors.push(term_id);
+                }
                 state.pairs.constructor_to_term.push((constructor_id, term_id));
             }
             state.pairs.declaration_to_type.push((declaration_id, type_id));
@@ -822,20 +862,26 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
         }
     }
 
-    for (type_id, item) in state.items.types.iter_mut() {
+    for (_, item) in state.items.types.iter_mut() {
         let Some(name) = &item.name else { continue };
         if let Some((id, implicit)) = types.get(name) {
             item.exported = true;
             if let Some(implicit) = implicit {
+                let constructors: Vec<_> = match &item.kind {
+                    TypeItemKind::Data { constructors, .. }
+                    | TypeItemKind::Newtype { constructors, .. } => constructors.clone(),
+                    _ => vec![],
+                };
+
                 match implicit {
                     ImplicitItems::Everything => {
-                        for term_id in state.pairs.data_constructors(type_id) {
+                        for term_id in constructors.iter().copied() {
                             state.items.terms[term_id].exported = true;
                         }
                     }
                     ImplicitItems::Enumerated(names) => {
                         for name in names {
-                            let term_id = state.pairs.data_constructors(type_id).find(|term_id| {
+                            let term_id = constructors.iter().copied().find(|term_id| {
                                 let item = &state.items.terms[*term_id];
                                 item.name.as_deref() == Some(name.as_str())
                             });
@@ -850,7 +896,11 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
                     }
                 }
             }
-            for term_id in state.pairs.class_members(type_id) {
+            let members: Vec<_> = match &item.kind {
+                TypeItemKind::Class { members, .. } => members.clone(),
+                _ => vec![],
+            };
+            for term_id in members {
                 state.items.terms[term_id].exported = true;
             }
         }

@@ -158,7 +158,7 @@ fn resolve_implicit(
     let import_indexed = queries.indexed(f_id)?;
     match implicit {
         ImplicitItems::Everything => {
-            for term_id in import_indexed.pairs.data_constructors(t_id) {
+            for term_id in import_indexed.data_constructors(t_id) {
                 let item = &import_indexed.items[term_id];
                 if matches!(import_indexed.kind, ExportKind::Explicit) && !item.exported {
                     continue;
@@ -173,7 +173,7 @@ fn resolve_implicit(
         }
         ImplicitItems::Enumerated(names) => {
             for name in names {
-                let Some(term_id) = import_indexed.pairs.data_constructors(t_id).find(|term_id| {
+                let Some(term_id) = import_indexed.data_constructors(t_id).find(|term_id| {
                     let item = &import_indexed.items[*term_id];
                     item.name.as_deref() == Some(name.as_str())
                 }) else {
@@ -245,7 +245,7 @@ fn export_class_members(state: &mut State, indexed: &IndexedModule, file: FileId
         if !matches!(type_item.kind, TypeItemKind::Class { .. }) {
             continue;
         }
-        for member_term_id in indexed.pairs.class_members(type_id) {
+        for member_term_id in indexed.class_members(type_id) {
             let member_item = &indexed.items[member_term_id];
             if let Some(name) = &member_item.name {
                 let name = SmolStr::clone(name);

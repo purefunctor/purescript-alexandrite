@@ -562,7 +562,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
 
 fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, item: &TypeItem) {
     match &item.kind {
-        TypeItemKind::Data { signature, equation, role } => {
+        TypeItemKind::Data { signature, equation, role, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -595,7 +595,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             lower_constructors(state, context, item_id);
         }
 
-        TypeItemKind::Newtype { signature, equation, role } => {
+        TypeItemKind::Newtype { signature, equation, role, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -663,7 +663,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             state.info.type_item.insert(item_id, kind);
         }
 
-        TypeItemKind::Class { signature, declaration } => {
+        TypeItemKind::Class { signature, declaration, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -769,7 +769,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
 }
 
 fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
-    for item_id in context.indexed.pairs.data_constructors(id) {
+    for item_id in context.indexed.data_constructors(id) {
         let TermItemKind::Constructor { id } = context.indexed.items[item_id].kind else {
             unreachable!("invariant violated: expected TermItemKind::Constructor");
         };
@@ -788,7 +788,7 @@ fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
 }
 
 fn lower_class_members(state: &mut State, context: &Context, id: TypeItemId) {
-    for item_id in context.indexed.pairs.class_members(id) {
+    for item_id in context.indexed.class_members(id) {
         let TermItemKind::ClassMember { id } = context.indexed.items[item_id].kind else {
             unreachable!("invariant violated: expected TermItemKind::ClassMember");
         };

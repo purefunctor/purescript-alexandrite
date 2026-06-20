@@ -60,6 +60,35 @@ impl IndexedModule {
         let declaration = self.pairs.declaration_to_type.iter().filter_map(aux(id));
         declaration.filter_map(|id| stabilized.syntax_ptr(id))
     }
+
+    pub fn data_constructors(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
+        let constructors = match &self.items[id].kind {
+            TypeItemKind::Data { constructors, .. }
+            | TypeItemKind::Newtype { constructors, .. } => constructors.as_slice(),
+            _ => &[],
+        };
+
+        constructors.iter().copied()
+    }
+
+    pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
+        self.items.iter_types().find_map(|(type_id, _)| {
+            if self.data_constructors(type_id).any(|term_id| term_id == id) {
+                Some(type_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
+        let members = match &self.items[id].kind {
+            TypeItemKind::Class { members, .. } => members.as_slice(),
+            _ => &[],
+        };
+
+        members.iter().copied()
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -226,9 +255,6 @@ impl IndexingImport {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexingPairs {
-    class_members: Vec<(TypeItemId, TermItemId)>,
-    data_constructors: Vec<(TypeItemId, TermItemId)>,
-
     instance_chain: Vec<(InstanceChainId, InstanceId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
@@ -239,24 +265,6 @@ pub struct IndexingPairs {
 }
 
 impl IndexingPairs {
-    pub fn data_constructors(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> {
-        self.data_constructors.iter().filter_map(
-            move |(type_id, term_id)| if *type_id == id { Some(*term_id) } else { None },
-        )
-    }
-
-    pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
-        self.data_constructors
-            .iter()
-            .find_map(|(type_id, term_id)| if *term_id == id { Some(*type_id) } else { None })
-    }
-
-    pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> {
-        self.class_members.iter().filter_map(
-            move |(type_id, term_id)| if *type_id == id { Some(*term_id) } else { None },
-        )
-    }
-
     pub fn declaration_to_term(&self, id: DeclarationId) -> Option<TermItemId> {
         self.declaration_to_term.iter().find_map(move |(declaration_id, term_id)| {
             if *declaration_id == id { Some(*term_id) } else { None }
