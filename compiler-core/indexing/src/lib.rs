@@ -7,6 +7,7 @@ pub use error::*;
 pub use items::*;
 pub use source::*;
 
+use std::collections::hash_map::Entry;
 use std::ops;
 
 use la_arena::Arena;
@@ -18,9 +19,11 @@ use syntax::{SyntaxNodePtr, cst};
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedModule {
     pub kind: ExportKind,
-    pub items: IndexingItems,
-    pub imports: IndexingImports,
-    pub pairs: IndexingPairs,
+    pub names: IndexedNames,
+    pub exports: IndexedExports,
+    pub items: IndexedItems,
+    pub imports: IndexedImports,
+    pub pairs: IndexedPairs,
     pub errors: Vec<IndexingError>,
 }
 
@@ -57,15 +60,125 @@ impl IndexedModule {
         let declaration = self.pairs.declaration_to_type.iter().filter_map(aux(id));
         declaration.filter_map(|id| stabilized.syntax_ptr(id))
     }
+
+    pub fn data_constructors(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
+        let constructors = match &self.items[id].kind {
+            TypeItemKind::Data { constructors, .. }
+            | TypeItemKind::Newtype { constructors, .. } => constructors.as_slice(),
+            _ => &[],
+        };
+
+        constructors.iter().copied()
+    }
+
+    pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
+        self.items.iter_types().find_map(|(type_id, _)| {
+            if self.data_constructors(type_id).any(|term_id| term_id == id) {
+                Some(type_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
+        let members = match &self.items[id].kind {
+            TypeItemKind::Class { members, .. } => members.as_slice(),
+            _ => &[],
+        };
+
+        members.iter().copied()
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingItems {
+pub struct IndexedNames {
+    pub terms: NameIndex<TermItemId>,
+    pub types: NameIndex<TypeItemId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct NameIndex<ItemId> {
+    first: FxHashMap<SmolStr, ItemId>,
+    entries: Vec<(SmolStr, ItemId)>,
+}
+
+impl<ItemId> Default for NameIndex<ItemId> {
+    fn default() -> Self {
+        NameIndex { first: FxHashMap::default(), entries: Vec::default() }
+    }
+}
+
+impl<ItemId> NameIndex<ItemId>
+where
+    ItemId: Copy + Eq,
+{
+    pub fn lookup(&self, name: &str) -> Option<ItemId> {
+        self.first.get(name).copied()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&SmolStr, ItemId)> {
+        self.entries.iter().map(|(name, id)| (name, *id))
+    }
+
+    pub(crate) fn insert(&mut self, name: SmolStr, id: ItemId) -> Option<ItemId> {
+        let existing = match self.first.entry(SmolStr::clone(&name)) {
+            Entry::Occupied(entry) => {
+                let id = entry.get();
+                Some(*id)
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(id);
+                None
+            }
+        };
+
+        self.entries.push((name, id));
+        existing.filter(|existing| *existing != id)
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IndexedExports {
+    pub terms: Vec<IndexedExport<TermItemId>>,
+    pub types: Vec<IndexedTypeExport>,
+    pub modules: Vec<IndexedModuleExport>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedExport<ItemId> {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+    pub item: Option<ItemId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedTypeExport {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+    pub item: Option<TypeItemId>,
+    pub selection: Option<TypeSelection>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedModuleExport {
+    pub id: ExportItemId,
+    pub name: SmolStr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeSelection {
+    Everything,
+    Enumerated(Box<[SmolStr]>),
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IndexedItems {
     terms: Arena<TermItem>,
     types: Arena<TypeItem>,
 }
 
-impl IndexingItems {
+impl IndexedItems {
     pub fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, &TermItem)> {
         self.terms.iter()
     }
@@ -75,7 +188,7 @@ impl IndexingItems {
     }
 }
 
-impl ops::Index<TermItemId> for IndexingItems {
+impl ops::Index<TermItemId> for IndexedItems {
     type Output = TermItem;
 
     fn index(&self, index: TermItemId) -> &TermItem {
@@ -83,7 +196,7 @@ impl ops::Index<TermItemId> for IndexingItems {
     }
 }
 
-impl ops::Index<TypeItemId> for IndexingItems {
+impl ops::Index<TypeItemId> for IndexedItems {
     type Output = TypeItem;
 
     fn index(&self, index: TypeItemId) -> &TypeItem {
@@ -123,7 +236,7 @@ pub type ImportedTerms = FxHashMap<SmolStr, ImportItemId>;
 pub type ImportedTypes = FxHashMap<SmolStr, (ImportItemId, Option<ImplicitItems>)>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingImport {
+pub struct IndexedImport {
     pub name: Option<SmolStr>,
     pub alias: Option<SmolStr>,
     pub kind: ImportKind,
@@ -132,19 +245,16 @@ pub struct IndexingImport {
     pub exported: bool,
 }
 
-pub type IndexingImports = FxHashMap<ImportId, IndexingImport>;
+pub type IndexedImports = FxHashMap<ImportId, IndexedImport>;
 
-impl IndexingImport {
-    pub(crate) fn new(name: Option<SmolStr>, alias: Option<SmolStr>) -> IndexingImport {
-        IndexingImport { name, alias, ..Default::default() }
+impl IndexedImport {
+    pub(crate) fn new(name: Option<SmolStr>, alias: Option<SmolStr>) -> IndexedImport {
+        IndexedImport { name, alias, ..Default::default() }
     }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct IndexingPairs {
-    class_members: Vec<(TypeItemId, TermItemId)>,
-    data_constructors: Vec<(TypeItemId, TermItemId)>,
-
+pub struct IndexedPairs {
     instance_chain: Vec<(InstanceChainId, InstanceId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
@@ -154,25 +264,7 @@ pub struct IndexingPairs {
     class_member_to_term: Vec<(ClassMemberId, TermItemId)>,
 }
 
-impl IndexingPairs {
-    pub fn data_constructors(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> {
-        self.data_constructors.iter().filter_map(
-            move |(type_id, term_id)| if *type_id == id { Some(*term_id) } else { None },
-        )
-    }
-
-    pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
-        self.data_constructors
-            .iter()
-            .find_map(|(type_id, term_id)| if *term_id == id { Some(*type_id) } else { None })
-    }
-
-    pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> {
-        self.class_members.iter().filter_map(
-            move |(type_id, term_id)| if *type_id == id { Some(*term_id) } else { None },
-        )
-    }
-
+impl IndexedPairs {
     pub fn declaration_to_term(&self, id: DeclarationId) -> Option<TermItemId> {
         self.declaration_to_term.iter().find_map(move |(declaration_id, term_id)| {
             if *declaration_id == id { Some(*term_id) } else { None }
@@ -216,7 +308,7 @@ impl IndexingPairs {
 }
 
 pub fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> IndexedModule {
-    let algorithm::State { kind, items, imports, pairs, errors, .. } =
+    let algorithm::State { kind, names, exports, items, imports, pairs, errors, .. } =
         algorithm::index_module(cst, stabilized);
-    IndexedModule { kind, items, imports, pairs, errors }
+    IndexedModule { kind, names, exports, items, imports, pairs, errors }
 }

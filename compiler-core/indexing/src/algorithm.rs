@@ -10,12 +10,13 @@ use syntax::{PureScript, SyntaxToken, cst};
 use crate::items::*;
 use crate::source::*;
 use crate::{
-    ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexingError, IndexingImport,
-    IndexingImports, IndexingItems, IndexingPairs, ItemKind,
+    ExistingKind, ExportKind, ImplicitItems, ImportKind, IndexedExport, IndexedExports,
+    IndexedImport, IndexedImports, IndexedItems, IndexedModuleExport, IndexedNames, IndexedPairs,
+    IndexedTypeExport, IndexingError, ItemKind, TypeSelection,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Current {
+enum OpenItemGroup {
     Term(TermItemId),
     Type(TypeItemId),
 }
@@ -23,11 +24,13 @@ enum Current {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(super) struct State {
     name: Option<SmolStr>,
-    current: Option<Current>,
+    open: Option<OpenItemGroup>,
     pub(super) kind: ExportKind,
-    pub(super) items: IndexingItems,
-    pub(super) imports: IndexingImports,
-    pub(super) pairs: IndexingPairs,
+    pub(super) names: IndexedNames,
+    pub(super) exports: IndexedExports,
+    pub(super) items: IndexedItems,
+    pub(super) imports: IndexedImports,
+    pub(super) pairs: IndexedPairs,
     pub(super) errors: Vec<IndexingError>,
 }
 
@@ -36,8 +39,8 @@ impl State {
         State { name, ..Default::default() }
     }
 
-    fn active_term(&mut self, name: &Option<SmolStr>) -> Option<(TermItemId, &mut TermItem)> {
-        let Current::Term(id) = self.current? else {
+    fn open_term_group(&mut self, name: &Option<SmolStr>) -> Option<(TermItemId, &mut TermItem)> {
+        let OpenItemGroup::Term(id) = self.open? else {
             return None;
         };
         let item = &mut self.items.terms[id];
@@ -47,8 +50,8 @@ impl State {
         Some((id, &mut self.items.terms[id]))
     }
 
-    fn active_type(&mut self, name: &Option<SmolStr>) -> Option<(TypeItemId, &mut TypeItem)> {
-        let Current::Type(id) = self.current? else {
+    fn open_type_group(&mut self, name: &Option<SmolStr>) -> Option<(TypeItemId, &mut TypeItem)> {
+        let OpenItemGroup::Type(id) = self.open? else {
             return None;
         };
         let item = &mut self.items.types[id];
@@ -60,15 +63,19 @@ impl State {
 
     fn alloc_term(&mut self, item: TermItem) -> TermItemId {
         let id = self.items.terms.alloc(item);
-        self.current = Some(Current::Term(id));
+        self.open = Some(OpenItemGroup::Term(id));
         id
     }
 
     fn alloc_type(&mut self, item: TypeItem) -> TypeItemId {
         let id = self.items.types.alloc(item);
-        self.current = Some(Current::Type(id));
+        self.open = Some(OpenItemGroup::Type(id));
         id
     }
+}
+
+fn name_from_token(token: Option<SyntaxToken>) -> Option<SmolStr> {
+    token.map(|token| SmolStr::from(token.text()))
 }
 
 pub(super) fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> State {
@@ -194,7 +201,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Class { signature: Some(id), declaration: None },
+                    kind: TypeItemKind::Class {
+                        signature: Some(id),
+                        declaration: None,
+                        members: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::ClassSignature,
@@ -217,7 +228,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Class { signature: None, declaration: Some(id) },
+                    kind: TypeItemKind::Class {
+                        signature: None,
+                        declaration: Some(id),
+                        members: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::ClassDeclaration,
@@ -233,7 +248,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 for cst in cst.children() {
                     let member_id = stabilized.lookup_cst(&cst).expect_id();
                     let term_id = index_class_member(state, member_id, &cst);
-                    state.pairs.class_members.push((type_id, term_id));
+                    if let TypeItemKind::Class { members, .. } =
+                        &mut state.items.types[type_id].kind
+                    {
+                        members.push(term_id);
+                    }
                     state.pairs.class_member_to_term.push((member_id, term_id));
                 }
             }
@@ -258,7 +277,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Newtype { signature: Some(id), equation: None, role: None },
+                    kind: TypeItemKind::Newtype {
+                        signature: Some(id),
+                        equation: None,
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::NewtypeSignature,
@@ -281,7 +305,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Newtype { signature: None, equation: Some(id), role: None },
+                    kind: TypeItemKind::Newtype {
+                        signature: None,
+                        equation: Some(id),
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::NewtypeEquation,
@@ -296,7 +325,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                state.pairs.data_constructors.push((type_id, term_id));
+                if let TypeItemKind::Newtype { constructors, .. } =
+                    &mut state.items.types[type_id].kind
+                {
+                    constructors.push(term_id);
+                }
                 state.pairs.constructor_to_term.push((constructor_id, term_id));
             }
             state.pairs.declaration_to_type.push((declaration_id, type_id));
@@ -310,7 +343,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Data { signature: Some(id), equation: None, role: None },
+                    kind: TypeItemKind::Data {
+                        signature: Some(id),
+                        equation: None,
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::DataSignature,
@@ -333,7 +371,12 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 token,
                 |name, id| TypeItem {
                     name,
-                    kind: TypeItemKind::Data { signature: None, equation: Some(id), role: None },
+                    kind: TypeItemKind::Data {
+                        signature: None,
+                        equation: Some(id),
+                        role: None,
+                        constructors: vec![],
+                    },
                     exported: false,
                 },
                 ItemKind::DataEquation,
@@ -348,7 +391,11 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                state.pairs.data_constructors.push((type_id, term_id));
+                if let TypeItemKind::Data { constructors, .. } =
+                    &mut state.items.types[type_id].kind
+                {
+                    constructors.push(term_id);
+                }
                 state.pairs.constructor_to_term.push((constructor_id, term_id));
             }
             state.pairs.declaration_to_type.push((declaration_id, type_id));
@@ -366,12 +413,9 @@ fn index_value_signature(
     id: ValueSignatureId,
     cst: &cst::ValueSignature,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_term(&name) else {
+    let Some((active_id, active)) = state.open_term_group(&name) else {
         let kind = TermItemKind::Value { signature: Some(id), equations: vec![] };
         return state.alloc_term(TermItem { name, kind, exported: false });
     };
@@ -398,12 +442,9 @@ fn index_value_equation(
     id: ValueEquationId,
     cst: &cst::ValueEquation,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_term(&name) else {
+    let Some((active_id, active)) = state.open_term_group(&name) else {
         let kind = TermItemKind::Value { signature: None, equations: vec![id] };
         return state.alloc_term(TermItem { name, kind, exported: false });
     };
@@ -428,10 +469,7 @@ fn index_infix(
     let type_token = cst.type_token();
     let operator_token = cst.operator_token();
 
-    let name = operator_token.map(|token| {
-        let text = token.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(operator_token);
 
     if type_token.is_some() {
         let kind = TypeItemKind::Operator { id: infix_id };
@@ -449,12 +487,9 @@ fn index_infix(
 }
 
 fn index_type_role(state: &mut State, id: TypeRoleId, cst: &cst::TypeRoleDeclaration) {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.errors.push(IndexingError::InvalidRole { id, existing: None });
     };
 
@@ -484,12 +519,9 @@ fn index_type_signature<T: AstNode<Language = PureScript>>(
     kind: MakeItemKind<T>,
     extract: Extract<T>,
 ) -> TypeItemId {
-    let name = token.map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(token);
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.alloc_type(item(name, id));
     };
 
@@ -519,12 +551,9 @@ fn index_type_declaration<T: AstNode<Language = PureScript>>(
     kind: MakeItemKind<T>,
     extract: Extract<T>,
 ) -> TypeItemId {
-    let name = token.map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(token);
 
-    let Some((active_id, active)) = state.active_type(&name) else {
+    let Some((active_id, active)) = state.open_type_group(&name) else {
         return state.alloc_type(item(name, id));
     };
 
@@ -551,10 +580,7 @@ fn index_data_constructor(
     id: DataConstructorId,
     cst: &cst::DataConstructor,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TermItemKind::Constructor { id };
     state.items.terms.alloc(TermItem { name, kind, exported: false })
 }
@@ -564,10 +590,7 @@ fn index_class_member(
     id: ClassMemberId,
     cst: &cst::ClassMemberStatement,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TermItemKind::ClassMember { id };
     state.items.terms.alloc(TermItem { name, kind, exported: false })
 }
@@ -577,10 +600,7 @@ fn index_foreign_data(
     id: ForeignDataId,
     cst: &cst::ForeignImportDataDeclaration,
 ) -> TypeItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     let kind = TypeItemKind::Foreign { id, role: None };
     state.alloc_type(TypeItem { name, kind, exported: false })
 }
@@ -590,10 +610,7 @@ fn index_foreign_value(
     id: ForeignValueId,
     cst: &cst::ForeignImportValueDeclaration,
 ) -> TermItemId {
-    let name = cst.name_token().map(|t| {
-        let text = t.text();
-        SmolStr::from(text)
-    });
+    let name = name_from_token(cst.name_token());
     state.alloc_term(TermItem { name, kind: TermItemKind::Foreign { id }, exported: false })
 }
 
@@ -616,35 +633,21 @@ fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -
 }
 
 fn validate_items(state: &mut State) {
-    let mut terms = FxHashMap::default();
     for (id, item) in state.items.terms.iter() {
         let Some(name) = &item.name else { continue };
-        match terms.entry(name) {
-            Entry::Occupied(o) => {
-                let kind = ItemKind::Term(id);
-                let id = *o.get();
-                let existing = ExistingKind::Term(id);
-                state.errors.push(IndexingError::DuplicateItem { kind, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
+        if let Some(existing_id) = state.names.terms.insert(SmolStr::clone(name), id) {
+            let kind = ItemKind::Term(id);
+            let existing = ExistingKind::Term(existing_id);
+            state.errors.push(IndexingError::DuplicateItem { kind, existing });
         }
     }
 
-    let mut types = FxHashMap::default();
     for (id, item) in state.items.types.iter() {
         let Some(name) = &item.name else { continue };
-        match types.entry(name) {
-            Entry::Occupied(o) => {
-                let kind = ItemKind::Type(id);
-                let id = *o.get();
-                let existing = ExistingKind::Type(id);
-                state.errors.push(IndexingError::DuplicateItem { kind, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
+        if let Some(existing_id) = state.names.types.insert(SmolStr::clone(name), id) {
+            let kind = ItemKind::Type(id);
+            let existing = ExistingKind::Type(existing_id);
+            state.errors.push(IndexingError::DuplicateItem { kind, existing });
         }
     }
 }
@@ -657,7 +660,7 @@ fn index_import(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Imp
     let name = extract_name(cst);
     let alias = extract_alias(cst);
 
-    let mut import = IndexingImport::new(name, alias);
+    let mut import = IndexedImport::new(name, alias);
 
     if let Some(cst) = cst.import_list() {
         if cst.hiding().is_some() {
@@ -676,7 +679,7 @@ fn index_import(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Imp
 fn index_import_items(
     state: &mut State,
     stabilized: &StabilizedModule,
-    import: &mut IndexingImport,
+    import: &mut IndexedImport,
     cst: &cst::ImportItem,
 ) {
     let id = stabilized.lookup_cst(cst).expect_id();
@@ -711,7 +714,7 @@ fn index_import_items(
     }
 }
 
-fn index_term_import(state: &mut State, import: &mut IndexingImport, name: &str, id: ImportItemId) {
+fn index_term_import(state: &mut State, import: &mut IndexedImport, name: &str, id: ImportItemId) {
     let name = SmolStr::from(name);
     if let Some(&existing) = import.terms.get(&name) {
         state.errors.push(IndexingError::DuplicateImport { duplicate: id, existing });
@@ -722,13 +725,13 @@ fn index_term_import(state: &mut State, import: &mut IndexingImport, name: &str,
 
 fn index_type_import(
     state: &mut State,
-    import: &mut IndexingImport,
+    import: &mut IndexedImport,
     name: &str,
     id: ImportItemId,
     items: Option<cst::TypeItems>,
 ) {
     let name = SmolStr::from(name);
-    let items = items.map(|items| index_type_items(state, import, id, items));
+    let items = items.map(|items| index_type_items(state, id, items));
     if let Some((existing_id, existing_items)) = import.types.get_mut(&name) {
         let existing = *existing_id;
         *existing_items = merge_implicit_items(existing_items.take(), items);
@@ -754,19 +757,20 @@ fn merge_implicit_items(
     }
 }
 
-fn index_type_items(
-    state: &mut State,
-    import: &mut IndexingImport,
-    id: ImportItemId,
-    items: cst::TypeItems,
-) -> ImplicitItems {
+fn index_type_items(state: &mut State, id: ImportItemId, items: cst::TypeItems) -> ImplicitItems {
     match items {
         cst::TypeItems::TypeItemsAll(_) => ImplicitItems::Everything,
         cst::TypeItems::TypeItemsList(cst) => {
+            let mut names = FxHashSet::default();
             let enumerated = cst.name_tokens().map(|token| {
                 let name = token.text();
-                index_term_import(state, import, name, id);
-                SmolStr::from(name)
+                let name = SmolStr::from(name);
+                if !names.insert(SmolStr::clone(&name)) {
+                    state
+                        .errors
+                        .push(IndexingError::DuplicateImport { duplicate: id, existing: id });
+                }
+                name
             });
             let enumerated = enumerated.collect();
             ImplicitItems::Enumerated(enumerated)
@@ -791,100 +795,82 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
     let mut terms = FxHashMap::default();
     let mut types = FxHashMap::default();
 
-    let mut add_term = |e: &mut Vec<IndexingError>, n: &str, id: ExportItemId| {
-        let name = SmolStr::from(n);
-        match terms.entry(name) {
-            Entry::Occupied(o) => {
-                let existing = *o.get();
-                e.push(IndexingError::DuplicateExport { id, existing });
-            }
-            Entry::Vacant(v) => {
-                v.insert(id);
-            }
-        }
-    };
-
-    let mut add_type =
-        |e: &mut Vec<IndexingError>, n: &str, id: ExportItemId, cst: Option<cst::TypeItems>| {
-            let name = SmolStr::from(n);
-            match types.entry(name) {
-                Entry::Occupied(o) => {
-                    let (existing, _) = *o.get();
-                    e.push(IndexingError::DuplicateExport { id, existing });
-                }
-                Entry::Vacant(v) => {
-                    let items = cst.map(|cst| match cst {
-                        cst::TypeItems::TypeItemsAll(_) => ImplicitItems::Everything,
-                        cst::TypeItems::TypeItemsList(cst) => {
-                            let enumerated = cst.name_tokens().map(|token| {
-                                let name = token.text();
-                                SmolStr::from(name)
-                            });
-                            let enumerated = enumerated.collect();
-                            ImplicitItems::Enumerated(enumerated)
-                        }
-                    });
-                    v.insert((id, items));
-                }
-            }
-        };
-
     for cst in cst.children() {
         let id = stabilized.lookup_cst(&cst).expect_id();
         match cst {
             cst::ExportItem::ExportValue(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
-                add_term(&mut state.errors, name, id);
+                index_export_term(state, &mut terms, name, id);
             }
             cst::ExportItem::ExportClass(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
-                add_type(&mut state.errors, name, id, None);
+                index_export_type(state, &mut types, name, id, None);
             }
             cst::ExportItem::ExportType(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let items = cst.type_items();
-                add_type(&mut state.errors, name, id, items);
+                index_export_type(state, &mut types, name, id, items);
             }
             cst::ExportItem::ExportOperator(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let name = operator_name(name);
-                add_term(&mut state.errors, name, id);
+                index_export_term(state, &mut terms, name, id);
             }
             cst::ExportItem::ExportTypeOperator(cst) => {
                 let Some(name) = cst.name_token() else { continue };
                 let name = name.text();
                 let name = operator_name(name);
-                add_type(&mut state.errors, name, id, None);
+                index_export_type(state, &mut types, name, id, None);
             }
             cst::ExportItem::ExportModule(cst) => {
-                index_module_export(state, &cst);
+                index_module_export(state, id, &cst);
             }
         }
     }
 
-    for (type_id, item) in state.items.types.iter_mut() {
+    for (_, item) in state.items.types.iter_mut() {
         let Some(name) = &item.name else { continue };
         if let Some((id, implicit)) = types.get(name) {
             item.exported = true;
             if let Some(implicit) = implicit {
+                let constructors: Vec<_> = match &item.kind {
+                    TypeItemKind::Data { constructors, .. }
+                    | TypeItemKind::Newtype { constructors, .. } => constructors.clone(),
+                    _ => vec![],
+                };
+
                 match implicit {
                     ImplicitItems::Everything => {
-                        for term_id in state.pairs.data_constructors(type_id) {
+                        for term_id in constructors.iter().copied() {
                             state.items.terms[term_id].exported = true;
                         }
                     }
                     ImplicitItems::Enumerated(names) => {
                         for name in names {
-                            add_term(&mut state.errors, name, *id);
+                            let term_id = constructors.iter().copied().find(|term_id| {
+                                let item = &state.items.terms[*term_id];
+                                item.name.as_deref() == Some(name.as_str())
+                            });
+
+                            if let Some(term_id) = term_id {
+                                state.items.terms[term_id].exported = true;
+                                mark_exported_term(&mut state.errors, &mut terms, name, *id);
+                            } else {
+                                state.errors.push(IndexingError::InvalidExport { id: *id });
+                            }
                         }
                     }
                 }
             }
-            for term_id in state.pairs.class_members(type_id) {
+            let members: Vec<_> = match &item.kind {
+                TypeItemKind::Class { members, .. } => members.clone(),
+                _ => vec![],
+            };
+            for term_id in members {
                 state.items.terms[term_id].exported = true;
             }
         }
@@ -896,12 +882,104 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
     }
 }
 
+fn index_export_term(
+    state: &mut State,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: &str,
+    id: ExportItemId,
+) {
+    let name = SmolStr::from(name);
+    let item = state.names.terms.lookup(&name);
+    state.exports.terms.push(IndexedExport { id, name: SmolStr::clone(&name), item });
+
+    mark_exported_term_name(&mut state.errors, terms, name, id);
+}
+
+fn mark_exported_term(
+    errors: &mut Vec<IndexingError>,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: &str,
+    id: ExportItemId,
+) {
+    let name = SmolStr::from(name);
+    mark_exported_term_name(errors, terms, name, id);
+}
+
+fn mark_exported_term_name(
+    errors: &mut Vec<IndexingError>,
+    terms: &mut FxHashMap<SmolStr, ExportItemId>,
+    name: SmolStr,
+    id: ExportItemId,
+) {
+    match terms.entry(name) {
+        Entry::Occupied(o) => {
+            let existing = *o.get();
+            errors.push(IndexingError::DuplicateExport { id, existing });
+        }
+        Entry::Vacant(v) => {
+            v.insert(id);
+        }
+    }
+}
+
+fn index_export_type(
+    state: &mut State,
+    types: &mut FxHashMap<SmolStr, (ExportItemId, Option<ImplicitItems>)>,
+    name: &str,
+    id: ExportItemId,
+    items: Option<cst::TypeItems>,
+) {
+    let name = SmolStr::from(name);
+    let item = state.names.types.lookup(&name);
+    let selection = items.map(type_selection);
+
+    state.exports.types.push(IndexedTypeExport {
+        id,
+        name: SmolStr::clone(&name),
+        item,
+        selection: selection.clone(),
+    });
+
+    match types.entry(name) {
+        Entry::Occupied(o) => {
+            let (existing, _) = *o.get();
+            state.errors.push(IndexingError::DuplicateExport { id, existing });
+        }
+        Entry::Vacant(v) => {
+            let items = selection.map(implicit_items_from_selection);
+            v.insert((id, items));
+        }
+    }
+}
+
+fn type_selection(cst: cst::TypeItems) -> TypeSelection {
+    match cst {
+        cst::TypeItems::TypeItemsAll(_) => TypeSelection::Everything,
+        cst::TypeItems::TypeItemsList(cst) => {
+            let enumerated = cst.name_tokens().map(|token| {
+                let name = token.text();
+                SmolStr::from(name)
+            });
+            let enumerated = enumerated.collect();
+            TypeSelection::Enumerated(enumerated)
+        }
+    }
+}
+
+fn implicit_items_from_selection(selection: TypeSelection) -> ImplicitItems {
+    match selection {
+        TypeSelection::Everything => ImplicitItems::Everything,
+        TypeSelection::Enumerated(items) => ImplicitItems::Enumerated(items),
+    }
+}
+
 fn operator_name(name: &str) -> &str {
     name.trim_start_matches("(").trim_end_matches(")")
 }
 
-fn index_module_export(state: &mut State, cst: &cst::ExportModule) {
+fn index_module_export(state: &mut State, id: ExportItemId, cst: &cst::ExportModule) {
     if let Some(n) = extracted_exported_module(cst) {
+        state.exports.modules.push(IndexedModuleExport { id, name: SmolStr::clone(&n) });
         if state.name.as_ref() == Some(&n) {
             state.kind = ExportKind::ExplicitSelf;
         } else {

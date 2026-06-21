@@ -36,11 +36,13 @@ pub enum TypeItemKind {
         signature: Option<DataSignatureId>,
         equation: Option<DataEquationId>,
         role: Option<TypeRoleId>,
+        constructors: Vec<TermItemId>,
     },
     Newtype {
         signature: Option<NewtypeSignatureId>,
         equation: Option<NewtypeEquationId>,
         role: Option<TypeRoleId>,
+        constructors: Vec<TermItemId>,
     },
     Synonym {
         signature: Option<TypeSignatureId>,
@@ -49,6 +51,7 @@ pub enum TypeItemKind {
     Class {
         signature: Option<ClassSignatureId>,
         declaration: Option<ClassDeclarationId>,
+        members: Vec<TermItemId>,
     },
     Foreign {
         id: ForeignDataId,

@@ -67,10 +67,10 @@ where
     Q: ExternalQueries,
 {
     if data_file == context.id {
-        Ok(context.indexed.pairs.data_constructors(data_id).collect())
+        Ok(context.indexed.data_constructors(data_id).collect())
     } else {
         let indexed = context.queries.indexed(data_file)?;
-        Ok(indexed.pairs.data_constructors(data_id).collect())
+        Ok(indexed.data_constructors(data_id).collect())
     }
 }
 

@@ -659,16 +659,16 @@ fn type_item_highlights(
     }
 
     match indexed.items[type_id].kind {
-        TypeItemKind::Data { signature, equation, role } => {
+        TypeItemKind::Data { signature, equation, role, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, equation, role);
         }
-        TypeItemKind::Newtype { signature, equation, role } => {
+        TypeItemKind::Newtype { signature, equation, role, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, equation, role);
         }
         TypeItemKind::Synonym { signature, equation } => {
             push_name_highlights!(position::declaration_name_range; signature, equation);
         }
-        TypeItemKind::Class { signature, declaration } => {
+        TypeItemKind::Class { signature, declaration, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, declaration);
         }
         TypeItemKind::Foreign { id, role } => {

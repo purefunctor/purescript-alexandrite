@@ -467,7 +467,7 @@ where
 {
     let mut constructors = vec![];
 
-    for constructor_id in context.indexed.pairs.data_constructors(item_id) {
+    for constructor_id in context.indexed.data_constructors(item_id) {
         let Some(TermItemIr::Constructor { arguments }) =
             context.lowered.info.get_term_item(constructor_id)
         else {
@@ -798,7 +798,7 @@ where
 {
     let mut members = vec![];
 
-    for member_id in context.indexed.pairs.class_members(item_id) {
+    for member_id in context.indexed.class_members(item_id) {
         let Some(TermItemIr::ClassMember { signature }) =
             context.lowered.info.get_term_item(member_id)
         else {

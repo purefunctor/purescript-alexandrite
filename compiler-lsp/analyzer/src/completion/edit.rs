@@ -142,7 +142,6 @@ fn term_import_name(
     let term_item = &import_indexed.items[term_id];
     if matches!(term_item.kind, TermItemKind::Constructor { .. }) {
         let type_id = import_indexed
-            .pairs
             .constructor_type(term_id)
             .expect("invariant violated: floating data constructor");
         let type_item = &import_indexed.items[type_id];

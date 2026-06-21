@@ -752,10 +752,10 @@ where
     Q: ExternalQueries,
 {
     let constructor_term_id = if file_id == context.id {
-        context.indexed.pairs.data_constructors(item_id).next()
+        context.indexed.data_constructors(item_id).next()
     } else {
         let indexed = context.queries.indexed(file_id)?;
-        indexed.pairs.data_constructors(item_id).next()
+        indexed.data_constructors(item_id).next()
     };
 
     let Some(constructor_term_id) = constructor_term_id else {
@@ -780,10 +780,10 @@ where
     }
 
     let constructor_term_id = if newtype_file == context.id {
-        context.indexed.pairs.data_constructors(newtype_id).next()
+        context.indexed.data_constructors(newtype_id).next()
     } else {
         let indexed = context.queries.indexed(newtype_file)?;
-        indexed.pairs.data_constructors(newtype_id).next()
+        indexed.data_constructors(newtype_id).next()
     };
 
     let Some(constructor_term_id) = constructor_term_id else {
