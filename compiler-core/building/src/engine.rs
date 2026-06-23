@@ -862,20 +862,9 @@ impl QueryProxy for QueryEngine {
     }
 }
 
-impl checking::ExternalQueries for QueryEngine {
-    fn intern_type(&self, t: checking::Type) -> checking::TypeId {
-        self.interned.checking.intern_type(t)
-    }
-
+impl checking::PrettyQueries for QueryEngine {
     fn lookup_type(&self, id: checking::TypeId) -> checking::Type {
         self.interned.checking.lookup_type(id)
-    }
-
-    fn intern_forall_binder(
-        &self,
-        binder: checking::core::ForallBinder,
-    ) -> checking::core::ForallBinderId {
-        self.interned.checking.intern_forall_binder(binder)
     }
 
     fn lookup_forall_binder(
@@ -885,20 +874,33 @@ impl checking::ExternalQueries for QueryEngine {
         self.interned.checking.lookup_forall_binder(id)
     }
 
-    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
-        self.interned.checking.intern_row_type(row)
-    }
-
     fn lookup_row_type(&self, id: checking::core::RowTypeId) -> checking::core::RowType {
         self.interned.checking.lookup_row_type(id)
     }
 
-    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
-        self.interned.checking.intern_smol_str(s)
-    }
-
     fn lookup_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
         self.interned.checking.lookup_smol_str(id)
+    }
+}
+
+impl checking::ExternalQueries for QueryEngine {
+    fn intern_type(&self, t: checking::Type) -> checking::TypeId {
+        self.interned.checking.intern_type(t)
+    }
+
+    fn intern_forall_binder(
+        &self,
+        binder: checking::core::ForallBinder,
+    ) -> checking::core::ForallBinderId {
+        self.interned.checking.intern_forall_binder(binder)
+    }
+
+    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
+        self.interned.checking.intern_row_type(row)
+    }
+
+    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
+        self.interned.checking.intern_smol_str(s)
     }
 }
 

@@ -316,20 +316,9 @@ impl QueryProxy for WasmQueryEngine {
     }
 }
 
-impl checking::ExternalQueries for WasmQueryEngine {
-    fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
-        self.interned.borrow().checking.intern_type(t)
-    }
-
+impl checking::PrettyQueries for WasmQueryEngine {
     fn lookup_type(&self, id: checking::core::TypeId) -> checking::core::Type {
         self.interned.borrow().checking.lookup_type(id)
-    }
-
-    fn intern_forall_binder(
-        &self,
-        binder: checking::core::ForallBinder,
-    ) -> checking::core::ForallBinderId {
-        self.interned.borrow().checking.intern_forall_binder(binder)
     }
 
     fn lookup_forall_binder(
@@ -339,20 +328,33 @@ impl checking::ExternalQueries for WasmQueryEngine {
         self.interned.borrow().checking.lookup_forall_binder(id)
     }
 
-    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
-        self.interned.borrow().checking.intern_row_type(row)
-    }
-
     fn lookup_row_type(&self, id: checking::core::RowTypeId) -> checking::core::RowType {
         self.interned.borrow().checking.lookup_row_type(id)
     }
 
-    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
-        self.interned.borrow().checking.intern_smol_str(s)
-    }
-
     fn lookup_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
         self.interned.borrow().checking.lookup_smol_str(id)
+    }
+}
+
+impl checking::ExternalQueries for WasmQueryEngine {
+    fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
+        self.interned.borrow().checking.intern_type(t)
+    }
+
+    fn intern_forall_binder(
+        &self,
+        binder: checking::core::ForallBinder,
+    ) -> checking::core::ForallBinderId {
+        self.interned.borrow().checking.intern_forall_binder(binder)
+    }
+
+    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
+        self.interned.borrow().checking.intern_row_type(row)
+    }
+
+    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
+        self.interned.borrow().checking.intern_smol_str(s)
     }
 }
 

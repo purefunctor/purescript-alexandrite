@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use analyzer::{QueryEngine, position};
 use checking::core::pretty;
-use checking::{ExternalQueries, core};
+use checking::{PrettyQueries, core};
 use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};
 use files::FileId;
 use indexing::{ImportKind, TermItem, TypeItem, TypeItemId, TypeItemKind};

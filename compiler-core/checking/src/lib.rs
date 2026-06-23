@@ -7,6 +7,7 @@ pub mod source;
 pub mod state;
 
 pub mod core;
+pub use core::pretty::PrettyQueries;
 pub use core::{Type, TypeId};
 
 pub mod interners;
@@ -39,19 +40,15 @@ pub trait ExternalQueries:
         Bracketed = Arc<sugar::Bracketed>,
         Sectioned = Arc<sugar::Sectioned>,
         Checked = Arc<CheckedModule>,
-    >
+    > + core::pretty::PrettyQueries
 {
     fn intern_type(&self, t: Type) -> TypeId;
-    fn lookup_type(&self, id: TypeId) -> Type;
 
     fn intern_forall_binder(&self, b: ForallBinder) -> ForallBinderId;
-    fn lookup_forall_binder(&self, id: ForallBinderId) -> ForallBinder;
 
     fn intern_row_type(&self, r: RowType) -> RowTypeId;
-    fn lookup_row_type(&self, id: RowTypeId) -> RowType;
 
     fn intern_smol_str(&self, s: SmolStr) -> core::SmolStrId;
-    fn lookup_smol_str(&self, id: core::SmolStrId) -> SmolStr;
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
