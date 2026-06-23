@@ -1,0 +1,55 @@
+use building_types::QueryResult;
+use checking::core::pretty::Pretty;
+use files::FileId;
+use rustc_hash::FxHashMap;
+
+use indexing::{TermItemId, TypeItemId};
+
+use crate::{DocumentationSignature, DocumentedTerm, DocumentedType, ExternalQueries, annotation};
+
+pub struct State {
+    pub documentation: String,
+    pub terms: FxHashMap<TermItemId, DocumentedTerm>,
+    pub types: FxHashMap<TypeItemId, DocumentedType>,
+}
+
+pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<State> {
+    let (parsed, _) = queries.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = queries.stabilized(file_id)?;
+    let indexed = queries.indexed(file_id)?;
+    let checked = queries.checked(file_id)?;
+
+    let documentation = annotation::module_documentation(&root, &parsed);
+    let mut pretty = Pretty::new(queries, &checked).width(80);
+
+    let terms = indexed.items.iter_terms().filter_map(|(id, item)| {
+        let signature = checked.lookup_term(id)?;
+        let name = item.name.as_deref().unwrap_or("<unknown>");
+        pretty.reset();
+
+        let string = pretty.render_signature(name, signature).to_string();
+        let signature = DocumentationSignature { string };
+        let documentation = annotation::term_documentation(&stabilized, &root, item);
+
+        Some((id, DocumentedTerm { documentation, signature }))
+    });
+
+    let terms = terms.collect();
+
+    let types = indexed.items.iter_types().filter_map(|(id, item)| {
+        let signature = checked.lookup_type(id)?;
+        let name = item.name.as_deref().unwrap_or("<unknown>");
+        pretty.reset();
+
+        let string = pretty.render_signature(name, signature).to_string();
+        let signature = DocumentationSignature { string };
+        let documentation = annotation::type_documentation(&stabilized, &root, item);
+
+        Some((id, DocumentedType { documentation, signature }))
+    });
+
+    let types = types.collect();
+
+    Ok(State { documentation, terms, types })
+}

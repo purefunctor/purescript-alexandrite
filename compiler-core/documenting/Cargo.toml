@@ -1,0 +1,15 @@
+[package]
+name = "documenting"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+building-types = { version = "0.1.0", path = "../building-types" }
+checking = { version = "0.1.0", path = "../checking" }
+files = { version = "0.1.0", path = "../files" }
+indexing = { version = "0.1.0", path = "../indexing" }
+parsing = { version = "0.1.0", path = "../parsing" }
+rowan = "0.16.1"
+rustc-hash = "2.1.2"
+stabilizing = { version = "0.1.0", path = "../stabilizing" }
+syntax = { version = "0.1.0", path = "../syntax" }

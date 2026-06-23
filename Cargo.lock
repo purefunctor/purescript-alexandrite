@@ -630,6 +630,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "documenting"
+version = "0.1.0"
+dependencies = [
+ "building-types",
+ "checking",
+ "files",
+ "indexing",
+ "parsing",
+ "rowan",
+ "rustc-hash 2.1.2",
+ "stabilizing",
+ "syntax",
+]
+
+[[package]]
 name = "drop_bomb"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
