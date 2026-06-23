@@ -190,6 +190,7 @@ impl QueryProxy for WasmQueryEngine {
     type Resolved = Arc<ResolvedModule>;
     type Bracketed = Arc<sugar::Bracketed>;
     type Sectioned = Arc<sugar::Sectioned>;
+    type Checked = Arc<checking::CheckedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         if let Some(cached) = self.derived.borrow().parsed.get(&id) {
@@ -300,6 +301,10 @@ impl QueryProxy for WasmQueryEngine {
         Ok(sectioned)
     }
 
+    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
+        WasmQueryEngine::checked(self, id)
+    }
+
     fn prim_id(&self) -> FileId {
         self.prim_id
     }
@@ -312,10 +317,6 @@ impl QueryProxy for WasmQueryEngine {
 }
 
 impl checking::ExternalQueries for WasmQueryEngine {
-    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
-        WasmQueryEngine::checked(self, id)
-    }
-
     fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
         self.interned.borrow().checking.intern_type(t)
     }

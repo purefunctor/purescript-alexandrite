@@ -815,6 +815,8 @@ impl QueryProxy for QueryEngine {
 
     type Sectioned = Arc<sugar::Sectioned>;
 
+    type Checked = Arc<checking::CheckedModule>;
+
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         QueryEngine::parsed(self, id)
     }
@@ -847,6 +849,10 @@ impl QueryProxy for QueryEngine {
         QueryEngine::sectioned(self, id)
     }
 
+    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
+        QueryEngine::checked(self, id)
+    }
+
     fn prim_id(&self) -> FileId {
         QueryEngine::prim_id(self)
     }
@@ -857,10 +863,6 @@ impl QueryProxy for QueryEngine {
 }
 
 impl checking::ExternalQueries for QueryEngine {
-    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
-        QueryEngine::checked(self, id)
-    }
-
     fn intern_type(&self, t: checking::Type) -> checking::TypeId {
         self.interned.checking.intern_type(t)
     }
