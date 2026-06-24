@@ -1,8 +1,7 @@
-use std::process;
-
 use clap::Parser;
 
 pub mod cli;
+pub mod docs;
 pub mod logging;
 pub mod lsp;
 
@@ -32,9 +31,8 @@ pub fn run() {
                 diagnostics_on_change: options.diagnostics_on_change,
             });
         }
-        cli::Command::Docs(_) => {
-            eprintln!("`alexandrite docs` is not implemented yet.");
-            process::exit(1);
+        cli::Command::Docs(options) => {
+            docs::start(docs::DocsConfig { output_folder: options.output_folder });
         }
     }
 }
