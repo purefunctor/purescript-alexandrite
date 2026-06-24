@@ -14,4 +14,6 @@ pub enum DocsError {
     IoError(#[from] io::Error),
     #[error("GlobSetError: {0}")]
     GlobSetError(#[from] globset::Error),
+    #[error("JsonError: {0}")]
+    JsonError(#[from] serde_json::Error),
 }

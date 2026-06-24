@@ -1,10 +1,12 @@
 pub mod error;
+pub mod schema;
 
 use std::collections::LinkedList;
 use std::path::PathBuf;
 use std::{env, fs, process};
 
 use analyzer::{QueryEngine, prim};
+use checking::core::pretty::Pretty;
 use files::Files;
 use rayon::iter::ParallelIterator;
 
@@ -22,6 +24,12 @@ pub fn start(config: DocsConfig) {
         tracing::error!(?error, "Documentation exited");
         process::exit(1);
     }
+}
+
+#[derive(Default)]
+struct Compiler {
+    files: Files,
+    engine: QueryEngine,
 }
 
 fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
@@ -60,11 +68,55 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
         }
     }
 
+    let modules = document_modules(&compiler)?;
+
+    let has_output_folder = fs::exists(&config.output)?;
+    if !has_output_folder {
+        fs::create_dir_all(&config.output)?;
+    };
+
+    for module in modules {
+        if let Some(name) = module.name.as_deref() {
+            let name = format!("{}.json", name);
+            let module = serde_json::to_string(&module)?;
+            fs::write(&config.output.join(name), module)?;
+        }
+    }
+
     Ok(())
 }
 
-#[derive(Default)]
-struct Compiler {
-    files: Files,
-    engine: QueryEngine,
+fn document_modules(compiler: &Compiler) -> Result<Vec<schema::Module>, DocsError> {
+    let mut modules = vec![];
+
+    for id in compiler.files.iter_id() {
+        let mut items = vec![];
+
+        let (parsed, _) = compiler.engine.parsed(id)?;
+        let indexed = compiler.engine.indexed(id)?;
+        let checked = compiler.engine.checked(id)?;
+
+        for (id, item) in indexed.items.iter_terms() {
+            let name = item.name.as_deref().map(str::to_string);
+            let signature = checked.lookup_term(id).map(|id| {
+                let mut pretty = Pretty::new(&compiler.engine, &checked);
+                pretty.render(id).to_string()
+            });
+            items.push(schema::Item { name, signature, kind: schema::Kind::Term });
+        }
+
+        for (id, item) in indexed.items.iter_types() {
+            let name = item.name.as_deref().map(str::to_string);
+            let signature = checked.lookup_type(id).map(|id| {
+                let mut pretty = Pretty::new(&compiler.engine, &checked);
+                pretty.render(id).to_string()
+            });
+            items.push(schema::Item { name, signature, kind: schema::Kind::Type });
+        }
+
+        let name = parsed.module_name().as_deref().map(str::to_string);
+        modules.push(schema::Module { name, items });
+    }
+
+    Ok(modules)
 }
