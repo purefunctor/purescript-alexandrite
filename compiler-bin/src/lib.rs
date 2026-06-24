@@ -4,6 +4,7 @@ pub mod cli;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
+pub mod walk;
 
 pub fn run() {
     let cli = cli::Cli::parse();

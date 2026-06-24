@@ -1,3 +1,5 @@
+pub mod error;
+
 use std::path::PathBuf;
 
 use crate::cli::PackageSpecs;
