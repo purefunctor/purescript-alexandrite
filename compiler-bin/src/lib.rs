@@ -32,7 +32,7 @@ pub fn run() {
             });
         }
         cli::Command::Docs(options) => {
-            docs::start(docs::DocsConfig { output_folder: options.output_folder });
+            docs::start(docs::DocsConfig { output: options.output, packages: options.packages });
         }
     }
 }

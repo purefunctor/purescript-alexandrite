@@ -50,5 +50,8 @@ tracing-subscriber = "0.3.22"
 url = "2.5.7"
 walkdir = "2.5.0"
 
+[dev-dependencies]
+insta = "1.45.1"
+
 [target.'cfg(not(unix))'.dependencies]
 tokio-util = { version = "0.7.17", features = ["compat"] }

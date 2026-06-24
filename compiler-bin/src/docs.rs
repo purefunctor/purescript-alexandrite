@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
+use crate::cli::PackageSpecs;
+
 pub struct DocsConfig {
-    pub output_folder: PathBuf,
+    pub output: PathBuf,
+    pub packages: PackageSpecs,
 }
 
 pub fn start(_config: DocsConfig) {}
