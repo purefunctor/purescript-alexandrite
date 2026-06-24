@@ -30,12 +30,19 @@ use tokio::task;
 use tower::ServiceBuilder;
 use walkdir::WalkDir;
 
-use crate::cli;
 use crate::lsp::capabilities::negotiate_position_encoding;
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 
+#[derive(Debug)]
+pub struct LspConfig {
+    pub source_command: Option<String>,
+    pub diagnostics_on_open: bool,
+    pub diagnostics_on_save: bool,
+    pub diagnostics_on_change: bool,
+}
+
 pub struct State {
-    pub config: Arc<cli::Config>,
+    pub config: Arc<LspConfig>,
     pub client: ClientSocket,
 
     pub engine: QueryEngine,
@@ -49,7 +56,7 @@ pub struct State {
 }
 
 impl State {
-    fn new(config: Arc<cli::Config>, client: ClientSocket) -> State {
+    fn new(config: Arc<LspConfig>, client: ClientSocket) -> State {
         let mut engine = QueryEngine::default();
         let mut files = Files::default();
         prim::configure(&mut engine, &mut files);
@@ -533,7 +540,7 @@ trait RequestExtension: BorrowMut<Router<State>> {
 
 impl RequestExtension for Router<State> {}
 
-pub async fn start(config: Arc<cli::Config>) {
+pub async fn async_start(config: Arc<LspConfig>) {
     let (server, _) = async_lsp::MainLoop::new_server(move |client| {
         let mut router: Router<State, ResponseError> =
             Router::new(State::new(config, client.clone()));
@@ -582,6 +589,12 @@ pub async fn start(config: Arc<cli::Config>) {
         tracing::error!(?error, "LSP main loop exited");
         process::exit(1);
     }
+}
+
+#[tokio::main(flavor = "current_thread")]
+pub async fn start(config: LspConfig) {
+    let config = Arc::new(config);
+    async_start(Arc::clone(&config)).await
 }
 
 #[cfg(test)]

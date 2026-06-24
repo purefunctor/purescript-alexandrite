@@ -7,42 +7,6 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, Parser)]
 #[command(about, version(VERSION))]
-pub struct Config {
-    #[arg(long)]
-    pub stdio: bool,
-    /// Print log path.
-    #[arg(long)]
-    pub log_file: bool,
-    /// Log level for the query engine.
-    #[arg(long, value_name("LevelFilter"), default_value("off"))]
-    pub query_log: LevelFilter,
-    /// Log level for the language server.
-    #[arg(long, value_name("LevelFilter"), default_value("info"))]
-    pub lsp_log: LevelFilter,
-    /// Log level for the type checker.
-    #[arg(long, value_name("LevelFilter"), default_value("off"))]
-    pub checking_log: LevelFilter,
-    /// Command to use to get source files.
-    ///
-    /// This argument also disables the spago.lock integration.
-    #[arg(long)]
-    pub source_command: Option<String>,
-
-    /// Publish diagnostics on textDocument/didOpen.
-    #[arg(long, value_name("bool"), action = ArgAction::Set, default_value_t = true)]
-    pub diagnostics_on_open: bool,
-
-    /// Publish diagnostics on textDocument/didSave.
-    #[arg(long, value_name("bool"), action = ArgAction::Set, default_value_t = true)]
-    pub diagnostics_on_save: bool,
-
-    /// Publish diagnostics on textDocument/didChange (opt-in).
-    #[arg(long, default_value_t = false)]
-    pub diagnostics_on_change: bool,
-}
-
-#[derive(Debug, Parser)]
-#[command(about, version(VERSION))]
 pub struct Cli {
     /// Print log path.
     #[arg(long)]
@@ -108,4 +72,24 @@ pub struct DocsOptions {
     /// Output directory for the generated documentation.
     #[arg(long, value_name("DIR"), default_value("docs"))]
     pub output_folder: PathBuf,
+}
+
+impl Default for LoggingOptions {
+    fn default() -> LoggingOptions {
+        LoggingOptions { query_log: LevelFilter::OFF, checking_log: LevelFilter::OFF }
+    }
+}
+
+impl Default for LspOptions {
+    fn default() -> LspOptions {
+        LspOptions {
+            logging: LoggingOptions::default(),
+            stdio: false,
+            lsp_log: LevelFilter::INFO,
+            source_command: None,
+            diagnostics_on_open: true,
+            diagnostics_on_save: true,
+            diagnostics_on_change: false,
+        }
+    }
 }

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Instant;
 use std::{env, fs};
 
@@ -7,7 +6,12 @@ use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
 
-use crate::cli;
+#[derive(Debug, Clone, Copy)]
+pub struct LoggingFilters {
+    pub query_log: LevelFilter,
+    pub checking_log: LevelFilter,
+    pub lsp_log: LevelFilter,
+}
 
 struct SpanTimingLayer;
 
@@ -40,7 +44,7 @@ pub fn temporary_log_file() -> PathBuf {
     temporary_directory.join("purescript-alexandrite.log")
 }
 
-pub fn start(config: Arc<cli::Config>) {
+pub fn start(filters: LoggingFilters) {
     let path = temporary_log_file();
     let file = fs::OpenOptions::new()
         .create(true)
@@ -49,14 +53,14 @@ pub fn start(config: Arc<cli::Config>) {
         .expect("Failed to open log file");
 
     let fmt_filter = filter::Targets::new()
-        .with_target("building::engine", config.query_log)
-        .with_target("purescript_alexandrite::lsp", config.lsp_log)
-        .with_target("checking", config.checking_log)
+        .with_target("building::engine", filters.query_log)
+        .with_target("purescript_alexandrite::lsp", filters.lsp_log)
+        .with_target("checking", filters.checking_log)
         .with_default(LevelFilter::INFO);
     let fmt = fmt::layer().with_writer(file).with_filter(fmt_filter);
 
     let timing_filter = filter::Targets::new()
-        .with_target("purescript_alexandrite::lsp", config.lsp_log)
+        .with_target("purescript_alexandrite::lsp", filters.lsp_log)
         .with_default(LevelFilter::OFF);
     let timing = SpanTimingLayer.with_filter(timing_filter);
 
