@@ -23,6 +23,7 @@ serde-wasm-bindgen = "0.6"
 building-types = { version = "0.1.0", path = "../../../compiler-core/building-types" }
 checking = { version = "0.1.0", path = "../../../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../../../compiler-core/diagnostics" }
+documenting = { version = "0.1.0", path = "../../../compiler-core/documenting" }
 files = { version = "0.1.0", path = "../../../compiler-core/files" }
 indexing = { version = "0.1.0", path = "../../../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../../../compiler-core/interner" }

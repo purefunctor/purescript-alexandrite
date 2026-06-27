@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use building_types::{ModuleNameId, ModuleNameInterner, QueryProxy, QueryResult};
+use documenting::DocumentedModule;
 use files::{FileId, Files};
 use indexing::IndexedModule;
 use lowering::{GroupedModule, LoweredModule};
@@ -30,6 +31,7 @@ struct DerivedStorage {
     bracketed: FxHashMap<FileId, Arc<sugar::Bracketed>>,
     sectioned: FxHashMap<FileId, Arc<sugar::Sectioned>>,
     checked: FxHashMap<FileId, Arc<checking::CheckedModule>>,
+    documented: FxHashMap<FileId, Arc<DocumentedModule>>,
 }
 
 #[derive(Default)]
@@ -117,6 +119,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&id);
             derived.sectioned.remove(&id);
             derived.checked.remove(&id);
+            derived.documented.remove(&id);
         }
 
         if let Some(user_id) = self.user_id {
@@ -128,6 +131,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&user_id);
             derived.sectioned.remove(&user_id);
             derived.checked.remove(&user_id);
+            derived.documented.remove(&user_id);
         }
     }
 
@@ -145,6 +149,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&existing_id);
             derived.sectioned.remove(&existing_id);
             derived.checked.remove(&existing_id);
+            derived.documented.remove(&existing_id);
             existing_id
         } else {
             let id = self.files.borrow_mut().insert("user://localhost/Main.purs", source);
@@ -171,6 +176,17 @@ impl WasmQueryEngine {
         Ok(checked)
     }
 
+    pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        if let Some(cached) = self.derived.borrow().documented.get(&id) {
+            return Ok(cached.clone());
+        }
+
+        let documented = documenting::document_module(self, id)?;
+
+        self.derived.borrow_mut().documented.insert(id, documented.clone());
+        Ok(documented)
+    }
+
     fn content(&self, id: FileId) -> Arc<str> {
         self.input
             .borrow()
@@ -191,6 +207,7 @@ impl QueryProxy for WasmQueryEngine {
     type Bracketed = Arc<sugar::Bracketed>;
     type Sectioned = Arc<sugar::Sectioned>;
     type Checked = Arc<checking::CheckedModule>;
+    type Documented = Arc<DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         if let Some(cached) = self.derived.borrow().parsed.get(&id) {
@@ -303,6 +320,10 @@ impl QueryProxy for WasmQueryEngine {
 
     fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
         WasmQueryEngine::checked(self, id)
+    }
+
+    fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        WasmQueryEngine::documented(self, id)
     }
 
     fn prim_id(&self) -> FileId {

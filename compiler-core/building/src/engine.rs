@@ -35,6 +35,7 @@ use building_types::{
     ModuleNameId, ModuleNameInterner, QueryError, QueryKey, QueryProxy, QueryResult,
 };
 use checking::CheckedModule;
+use documenting::DocumentedModule;
 use files::FileId;
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
@@ -124,6 +125,7 @@ struct DerivedStorage {
     bracketed: Shards<FileId, DerivedState<Arc<sugar::Bracketed>>>,
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
+    documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
 }
 
 #[derive(Default)]
@@ -455,6 +457,7 @@ impl QueryEngine {
                 QueryKey::Bracketed(k) => derived_changed!(bracketed, k),
                 QueryKey::Sectioned(k) => derived_changed!(sectioned, k),
                 QueryKey::Checked(k) => derived_changed!(checked, k),
+                QueryKey::Documented(k) => derived_changed!(documented, k),
             }
         }
 
@@ -790,6 +793,15 @@ impl QueryEngine {
             },
         )
     }
+
+    pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        self.query(
+            QueryKey::Documented(id),
+            id,
+            |derived| &derived.documented,
+            |this| documenting::document_module(this, id),
+        )
+    }
 }
 
 impl QueryEngine {
@@ -816,6 +828,8 @@ impl QueryProxy for QueryEngine {
     type Sectioned = Arc<sugar::Sectioned>;
 
     type Checked = Arc<checking::CheckedModule>;
+
+    type Documented = Arc<documenting::DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         QueryEngine::parsed(self, id)
@@ -851,6 +865,10 @@ impl QueryProxy for QueryEngine {
 
     fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
         QueryEngine::checked(self, id)
+    }
+
+    fn documented(&self, id: FileId) -> QueryResult<Arc<documenting::DocumentedModule>> {
+        QueryEngine::documented(self, id)
     }
 
     fn prim_id(&self) -> FileId {

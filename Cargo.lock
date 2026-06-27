@@ -253,6 +253,7 @@ version = "0.1.0"
 dependencies = [
  "building-types",
  "checking",
+ "documenting",
  "files",
  "indexing",
  "interner",
@@ -609,6 +610,7 @@ dependencies = [
  "checking",
  "console_error_panic_hook",
  "diagnostics",
+ "documenting",
  "files",
  "indexing",
  "interner",
