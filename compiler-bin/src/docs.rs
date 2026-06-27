@@ -44,6 +44,10 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     let packages = load_packages(&config, &mut compiler)?;
     write_packages_manifest(&config, &mut compiler, &packages)?;
 
+    for package in packages {
+        generate_package_documentation(&config, &mut compiler, &package)?;
+    }
+
     Ok(())
 }
 
@@ -94,6 +98,77 @@ fn write_packages_manifest(
         fs::write(manifest, package)?;
     }
 
+    Ok(())
+}
+
+fn generate_package_documentation(
+    config: &DocsConfig,
+    compiler: &mut Compiler,
+    package: &Package,
+) -> Result<(), DocsError> {
+    let root = env::current_dir()?;
+
+    let modules_folder = root.join(&config.output).join(&package.name).join("modules");
+    fs::create_dir_all(&modules_folder)?;
+
+    for &id in &package.modules {
+        let (parsed, _) = compiler.engine.parsed(id)?;
+        let indexed = compiler.engine.indexed(id)?;
+        let documented = compiler.engine.documented(id)?;
+
+        let Some(name) = parsed.module_name().map(|name| name.to_string()) else {
+            continue;
+        };
+
+        let mut terms = vec![];
+        let mut types = vec![];
+
+        for (term_id, term_item) in indexed.items.iter_terms() {
+            let term_documentation = documented.terms.get(&term_id);
+
+            let name = term_item.name.as_ref().map(|name| name.to_string());
+            let documentation = term_documentation.map(|t| t.documentation.to_string());
+            let signature = term_documentation.map(|t| t.signature.string.to_string());
+
+            let kind = match &term_item.kind {
+                indexing::TermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
+                indexing::TermItemKind::Constructor { .. } => schema::TermKind::Constructor,
+                indexing::TermItemKind::Derive { .. } => schema::TermKind::Derive,
+                indexing::TermItemKind::Foreign { .. } => schema::TermKind::Foreign,
+                indexing::TermItemKind::Instance { .. } => schema::TermKind::Instance,
+                indexing::TermItemKind::Operator { .. } => schema::TermKind::Operator,
+                indexing::TermItemKind::Value { .. } => schema::TermKind::Value,
+            };
+
+            terms.push(schema::Term { name, documentation, signature, kind });
+        }
+
+        for (type_id, type_item) in indexed.items.iter_types() {
+            let type_documentation = documented.types.get(&type_id);
+
+            let name = type_item.name.as_ref().map(|name| name.to_string());
+            let documentation = type_documentation.map(|t| t.documentation.to_string());
+            let signature = type_documentation.map(|t| t.signature.string.to_string());
+
+            let kind = match &type_item.kind {
+                indexing::TypeItemKind::Data { .. } => schema::TypeKind::Data,
+                indexing::TypeItemKind::Newtype { .. } => schema::TypeKind::Newtype,
+                indexing::TypeItemKind::Synonym { .. } => schema::TypeKind::Synonym,
+                indexing::TypeItemKind::Class { .. } => schema::TypeKind::Class,
+                indexing::TypeItemKind::Foreign { .. } => schema::TypeKind::Foreign,
+                indexing::TypeItemKind::Operator { .. } => schema::TypeKind::Operator,
+            };
+
+            types.push(schema::Type { name, documentation, signature, kind });
+        }
+
+        let module_file = modules_folder.join(format!("{name}.json"));
+
+        let module = schema::Module { name, terms, types };
+        let module = serde_json::to_string_pretty(&module)?;
+
+        fs::write(module_file, module)?;
+    }
     Ok(())
 }
 
