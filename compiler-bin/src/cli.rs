@@ -70,6 +70,9 @@ pub struct LspOptions {
 pub struct DocsOptions {
     #[command(flatten)]
     pub logging: LoggingOptions,
+    /// Log level for the documentation tool.
+    #[arg(long, value_name("LEVEL"), default_value("info"))]
+    pub docs_log: LevelFilter,
     /// Output directory for the generated documentation.
     #[arg(long, value_name("DIR"), default_value("docs"))]
     pub output: PathBuf,

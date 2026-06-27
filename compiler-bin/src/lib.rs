@@ -1,4 +1,5 @@
 use clap::Parser;
+use tracing::level_filters::LevelFilter;
 
 pub mod cli;
 pub mod docs;
@@ -24,6 +25,7 @@ pub fn run() {
                 query_log: options.logging.query_log,
                 checking_log: options.logging.checking_log,
                 lsp_log: options.lsp_log,
+                docs_log: LevelFilter::OFF,
             });
             lsp::start(lsp::LspConfig {
                 source_command: options.source_command,
@@ -33,6 +35,12 @@ pub fn run() {
             });
         }
         cli::Command::Docs(options) => {
+            logging::start(logging::LoggingFilters {
+                query_log: options.logging.query_log,
+                checking_log: options.logging.checking_log,
+                lsp_log: LevelFilter::OFF,
+                docs_log: options.docs_log,
+            });
             docs::start(docs::DocsConfig { output: options.output, packages: options.packages });
         }
     }

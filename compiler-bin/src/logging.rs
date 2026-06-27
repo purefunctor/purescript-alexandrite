@@ -11,6 +11,7 @@ pub struct LoggingFilters {
     pub query_log: LevelFilter,
     pub checking_log: LevelFilter,
     pub lsp_log: LevelFilter,
+    pub docs_log: LevelFilter,
 }
 
 struct SpanTimingLayer;
@@ -55,12 +56,14 @@ pub fn start(filters: LoggingFilters) {
     let fmt_filter = filter::Targets::new()
         .with_target("building::engine", filters.query_log)
         .with_target("purescript_alexandrite::lsp", filters.lsp_log)
+        .with_target("purescript_alexandrite::docs", filters.docs_log)
         .with_target("checking", filters.checking_log)
         .with_default(LevelFilter::INFO);
     let fmt = fmt::layer().with_writer(file).with_filter(fmt_filter);
 
     let timing_filter = filter::Targets::new()
         .with_target("purescript_alexandrite::lsp", filters.lsp_log)
+        .with_target("purescript_alexandrite::docs", filters.docs_log)
         .with_default(LevelFilter::OFF);
     let timing = SpanTimingLayer.with_filter(timing_filter);
 
