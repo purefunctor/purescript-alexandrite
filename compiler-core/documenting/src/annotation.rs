@@ -3,7 +3,7 @@ use rowan::ast::AstNode;
 use stabilizing::StabilizedModule;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr};
 
-use indexing::{TermItem, TermItemKind, TypeItem, TypeItemKind};
+use indexing::{DataConstructorId, TermItem, TermItemKind, TypeItem, TypeItemKind};
 use parsing::ParsedModule;
 use stabilizing::AstId;
 
@@ -26,9 +26,7 @@ pub fn term_documentation(
         TermItemKind::ClassMember { id } => {
             signature_equation_range(stabilized, root, &Some(*id), &Some(*id))
         }
-        TermItemKind::Constructor { id } => {
-            signature_equation_range(stabilized, root, &Some(*id), &Some(*id))
-        }
+        TermItemKind::Constructor { id } => data_constructor_range(stabilized, root, *id),
         TermItemKind::Derive { id } => {
             signature_equation_range(stabilized, root, &Some(*id), &Some(*id))
         }
@@ -131,26 +129,68 @@ where
     signature.or_else(equation)
 }
 
+fn data_constructor_range(
+    stabilized: &StabilizedModule,
+    root: &SyntaxNode,
+    id: DataConstructorId,
+) -> Option<AnnotationRange> {
+    let ptr = stabilized.syntax_ptr(id)?;
+    let node = ptr.try_to_node(root)?;
+
+    if let Some(annotation) = AnnotationRange::from_node(&node).annotation
+        && contains_documentation(root, annotation)
+    {
+        return Some(AnnotationRange { annotation: Some(annotation) });
+    }
+
+    let separator = node.prev_sibling_or_token()?;
+    if !matches!(separator.kind(), SyntaxKind::EQUAL | SyntaxKind::PIPE) {
+        return None;
+    }
+
+    let annotation = separator.prev_sibling_or_token()?;
+    if !matches!(annotation.kind(), SyntaxKind::Annotation) {
+        return None;
+    }
+
+    let annotation = annotation.text_range();
+    if contains_documentation(root, annotation) {
+        Some(AnnotationRange { annotation: Some(annotation) })
+    } else {
+        None
+    }
+}
+
+fn contains_documentation(root: &SyntaxNode, range: TextRange) -> bool {
+    let text = root.text().slice(range).to_string();
+    text.lines().any(|line| documentation_line_content(line).is_some())
+}
+
+fn documentation_line_content(line: &str) -> Option<&str> {
+    let line = line.trim_start();
+    let line = line.strip_prefix("--")?;
+    let line = line.trim_start_matches(' ');
+    let line = line.strip_prefix('|')?;
+    let line = line.strip_prefix(' ').unwrap_or(line);
+    let line = line.trim_end();
+    Some(line)
+}
+
 fn extract_annotation(root: &SyntaxNode, range: TextRange) -> String {
-    let text = root.text().slice(range);
+    let text = root.text().slice(range).to_string();
 
     let mut annotation = String::default();
 
-    text.for_each_chunk(|chunk| {
-        let lines = chunk.lines().filter_map(|line| {
-            let trimmed = line.trim_start();
-            trimmed.strip_prefix("-- |").map(str::trim_end)
-        });
+    let lines = text.lines().filter_map(documentation_line_content);
 
-        let mut lines = lines.peekable();
-        if let Some(line) = lines.next() {
-            annotation.push_str(line);
-        }
+    let mut lines = lines.peekable();
+    if let Some(line) = lines.next() {
+        annotation.push_str(line);
+    }
 
-        lines.for_each(|line| {
-            annotation.push('\n');
-            annotation.push_str(line);
-        });
+    lines.for_each(|line| {
+        annotation.push('\n');
+        annotation.push_str(line);
     });
 
     annotation
@@ -201,11 +241,11 @@ data Maybe a
         [
             (
                 "Nothing",
-                "",
+                "`Nothing` is `null`.",
             ),
             (
                 "Just",
-                "",
+                "`Just x` is the non-null value `x`.",
             ),
         ]
         "###);
