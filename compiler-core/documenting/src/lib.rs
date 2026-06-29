@@ -20,18 +20,13 @@ pub struct DocumentedModule {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentedTerm {
     pub documentation: String,
-    pub signature: DocumentationSignature,
+    pub signature: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentedType {
     pub documentation: String,
-    pub signature: DocumentationSignature,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DocumentationSignature {
-    pub string: String,
+    pub signature: String,
 }
 
 pub trait ExternalQueries:

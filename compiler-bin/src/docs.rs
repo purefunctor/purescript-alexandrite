@@ -128,7 +128,7 @@ fn generate_package_documentation(
 
             let name = term_item.name.as_ref().map(|name| name.to_string());
             let documentation = term_documentation.map(|t| t.documentation.to_string());
-            let signature = term_documentation.map(|t| t.signature.string.to_string());
+            let signature = term_documentation.map(|t| t.signature.to_string());
 
             let kind = match &term_item.kind {
                 indexing::TermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
@@ -148,7 +148,7 @@ fn generate_package_documentation(
 
             let name = type_item.name.as_ref().map(|name| name.to_string());
             let documentation = type_documentation.map(|t| t.documentation.to_string());
-            let signature = type_documentation.map(|t| t.signature.string.to_string());
+            let signature = type_documentation.map(|t| t.signature.to_string());
 
             let kind = match &type_item.kind {
                 indexing::TypeItemKind::Data { .. } => schema::TypeKind::Data,

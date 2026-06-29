@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 
 use indexing::{TermItemId, TypeItemId};
 
-use crate::{DocumentationSignature, DocumentedTerm, DocumentedType, ExternalQueries, annotation};
+use crate::{DocumentedTerm, DocumentedType, ExternalQueries, annotation};
 
 pub struct State {
     pub documentation: String,
@@ -28,8 +28,7 @@ pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> Query
         let name = item.name.as_deref().unwrap_or("<unknown>");
         pretty.reset();
 
-        let string = pretty.render_signature(name, signature).to_string();
-        let signature = DocumentationSignature { string };
+        let signature = pretty.render_signature(name, signature).to_string();
         let documentation = annotation::term_documentation(&stabilized, &root, item);
 
         Some((id, DocumentedTerm { documentation, signature }))
@@ -42,8 +41,7 @@ pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> Query
         let name = item.name.as_deref().unwrap_or("<unknown>");
         pretty.reset();
 
-        let string = pretty.render_signature(name, signature).to_string();
-        let signature = DocumentationSignature { string };
+        let signature = pretty.render_signature(name, signature).to_string();
         let documentation = annotation::type_documentation(&stabilized, &root, item);
 
         Some((id, DocumentedType { documentation, signature }))
