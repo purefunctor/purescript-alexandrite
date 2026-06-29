@@ -155,3 +155,59 @@ fn extract_annotation(root: &SyntaxNode, range: TextRange) -> String {
 
     annotation
 }
+
+#[cfg(test)]
+mod tests {
+    use indexing::TermItemKind;
+
+    use super::*;
+
+    #[test]
+    fn data_constructor_documentation_before_separators() {
+        let source = r#"module Main where
+
+data Maybe a
+  -- | `Nothing` is `null`.
+  = Nothing
+  -- | `Just x` is the non-null value `x`.
+  | Just a
+"#;
+
+        let lexed = lexing::lex(source);
+        let tokens = lexing::layout(&lexed);
+        let (parsed, errors) = parsing::parse(&lexed, &tokens);
+        assert!(errors.is_empty());
+
+        let root = parsed.syntax_node();
+        let cst = parsed.cst();
+
+        let stabilized = stabilizing::stabilize_module(&root);
+        let indexed = indexing::index_module(&cst, &stabilized);
+
+        let documentation = indexed.items.iter_terms().filter_map(|(_, item)| {
+            if !matches!(item.kind, TermItemKind::Constructor { .. }) {
+                return None;
+            }
+
+            let name = item.name.as_deref()?;
+            let documentation = term_documentation(&stabilized, &root, item);
+
+            Some((name.to_string(), documentation))
+        });
+
+        let documentation: Vec<_> = documentation.collect();
+
+        insta::assert_debug_snapshot!(documentation, @r###"
+        [
+            (
+                "Nothing",
+                "",
+            ),
+            (
+                "Just",
+                "",
+            ),
+        ]
+        "###);
+    }
+}

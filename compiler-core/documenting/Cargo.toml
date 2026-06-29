@@ -13,3 +13,7 @@ rowan = "0.16.1"
 rustc-hash = "2.1.2"
 stabilizing = { version = "0.1.0", path = "../stabilizing" }
 syntax = { version = "0.1.0", path = "../syntax" }
+
+[dev-dependencies]
+insta = "1.45.1"
+lexing = { path = "../lexing" }

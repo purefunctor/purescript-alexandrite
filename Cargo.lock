@@ -639,6 +639,8 @@ dependencies = [
  "checking",
  "files",
  "indexing",
+ "insta",
+ "lexing",
  "parsing",
  "rowan",
  "rustc-hash 2.1.2",
