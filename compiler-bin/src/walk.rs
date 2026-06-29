@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use path_absolutize::Absolutize;
+use thiserror::Error;
 use walkdir::WalkDir;
 
 pub struct Walk {
@@ -11,10 +12,15 @@ pub struct Walk {
     pub files: Vec<PathBuf>,
 }
 
-pub fn walk(
-    root: &Path,
-    paths: impl IntoIterator<Item = impl AsRef<Path>>,
-) -> Result<Walk, globset::Error> {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    GlobSetError(#[from] globset::Error),
+    #[error(transparent)]
+    WalkDirError(#[from] walkdir::Error),
+}
+
+pub fn walk(root: &Path, paths: impl IntoIterator<Item = impl AsRef<Path>>) -> Result<Walk, Error> {
     let mut files = vec![];
 
     let mut roots = BTreeSet::default();
@@ -34,13 +40,16 @@ pub fn walk(
     }
 
     let globs = globs.build()?;
+    let mut files_from_glob = BTreeSet::default();
 
-    let files_from_glob: BTreeSet<PathBuf> = roots
-        .iter()
-        .flat_map(|base| WalkDir::new(base).into_iter())
-        .filter_map(|entry| Some(entry.ok()?.into_path()))
-        .filter(|path| !globs.matches(path).is_empty())
-        .collect();
+    for root in &roots {
+        for entry in WalkDir::new(root) {
+            let path = entry?.into_path();
+            if !globs.matches(&path).is_empty() {
+                files_from_glob.insert(path);
+            }
+        }
+    }
 
     files.extend(files_from_glob);
 

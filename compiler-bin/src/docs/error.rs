@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use analyzer::QueryError;
 use thiserror::Error;
 
+use crate::walk;
+
 #[derive(Error, Debug)]
 pub enum DocsError {
     #[error("QueryError: {0}")]
@@ -14,6 +16,8 @@ pub enum DocsError {
     IoError(#[from] io::Error),
     #[error("GlobSetError: {0}")]
     GlobSetError(#[from] globset::Error),
+    #[error("WalkError: {0}")]
+    WalkError(#[from] walk::Error),
     #[error("JsonError: {0}")]
     JsonError(#[from] serde_json::Error),
 }
