@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
 use globset::Glob;
@@ -36,6 +37,22 @@ pub struct ExtraPackage {
 
 pub type Packages = FxHashMap<SmolStr, PackageEntry>;
 
+pub type PackagesBySource = BTreeMap<SmolStr, PackageSources>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageSources {
+    pub reference: PackageReference,
+    pub sources: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PackageReference {
+    Workspace,
+    Git { rev: SmolStr },
+    Local,
+    Registry { version: SmolStr },
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PackageEntry {
@@ -54,24 +71,33 @@ pub enum PackageEntry {
 
 impl Lockfile {
     pub fn sources(&self) -> impl Iterator<Item = PathBuf> {
-        let workspace = self.workspace.packages.values().flat_map(move |package| {
-            let src = package.path.join("src");
-            let test = package.path.join("test");
-            [src, test]
-        });
+        self.sources_by_package().into_values().flat_map(|package| package.sources)
+    }
+
+    pub fn sources_by_package(&self) -> PackagesBySource {
+        let mut packages = PackagesBySource::new();
+
+        for (name, package) in &self.workspace.packages {
+            let sources = vec![package.path.join("src"), package.path.join("test")];
+            packages.insert(
+                SmolStr::clone(name),
+                PackageSources { reference: PackageReference::Workspace, sources },
+            );
+        }
 
         let base = Path::new(".spago").join("p");
-        let extra_packages = &self.workspace.extra_packages;
+        let git_revisions = self.git_revisions();
 
-        let packages = self.packages.iter().flat_map(move |(name, package)| {
+        for (name, package) in &self.packages {
             let mut sources = Vec::new();
-            match package {
+            let reference = match package {
                 PackageEntry::Git { rev, subdir } => {
                     sources.push(base.join(name).join(rev).join("src"));
                     sources.push(base.join(name).join(rev).join("test"));
 
                     let subdir = subdir.as_ref().or_else(|| {
-                        extra_packages
+                        self.workspace
+                            .extra_packages
                             .get(name)
                             .and_then(|extra_package| extra_package.subdir.as_ref())
                     });
@@ -82,27 +108,65 @@ impl Lockfile {
                         sources.push(base.join(name).join(rev).join(subdir).join("src"));
                         sources.push(base.join(name).join(rev).join(subdir).join("test"));
                     }
+
+                    PackageReference::Git { rev: short_revision(rev, &git_revisions) }
                 }
                 PackageEntry::Local { path } => {
                     let base = Path::new(path);
                     sources.push(base.join("src"));
                     sources.push(base.join("test"));
+                    PackageReference::Local
                 }
                 PackageEntry::Registry { version } => {
                     let name_version = format!("{name}-{version}");
                     sources.push(base.join(&name_version).join("src"));
                     sources.push(base.join(&name_version).join("test"));
+                    PackageReference::Registry { version: SmolStr::clone(version) }
                 }
-            }
-            sources
-        });
+            };
 
-        workspace.chain(packages)
+            packages.insert(SmolStr::clone(name), PackageSources { reference, sources });
+        }
+
+        packages
     }
 
     pub fn walk(&self, root: impl AsRef<Path>) -> impl Iterator<Item = PathBuf> {
         self.sources().filter_map(with_root(root)).flat_map(find_purs_files)
     }
+
+    pub fn walk_by_package(&self, root: impl AsRef<Path>) -> PackagesBySource {
+        let root = root.as_ref();
+        let packages = self.sources_by_package().into_iter().map(|(name, package)| {
+            let files =
+                package.sources.into_iter().filter_map(with_root(root)).flat_map(find_purs_files);
+
+            let files = files.collect();
+            (name, PackageSources { reference: package.reference, sources: files })
+        });
+
+        packages.collect()
+    }
+
+    fn git_revisions(&self) -> Vec<&SmolStr> {
+        let revisions = self.packages.values().filter_map(|package| match package {
+            PackageEntry::Git { rev, .. } => Some(rev),
+            PackageEntry::Local { .. } | PackageEntry::Registry { .. } => None,
+        });
+
+        revisions.collect()
+    }
+}
+
+fn short_revision(rev: &SmolStr, revisions: &[&SmolStr]) -> SmolStr {
+    for index in 1..=rev.len() {
+        let prefix = &rev[..index];
+        if revisions.iter().all(|other| **other == *rev || !other.starts_with(prefix)) {
+            return SmolStr::new(prefix);
+        }
+    }
+
+    SmolStr::clone(rev)
 }
 
 fn with_root(root: impl AsRef<Path>) -> impl Fn(PathBuf) -> Option<PathBuf> {

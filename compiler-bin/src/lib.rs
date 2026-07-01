@@ -48,6 +48,7 @@ pub fn run() {
                 None => {
                     docs::start(docs::DocsConfig {
                         output: options.output,
+                        spago_project: options.spago_project,
                         packages: options.packages,
                     });
                 }

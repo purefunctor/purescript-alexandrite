@@ -79,6 +79,9 @@ pub struct DocsOptions {
     /// Output directory for the generated documentation.
     #[arg(long, value_name("DIR"), default_value("docs"))]
     pub output: PathBuf,
+    /// Spago project directory containing spago.lock.
+    #[arg(long, value_name("DIR"), conflicts_with("package"))]
+    pub spago_project: Option<PathBuf>,
     #[command(flatten)]
     pub packages: PackageSpecs,
 }
@@ -139,7 +142,7 @@ impl Args for PackageSpecs {
                 .value_names(["NAME@VERSION", "SOURCES"])
                 .num_args(2..)
                 .action(ArgAction::Append)
-                .required(true)
+                .required_unless_present("spago_project")
                 .value_parser(clap::value_parser!(String))
                 .help("A package to document"),
         )
@@ -300,6 +303,29 @@ mod tests {
             ],
         }
         "#);
+    }
+
+    #[test]
+    fn spago_project_replaces_package_specs() {
+        let options = docs(&["--spago-project", "."]);
+        insta::assert_debug_snapshot!((&options.spago_project, &options.packages), @r#"
+        (
+            Some(
+                ".",
+            ),
+            PackageSpecs {
+                packages: [],
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn spago_project_conflicts_with_package_specs() {
+        insta::assert_debug_snapshot!(
+            docs_error_kind(&["--spago-project", ".", "--package", "effect@v0.0.0", "src/**/*.purs"]),
+            @"ArgumentConflict"
+        );
     }
 
     #[test]

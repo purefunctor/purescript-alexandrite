@@ -10,6 +10,18 @@ fn source_snapshot(lockfile: &Lockfile) -> String {
     lockfile.sources().sorted().filter_map(normalize_source).join("\n")
 }
 
+fn source_by_package_snapshot(lockfile: &Lockfile) -> String {
+    let mut snapshot = String::default();
+    for (name, package) in lockfile.sources_by_package() {
+        writeln!(&mut snapshot, "{name}: {:?}", package.reference).unwrap();
+        for source in package.sources.into_iter().filter_map(normalize_source) {
+            writeln!(&mut snapshot, "  {source}").unwrap();
+        }
+    }
+
+    snapshot
+}
+
 fn normalize_source(source: PathBuf) -> Option<String> {
     let source = source.to_str()?;
     Some(source.replace('\\', "/"))
@@ -95,7 +107,14 @@ fn test_lockfile_sources() {
 }
 
 #[test]
-fn test_source_files() {
+fn test_lockfile_sources_by_package() {
+    let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
+    assert!(lockfile.is_ok(), "{lockfile:?}");
+    insta::assert_snapshot!(source_by_package_snapshot(&lockfile.unwrap()));
+}
+
+#[test]
+fn test_source_files_by_package() {
     let manifest_directory = env!("CARGO_MANIFEST_DIR");
     let manifest_directory_url = url::Url::from_file_path(manifest_directory).unwrap();
     let manifest_directory_uri = manifest_directory_url.to_string();
@@ -105,11 +124,14 @@ fn test_source_files() {
 
     let mut snapshot = String::default();
 
-    spago::source_files(fixture).unwrap().into_iter().for_each(|file| {
-        let url = url::Url::from_file_path(file).unwrap();
-        let uri = url.to_string().replace(&manifest_directory_uri, "./spago");
-        writeln!(&mut snapshot, "{}", uri).unwrap();
-    });
+    for (name, package) in spago::source_files_by_package(fixture).unwrap() {
+        writeln!(&mut snapshot, "{name}: {:?}", package.reference).unwrap();
+        for file in package.sources {
+            let url = url::Url::from_file_path(file).unwrap();
+            let uri = url.to_string().replace(&manifest_directory_uri, "./spago");
+            writeln!(&mut snapshot, "  {uri}").unwrap();
+        }
+    }
 
     insta::assert_snapshot!(snapshot);
 }

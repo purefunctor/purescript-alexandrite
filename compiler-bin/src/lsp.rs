@@ -22,6 +22,7 @@ use async_lsp::panic::CatchUnwindLayer;
 use async_lsp::router::Router;
 use async_lsp::server::LifecycleLayer;
 use async_lsp::{ClientSocket, ResponseError};
+use itertools::Itertools;
 use parking_lot::RwLock;
 use tokio::task;
 use tower::ServiceBuilder;
@@ -226,7 +227,10 @@ fn initialized_spago(state: &mut State) -> Result<(), LspError> {
 
     tracing::info!("Using 'spago.lock'");
 
-    let files = spago::source_files(root).map_err(LspError::SpagoLock)?;
+    let packages = spago::source_files_by_package(root).map_err(LspError::SpagoLock)?;
+    let files = packages.into_values().flat_map(|package| package.sources);
+
+    let files = files.sorted().collect_vec();
     load_files(state, &files)?;
 
     Ok(())

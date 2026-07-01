@@ -1,7 +1,7 @@
 pub mod error;
 pub mod schema;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
 use analyzer::{QueryEngine, prim};
@@ -18,6 +18,7 @@ use crate::walk;
 
 pub struct DocsConfig {
     pub output: PathBuf,
+    pub spago_project: Option<PathBuf>,
     pub packages: PackageSpecs,
 }
 
@@ -192,6 +193,10 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
 }
 
 fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Package>, DocsError> {
+    if let Some(spago_project) = &config.spago_project {
+        return load_packages_from_spago_project(spago_project, compiler);
+    }
+
     let root = env::current_dir()?;
 
     let mut packages = vec![];
@@ -208,6 +213,34 @@ fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Pac
     populate_module_file(compiler)?;
 
     Ok(packages)
+}
+
+fn load_packages_from_spago_project(
+    spago_project: &Path,
+    compiler: &mut Compiler,
+) -> Result<Vec<Package>, DocsError> {
+    let mut packages = vec![];
+    let packages_by_source = spago::source_files_by_package(spago_project)?;
+
+    for (name, sources) in packages_by_source {
+        let name = name.to_string();
+        let version = package_version(&sources.reference);
+        let modules = load_modules(compiler, sources.sources)?;
+
+        packages.push(Package { name, version, modules });
+    }
+
+    populate_module_file(compiler)?;
+
+    Ok(packages)
+}
+
+fn package_version(reference: &spago::PackageReference) -> String {
+    match reference {
+        spago::PackageReference::Workspace | spago::PackageReference::Local => "0.0.0".to_owned(),
+        spago::PackageReference::Git { rev } => rev.to_string(),
+        spago::PackageReference::Registry { version } => version.to_string(),
+    }
 }
 
 fn write_packages_manifest(
