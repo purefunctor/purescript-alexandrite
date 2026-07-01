@@ -41,7 +41,17 @@ pub fn run() {
                 lsp_log: LevelFilter::OFF,
                 docs_log: options.docs_log,
             });
-            docs::start(docs::DocsConfig { output: options.output, packages: options.packages });
+            match options.command {
+                Some(cli::DocsCommand::TypeScript(options)) => {
+                    docs::typescript(docs::TypeScriptConfig { output: options.output });
+                }
+                None => {
+                    docs::start(docs::DocsConfig {
+                        output: options.output,
+                        packages: options.packages,
+                    });
+                }
+            }
         }
     }
 }

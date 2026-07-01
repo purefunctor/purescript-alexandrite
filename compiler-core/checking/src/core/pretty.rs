@@ -30,22 +30,22 @@ pub trait PrettyQueries: QueryProxy<Indexed = Arc<indexing::IndexedModule>> {
 }
 
 #[derive(Debug, Default)]
-struct PrettyNames {
+pub struct PrettyNames {
     display_by_name: FxHashMap<Name, SmolStr>,
     next_suffix: FxHashMap<SmolStr, NonZeroU32>,
 }
 
 impl PrettyNames {
-    fn new() -> PrettyNames {
+    pub fn new() -> PrettyNames {
         PrettyNames::default()
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.display_by_name.clear();
         self.next_suffix.clear();
     }
 
-    fn display_name<Q>(
+    pub fn display_name<Q>(
         &mut self,
         queries: &Q,
         names: &FxHashMap<Name, SmolStrId>,

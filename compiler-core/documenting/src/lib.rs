@@ -4,7 +4,6 @@ mod annotation;
 use std::sync::Arc;
 
 use building_types::{QueryProxy, QueryResult};
-use checking::PrettyQueries;
 use files::FileId;
 use rustc_hash::FxHashMap;
 
@@ -20,13 +19,11 @@ pub struct DocumentedModule {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentedTerm {
     pub documentation: String,
-    pub signature: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentedType {
     pub documentation: String,
-    pub signature: String,
 }
 
 pub trait ExternalQueries:
@@ -35,7 +32,7 @@ pub trait ExternalQueries:
         Stabilized = Arc<stabilizing::StabilizedModule>,
         Indexed = Arc<indexing::IndexedModule>,
         Checked = Arc<checking::CheckedModule>,
-    > + PrettyQueries
+    >
 {
 }
 
@@ -45,7 +42,7 @@ impl<Q> ExternalQueries for Q where
             Stabilized = Arc<stabilizing::StabilizedModule>,
             Indexed = Arc<indexing::IndexedModule>,
             Checked = Arc<checking::CheckedModule>,
-        > + PrettyQueries
+        >
 {
 }
 

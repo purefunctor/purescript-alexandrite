@@ -20,7 +20,7 @@ pub struct Cli {
 pub enum Command {
     /// Run the language server.
     Lsp(LspOptions),
-    /// Generate documentation.
+    /// Documentation utilities.
     Docs(DocsOptions),
 }
 
@@ -67,17 +67,34 @@ pub struct LspOptions {
 }
 
 #[derive(Debug, Args)]
+#[command(subcommand_negates_reqs = true)]
 pub struct DocsOptions {
     #[command(flatten)]
     pub logging: LoggingOptions,
     /// Log level for the documentation tool.
     #[arg(long, value_name("LEVEL"), default_value("info"))]
     pub docs_log: LevelFilter,
+    #[command(subcommand)]
+    pub command: Option<DocsCommand>,
     /// Output directory for the generated documentation.
     #[arg(long, value_name("DIR"), default_value("docs"))]
     pub output: PathBuf,
     #[command(flatten)]
     pub packages: PackageSpecs,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DocsCommand {
+    /// Generate TypeScript declarations for the documentation JSON schema.
+    #[command(name = "typescript")]
+    TypeScript(DocsTypeScriptOptions),
+}
+
+#[derive(Debug, Args)]
+pub struct DocsTypeScriptOptions {
+    /// Output directory for the generated TypeScript schema.
+    #[arg(long, value_name("DIR"), default_value("src-generated"))]
+    pub output: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -207,6 +224,13 @@ mod tests {
         Cli::try_parse_from(argv).unwrap_err().kind()
     }
 
+    fn typescript(args: &[&str]) -> DocsTypeScriptOptions {
+        match docs(args).command {
+            Some(DocsCommand::TypeScript(options)) => options,
+            _ => unreachable!("parsed command was not `typescript`"),
+        }
+    }
+
     #[test]
     fn single_package_with_one_source() {
         let options = docs(&["--package", "effect@v0.0.0", "src/**/*.purs"]);
@@ -315,5 +339,11 @@ mod tests {
     #[test]
     fn package_is_required() {
         insta::assert_debug_snapshot!(docs_error_kind(&[]), @"MissingRequiredArgument");
+    }
+
+    #[test]
+    fn typescript_has_default_output() {
+        let options = typescript(&["typescript"]);
+        insta::assert_debug_snapshot!(options.output, @r#""src-generated""#);
     }
 }

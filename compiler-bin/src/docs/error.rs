@@ -20,4 +20,6 @@ pub enum DocsError {
     WalkError(#[from] walk::Error),
     #[error("JsonError: {0}")]
     JsonError(#[from] serde_json::Error),
+    #[error("TypeScript export error: {0}")]
+    TypeScriptExportError(#[from] ts_rs::ExportError),
 }
