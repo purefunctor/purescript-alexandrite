@@ -24,10 +24,11 @@ name = "purescript-analyzer"
 path = "src/bin/purescript-analyzer.rs"
 
 [dependencies]
-diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = "0.2.2"
+checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4.5.53", features = ["derive"] }
+diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 globset = "0.4.18"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
@@ -36,9 +37,13 @@ lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 parking_lot = "0.12.5"
 path-absolutize = "3.1.1"
 radix_trie = "0.3.0"
+rayon = "1.12.0"
 resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
 rowan = "0.16.1"
+rustc-hash = "2.1.2"
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+smol_str = "0.3.6"
 spago = { version = "0.1.0", path = "../compiler-lsp/spago" }
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
@@ -47,8 +52,12 @@ tokio = { version = "1.48.0", features = ["full"] }
 tower = "0.5.2"
 tracing = "0.1.44"
 tracing-subscriber = "0.3.22"
+ts-rs = { version = "12.0.1", default-features = false, features = ["serde-compat"] }
 url = "2.5.7"
 walkdir = "2.5.0"
+
+[dev-dependencies]
+insta = "1.45.1"
 
 [target.'cfg(not(unix))'.dependencies]
 tokio-util = { version = "0.7.17", features = ["compat"] }

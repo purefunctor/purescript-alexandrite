@@ -19,6 +19,7 @@ pub enum QueryKey {
     Bracketed(FileId),
     Sectioned(FileId),
     Checked(FileId),
+    Documented(FileId),
 }
 
 #[derive(Error, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -40,6 +41,8 @@ pub trait QueryProxy {
     type Resolved;
     type Bracketed;
     type Sectioned;
+    type Checked;
+    type Documented;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed>;
 
@@ -56,6 +59,10 @@ pub trait QueryProxy {
     fn bracketed(&self, id: FileId) -> QueryResult<Self::Bracketed>;
 
     fn sectioned(&self, id: FileId) -> QueryResult<Self::Sectioned>;
+
+    fn checked(&self, id: FileId) -> QueryResult<Self::Checked>;
+
+    fn documented(&self, id: FileId) -> QueryResult<Self::Documented>;
 
     fn prim_id(&self) -> FileId;
 
