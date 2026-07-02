@@ -181,7 +181,10 @@ impl WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let documented = documenting::document_module(self, id)?;
+        let (parsed, _) = self.parsed(id)?;
+        let stabilized = self.stabilized(id)?;
+        let indexed = self.indexed(id)?;
+        let documented = documenting::document_module(&parsed, &stabilized, &indexed);
 
         self.derived.borrow_mut().documented.insert(id, documented.clone());
         Ok(documented)

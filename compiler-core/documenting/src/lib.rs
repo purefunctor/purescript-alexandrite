@@ -3,8 +3,6 @@ mod annotation;
 
 use std::sync::Arc;
 
-use building_types::{QueryProxy, QueryResult};
-use files::FileId;
 use rustc_hash::FxHashMap;
 
 use indexing::{TermItemId, TypeItemId};
@@ -26,30 +24,12 @@ pub struct DocumentedType {
     pub documentation: String,
 }
 
-pub trait ExternalQueries:
-    QueryProxy<
-        Parsed = parsing::FullParsedModule,
-        Stabilized = Arc<stabilizing::StabilizedModule>,
-        Indexed = Arc<indexing::IndexedModule>,
-    >
-{
-}
-
-impl<Q> ExternalQueries for Q where
-    Q: QueryProxy<
-            Parsed = parsing::FullParsedModule,
-            Stabilized = Arc<stabilizing::StabilizedModule>,
-            Indexed = Arc<indexing::IndexedModule>,
-        >
-{
-}
-
 pub fn document_module(
-    queries: &impl ExternalQueries,
-    file_id: FileId,
-) -> QueryResult<Arc<DocumentedModule>> {
+    parsed: &parsing::ParsedModule,
+    stabilized: &stabilizing::StabilizedModule,
+    indexed: &indexing::IndexedModule,
+) -> Arc<DocumentedModule> {
     let algorithm::State { documentation, terms, types } =
-        algorithm::document_module(queries, file_id)?;
-
-    Ok(Arc::new(DocumentedModule { documentation, terms, types }))
+        algorithm::document_module(parsed, stabilized, indexed);
+    Arc::new(DocumentedModule { documentation, terms, types })
 }

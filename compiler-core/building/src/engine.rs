@@ -799,7 +799,12 @@ impl QueryEngine {
             QueryKey::Documented(id),
             id,
             |derived| &derived.documented,
-            |this| documenting::document_module(this, id),
+            |this| {
+                let (parsed, _) = this.parsed(id)?;
+                let stabilized = this.stabilized(id)?;
+                let indexed = this.indexed(id)?;
+                Ok(documenting::document_module(&parsed, &stabilized, &indexed))
+            },
         )
     }
 }

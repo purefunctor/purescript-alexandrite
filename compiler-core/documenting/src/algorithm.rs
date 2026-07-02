@@ -1,10 +1,10 @@
-use building_types::QueryResult;
-use files::FileId;
 use rustc_hash::FxHashMap;
 
-use indexing::{TermItemId, TypeItemId};
+use indexing::{IndexedModule, TermItemId, TypeItemId};
+use parsing::ParsedModule;
+use stabilizing::StabilizedModule;
 
-use crate::{DocumentedTerm, DocumentedType, ExternalQueries, annotation};
+use crate::{DocumentedTerm, DocumentedType, annotation};
 
 pub struct State {
     pub documentation: String,
@@ -12,12 +12,12 @@ pub struct State {
     pub types: FxHashMap<TypeItemId, DocumentedType>,
 }
 
-pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<State> {
-    let (parsed, _) = queries.parsed(file_id)?;
+pub fn document_module(
+    parsed: &ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+) -> State {
     let root = parsed.syntax_node();
-
-    let stabilized = queries.stabilized(file_id)?;
-    let indexed = queries.indexed(file_id)?;
 
     let annotations = annotation::AnnotationIndex::new(&root);
     let documentation = annotation::module_documentation(parsed);
@@ -36,5 +36,5 @@ pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> Query
 
     let types = types.collect();
 
-    Ok(State { documentation, terms, types })
+    State { documentation, terms, types }
 }
