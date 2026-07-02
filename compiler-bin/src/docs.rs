@@ -1,5 +1,6 @@
 pub mod error;
 pub mod schema;
+pub mod warm;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -10,11 +11,12 @@ use checking::PrettyQueries;
 use checking::core::pretty::PrettyNames;
 use files::{FileId, Files};
 use itertools::Itertools;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::ParallelIterator;
 use serde::Deserialize;
 use ts_rs::{Config as TypeScriptExportConfig, TS};
 
 use crate::docs::error::DocsError;
+use crate::docs::warm::warm_documentation_queries;
 use crate::walk;
 
 pub struct DocsConfig {
@@ -223,7 +225,10 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     prim::configure(&mut compiler.engine, &mut compiler.files);
 
     let packages = load_packages(&config, &mut compiler)?;
-    write_packages_manifest(&config, &mut compiler, &packages)?;
+    let modules = package_modules(&packages);
+
+    warm_documentation_queries(&compiler.engine, &modules)?;
+    write_packages_manifest(&compiler.engine, &config, &packages)?;
 
     let package_by_file = packages
         .iter()
@@ -235,6 +240,10 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     }
 
     Ok(())
+}
+
+fn package_modules(packages: &[Package]) -> Vec<FileId> {
+    packages.iter().flat_map(|package| package.modules.iter().copied()).collect_vec()
 }
 
 fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Package>, DocsError> {
@@ -373,15 +382,15 @@ fn package_version(reference: &spago::PackageReference) -> String {
 }
 
 fn write_packages_manifest(
+    engine: &QueryEngine,
     config: &DocsConfig,
-    compiler: &mut Compiler,
     packages: &[Package],
 ) -> Result<(), DocsError> {
     let root = env::current_dir()?;
 
     for package in packages {
-        let modules = package.modules.par_iter().map(|&id| {
-            let (parsed, _) = compiler.engine.parsed(id)?;
+        let modules = package.modules.iter().map(|&id| {
+            let (parsed, _) = engine.parsed(id)?;
             Ok(parsed.module_name().map(|name| name.to_string()))
         });
 
@@ -478,13 +487,13 @@ fn generate_package_documentation(
         }
 
         let module_file = modules_folder.join(format!("{name}.json"));
-
         let documentation = Some(documented.documentation.to_string());
         let module = schema::Module { name, documentation, terms, types };
         let module = serde_json::to_string_pretty(&module)?;
 
         fs::write(module_file, module)?;
     }
+
     Ok(())
 }
 
