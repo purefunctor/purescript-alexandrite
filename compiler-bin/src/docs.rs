@@ -345,7 +345,8 @@ fn generate_package_documentation(
 
         let module_file = modules_folder.join(format!("{name}.json"));
 
-        let module = schema::Module { name, terms, types };
+        let documentation = Some(documented.documentation.to_string());
+        let module = schema::Module { name, documentation, terms, types };
         let module = serde_json::to_string_pretty(&module)?;
 
         fs::write(module_file, module)?;

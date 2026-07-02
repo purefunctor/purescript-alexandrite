@@ -13,6 +13,7 @@ pub struct Package {
 #[ts(export_to = "docs-schema.ts")]
 pub struct Module {
     pub name: String,
+    pub documentation: Option<String>,
     pub terms: Vec<TermItem>,
     pub types: Vec<TypeItem>,
 }
