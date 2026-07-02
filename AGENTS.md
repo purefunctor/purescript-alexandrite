@@ -83,3 +83,25 @@ Refer to recent commits on the `main` branch or bookmark for examples of both fo
 ### Formatting
 * Use `just format` for formatting with import granularity. This requires nightly Rust.
 * Use `just fix` to apply clippy fixes and format when a broader cleanup is appropriate.
+
+## Code style
+
+In addition to the core principles, you must strive towards a consistent code style in the project. Simply put, code must blend in with old code. This includes even the finest of details like preferences for variable names, argument ordering, module organisation, etc.
+
+We also have specific aesthetic preferences in the project. For example, avoid chaining iterator adapters when doing so forces a lambda and the trailing collection call into unaesthetic indentation:
+
+```rust
+// BAD!
+let collection = source
+    .map(|item| {
+        // ...
+    })
+    .collect();
+
+// GOOD!
+let collection = source.map(|item| {
+    // ...
+});
+
+let collection = collection.collect();
+```
