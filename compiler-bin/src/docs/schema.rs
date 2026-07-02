@@ -87,6 +87,7 @@ pub enum Type {
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export_to = "docs-schema.ts")]
 pub struct TypeReference {
+    pub package: Option<String>,
     pub module: Option<String>,
     pub name: Option<String>,
 }

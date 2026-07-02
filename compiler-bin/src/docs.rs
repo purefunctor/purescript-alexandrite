@@ -96,12 +96,17 @@ struct PursManifest {
 struct TypeEncoder<'a> {
     engine: &'a QueryEngine,
     checked: &'a checking::CheckedModule,
+    package_by_file: &'a [(FileId, &'a str)],
     names: PrettyNames,
 }
 
 impl<'a> TypeEncoder<'a> {
-    fn new(engine: &'a QueryEngine, checked: &'a checking::CheckedModule) -> TypeEncoder<'a> {
-        TypeEncoder { engine, checked, names: PrettyNames::new() }
+    fn new(
+        engine: &'a QueryEngine,
+        checked: &'a checking::CheckedModule,
+        package_by_file: &'a [(FileId, &'a str)],
+    ) -> TypeEncoder<'a> {
+        TypeEncoder { engine, checked, package_by_file, names: PrettyNames::new() }
     }
 
     fn encode_signature(&mut self, id: checking::TypeId) -> Result<schema::Type, DocsError> {
@@ -195,12 +200,17 @@ impl<'a> TypeEncoder<'a> {
         file_id: FileId,
         type_id: indexing::TypeItemId,
     ) -> Result<schema::TypeReference, DocsError> {
+        let package = self.package_by_file.iter().find_map(|&(id, package)| {
+            if id == file_id { Some(package.to_string()) } else { None }
+        });
+
         let (parsed, _) = self.engine.parsed(file_id)?;
         let module = parsed.module_name().map(|name| name.to_string());
+
         let indexed = self.engine.indexed(file_id)?;
         let name = indexed.items[type_id].name.as_ref().map(|name| name.to_string());
 
-        Ok(schema::TypeReference { module, name })
+        Ok(schema::TypeReference { package, module, name })
     }
 
     fn display_name(&mut self, name: checking::core::Name) -> String {
@@ -215,8 +225,13 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     let packages = load_packages(&config, &mut compiler)?;
     write_packages_manifest(&config, &mut compiler, &packages)?;
 
-    for package in packages {
-        generate_package_documentation(&config, &mut compiler, &package)?;
+    let package_by_file = packages
+        .iter()
+        .flat_map(|package| package.modules.iter().map(|&id| (id, package.name.as_str())))
+        .collect_vec();
+
+    for package in &packages {
+        generate_package_documentation(&config, &mut compiler, package, &package_by_file)?;
     }
 
     Ok(())
@@ -396,6 +411,7 @@ fn generate_package_documentation(
     config: &DocsConfig,
     compiler: &mut Compiler,
     package: &Package,
+    package_by_file: &[(FileId, &str)],
 ) -> Result<(), DocsError> {
     let root = env::current_dir()?;
 
@@ -414,7 +430,7 @@ fn generate_package_documentation(
 
         let mut terms = vec![];
         let mut types = vec![];
-        let mut type_encoder = TypeEncoder::new(&compiler.engine, &checked);
+        let mut type_encoder = TypeEncoder::new(&compiler.engine, &checked, package_by_file);
 
         for (term_id, term_item) in indexed.items.iter_terms() {
             let term_documentation = documented.terms.get(&term_id);
