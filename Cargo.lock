@@ -632,6 +632,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "documentation"
+version = "0.1.0"
+dependencies = [
+ "building",
+ "checking",
+ "files",
+ "indexing",
+ "itertools 0.14.0",
+ "lowering",
+ "rayon",
+ "serde",
+ "thiserror",
+ "ts-rs",
+]
+
+[[package]]
 name = "documenting"
 version = "0.1.0"
 dependencies = [
@@ -1822,6 +1838,7 @@ dependencies = [
  "checking",
  "clap",
  "diagnostics",
+ "documentation",
  "files",
  "globset",
  "indexing",

@@ -2,6 +2,7 @@ use std::io;
 use std::path::PathBuf;
 
 use analyzer::QueryError;
+use documentation::Error as DocumentationError;
 use thiserror::Error;
 
 use crate::walk;
@@ -10,6 +11,8 @@ use crate::walk;
 pub enum DocsError {
     #[error("QueryError: {0}")]
     QueryError(#[from] QueryError),
+    #[error("DocumentationError: {0}")]
+    DocumentationError(#[from] DocumentationError),
     #[error("Failed to parse file {0}")]
     PathParseFail(PathBuf),
     #[error("IoError: {0}")]
@@ -22,6 +25,4 @@ pub enum DocsError {
     JsonError(#[from] serde_json::Error),
     #[error("SpagoLockError: {0}")]
     SpagoLockError(#[from] spago::LockfileGlobSetError),
-    #[error("TypeScript export error: {0}")]
-    TypeScriptExportError(#[from] ts_rs::ExportError),
 }

@@ -29,6 +29,7 @@ async-lsp = "0.2.2"
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4.5.53", features = ["derive"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
+documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 globset = "0.4.18"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
