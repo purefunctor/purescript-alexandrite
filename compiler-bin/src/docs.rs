@@ -1,6 +1,7 @@
 pub mod error;
 pub mod schema;
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
@@ -10,16 +11,16 @@ use checking::core::pretty::PrettyNames;
 use files::{FileId, Files};
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use serde::Deserialize;
 use ts_rs::{Config as TypeScriptExportConfig, TS};
 
-use crate::cli::{PackageSpec, PackageSpecs};
 use crate::docs::error::DocsError;
 use crate::walk;
 
 pub struct DocsConfig {
     pub output: PathBuf,
     pub spago_project: Option<PathBuf>,
-    pub packages: PackageSpecs,
+    pub packages: Vec<PathBuf>,
 }
 
 pub struct TypeScriptConfig {
@@ -60,7 +61,36 @@ struct Compiler {
 struct Package {
     name: String,
     version: String,
+    license: Option<String>,
+    description: Option<String>,
+    dependencies: BTreeMap<String, String>,
     modules: Vec<FileId>,
+}
+
+#[derive(Debug, Default)]
+struct PackageMetadata {
+    name: Option<String>,
+    version: Option<String>,
+    license: Option<String>,
+    description: Option<String>,
+    include_files: Vec<String>,
+    exclude_files: Vec<String>,
+    dependencies: BTreeMap<String, String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PursManifest {
+    name: String,
+    version: String,
+    license: Option<String>,
+    description: Option<String>,
+    #[serde(default)]
+    include_files: Vec<String>,
+    #[serde(default)]
+    exclude_files: Vec<String>,
+    #[serde(default)]
+    dependencies: BTreeMap<String, String>,
 }
 
 struct TypeEncoder<'a> {
@@ -200,14 +230,9 @@ fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Pac
     let root = env::current_dir()?;
 
     let mut packages = vec![];
-    for PackageSpec { name, version, sources } in &config.packages.packages {
-        let walk::Walk { files, .. } = walk::walk(&root, sources)?;
-
-        let name = String::clone(name);
-        let version = String::clone(version);
-        let modules = load_modules(compiler, files)?;
-
-        packages.push(Package { name, version, modules })
+    for path in &config.packages {
+        let package = load_package_from_folder(compiler, &root, path, None, None)?;
+        packages.push(package);
     }
 
     populate_module_file(compiler)?;
@@ -225,14 +250,103 @@ fn load_packages_from_spago_project(
     for (name, sources) in packages_by_source {
         let name = name.to_string();
         let version = package_version(&sources.reference);
-        let modules = load_modules(compiler, sources.sources)?;
+        let package = if let Some(package_root) = sources
+            .roots
+            .iter()
+            .rev()
+            .find(|root| spago_project.join(root).join("purs.json").is_file())
+        {
+            load_package_from_folder(
+                compiler,
+                spago_project,
+                package_root,
+                Some(name.clone()),
+                Some(version.clone()),
+            )?
+        } else {
+            let modules = load_modules(compiler, sources.sources)?;
+            Package {
+                name,
+                version,
+                license: None,
+                description: None,
+                dependencies: BTreeMap::new(),
+                modules,
+            }
+        };
 
-        packages.push(Package { name, version, modules });
+        packages.push(package);
     }
 
     populate_module_file(compiler)?;
 
     Ok(packages)
+}
+
+fn load_package_from_folder(
+    compiler: &mut Compiler,
+    root: &Path,
+    path: &Path,
+    name: Option<String>,
+    version: Option<String>,
+) -> Result<Package, DocsError> {
+    let metadata = load_package_metadata(&root.join(path))?;
+    let includes = package_include_globs(path, &metadata);
+    let excludes = package_exclude_globs(path, &metadata);
+
+    let walk::Walk { files, .. } = walk::walk_filtered(root, includes, excludes)?;
+
+    let name = metadata.name.or(name).unwrap_or_else(|| fallback_package_name(path));
+    let version = metadata.version.or(version).unwrap_or_else(|| "0.0.0".to_owned());
+    let modules = load_modules(compiler, files)?;
+
+    Ok(Package {
+        name,
+        version,
+        license: metadata.license,
+        description: metadata.description,
+        dependencies: metadata.dependencies,
+        modules,
+    })
+}
+
+fn load_package_metadata(package_root: &Path) -> Result<PackageMetadata, DocsError> {
+    let manifest = package_root.join("purs.json");
+    if !manifest.exists() {
+        return Ok(PackageMetadata::default());
+    }
+
+    let manifest = fs::read_to_string(manifest)?;
+    let manifest: PursManifest = serde_json::from_str(&manifest)?;
+
+    Ok(PackageMetadata {
+        name: Some(manifest.name),
+        version: Some(manifest.version),
+        license: manifest.license,
+        description: manifest.description,
+        include_files: manifest.include_files,
+        exclude_files: manifest.exclude_files,
+        dependencies: manifest.dependencies,
+    })
+}
+
+fn package_include_globs(package_root: &Path, metadata: &PackageMetadata) -> Vec<PathBuf> {
+    let mut includes =
+        vec![package_root.join("src/**/*.purs"), package_root.join("test/**/*.purs")];
+    includes.extend(metadata.include_files.iter().map(|path| package_root.join(path)));
+    includes
+}
+
+fn package_exclude_globs(package_root: &Path, metadata: &PackageMetadata) -> Vec<PathBuf> {
+    metadata.exclude_files.iter().map(|path| package_root.join(path)).collect_vec()
+}
+
+fn fallback_package_name(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .unwrap_or("package")
+        .to_string()
 }
 
 fn package_version(reference: &spago::PackageReference) -> String {
@@ -257,11 +371,15 @@ fn write_packages_manifest(
         });
 
         let modules = modules.collect::<Result<Vec<_>, DocsError>>()?;
-        let modules = modules.into_iter().flatten().collect_vec();
 
-        let name = String::clone(&package.name);
-        let version = String::clone(&package.version);
-        let package = schema::Package { name, version, modules };
+        let package = schema::Package {
+            name: String::clone(&package.name),
+            version: String::clone(&package.version),
+            license: package.license.clone(),
+            description: package.description.clone(),
+            dependencies: BTreeMap::clone(&package.dependencies),
+            modules: modules.into_iter().flatten().collect_vec(),
+        };
 
         let package_folder = root.join(&config.output).join(&package.name);
         fs::create_dir_all(&package_folder)?;
@@ -358,6 +476,10 @@ fn load_modules(compiler: &mut Compiler, files: Vec<PathBuf>) -> Result<Vec<File
     let mut modules = vec![];
 
     for file in &files {
+        if !file.extension().is_some_and(|extension| extension == "purs") {
+            continue;
+        }
+
         let url = url::Url::from_file_path(file).map_err(|_| {
             let file = PathBuf::clone(file);
             DocsError::PathParseFail(file)
@@ -389,4 +511,93 @@ fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary_directory() -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let directory = std::env::temp_dir().join(format!("alexandrite-docs-{nanos}"));
+        fs::create_dir_all(&directory).unwrap();
+        directory
+    }
+
+    #[test]
+    fn purs_manifest_supplies_package_metadata() {
+        let root = temporary_directory();
+        fs::write(
+            root.join("purs.json"),
+            r#"{
+              "name": "effect",
+              "version": "4.0.0",
+              "license": "BSD-3-Clause",
+              "description": "Effect package",
+              "includeFiles": ["examples/**/*.purs"],
+              "excludeFiles": ["test/Excluded.purs"],
+              "dependencies": { "prelude": ">=6.0.0 <7.0.0" }
+            }"#,
+        )
+        .unwrap();
+
+        let metadata = load_package_metadata(&root).unwrap();
+
+        insta::assert_debug_snapshot!(metadata, @r#"
+        PackageMetadata {
+            name: Some(
+                "effect",
+            ),
+            version: Some(
+                "4.0.0",
+            ),
+            license: Some(
+                "BSD-3-Clause",
+            ),
+            description: Some(
+                "Effect package",
+            ),
+            include_files: [
+                "examples/**/*.purs",
+            ],
+            exclude_files: [
+                "test/Excluded.purs",
+            ],
+            dependencies: {
+                "prelude": ">=6.0.0 <7.0.0",
+            },
+        }
+        "#);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn package_globs_are_relative_to_the_package_root() {
+        let metadata = PackageMetadata {
+            include_files: vec!["examples/**/*.purs".to_owned()],
+            exclude_files: vec!["test/Excluded.purs".to_owned()],
+            ..PackageMetadata::default()
+        };
+
+        insta::assert_debug_snapshot!(
+            (
+                package_include_globs(Path::new("packages/effect"), &metadata),
+                package_exclude_globs(Path::new("packages/effect"), &metadata),
+            ),
+            @r#"
+        (
+            [
+                "packages/effect/src/**/*.purs",
+                "packages/effect/test/**/*.purs",
+                "packages/effect/examples/**/*.purs",
+            ],
+            [
+                "packages/effect/test/Excluded.purs",
+            ],
+        )
+        "#
+        );
+    }
 }

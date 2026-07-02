@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-use clap::error::ErrorKind;
-use clap::{Arg, ArgAction, ArgMatches, Args, FromArgMatches, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand};
 use tracing::level_filters::LevelFilter;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -82,8 +81,14 @@ pub struct DocsOptions {
     /// Spago project directory containing spago.lock.
     #[arg(long, value_name("DIR"), conflicts_with("package"))]
     pub spago_project: Option<PathBuf>,
-    #[command(flatten)]
-    pub packages: PackageSpecs,
+    /// Package folder to document.
+    #[arg(
+        id = "package",
+        long = "package",
+        value_name("DIR"),
+        required_unless_present("spago_project")
+    )]
+    pub packages: Vec<PathBuf>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -98,93 +103,6 @@ pub struct DocsTypeScriptOptions {
     /// Output directory for the generated TypeScript schema.
     #[arg(long, value_name("DIR"), default_value("src-generated"))]
     pub output: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct PackageSpec {
-    pub name: String,
-    pub version: String,
-    pub sources: Vec<String>,
-}
-
-impl PackageSpec {
-    pub fn parse(arguments: impl Iterator<Item = String>) -> Result<PackageSpec, String> {
-        let mut arguments = arguments.into_iter();
-
-        let name_and_version = arguments.next().expect("clap enforces num_args(2..)");
-        let (name, version) = name_and_version.split_once('@').ok_or_else(|| {
-            format!("package specifier `{name_and_version}` must be NAME@VERSION")
-        })?;
-
-        if name.is_empty() {
-            return Err(format!("package specifier `{name_and_version}` has an empty name"));
-        }
-
-        if version.is_empty() {
-            return Err(format!("package specifier `{name_and_version}` has an empty version"));
-        }
-
-        let sources = arguments.collect();
-        Ok(PackageSpec { name: name.to_owned(), version: version.to_owned(), sources })
-    }
-}
-
-#[derive(Debug)]
-pub struct PackageSpecs {
-    pub packages: Vec<PackageSpec>,
-}
-
-impl Args for PackageSpecs {
-    fn augment_args(cmd: clap::Command) -> clap::Command {
-        cmd.arg(
-            Arg::new("package")
-                .long("package")
-                .value_names(["NAME@VERSION", "SOURCES"])
-                .num_args(2..)
-                .action(ArgAction::Append)
-                .required_unless_present("spago_project")
-                .value_parser(clap::value_parser!(String))
-                .help("A package to document"),
-        )
-    }
-
-    fn augment_args_for_update(cmd: clap::Command) -> clap::Command {
-        PackageSpecs::augment_args(cmd)
-    }
-}
-
-impl FromArgMatches for PackageSpecs {
-    fn from_arg_matches(matches: &ArgMatches) -> Result<PackageSpecs, clap::Error> {
-        let mut matches = matches.clone();
-        PackageSpecs::from_arg_matches_mut(&mut matches)
-    }
-
-    fn from_arg_matches_mut(matches: &mut ArgMatches) -> Result<PackageSpecs, clap::Error> {
-        let Some(occurrences) = matches.remove_occurrences::<String>("package") else {
-            return Ok(PackageSpecs { packages: vec![] });
-        };
-        let packages = occurrences
-            .map(PackageSpec::parse)
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|message| clap::Error::raw(ErrorKind::ValueValidation, message))?;
-        Ok(PackageSpecs { packages })
-    }
-
-    fn update_from_arg_matches(&mut self, matches: &ArgMatches) -> Result<(), clap::Error> {
-        let mut matches = matches.clone();
-        self.update_from_arg_matches_mut(&mut matches)
-    }
-
-    fn update_from_arg_matches_mut(&mut self, matches: &mut ArgMatches) -> Result<(), clap::Error> {
-        if let Some(occurrences) = matches.remove_occurrences::<String>("package") {
-            let packages = occurrences
-                .map(PackageSpec::parse)
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|message| clap::Error::raw(ErrorKind::ValueValidation, message))?;
-            self.packages.extend(packages);
-        }
-        Ok(())
-    }
 }
 
 impl Default for LoggingOptions {
@@ -210,6 +128,7 @@ impl Default for LspOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::error::ErrorKind;
 
     fn docs(args: &[&str]) -> DocsOptions {
         let mut argv = vec!["alexandrite", "docs"];
@@ -235,73 +154,23 @@ mod tests {
     }
 
     #[test]
-    fn single_package_with_one_source() {
-        let options = docs(&["--package", "effect@v0.0.0", "src/**/*.purs"]);
+    fn single_package_folder() {
+        let options = docs(&["--package", "packages/effect"]);
         insta::assert_debug_snapshot!(options.packages, @r#"
-        PackageSpecs {
-            packages: [
-                PackageSpec {
-                    name: "effect",
-                    version: "v0.0.0",
-                    sources: [
-                        "src/**/*.purs",
-                    ],
-                },
-            ],
-        }
+        [
+            "packages/effect",
+        ]
         "#);
     }
 
     #[test]
-    fn single_package_with_multiple_sources() {
-        let options = docs(&["--package", "effect@v0.0.0", "src/**/*.purs", "test/**/*.purs"]);
+    fn repeated_packages_keep_order() {
+        let options = docs(&["--package", "packages/effect", "--package", "packages/prelude"]);
         insta::assert_debug_snapshot!(options.packages, @r#"
-        PackageSpecs {
-            packages: [
-                PackageSpec {
-                    name: "effect",
-                    version: "v0.0.0",
-                    sources: [
-                        "src/**/*.purs",
-                        "test/**/*.purs",
-                    ],
-                },
-            ],
-        }
-        "#);
-    }
-
-    #[test]
-    fn repeated_packages_keep_occurrence_grouping() {
-        let options = docs(&[
-            "--package",
-            "effect@v0.0.0",
-            "src/**/*.purs",
-            "--package",
-            "prelude@v1.2.3",
-            "src/**/*.purs",
-            "test/**/*.purs",
-        ]);
-        insta::assert_debug_snapshot!(options.packages, @r#"
-        PackageSpecs {
-            packages: [
-                PackageSpec {
-                    name: "effect",
-                    version: "v0.0.0",
-                    sources: [
-                        "src/**/*.purs",
-                    ],
-                },
-                PackageSpec {
-                    name: "prelude",
-                    version: "v1.2.3",
-                    sources: [
-                        "src/**/*.purs",
-                        "test/**/*.purs",
-                    ],
-                },
-            ],
-        }
+        [
+            "packages/effect",
+            "packages/prelude",
+        ]
         "#);
     }
 
@@ -313,9 +182,7 @@ mod tests {
             Some(
                 ".",
             ),
-            PackageSpecs {
-                packages: [],
-            },
+            [],
         )
         "#);
     }
@@ -323,43 +190,27 @@ mod tests {
     #[test]
     fn spago_project_conflicts_with_package_specs() {
         insta::assert_debug_snapshot!(
-            docs_error_kind(&["--spago-project", ".", "--package", "effect@v0.0.0", "src/**/*.purs"]),
+            docs_error_kind(&["--spago-project", ".", "--package", "packages/effect"]),
             @"ArgumentConflict"
         );
     }
 
     #[test]
-    fn later_flags_are_not_consumed_as_package_sources() {
-        let options = docs(&["--package", "effect@v0.0.0", "src/**/*.purs", "--output", "out"]);
+    fn later_flags_are_not_consumed_as_package_paths() {
+        let options = docs(&["--package", "packages/effect", "--output", "out"]);
         insta::assert_debug_snapshot!((&options.output, &options.packages), @r#"
         (
             "out",
-            PackageSpecs {
-                packages: [
-                    PackageSpec {
-                        name: "effect",
-                        version: "v0.0.0",
-                        sources: [
-                            "src/**/*.purs",
-                        ],
-                    },
-                ],
-            },
+            [
+                "packages/effect",
+            ],
         )
         "#);
     }
 
     #[test]
-    fn missing_source_is_rejected() {
-        insta::assert_debug_snapshot!(docs_error_kind(&["--package", "effect@v0.0.0"]), @"TooFewValues");
-    }
-
-    #[test]
-    fn missing_version_separator_is_rejected() {
-        insta::assert_debug_snapshot!(
-            docs_error_kind(&["--package", "effect", "src/**/*.purs"]),
-            @"ValueValidation"
-        );
+    fn missing_package_path_is_rejected() {
+        insta::assert_debug_snapshot!(docs_error_kind(&["--package"]), @"InvalidValue");
     }
 
     #[test]

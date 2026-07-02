@@ -100,6 +100,77 @@ fn test_parse_lockfile_without_extra_packages() {
 }
 
 #[test]
+fn test_lockfile_sources_by_package_include_package_roots() {
+    let lockfile = serde_json::from_str::<Lockfile>(
+        r#"{
+  "workspace": {
+    "packages": { "workspace-package": { "path": "packages/workspace-package" } },
+    "extra_packages": { "git-package": { "subdir": "packages/git-package" } }
+  },
+  "packages": {
+    "git-package": { "type": "git", "rev": "abcd" },
+    "local-package": { "type": "local", "path": "../local-package" },
+    "registry-package": { "type": "registry", "version": "1.2.3" }
+  }
+}"#,
+    )
+    .unwrap();
+
+    let packages = lockfile.sources_by_package();
+    insta::assert_debug_snapshot!(packages, @r#"
+    {
+        "git-package": PackageSources {
+            reference: Git {
+                rev: "a",
+            },
+            roots: [
+                ".spago/p/git-package/abcd",
+                ".spago/p/git-package/abcd/packages/git-package",
+            ],
+            sources: [
+                ".spago/p/git-package/abcd/src",
+                ".spago/p/git-package/abcd/test",
+                ".spago/p/git-package/abcd/packages/git-package/src",
+                ".spago/p/git-package/abcd/packages/git-package/test",
+            ],
+        },
+        "local-package": PackageSources {
+            reference: Local,
+            roots: [
+                "../local-package",
+            ],
+            sources: [
+                "../local-package/src",
+                "../local-package/test",
+            ],
+        },
+        "registry-package": PackageSources {
+            reference: Registry {
+                version: "1.2.3",
+            },
+            roots: [
+                ".spago/p/registry-package-1.2.3",
+            ],
+            sources: [
+                ".spago/p/registry-package-1.2.3/src",
+                ".spago/p/registry-package-1.2.3/test",
+            ],
+        },
+        "workspace-package": PackageSources {
+            reference: Workspace,
+            roots: [
+                "packages/workspace-package",
+            ],
+            sources: [
+                "packages/workspace-package/src",
+                "packages/workspace-package/test",
+            ],
+        },
+    }
+    "#);
+}
+
+#[test]
 fn test_lockfile_sources() {
     let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
     assert!(lockfile.is_ok(), "{lockfile:?}");

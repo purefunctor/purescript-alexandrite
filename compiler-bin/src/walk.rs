@@ -21,12 +21,20 @@ pub enum Error {
 }
 
 pub fn walk(root: &Path, paths: impl IntoIterator<Item = impl AsRef<Path>>) -> Result<Walk, Error> {
+    walk_filtered(root, paths, std::iter::empty::<&Path>())
+}
+
+pub fn walk_filtered(
+    root: &Path,
+    includes: impl IntoIterator<Item = impl AsRef<Path>>,
+    excludes: impl IntoIterator<Item = impl AsRef<Path>>,
+) -> Result<Walk, Error> {
     let mut files = vec![];
 
     let mut roots = BTreeSet::default();
     let mut globs = GlobSetBuilder::new();
 
-    for path in paths {
+    for path in includes {
         let path = root.join(path);
         if let Ok(path) = path.absolutize()
             && let Some(path) = path.to_str()
@@ -40,12 +48,18 @@ pub fn walk(root: &Path, paths: impl IntoIterator<Item = impl AsRef<Path>>) -> R
     }
 
     let globs = globs.build()?;
+    let excludes = build_excludes(root, excludes)?;
+    files.retain(|path| excludes.matches(path).is_empty());
     let mut files_from_glob = BTreeSet::default();
 
     for root in &roots {
+        if !root.exists() {
+            continue;
+        }
+
         for entry in WalkDir::new(root) {
             let path = entry?.into_path();
-            if !globs.matches(&path).is_empty() {
+            if !globs.matches(&path).is_empty() && excludes.matches(&path).is_empty() {
                 files_from_glob.insert(path);
             }
         }
@@ -54,6 +68,24 @@ pub fn walk(root: &Path, paths: impl IntoIterator<Item = impl AsRef<Path>>) -> R
     files.extend(files_from_glob);
 
     Ok(Walk { roots, globs, files })
+}
+
+fn build_excludes(
+    root: &Path,
+    excludes: impl IntoIterator<Item = impl AsRef<Path>>,
+) -> Result<GlobSet, Error> {
+    let mut globs = GlobSetBuilder::new();
+
+    for path in excludes {
+        let path = root.join(path);
+        if let Ok(path) = path.absolutize()
+            && let Some(path) = path.to_str()
+        {
+            globs.add(Glob::new(path)?);
+        }
+    }
+
+    Ok(globs.build()?)
 }
 
 fn glob_literal_base(pattern: &str) -> PathBuf {
@@ -75,6 +107,51 @@ fn glob_syntax_character(character: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary_directory() -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let directory = std::env::temp_dir().join(format!("alexandrite-walk-{nanos}"));
+        fs::create_dir_all(&directory).unwrap();
+        directory
+    }
+
+    fn touch(path: &Path) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, "").unwrap();
+    }
+
+    fn relative_files(root: &Path, files: Vec<PathBuf>) -> Vec<String> {
+        let mut files = files
+            .into_iter()
+            .map(|file| file.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/"))
+            .collect::<Vec<_>>();
+        files.sort();
+        files
+    }
+
+    #[test]
+    fn filtered_walk_excludes_matching_files() {
+        let root = temporary_directory();
+        touch(&root.join("package/src/Main.purs"));
+        touch(&root.join("package/test/Test.Main.purs"));
+        touch(&root.join("package/test/Excluded.purs"));
+
+        let walk = walk_filtered(
+            &root,
+            ["package/src/**/*.purs", "package/test/**/*.purs"],
+            ["package/test/Excluded.purs"],
+        )
+        .unwrap();
+
+        assert_eq!(
+            relative_files(&root, walk.files),
+            vec!["package/src/Main.purs", "package/test/Test.Main.purs"]
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn literal_base_stops_at_the_first_wildcard() {

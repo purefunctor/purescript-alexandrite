@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
 use globset::Glob;
+use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use smol_str::SmolStr;
@@ -42,6 +43,7 @@ pub type PackagesBySource = BTreeMap<SmolStr, PackageSources>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageSources {
     pub reference: PackageReference,
+    pub roots: Vec<PathBuf>,
     pub sources: Vec<PathBuf>,
 }
 
@@ -78,10 +80,11 @@ impl Lockfile {
         let mut packages = PackagesBySource::new();
 
         for (name, package) in &self.workspace.packages {
+            let roots = vec![PathBuf::clone(&package.path)];
             let sources = vec![package.path.join("src"), package.path.join("test")];
             packages.insert(
                 SmolStr::clone(name),
-                PackageSources { reference: PackageReference::Workspace, sources },
+                PackageSources { reference: PackageReference::Workspace, roots, sources },
             );
         }
 
@@ -89,11 +92,14 @@ impl Lockfile {
         let git_revisions = self.git_revisions();
 
         for (name, package) in &self.packages {
+            let mut roots = Vec::new();
             let mut sources = Vec::new();
             let reference = match package {
                 PackageEntry::Git { rev, subdir } => {
-                    sources.push(base.join(name).join(rev).join("src"));
-                    sources.push(base.join(name).join(rev).join("test"));
+                    let root = base.join(name).join(rev);
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
 
                     let subdir = subdir.as_ref().or_else(|| {
                         self.workspace
@@ -105,27 +111,32 @@ impl Lockfile {
                     let subdir = subdir.filter(|subdir| is_safe_subdir(subdir));
 
                     if let Some(subdir) = subdir {
-                        sources.push(base.join(name).join(rev).join(subdir).join("src"));
-                        sources.push(base.join(name).join(rev).join(subdir).join("test"));
+                        let root = base.join(name).join(rev).join(subdir);
+                        roots.push(PathBuf::clone(&root));
+                        sources.push(root.join("src"));
+                        sources.push(root.join("test"));
                     }
 
                     PackageReference::Git { rev: short_revision(rev, &git_revisions) }
                 }
                 PackageEntry::Local { path } => {
-                    let base = Path::new(path);
-                    sources.push(base.join("src"));
-                    sources.push(base.join("test"));
+                    let root = Path::new(path).to_path_buf();
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
                     PackageReference::Local
                 }
                 PackageEntry::Registry { version } => {
                     let name_version = format!("{name}-{version}");
-                    sources.push(base.join(&name_version).join("src"));
-                    sources.push(base.join(&name_version).join("test"));
+                    let root = base.join(&name_version);
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
                     PackageReference::Registry { version: SmolStr::clone(version) }
                 }
             };
 
-            packages.insert(SmolStr::clone(name), PackageSources { reference, sources });
+            packages.insert(SmolStr::clone(name), PackageSources { reference, roots, sources });
         }
 
         packages
@@ -137,12 +148,15 @@ impl Lockfile {
 
     pub fn walk_by_package(&self, root: impl AsRef<Path>) -> PackagesBySource {
         let root = root.as_ref();
-        let packages = self.sources_by_package().into_iter().map(|(name, package)| {
-            let files =
-                package.sources.into_iter().filter_map(with_root(root)).flat_map(find_purs_files);
 
-            let files = files.collect();
-            (name, PackageSources { reference: package.reference, sources: files })
+        let packages = self.sources_by_package().into_iter().map(|(name, package)| {
+            let sources = package
+                .sources
+                .into_iter()
+                .filter_map(with_root(root))
+                .flat_map(find_purs_files)
+                .collect_vec();
+            (name, PackageSources { sources, ..package })
         });
 
         packages.collect()

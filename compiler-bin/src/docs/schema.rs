@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -6,6 +8,9 @@ use ts_rs::TS;
 pub struct Package {
     pub name: String,
     pub version: String,
+    pub license: Option<String>,
+    pub description: Option<String>,
+    pub dependencies: BTreeMap<String, String>,
     pub modules: Vec<String>,
 }
 
