@@ -8,8 +8,8 @@ expression: report
     "description": null,
     "license": null,
     "modules": [
-      "Library",
-      "Main"
+      "Main",
+      "Rendering"
     ],
     "name": "docs-fixture",
     "version": "0.0.0"
@@ -17,77 +17,15 @@ expression: report
   "modules": [
     {
       "documentation": "",
-      "name": "Library",
-      "terms": [],
-      "types": [
-        {
-          "constructors": [],
-          "documentation": "A documented foreign type.",
-          "expandsTo": null,
-          "instances": [],
-          "kind": "Foreign",
-          "members": [],
-          "name": "LibraryType",
-          "signature": {
-            "reference": {
-              "module": "Prim",
-              "name": "Type",
-              "package": null
-            },
-            "tag": "constructor"
-          }
-        }
-      ]
-    },
-    {
-      "documentation": "Main module documentation.",
       "name": "Main",
-      "terms": [
-        {
-          "documentation": "A documented value.",
-          "kind": "Value",
-          "name": "answer",
-          "signature": {
-            "argument": {
-              "reference": {
-                "module": "Library",
-                "name": "LibraryType",
-                "package": "docs-fixture"
-              },
-              "tag": "constructor"
-            },
-            "result": {
-              "reference": {
-                "module": "Main",
-                "name": "Choice",
-                "package": "docs-fixture"
-              },
-              "tag": "constructor"
-            },
-            "tag": "function"
-          }
-        }
-      ],
+      "terms": [],
       "types": [
         {
           "constructors": [
             {
               "documentation": "",
               "kind": "Constructor",
-              "name": "FirstChoice",
-              "signature": {
-                "reference": {
-                  "module": "Main",
-                  "name": "Choice",
-                  "package": "docs-fixture"
-                },
-                "tag": "constructor"
-              }
-            },
-            {
-              "documentation": "",
-              "kind": "Constructor",
-              "name": "SecondChoice",
+              "name": "Choice",
               "signature": {
                 "reference": {
                   "module": "Main",
@@ -98,11 +36,11 @@ expression: report
               }
             }
           ],
-          "documentation": "A documented data type.",
+          "documentation": "Local choice type.",
           "expandsTo": null,
           "instances": [
             {
-              "documentation": "A documented instance.",
+              "documentation": "Imported class instance for a local type.",
               "kind": "Instance",
               "name": "renderChoice",
               "signature": {
@@ -116,7 +54,7 @@ expression: report
                 },
                 "function": {
                   "reference": {
-                    "module": "Main",
+                    "module": "Rendering",
                     "name": "Render",
                     "package": "docs-fixture"
                   },
@@ -137,65 +75,23 @@ expression: report
             },
             "tag": "constructor"
           }
-        },
+        }
+      ]
+    },
+    {
+      "documentation": "",
+      "name": "Rendering",
+      "terms": [],
+      "types": [
         {
           "constructors": [],
-          "documentation": "A documented synonym.",
-          "expandsTo": {
-            "reference": {
-              "module": "Main",
-              "name": "Choice",
-              "package": "docs-fixture"
-            },
-            "tag": "constructor"
-          },
-          "instances": [],
-          "kind": "Synonym",
-          "members": [],
-          "name": "ChoiceAlias",
-          "signature": {
-            "reference": {
-              "module": "Prim",
-              "name": "Type",
-              "package": null
-            },
-            "tag": "constructor"
-          }
-        },
-        {
-          "constructors": [],
-          "documentation": "A documented class.",
+          "documentation": "Render class.",
           "expandsTo": null,
-          "instances": [
-            {
-              "documentation": "A documented instance.",
-              "kind": "Instance",
-              "name": "renderChoice",
-              "signature": {
-                "argument": {
-                  "reference": {
-                    "module": "Main",
-                    "name": "Choice",
-                    "package": "docs-fixture"
-                  },
-                  "tag": "constructor"
-                },
-                "function": {
-                  "reference": {
-                    "module": "Main",
-                    "name": "Render",
-                    "package": "docs-fixture"
-                  },
-                  "tag": "constructor"
-                },
-                "tag": "application"
-              }
-            }
-          ],
+          "instances": [],
           "kind": "Class",
           "members": [
             {
-              "documentation": "A documented member.",
+              "documentation": "",
               "kind": "ClassMember",
               "name": "render",
               "signature": {
@@ -250,7 +146,7 @@ expression: report
                     },
                     "function": {
                       "reference": {
-                        "module": "Main",
+                        "module": "Rendering",
                         "name": "Render",
                         "package": "docs-fixture"
                       },

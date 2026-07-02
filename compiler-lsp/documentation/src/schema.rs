@@ -51,6 +51,11 @@ pub struct TypeItem {
     pub documentation: Option<String>,
     pub signature: Option<Type>,
     pub kind: TypeKind,
+    pub constructors: Vec<TermItem>,
+    pub members: Vec<TermItem>,
+    pub instances: Vec<TermItem>,
+    #[serde(rename = "expandsTo")]
+    pub expands_to: Option<Type>,
 }
 
 #[derive(Serialize, Deserialize, TS)]

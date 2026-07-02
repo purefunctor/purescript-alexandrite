@@ -2,7 +2,7 @@ pub mod error;
 pub mod schema;
 mod warm;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use building::QueryEngine;
@@ -190,6 +190,7 @@ pub fn render_module(
 ) -> Result<Option<schema::Module>, Error> {
     let (parsed, _) = engine.parsed(file_id)?;
     let indexed = engine.indexed(file_id)?;
+    let lowered = engine.lowered(file_id)?;
     let checked = engine.checked(file_id)?;
     let documented = engine.documented(file_id)?;
 
@@ -200,28 +201,30 @@ pub fn render_module(
     let mut terms = vec![];
     let mut types = vec![];
     let mut type_encoder = TypeEncoder::new(engine, &checked, package_by_file);
+    let (mut instances_by_parent, mut nested_terms) =
+        instance_parent_map(file_id, &indexed, &lowered, &checked);
+
+    for (_, type_item) in indexed.items.iter_types() {
+        match &type_item.kind {
+            indexing::TypeItemKind::Data { constructors, .. }
+            | indexing::TypeItemKind::Newtype { constructors, .. } => {
+                nested_terms.extend(constructors.iter().copied());
+            }
+            indexing::TypeItemKind::Class { members, .. } => {
+                nested_terms.extend(members.iter().copied());
+            }
+            indexing::TypeItemKind::Synonym { .. }
+            | indexing::TypeItemKind::Foreign { .. }
+            | indexing::TypeItemKind::Operator { .. } => {}
+        }
+    }
 
     for (term_id, term_item) in indexed.items.iter_terms() {
-        let term_documentation = documented.terms.get(&term_id);
+        if nested_terms.contains(&term_id) {
+            continue;
+        }
 
-        let name = term_item.name.as_ref().map(|name| name.to_string());
-        let documentation = term_documentation.map(|t| t.documentation.to_string());
-        let signature = checked
-            .lookup_term(term_id)
-            .map(|signature| type_encoder.encode_signature(signature))
-            .transpose()?;
-
-        let kind = match &term_item.kind {
-            indexing::TermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
-            indexing::TermItemKind::Constructor { .. } => schema::TermKind::Constructor,
-            indexing::TermItemKind::Derive { .. } => schema::TermKind::Derive,
-            indexing::TermItemKind::Foreign { .. } => schema::TermKind::Foreign,
-            indexing::TermItemKind::Instance { .. } => schema::TermKind::Instance,
-            indexing::TermItemKind::Operator { .. } => schema::TermKind::Operator,
-            indexing::TermItemKind::Value { .. } => schema::TermKind::Value,
-        };
-
-        terms.push(schema::TermItem { name, documentation, signature, kind });
+        terms.push(encode_term_item(term_id, term_item, &documented, &checked, &mut type_encoder)?);
     }
 
     for (type_id, type_item) in indexed.items.iter_types() {
@@ -243,10 +246,299 @@ pub fn render_module(
             indexing::TypeItemKind::Operator { .. } => schema::TypeKind::Operator,
         };
 
-        types.push(schema::TypeItem { name, documentation, signature, kind });
+        let constructors = match &type_item.kind {
+            indexing::TypeItemKind::Data { constructors, .. }
+            | indexing::TypeItemKind::Newtype { constructors, .. } => encode_term_items(
+                &mut type_encoder,
+                &indexed,
+                &documented,
+                &checked,
+                constructors.iter().copied(),
+            )?,
+            indexing::TypeItemKind::Synonym { .. }
+            | indexing::TypeItemKind::Class { .. }
+            | indexing::TypeItemKind::Foreign { .. }
+            | indexing::TypeItemKind::Operator { .. } => vec![],
+        };
+
+        let members = match &type_item.kind {
+            indexing::TypeItemKind::Class { members, .. } => encode_term_items(
+                &mut type_encoder,
+                &indexed,
+                &documented,
+                &checked,
+                members.iter().copied(),
+            )?,
+            indexing::TypeItemKind::Data { .. }
+            | indexing::TypeItemKind::Newtype { .. }
+            | indexing::TypeItemKind::Synonym { .. }
+            | indexing::TypeItemKind::Foreign { .. }
+            | indexing::TypeItemKind::Operator { .. } => vec![],
+        };
+
+        let instances = instances_by_parent.remove(&type_id).unwrap_or_default();
+        let instances =
+            encode_term_items(&mut type_encoder, &indexed, &documented, &checked, instances)?;
+
+        let expands_to = checked
+            .lookup_synonym(type_id)
+            .map(|synonym| type_encoder.encode_signature(synonym.synonym))
+            .transpose()?;
+
+        types.push(schema::TypeItem {
+            name,
+            documentation,
+            signature,
+            kind,
+            constructors,
+            members,
+            instances,
+            expands_to,
+        });
     }
 
     let documentation = Some(documented.documentation.to_string());
 
     Ok(Some(schema::Module { name, documentation, terms, types }))
+}
+
+fn encode_term_items(
+    type_encoder: &mut TypeEncoder<'_>,
+    indexed: &indexing::IndexedModule,
+    documented: &documenting::DocumentedModule,
+    checked: &checking::CheckedModule,
+    terms: impl IntoIterator<Item = indexing::TermItemId>,
+) -> Result<Vec<schema::TermItem>, Error> {
+    let terms = terms.into_iter().map(|term_id| {
+        let term_item = &indexed.items[term_id];
+        encode_term_item(term_id, term_item, documented, checked, type_encoder)
+    });
+    terms.collect()
+}
+
+fn encode_term_item(
+    term_id: indexing::TermItemId,
+    term_item: &indexing::TermItem,
+    documented: &documenting::DocumentedModule,
+    checked: &checking::CheckedModule,
+    type_encoder: &mut TypeEncoder<'_>,
+) -> Result<schema::TermItem, Error> {
+    let term_documentation = documented.terms.get(&term_id);
+
+    let name = term_item.name.as_ref().map(|name| name.to_string());
+    let documentation = term_documentation.map(|term| term.documentation.to_string());
+    let signature = term_signature(term_id, term_item, checked)
+        .map(|signature| type_encoder.encode_signature(signature))
+        .transpose()?;
+    let kind = encode_term_kind(&term_item.kind);
+
+    Ok(schema::TermItem { name, documentation, signature, kind })
+}
+
+fn term_signature(
+    term_id: indexing::TermItemId,
+    term_item: &indexing::TermItem,
+    checked: &checking::CheckedModule,
+) -> Option<checking::TypeId> {
+    match &term_item.kind {
+        indexing::TermItemKind::Instance { id } => {
+            checked.lookup_instance(*id).map(|instance| instance.signature)
+        }
+        indexing::TermItemKind::Derive { id } => {
+            checked.lookup_derived(*id).map(|instance| instance.signature)
+        }
+        indexing::TermItemKind::ClassMember { .. }
+        | indexing::TermItemKind::Constructor { .. }
+        | indexing::TermItemKind::Foreign { .. }
+        | indexing::TermItemKind::Operator { .. }
+        | indexing::TermItemKind::Value { .. } => checked.lookup_term(term_id),
+    }
+}
+
+fn encode_term_kind(kind: &indexing::TermItemKind) -> schema::TermKind {
+    match kind {
+        indexing::TermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
+        indexing::TermItemKind::Constructor { .. } => schema::TermKind::Constructor,
+        indexing::TermItemKind::Derive { .. } => schema::TermKind::Derive,
+        indexing::TermItemKind::Foreign { .. } => schema::TermKind::Foreign,
+        indexing::TermItemKind::Instance { .. } => schema::TermKind::Instance,
+        indexing::TermItemKind::Operator { .. } => schema::TermKind::Operator,
+        indexing::TermItemKind::Value { .. } => schema::TermKind::Value,
+    }
+}
+
+fn instance_parent_map(
+    file_id: FileId,
+    indexed: &indexing::IndexedModule,
+    lowered: &lowering::LoweredModule,
+    checked: &checking::CheckedModule,
+) -> (BTreeMap<indexing::TypeItemId, Vec<indexing::TermItemId>>, BTreeSet<indexing::TermItemId>) {
+    let mut instances_by_parent =
+        BTreeMap::<indexing::TypeItemId, Vec<indexing::TermItemId>>::new();
+    let mut nested_terms = BTreeSet::new();
+
+    for (term_id, term_item) in indexed.items.iter_terms() {
+        if !matches!(
+            term_item.kind,
+            indexing::TermItemKind::Instance { .. } | indexing::TermItemKind::Derive { .. }
+        ) {
+            continue;
+        }
+
+        let parents = instance_parents(file_id, indexed, lowered, checked, term_id, term_item);
+        if parents.is_empty() {
+            continue;
+        }
+
+        nested_terms.insert(term_id);
+        for parent in parents {
+            instances_by_parent.entry(parent).or_default().push(term_id);
+        }
+    }
+
+    (instances_by_parent, nested_terms)
+}
+
+fn instance_parents(
+    file_id: FileId,
+    indexed: &indexing::IndexedModule,
+    lowered: &lowering::LoweredModule,
+    checked: &checking::CheckedModule,
+    term_id: indexing::TermItemId,
+    term_item: &indexing::TermItem,
+) -> BTreeSet<indexing::TypeItemId> {
+    let mut parents = BTreeSet::new();
+
+    let checked_instance = match &term_item.kind {
+        indexing::TermItemKind::Instance { id } => checked.lookup_instance(*id),
+        indexing::TermItemKind::Derive { id } => checked.lookup_derived(*id),
+        indexing::TermItemKind::ClassMember { .. }
+        | indexing::TermItemKind::Constructor { .. }
+        | indexing::TermItemKind::Foreign { .. }
+        | indexing::TermItemKind::Operator { .. }
+        | indexing::TermItemKind::Value { .. } => None,
+    };
+
+    if let Some(instance) = checked_instance {
+        let (parent_file, parent_type) = instance.resolution;
+        if parent_file == file_id {
+            parents.insert(parent_type);
+        }
+    }
+
+    let Some(term_item) = lowered.info.get_term_item(term_id) else { return parents };
+    let arguments = match term_item {
+        lowering::TermItemIr::Instance { arguments, .. }
+        | lowering::TermItemIr::Derive { arguments, .. } => arguments,
+        lowering::TermItemIr::ClassMember { .. }
+        | lowering::TermItemIr::Constructor { .. }
+        | lowering::TermItemIr::Foreign { .. }
+        | lowering::TermItemIr::Operator { .. }
+        | lowering::TermItemIr::ValueGroup { .. } => return parents,
+    };
+
+    for &argument in arguments.iter() {
+        collect_instance_type_parents(file_id, indexed, &lowered.info, argument, &mut parents);
+    }
+
+    parents
+}
+
+fn collect_instance_type_parents(
+    file_id: FileId,
+    indexed: &indexing::IndexedModule,
+    info: &lowering::LoweringInfo,
+    type_id: lowering::TypeId,
+    parents: &mut BTreeSet<indexing::TypeItemId>,
+) {
+    let Some(kind) = info.get_type_kind(type_id) else { return };
+
+    match kind {
+        lowering::TypeKind::Constructor { resolution } => {
+            if let Some((parent_file, parent_type)) = resolution
+                && *parent_file == file_id
+                && instance_type_parent(indexed, *parent_type)
+            {
+                parents.insert(*parent_type);
+            }
+        }
+        lowering::TypeKind::ApplicationChain { function, arguments } => {
+            if let Some(function) = function {
+                collect_instance_type_parents(file_id, indexed, info, *function, parents);
+            }
+            for &argument in arguments.iter() {
+                collect_instance_type_parents(file_id, indexed, info, argument, parents);
+            }
+        }
+        lowering::TypeKind::Arrow { argument, result } => {
+            if let Some(argument) = argument {
+                collect_instance_type_parents(file_id, indexed, info, *argument, parents);
+            }
+            if let Some(result) = result {
+                collect_instance_type_parents(file_id, indexed, info, *result, parents);
+            }
+        }
+        lowering::TypeKind::Constrained { constraint, constrained } => {
+            if let Some(constraint) = constraint {
+                collect_instance_type_parents(file_id, indexed, info, *constraint, parents);
+            }
+            if let Some(constrained) = constrained {
+                collect_instance_type_parents(file_id, indexed, info, *constrained, parents);
+            }
+        }
+        lowering::TypeKind::Forall { inner, .. } => {
+            if let Some(inner) = inner {
+                collect_instance_type_parents(file_id, indexed, info, *inner, parents);
+            }
+        }
+        lowering::TypeKind::Kinded { type_, kind } => {
+            if let Some(type_) = type_ {
+                collect_instance_type_parents(file_id, indexed, info, *type_, parents);
+            }
+            if let Some(kind) = kind {
+                collect_instance_type_parents(file_id, indexed, info, *kind, parents);
+            }
+        }
+        lowering::TypeKind::OperatorChain { head, tail } => {
+            if let Some(head) = head {
+                collect_instance_type_parents(file_id, indexed, info, *head, parents);
+            }
+            for pair in tail.iter() {
+                if let Some(element) = pair.element {
+                    collect_instance_type_parents(file_id, indexed, info, element, parents);
+                }
+            }
+        }
+        lowering::TypeKind::Record { items, tail } | lowering::TypeKind::Row { items, tail } => {
+            for item in items.iter() {
+                if let Some(type_) = item.type_ {
+                    collect_instance_type_parents(file_id, indexed, info, type_, parents);
+                }
+            }
+            if let Some(tail) = tail {
+                collect_instance_type_parents(file_id, indexed, info, *tail, parents);
+            }
+        }
+        lowering::TypeKind::Parenthesized { parenthesized } => {
+            if let Some(parenthesized) = parenthesized {
+                collect_instance_type_parents(file_id, indexed, info, *parenthesized, parents);
+            }
+        }
+        lowering::TypeKind::Operator { .. }
+        | lowering::TypeKind::Hole
+        | lowering::TypeKind::Integer { .. }
+        | lowering::TypeKind::String { .. }
+        | lowering::TypeKind::Variable { .. }
+        | lowering::TypeKind::Wildcard => {}
+    }
+}
+
+fn instance_type_parent(indexed: &indexing::IndexedModule, type_id: indexing::TypeItemId) -> bool {
+    matches!(
+        indexed.items[type_id].kind,
+        indexing::TypeItemKind::Data { .. }
+            | indexing::TypeItemKind::Newtype { .. }
+            | indexing::TypeItemKind::Synonym { .. }
+            | indexing::TypeItemKind::Foreign { .. }
+    )
 }

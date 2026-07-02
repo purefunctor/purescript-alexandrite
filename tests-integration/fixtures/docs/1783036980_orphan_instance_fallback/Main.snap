@@ -1,0 +1,180 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+{
+  "manifest": {
+    "dependencies": {},
+    "description": null,
+    "license": null,
+    "modules": [
+      "Main",
+      "Remote",
+      "Rendering"
+    ],
+    "name": "docs-fixture",
+    "version": "0.0.0"
+  },
+  "modules": [
+    {
+      "documentation": "",
+      "name": "Main",
+      "terms": [
+        {
+          "documentation": "Imported class instance for an imported type.",
+          "kind": "Instance",
+          "name": "renderRemote",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Remote",
+                "name": "Remote",
+                "package": "docs-fixture"
+              },
+              "tag": "constructor"
+            },
+            "function": {
+              "reference": {
+                "module": "Rendering",
+                "name": "Render",
+                "package": "docs-fixture"
+              },
+              "tag": "constructor"
+            },
+            "tag": "application"
+          }
+        }
+      ],
+      "types": []
+    },
+    {
+      "documentation": "",
+      "name": "Remote",
+      "terms": [],
+      "types": [
+        {
+          "constructors": [],
+          "documentation": "Remote foreign type.",
+          "expandsTo": null,
+          "instances": [],
+          "kind": "Foreign",
+          "members": [],
+          "name": "Remote",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        }
+      ]
+    },
+    {
+      "documentation": "",
+      "name": "Rendering",
+      "terms": [],
+      "types": [
+        {
+          "constructors": [],
+          "documentation": "Render class.",
+          "expandsTo": null,
+          "instances": [],
+          "kind": "Class",
+          "members": [
+            {
+              "documentation": "",
+              "kind": "ClassMember",
+              "name": "render",
+              "signature": {
+                "binder": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                "body": {
+                  "body": {
+                    "argument": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "a",
+                      "tag": "rigid"
+                    },
+                    "result": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "String",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "function"
+                  },
+                  "constraint": {
+                    "argument": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "a",
+                      "tag": "rigid"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Rendering",
+                        "name": "Render",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "constrained"
+                },
+                "tag": "forall"
+              }
+            }
+          ],
+          "name": "Render",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "reference": {
+                "module": "Prim",
+                "name": "Constraint",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "function"
+          }
+        }
+      ]
+    }
+  ]
+}

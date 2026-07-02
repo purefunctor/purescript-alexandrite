@@ -637,6 +637,7 @@ version = "0.1.0"
 dependencies = [
  "building",
  "checking",
+ "documenting",
  "files",
  "indexing",
  "itertools 0.14.0",

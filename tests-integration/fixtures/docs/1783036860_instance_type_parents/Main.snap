@@ -1,0 +1,647 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+{
+  "manifest": {
+    "dependencies": {},
+    "description": null,
+    "license": null,
+    "modules": [
+      "Main"
+    ],
+    "name": "docs-fixture",
+    "version": "0.0.0"
+  },
+  "modules": [
+    {
+      "documentation": "",
+      "name": "Main",
+      "terms": [],
+      "types": [
+        {
+          "constructors": [
+            {
+              "documentation": "",
+              "kind": "Constructor",
+              "name": "Box",
+              "signature": {
+                "reference": {
+                  "module": "Main",
+                  "name": "Box",
+                  "package": "docs-fixture"
+                },
+                "tag": "constructor"
+              }
+            }
+          ],
+          "documentation": "Box data type.",
+          "expandsTo": null,
+          "instances": [
+            {
+              "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
+              "kind": "Instance",
+              "name": "inspectPairAliasBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Alias",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            },
+            {
+              "documentation": "Instance mentioning the same local type more than once.",
+              "kind": "Instance",
+              "name": "inspectPairBoxBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Box",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            }
+          ],
+          "kind": "Data",
+          "members": [],
+          "name": "Box",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "constructors": [
+            {
+              "documentation": "",
+              "kind": "Constructor",
+              "name": "Pair",
+              "signature": {
+                "binder": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                "body": {
+                  "binder": {
+                    "kind": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "name": "b",
+                    "visible": true
+                  },
+                  "body": {
+                    "argument": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "a",
+                      "tag": "rigid"
+                    },
+                    "result": {
+                      "argument": {
+                        "kind": {
+                          "reference": {
+                            "module": "Prim",
+                            "name": "Type",
+                            "package": null
+                          },
+                          "tag": "constructor"
+                        },
+                        "name": "b",
+                        "tag": "rigid"
+                      },
+                      "result": {
+                        "argument": {
+                          "kind": {
+                            "reference": {
+                              "module": "Prim",
+                              "name": "Type",
+                              "package": null
+                            },
+                            "tag": "constructor"
+                          },
+                          "name": "b",
+                          "tag": "rigid"
+                        },
+                        "function": {
+                          "argument": {
+                            "kind": {
+                              "reference": {
+                                "module": "Prim",
+                                "name": "Type",
+                                "package": null
+                              },
+                              "tag": "constructor"
+                            },
+                            "name": "a",
+                            "tag": "rigid"
+                          },
+                          "function": {
+                            "reference": {
+                              "module": "Main",
+                              "name": "Pair",
+                              "package": "docs-fixture"
+                            },
+                            "tag": "constructor"
+                          },
+                          "tag": "application"
+                        },
+                        "tag": "application"
+                      },
+                      "tag": "function"
+                    },
+                    "tag": "function"
+                  },
+                  "tag": "forall"
+                },
+                "tag": "forall"
+              }
+            }
+          ],
+          "documentation": "Pair data type.",
+          "expandsTo": null,
+          "instances": [
+            {
+              "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
+              "kind": "Instance",
+              "name": "inspectPairAliasBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Alias",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            },
+            {
+              "documentation": "Instance mentioning the same local type more than once.",
+              "kind": "Instance",
+              "name": "inspectPairBoxBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Box",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            }
+          ],
+          "kind": "Data",
+          "members": [],
+          "name": "Pair",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "tag": "function"
+            },
+            "tag": "function"
+          }
+        },
+        {
+          "constructors": [],
+          "documentation": "Alias synonym.",
+          "expandsTo": {
+            "reference": {
+              "module": "Main",
+              "name": "Box",
+              "package": "docs-fixture"
+            },
+            "tag": "constructor"
+          },
+          "instances": [
+            {
+              "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
+              "kind": "Instance",
+              "name": "inspectPairAliasBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Alias",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            }
+          ],
+          "kind": "Synonym",
+          "members": [],
+          "name": "Alias",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "constructors": [],
+          "documentation": "Inspect class.",
+          "expandsTo": null,
+          "instances": [
+            {
+              "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
+              "kind": "Instance",
+              "name": "inspectPairAliasBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Alias",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            },
+            {
+              "documentation": "Instance mentioning the same local type more than once.",
+              "kind": "Instance",
+              "name": "inspectPairBoxBox",
+              "signature": {
+                "argument": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Box",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Pair",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Inspect",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            }
+          ],
+          "kind": "Class",
+          "members": [
+            {
+              "documentation": "",
+              "kind": "ClassMember",
+              "name": "inspect",
+              "signature": {
+                "binder": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                "body": {
+                  "body": {
+                    "argument": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "a",
+                      "tag": "rigid"
+                    },
+                    "result": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "String",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "function"
+                  },
+                  "constraint": {
+                    "argument": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "a",
+                      "tag": "rigid"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Inspect",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "constrained"
+                },
+                "tag": "forall"
+              }
+            }
+          ],
+          "name": "Inspect",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "reference": {
+                "module": "Prim",
+                "name": "Constraint",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "function"
+          }
+        }
+      ]
+    }
+  ]
+}
