@@ -7,11 +7,21 @@ use std::{env, fs, process};
 use analyzer::{QueryEngine, prim};
 use files::{FileId, Files};
 use itertools::Itertools;
-use rayon::iter::ParallelIterator;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Deserialize;
 
 use crate::docs::error::DocsError;
 use crate::walk;
+
+macro_rules! warm_modules {
+    ($engine:expr, $modules:expr, $query:ident) => {
+        $modules.par_iter().try_for_each(|&id| {
+            let engine = $engine.snapshot();
+            let _ = engine.$query(id)?;
+            Ok::<(), DocsError>(())
+        })
+    };
+}
 
 pub struct DocsConfig {
     pub output: PathBuf,
@@ -92,7 +102,7 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     let packages = load_packages(&config, &mut compiler)?;
     let modules = package_modules(&packages);
 
-    documentation::warm_queries(&compiler.engine, &modules)?;
+    warm_documentation_queries(&compiler.engine, &modules)?;
     write_packages_manifest(&compiler.engine, &config, &packages)?;
 
     let package_by_file = packages
@@ -109,6 +119,19 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
 
 fn package_modules(packages: &[Package]) -> Vec<FileId> {
     packages.iter().flat_map(|package| package.modules.iter().copied()).collect_vec()
+}
+
+fn warm_documentation_queries(engine: &QueryEngine, modules: &[FileId]) -> Result<(), DocsError> {
+    warm_modules!(engine, modules, indexed)?;
+    warm_modules!(engine, modules, resolved)?;
+    warm_modules!(engine, modules, lowered)?;
+    warm_modules!(engine, modules, grouped)?;
+    warm_modules!(engine, modules, bracketed)?;
+    warm_modules!(engine, modules, sectioned)?;
+    warm_modules!(engine, modules, checked)?;
+    warm_modules!(engine, modules, documented)?;
+
+    Ok(())
 }
 
 fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Package>, DocsError> {
@@ -255,12 +278,12 @@ fn write_packages_manifest(
 
     for package in packages {
         let package_input = documentation::PackageInput {
-            name: String::clone(&package.name),
-            version: String::clone(&package.version),
-            license: package.license.clone(),
-            description: package.description.clone(),
-            dependencies: BTreeMap::clone(&package.dependencies),
-            modules: package.modules.clone(),
+            name: &package.name,
+            version: &package.version,
+            license: package.license.as_deref(),
+            description: package.description.as_deref(),
+            dependencies: &package.dependencies,
+            modules: &package.modules,
         };
         let package = documentation::render_package_manifest(engine, &package_input)?;
 
@@ -305,7 +328,7 @@ fn load_modules(compiler: &mut Compiler, files: Vec<PathBuf>) -> Result<Vec<File
     let mut modules = vec![];
 
     for file in &files {
-        if !file.extension().is_some_and(|extension| extension == "purs") {
+        if file.extension().is_none_or(|extension| extension != "purs") {
             continue;
         }
 

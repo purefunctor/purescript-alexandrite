@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 99
 expression: report
 ---
 {
@@ -23,7 +24,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "A documented foreign type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [],
           "kind": "Foreign",
           "members": [],
@@ -99,7 +100,7 @@ expression: report
             }
           ],
           "documentation": "A documented data type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "A documented instance.",
@@ -141,7 +142,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "A documented synonym.",
-          "expandsTo": {
+          "expansion": {
             "reference": {
               "module": "Main",
               "name": "Choice",
@@ -165,7 +166,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "A documented class.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "A documented instance.",

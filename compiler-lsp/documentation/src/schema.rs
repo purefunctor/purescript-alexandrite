@@ -54,8 +54,7 @@ pub struct TypeItem {
     pub constructors: Vec<TermItem>,
     pub members: Vec<TermItem>,
     pub instances: Vec<TermItem>,
-    #[serde(rename = "expandsTo")]
-    pub expands_to: Option<Type>,
+    pub expansion: Option<Type>,
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -119,4 +118,13 @@ pub struct TypeRowField {
 pub enum StringLiteralKind {
     String,
     RawString,
+}
+
+impl From<lowering::StringKind> for StringLiteralKind {
+    fn from(kind: lowering::StringKind) -> StringLiteralKind {
+        match kind {
+            lowering::StringKind::String => StringLiteralKind::String,
+            lowering::StringKind::RawString => StringLiteralKind::RawString,
+        }
+    }
 }

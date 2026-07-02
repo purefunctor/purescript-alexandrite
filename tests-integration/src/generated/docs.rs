@@ -24,15 +24,14 @@ pub fn report(engine: &QueryEngine, files: &Files, root: &Path) -> Result<String
         .collect_vec();
     modules.sort_by_key(|&id| module_name(engine, id).unwrap_or_default());
 
-    documentation::warm_queries(engine, &modules)?;
-
+    let dependencies = BTreeMap::new();
     let package = documentation::PackageInput {
-        name: PACKAGE_NAME.to_string(),
-        version: PACKAGE_VERSION.to_string(),
+        name: PACKAGE_NAME,
+        version: PACKAGE_VERSION,
         license: None,
         description: None,
-        dependencies: BTreeMap::new(),
-        modules: modules.clone(),
+        dependencies: &dependencies,
+        modules: &modules,
     };
 
     let manifest = documentation::render_package_manifest(engine, &package)?;

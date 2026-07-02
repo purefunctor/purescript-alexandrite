@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 99
 expression: report
 ---
 {
@@ -55,7 +56,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "Remote foreign type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [],
           "kind": "Foreign",
           "members": [],
@@ -79,7 +80,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "Render class.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [],
           "kind": "Class",
           "members": [

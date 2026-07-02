@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 99
 expression: report
 ---
 {
@@ -36,7 +37,7 @@ expression: report
             }
           ],
           "documentation": "Box data type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
@@ -250,7 +251,7 @@ expression: report
             }
           ],
           "documentation": "Pair data type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
@@ -382,7 +383,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "Alias synonym.",
-          "expandsTo": {
+          "expansion": {
             "reference": {
               "module": "Main",
               "name": "Box",
@@ -453,7 +454,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "Inspect class.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "Instance mentioning a data type, synonym, and repeated data type.",

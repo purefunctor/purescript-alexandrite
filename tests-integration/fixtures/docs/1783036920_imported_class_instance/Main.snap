@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 99
 expression: report
 ---
 {
@@ -37,7 +38,7 @@ expression: report
             }
           ],
           "documentation": "Local choice type.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [
             {
               "documentation": "Imported class instance for a local type.",
@@ -86,7 +87,7 @@ expression: report
         {
           "constructors": [],
           "documentation": "Render class.",
-          "expandsTo": null,
+          "expansion": null,
           "instances": [],
           "kind": "Class",
           "members": [
