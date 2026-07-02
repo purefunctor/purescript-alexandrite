@@ -636,7 +636,7 @@ name = "documenting"
 version = "0.1.0"
 dependencies = [
  "building-types",
- "checking",
+ "criterion",
  "files",
  "indexing",
  "insta",

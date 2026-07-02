@@ -31,7 +31,6 @@ pub trait ExternalQueries:
         Parsed = parsing::FullParsedModule,
         Stabilized = Arc<stabilizing::StabilizedModule>,
         Indexed = Arc<indexing::IndexedModule>,
-        Checked = Arc<checking::CheckedModule>,
     >
 {
 }
@@ -41,7 +40,6 @@ impl<Q> ExternalQueries for Q where
             Parsed = parsing::FullParsedModule,
             Stabilized = Arc<stabilizing::StabilizedModule>,
             Indexed = Arc<indexing::IndexedModule>,
-            Checked = Arc<checking::CheckedModule>,
         >
 {
 }

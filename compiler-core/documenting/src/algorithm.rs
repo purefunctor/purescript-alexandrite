@@ -19,17 +19,18 @@ pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> Query
     let stabilized = queries.stabilized(file_id)?;
     let indexed = queries.indexed(file_id)?;
 
-    let documentation = annotation::module_documentation(&root, &parsed);
+    let annotations = annotation::AnnotationIndex::new(&root);
+    let documentation = annotation::module_documentation(parsed);
 
     let terms = indexed.items.iter_terms().filter_map(|(id, item)| {
-        let documentation = annotation::term_documentation(&stabilized, &root, item);
+        let documentation = annotation::term_documentation(&stabilized, &annotations, item);
         Some((id, DocumentedTerm { documentation }))
     });
 
     let terms = terms.collect();
 
     let types = indexed.items.iter_types().filter_map(|(id, item)| {
-        let documentation = annotation::type_documentation(&stabilized, &root, item);
+        let documentation = annotation::type_documentation(&stabilized, &annotations, item);
         Some((id, DocumentedType { documentation }))
     });
 
