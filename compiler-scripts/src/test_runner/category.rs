@@ -8,6 +8,7 @@ pub enum TestCategory {
     Lowering,
     Resolving,
     Lsp,
+    Docs,
 }
 
 impl TestCategory {
@@ -17,6 +18,7 @@ impl TestCategory {
             TestCategory::Lowering => "lowering",
             TestCategory::Resolving => "resolving",
             TestCategory::Lsp => "lsp",
+            TestCategory::Docs => "docs",
         }
     }
 
@@ -41,8 +43,9 @@ impl FromStr for TestCategory {
             "lowering" | "l" => Ok(TestCategory::Lowering),
             "resolving" | "r" => Ok(TestCategory::Resolving),
             "lsp" => Ok(TestCategory::Lsp),
+            "docs" => Ok(TestCategory::Docs),
             _ => bail!(
-                "unknown test category '{}', expected: checking (c), lowering (l), resolving (r), lsp",
+                "unknown test category '{}', expected: checking (c), lowering (l), resolving (r), lsp, docs",
                 s
             ),
         }

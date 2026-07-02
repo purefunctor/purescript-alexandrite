@@ -1,0 +1,222 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+{
+  "manifest": {
+    "dependencies": {},
+    "description": null,
+    "license": null,
+    "modules": [
+      "Library",
+      "Main"
+    ],
+    "name": "docs-fixture",
+    "version": "0.0.0"
+  },
+  "modules": [
+    {
+      "documentation": "",
+      "name": "Library",
+      "terms": [],
+      "types": [
+        {
+          "documentation": "A documented foreign type.",
+          "kind": "Foreign",
+          "name": "LibraryType",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        }
+      ]
+    },
+    {
+      "documentation": "Main module documentation.",
+      "name": "Main",
+      "terms": [
+        {
+          "documentation": "",
+          "kind": "Constructor",
+          "name": "FirstChoice",
+          "signature": {
+            "reference": {
+              "module": "Main",
+              "name": "Choice",
+              "package": "docs-fixture"
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "",
+          "kind": "Constructor",
+          "name": "SecondChoice",
+          "signature": {
+            "reference": {
+              "module": "Main",
+              "name": "Choice",
+              "package": "docs-fixture"
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "A documented member.",
+          "kind": "ClassMember",
+          "name": "render",
+          "signature": {
+            "binder": {
+              "kind": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "name": "a",
+              "visible": true
+            },
+            "body": {
+              "body": {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "tag": "rigid"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "String",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "constraint": {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "tag": "rigid"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Render",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              },
+              "tag": "constrained"
+            },
+            "tag": "forall"
+          }
+        },
+        {
+          "documentation": "A documented instance.",
+          "kind": "Instance",
+          "name": "renderChoice",
+          "signature": null
+        },
+        {
+          "documentation": "A documented value.",
+          "kind": "Value",
+          "name": "answer",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Library",
+                "name": "LibraryType",
+                "package": "docs-fixture"
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "reference": {
+                "module": "Main",
+                "name": "Choice",
+                "package": "docs-fixture"
+              },
+              "tag": "constructor"
+            },
+            "tag": "function"
+          }
+        }
+      ],
+      "types": [
+        {
+          "documentation": "A documented data type.",
+          "kind": "Data",
+          "name": "Choice",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "A documented synonym.",
+          "kind": "Synonym",
+          "name": "ChoiceAlias",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Type",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "A documented class.",
+          "kind": "Class",
+          "name": "Render",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "reference": {
+                "module": "Prim",
+                "name": "Constraint",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "function"
+          }
+        }
+      ]
+    }
+  ]
+}
