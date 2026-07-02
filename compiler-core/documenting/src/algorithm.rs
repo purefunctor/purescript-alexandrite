@@ -22,16 +22,16 @@ pub fn document_module(
     let annotations = annotation::AnnotationIndex::new(&root);
     let documentation = annotation::module_documentation(parsed);
 
-    let terms = indexed.items.iter_terms().filter_map(|(id, item)| {
-        let documentation = annotation::term_documentation(&stabilized, &annotations, item);
-        Some((id, DocumentedTerm { documentation }))
+    let terms = indexed.items.iter_terms().map(|(id, item)| {
+        let documentation = annotation::term_documentation(stabilized, &annotations, item);
+        (id, DocumentedTerm { documentation })
     });
 
     let terms = terms.collect();
 
-    let types = indexed.items.iter_types().filter_map(|(id, item)| {
-        let documentation = annotation::type_documentation(&stabilized, &annotations, item);
-        Some((id, DocumentedType { documentation }))
+    let types = indexed.items.iter_types().map(|(id, item)| {
+        let documentation = annotation::type_documentation(stabilized, &annotations, item);
+        (id, DocumentedType { documentation })
     });
 
     let types = types.collect();
