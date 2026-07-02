@@ -15,25 +15,21 @@ pub struct State {
 pub fn document_module(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<State> {
     let (parsed, _) = queries.parsed(file_id)?;
     let root = parsed.syntax_node();
+
     let stabilized = queries.stabilized(file_id)?;
     let indexed = queries.indexed(file_id)?;
-    let checked = queries.checked(file_id)?;
 
     let documentation = annotation::module_documentation(&root, &parsed);
 
     let terms = indexed.items.iter_terms().filter_map(|(id, item)| {
-        let _signature = checked.lookup_term(id)?;
         let documentation = annotation::term_documentation(&stabilized, &root, item);
-
         Some((id, DocumentedTerm { documentation }))
     });
 
     let terms = terms.collect();
 
     let types = indexed.items.iter_types().filter_map(|(id, item)| {
-        let _signature = checked.lookup_type(id)?;
         let documentation = annotation::type_documentation(&stabilized, &root, item);
-
         Some((id, DocumentedType { documentation }))
     });
 
