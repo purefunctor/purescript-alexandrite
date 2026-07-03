@@ -4,12 +4,19 @@ module Main where
 import Library (LibraryType)
 
 -- | A documented data type.
+data Choice :: Type
 data Choice = FirstChoice | SecondChoice
 
+-- | A documented newtype.
+newtype Identity :: Type -> Type
+newtype Identity a = Identity a
+
 -- | A documented synonym.
-type ChoiceAlias = Choice
+type IdentityAlias :: Type -> Type
+type IdentityAlias a = Identity a
 
 -- | A documented class.
+class Render :: Type -> Constraint
 class Render a where
   -- | A documented member.
   render :: a -> String

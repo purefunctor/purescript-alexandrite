@@ -40,6 +40,25 @@ impl<'a> TypeEncoder<'a> {
         self.encode_type(id)
     }
 
+    fn encode_declaration(
+        &mut self,
+        binders: impl IntoIterator<Item = checking::core::ForallBinderId>,
+    ) -> Result<schema::TypeDeclaration, Error> {
+        self.names.reset();
+        let binders = self.encode_forall_binders(binders)?;
+        Ok(schema::TypeDeclaration { binders })
+    }
+
+    fn encode_synonym_equation(
+        &mut self,
+        synonym: checking::core::CheckedSynonym,
+    ) -> Result<schema::TypeSynonymEquation, Error> {
+        self.names.reset();
+        let binders = self.encode_forall_binder_values(synonym.parameters)?;
+        let expansion = self.encode_type(synonym.synonym)?;
+        Ok(schema::TypeSynonymEquation { binders, expansion })
+    }
+
     fn encode_type(&mut self, id: checking::TypeId) -> Result<schema::Type, Error> {
         let expression = match self.engine.lookup_type(id) {
             checking::Type::Application(function, argument) => schema::Type::Application {
@@ -51,7 +70,7 @@ impl<'a> TypeEncoder<'a> {
                 argument: self.encode_boxed_type(argument)?,
             },
             checking::Type::Forall(binder, body) => schema::Type::Forall {
-                binder: self.encode_binder(binder)?,
+                binder: self.encode_forall_binder(binder)?,
                 body: self.encode_boxed_type(body)?,
             },
             checking::Type::Constrained(constraint, body) => schema::Type::Constrained {
@@ -106,11 +125,34 @@ impl<'a> TypeEncoder<'a> {
         Ok(Box::new(self.encode_type(id)?))
     }
 
-    fn encode_binder(
+    fn encode_forall_binder(
         &mut self,
         id: checking::core::ForallBinderId,
     ) -> Result<schema::TypeBinder, Error> {
         let binder = self.engine.lookup_forall_binder(id);
+        self.encode_forall_binder_value(binder)
+    }
+
+    fn encode_forall_binders(
+        &mut self,
+        binders: impl IntoIterator<Item = checking::core::ForallBinderId>,
+    ) -> Result<Vec<schema::TypeBinder>, Error> {
+        let binders = binders.into_iter().map(|binder| self.encode_forall_binder(binder));
+        binders.collect()
+    }
+
+    fn encode_forall_binder_values(
+        &mut self,
+        binders: impl IntoIterator<Item = checking::core::ForallBinder>,
+    ) -> Result<Vec<schema::TypeBinder>, Error> {
+        let binders = binders.into_iter().map(|binder| self.encode_forall_binder_value(binder));
+        binders.collect()
+    }
+
+    fn encode_forall_binder_value(
+        &mut self,
+        binder: checking::core::ForallBinder,
+    ) -> Result<schema::TypeBinder, Error> {
         let name = self.display_name(binder.name);
         let kind = self.encode_boxed_type(binder.kind)?;
 
@@ -200,46 +242,74 @@ impl<'a> ModuleEncoder<'a> {
         instances: impl IntoIterator<Item = indexing::TermItemId>,
     ) -> Result<schema::TypeItem, Error> {
         let indexed = Arc::clone(&self.indexed);
-        let (name, documentation, signature, kind, constructors, members, expansion) = {
-            let type_item = &indexed.items[type_id];
-            let type_documentation = self.documented.types.get(&type_id);
+        let type_item = &indexed.items[type_id];
+        let type_documentation = self.documented.types.get(&type_id);
 
-            let constructors = match &type_item.kind {
-                indexing::TypeItemKind::Data { constructors, .. }
-                | indexing::TypeItemKind::Newtype { constructors, .. } => constructors.as_slice(),
-                _ => &[],
-            };
+        let name = type_item.name.as_ref().map(|name| name.to_string());
+        let documentation = type_documentation.map(|t| t.documentation.to_string());
+        let signature = self.checked.lookup_type(type_id);
+        let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
+        let instance_ids = instances.into_iter().collect::<Vec<_>>();
 
-            let members = match &type_item.kind {
-                indexing::TypeItemKind::Class { members, .. } => members.as_slice(),
-                _ => &[],
-            };
+        let form = match &type_item.kind {
+            indexing::TypeItemKind::Data { constructors, .. } => {
+                let declaration = self.checked.lookup_data_declaration(type_id);
+                let declaration = if let Some(declaration) = declaration {
+                    Some(self.type_encoder.encode_declaration(declaration.type_parameters)?)
+                } else {
+                    None
+                };
 
-            let name = type_item.name.as_ref().map(|name| name.to_string());
-            let documentation = type_documentation.map(|t| t.documentation.to_string());
-            let signature = self.checked.lookup_type(type_id);
-            let kind = type_kind(&type_item.kind);
-            let expansion = self.checked.lookup_synonym(type_id).map(|synonym| synonym.synonym);
+                let constructors = self.encode_term_items(constructors.iter().copied())?;
+                let instances = self.encode_term_items(instance_ids.iter().copied())?;
 
-            (name, documentation, signature, kind, constructors, members, expansion)
+                schema::TypeItemForm::Data { signature, declaration, constructors, instances }
+            }
+            indexing::TypeItemKind::Newtype { constructors, .. } => {
+                let declaration = self.checked.lookup_data_declaration(type_id);
+                let declaration = if let Some(declaration) = declaration {
+                    Some(self.type_encoder.encode_declaration(declaration.type_parameters)?)
+                } else {
+                    None
+                };
+
+                let constructors = self.encode_term_items(constructors.iter().copied())?;
+                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+
+                schema::TypeItemForm::Newtype { signature, declaration, constructors, instances }
+            }
+            indexing::TypeItemKind::Synonym { .. } => {
+                let equation = if let Some(synonym) = self.checked.lookup_synonym(type_id) {
+                    Some(self.type_encoder.encode_synonym_equation(synonym)?)
+                } else {
+                    None
+                };
+
+                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+
+                schema::TypeItemForm::Synonym { signature, equation, instances }
+            }
+            indexing::TypeItemKind::Class { members, .. } => {
+                let declaration = if let Some(class) = self.checked.lookup_class(type_id) {
+                    Some(self.type_encoder.encode_declaration(class.type_parameters)?)
+                } else {
+                    None
+                };
+
+                let members = self.encode_term_items(members.iter().copied())?;
+                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+
+                schema::TypeItemForm::Class { signature, declaration, members, instances }
+            }
+            indexing::TypeItemKind::Foreign { .. } => {
+                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+
+                schema::TypeItemForm::Foreign { signature, instances }
+            }
+            indexing::TypeItemKind::Operator { .. } => schema::TypeItemForm::Operator { signature },
         };
 
-        let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
-        let constructors = self.encode_term_items(constructors.iter().copied())?;
-        let members = self.encode_term_items(members.iter().copied())?;
-        let instances = self.encode_term_items(instances)?;
-        let expansion = expansion.map(|synonym| self.encode_signature(synonym)).transpose()?;
-
-        Ok(schema::TypeItem {
-            name,
-            documentation,
-            signature,
-            kind,
-            constructors,
-            members,
-            instances,
-            expansion,
-        })
+        Ok(schema::TypeItem { name, documentation, form })
     }
 }
 
@@ -321,17 +391,6 @@ fn term_kind(kind: &indexing::TermItemKind) -> schema::TermKind {
         indexing::TermItemKind::Instance { .. } => schema::TermKind::Instance,
         indexing::TermItemKind::Operator { .. } => schema::TermKind::Operator,
         indexing::TermItemKind::Value { .. } => schema::TermKind::Value,
-    }
-}
-
-fn type_kind(kind: &indexing::TypeItemKind) -> schema::TypeKind {
-    match kind {
-        indexing::TypeItemKind::Data { .. } => schema::TypeKind::Data,
-        indexing::TypeItemKind::Newtype { .. } => schema::TypeKind::Newtype,
-        indexing::TypeItemKind::Synonym { .. } => schema::TypeKind::Synonym,
-        indexing::TypeItemKind::Class { .. } => schema::TypeKind::Class,
-        indexing::TypeItemKind::Foreign { .. } => schema::TypeKind::Foreign,
-        indexing::TypeItemKind::Operator { .. } => schema::TypeKind::Operator,
     }
 }
 

@@ -54,21 +54,20 @@ expression: report
       "terms": [],
       "types": [
         {
-          "constructors": [],
           "documentation": "Remote foreign type.",
-          "expansion": null,
-          "instances": [],
-          "kind": "Foreign",
-          "members": [],
-          "name": "Remote",
-          "signature": {
-            "reference": {
-              "module": "Prim",
-              "name": "Type",
-              "package": null
+          "form": {
+            "instances": [],
+            "signature": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
             },
-            "tag": "constructor"
-          }
+            "tag": "foreign"
+          },
+          "name": "Remote"
         }
       ]
     },
@@ -78,18 +77,11 @@ expression: report
       "terms": [],
       "types": [
         {
-          "constructors": [],
           "documentation": "Render class.",
-          "expansion": null,
-          "instances": [],
-          "kind": "Class",
-          "members": [
-            {
-              "documentation": "",
-              "kind": "ClassMember",
-              "name": "render",
-              "signature": {
-                "binder": {
+          "form": {
+            "declaration": {
+              "binders": [
+                {
                   "kind": {
                     "reference": {
                       "module": "Prim",
@@ -100,80 +92,103 @@ expression: report
                   },
                   "name": "a",
                   "visible": true
-                },
-                "body": {
-                  "body": {
-                    "argument": {
-                      "kind": {
-                        "reference": {
-                          "module": "Prim",
-                          "name": "Type",
-                          "package": null
-                        },
-                        "tag": "constructor"
-                      },
-                      "name": "a",
-                      "tag": "rigid"
-                    },
-                    "result": {
+                }
+              ]
+            },
+            "instances": [],
+            "members": [
+              {
+                "documentation": "",
+                "kind": "ClassMember",
+                "name": "render",
+                "signature": {
+                  "binder": {
+                    "kind": {
                       "reference": {
                         "module": "Prim",
-                        "name": "String",
+                        "name": "Type",
                         "package": null
                       },
                       "tag": "constructor"
                     },
-                    "tag": "function"
+                    "name": "a",
+                    "visible": true
                   },
-                  "constraint": {
-                    "argument": {
-                      "kind": {
+                  "body": {
+                    "body": {
+                      "argument": {
+                        "kind": {
+                          "reference": {
+                            "module": "Prim",
+                            "name": "Type",
+                            "package": null
+                          },
+                          "tag": "constructor"
+                        },
+                        "name": "a",
+                        "tag": "rigid"
+                      },
+                      "result": {
                         "reference": {
                           "module": "Prim",
-                          "name": "Type",
+                          "name": "String",
                           "package": null
                         },
                         "tag": "constructor"
                       },
-                      "name": "a",
-                      "tag": "rigid"
+                      "tag": "function"
                     },
-                    "function": {
-                      "reference": {
-                        "module": "Rendering",
-                        "name": "Render",
-                        "package": "docs-fixture"
+                    "constraint": {
+                      "argument": {
+                        "kind": {
+                          "reference": {
+                            "module": "Prim",
+                            "name": "Type",
+                            "package": null
+                          },
+                          "tag": "constructor"
+                        },
+                        "name": "a",
+                        "tag": "rigid"
                       },
-                      "tag": "constructor"
+                      "function": {
+                        "reference": {
+                          "module": "Rendering",
+                          "name": "Render",
+                          "package": "docs-fixture"
+                        },
+                        "tag": "constructor"
+                      },
+                      "tag": "application"
                     },
-                    "tag": "application"
+                    "tag": "constrained"
                   },
-                  "tag": "constrained"
-                },
-                "tag": "forall"
+                  "tag": "forall"
+                }
               }
-            }
-          ],
-          "name": "Render",
-          "signature": {
-            "argument": {
-              "reference": {
-                "module": "Prim",
-                "name": "Type",
-                "package": null
+            ],
+            "signature": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
               },
-              "tag": "constructor"
-            },
-            "result": {
-              "reference": {
-                "module": "Prim",
-                "name": "Constraint",
-                "package": null
+              "result": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Constraint",
+                  "package": null
+                },
+                "tag": "constructor"
               },
-              "tag": "constructor"
+              "tag": "function"
             },
-            "tag": "function"
-          }
+            "tag": "class"
+          },
+          "name": "Render"
         }
       ]
     }

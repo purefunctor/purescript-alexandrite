@@ -49,23 +49,56 @@ pub enum TermKind {
 pub struct TypeItem {
     pub name: Option<String>,
     pub documentation: Option<String>,
-    pub signature: Option<Type>,
-    pub kind: TypeKind,
-    pub constructors: Vec<TermItem>,
-    pub members: Vec<TermItem>,
-    pub instances: Vec<TermItem>,
-    pub expansion: Option<Type>,
+    pub form: TypeItemForm,
 }
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export_to = "docs-schema.ts")]
-pub enum TypeKind {
-    Data,
-    Newtype,
-    Synonym,
-    Class,
-    Foreign,
-    Operator,
+#[serde(tag = "tag", rename_all = "camelCase")]
+pub enum TypeItemForm {
+    Data {
+        signature: Option<Type>,
+        declaration: Option<TypeDeclaration>,
+        constructors: Vec<TermItem>,
+        instances: Vec<TermItem>,
+    },
+    Newtype {
+        signature: Option<Type>,
+        declaration: Option<TypeDeclaration>,
+        constructors: Vec<TermItem>,
+        instances: Vec<TermItem>,
+    },
+    Synonym {
+        signature: Option<Type>,
+        equation: Option<TypeSynonymEquation>,
+        instances: Vec<TermItem>,
+    },
+    Class {
+        signature: Option<Type>,
+        declaration: Option<TypeDeclaration>,
+        members: Vec<TermItem>,
+        instances: Vec<TermItem>,
+    },
+    Foreign {
+        signature: Option<Type>,
+        instances: Vec<TermItem>,
+    },
+    Operator {
+        signature: Option<Type>,
+    },
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export_to = "docs-schema.ts")]
+pub struct TypeDeclaration {
+    pub binders: Vec<TypeBinder>,
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export_to = "docs-schema.ts")]
+pub struct TypeSynonymEquation {
+    pub binders: Vec<TypeBinder>,
+    pub expansion: Type,
 }
 
 #[derive(Serialize, Deserialize, TS)]
