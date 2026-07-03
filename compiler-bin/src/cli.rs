@@ -1,9 +1,21 @@
+use std::borrow::Cow;
+use std::io;
 use std::path::PathBuf;
 
+use clap::builder::{PathBufValueParser, TypedValueParser};
 use clap::{ArgAction, Args, Parser, Subcommand};
+use path_absolutize::Absolutize;
 use tracing::level_filters::LevelFilter;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
+    value.absolutize().map(Cow::into_owned)
+}
+
+fn absolute_path_parser() -> impl TypedValueParser<Value = PathBuf> {
+    PathBufValueParser::new().try_map(absolute_path)
+}
 
 #[derive(Debug, Parser)]
 #[command(about, version(VERSION))]
@@ -76,16 +88,17 @@ pub struct DocsOptions {
     #[command(subcommand)]
     pub command: Option<DocsCommand>,
     /// Output directory for the generated documentation.
-    #[arg(long, value_name("DIR"), default_value("docs"))]
+    #[arg(long, value_name("DIR"), default_value("docs"), value_parser = absolute_path_parser())]
     pub output: PathBuf,
     /// Spago project directory containing spago.lock.
-    #[arg(long, value_name("DIR"), conflicts_with("package"))]
+    #[arg(long, value_name("DIR"), conflicts_with("package"), value_parser = absolute_path_parser())]
     pub spago_project: Option<PathBuf>,
     /// Package folder to document.
     #[arg(
         id = "package",
         long = "package",
         value_name("DIR"),
+        value_parser = absolute_path_parser(),
         required_unless_present("spago_project")
     )]
     pub packages: Vec<PathBuf>,
@@ -101,7 +114,7 @@ pub enum DocsCommand {
 #[derive(Debug, Args)]
 pub struct DocsTypeScriptOptions {
     /// Output directory for the generated TypeScript schema.
-    #[arg(long, value_name("DIR"), default_value("src-generated"))]
+    #[arg(long, value_name("DIR"), default_value("src-generated"), value_parser = absolute_path_parser())]
     pub output: PathBuf,
 }
 
@@ -129,6 +142,7 @@ impl Default for LspOptions {
 mod tests {
     use super::*;
     use clap::error::ErrorKind;
+    use std::path::Path;
 
     fn docs(args: &[&str]) -> DocsOptions {
         let mut argv = vec!["alexandrite", "docs"];
@@ -153,38 +167,40 @@ mod tests {
         }
     }
 
+    fn current_directory() -> PathBuf {
+        std::env::current_dir().unwrap()
+    }
+
+    fn current_directory_path(path: impl AsRef<Path>) -> PathBuf {
+        current_directory().join(path)
+    }
+
     #[test]
     fn single_package_folder() {
         let options = docs(&["--package", "packages/effect"]);
-        insta::assert_debug_snapshot!(options.packages, @r#"
-        [
-            "packages/effect",
-        ]
-        "#);
+
+        assert_eq!(options.packages, vec![current_directory_path("packages/effect")]);
     }
 
     #[test]
     fn repeated_packages_keep_order() {
         let options = docs(&["--package", "packages/effect", "--package", "packages/prelude"]);
-        insta::assert_debug_snapshot!(options.packages, @r#"
-        [
-            "packages/effect",
-            "packages/prelude",
-        ]
-        "#);
+
+        assert_eq!(
+            options.packages,
+            vec![
+                current_directory_path("packages/effect"),
+                current_directory_path("packages/prelude"),
+            ]
+        );
     }
 
     #[test]
     fn spago_project_replaces_package_specs() {
         let options = docs(&["--spago-project", "."]);
-        insta::assert_debug_snapshot!((&options.spago_project, &options.packages), @r#"
-        (
-            Some(
-                ".",
-            ),
-            [],
-        )
-        "#);
+
+        assert_eq!(options.spago_project, Some(current_directory()));
+        assert!(options.packages.is_empty());
     }
 
     #[test]
@@ -198,14 +214,25 @@ mod tests {
     #[test]
     fn later_flags_are_not_consumed_as_package_paths() {
         let options = docs(&["--package", "packages/effect", "--output", "out"]);
-        insta::assert_debug_snapshot!((&options.output, &options.packages), @r#"
-        (
-            "out",
-            [
-                "packages/effect",
-            ],
-        )
-        "#);
+
+        assert_eq!(options.output, current_directory_path("out"));
+        assert_eq!(options.packages, vec![current_directory_path("packages/effect")]);
+    }
+
+    #[test]
+    fn relative_paths_are_normalised() {
+        let options = docs(&["--spago-project", "./spago/..", "--output", "./generated/../docs"]);
+
+        assert_eq!(options.spago_project, Some(current_directory()));
+        assert_eq!(options.output, current_directory_path("docs"));
+    }
+
+    #[test]
+    fn absolute_paths_are_not_resolved_from_the_current_directory() {
+        let output = std::env::temp_dir().join("alexandrite-docs-output");
+        let options = docs(&["--package", "packages/effect", "--output", output.to_str().unwrap()]);
+
+        assert_eq!(options.output, output);
     }
 
     #[test]
@@ -221,6 +248,7 @@ mod tests {
     #[test]
     fn typescript_has_default_output() {
         let options = typescript(&["typescript"]);
-        insta::assert_debug_snapshot!(options.output, @r#""src-generated""#);
+
+        assert_eq!(options.output, current_directory_path("src-generated"));
     }
 }

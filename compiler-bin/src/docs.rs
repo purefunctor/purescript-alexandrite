@@ -274,8 +274,6 @@ fn write_packages_manifest(
     config: &DocsConfig,
     packages: &[Package],
 ) -> Result<(), DocsError> {
-    let root = env::current_dir()?;
-
     for package in packages {
         let package_input = documentation::PackageInput {
             name: &package.name,
@@ -287,7 +285,7 @@ fn write_packages_manifest(
         };
         let package = documentation::render_package_manifest(engine, &package_input)?;
 
-        let package_folder = root.join(&config.output).join(&package.name);
+        let package_folder = config.output.join(&package.name);
         fs::create_dir_all(&package_folder)?;
 
         let manifest = package_folder.join("manifest.json");
@@ -304,9 +302,7 @@ fn generate_package_documentation(
     package: &Package,
     package_by_file: &[(FileId, &str)],
 ) -> Result<(), DocsError> {
-    let root = env::current_dir()?;
-
-    let modules_folder = root.join(&config.output).join(&package.name).join("modules");
+    let modules_folder = config.output.join(&package.name).join("modules");
     fs::create_dir_all(&modules_folder)?;
 
     for &id in &package.modules {
