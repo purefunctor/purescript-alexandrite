@@ -13,8 +13,8 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, Role, Type, TypeId, fd, fold, generalise,
-    signature, toolkit, unification, zonk,
+    CheckedClass, CheckedDataDeclaration, CheckedSynonym, ForallBinder, Role, Type, TypeId, fd,
+    fold, generalise, signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
 use crate::source::types;
@@ -139,7 +139,7 @@ where
 
         finalise_type_binding_group(state, context, &items)?;
         finalise_roles(state, context, &mut scc_state)?;
-        finalise_data_constructors(state, context, &mut scc_state)?;
+        finalise_data_declarations(state, context, &mut scc_state)?;
         finalise_synonym_replacements(state, context, &mut scc_state)?;
         finalise_classes(state, context, &mut scc_state)?;
     }
@@ -489,7 +489,7 @@ where
     Ok(constructors)
 }
 
-fn finalise_data_constructors<Q>(
+fn finalise_data_declarations<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     scc: &mut TypeSccState,
@@ -540,6 +540,14 @@ where
             type_reference = context.intern_kind_application(type_reference, rigid);
         }
 
+        let type_parameters = parameters.iter().copied().enumerate().map(|(index, parameter)| {
+            let kind = get_parameter_kind(index);
+            let binder = ForallBinder { kind, ..parameter };
+            context.intern_forall_binder(binder)
+        });
+
+        let type_parameters = type_parameters.collect_vec();
+
         for (constructor_id, checked_arguments) in constructors {
             let mut result = type_reference;
 
@@ -558,12 +566,8 @@ where
             }
 
             // forall (a :: Type). a -> Tagged @k t a
-            for (index, parameter) in parameters.iter().enumerate().rev() {
-                let kind = get_parameter_kind(index);
-                let binder = ForallBinder { kind, ..*parameter };
-
-                let binder_id = context.intern_forall_binder(binder);
-                result = context.intern_forall(binder_id, result);
+            for type_parameter in type_parameters.iter().rev() {
+                result = context.intern_forall(*type_parameter, result);
             }
 
             // forall (k :: Type) (t :: k) (a :: Type). a -> Tagged @k t a
@@ -575,6 +579,8 @@ where
 
             state.checked.terms.insert(constructor_id, result);
         }
+
+        state.checked.data_declarations.insert(item_id, CheckedDataDeclaration { type_parameters });
     }
 
     Ok(())

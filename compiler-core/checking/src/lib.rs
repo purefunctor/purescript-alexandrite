@@ -23,8 +23,8 @@ use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 use crate::core::{
-    CheckedClass, CheckedInstance, CheckedSynonym, ForallBinder, ForallBinderId, Name, Role,
-    RowType, RowTypeId, SmolStrId,
+    CheckedClass, CheckedDataDeclaration, CheckedInstance, CheckedSynonym, ForallBinder,
+    ForallBinderId, Name, Role, RowType, RowTypeId, SmolStrId,
 };
 use crate::error::CheckingError;
 use crate::holes::{TermHole, TypeHole};
@@ -55,6 +55,7 @@ pub trait ExternalQueries:
 pub struct CheckedModule {
     pub types: FxHashMap<TypeItemId, TypeId>,
     pub terms: FxHashMap<TermItemId, TypeId>,
+    pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
     pub synonyms: FxHashMap<TypeItemId, CheckedSynonym>,
     pub classes: FxHashMap<TypeItemId, CheckedClass>,
     pub instances: FxHashMap<InstanceId, CheckedInstance>,
@@ -100,6 +101,10 @@ impl CheckedModule {
 
     pub fn lookup_term(&self, id: TermItemId) -> Option<TypeId> {
         self.terms.get(&id).copied()
+    }
+
+    pub fn lookup_data_declaration(&self, id: TypeItemId) -> Option<CheckedDataDeclaration> {
+        self.data_declarations.get(&id).cloned()
     }
 
     pub fn lookup_synonym(&self, id: TypeItemId) -> Option<CheckedSynonym> {
