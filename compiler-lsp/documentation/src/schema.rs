@@ -12,6 +12,25 @@ pub struct Package {
     pub description: Option<String>,
     pub dependencies: BTreeMap<String, String>,
     pub modules: Vec<String>,
+    pub location: Option<Location>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export_to = "docs-schema.ts")]
+#[serde(tag = "tag", rename_all = "camelCase")]
+pub enum Location {
+    #[serde(rename = "github")]
+    #[ts(rename = "github")]
+    GitHub {
+        url: String,
+        owner: String,
+        repository: String,
+        reference: Option<String>,
+        subdir: Option<String>,
+    },
+    #[serde(rename = "git")]
+    #[ts(rename = "git")]
+    Git { url: String, reference: Option<String>, subdir: Option<String> },
 }
 
 #[derive(Serialize, Deserialize, TS)]

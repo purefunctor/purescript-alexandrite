@@ -1,6 +1,5 @@
 ---
 source: compiler-lsp/spago/tests/lockfile.rs
-assertion_line: 136
 expression: snapshot
 ---
 aff: Registry { version: "8.0.0" }
@@ -21,7 +20,7 @@ contravariant: Registry { version: "6.0.0" }
 control: Registry { version: "6.0.0" }
 datetime: Registry { version: "6.1.0" }
 debug: Registry { version: "6.0.2" }
-deku-core: Git { rev: "6" }
+deku-core: Git { url: Some("https://github.com/mikesol/purescript-deku.git"), rev: "65d6e9d289534d13d7d235fbe7f19e6e0bd17c72", version: "6", subdir: Some("deku-core") }
 distributive: Registry { version: "6.0.0" }
 effect: Registry { version: "4.0.0" }
 either: Registry { version: "6.1.0" }
@@ -46,7 +45,7 @@ free: Registry { version: "7.1.0" }
 functions: Registry { version: "6.0.0" }
 functors: Registry { version: "5.0.0" }
 gen: Registry { version: "4.0.0" }
-graphql-client: Git { rev: "f" }
+graphql-client: Git { url: Some("https://github.com/OxfordAbstracts/purescript-graphql-client.git"), rev: "fe24db5f0a79137edb1019b5757ce70d44efae10", version: "f", subdir: None }
 halogen-subscriptions: Registry { version: "2.0.0" }
 heterogeneous: Registry { version: "0.6.0" }
 http-methods: Registry { version: "6.0.0" }

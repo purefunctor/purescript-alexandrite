@@ -121,7 +121,12 @@ fn test_lockfile_sources_by_package_include_package_roots() {
     {
         "git-package": PackageSources {
             reference: Git {
-                rev: "a",
+                url: None,
+                rev: "abcd",
+                version: "a",
+                subdir: Some(
+                    "packages/git-package",
+                ),
             },
             roots: [
                 ".spago/p/git-package/abcd",

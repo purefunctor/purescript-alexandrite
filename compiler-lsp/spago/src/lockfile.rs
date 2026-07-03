@@ -50,7 +50,7 @@ pub struct PackageSources {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackageReference {
     Workspace,
-    Git { rev: SmolStr },
+    Git { url: Option<SmolStr>, rev: SmolStr, version: SmolStr, subdir: Option<PathBuf> },
     Local,
     Registry { version: SmolStr },
 }
@@ -59,6 +59,8 @@ pub enum PackageReference {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PackageEntry {
     Git {
+        #[serde(default)]
+        url: Option<SmolStr>,
         rev: SmolStr,
         #[serde(default)]
         subdir: Option<PathBuf>,
@@ -95,7 +97,7 @@ impl Lockfile {
             let mut roots = Vec::new();
             let mut sources = Vec::new();
             let reference = match package {
-                PackageEntry::Git { rev, subdir } => {
+                PackageEntry::Git { url, rev, subdir } => {
                     let root = base.join(name).join(rev);
                     roots.push(PathBuf::clone(&root));
                     sources.push(root.join("src"));
@@ -117,7 +119,12 @@ impl Lockfile {
                         sources.push(root.join("test"));
                     }
 
-                    PackageReference::Git { rev: short_revision(rev, &git_revisions) }
+                    PackageReference::Git {
+                        url: url.clone(),
+                        rev: SmolStr::clone(rev),
+                        version: short_revision(rev, &git_revisions),
+                        subdir: subdir.cloned(),
+                    }
                 }
                 PackageEntry::Local { path } => {
                     let root = Path::new(path).to_path_buf();

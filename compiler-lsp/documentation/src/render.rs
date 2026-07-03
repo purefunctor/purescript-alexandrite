@@ -15,6 +15,7 @@ pub struct PackageInput<'a> {
     pub license: Option<&'a str>,
     pub description: Option<&'a str>,
     pub dependencies: &'a BTreeMap<String, String>,
+    pub location: Option<&'a schema::Location>,
     pub modules: &'a [FileId],
 }
 
@@ -331,6 +332,7 @@ pub fn render_package_manifest(
         license: package.license.map(str::to_string),
         description: package.description.map(str::to_string),
         dependencies: BTreeMap::clone(package.dependencies),
+        location: package.location.cloned(),
         modules,
     })
 }

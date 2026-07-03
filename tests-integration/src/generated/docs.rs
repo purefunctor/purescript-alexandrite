@@ -31,6 +31,7 @@ pub fn report(engine: &QueryEngine, files: &Files, root: &Path) -> Result<String
         license: None,
         description: None,
         dependencies: &dependencies,
+        location: None,
         modules: &modules,
     };
 

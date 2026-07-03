@@ -1,16 +1,19 @@
 pub mod error;
+mod location;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
 use analyzer::{QueryEngine, prim};
+use documentation::schema::Location;
 use files::{FileId, Files};
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Deserialize;
 
 use crate::docs::error::DocsError;
+use crate::docs::location::{manifest_location, package_reference_location};
 use crate::walk;
 
 macro_rules! warm_modules {
@@ -66,6 +69,7 @@ struct Package {
     license: Option<String>,
     description: Option<String>,
     dependencies: BTreeMap<String, String>,
+    location: Option<Location>,
     modules: Vec<FileId>,
 }
 
@@ -78,6 +82,7 @@ struct PackageMetadata {
     include_files: Vec<String>,
     exclude_files: Vec<String>,
     dependencies: BTreeMap<String, String>,
+    location: Option<Location>,
 }
 
 #[derive(Deserialize)]
@@ -93,6 +98,27 @@ struct PursManifest {
     exclude_files: Vec<String>,
     #[serde(default)]
     dependencies: BTreeMap<String, String>,
+    #[serde(default)]
+    location: Option<PursLocation>,
+    #[serde(default, rename = "ref")]
+    reference: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum PursLocation {
+    GitHub {
+        #[serde(rename = "githubOwner")]
+        owner: String,
+        #[serde(rename = "githubRepo")]
+        repository: String,
+        subdir: Option<String>,
+    },
+    Git {
+        #[serde(rename = "gitUrl")]
+        url: String,
+        subdir: Option<String>,
+    },
 }
 
 fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
@@ -143,7 +169,7 @@ fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Pac
 
     let mut packages = vec![];
     for path in &config.packages {
-        let package = load_package_from_folder(compiler, &root, path, None, None)?;
+        let package = load_package_from_folder(compiler, &root, path, None, None, None)?;
         packages.push(package);
     }
 
@@ -162,6 +188,7 @@ fn load_packages_from_spago_project(
     for (name, sources) in packages_by_source {
         let name = name.to_string();
         let version = package_version(&sources.reference);
+        let location = package_reference_location(&sources.reference);
         let package = if let Some(package_root) = sources
             .roots
             .iter()
@@ -174,6 +201,7 @@ fn load_packages_from_spago_project(
                 package_root,
                 Some(name.clone()),
                 Some(version.clone()),
+                location.clone(),
             )?
         } else {
             let modules = load_modules(compiler, sources.sources)?;
@@ -183,6 +211,7 @@ fn load_packages_from_spago_project(
                 license: None,
                 description: None,
                 dependencies: BTreeMap::new(),
+                location,
                 modules,
             }
         };
@@ -201,6 +230,7 @@ fn load_package_from_folder(
     path: &Path,
     name: Option<String>,
     version: Option<String>,
+    location: Option<Location>,
 ) -> Result<Package, DocsError> {
     let metadata = load_package_metadata(&root.join(path))?;
     let includes = package_include_globs(path, &metadata);
@@ -210,6 +240,7 @@ fn load_package_from_folder(
 
     let name = metadata.name.or(name).unwrap_or_else(|| fallback_package_name(path));
     let version = metadata.version.or(version).unwrap_or_else(|| "0.0.0".to_owned());
+    let location = metadata.location.or(location);
     let modules = load_modules(compiler, files)?;
 
     Ok(Package {
@@ -218,6 +249,7 @@ fn load_package_from_folder(
         license: metadata.license,
         description: metadata.description,
         dependencies: metadata.dependencies,
+        location,
         modules,
     })
 }
@@ -230,6 +262,7 @@ fn load_package_metadata(package_root: &Path) -> Result<PackageMetadata, DocsErr
 
     let manifest = fs::read_to_string(manifest)?;
     let manifest: PursManifest = serde_json::from_str(&manifest)?;
+    let location = manifest_location(manifest.location, manifest.reference);
 
     Ok(PackageMetadata {
         name: Some(manifest.name),
@@ -239,6 +272,7 @@ fn load_package_metadata(package_root: &Path) -> Result<PackageMetadata, DocsErr
         include_files: manifest.include_files,
         exclude_files: manifest.exclude_files,
         dependencies: manifest.dependencies,
+        location,
     })
 }
 
@@ -264,7 +298,7 @@ fn fallback_package_name(path: &Path) -> String {
 fn package_version(reference: &spago::PackageReference) -> String {
     match reference {
         spago::PackageReference::Workspace | spago::PackageReference::Local => "0.0.0".to_owned(),
-        spago::PackageReference::Git { rev } => rev.to_string(),
+        spago::PackageReference::Git { version, .. } => version.to_string(),
         spago::PackageReference::Registry { version } => version.to_string(),
     }
 }
@@ -281,6 +315,7 @@ fn write_packages_manifest(
             license: package.license.as_deref(),
             description: package.description.as_deref(),
             dependencies: &package.dependencies,
+            location: package.location.as_ref(),
             modules: &package.modules,
         };
         let package = documentation::render_package_manifest(engine, &package_input)?;
@@ -364,11 +399,15 @@ fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    static TEMPORARY_DIRECTORY_INDEX: AtomicUsize = AtomicUsize::new(0);
 
     fn temporary_directory() -> PathBuf {
         let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let directory = std::env::temp_dir().join(format!("alexandrite-docs-{nanos}"));
+        let index = TEMPORARY_DIRECTORY_INDEX.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!("alexandrite-docs-{nanos}-{index}"));
         fs::create_dir_all(&directory).unwrap();
         directory
     }
@@ -383,6 +422,11 @@ mod tests {
               "version": "4.0.0",
               "license": "BSD-3-Clause",
               "description": "Effect package",
+              "location": {
+                "githubOwner": "purescript",
+                "githubRepo": "purescript-effect"
+              },
+              "ref": "v4.0.0",
               "includeFiles": ["examples/**/*.purs"],
               "excludeFiles": ["test/Excluded.purs"],
               "dependencies": { "prelude": ">=6.0.0 <7.0.0" }
@@ -415,7 +459,96 @@ mod tests {
             dependencies: {
                 "prelude": ">=6.0.0 <7.0.0",
             },
+            location: Some(
+                GitHub {
+                    url: "https://github.com/purescript/purescript-effect",
+                    owner: "purescript",
+                    repository: "purescript-effect",
+                    reference: Some(
+                        "v4.0.0",
+                    ),
+                    subdir: None,
+                },
+            ),
         }
+        "#);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn git_manifest_location_detects_github_urls() {
+        let root = temporary_directory();
+        fs::write(
+            root.join("purs.json"),
+            r#"{
+              "name": "effect",
+              "version": "4.0.0",
+              "license": "BSD-3-Clause",
+              "location": {
+                "gitUrl": "https://github.com/purescript/purescript-effect.git",
+                "subdir": "packages/effect"
+              },
+              "ref": "v4.0.0",
+              "dependencies": {}
+            }"#,
+        )
+        .unwrap();
+
+        let metadata = load_package_metadata(&root).unwrap();
+
+        insta::assert_debug_snapshot!(metadata.location, @r#"
+        Some(
+            GitHub {
+                url: "https://github.com/purescript/purescript-effect",
+                owner: "purescript",
+                repository: "purescript-effect",
+                reference: Some(
+                    "v4.0.0",
+                ),
+                subdir: Some(
+                    "packages/effect",
+                ),
+            },
+        )
+        "#);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn git_manifest_location_preserves_generic_git_urls() {
+        let root = temporary_directory();
+        fs::write(
+            root.join("purs.json"),
+            r#"{
+              "name": "image",
+              "version": "1.0.0",
+              "license": "BSD-3-Clause",
+              "location": {
+                "gitUrl": "https://example.com/purefunctor/purescript-package.git",
+                "subdir": "libs/package"
+              },
+              "ref": "v1.0.0",
+              "dependencies": {}
+            }"#,
+        )
+        .unwrap();
+
+        let metadata = load_package_metadata(&root).unwrap();
+
+        insta::assert_debug_snapshot!(metadata.location, @r#"
+        Some(
+            Git {
+                url: "https://example.com/purefunctor/purescript-package.git",
+                reference: Some(
+                    "v1.0.0",
+                ),
+                subdir: Some(
+                    "libs/package",
+                ),
+            },
+        )
         "#);
 
         fs::remove_dir_all(root).unwrap();
