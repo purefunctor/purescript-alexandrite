@@ -96,6 +96,7 @@ expression: report
                 }
               ]
             },
+            "functionalDependencies": [],
             "instances": [],
             "members": [
               {
@@ -187,6 +188,7 @@ expression: report
               },
               "tag": "function"
             },
+            "superclasses": [],
             "tag": "class"
           },
           "name": "Render"

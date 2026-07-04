@@ -95,6 +95,9 @@ pub enum TypeItemForm {
     Class {
         signature: Option<Type>,
         declaration: Option<TypeDeclaration>,
+        superclasses: Vec<Type>,
+        #[serde(rename = "functionalDependencies")]
+        functional_dependencies: Vec<FunctionalDependency>,
         members: Vec<TermItem>,
         instances: Vec<TermItem>,
     },
@@ -105,6 +108,13 @@ pub enum TypeItemForm {
     Operator {
         signature: Option<Type>,
     },
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export_to = "docs-schema.ts")]
+pub struct FunctionalDependency {
+    pub determiners: Vec<String>,
+    pub determined: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, TS)]

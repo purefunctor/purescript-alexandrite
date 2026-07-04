@@ -106,9 +106,9 @@ expression: report
             },
             "instances": [
               {
-                "documentation": "A documented instance.",
+                "documentation": "A documented superclass instance.",
                 "kind": "Instance",
-                "name": "renderChoice",
+                "name": "labelChoice",
                 "signature": {
                   "argument": {
                     "reference": {
@@ -121,10 +121,45 @@ expression: report
                   "function": {
                     "reference": {
                       "module": "Main",
-                      "name": "Render",
+                      "name": "Label",
                       "package": "docs-fixture"
                     },
                     "tag": "constructor"
+                  },
+                  "tag": "application"
+                }
+              },
+              {
+                "documentation": "A documented instance.",
+                "kind": "Instance",
+                "name": "renderChoice",
+                "signature": {
+                  "argument": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "String",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Choice",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Render",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
                   },
                   "tag": "application"
                 }
@@ -312,7 +347,7 @@ expression: report
           "name": "IdentityAlias"
         },
         {
-          "documentation": "A documented class.",
+          "documentation": "A documented superclass.",
           "form": {
             "declaration": {
               "binders": [
@@ -330,11 +365,12 @@ expression: report
                 }
               ]
             },
+            "functionalDependencies": [],
             "instances": [
               {
-                "documentation": "A documented instance.",
+                "documentation": "A documented superclass instance.",
                 "kind": "Instance",
-                "name": "renderChoice",
+                "name": "labelChoice",
                 "signature": {
                   "argument": {
                     "reference": {
@@ -347,7 +383,7 @@ expression: report
                   "function": {
                     "reference": {
                       "module": "Main",
-                      "name": "Render",
+                      "name": "Label",
                       "package": "docs-fixture"
                     },
                     "tag": "constructor"
@@ -358,9 +394,9 @@ expression: report
             ],
             "members": [
               {
-                "documentation": "A documented member.",
+                "documentation": "A documented superclass member.",
                 "kind": "ClassMember",
-                "name": "render",
+                "name": "label",
                 "signature": {
                   "binder": {
                     "kind": {
@@ -414,7 +450,7 @@ expression: report
                       "function": {
                         "reference": {
                           "module": "Main",
-                          "name": "Render",
+                          "name": "Label",
                           "package": "docs-fixture"
                         },
                         "tag": "constructor"
@@ -446,9 +482,374 @@ expression: report
               },
               "tag": "function"
             },
+            "superclasses": [],
+            "tag": "class"
+          },
+          "name": "Label"
+        },
+        {
+          "documentation": "A documented class.",
+          "form": {
+            "declaration": {
+              "binders": [
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "b",
+                  "visible": true
+                }
+              ]
+            },
+            "functionalDependencies": [
+              {
+                "determined": [
+                  "b"
+                ],
+                "determiners": [
+                  "a"
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "documentation": "A documented instance.",
+                "kind": "Instance",
+                "name": "renderChoice",
+                "signature": {
+                  "argument": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "String",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Choice",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Render",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "tag": "application"
+                }
+              }
+            ],
+            "members": [
+              {
+                "documentation": "A documented member.",
+                "kind": "ClassMember",
+                "name": "render",
+                "signature": {
+                  "binder": {
+                    "kind": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "name": "a",
+                    "visible": true
+                  },
+                  "body": {
+                    "binder": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "b",
+                      "visible": true
+                    },
+                    "body": {
+                      "body": {
+                        "argument": {
+                          "kind": {
+                            "reference": {
+                              "module": "Prim",
+                              "name": "Type",
+                              "package": null
+                            },
+                            "tag": "constructor"
+                          },
+                          "name": "a",
+                          "tag": "rigid"
+                        },
+                        "result": {
+                          "argument": {
+                            "kind": {
+                              "reference": {
+                                "module": "Prim",
+                                "name": "Type",
+                                "package": null
+                              },
+                              "tag": "constructor"
+                            },
+                            "name": "b",
+                            "tag": "rigid"
+                          },
+                          "result": {
+                            "reference": {
+                              "module": "Prim",
+                              "name": "String",
+                              "package": null
+                            },
+                            "tag": "constructor"
+                          },
+                          "tag": "function"
+                        },
+                        "tag": "function"
+                      },
+                      "constraint": {
+                        "argument": {
+                          "kind": {
+                            "reference": {
+                              "module": "Prim",
+                              "name": "Type",
+                              "package": null
+                            },
+                            "tag": "constructor"
+                          },
+                          "name": "b",
+                          "tag": "rigid"
+                        },
+                        "function": {
+                          "argument": {
+                            "kind": {
+                              "reference": {
+                                "module": "Prim",
+                                "name": "Type",
+                                "package": null
+                              },
+                              "tag": "constructor"
+                            },
+                            "name": "a",
+                            "tag": "rigid"
+                          },
+                          "function": {
+                            "reference": {
+                              "module": "Main",
+                              "name": "Render",
+                              "package": "docs-fixture"
+                            },
+                            "tag": "constructor"
+                          },
+                          "tag": "application"
+                        },
+                        "tag": "application"
+                      },
+                      "tag": "constrained"
+                    },
+                    "tag": "forall"
+                  },
+                  "tag": "forall"
+                }
+              }
+            ],
+            "signature": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "argument": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Constraint",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "function"
+            },
+            "superclasses": [
+              {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "tag": "rigid"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Label",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              }
+            ],
             "tag": "class"
           },
           "name": "Render"
+        },
+        {
+          "documentation": "A documented multi-parameter class.",
+          "form": {
+            "declaration": {
+              "binders": [
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "b",
+                  "visible": true
+                },
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "c",
+                  "visible": true
+                }
+              ]
+            },
+            "functionalDependencies": [
+              {
+                "determined": [
+                  "c"
+                ],
+                "determiners": [
+                  "a",
+                  "b"
+                ]
+              },
+              {
+                "determined": [
+                  "a",
+                  "b"
+                ],
+                "determiners": [
+                  "c"
+                ]
+              }
+            ],
+            "instances": [],
+            "members": [],
+            "signature": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "argument": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "result": {
+                  "argument": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "result": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Constraint",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "tag": "function"
+                },
+                "tag": "function"
+              },
+              "tag": "function"
+            },
+            "superclasses": [],
+            "tag": "class"
+          },
+          "name": "Convert"
         }
       ]
     }

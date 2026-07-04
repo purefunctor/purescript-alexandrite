@@ -505,6 +505,7 @@ expression: report
                 }
               ]
             },
+            "functionalDependencies": [],
             "instances": [
               {
                 "documentation": "Instance mentioning a data type, synonym, and repeated data type.",
@@ -689,6 +690,7 @@ expression: report
               },
               "tag": "function"
             },
+            "superclasses": [],
             "tag": "class"
           },
           "name": "Inspect"

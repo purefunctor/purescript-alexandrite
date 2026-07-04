@@ -50,6 +50,20 @@ impl<'a> TypeEncoder<'a> {
         Ok(schema::TypeDeclaration { binders })
     }
 
+    fn encode_class_declaration(
+        &mut self,
+        class: checking::core::CheckedClass,
+    ) -> Result<(schema::TypeDeclaration, Vec<schema::Type>), Error> {
+        self.names.reset();
+        let binders = self.encode_forall_binders(class.type_parameters)?;
+
+        let superclasses =
+            class.superclasses.into_iter().map(|superclass| self.encode_type(superclass));
+        let superclasses = superclasses.collect::<Result<Vec<_>, Error>>()?;
+
+        Ok((schema::TypeDeclaration { binders }, superclasses))
+    }
+
     fn encode_synonym_equation(
         &mut self,
         synonym: checking::core::CheckedSynonym,
@@ -237,6 +251,35 @@ impl<'a> ModuleEncoder<'a> {
         Ok(schema::TermItem { name, documentation, signature, kind: term_kind(&term_item.kind) })
     }
 
+    fn encode_functional_dependencies(
+        &self,
+        type_id: indexing::TypeItemId,
+        declaration: &schema::TypeDeclaration,
+    ) -> Vec<schema::FunctionalDependency> {
+        let Some(lowering::TypeItemIr::ClassGroup { class: Some(class), .. }) =
+            self.lowered.info.get_type_item(type_id)
+        else {
+            return vec![];
+        };
+
+        let dependency_names = |positions: &[u8]| {
+            let names = positions.iter().map(|&position| {
+                let position = position as usize;
+                let binder = &declaration.binders[position];
+                String::clone(&binder.name)
+            });
+            names.collect()
+        };
+
+        let functional_dependencies = class.functional_dependencies.iter().map(|dependency| {
+            let determiners = dependency_names(dependency.determiners.as_ref());
+            let determined = dependency_names(dependency.determined.as_ref());
+            schema::FunctionalDependency { determiners, determined }
+        });
+
+        functional_dependencies.collect()
+    }
+
     fn encode_type_item(
         &mut self,
         type_id: indexing::TypeItemId,
@@ -291,16 +334,28 @@ impl<'a> ModuleEncoder<'a> {
                 schema::TypeItemForm::Synonym { signature, equation, instances }
             }
             indexing::TypeItemKind::Class { members, .. } => {
-                let declaration = if let Some(class) = self.checked.lookup_class(type_id) {
-                    Some(self.type_encoder.encode_declaration(class.type_parameters)?)
-                } else {
-                    None
-                };
+                let (declaration, superclasses, functional_dependencies) =
+                    if let Some(class) = self.checked.lookup_class(type_id) {
+                        let (declaration, superclasses) =
+                            self.type_encoder.encode_class_declaration(class)?;
+                        let functional_dependencies =
+                            self.encode_functional_dependencies(type_id, &declaration);
+                        (Some(declaration), superclasses, functional_dependencies)
+                    } else {
+                        (None, vec![], vec![])
+                    };
 
                 let members = self.encode_term_items(members.iter().copied())?;
                 let instances = self.encode_term_items(instance_ids.iter().copied())?;
 
-                schema::TypeItemForm::Class { signature, declaration, members, instances }
+                schema::TypeItemForm::Class {
+                    signature,
+                    declaration,
+                    superclasses,
+                    functional_dependencies,
+                    members,
+                    instances,
+                }
             }
             indexing::TypeItemKind::Foreign { .. } => {
                 let instances = self.encode_term_items(instance_ids.iter().copied())?;
