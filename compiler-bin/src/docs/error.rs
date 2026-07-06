@@ -13,6 +13,8 @@ pub enum DocsError {
     QueryError(#[from] QueryError),
     #[error("DocumentationError: {0}")]
     DocumentationError(#[from] DocumentationError),
+    #[error("Duplicate module name: {0}")]
+    DuplicateModuleName(String),
     #[error("Invalid package glob: {0}")]
     InvalidPackageGlob(String),
     #[error("Invalid package name: {0}")]

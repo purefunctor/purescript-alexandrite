@@ -458,10 +458,18 @@ fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
     });
 
     let results = results.collect::<Result<Vec<_>, DocsError>>()?;
+    let mut module_files = BTreeMap::new();
     for (id, parsed) in results {
         if let Some(name) = parsed.module_name() {
-            compiler.engine.set_module_file(&name, id);
+            let name = name.to_string();
+            if module_files.insert(String::clone(&name), id).is_some() {
+                return Err(DocsError::DuplicateModuleName(name));
+            }
         }
+    }
+
+    for (name, id) in module_files {
+        compiler.engine.set_module_file(&name, id);
     }
 
     Ok(())
@@ -726,6 +734,26 @@ mod tests {
 
         assert!(!output.join("stale.json").exists());
         assert!(output.join("effect/manifest.json").is_file());
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn duplicate_module_names_are_rejected_before_populating_the_engine() {
+        let root = temporary_directory();
+        let first = root.join("src/First.purs");
+        let second = root.join("src/Second.purs");
+        fs::create_dir_all(first.parent().unwrap()).unwrap();
+        fs::write(&first, "module Main where\n").unwrap();
+        fs::write(&second, "module Main where\n").unwrap();
+
+        let mut compiler = Compiler::default();
+        load_modules(&mut compiler, vec![first, second]).unwrap();
+
+        assert!(matches!(
+            populate_module_file(&mut compiler),
+            Err(DocsError::DuplicateModuleName(_))
+        ));
 
         fs::remove_dir_all(root).unwrap();
     }
