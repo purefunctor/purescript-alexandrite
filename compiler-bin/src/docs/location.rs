@@ -9,13 +9,9 @@ pub fn manifest_location(
     reference: Option<String>,
 ) -> Option<Location> {
     match location? {
-        PursLocation::GitHub { owner, repository, subdir } => Some(Location::GitHub {
-            url: github_repository_url(&owner, &repository),
-            owner,
-            repository,
-            reference,
-            subdir,
-        }),
+        PursLocation::GitHub { owner, repository, subdir } => {
+            Some(github_location(owner, repository, reference, subdir))
+        }
         PursLocation::Git { url, subdir } => Some(location_from_git_url(&url, reference, subdir)),
     }
 }
@@ -36,6 +32,15 @@ fn location_from_git_url(url: &str, reference: Option<String>, subdir: Option<St
         return Location::Git { url: url.to_string(), reference, subdir };
     };
 
+    github_location(owner, repository, reference, subdir)
+}
+
+fn github_location(
+    owner: String,
+    repository: String,
+    reference: Option<String>,
+    subdir: Option<String>,
+) -> Location {
     Location::GitHub {
         url: github_repository_url(&owner, &repository),
         owner,
