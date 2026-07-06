@@ -111,10 +111,12 @@ impl WasmQueryEngine {
 
         for id in self.external_ids.drain(..) {
             input.content.remove(&id);
+            input.module.retain(|_, file_id| *file_id != id);
             derived.parsed.remove(&id);
             derived.stabilized.remove(&id);
             derived.indexed.remove(&id);
             derived.lowered.remove(&id);
+            derived.grouped.remove(&id);
             derived.resolved.remove(&id);
             derived.bracketed.remove(&id);
             derived.sectioned.remove(&id);
@@ -127,6 +129,7 @@ impl WasmQueryEngine {
             derived.stabilized.remove(&user_id);
             derived.indexed.remove(&user_id);
             derived.lowered.remove(&user_id);
+            derived.grouped.remove(&user_id);
             derived.resolved.remove(&user_id);
             derived.bracketed.remove(&user_id);
             derived.sectioned.remove(&user_id);
