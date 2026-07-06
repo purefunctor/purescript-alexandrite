@@ -129,6 +129,11 @@ fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
     let modules = package_modules(&packages);
 
     warm_documentation_queries(&compiler.engine, &modules)?;
+
+    if config.output.exists() {
+        fs::remove_dir_all(&config.output)?;
+    }
+
     write_packages_manifest(&compiler.engine, &config, &packages)?;
 
     let package_by_file = packages
@@ -580,5 +585,32 @@ mod tests {
         )
         "#
         );
+    }
+
+    #[test]
+    fn documentation_generation_clears_stale_output_files() {
+        let root = temporary_directory();
+        let package = root.join("effect");
+        let source = package.join("src/Main.purs");
+        let output = root.join("generated");
+
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        fs::create_dir_all(&output).unwrap();
+        fs::write(package.join("purs.json"), r#"{ "name": "effect", "version": "1.0.0" }"#)
+            .unwrap();
+        fs::write(source, "module Main where\n").unwrap();
+        fs::write(output.join("stale.json"), "{}").unwrap();
+
+        generate_documentation(DocsConfig {
+            output: output.clone(),
+            spago_project: None,
+            packages: vec![package],
+        })
+        .unwrap();
+
+        assert!(!output.join("stale.json").exists());
+        assert!(output.join("effect/manifest.json").is_file());
+
+        fs::remove_dir_all(root).unwrap();
     }
 }
