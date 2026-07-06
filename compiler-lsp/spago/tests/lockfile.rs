@@ -123,7 +123,7 @@ fn test_lockfile_sources_by_package_include_package_roots() {
             reference: Git {
                 url: None,
                 rev: "abcd",
-                version: "a",
+                version: "abcd",
                 subdir: Some(
                     "packages/git-package",
                 ),

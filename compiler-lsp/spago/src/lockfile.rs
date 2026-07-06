@@ -91,7 +91,6 @@ impl Lockfile {
         }
 
         let base = Path::new(".spago").join("p");
-        let git_revisions = self.git_revisions();
 
         for (name, package) in &self.packages {
             let mut roots = Vec::new();
@@ -122,7 +121,7 @@ impl Lockfile {
                     PackageReference::Git {
                         url: url.clone(),
                         rev: SmolStr::clone(rev),
-                        version: short_revision(rev, &git_revisions),
+                        version: SmolStr::clone(rev),
                         subdir: subdir.cloned(),
                     }
                 }
@@ -168,26 +167,6 @@ impl Lockfile {
 
         packages.collect()
     }
-
-    fn git_revisions(&self) -> Vec<&SmolStr> {
-        let revisions = self.packages.values().filter_map(|package| match package {
-            PackageEntry::Git { rev, .. } => Some(rev),
-            PackageEntry::Local { .. } | PackageEntry::Registry { .. } => None,
-        });
-
-        revisions.collect()
-    }
-}
-
-fn short_revision(rev: &SmolStr, revisions: &[&SmolStr]) -> SmolStr {
-    for index in 1..=rev.len() {
-        let prefix = &rev[..index];
-        if revisions.iter().all(|other| **other == *rev || !other.starts_with(prefix)) {
-            return SmolStr::new(prefix);
-        }
-    }
-
-    SmolStr::clone(rev)
 }
 
 fn with_root(root: impl AsRef<Path>) -> impl Fn(PathBuf) -> Option<PathBuf> {
