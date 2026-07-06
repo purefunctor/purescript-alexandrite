@@ -2,7 +2,7 @@ pub mod error;
 mod location;
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::{env, fs, process};
 
 use analyzer::{QueryEngine, prim};
@@ -209,6 +209,8 @@ fn load_packages_from_spago_project(
                 location.clone(),
             )?
         } else {
+            validate_package_name(&name)?;
+
             let modules = load_modules(compiler, sources.sources)?;
             Package {
                 name,
@@ -237,13 +239,20 @@ fn load_package_from_folder(
     version: Option<String>,
     location: Option<Location>,
 ) -> Result<Package, DocsError> {
-    let metadata = load_package_metadata(&root.join(path))?;
-    let includes = package_include_globs(path, &metadata);
-    let excludes = package_exclude_globs(path, &metadata);
+    let package_root = root.join(path);
+    if !package_root.is_dir() {
+        return Err(DocsError::MissingPackageFolder(package_root));
+    }
+
+    let metadata = load_package_metadata(&package_root)?;
+    let includes = package_include_globs(path, &metadata)?;
+    let excludes = package_exclude_globs(path, &metadata)?;
 
     let walk::Walk { files, .. } = walk::walk_filtered(root, includes, excludes)?;
 
     let name = metadata.name.or(name).unwrap_or_else(|| fallback_package_name(path));
+    validate_package_name(&name)?;
+
     let version = metadata.version.or(version).unwrap_or_else(|| "0.0.0".to_owned());
     let location = metadata.location.or(location);
     let modules = load_modules(compiler, files)?;
@@ -281,15 +290,33 @@ fn load_package_metadata(package_root: &Path) -> Result<PackageMetadata, DocsErr
     })
 }
 
-fn package_include_globs(package_root: &Path, metadata: &PackageMetadata) -> Vec<PathBuf> {
+fn package_include_globs(
+    package_root: &Path,
+    metadata: &PackageMetadata,
+) -> Result<Vec<PathBuf>, DocsError> {
     let mut includes =
         vec![package_root.join("src/**/*.purs"), package_root.join("test/**/*.purs")];
-    includes.extend(metadata.include_files.iter().map(|path| package_root.join(path)));
-    includes
+
+    for path in &metadata.include_files {
+        validate_package_glob(path)?;
+        includes.push(package_root.join(path));
+    }
+
+    Ok(includes)
 }
 
-fn package_exclude_globs(package_root: &Path, metadata: &PackageMetadata) -> Vec<PathBuf> {
-    metadata.exclude_files.iter().map(|path| package_root.join(path)).collect_vec()
+fn package_exclude_globs(
+    package_root: &Path,
+    metadata: &PackageMetadata,
+) -> Result<Vec<PathBuf>, DocsError> {
+    let mut excludes = vec![];
+
+    for path in &metadata.exclude_files {
+        validate_package_glob(path)?;
+        excludes.push(package_root.join(path));
+    }
+
+    Ok(excludes)
 }
 
 fn fallback_package_name(path: &Path) -> String {
@@ -298,6 +325,45 @@ fn fallback_package_name(path: &Path) -> String {
         .filter(|name| !name.is_empty())
         .unwrap_or("package")
         .to_string()
+}
+
+fn validate_package_name(name: &str) -> Result<(), DocsError> {
+    if !is_single_path_segment(name) {
+        return Err(DocsError::InvalidPackageName(name.to_owned()));
+    }
+
+    Ok(())
+}
+
+fn validate_package_glob(path: &str) -> Result<(), DocsError> {
+    if !is_package_relative_path(path) {
+        return Err(DocsError::InvalidPackageGlob(path.to_owned()));
+    }
+
+    Ok(())
+}
+
+fn is_single_path_segment(path: &str) -> bool {
+    if path.contains('/') || path.contains('\\') {
+        return false;
+    }
+
+    let mut components = Path::new(path).components();
+    let first_component = components.next();
+    let extra_component = components.next();
+
+    matches!(first_component, Some(Component::Normal(_))) && extra_component.is_none()
+}
+
+fn is_package_relative_path(path: &str) -> bool {
+    !path.is_empty() && Path::new(path).components().all(is_package_relative_component)
+}
+
+fn is_package_relative_component(component: Component<'_>) -> bool {
+    match component {
+        Component::Normal(_) | Component::CurDir => true,
+        Component::Prefix(_) | Component::RootDir | Component::ParentDir => false,
+    }
 }
 
 fn package_version(reference: &spago::PackageReference) -> String {
@@ -567,11 +633,11 @@ mod tests {
             ..PackageMetadata::default()
         };
 
+        let includes = package_include_globs(Path::new("packages/effect"), &metadata).unwrap();
+        let excludes = package_exclude_globs(Path::new("packages/effect"), &metadata).unwrap();
+
         insta::assert_debug_snapshot!(
-            (
-                package_include_globs(Path::new("packages/effect"), &metadata),
-                package_exclude_globs(Path::new("packages/effect"), &metadata),
-            ),
+            (includes, excludes),
             @r#"
         (
             [
@@ -585,6 +651,56 @@ mod tests {
         )
         "#
         );
+    }
+
+    #[test]
+    fn package_globs_reject_paths_outside_the_package_root() {
+        let metadata = PackageMetadata {
+            include_files: vec!["../Outside.purs".to_owned()],
+            ..PackageMetadata::default()
+        };
+
+        assert!(matches!(
+            package_include_globs(Path::new("packages/effect"), &metadata),
+            Err(DocsError::InvalidPackageGlob(_))
+        ));
+
+        let metadata = PackageMetadata {
+            exclude_files: vec!["/Outside.purs".to_owned()],
+            ..PackageMetadata::default()
+        };
+
+        assert!(matches!(
+            package_exclude_globs(Path::new("packages/effect"), &metadata),
+            Err(DocsError::InvalidPackageGlob(_))
+        ));
+    }
+
+    #[test]
+    fn package_names_must_be_single_path_segments() {
+        assert!(validate_package_name("effect").is_ok());
+        assert!(matches!(
+            validate_package_name("../effect"),
+            Err(DocsError::InvalidPackageName(_))
+        ));
+        assert!(matches!(
+            validate_package_name("scope/effect"),
+            Err(DocsError::InvalidPackageName(_))
+        ));
+        assert!(matches!(validate_package_name("."), Err(DocsError::InvalidPackageName(_))));
+    }
+
+    #[test]
+    fn missing_package_folders_are_rejected() {
+        let root = temporary_directory();
+        let mut compiler = Compiler::default();
+
+        assert!(matches!(
+            load_package_from_folder(&mut compiler, &root, Path::new("missing"), None, None, None),
+            Err(DocsError::MissingPackageFolder(_))
+        ));
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

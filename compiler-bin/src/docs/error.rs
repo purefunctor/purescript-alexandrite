@@ -13,6 +13,12 @@ pub enum DocsError {
     QueryError(#[from] QueryError),
     #[error("DocumentationError: {0}")]
     DocumentationError(#[from] DocumentationError),
+    #[error("Invalid package glob: {0}")]
+    InvalidPackageGlob(String),
+    #[error("Invalid package name: {0}")]
+    InvalidPackageName(String),
+    #[error("Missing package folder: {0}")]
+    MissingPackageFolder(PathBuf),
     #[error("Failed to parse file {0}")]
     PathParseFail(PathBuf),
     #[error("IoError: {0}")]
