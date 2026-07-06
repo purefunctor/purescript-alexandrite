@@ -18,7 +18,7 @@ expression: report
   },
   "modules": [
     {
-      "documentation": "",
+      "documentation": null,
       "name": "Library",
       "terms": [],
       "types": [
@@ -75,7 +75,7 @@ expression: report
           "form": {
             "constructors": [
               {
-                "documentation": "",
+                "documentation": null,
                 "kind": "Constructor",
                 "name": "FirstChoice",
                 "signature": {
@@ -88,7 +88,7 @@ expression: report
                 }
               },
               {
-                "documentation": "",
+                "documentation": null,
                 "kind": "Constructor",
                 "name": "SecondChoice",
                 "signature": {
@@ -182,7 +182,7 @@ expression: report
           "form": {
             "constructors": [
               {
-                "documentation": "",
+                "documentation": null,
                 "kind": "Constructor",
                 "name": "Identity",
                 "signature": {

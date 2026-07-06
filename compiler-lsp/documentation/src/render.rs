@@ -243,7 +243,8 @@ impl<'a> ModuleEncoder<'a> {
         let term_documentation = self.documented.terms.get(&term_id);
 
         let name = term_item.name.as_ref().map(|name| name.to_string());
-        let documentation = term_documentation.map(|term| term.documentation.to_string());
+        let documentation =
+            term_documentation.and_then(|term| optional_string(&term.documentation));
         let signature = term_signature(term_id, term_item, &self.checked)
             .map(|signature| self.type_encoder.encode_signature(signature))
             .transpose()?;
@@ -290,7 +291,7 @@ impl<'a> ModuleEncoder<'a> {
         let type_documentation = self.documented.types.get(&type_id);
 
         let name = type_item.name.as_ref().map(|name| name.to_string());
-        let documentation = type_documentation.map(|t| t.documentation.to_string());
+        let documentation = type_documentation.and_then(|t| optional_string(&t.documentation));
         let signature = self.checked.lookup_type(type_id);
         let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
         let instance_ids = instances.into_iter().collect::<Vec<_>>();
@@ -400,7 +401,7 @@ pub fn render_module(
     let (name, mut encoder) = ModuleEncoder::new(engine, file_id, package_by_file)?;
 
     let Some(name) = name else { return Ok(None) };
-    let documentation = Some(encoder.documented.documentation.to_string());
+    let documentation = optional_string(&encoder.documented.documentation);
 
     let mut terms = vec![];
     let mut types = vec![];
@@ -422,6 +423,10 @@ pub fn render_module(
     }
 
     Ok(Some(schema::Module { name, documentation, terms, types }))
+}
+
+fn optional_string(value: &str) -> Option<String> {
+    if value.is_empty() { None } else { Some(value.to_string()) }
 }
 
 fn collect_constructors_members(encoder: &ModuleEncoder<'_>, nested_terms: &mut NestedTerms) {
