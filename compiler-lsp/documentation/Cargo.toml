@@ -1,0 +1,15 @@
+[package]
+name = "documentation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+building = { version = "0.1.0", path = "../../compiler-core/building" }
+checking = { version = "0.1.0", path = "../../compiler-core/checking" }
+documenting = { version = "0.1.0", path = "../../compiler-core/documenting" }
+files = { version = "0.1.0", path = "../../compiler-core/files" }
+indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
+lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.17"
+ts-rs = { version = "12.0.1", default-features = false, features = ["serde-compat"] }

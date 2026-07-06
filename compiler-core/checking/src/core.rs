@@ -94,6 +94,11 @@ pub enum KindOrType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedDataDeclaration {
+    pub type_parameters: Vec<ForallBinderId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSynonym {
     pub kind: TypeId,
     pub parameters: Vec<ForallBinder>,

@@ -7,6 +7,7 @@ pub mod source;
 pub mod state;
 
 pub mod core;
+pub use core::pretty::PrettyQueries;
 pub use core::{Type, TypeId};
 
 pub mod interners;
@@ -22,8 +23,8 @@ use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 use crate::core::{
-    CheckedClass, CheckedInstance, CheckedSynonym, ForallBinder, ForallBinderId, Name, Role,
-    RowType, RowTypeId, SmolStrId,
+    CheckedClass, CheckedDataDeclaration, CheckedInstance, CheckedSynonym, ForallBinder,
+    ForallBinderId, Name, Role, RowType, RowTypeId, SmolStrId,
 };
 use crate::error::CheckingError;
 use crate::holes::{TermHole, TypeHole};
@@ -38,27 +39,23 @@ pub trait ExternalQueries:
         Resolved = Arc<ResolvedModule>,
         Bracketed = Arc<sugar::Bracketed>,
         Sectioned = Arc<sugar::Sectioned>,
-    >
+        Checked = Arc<CheckedModule>,
+    > + core::pretty::PrettyQueries
 {
-    fn checked(&self, id: FileId) -> QueryResult<Arc<CheckedModule>>;
-
     fn intern_type(&self, t: Type) -> TypeId;
-    fn lookup_type(&self, id: TypeId) -> Type;
 
     fn intern_forall_binder(&self, b: ForallBinder) -> ForallBinderId;
-    fn lookup_forall_binder(&self, id: ForallBinderId) -> ForallBinder;
 
     fn intern_row_type(&self, r: RowType) -> RowTypeId;
-    fn lookup_row_type(&self, id: RowTypeId) -> RowType;
 
     fn intern_smol_str(&self, s: SmolStr) -> core::SmolStrId;
-    fn lookup_smol_str(&self, id: core::SmolStrId) -> SmolStr;
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedModule {
     pub types: FxHashMap<TypeItemId, TypeId>,
     pub terms: FxHashMap<TermItemId, TypeId>,
+    pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
     pub synonyms: FxHashMap<TypeItemId, CheckedSynonym>,
     pub classes: FxHashMap<TypeItemId, CheckedClass>,
     pub instances: FxHashMap<InstanceId, CheckedInstance>,
@@ -104,6 +101,10 @@ impl CheckedModule {
 
     pub fn lookup_term(&self, id: TermItemId) -> Option<TypeId> {
         self.terms.get(&id).copied()
+    }
+
+    pub fn lookup_data_declaration(&self, id: TypeItemId) -> Option<CheckedDataDeclaration> {
+        self.data_declarations.get(&id).cloned()
     }
 
     pub fn lookup_synonym(&self, id: TypeItemId) -> Option<CheckedSynonym> {

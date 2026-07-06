@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
 use globset::Glob;
+use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use smol_str::SmolStr;
@@ -36,10 +38,29 @@ pub struct ExtraPackage {
 
 pub type Packages = FxHashMap<SmolStr, PackageEntry>;
 
+pub type PackagesBySource = BTreeMap<SmolStr, PackageSources>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageSources {
+    pub reference: PackageReference,
+    pub roots: Vec<PathBuf>,
+    pub sources: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PackageReference {
+    Workspace,
+    Git { url: Option<SmolStr>, rev: SmolStr, version: SmolStr, subdir: Option<PathBuf> },
+    Local,
+    Registry { version: SmolStr },
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PackageEntry {
     Git {
+        #[serde(default)]
+        url: Option<SmolStr>,
         rev: SmolStr,
         #[serde(default)]
         subdir: Option<PathBuf>,
@@ -54,24 +75,36 @@ pub enum PackageEntry {
 
 impl Lockfile {
     pub fn sources(&self) -> impl Iterator<Item = PathBuf> {
-        let workspace = self.workspace.packages.values().flat_map(move |package| {
-            let src = package.path.join("src");
-            let test = package.path.join("test");
-            [src, test]
-        });
+        self.sources_by_package().into_values().flat_map(|package| package.sources)
+    }
+
+    pub fn sources_by_package(&self) -> PackagesBySource {
+        let mut packages = PackagesBySource::new();
+
+        for (name, package) in &self.workspace.packages {
+            let roots = vec![PathBuf::clone(&package.path)];
+            let sources = vec![package.path.join("src"), package.path.join("test")];
+            packages.insert(
+                SmolStr::clone(name),
+                PackageSources { reference: PackageReference::Workspace, roots, sources },
+            );
+        }
 
         let base = Path::new(".spago").join("p");
-        let extra_packages = &self.workspace.extra_packages;
 
-        let packages = self.packages.iter().flat_map(move |(name, package)| {
+        for (name, package) in &self.packages {
+            let mut roots = Vec::new();
             let mut sources = Vec::new();
-            match package {
-                PackageEntry::Git { rev, subdir } => {
-                    sources.push(base.join(name).join(rev).join("src"));
-                    sources.push(base.join(name).join(rev).join("test"));
+            let reference = match package {
+                PackageEntry::Git { url, rev, subdir } => {
+                    let root = base.join(name).join(rev);
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
 
                     let subdir = subdir.as_ref().or_else(|| {
-                        extra_packages
+                        self.workspace
+                            .extra_packages
                             .get(name)
                             .and_then(|extra_package| extra_package.subdir.as_ref())
                     });
@@ -79,29 +112,60 @@ impl Lockfile {
                     let subdir = subdir.filter(|subdir| is_safe_subdir(subdir));
 
                     if let Some(subdir) = subdir {
-                        sources.push(base.join(name).join(rev).join(subdir).join("src"));
-                        sources.push(base.join(name).join(rev).join(subdir).join("test"));
+                        let root = base.join(name).join(rev).join(subdir);
+                        roots.push(PathBuf::clone(&root));
+                        sources.push(root.join("src"));
+                        sources.push(root.join("test"));
+                    }
+
+                    PackageReference::Git {
+                        url: url.clone(),
+                        rev: SmolStr::clone(rev),
+                        version: SmolStr::clone(rev),
+                        subdir: subdir.cloned(),
                     }
                 }
                 PackageEntry::Local { path } => {
-                    let base = Path::new(path);
-                    sources.push(base.join("src"));
-                    sources.push(base.join("test"));
+                    let root = Path::new(path).to_path_buf();
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
+                    PackageReference::Local
                 }
                 PackageEntry::Registry { version } => {
                     let name_version = format!("{name}-{version}");
-                    sources.push(base.join(&name_version).join("src"));
-                    sources.push(base.join(&name_version).join("test"));
+                    let root = base.join(&name_version);
+                    roots.push(PathBuf::clone(&root));
+                    sources.push(root.join("src"));
+                    sources.push(root.join("test"));
+                    PackageReference::Registry { version: SmolStr::clone(version) }
                 }
-            }
-            sources
-        });
+            };
 
-        workspace.chain(packages)
+            packages.insert(SmolStr::clone(name), PackageSources { reference, roots, sources });
+        }
+
+        packages
     }
 
     pub fn walk(&self, root: impl AsRef<Path>) -> impl Iterator<Item = PathBuf> {
         self.sources().filter_map(with_root(root)).flat_map(find_purs_files)
+    }
+
+    pub fn walk_by_package(&self, root: impl AsRef<Path>) -> PackagesBySource {
+        let root = root.as_ref();
+
+        let packages = self.sources_by_package().into_iter().map(|(name, package)| {
+            let sources = package
+                .sources
+                .into_iter()
+                .filter_map(with_root(root))
+                .flat_map(find_purs_files)
+                .collect_vec();
+            (name, PackageSources { sources, ..package })
+        });
+
+        packages.collect()
     }
 }
 

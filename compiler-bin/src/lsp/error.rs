@@ -7,6 +7,8 @@ use spago::LockfileGlobSetError;
 use thiserror::Error;
 use tokio::task;
 
+use crate::walk;
+
 #[derive(Error, Debug)]
 pub enum LspError {
     #[error("AnalyzerError: {0}")]
@@ -29,6 +31,8 @@ pub enum LspError {
     Utf8Error(#[from] str::Utf8Error),
     #[error("GlobSetError: {0}")]
     GlobSetError(#[from] globset::Error),
+    #[error("WalkError: {0}")]
+    WalkError(#[from] walk::Error),
     #[error("async_lsp::Error: {0}")]
     AsyncLspError(#[from] async_lsp::Error),
 }

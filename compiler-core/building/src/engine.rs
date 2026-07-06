@@ -35,6 +35,7 @@ use building_types::{
     ModuleNameId, ModuleNameInterner, QueryError, QueryKey, QueryProxy, QueryResult,
 };
 use checking::CheckedModule;
+use documenting::DocumentedModule;
 use files::FileId;
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
@@ -124,6 +125,7 @@ struct DerivedStorage {
     bracketed: Shards<FileId, DerivedState<Arc<sugar::Bracketed>>>,
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
+    documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
 }
 
 #[derive(Default)]
@@ -455,6 +457,7 @@ impl QueryEngine {
                 QueryKey::Bracketed(k) => derived_changed!(bracketed, k),
                 QueryKey::Sectioned(k) => derived_changed!(sectioned, k),
                 QueryKey::Checked(k) => derived_changed!(checked, k),
+                QueryKey::Documented(k) => derived_changed!(documented, k),
             }
         }
 
@@ -790,6 +793,20 @@ impl QueryEngine {
             },
         )
     }
+
+    pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        self.query(
+            QueryKey::Documented(id),
+            id,
+            |derived| &derived.documented,
+            |this| {
+                let (parsed, _) = this.parsed(id)?;
+                let stabilized = this.stabilized(id)?;
+                let indexed = this.indexed(id)?;
+                Ok(documenting::document_module(&parsed, &stabilized, &indexed))
+            },
+        )
+    }
 }
 
 impl QueryEngine {
@@ -814,6 +831,10 @@ impl QueryProxy for QueryEngine {
     type Bracketed = Arc<sugar::Bracketed>;
 
     type Sectioned = Arc<sugar::Sectioned>;
+
+    type Checked = Arc<checking::CheckedModule>;
+
+    type Documented = Arc<documenting::DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         QueryEngine::parsed(self, id)
@@ -847,6 +868,14 @@ impl QueryProxy for QueryEngine {
         QueryEngine::sectioned(self, id)
     }
 
+    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
+        QueryEngine::checked(self, id)
+    }
+
+    fn documented(&self, id: FileId) -> QueryResult<Arc<documenting::DocumentedModule>> {
+        QueryEngine::documented(self, id)
+    }
+
     fn prim_id(&self) -> FileId {
         QueryEngine::prim_id(self)
     }
@@ -856,24 +885,9 @@ impl QueryProxy for QueryEngine {
     }
 }
 
-impl checking::ExternalQueries for QueryEngine {
-    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
-        QueryEngine::checked(self, id)
-    }
-
-    fn intern_type(&self, t: checking::Type) -> checking::TypeId {
-        self.interned.checking.intern_type(t)
-    }
-
+impl checking::PrettyQueries for QueryEngine {
     fn lookup_type(&self, id: checking::TypeId) -> checking::Type {
         self.interned.checking.lookup_type(id)
-    }
-
-    fn intern_forall_binder(
-        &self,
-        binder: checking::core::ForallBinder,
-    ) -> checking::core::ForallBinderId {
-        self.interned.checking.intern_forall_binder(binder)
     }
 
     fn lookup_forall_binder(
@@ -883,20 +897,33 @@ impl checking::ExternalQueries for QueryEngine {
         self.interned.checking.lookup_forall_binder(id)
     }
 
-    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
-        self.interned.checking.intern_row_type(row)
-    }
-
     fn lookup_row_type(&self, id: checking::core::RowTypeId) -> checking::core::RowType {
         self.interned.checking.lookup_row_type(id)
     }
 
-    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
-        self.interned.checking.intern_smol_str(s)
-    }
-
     fn lookup_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
         self.interned.checking.lookup_smol_str(id)
+    }
+}
+
+impl checking::ExternalQueries for QueryEngine {
+    fn intern_type(&self, t: checking::Type) -> checking::TypeId {
+        self.interned.checking.intern_type(t)
+    }
+
+    fn intern_forall_binder(
+        &self,
+        binder: checking::core::ForallBinder,
+    ) -> checking::core::ForallBinderId {
+        self.interned.checking.intern_forall_binder(binder)
+    }
+
+    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
+        self.interned.checking.intern_row_type(row)
+    }
+
+    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
+        self.interned.checking.intern_smol_str(s)
     }
 }
 

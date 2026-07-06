@@ -1,24 +1,58 @@
-use std::sync::Arc;
-
 use clap::Parser;
+use tracing::level_filters::LevelFilter;
 
 pub mod cli;
+pub mod docs;
 pub mod logging;
 pub mod lsp;
+pub mod walk;
 
 pub fn run() {
-    let config = cli::Config::parse();
+    let cli = cli::Cli::parse();
 
-    if config.log_file {
+    if cli.log_file {
         eprintln!("Log file: {:?}", logging::temporary_log_file());
     }
 
-    async_main(config);
-}
+    let command = cli.command.unwrap_or_else(|| {
+        let options = cli::LspOptions::default();
+        cli::Command::Lsp(options)
+    });
 
-#[tokio::main(flavor = "current_thread")]
-async fn async_main(config: cli::Config) {
-    let config = Arc::new(config);
-    logging::start(Arc::clone(&config));
-    lsp::start(Arc::clone(&config)).await
+    match command {
+        cli::Command::Lsp(options) => {
+            logging::start(logging::LoggingFilters {
+                query_log: options.logging.query_log,
+                checking_log: options.logging.checking_log,
+                lsp_log: options.lsp_log,
+                docs_log: LevelFilter::OFF,
+            });
+            lsp::start(lsp::LspConfig {
+                source_command: options.source_command,
+                diagnostics_on_open: options.diagnostics_on_open,
+                diagnostics_on_save: options.diagnostics_on_save,
+                diagnostics_on_change: options.diagnostics_on_change,
+            });
+        }
+        cli::Command::Docs(options) => {
+            logging::start(logging::LoggingFilters {
+                query_log: options.logging.query_log,
+                checking_log: options.logging.checking_log,
+                lsp_log: LevelFilter::OFF,
+                docs_log: options.docs_log,
+            });
+            match options.command {
+                Some(cli::DocsCommand::TypeScript(options)) => {
+                    docs::typescript(docs::TypeScriptConfig { output: options.output });
+                }
+                None => {
+                    docs::start(docs::DocsConfig {
+                        output: options.output,
+                        spago_project: options.spago_project,
+                        packages: options.packages,
+                    });
+                }
+            }
+        }
+    }
 }

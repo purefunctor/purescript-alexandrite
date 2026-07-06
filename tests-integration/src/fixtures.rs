@@ -86,6 +86,21 @@ pub fn resolving(path: &Path) -> FixtureResult {
     Ok(())
 }
 
+pub fn docs(path: &Path) -> FixtureResult {
+    let folder = fixture_folder(path)?;
+    let file = module_name(path)?;
+    let (engine, files) = crate::load_compiler(folder);
+    let snapshot_path = snapshot_path(folder);
+
+    let report = crate::generated::docs::report(&engine, &files, &snapshot_path)?;
+    let mut settings = insta::Settings::clone_current();
+    settings.set_snapshot_path(snapshot_path);
+    settings.set_prepend_module_to_snapshot(false);
+    settings.bind(|| insta::assert_snapshot!(file, report));
+
+    Ok(())
+}
+
 pub fn lsp(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;

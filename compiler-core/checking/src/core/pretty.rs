@@ -1,45 +1,58 @@
 //! Implements the pretty printer for core types.
 
 use std::num::NonZeroU32;
+use std::sync::Arc;
 
+use building_types::QueryProxy;
 use itertools::Itertools;
 use lowering::StringKind;
 use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, SmolStrBuilder, format_smolstr};
 
+use crate::CheckedModule;
 use crate::core::{
     ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, SmolStrId, Type, TypeId,
 };
-use crate::{CheckedModule, ExternalQueries};
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+
 const FIRST_SUFFIX: NonZeroU32 = NonZeroU32::new(1).unwrap();
 
+pub trait PrettyQueries: QueryProxy<Indexed = Arc<indexing::IndexedModule>> {
+    fn lookup_type(&self, id: TypeId) -> Type;
+
+    fn lookup_forall_binder(&self, id: ForallBinderId) -> ForallBinder;
+
+    fn lookup_row_type(&self, id: RowTypeId) -> RowType;
+
+    fn lookup_smol_str(&self, id: SmolStrId) -> SmolStr;
+}
+
 #[derive(Debug, Default)]
-struct PrettyNames {
+pub struct PrettyNames {
     display_by_name: FxHashMap<Name, SmolStr>,
     next_suffix: FxHashMap<SmolStr, NonZeroU32>,
 }
 
 impl PrettyNames {
-    fn new() -> PrettyNames {
+    pub fn new() -> PrettyNames {
         PrettyNames::default()
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.display_by_name.clear();
         self.next_suffix.clear();
     }
 
-    fn display_name<Q>(
+    pub fn display_name<Q>(
         &mut self,
         queries: &Q,
         names: &FxHashMap<Name, SmolStrId>,
         name: Name,
     ) -> SmolStr
     where
-        Q: ExternalQueries + ?Sized,
+        Q: PrettyQueries + ?Sized,
     {
         if let Some(display) = self.display_by_name.get(&name) {
             return SmolStr::clone(display);
@@ -96,7 +109,7 @@ pub struct Pretty<'a, Q: ?Sized> {
 
 impl<'a, Q> Pretty<'a, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Self {
         Pretty { queries, width: 100, checked, names: PrettyNames::new() }
@@ -152,7 +165,7 @@ enum Precedence {
 
 struct Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     arena: &'arena Arena<'arena>,
     queries: &'context Q,
@@ -162,7 +175,7 @@ where
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     fn new(
         arena: &'arena Arena<'arena>,
@@ -297,7 +310,7 @@ where
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     fn traverse_application(
         &mut self,
@@ -377,7 +390,7 @@ where
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     fn traverse_forall(
         &mut self,
@@ -485,7 +498,7 @@ where
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
 where
-    Q: ExternalQueries + ?Sized,
+    Q: PrettyQueries + ?Sized,
 {
     fn format_record(&mut self, fields: &[RowField], tail: Option<TypeId>) -> Doc<'arena> {
         if fields.is_empty() && tail.is_none() {

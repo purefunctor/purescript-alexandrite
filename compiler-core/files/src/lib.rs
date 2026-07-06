@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use la_arena::{Idx, RawIdx};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxBuildHasher;
 
 #[derive(Debug, Default)]
@@ -40,9 +41,20 @@ impl Files {
         Arc::clone(contents)
     }
 
-    pub fn iter_id(&self) -> impl Iterator<Item = FileId> + use<> {
+    pub fn iter_id(&self) -> impl Iterator<Item = FileId> {
         let length = self.files.len();
-        (0..length).map(|index| Idx::from_raw(RawIdx::from_u32(index as u32)))
+        (0..length).map(|index| {
+            let index = RawIdx::from_u32(index as u32);
+            Idx::from_raw(index)
+        })
+    }
+
+    pub fn par_iter_id(&self) -> impl ParallelIterator<Item = FileId> {
+        let length = self.files.len();
+        (0..length).into_par_iter().map(|index| {
+            let index = RawIdx::from_u32(index as u32);
+            Idx::from_raw(index)
+        })
     }
 }
 

@@ -10,6 +10,18 @@ fn source_snapshot(lockfile: &Lockfile) -> String {
     lockfile.sources().sorted().filter_map(normalize_source).join("\n")
 }
 
+fn source_by_package_snapshot(lockfile: &Lockfile) -> String {
+    let mut snapshot = String::default();
+    for (name, package) in lockfile.sources_by_package() {
+        writeln!(&mut snapshot, "{name}: {:?}", package.reference).unwrap();
+        for source in package.sources.into_iter().filter_map(normalize_source) {
+            writeln!(&mut snapshot, "  {source}").unwrap();
+        }
+    }
+
+    snapshot
+}
+
 fn normalize_source(source: PathBuf) -> Option<String> {
     let source = source.to_str()?;
     Some(source.replace('\\', "/"))
@@ -88,6 +100,82 @@ fn test_parse_lockfile_without_extra_packages() {
 }
 
 #[test]
+fn test_lockfile_sources_by_package_include_package_roots() {
+    let lockfile = serde_json::from_str::<Lockfile>(
+        r#"{
+  "workspace": {
+    "packages": { "workspace-package": { "path": "packages/workspace-package" } },
+    "extra_packages": { "git-package": { "subdir": "packages/git-package" } }
+  },
+  "packages": {
+    "git-package": { "type": "git", "rev": "abcd" },
+    "local-package": { "type": "local", "path": "../local-package" },
+    "registry-package": { "type": "registry", "version": "1.2.3" }
+  }
+}"#,
+    )
+    .unwrap();
+
+    let packages = lockfile.sources_by_package();
+    insta::assert_debug_snapshot!(packages, @r#"
+    {
+        "git-package": PackageSources {
+            reference: Git {
+                url: None,
+                rev: "abcd",
+                version: "abcd",
+                subdir: Some(
+                    "packages/git-package",
+                ),
+            },
+            roots: [
+                ".spago/p/git-package/abcd",
+                ".spago/p/git-package/abcd/packages/git-package",
+            ],
+            sources: [
+                ".spago/p/git-package/abcd/src",
+                ".spago/p/git-package/abcd/test",
+                ".spago/p/git-package/abcd/packages/git-package/src",
+                ".spago/p/git-package/abcd/packages/git-package/test",
+            ],
+        },
+        "local-package": PackageSources {
+            reference: Local,
+            roots: [
+                "../local-package",
+            ],
+            sources: [
+                "../local-package/src",
+                "../local-package/test",
+            ],
+        },
+        "registry-package": PackageSources {
+            reference: Registry {
+                version: "1.2.3",
+            },
+            roots: [
+                ".spago/p/registry-package-1.2.3",
+            ],
+            sources: [
+                ".spago/p/registry-package-1.2.3/src",
+                ".spago/p/registry-package-1.2.3/test",
+            ],
+        },
+        "workspace-package": PackageSources {
+            reference: Workspace,
+            roots: [
+                "packages/workspace-package",
+            ],
+            sources: [
+                "packages/workspace-package/src",
+                "packages/workspace-package/test",
+            ],
+        },
+    }
+    "#);
+}
+
+#[test]
 fn test_lockfile_sources() {
     let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
     assert!(lockfile.is_ok(), "{lockfile:?}");
@@ -95,7 +183,14 @@ fn test_lockfile_sources() {
 }
 
 #[test]
-fn test_source_files() {
+fn test_lockfile_sources_by_package() {
+    let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
+    assert!(lockfile.is_ok(), "{lockfile:?}");
+    insta::assert_snapshot!(source_by_package_snapshot(&lockfile.unwrap()));
+}
+
+#[test]
+fn test_source_files_by_package() {
     let manifest_directory = env!("CARGO_MANIFEST_DIR");
     let manifest_directory_url = url::Url::from_file_path(manifest_directory).unwrap();
     let manifest_directory_uri = manifest_directory_url.to_string();
@@ -105,11 +200,14 @@ fn test_source_files() {
 
     let mut snapshot = String::default();
 
-    spago::source_files(fixture).unwrap().into_iter().for_each(|file| {
-        let url = url::Url::from_file_path(file).unwrap();
-        let uri = url.to_string().replace(&manifest_directory_uri, "./spago");
-        writeln!(&mut snapshot, "{}", uri).unwrap();
-    });
+    for (name, package) in spago::source_files_by_package(fixture).unwrap() {
+        writeln!(&mut snapshot, "{name}: {:?}", package.reference).unwrap();
+        for file in package.sources {
+            let url = url::Url::from_file_path(file).unwrap();
+            let uri = url.to_string().replace(&manifest_directory_uri, "./spago");
+            writeln!(&mut snapshot, "  {uri}").unwrap();
+        }
+    }
 
     insta::assert_snapshot!(snapshot);
 }

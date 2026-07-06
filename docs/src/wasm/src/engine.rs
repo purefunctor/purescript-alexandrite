@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use building_types::{ModuleNameId, ModuleNameInterner, QueryProxy, QueryResult};
+use documenting::DocumentedModule;
 use files::{FileId, Files};
 use indexing::IndexedModule;
 use lowering::{GroupedModule, LoweredModule};
@@ -30,6 +31,7 @@ struct DerivedStorage {
     bracketed: FxHashMap<FileId, Arc<sugar::Bracketed>>,
     sectioned: FxHashMap<FileId, Arc<sugar::Sectioned>>,
     checked: FxHashMap<FileId, Arc<checking::CheckedModule>>,
+    documented: FxHashMap<FileId, Arc<DocumentedModule>>,
 }
 
 #[derive(Default)]
@@ -109,14 +111,17 @@ impl WasmQueryEngine {
 
         for id in self.external_ids.drain(..) {
             input.content.remove(&id);
+            input.module.retain(|_, file_id| *file_id != id);
             derived.parsed.remove(&id);
             derived.stabilized.remove(&id);
             derived.indexed.remove(&id);
             derived.lowered.remove(&id);
+            derived.grouped.remove(&id);
             derived.resolved.remove(&id);
             derived.bracketed.remove(&id);
             derived.sectioned.remove(&id);
             derived.checked.remove(&id);
+            derived.documented.remove(&id);
         }
 
         if let Some(user_id) = self.user_id {
@@ -124,10 +129,12 @@ impl WasmQueryEngine {
             derived.stabilized.remove(&user_id);
             derived.indexed.remove(&user_id);
             derived.lowered.remove(&user_id);
+            derived.grouped.remove(&user_id);
             derived.resolved.remove(&user_id);
             derived.bracketed.remove(&user_id);
             derived.sectioned.remove(&user_id);
             derived.checked.remove(&user_id);
+            derived.documented.remove(&user_id);
         }
     }
 
@@ -145,6 +152,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&existing_id);
             derived.sectioned.remove(&existing_id);
             derived.checked.remove(&existing_id);
+            derived.documented.remove(&existing_id);
             existing_id
         } else {
             let id = self.files.borrow_mut().insert("user://localhost/Main.purs", source);
@@ -171,6 +179,20 @@ impl WasmQueryEngine {
         Ok(checked)
     }
 
+    pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        if let Some(cached) = self.derived.borrow().documented.get(&id) {
+            return Ok(cached.clone());
+        }
+
+        let (parsed, _) = self.parsed(id)?;
+        let stabilized = self.stabilized(id)?;
+        let indexed = self.indexed(id)?;
+        let documented = documenting::document_module(&parsed, &stabilized, &indexed);
+
+        self.derived.borrow_mut().documented.insert(id, documented.clone());
+        Ok(documented)
+    }
+
     fn content(&self, id: FileId) -> Arc<str> {
         self.input
             .borrow()
@@ -190,6 +212,8 @@ impl QueryProxy for WasmQueryEngine {
     type Resolved = Arc<ResolvedModule>;
     type Bracketed = Arc<sugar::Bracketed>;
     type Sectioned = Arc<sugar::Sectioned>;
+    type Checked = Arc<checking::CheckedModule>;
+    type Documented = Arc<DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         if let Some(cached) = self.derived.borrow().parsed.get(&id) {
@@ -300,6 +324,14 @@ impl QueryProxy for WasmQueryEngine {
         Ok(sectioned)
     }
 
+    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
+        WasmQueryEngine::checked(self, id)
+    }
+
+    fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
+        WasmQueryEngine::documented(self, id)
+    }
+
     fn prim_id(&self) -> FileId {
         self.prim_id
     }
@@ -311,24 +343,9 @@ impl QueryProxy for WasmQueryEngine {
     }
 }
 
-impl checking::ExternalQueries for WasmQueryEngine {
-    fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
-        WasmQueryEngine::checked(self, id)
-    }
-
-    fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
-        self.interned.borrow().checking.intern_type(t)
-    }
-
+impl checking::PrettyQueries for WasmQueryEngine {
     fn lookup_type(&self, id: checking::core::TypeId) -> checking::core::Type {
         self.interned.borrow().checking.lookup_type(id)
-    }
-
-    fn intern_forall_binder(
-        &self,
-        binder: checking::core::ForallBinder,
-    ) -> checking::core::ForallBinderId {
-        self.interned.borrow().checking.intern_forall_binder(binder)
     }
 
     fn lookup_forall_binder(
@@ -338,20 +355,33 @@ impl checking::ExternalQueries for WasmQueryEngine {
         self.interned.borrow().checking.lookup_forall_binder(id)
     }
 
-    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
-        self.interned.borrow().checking.intern_row_type(row)
-    }
-
     fn lookup_row_type(&self, id: checking::core::RowTypeId) -> checking::core::RowType {
         self.interned.borrow().checking.lookup_row_type(id)
     }
 
-    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
-        self.interned.borrow().checking.intern_smol_str(s)
-    }
-
     fn lookup_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
         self.interned.borrow().checking.lookup_smol_str(id)
+    }
+}
+
+impl checking::ExternalQueries for WasmQueryEngine {
+    fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
+        self.interned.borrow().checking.intern_type(t)
+    }
+
+    fn intern_forall_binder(
+        &self,
+        binder: checking::core::ForallBinder,
+    ) -> checking::core::ForallBinderId {
+        self.interned.borrow().checking.intern_forall_binder(binder)
+    }
+
+    fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
+        self.interned.borrow().checking.intern_row_type(row)
+    }
+
+    fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
+        self.interned.borrow().checking.intern_smol_str(s)
     }
 }
 
