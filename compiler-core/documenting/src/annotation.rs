@@ -125,7 +125,10 @@ where
     if let Some(id) = signature
         && let Some(ptr) = stabilized.syntax_ptr(*id)
     {
-        return annotations.documentation(ptr).to_owned();
+        let documentation = annotations.documentation(ptr);
+        if !documentation.is_empty() {
+            return documentation.to_owned();
+        }
     }
 
     if let Some(id) = equation
@@ -217,6 +220,35 @@ mod tests {
     use indexing::TermItemKind;
 
     use super::*;
+
+    #[test]
+    fn value_equation_documentation_used_when_signature_has_no_documentation() {
+        let source = r#"module Main where
+
+value :: Int
+-- | Equation documentation.
+value = 1
+"#;
+
+        let lexed = lexing::lex(source);
+        let tokens = lexing::layout(&lexed);
+        let (parsed, errors) = parsing::parse(&lexed, &tokens);
+        assert!(errors.is_empty());
+
+        let root = parsed.syntax_node();
+        let cst = parsed.cst();
+
+        let stabilized = stabilizing::stabilize_module(&root);
+        let indexed = indexing::index_module(&cst, &stabilized);
+        let annotations = AnnotationIndex::new(&root);
+
+        let id = indexed.names.terms.lookup("value").unwrap();
+        let item = &indexed.items[id];
+        assert!(matches!(item.kind, TermItemKind::Value { .. }));
+
+        let documentation = term_documentation(&stabilized, &annotations, item);
+        assert_eq!(documentation, "Equation documentation.");
+    }
 
     #[test]
     fn data_constructor_documentation_before_separators() {
