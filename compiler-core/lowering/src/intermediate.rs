@@ -133,13 +133,22 @@ pub enum ExpressionKind {
     },
     Section,
     Hole,
-    String,
-    Char,
+    String {
+        kind: StringKind,
+        value: Option<SmolStr>,
+    },
+    Char {
+        value: Option<char>,
+    },
     Boolean {
         boolean: bool,
     },
-    Integer,
-    Number,
+    Integer {
+        value: Option<i32>,
+    },
+    Number {
+        value: Option<SmolStr>,
+    },
     Array {
         array: Arc<[ExpressionId]>,
     },

@@ -132,32 +132,45 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
         let Some(kind) = info.get_expression_kind(expression_id) else {
             continue;
         };
-        if let ExpressionKind::Variable { resolution, .. } = kind {
-            write_term_resolution(
+        match kind {
+            ExpressionKind::Variable { resolution, .. } => {
+                write_term_resolution(
+                    &content,
+                    &stabilized,
+                    &module,
+                    info,
+                    &mut out,
+                    expression_id,
+                    resolution,
+                );
+            }
+            ExpressionKind::Record { record } => {
+                for field in record.iter() {
+                    if let lowering::ExpressionRecordItem::RecordPun { resolution, .. } = field {
+                        write_term_resolution(
+                            &content,
+                            &stabilized,
+                            &module,
+                            info,
+                            &mut out,
+                            expression_id,
+                            resolution,
+                        );
+                    }
+                }
+            }
+            ExpressionKind::String { .. }
+            | ExpressionKind::Char { .. }
+            | ExpressionKind::Integer { .. }
+            | ExpressionKind::Number { .. } => write_literal_expression(
                 &content,
                 &stabilized,
                 &module,
-                info,
                 &mut out,
                 expression_id,
-                resolution,
-            );
-        } else if let ExpressionKind::Record { record } = kind {
-            for field in record.iter() {
-                if let lowering::ExpressionRecordItem::RecordPun { resolution, .. } = field {
-                    write_term_resolution(
-                        &content,
-                        &stabilized,
-                        &module,
-                        info,
-                        &mut out,
-                        expression_id,
-                        resolution,
-                    );
-                }
-            }
-        } else {
-            continue;
+                kind,
+            ),
+            _ => continue,
         }
     }
 
@@ -330,6 +343,42 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     write_checked_diagnostics(&mut out, engine, id, &indexed, &checked);
 
     out
+}
+
+fn write_literal_expression(
+    content: &str,
+    stabilized: &stabilizing::StabilizedModule,
+    module: &cst::Module,
+    out: &mut String,
+    expression_id: lowering::ExpressionId,
+    kind: &ExpressionKind,
+) {
+    let cst = stabilized.ast_ptr(expression_id).unwrap();
+    let node = cst.syntax_node_ptr().to_node(module.syntax());
+    let text = node.text().to_string();
+    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
+
+    writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
+
+    match kind {
+        ExpressionKind::String { kind, value } => match value {
+            Some(value) => writeln!(out, "  -> string {kind:?} {value:?}").unwrap(),
+            None => writeln!(out, "  -> string {kind:?} (missing)").unwrap(),
+        },
+        ExpressionKind::Char { value } => match value {
+            Some(value) => writeln!(out, "  -> char {value:?}").unwrap(),
+            None => writeln!(out, "  -> char (missing)").unwrap(),
+        },
+        ExpressionKind::Integer { value } => match value {
+            Some(value) => writeln!(out, "  -> integer {value}").unwrap(),
+            None => writeln!(out, "  -> integer (missing)").unwrap(),
+        },
+        ExpressionKind::Number { value } => match value {
+            Some(value) => writeln!(out, "  -> number {value}").unwrap(),
+            None => writeln!(out, "  -> number (missing)").unwrap(),
+        },
+        _ => unreachable!("invariant violated: expected literal expression"),
+    }
 }
 
 fn write_term_resolution(

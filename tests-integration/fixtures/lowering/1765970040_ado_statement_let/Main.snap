@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 67
 expression: report
 ---
 module Main
@@ -9,6 +9,8 @@ Expressions:
 
 pure@11:6
   -> top-level
+42@9:11
+  -> integer 42
 { x, y, z }@12:4
   -> binder@8:10
 { x, y, z }@12:4
@@ -17,6 +19,8 @@ pure@11:6
   -> binder@10:15
 { x }@10:9
   -> binder@8:10
+"hello"@11:11
+  -> string String "hello"
 pure@9:6
   -> top-level
 
