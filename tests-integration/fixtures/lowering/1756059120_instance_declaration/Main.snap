@@ -1,12 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 67
 expression: report
 ---
 module Main
 
 Expressions:
 
+42@15:13
+  -> integer 42
+42@14:11
+  -> integer 42
 eqMaybeImpl@8:6
   -> top-level
 eqIntImpl@4:6

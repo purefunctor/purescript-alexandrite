@@ -328,15 +328,15 @@ where
             Ok(type_id)
         }
 
-        lowering::ExpressionKind::String => Ok(context.prim.string),
+        lowering::ExpressionKind::String { .. } => Ok(context.prim.string),
 
-        lowering::ExpressionKind::Char => Ok(context.prim.char),
+        lowering::ExpressionKind::Char { .. } => Ok(context.prim.char),
 
         lowering::ExpressionKind::Boolean { .. } => Ok(context.prim.boolean),
 
-        lowering::ExpressionKind::Integer => Ok(context.prim.int),
+        lowering::ExpressionKind::Integer { .. } => Ok(context.prim.int),
 
-        lowering::ExpressionKind::Number => Ok(context.prim.number),
+        lowering::ExpressionKind::Number { .. } => Ok(context.prim.number),
 
         lowering::ExpressionKind::Array { array } => {
             collections::infer_array(state, context, array)

@@ -1,12 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 67
 expression: report
 ---
 module Main
 
 Expressions:
 
+42@7:13
+  -> integer 42
+42@6:6
+  -> integer 42
 x'notBinder@4:4
   -> binder@2:10
 x'notBinder@3:21

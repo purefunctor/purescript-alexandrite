@@ -7,19 +7,75 @@ use rowan::ast::AstNode;
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, StrExt};
 use stabilizing::ExpectId;
-use syntax::{SyntaxToken, cst};
+use syntax::{SyntaxKind, SyntaxNode, SyntaxToken, cst};
 
 use crate::*;
 
 use super::{Context, State};
 
 fn string_text(token: SyntaxToken) -> SmolStr {
-    let original = token.text();
+    let text = token.text();
+    string_text_from_token_text(text)
+}
+
+fn string_text_from_token_text(original: &str) -> SmolStr {
     let text = original
         .strip_prefix("\"\"\"")
         .and_then(|t| t.strip_suffix("\"\"\""))
         .or_else(|| original.strip_prefix('"').and_then(|t| t.strip_suffix('"')));
     SmolStr::from(text.unwrap_or(original))
+}
+
+fn string_literal(
+    string: Option<SyntaxToken>,
+    raw_string: Option<SyntaxToken>,
+) -> (StringKind, Option<SmolStr>) {
+    if let Some(value) = string {
+        (StringKind::String, Some(string_text(value)))
+    } else if let Some(value) = raw_string {
+        (StringKind::RawString, Some(string_text(value)))
+    } else {
+        (StringKind::String, None)
+    }
+}
+
+fn integer_literal(text: &str, negative: bool) -> Option<i32> {
+    let integer = if let Some(hex) = text.strip_prefix("0x") {
+        let clean = hex.replace_smolstr("_", "");
+        i32::from_str_radix(&clean, 16).ok()?
+    } else {
+        let clean = text.replace_smolstr("_", "");
+        clean.parse().ok()?
+    };
+
+    if negative { Some(-integer) } else { Some(integer) }
+}
+
+fn char_literal(text: &str) -> Option<char> {
+    let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
+    if let Some(escaped) = inner.strip_prefix('\\') {
+        match escaped.chars().next()? {
+            'n' => Some('\n'),
+            'r' => Some('\r'),
+            't' => Some('\t'),
+            '\\' => Some('\\'),
+            '\'' => Some('\''),
+            '0' => Some('\0'),
+            'x' if escaped.len() >= 3 => {
+                let hex = &escaped[1..3];
+                u8::from_str_radix(hex, 16).ok().map(|b| b as char)
+            }
+            _ => None,
+        }
+    } else {
+        inner.chars().next()
+    }
+}
+
+fn child_token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
+    node.children_with_tokens()
+        .filter_map(|element| element.into_token())
+        .find(|token| token.kind() == kind)
 }
 
 pub(crate) fn lower_binder(state: &mut State, context: &Context, cst: &cst::Binder) -> BinderId {
@@ -55,17 +111,9 @@ fn lower_binder_kind(
             BinderKind::OperatorChain { head, tail }
         }
         cst::Binder::BinderInteger(cst) => {
-            let value = cst.integer_token().and_then(|token| {
-                let text = token.text();
-                let integer = if let Some(hex) = text.strip_prefix("0x") {
-                    let clean = hex.replace_smolstr("_", "");
-                    i32::from_str_radix(&clean, 16).ok()?
-                } else {
-                    let clean = text.replace_smolstr("_", "");
-                    clean.parse().ok()?
-                };
-                if cst.minus_token().is_some() { Some(-integer) } else { Some(integer) }
-            });
+            let value = cst
+                .integer_token()
+                .and_then(|token| integer_literal(token.text(), cst.minus_token().is_some()));
             BinderKind::Integer { value }
         }
         cst::Binder::BinderNumber(cst) => {
@@ -104,37 +152,11 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderWildcard(_) => BinderKind::Wildcard,
         cst::Binder::BinderString(cst) => {
-            let (kind, value) = if let Some(token) = cst.string() {
-                (StringKind::String, Some(string_text(token)))
-            } else if let Some(token) = cst.raw_string() {
-                (StringKind::RawString, Some(string_text(token)))
-            } else {
-                (StringKind::String, None)
-            };
+            let (kind, value) = string_literal(cst.string(), cst.raw_string());
             BinderKind::String { kind, value }
         }
         cst::Binder::BinderChar(cst) => {
-            let value = cst.char_token().and_then(|token| {
-                let text = token.text();
-                let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
-                if let Some(escaped) = inner.strip_prefix('\\') {
-                    match escaped.chars().next()? {
-                        'n' => Some('\n'),
-                        'r' => Some('\r'),
-                        't' => Some('\t'),
-                        '\\' => Some('\\'),
-                        '\'' => Some('\''),
-                        '0' => Some('\0'),
-                        'x' if escaped.len() >= 3 => {
-                            let hex = &escaped[1..3];
-                            u8::from_str_radix(hex, 16).ok().map(|b| b as char)
-                        }
-                        _ => None,
-                    }
-                } else {
-                    inner.chars().next()
-                }
-            });
+            let value = cst.char_token().and_then(|token| char_literal(token.text()));
             BinderKind::Char { value }
         }
         cst::Binder::BinderTrue(_) => BinderKind::Boolean { boolean: true },
@@ -473,12 +495,29 @@ fn lower_expression_kind(
         }
         cst::Expression::ExpressionSection(_) => ExpressionKind::Section,
         cst::Expression::ExpressionHole(_) => ExpressionKind::Hole,
-        cst::Expression::ExpressionString(_) => ExpressionKind::String,
-        cst::Expression::ExpressionChar(_) => ExpressionKind::Char,
+        cst::Expression::ExpressionString(cst) => {
+            let string = child_token(cst.syntax(), SyntaxKind::STRING);
+            let raw_string = child_token(cst.syntax(), SyntaxKind::RAW_STRING);
+            let (kind, value) = string_literal(string, raw_string);
+            ExpressionKind::String { kind, value }
+        }
+        cst::Expression::ExpressionChar(cst) => {
+            let value = child_token(cst.syntax(), SyntaxKind::CHAR)
+                .and_then(|token| char_literal(token.text()));
+            ExpressionKind::Char { value }
+        }
         cst::Expression::ExpressionTrue(_) => ExpressionKind::Boolean { boolean: true },
         cst::Expression::ExpressionFalse(_) => ExpressionKind::Boolean { boolean: false },
-        cst::Expression::ExpressionInteger(_) => ExpressionKind::Integer,
-        cst::Expression::ExpressionNumber(_) => ExpressionKind::Number,
+        cst::Expression::ExpressionInteger(cst) => {
+            let value = child_token(cst.syntax(), SyntaxKind::INTEGER)
+                .and_then(|token| integer_literal(token.text(), false));
+            ExpressionKind::Integer { value }
+        }
+        cst::Expression::ExpressionNumber(cst) => {
+            let value = child_token(cst.syntax(), SyntaxKind::NUMBER)
+                .map(|token| SmolStr::from(token.text()));
+            ExpressionKind::Number { value }
+        }
         cst::Expression::ExpressionArray(cst) => {
             let array = cst.children().map(|cst| lower_expression(state, context, &cst)).collect();
             ExpressionKind::Array { array }
@@ -973,17 +1012,9 @@ fn lower_type_kind(
         }),
         cst::Type::TypeHole(_) => TypeKind::Hole,
         cst::Type::TypeInteger(cst) => {
-            let value = cst.integer_token().and_then(|token| {
-                let text = token.text();
-                let integer = if let Some(hex) = text.strip_prefix("0x") {
-                    let clean = hex.replace_smolstr("_", "");
-                    i32::from_str_radix(&clean, 16).ok()?
-                } else {
-                    let clean = text.replace_smolstr("_", "");
-                    clean.parse().ok()?
-                };
-                if cst.minus_token().is_some() { Some(-integer) } else { Some(integer) }
-            });
+            let value = cst
+                .integer_token()
+                .and_then(|token| integer_literal(token.text(), cst.minus_token().is_some()));
             TypeKind::Integer { value }
         }
         cst::Type::TypeKinded(cst) => {
@@ -1046,13 +1077,7 @@ fn lower_type_kind(
             TypeKind::OperatorChain { head, tail }
         }
         cst::Type::TypeString(cst) => {
-            let (kind, value) = if let Some(token) = cst.string() {
-                (StringKind::String, Some(string_text(token)))
-            } else if let Some(token) = cst.raw_string() {
-                (StringKind::RawString, Some(string_text(token)))
-            } else {
-                (StringKind::String, None)
-            };
+            let (kind, value) = string_literal(cst.string(), cst.raw_string());
             TypeKind::String { kind, value }
         }
         cst::Type::TypeVariable(cst) => {
