@@ -1,5 +1,6 @@
 pub mod context;
 pub mod error;
+pub mod evidence;
 pub mod holes;
 pub mod implication;
 pub mod safety;
@@ -53,6 +54,8 @@ pub trait ExternalQueries:
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedModule {
+    pub evidence: evidence::Evidences,
+    pub placements: evidence::EvidencePlacements,
     pub types: FxHashMap<TypeItemId, TypeId>,
     pub terms: FxHashMap<TermItemId, TypeId>,
     pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
@@ -84,6 +87,7 @@ pub struct CheckedNodes {
     pub forall_bindings: FxHashMap<lowering::TypeVariableBindingId, TypeId>,
     pub implicit_bindings: FxHashMap<(lowering::GraphNodeId, lowering::ImplicitBindingId), TypeId>,
     pub term_operator: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
+    pub term_operator_targets: FxHashMap<lowering::TermOperatorId, (files::FileId, TermItemId)>,
     pub type_operator: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
 }
 
@@ -190,6 +194,13 @@ impl CheckedNodes {
     ) -> Option<OperatorBranchTypes> {
         self.term_operator.get(&id).copied()
     }
+
+    pub fn lookup_term_operator_target(
+        &self,
+        id: lowering::TermOperatorId,
+    ) -> Option<(files::FileId, TermItemId)> {
+        self.term_operator_targets.get(&id).copied()
+    }
 }
 
 pub fn check_module(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<CheckedModule> {
@@ -206,6 +217,8 @@ fn check_source(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<
     core::zonk::zonk_nodes(&mut state, &context)?;
     core::zonk::zonk_holes(&mut state, &context)?;
     core::zonk::zonk_errors(&mut state, &context)?;
+    core::zonk::zonk_evidence(&mut state, &context)?;
+    state.checked.evidence.assert_finished();
 
     Ok(state.checked)
 }

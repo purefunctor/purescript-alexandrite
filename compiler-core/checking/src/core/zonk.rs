@@ -72,6 +72,37 @@ where
     Ok(())
 }
 
+pub fn zonk_evidence<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let variables = state
+        .checked
+        .evidence
+        .variables()
+        .filter_map(|(id, entry)| entry.constraint.map(|constraint| (id, constraint)))
+        .collect::<Vec<_>>();
+
+    for (id, constraint) in variables {
+        let constraint = zonk(state, context, constraint)?;
+        state.checked.evidence.bind_variable(id, constraint);
+    }
+
+    let binders = state
+        .checked
+        .evidence
+        .binders()
+        .filter_map(|(id, binder)| binder.constraint.map(|constraint| (id, constraint)))
+        .collect::<Vec<_>>();
+
+    for (id, constraint) in binders {
+        let constraint = zonk(state, context, constraint)?;
+        state.checked.evidence.bind_binder(id, constraint);
+    }
+
+    Ok(())
+}
+
 pub fn zonk_holes<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
 where
     Q: ExternalQueries,

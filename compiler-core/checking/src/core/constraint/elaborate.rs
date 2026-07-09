@@ -14,11 +14,12 @@ use crate::core::constraint::matching::MatchInstance;
 use crate::core::constraint::{CanonicalConstraintId, canonical, compiler};
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{CheckedClass, KindOrType, Name, Type, TypeId, normalise, toolkit};
+use crate::evidence::{Evidence, EvidenceId};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
 pub struct ElaboratedGiven {
-    pub given: Vec<CanonicalConstraintId>,
+    pub given: Vec<(CanonicalConstraintId, EvidenceId)>,
     pub substitution: NameToType,
 }
 
@@ -26,15 +27,50 @@ pub struct ElaboratedGiven {
 pub fn elaborate_given<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    given: &[CanonicalConstraintId],
+    given: &[(CanonicalConstraintId, EvidenceId)],
 ) -> QueryResult<ElaboratedGiven>
 where
     Q: ExternalQueries,
 {
-    let given = elaborate_superclasses(state, context, given)?;
+    let given = elaborate_superclasses_with_evidence(state, context, given)?;
     let given = elaborate_coercible(state, context, given);
     let (given, substitution) = extract_compiler_solved(state, context, given)?;
     Ok(ElaboratedGiven { given, substitution })
+}
+
+/// Elaborates superclasses while retaining the dictionary projection path.
+pub fn elaborate_superclasses_with_evidence<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    given: &[(CanonicalConstraintId, EvidenceId)],
+) -> QueryResult<Vec<(CanonicalConstraintId, EvidenceId)>>
+where
+    Q: ExternalQueries,
+{
+    let mut elaborated = Vec::with_capacity(given.len());
+    let mut pending = VecDeque::with_capacity(given.len());
+    let mut seen = FxHashSet::default();
+
+    for &(constraint, evidence) in given {
+        if seen.insert(constraint) {
+            elaborated.push((constraint, evidence));
+            pending.push_back((constraint, evidence));
+        }
+    }
+
+    while let Some((constraint, evidence)) = pending.pop_front() {
+        elaborate_via_superclass_with_evidence(
+            state,
+            context,
+            constraint,
+            evidence,
+            &mut elaborated,
+            &mut pending,
+            &mut seen,
+        )?;
+    }
+
+    Ok(elaborated)
 }
 
 /// Elaborates superclasses from a given [`CanonicalConstraint`].
@@ -109,6 +145,47 @@ where
     Ok(())
 }
 
+fn elaborate_via_superclass_with_evidence<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+    evidence: EvidenceId,
+    constraints: &mut Vec<(CanonicalConstraintId, EvidenceId)>,
+    pending: &mut VecDeque<(CanonicalConstraintId, EvidenceId)>,
+    seen: &mut FxHashSet<CanonicalConstraintId>,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let CanonicalConstraint { file_id, type_id, .. } = state.canonicals[constraint];
+    let Some(class) = toolkit::lookup_file_class(state, context, file_id, type_id)? else {
+        return Ok(());
+    };
+
+    if class.superclasses.is_empty() {
+        return Ok(());
+    }
+
+    let CanonicalConstraint { arguments, .. } = &state.canonicals[constraint];
+    let Some(substitutions) = superclass_substitutions(context, &class, arguments)? else {
+        return Ok(());
+    };
+
+    for (index, superclass) in class.superclasses.into_iter().enumerate() {
+        let superclass = SubstituteName::many(state, context, &substitutions, superclass)?;
+        if let Some(superclass) = canonical::canonicalise(state, context, superclass)?
+            && seen.insert(superclass)
+        {
+            let projection =
+                state.checked.evidence.allocate(Evidence::Superclass { parent: evidence, index });
+            constraints.push((superclass, projection));
+            pending.push_back((superclass, projection));
+        }
+    }
+
+    Ok(())
+}
+
 fn superclass_substitutions<Q>(
     context: &CheckContext<Q>,
     class: &CheckedClass,
@@ -147,13 +224,13 @@ where
 pub fn elaborate_coercible<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    mut given: Vec<CanonicalConstraintId>,
-) -> Vec<CanonicalConstraintId>
+    mut given: Vec<(CanonicalConstraintId, EvidenceId)>,
+) -> Vec<(CanonicalConstraintId, EvidenceId)>
 where
     Q: ExternalQueries,
 {
-    let symmetric = given.iter().filter_map(|given| {
-        let CanonicalConstraint { file_id, type_id, ref arguments } = state.canonicals[*given];
+    let symmetric = given.iter().filter_map(|&(given, _)| {
+        let CanonicalConstraint { file_id, type_id, ref arguments } = state.canonicals[given];
 
         if (file_id, type_id) != (context.prim_coerce.file_id, context.prim_coerce.coercible) {
             return None;
@@ -166,7 +243,10 @@ where
         };
 
         let arguments = [kind, right, left].into();
-        Some(state.canonicals.intern(CanonicalConstraint { file_id, type_id, arguments }))
+        let constraint =
+            state.canonicals.intern(CanonicalConstraint { file_id, type_id, arguments });
+        let evidence = state.checked.evidence.compiler();
+        Some((constraint, evidence))
     });
 
     let symmetric = symmetric.collect_vec();
@@ -178,8 +258,8 @@ where
 fn extract_compiler_solved<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    given: Vec<CanonicalConstraintId>,
-) -> QueryResult<(Vec<CanonicalConstraintId>, NameToType)>
+    given: Vec<(CanonicalConstraintId, EvidenceId)>,
+) -> QueryResult<(Vec<(CanonicalConstraintId, EvidenceId)>, NameToType)>
 where
     Q: ExternalQueries,
 {
@@ -187,11 +267,19 @@ where
     let mut conflicts = FxHashSet::default();
 
     safe_loop! {
-        let given = canonical::substitute_canonicals(state, context, &substitution, &given)?;
+        let given = given
+            .iter()
+            .map(|&(constraint, evidence)| {
+                canonical::substitute_canonical(state, context, &substitution, constraint)
+                    .map(|constraint| (constraint, evidence))
+            })
+            .collect::<QueryResult<Vec<_>>>()?;
+        let canonical_given = given.iter().map(|&(constraint, _)| constraint).collect_vec();
         let mut changed = false;
 
-        for &constraint in &given {
-            let Some(matched) = compiler::match_compiler_instance(state, context, constraint, &given)?
+        for &(constraint, _) in &given {
+            let Some(matched) =
+                compiler::match_compiler_instance(state, context, constraint, &canonical_given)?
             else {
                 continue;
             };

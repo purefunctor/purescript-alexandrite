@@ -179,6 +179,70 @@ where
     })
 }
 
+/// Whether a constraint is represented only by compiler-known proof machinery.
+///
+/// This intentionally checks class identity rather than attempting to solve the
+/// constraint, so callers can make runtime-erasure decisions without mutating
+/// checker state.
+pub fn is_compiler_known_constraint<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+) -> bool
+where
+    Q: ExternalQueries,
+{
+    let canonical = &state.canonicals[constraint];
+    let class = (canonical.file_id, canonical.type_id);
+
+    let partial = match context.lookup_type(context.prim.partial) {
+        Type::Constructor(file_id, type_id) => Some((file_id, type_id)),
+        _ => None,
+    };
+
+    if partial == Some(class) {
+        return true;
+    }
+
+    (canonical.file_id == context.prim_int.file_id
+        && (canonical.type_id == context.prim_int.add
+            || canonical.type_id == context.prim_int.mul
+            || canonical.type_id == context.prim_int.compare
+            || canonical.type_id == context.prim_int.to_string))
+        || (canonical.file_id == context.prim_symbol.file_id
+            && (canonical.type_id == context.prim_symbol.append
+                || canonical.type_id == context.prim_symbol.compare
+                || canonical.type_id == context.prim_symbol.cons))
+        || (canonical.file_id == context.prim_row.file_id
+            && (canonical.type_id == context.prim_row.union
+                || canonical.type_id == context.prim_row.cons
+                || canonical.type_id == context.prim_row.lacks
+                || canonical.type_id == context.prim_row.nub))
+        || (canonical.file_id == context.prim_row_list.file_id
+            && canonical.type_id == context.prim_row_list.row_to_list)
+        || (canonical.file_id == context.prim_coerce.file_id
+            && canonical.type_id == context.prim_coerce.coercible)
+        || (canonical.file_id == context.prim_type_error.file_id
+            && (canonical.type_id == context.prim_type_error.warn
+                || canonical.type_id == context.prim_type_error.fail))
+        || context.known_reflectable.is_symbol == Some(class)
+        || context.known_reflectable.reflectable == Some(class)
+}
+
+/// Whether solving this compiler-known constraint represents a hard type error.
+pub fn is_compiler_error_constraint<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+) -> bool
+where
+    Q: ExternalQueries,
+{
+    let canonical = &state.canonicals[constraint];
+    canonical.file_id == context.prim_type_error.file_id
+        && canonical.type_id == context.prim_type_error.fail
+}
+
 pub fn match_compiler_instance<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,

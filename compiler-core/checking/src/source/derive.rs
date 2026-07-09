@@ -67,6 +67,7 @@ pub(super) enum DeriveStrategy {
 }
 
 pub struct DeriveHeadResult {
+    derive_id: indexing::DeriveId,
     item_id: TermItemId,
     constraints: Vec<TypeId>,
     class_file: FileId,

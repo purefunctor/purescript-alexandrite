@@ -17,6 +17,7 @@ pub use canonical::{CanonicalConstraint, CanonicalConstraintId, Canonicals};
 use itertools::Itertools;
 
 use std::collections::VecDeque;
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::rc::Rc;
 
@@ -28,7 +29,8 @@ use crate::context::CheckContext;
 use crate::core::fd::{compute_closure, get_functional_dependencies};
 use crate::core::{KindOrType, TypeId, unification};
 use crate::error::{CheckingError, ErrorKind};
-use crate::implication::{ImplicationId, Patterns};
+use crate::evidence::{Evidence, EvidenceId, EvidenceVarId};
+use crate::implication::{GivenConstraint, ImplicationId, Patterns, WantedConstraint};
 use crate::state::{CheckState, UnificationState};
 use crate::{ExternalQueries, Type};
 
@@ -98,6 +100,44 @@ type Stuck = FxHashMap<u32, Vec<ConstraintInScope>>;
 type ConstraintSet = IndexSet<ConstraintInScope, FxBuildHasher>;
 type Skolem = Vec<ConstraintInScope>;
 
+fn insert_unique_constraint(
+    state: &mut CheckState,
+    constraints: &mut ConstraintSet,
+    constraint: ConstraintInScope,
+) {
+    if let Some(existing) = constraints.get(&constraint) {
+        state.checked.evidence.merge_duplicate(constraint.evidence, existing.evidence);
+    } else {
+        constraints.insert(constraint);
+    }
+}
+
+fn scoped_constraints<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    given: &Rc<[(CanonicalConstraintId, EvidenceId)]>,
+    scope: ImplicationId,
+    constraints: Vec<CanonicalConstraintId>,
+) -> Vec<ConstraintInScope>
+where
+    Q: ExternalQueries,
+{
+    constraints
+        .into_iter()
+        .map(|wanted| {
+            let evidence = state.checked.evidence.fresh_variable();
+            let canonical = state.canonicals.type_id(context, wanted);
+            state.checked.evidence.bind_variable(evidence, canonical);
+            let given = Rc::clone(given);
+            ConstraintInScope { given, wanted, evidence, scope }
+        })
+        .collect()
+}
+
+fn canonical_givens(given: &[(CanonicalConstraintId, EvidenceId)]) -> Vec<CanonicalConstraintId> {
+    given.iter().map(|&(constraint, _)| constraint).collect()
+}
+
 fn is_improving_constraint<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -140,12 +180,14 @@ where
     Ok(false)
 }
 
-fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &CheckState) {
+fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &mut CheckState) {
     let mut awake = ConstraintSet::default();
 
     stuck.retain(|&id, constraints| {
         if let UnificationState::Solved(_) = state.unifications.get(id).state {
-            awake.extend(constraints.iter().cloned());
+            for constraint in constraints.iter().cloned() {
+                insert_unique_constraint(state, &mut awake, constraint);
+            }
             false
         } else {
             true
@@ -159,7 +201,14 @@ fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &CheckState) {
     // For each constraint in the constraint set;
     for constraints in stuck.values_mut() {
         // keep only the constraints that are not awake;
-        constraints.retain(|constraint| !awake.contains(constraint));
+        constraints.retain(|constraint| {
+            if let Some(existing) = awake.get(constraint) {
+                state.checked.evidence.merge_duplicate(constraint.evidence, existing.evidence);
+                false
+            } else {
+                true
+            }
+        });
     }
 
     // and keep only the non-empty constraint sets.
@@ -199,13 +248,26 @@ where
         let mut blocked = FxHashSet::default();
         let mut blocked_on_skolem = false;
 
-        for &provided in &*constraint.given {
+        for &(provided, provided_evidence) in &*constraint.given {
             match matching::match_provided(state, context, constraint.wanted, provided)? {
                 matching::MatchInstance::Match { unifications, constraints } => {
-                    let constraints = constraints.into_iter().map(|wanted| {
-                        let given = Rc::clone(&constraint.given);
-                        ConstraintInScope { given, wanted }
-                    });
+                    let evidence = if compiler::is_compiler_known_constraint(
+                        state,
+                        context,
+                        constraint.wanted,
+                    ) {
+                        state.checked.evidence.compiler()
+                    } else {
+                        provided_evidence
+                    };
+                    state.checked.evidence.solve(constraint.evidence, evidence);
+                    let constraints = scoped_constraints(
+                        state,
+                        context,
+                        &constraint.given,
+                        constraint.scope,
+                        constraints,
+                    );
                     work.extend_from_parts(unifications, constraints);
                     continue 'work;
                 }
@@ -217,17 +279,22 @@ where
             }
         }
 
-        match compiler::match_compiler_instance(
-            state,
-            context,
-            constraint.wanted,
-            &constraint.given,
-        )? {
+        let given = canonical_givens(&constraint.given);
+        match compiler::match_compiler_instance(state, context, constraint.wanted, &given)? {
             Some(matching::MatchInstance::Match { unifications, constraints }) => {
-                let constraints = constraints.into_iter().map(|wanted| {
-                    let given = Rc::clone(&constraint.given);
-                    ConstraintInScope { given, wanted }
-                });
+                if compiler::is_compiler_error_constraint(state, context, constraint.wanted) {
+                    state.checked.evidence.mark_error(constraint.evidence);
+                } else {
+                    let evidence = state.checked.evidence.compiler();
+                    state.checked.evidence.solve(constraint.evidence, evidence);
+                }
+                let constraints = scoped_constraints(
+                    state,
+                    context,
+                    &constraint.given,
+                    constraint.scope,
+                    constraints,
+                );
                 work.extend_from_parts(unifications, constraints);
                 continue 'work;
             }
@@ -243,10 +310,20 @@ where
             for candidate in chain {
                 match matching::match_declared(state, context, constraint.wanted, candidate)? {
                     matching::MatchInstance::Match { unifications, constraints } => {
-                        let constraints = constraints.into_iter().map(|wanted| {
-                            let given = Rc::clone(&constraint.given);
-                            ConstraintInScope { given, wanted }
-                        });
+                        let constraints = scoped_constraints(
+                            state,
+                            context,
+                            &constraint.given,
+                            constraint.scope,
+                            constraints,
+                        );
+                        let subgoals =
+                            constraints.iter().map(|constraint| constraint.evidence).collect();
+                        let evidence = state
+                            .checked
+                            .evidence
+                            .allocate(Evidence::Instance { origin: candidate.origin, subgoals });
+                        state.checked.evidence.solve(constraint.evidence, evidence);
                         work.extend_from_parts(unifications, constraints);
                         continue 'work;
                     }
@@ -279,12 +356,18 @@ where
     }
 
     let mut unique_residuals = ConstraintSet::default();
-    unique_residuals.extend(residuals);
+    for residual in residuals {
+        insert_unique_constraint(state, &mut unique_residuals, residual);
+    }
 
     for (_, constraints) in stuck {
-        unique_residuals.extend(constraints);
+        for constraint in constraints {
+            insert_unique_constraint(state, &mut unique_residuals, constraint);
+        }
     }
-    unique_residuals.extend(skolem);
+    for constraint in skolem {
+        insert_unique_constraint(state, &mut unique_residuals, constraint);
+    }
 
     Ok(unique_residuals.into_iter().collect())
 }
@@ -309,14 +392,21 @@ where
 
 #[derive(Default, Clone)]
 struct GivenInScope {
-    constraints: Vec<CanonicalConstraintId>,
+    constraints: Vec<(CanonicalConstraintId, EvidenceId)>,
     seen: IndexSet<CanonicalConstraintId, FxBuildHasher>,
+    scope: ImplicationId,
 }
 
 impl GivenInScope {
-    fn insert(&mut self, constraint: CanonicalConstraintId) {
+    fn insert(&mut self, constraint: CanonicalConstraintId, evidence: EvidenceId) {
         if self.seen.insert(constraint) {
-            self.constraints.push(constraint);
+            self.constraints.push((constraint, evidence));
+        } else if let Some((_, existing)) =
+            self.constraints.iter_mut().find(|(given, _)| *given == constraint)
+        {
+            // A local duplicate shadows the inherited dictionary. Canonical
+            // identity remains deduplicated, but evidence must be lexical.
+            *existing = evidence;
         }
     }
 
@@ -325,10 +415,40 @@ impl GivenInScope {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone)]
 pub struct ConstraintInScope {
-    pub given: Rc<[CanonicalConstraintId]>,
+    pub given: Rc<[(CanonicalConstraintId, EvidenceId)]>,
     pub wanted: CanonicalConstraintId,
+    pub evidence: EvidenceVarId,
+    /// Identity of the lexical dictionary environment used by this wanted.
+    /// This prevents solver work deduplication from aliasing evidence across
+    /// sibling scopes while keeping fresh evidence IDs out of canonical keys.
+    scope: ImplicationId,
+}
+
+impl PartialEq for ConstraintInScope {
+    fn eq(&self, other: &Self) -> bool {
+        self.scope == other.scope
+            && self.wanted == other.wanted
+            && self.given.len() == other.given.len()
+            && self
+                .given
+                .iter()
+                .zip(other.given.iter())
+                .all(|((left, _), (right, _))| left == right)
+    }
+}
+
+impl Eq for ConstraintInScope {}
+
+impl Hash for ConstraintInScope {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.scope.hash(state);
+        for (given, _) in self.given.iter() {
+            given.hash(state);
+        }
+        self.wanted.hash(state);
+    }
 }
 
 impl ConstraintInScope {
@@ -343,10 +463,14 @@ impl ConstraintInScope {
         let given = self
             .given
             .iter()
-            .map(|&given| canonical::zonk_canonical(state, context, given))
+            .map(|&(given, evidence)| {
+                canonical::zonk_canonical(state, context, given).map(|given| (given, evidence))
+            })
             .collect::<QueryResult<Rc<[_]>>>()?;
         let wanted = canonical::zonk_canonical(state, context, self.wanted)?;
-        Ok(ConstraintInScope { given, wanted })
+        let canonical = state.canonicals.type_id(context, wanted);
+        state.checked.evidence.bind_variable(self.evidence, canonical);
+        Ok(ConstraintInScope { given, wanted, evidence: self.evidence, scope: self.scope })
     }
 
     pub fn canonical<Q>(&self, state: &CheckState, context: &CheckContext<Q>) -> TypeId
@@ -394,10 +518,23 @@ where
             )
         };
 
-        for given in given {
-            if let Some(given) = canonical::canonicalise(state, context, given)? {
-                implication_given.insert(given);
+        let mut introduced_given = false;
+        for GivenConstraint { constraint, evidence } in given {
+            if let Some(given) = canonical::canonicalise(state, context, constraint)? {
+                introduced_given = true;
+                let erased = compiler::is_compiler_known_constraint(state, context, given);
+                let canonical = state.canonicals.type_id(context, given);
+                state.checked.evidence.bind_binder(evidence, canonical);
+                if erased {
+                    state.checked.evidence.erase_binder(evidence);
+                }
+                let evidence = state.checked.evidence.given(evidence);
+                implication_given.insert(given, evidence);
             }
+        }
+
+        if introduced_given {
+            implication_given.scope = implication_id;
         }
 
         let elide_missing_patterns =
@@ -414,14 +551,36 @@ where
             let elaborate::ElaboratedGiven { given, substitution } =
                 elaborate::elaborate_given(state, context, &implication_given.constraints)?;
 
-            let given: Rc<[CanonicalConstraintId]> = Rc::from(given);
+            // Functional-dependency improvement may substitute rigid names in
+            // a direct given. Keep its durable binder metadata aligned with
+            // the canonical constraint the solver actually uses.
+            for &(constraint, evidence) in &given {
+                let binder = match state.checked.evidence.evidence(evidence) {
+                    Evidence::Given(binder) => Some(*binder),
+                    _ => None,
+                };
+                if let Some(binder) = binder {
+                    let canonical = state.canonicals.type_id(context, constraint);
+                    state.checked.evidence.bind_binder(binder, canonical);
+                    if compiler::is_compiler_known_constraint(state, context, constraint) {
+                        state.checked.evidence.erase_binder(binder);
+                    }
+                }
+            }
 
-            for wanted in wanted {
-                if let Some(wanted) = canonical::canonicalise(state, context, wanted)? {
+            let given: Rc<[(CanonicalConstraintId, EvidenceId)]> = Rc::from(given);
+
+            for WantedConstraint { constraint, evidence } in wanted {
+                if let Some(wanted) = canonical::canonicalise(state, context, constraint)? {
                     let given = Rc::clone(&given);
                     let wanted =
                         canonical::substitute_canonical(state, context, &substitution, wanted)?;
-                    constraints.push_back(ConstraintInScope { given, wanted });
+                    let canonical = state.canonicals.type_id(context, wanted);
+                    state.checked.evidence.bind_variable(evidence, canonical);
+                    let scope = implication_given.scope;
+                    constraints.push_back(ConstraintInScope { given, wanted, evidence, scope });
+                } else {
+                    state.checked.evidence.mark_error(evidence);
                 }
             }
         }

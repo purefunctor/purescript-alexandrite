@@ -82,13 +82,14 @@ where
     Q: ExternalQueries,
 {
     for residual in state.solve_constraints(context)? {
+        state.checked.evidence.mark_error(residual.evidence);
         let attached = state.canonical_errors.remove(&residual.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
         let given = residual
             .given
             .iter()
-            .map(|given| state.canonicals.type_id(context, *given))
+            .map(|(given, _)| state.canonicals.type_id(context, *given))
             .collect::<Arc<[_]>>();
 
         let constraint = state.canonicals.type_id(context, residual.wanted);

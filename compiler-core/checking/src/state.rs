@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
+use indexing::DeriveId;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
@@ -15,7 +16,10 @@ use crate::core::exhaustive::{
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
-use crate::implication::{Implications, Patterns};
+use crate::evidence::{
+    EvidenceAbstractionSite, EvidenceApplicationSite, EvidenceBinderId, EvidenceVarId,
+};
+use crate::implication::{GivenConstraint, Implications, Patterns, WantedConstraint};
 use crate::{CheckedModule, ExternalQueries};
 
 /// Manages [`Name`] values for [`CheckState`].
@@ -208,6 +212,9 @@ pub struct CheckState {
     pub depth: Depth,
 
     pub crumbs: Vec<ErrorCrumb>,
+
+    wanted_captures: Vec<Vec<EvidenceVarId>>,
+    binder_captures: Vec<(EvidenceAbstractionSite, Vec<EvidenceBinderId>)>,
 }
 
 impl CheckState {
@@ -224,6 +231,8 @@ impl CheckState {
             defer_expansion: Default::default(),
             depth: Depth(0),
             crumbs: Default::default(),
+            wanted_captures: Default::default(),
+            binder_captures: Default::default(),
         }
     }
 
@@ -281,12 +290,95 @@ impl CheckState {
         self.checked.errors.push(CheckingError { kind, crumbs });
     }
 
-    pub fn push_wanted(&mut self, constraint: TypeId) {
-        self.implications.current_mut().wanted.push_back(constraint);
+    pub fn push_wanted(&mut self, constraint: TypeId) -> EvidenceVarId {
+        let evidence = self.checked.evidence.fresh_variable();
+        if let Some(variables) = self.wanted_captures.last_mut() {
+            variables.push(evidence);
+        }
+        self.implications.current_mut().wanted.push_back(WantedConstraint { constraint, evidence });
+        evidence
     }
 
-    pub fn push_given(&mut self, constraint: TypeId) {
-        self.implications.current_mut().given.push(constraint);
+    pub fn push_given(&mut self, constraint: TypeId) -> EvidenceBinderId {
+        let evidence = self.fresh_evidence_binder();
+        self.push_given_with_evidence(constraint, evidence);
+        evidence
+    }
+
+    pub fn push_given_with_evidence(&mut self, constraint: TypeId, evidence: EvidenceBinderId) {
+        self.implications.current_mut().given.push(GivenConstraint { constraint, evidence });
+    }
+
+    pub fn fresh_evidence_binder(&mut self) -> EvidenceBinderId {
+        let evidence = self.checked.evidence.fresh_binder();
+        if let Some((_, binders)) = self.binder_captures.last_mut() {
+            binders.push(evidence);
+        }
+        evidence
+    }
+
+    pub fn capture_wanteds<T>(
+        &mut self,
+        site: EvidenceApplicationSite,
+        f: impl FnOnce(&mut CheckState) -> T,
+    ) -> T {
+        let (result, variables) = self.capture_wanted_variables(f);
+
+        if !variables.is_empty() {
+            self.checked.placements.applications.entry(site).or_default().extend(variables);
+        }
+
+        result
+    }
+
+    pub fn capture_derived_requirements<T>(
+        &mut self,
+        derive: DeriveId,
+        f: impl FnOnce(&mut CheckState) -> T,
+    ) -> T {
+        let (result, variables) = self.capture_wanted_variables(f);
+        if !variables.is_empty() {
+            self.checked
+                .placements
+                .derived_requirements
+                .entry(derive)
+                .or_default()
+                .extend(variables);
+        }
+        result
+    }
+
+    fn capture_wanted_variables<T>(
+        &mut self,
+        f: impl FnOnce(&mut CheckState) -> T,
+    ) -> (T, Vec<EvidenceVarId>) {
+        self.wanted_captures.push(vec![]);
+        let result = f(self);
+        let variables = self
+            .wanted_captures
+            .pop()
+            .expect("invariant violated: missing wanted evidence capture");
+        (result, variables)
+    }
+
+    pub fn capture_binders<T>(
+        &mut self,
+        site: EvidenceAbstractionSite,
+        f: impl FnOnce(&mut CheckState) -> T,
+    ) -> T {
+        self.binder_captures.push((site, vec![]));
+        let result = f(self);
+        let (captured_site, binders) = self
+            .binder_captures
+            .pop()
+            .expect("invariant violated: missing binder evidence capture");
+        debug_assert_eq!(captured_site, site);
+
+        if !binders.is_empty() {
+            self.checked.placements.abstractions.entry(site).or_default().extend(binders);
+        }
+
+        result
     }
 
     pub fn with_implication<T>(&mut self, f: impl FnOnce(&mut CheckState) -> T) -> T {
@@ -355,5 +447,57 @@ impl CheckState {
 
     pub fn allocate_wildcard(&mut self, t: TypeId) -> PatternId {
         self.allocate_pattern(PatternKind::Wildcard, t)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::CheckState;
+    use crate::TypeId;
+    use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
+
+    #[test]
+    fn nested_evidence_captures_record_only_the_innermost_site() {
+        let mut files = files::Files::default();
+        let mut state = CheckState::new(files.insert("Test.purs", ""));
+        let constraint = TypeId::new(NonZeroU32::new(1).unwrap());
+        let outer_expression = lowering::ExpressionId::new(NonZeroU32::new(1).unwrap());
+        let inner_expression = lowering::ExpressionId::new(NonZeroU32::new(2).unwrap());
+        let outer_application = EvidenceApplicationSite::Expression(outer_expression);
+        let inner_application = EvidenceApplicationSite::Expression(inner_expression);
+
+        let (outer_first, inner, outer_second) =
+            state.capture_wanteds(outer_application, |state| {
+                let outer_first = state.push_wanted(constraint);
+                let inner =
+                    state.capture_wanteds(inner_application, |state| state.push_wanted(constraint));
+                let outer_second = state.push_wanted(constraint);
+                (outer_first, inner, outer_second)
+            });
+
+        assert_eq!(
+            state.checked.placements.applications[&outer_application],
+            [outer_first, outer_second]
+        );
+        assert_eq!(state.checked.placements.applications[&inner_application], [inner]);
+
+        let outer_abstraction = EvidenceAbstractionSite::Expression(outer_expression);
+        let inner_abstraction = EvidenceAbstractionSite::Expression(inner_expression);
+        let (outer_first, inner, outer_second) =
+            state.capture_binders(outer_abstraction, |state| {
+                let outer_first = state.fresh_evidence_binder();
+                let inner =
+                    state.capture_binders(inner_abstraction, |state| state.fresh_evidence_binder());
+                let outer_second = state.fresh_evidence_binder();
+                (outer_first, inner, outer_second)
+            });
+
+        assert_eq!(
+            state.checked.placements.abstractions[&outer_abstraction],
+            [outer_first, outer_second]
+        );
+        assert_eq!(state.checked.placements.abstractions[&inner_abstraction], [inner]);
     }
 }

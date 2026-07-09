@@ -19,15 +19,17 @@
 //! [rigid type variables]: crate::core::Type::Rigid
 
 use building_types::QueryResult;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use petgraph::algo;
 use petgraph::prelude::DiGraphMap;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::context::CheckContext;
-use crate::core::constraint::{CanonicalConstraintId, ConstraintInScope, elaborate};
+use crate::core::constraint::{CanonicalConstraintId, ConstraintInScope, compiler, elaborate};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{ForallBinder, Name, Type, TypeId, normalise, zonk};
+use crate::evidence::EvidenceId;
 use crate::state::{CheckState, UnificationEntry, UnificationState};
 use crate::{ExternalQueries, safe_loop};
 
@@ -268,7 +270,7 @@ where
         let residual = residual.zonk(state, context)?;
 
         if residual.is_partial(state, context) {
-            latent.push(residual.wanted);
+            latent.push(residual);
             continue;
         }
 
@@ -277,17 +279,19 @@ where
             collect_unification(state, context, canonical)?.nodes().collect();
 
         if unification.is_empty() {
+            state.checked.evidence.mark_error(residual.evidence);
             errors.unsatisfied.push(residual);
         } else {
-            pending.push((residual.wanted, unification));
+            pending.push((residual, unification));
         }
     }
 
     let unifications = collect_unification(state, context, type_id)?.nodes().collect();
-    let generalised = classify_constraints(pending, latent, unifications, errors);
+    let generalised = classify_constraints(state, pending, latent, unifications, errors);
 
-    let generalised = generalised.into_iter().sorted().collect_vec();
-    let generalised = minimize_by_superclasses(state, context, generalised)?;
+    let generalised =
+        generalised.into_iter().sorted_by_key(|constraint| constraint.wanted).collect_vec();
+    let generalised = finalise_generalised_constraints(state, context, generalised)?;
 
     let constrained = generalised.into_iter().rfold(type_id, |inner, constraint| {
         let constraint = state.canonicals.type_id(context, constraint);
@@ -297,38 +301,138 @@ where
     Ok(constrained)
 }
 
-fn minimize_by_superclasses<Q>(
+fn finalise_generalised_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    constraints: Vec<CanonicalConstraintId>,
+    constraints: Vec<ConstraintInScope>,
 ) -> QueryResult<Vec<CanonicalConstraintId>>
 where
     Q: ExternalQueries,
 {
-    if constraints.len() <= 1 {
-        return Ok(constraints);
-    }
-
     let mut superclasses = FxHashSet::default();
-    for &constraint in &constraints {
-        for superclass in elaborate::elaborate_superclasses(state, context, &[constraint])? {
-            if superclass != constraint {
+    for constraint in &constraints {
+        for superclass in elaborate::elaborate_superclasses(state, context, &[constraint.wanted])? {
+            if superclass != constraint.wanted {
                 superclasses.insert(superclass);
             }
         }
     }
 
-    Ok(constraints.into_iter().filter(|constraint| !superclasses.contains(constraint)).collect())
+    let (retained, dropped): (Vec<_>, Vec<_>) =
+        constraints.into_iter().partition(|constraint| !superclasses.contains(&constraint.wanted));
+
+    let mut retained_evidence = vec![];
+    for constraint in &retained {
+        let evidence = solve_generalised_constraint(state, context, constraint)?;
+        retained_evidence.push((constraint.wanted, evidence));
+    }
+
+    for constraint in dropped {
+        solve_minimized_constraint(state, context, &retained_evidence, constraint)?;
+    }
+
+    Ok(retained.into_iter().map(|constraint| constraint.wanted).collect())
+}
+
+fn solve_generalised_constraint<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    constraint: &ConstraintInScope,
+) -> QueryResult<Option<EvidenceId>>
+where
+    Q: ExternalQueries,
+{
+    if compiler::is_compiler_error_constraint(state, context, constraint.wanted) {
+        state.checked.evidence.mark_error(constraint.evidence);
+        return Ok(None);
+    }
+
+    if compiler::is_compiler_known_constraint(state, context, constraint.wanted) {
+        let evidence = state.checked.evidence.compiler();
+        state.checked.evidence.solve(constraint.evidence, evidence);
+        return Ok(None);
+    }
+
+    let binder = state.fresh_evidence_binder();
+    let canonical = state.canonicals.type_id(context, constraint.wanted);
+    state.checked.evidence.bind_binder(binder, canonical);
+    let evidence = state.checked.evidence.given(binder);
+    state.checked.evidence.solve(constraint.evidence, evidence);
+    Ok(Some(evidence))
+}
+
+fn solve_minimized_constraint<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    retained: &[(CanonicalConstraintId, Option<EvidenceId>)],
+    constraint: ConstraintInScope,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    if compiler::is_compiler_error_constraint(state, context, constraint.wanted) {
+        state.checked.evidence.mark_error(constraint.evidence);
+        return Ok(());
+    }
+
+    if compiler::is_compiler_known_constraint(state, context, constraint.wanted) {
+        let evidence = state.checked.evidence.compiler();
+        state.checked.evidence.solve(constraint.evidence, evidence);
+        return Ok(());
+    }
+
+    for &(retained, evidence) in retained {
+        let Some(evidence) = evidence else { continue };
+        let elaborated = elaborate::elaborate_superclasses_with_evidence(
+            state,
+            context,
+            &[(retained, evidence)],
+        )?;
+
+        for (superclass, evidence) in elaborated {
+            if superclass == retained || superclass != constraint.wanted {
+                continue;
+            }
+
+            state.checked.evidence.solve(constraint.evidence, evidence);
+            return Ok(());
+        }
+    }
+
+    debug_assert!(
+        false,
+        "invariant violated: minimized constraint has no retained superclass path",
+    );
+    state.checked.evidence.mark_error(constraint.evidence);
+    Ok(())
+}
+
+type ConstraintSet = IndexMap<CanonicalConstraintId, ConstraintInScope, FxBuildHasher>;
+
+fn insert_valid_constraint(
+    state: &mut CheckState,
+    constraints: &mut ConstraintSet,
+    constraint: ConstraintInScope,
+) {
+    if let Some(existing) = constraints.get(&constraint.wanted) {
+        state.checked.evidence.merge_duplicate(constraint.evidence, existing.evidence);
+    } else {
+        constraints.insert(constraint.wanted, constraint);
+    }
 }
 
 fn classify_constraints(
-    pending: Vec<(CanonicalConstraintId, FxHashSet<u32>)>,
-    latent: Vec<CanonicalConstraintId>,
+    state: &mut CheckState,
+    pending: Vec<(ConstraintInScope, FxHashSet<u32>)>,
+    latent: Vec<ConstraintInScope>,
     unifications: FxHashSet<u32>,
     errors: &mut ConstraintErrors,
-) -> FxHashSet<CanonicalConstraintId> {
+) -> Vec<ConstraintInScope> {
     let mut reachable = unifications;
-    let mut valid: FxHashSet<_> = latent.into_iter().collect();
+    let mut valid = ConstraintSet::default();
+    for constraint in latent {
+        insert_valid_constraint(state, &mut valid, constraint);
+    }
     let mut remaining = pending;
 
     safe_loop! {
@@ -338,18 +442,22 @@ fn classify_constraints(
             });
 
         if connected.is_empty() {
-            break errors.ambiguous.extend(disconnected.into_iter().map(|(id, _)| id));
+            for (constraint, _) in disconnected {
+                state.checked.evidence.mark_error(constraint.evidence);
+                errors.ambiguous.push(constraint.wanted);
+            }
+            break;
         }
 
         for (constraint, unification) in connected {
-            valid.insert(constraint);
+            insert_valid_constraint(state, &mut valid, constraint);
             reachable.extend(unification);
         }
 
         remaining = disconnected;
     }
 
-    valid
+    valid.into_values().collect()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

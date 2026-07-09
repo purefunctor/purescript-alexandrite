@@ -2,8 +2,9 @@ use building_types::QueryResult;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::Type;
+use crate::core::{Type, TypeId, constraint};
 use crate::error::ErrorCrumb;
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId};
 use crate::state::CheckState;
 
 use super::{DeriveHeadResult, DeriveStrategy, field, tools, variance};
@@ -18,10 +19,40 @@ where
 {
     for result in derives {
         state.with_error_crumb(ErrorCrumb::TermDeclaration(result.item_id), |state| {
-            state.with_implication(|state| check_derive_member(state, context, result))
+            let givens = state
+                .capture_binders(EvidenceAbstractionSite::Term(result.item_id), |state| {
+                    allocate_derive_givens(state, context, &result.constraints)
+                })?;
+            state.with_implication(|state| {
+                for &(constraint, evidence) in &givens {
+                    state.push_given_with_evidence(constraint, evidence);
+                }
+                state.capture_derived_requirements(result.derive_id, |state| {
+                    check_derive_member(state, context, result)
+                })
+            })
         })?;
     }
     Ok(())
+}
+
+fn allocate_derive_givens<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    constraints: &[TypeId],
+) -> QueryResult<Vec<(TypeId, EvidenceBinderId)>>
+where
+    Q: ExternalQueries,
+{
+    let mut givens = Vec::with_capacity(constraints.len());
+    for &constraint in constraints {
+        if constraint::is_type_error(state, context, constraint)? {
+            continue;
+        }
+        let evidence = state.fresh_evidence_binder();
+        givens.push((constraint, evidence));
+    }
+    Ok(givens)
 }
 
 fn check_derive_member<Q>(
@@ -32,10 +63,6 @@ fn check_derive_member<Q>(
 where
     Q: ExternalQueries,
 {
-    for &constraint in &result.constraints {
-        state.push_given(constraint);
-    }
-
     match result.strategy {
         DeriveStrategy::FieldConstraints { data_file, data_id, derived_type, class } => {
             tools::emit_superclass_constraints(

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId};
+use indexing::{InstanceId, TermItemId, TermItemKind, TypeItemId};
 use lowering::TermItemIr;
 use rustc_hash::FxHashMap;
 
@@ -15,6 +15,7 @@ use crate::core::{
     normalise, signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId};
 use crate::source::terms::equations;
 use crate::source::{derive, types};
 use crate::state::CheckState;
@@ -232,14 +233,29 @@ where
                 continue;
             };
 
-            for member in members.iter() {
+            let freshened = freshen_instance_rigids(state, context, &instance)?;
+            let givens = allocate_instance_givens(state, context, item_id, &freshened.constraints)?;
+            check_instance_superclasses(
+                state,
+                context,
+                item_id,
+                instance_id,
+                (class_file, class_id),
+                &freshened.arguments,
+                &givens,
+            )?;
+
+            for (member_index, member) in members.iter().enumerate() {
                 check_instance_member_group(
                     state,
                     context,
                     item_id,
+                    instance_id,
+                    member_index as u32,
                     member,
                     (class_file, class_id),
-                    &instance,
+                    &freshened,
+                    &givens,
                 )?;
             }
         }
@@ -248,22 +264,140 @@ where
     Ok(())
 }
 
+type InstanceGivens = Vec<(TypeId, EvidenceBinderId)>;
+
+fn allocate_instance_givens<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    instance_item_id: TermItemId,
+    constraints: &[TypeId],
+) -> QueryResult<InstanceGivens>
+where
+    Q: ExternalQueries,
+{
+    state.capture_binders(EvidenceAbstractionSite::Term(instance_item_id), |state| {
+        let mut givens = Vec::with_capacity(constraints.len());
+        for &constraint in constraints {
+            if constraint::is_type_error(state, context, constraint)? {
+                continue;
+            }
+            let evidence = state.fresh_evidence_binder();
+            givens.push((constraint, evidence));
+        }
+        Ok(givens)
+    })
+}
+
+fn check_instance_superclasses<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    instance_item_id: TermItemId,
+    instance_id: InstanceId,
+    (class_file, class_id): (FileId, TypeItemId),
+    arguments: &[KindOrType],
+    givens: &InstanceGivens,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let superclasses =
+        specialise_instance_superclasses(state, context, class_file, class_id, arguments)?;
+
+    let (evidence, residuals) =
+        state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
+            state.with_implication(|state| {
+                for &(constraint, evidence) in givens {
+                    state.push_given_with_evidence(constraint, evidence);
+                }
+
+                let evidence = superclasses
+                    .iter()
+                    .map(|&superclass| state.push_wanted(superclass))
+                    .collect::<Vec<_>>();
+                let residuals = state.solve_constraints(context)?;
+                Ok((evidence, residuals))
+            })
+        })?;
+
+    state.checked.placements.instance_superclasses.insert(instance_id, evidence);
+    state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
+        report_instance_residuals(state, context, residuals);
+    });
+    Ok(())
+}
+
+fn specialise_instance_superclasses<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    class_file: FileId,
+    class_id: TypeItemId,
+    arguments: &[KindOrType],
+) -> QueryResult<Vec<TypeId>>
+where
+    Q: ExternalQueries,
+{
+    let Some(class) = toolkit::lookup_file_class(state, context, class_file, class_id)? else {
+        return Ok(vec![]);
+    };
+    if class.superclasses.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let mut substitution = NameToType::default();
+    let mut arguments = arguments.iter().copied();
+
+    for &binder_id in &class.kind_binders {
+        let Some(KindOrType::Kind(argument)) = arguments.next() else {
+            return Ok(vec![]);
+        };
+        let binder = context.lookup_forall_binder(binder_id);
+        substitution.insert(binder.name, argument);
+    }
+
+    for &binder_id in &class.type_parameters {
+        let Some(KindOrType::Type(argument)) = arguments.next() else {
+            return Ok(vec![]);
+        };
+        let binder = context.lookup_forall_binder(binder_id);
+        substitution.insert(binder.name, argument);
+    }
+
+    if arguments.next().is_some() {
+        return Ok(vec![]);
+    }
+
+    class
+        .superclasses
+        .iter()
+        .map(|&superclass| SubstituteName::many(state, context, &substitution, superclass))
+        .collect()
+}
+
 fn check_instance_member_group<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     instance_item_id: TermItemId,
+    instance_id: InstanceId,
+    member_index: u32,
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
-    instance: &toolkit::InstanceInfo,
+    instance: &FreshenedInstanceRigids,
+    givens: &InstanceGivens,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
 {
     state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
+        let site =
+            EvidenceAbstractionSite::InstanceMember { instance: instance_id, member: member_index };
         state.with_implication(|state| {
+            for &(constraint, evidence) in givens {
+                state.push_given_with_evidence(constraint, evidence);
+            }
             check_instance_member_group_core(
                 state,
                 context,
+                site,
                 member,
                 (class_file, class_id),
                 instance,
@@ -275,26 +409,15 @@ where
 fn check_instance_member_group_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    site: EvidenceAbstractionSite,
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
-    instance: &toolkit::InstanceInfo,
+    instance: &FreshenedInstanceRigids,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
 {
-    let FreshenedInstanceRigids {
-        constraints: instance_constraints,
-        arguments: instance_arguments,
-        substitution,
-    } = freshen_instance_rigids(state, context, instance)?;
-
-    state.with_implicit(context, &substitution, |state| {
-        for &constraint in &instance_constraints {
-            if !constraint::is_type_error(state, context, constraint)? {
-                state.push_given(constraint);
-            }
-        }
-
+    state.with_implicit(context, &instance.substitution, |state| {
         let class_member_type = if let Some((member_file, member_id)) = member.resolution {
             Some(toolkit::lookup_file_term(state, context, member_file, member_id)?)
         } else {
@@ -307,7 +430,7 @@ where
                 context,
                 class_member_type,
                 (class_file, class_id),
-                &instance_arguments,
+                &instance.arguments,
             )?
         } else {
             None
@@ -334,13 +457,15 @@ where
                 }
             }
 
-            let equation_patterns = equations::check_value_equations(
-                state,
-                context,
-                equations::EquationTypeOrigin::Explicit(signature_id),
-                signature_member_type,
-                &member.equations,
-            )?;
+            let equation_patterns = state.capture_binders(site, |state| {
+                equations::check_value_equations(
+                    state,
+                    context,
+                    equations::EquationTypeOrigin::Explicit(signature_id),
+                    signature_member_type,
+                    &member.equations,
+                )
+            })?;
             let exhaustiveness = exhaustive::check_equation_patterns(
                 state,
                 context,
@@ -351,13 +476,15 @@ where
             state.report_exhaustiveness(exhaustiveness);
             state.solve_constraints(context)?
         } else if let Some(expected_type) = class_member_type {
-            let equation_patterns = equations::check_value_equations(
-                state,
-                context,
-                equations::EquationTypeOrigin::Implicit,
-                expected_type,
-                &member.equations,
-            )?;
+            let equation_patterns = state.capture_binders(site, |state| {
+                equations::check_value_equations(
+                    state,
+                    context,
+                    equations::EquationTypeOrigin::Implicit,
+                    expected_type,
+                    &member.equations,
+                )
+            })?;
             let exhaustiveness = exhaustive::check_equation_patterns(
                 state,
                 context,
@@ -371,22 +498,33 @@ where
             vec![]
         };
 
-        for residual in residuals {
-            let attached = state.canonical_errors.remove(&residual.wanted);
-            attached.into_iter().flatten().for_each(|error| state.insert_error(error));
-
-            let given = residual
-                .given
-                .iter()
-                .map(|given| state.canonicals.type_id(context, *given))
-                .collect::<Arc<[_]>>();
-
-            let constraint = state.canonicals.type_id(context, residual.wanted);
-            state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
-        }
+        report_instance_residuals(state, context, residuals);
 
         Ok(())
     })
+}
+
+fn report_instance_residuals<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    residuals: Vec<ConstraintInScope>,
+) where
+    Q: ExternalQueries,
+{
+    for residual in residuals {
+        state.checked.evidence.mark_error(residual.evidence);
+        let attached = state.canonical_errors.remove(&residual.wanted);
+        attached.into_iter().flatten().for_each(|error| state.insert_error(error));
+
+        let given = residual
+            .given
+            .iter()
+            .map(|(given, _)| state.canonicals.type_id(context, *given))
+            .collect::<Arc<[_]>>();
+
+        let constraint = state.canonicals.type_id(context, residual.wanted);
+        state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
+    }
 }
 
 struct FreshenedInstanceRigids {
@@ -646,7 +784,9 @@ where
         }
         TermItemIr::ValueGroup { signature, equations } => {
             let pending = state.with_implication(|state| {
-                check_value_group(state, context, item_id, *signature, equations)
+                state.capture_binders(EvidenceAbstractionSite::Term(item_id), |state| {
+                    check_value_group(state, context, item_id, *signature, equations)
+                })
             })?;
             if let Some(pending) = pending {
                 scc.value_groups.insert(item_id, pending);
@@ -771,13 +911,15 @@ where
                 marker
             }
             Some(PendingValueGroup::Inferred { residuals }) => {
-                generalise::insert_inferred_residuals(
-                    state,
-                    context,
-                    marker,
-                    residuals,
-                    &mut errors,
-                )?
+                state.capture_binders(EvidenceAbstractionSite::Term(item_id), |state| {
+                    generalise::insert_inferred_residuals(
+                        state,
+                        context,
+                        marker,
+                        residuals,
+                        &mut errors,
+                    )
+                })?
             }
             None => marker,
         };
@@ -789,7 +931,9 @@ where
     }
 
     for (item_id, Pending { marker, unsolved, errors }) in pending {
-        let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
+        let marker = state.capture_binders(EvidenceAbstractionSite::Term(item_id), |state| {
+            generalise::generalise_unsolved(state, context, marker, &unsolved)
+        })?;
         state.checked.terms.insert(item_id, marker);
 
         for error in errors.ambiguous {
@@ -799,6 +943,7 @@ where
             });
         }
         for error in errors.unsatisfied {
+            state.checked.evidence.mark_error(error.evidence);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 let attached = state.canonical_errors.remove(&error.wanted);
                 attached.into_iter().flatten().for_each(|error| state.insert_error(error));
@@ -807,7 +952,7 @@ where
             let given = error
                 .given
                 .iter()
-                .map(|given| state.canonicals.type_id(context, *given))
+                .map(|(given, _)| state.canonicals.type_id(context, *given))
                 .collect::<Arc<[_]>>();
 
             let constraint = state.canonicals.type_id(context, error.wanted);
