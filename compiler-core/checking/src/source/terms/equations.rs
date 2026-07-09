@@ -8,6 +8,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, constraint, signature, toolkit, unification};
 use crate::error::ErrorKind;
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
@@ -101,7 +102,14 @@ where
 
         if let Some(guarded) = &equation.guarded {
             let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?;
-            unification::subtype(state, context, inferred_type, result_type)?;
+            if let Some(expression) = guarded::inferred_result_expression(guarded) {
+                state
+                    .capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+                        unification::subtype(state, context, inferred_type, result_type)
+                    })?;
+            } else {
+                unification::subtype(state, context, inferred_type, result_type)?;
+            }
         }
     }
 

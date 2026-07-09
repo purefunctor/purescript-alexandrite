@@ -7,6 +7,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::binder;
 use crate::source::terms::{application, form_let};
 use crate::state::CheckState;
@@ -148,6 +149,7 @@ where
 pub fn infer_do<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    do_expression: lowering::ExpressionId,
     bind: Option<lowering::TermVariableResolution>,
     discard: Option<lowering::TermVariableResolution>,
     statement_id: &[lowering::DoStatementId],
@@ -358,12 +360,20 @@ where
                     let statement_type = infer_do_bind_core(
                         state,
                         context,
+                        do_expression,
+                        *statement,
                         bind_type,
                         next_type,
                         expression,
                         *binder_type,
                     )?;
-                    unification::subtype(state, context, statement_type, now_type)?;
+                    let site = EvidenceApplicationSite::DoResult {
+                        expression: do_expression,
+                        statement: *statement,
+                    };
+                    state.capture_wanteds(site, |state| {
+                        unification::subtype(state, context, statement_type, now_type)
+                    })?;
                     Ok(())
                 })?;
             }
@@ -375,9 +385,22 @@ where
                     continue;
                 };
                 state.with_error_crumb(ErrorCrumb::InferringDoDiscard(*statement), |state| {
-                    let statement_type =
-                        infer_do_discard_core(state, context, discard_type, next_type, expression)?;
-                    unification::subtype(state, context, statement_type, now_type)?;
+                    let statement_type = infer_do_discard_core(
+                        state,
+                        context,
+                        do_expression,
+                        *statement,
+                        discard_type,
+                        next_type,
+                        expression,
+                    )?;
+                    let site = EvidenceApplicationSite::DoResult {
+                        expression: do_expression,
+                        statement: *statement,
+                    };
+                    state.capture_wanteds(site, |state| {
+                        unification::subtype(state, context, statement_type, now_type)
+                    })?;
                     Ok(())
                 })?;
             }
@@ -404,6 +427,8 @@ where
 pub fn infer_do_bind_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    do_expression: lowering::ExpressionId,
+    statement: lowering::DoStatementId,
     bind_type: TypeId,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
@@ -415,15 +440,25 @@ where
     let expression_type = super::infer_expression(state, context, expression)?;
     let lambda_type = context.intern_function(binder_type, continuation_type);
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, bind_type)?
+    let first_site =
+        EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 0 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(first_site, |state| {
+            application::check_generic_application(state, context, bind_type)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    unification::subtype(state, context, expression_type, argument)?;
+    state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+        unification::subtype(state, context, expression_type, argument)
+    })?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, result)?
+    let second_site =
+        EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 1 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(second_site, |state| {
+            application::check_generic_application(state, context, result)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -435,6 +470,8 @@ where
 pub fn infer_do_discard_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    do_expression: lowering::ExpressionId,
+    statement: lowering::DoStatementId,
     discard_type: TypeId,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
@@ -443,5 +480,14 @@ where
     Q: ExternalQueries,
 {
     let binder_type = state.fresh_unification(context.queries, context.prim.t);
-    infer_do_bind_core(state, context, discard_type, continuation_type, expression, binder_type)
+    infer_do_bind_core(
+        state,
+        context,
+        do_expression,
+        statement,
+        discard_type,
+        continuation_type,
+        expression,
+        binder_type,
+    )
 }

@@ -31,6 +31,7 @@ struct DerivedStorage {
     bracketed: FxHashMap<FileId, Arc<sugar::Bracketed>>,
     sectioned: FxHashMap<FileId, Arc<sugar::Sectioned>>,
     checked: FxHashMap<FileId, Arc<checking::CheckedModule>>,
+    elaborated: FxHashMap<FileId, Arc<elaborating::CoreModule>>,
     documented: FxHashMap<FileId, Arc<DocumentedModule>>,
 }
 
@@ -121,6 +122,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&id);
             derived.sectioned.remove(&id);
             derived.checked.remove(&id);
+            derived.elaborated.remove(&id);
             derived.documented.remove(&id);
         }
 
@@ -134,6 +136,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&user_id);
             derived.sectioned.remove(&user_id);
             derived.checked.remove(&user_id);
+            derived.elaborated.remove(&user_id);
             derived.documented.remove(&user_id);
         }
     }
@@ -152,6 +155,7 @@ impl WasmQueryEngine {
             derived.bracketed.remove(&existing_id);
             derived.sectioned.remove(&existing_id);
             derived.checked.remove(&existing_id);
+            derived.elaborated.remove(&existing_id);
             derived.documented.remove(&existing_id);
             existing_id
         } else {
@@ -177,6 +181,33 @@ impl WasmQueryEngine {
 
         self.derived.borrow_mut().checked.insert(id, checked.clone());
         Ok(checked)
+    }
+
+    pub fn elaborated(&self, id: FileId) -> QueryResult<Arc<elaborating::CoreModule>> {
+        if let Some(cached) = self.derived.borrow().elaborated.get(&id) {
+            return Ok(cached.clone());
+        }
+
+        let indexed = self.indexed(id)?;
+        let lowered = self.lowered(id)?;
+        let grouped = self.grouped(id)?;
+        let bracketed = self.bracketed(id)?;
+        let sectioned = self.sectioned(id)?;
+        let checked = self.checked(id)?;
+
+        let input = elaborating::ElaborationInput {
+            file_id: id,
+            indexed: &indexed,
+            lowered: &lowered,
+            grouped: &grouped,
+            bracketed: &bracketed,
+            sectioned: &sectioned,
+            checked: &checked,
+        };
+
+        let elaborated = Arc::new(elaborating::elaborate_module(input));
+        self.derived.borrow_mut().elaborated.insert(id, elaborated.clone());
+        Ok(elaborated)
     }
 
     pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
@@ -214,6 +245,7 @@ impl QueryProxy for WasmQueryEngine {
     type Bracketed = Arc<sugar::Bracketed>;
     type Sectioned = Arc<sugar::Sectioned>;
     type Checked = Arc<checking::CheckedModule>;
+    type Elaborated = Arc<elaborating::CoreModule>;
     type Documented = Arc<DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
@@ -336,6 +368,10 @@ impl QueryProxy for WasmQueryEngine {
 
     fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
         WasmQueryEngine::checked(self, id)
+    }
+
+    fn elaborated(&self, id: FileId) -> QueryResult<Arc<elaborating::CoreModule>> {
+        WasmQueryEngine::elaborated(self, id)
     }
 
     fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {

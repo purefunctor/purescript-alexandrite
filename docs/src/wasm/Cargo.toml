@@ -24,6 +24,7 @@ building-types = { version = "0.1.0", path = "../../../compiler-core/building-ty
 checking = { version = "0.1.0", path = "../../../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../../../compiler-core/diagnostics" }
 documenting = { version = "0.1.0", path = "../../../compiler-core/documenting" }
+elaborating = { version = "0.1.0", path = "../../../compiler-core/elaborating" }
 files = { version = "0.1.0", path = "../../../compiler-core/files" }
 indexing = { version = "0.1.0", path = "../../../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../../../compiler-core/interner" }

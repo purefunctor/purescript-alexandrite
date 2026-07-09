@@ -1,0 +1,15 @@
+[package]
+name = "elaborating"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+checking = { version = "0.1.0", path = "../checking" }
+files = { version = "0.1.0", path = "../files" }
+indexing = { version = "0.1.0", path = "../indexing" }
+la-arena = "0.3.1"
+lowering = { version = "0.1.0", path = "../lowering" }
+petgraph = "0.8.3"
+rustc-hash = "2.1.2"
+smol_str = "0.3.5"
+sugar = { version = "0.1.0", path = "../sugar" }

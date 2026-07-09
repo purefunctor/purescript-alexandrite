@@ -36,6 +36,7 @@ use building_types::{
 };
 use checking::CheckedModule;
 use documenting::DocumentedModule;
+use elaborating::CoreModule;
 use files::FileId;
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
@@ -125,6 +126,7 @@ struct DerivedStorage {
     bracketed: Shards<FileId, DerivedState<Arc<sugar::Bracketed>>>,
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
+    elaborated: Shards<FileId, DerivedState<Arc<CoreModule>>>,
     documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
 }
 
@@ -457,6 +459,7 @@ impl QueryEngine {
                 QueryKey::Bracketed(k) => derived_changed!(bracketed, k),
                 QueryKey::Sectioned(k) => derived_changed!(sectioned, k),
                 QueryKey::Checked(k) => derived_changed!(checked, k),
+                QueryKey::Elaborated(k) => derived_changed!(elaborated, k),
                 QueryKey::Documented(k) => derived_changed!(documented, k),
             }
         }
@@ -803,6 +806,34 @@ impl QueryEngine {
         )
     }
 
+    pub fn elaborated(&self, id: FileId) -> QueryResult<Arc<CoreModule>> {
+        self.query(
+            QueryKey::Elaborated(id),
+            id,
+            |derived| &derived.elaborated,
+            |this| {
+                let indexed = this.indexed(id)?;
+                let lowered = this.lowered(id)?;
+                let grouped = this.grouped(id)?;
+                let bracketed = this.bracketed(id)?;
+                let sectioned = this.sectioned(id)?;
+                let checked = this.checked(id)?;
+
+                let input = elaborating::ElaborationInput {
+                    file_id: id,
+                    indexed: &indexed,
+                    lowered: &lowered,
+                    grouped: &grouped,
+                    bracketed: &bracketed,
+                    sectioned: &sectioned,
+                    checked: &checked,
+                };
+
+                Ok(Arc::new(elaborating::elaborate_module(input)))
+            },
+        )
+    }
+
     pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
         self.query(
             QueryKey::Documented(id),
@@ -844,6 +875,8 @@ impl QueryProxy for QueryEngine {
 
     type Checked = Arc<checking::CheckedModule>;
 
+    type Elaborated = Arc<elaborating::CoreModule>;
+
     type Documented = Arc<documenting::DocumentedModule>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
@@ -880,6 +913,10 @@ impl QueryProxy for QueryEngine {
 
     fn checked(&self, id: FileId) -> QueryResult<Arc<checking::CheckedModule>> {
         QueryEngine::checked(self, id)
+    }
+
+    fn elaborated(&self, id: FileId) -> QueryResult<Arc<elaborating::CoreModule>> {
+        QueryEngine::elaborated(self, id)
     }
 
     fn documented(&self, id: FileId) -> QueryResult<Arc<documenting::DocumentedModule>> {
@@ -948,8 +985,17 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use building_types::{QueryError, QueryResult};
+    use checking::evidence::{
+        Evidence, EvidenceAbstractionSite, EvidenceApplicationSite, EvidenceState, EvidenceVarId,
+        Evidences, InstanceCandidateOrigin,
+    };
+    use elaborating::{
+        CoreBindingValue, CoreDerivedEvidence, CoreExpression, CorePattern, CoreSuperclassField,
+        CoreTypeArgument, CoreVariable,
+    };
     use files::{FileId, Files};
     use la_arena::RawIdx;
+    use lowering::ExpressionKind;
     use resolving::ResolvedModule;
 
     use crate::prim;
@@ -1474,5 +1520,574 @@ mod tests {
 
         assert_eq!(groups_a.term_scc, groups_b.term_scc);
         assert_eq!(groups_a.type_scc, groups_b.type_scc);
+    }
+
+    #[test]
+    fn test_elaboration_removes_expression_wrappers_and_operator_chains() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+add :: Int -> Int -> Int
+add left _ = left
+
+infixl 6 add as +
+
+wrapped = ((1 :: Int))
+symbolic = 1 + 2 + 3
+backtick = 1 `add` 2
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let lowered = engine.lowered(id).unwrap();
+        let grouped = engine.grouped(id).unwrap();
+        let core = engine.elaborated(id).unwrap();
+
+        let mut wrappers = 0;
+        let mut chains = 0;
+        for (expression, kind) in lowered.info.iter_expression() {
+            match kind {
+                ExpressionKind::Typed { expression: Some(inner), .. }
+                | ExpressionKind::Parenthesized { parenthesized: Some(inner) } => {
+                    wrappers += 1;
+                    assert_eq!(
+                        core.lookup_expression(expression),
+                        core.lookup_expression(*inner),
+                        "source-only wrappers must alias their inner Core expression",
+                    );
+                }
+                ExpressionKind::OperatorChain { .. } | ExpressionKind::InfixChain { .. } => {
+                    chains += 1;
+                    let expression = core
+                        .lookup_expression(expression)
+                        .expect("operator expression must be elaborated");
+                    assert!(matches!(core.expressions[expression], CoreExpression::Apply { .. }));
+                }
+                _ => {}
+            }
+        }
+
+        assert!(wrappers >= 2);
+        assert_eq!(chains, 2);
+        assert_eq!(core.top_level.len(), grouped.term_scc.len());
+        assert_eq!(
+            core.items.len(),
+            grouped.term_scc.iter().map(|group| group.as_slice().len()).sum()
+        );
+    }
+
+    #[test]
+    fn test_elaboration_preserves_explicit_type_arguments() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+identity :: forall @a. a -> a
+identity value = value
+
+visible = identity @Int 1
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+        let core = engine.elaborated(id).unwrap();
+        let argument = core.expressions.iter().find_map(|(_, expression)| {
+            let CoreExpression::TypeApply { argument: CoreTypeArgument::Checked(argument), .. } =
+                expression
+            else {
+                return None;
+            };
+            Some(*argument)
+        });
+
+        let argument = argument.expect("the visible application must retain its type argument");
+        let rendered = checking::core::pretty::Pretty::new(&engine, &checked).render(argument);
+        assert_eq!(rendered, "Int");
+    }
+
+    #[test]
+    fn test_elaboration_orders_independent_bindings_by_source() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = "module Main where\n\nfirst = 1\nsecond = 2\nthird = 3";
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let indexed = engine.indexed(id).unwrap();
+        let core = engine.elaborated(id).unwrap();
+        let names = core
+            .top_level
+            .iter()
+            .flat_map(|group| &core.binding_groups[*group].bindings)
+            .filter_map(|binding| match core.bindings[*binding].source {
+                elaborating::CoreBindingSource::Item(item) => indexed.items[item].name.as_deref(),
+                elaborating::CoreBindingSource::Let(_)
+                | elaborating::CoreBindingSource::Synthetic(_) => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(names, ["first", "second", "third"]);
+    }
+
+    #[test]
+    fn test_elaboration_distinguishes_source_holes_from_missing_syntax() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\nhole = ?coreHole");
+        engine.set_content(id, files.content(id));
+
+        let core = engine.elaborated(id).unwrap();
+        assert!(core.expressions.iter().any(|(_, expression)| matches!(
+            expression,
+            CoreExpression::Error(elaborating::CoreError::Hole)
+        )));
+    }
+
+    #[test]
+    fn test_elaboration_inserts_runtime_dictionary_evidence() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+class Eq a where
+  eq :: a -> a -> Boolean
+
+instance Eq Int where
+  eq _ _ = true
+
+concrete = eq 1 2
+generalised left right = eq left right
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+        assert!(checked.placements.applications.values().any(|evidence| !evidence.is_empty()));
+        assert!(checked.placements.abstractions.values().any(|evidence| !evidence.is_empty()));
+
+        let core = engine.elaborated(id).unwrap();
+        assert!(core.expressions.iter().any(|(_, expression)| {
+            matches!(expression, CoreExpression::Variable(CoreVariable::Instance(_)))
+        }));
+        assert!(core.expressions.iter().any(|(_, expression)| {
+            matches!(expression, CoreExpression::Variable(CoreVariable::Evidence(_)))
+        }));
+    }
+
+    #[test]
+    fn test_elaboration_builds_constrained_instance_dictionary() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+data Box a = Box a
+
+class Parent a where
+  parent :: a -> Boolean
+
+class (Partial, Parent a) <= Child a where
+  child :: a -> Boolean
+  childAgain :: a -> Boolean
+
+instance parentBox :: Parent a => Parent (Box a) where
+  parent _ = true
+
+instance childBox :: (Partial, Parent a) => Child (Box a) where
+  child _ = true
+  childAgain value = child value
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+
+        let core = engine.elaborated(id).unwrap();
+        let (instance_origin, instance_binding) = core
+            .instances
+            .iter()
+            .find(|entry| {
+                let binding = *entry.1;
+                let CoreBindingValue::Expression(expression) = core.bindings[binding].value else {
+                    return false;
+                };
+                let CoreExpression::Lambda { body, .. } = core.expressions[expression] else {
+                    return false;
+                };
+                matches!(
+                    &core.expressions[body],
+                    CoreExpression::Dictionary { superclasses, members }
+                        if superclasses.len() == 2 && members.len() == 2
+                )
+            })
+            .expect("the constrained Child instance must elaborate to a dictionary");
+
+        assert!(
+            matches!(instance_origin, InstanceCandidateOrigin::Instance(file, _) if *file == id)
+        );
+        let CoreBindingValue::Expression(instance_expression) =
+            core.bindings[*instance_binding].value
+        else {
+            unreachable!("declared instances are expression bindings");
+        };
+        let CoreExpression::Lambda { pattern, body } = core.expressions[instance_expression] else {
+            panic!("the prerequisite dictionary must abstract over the whole instance dictionary");
+        };
+        let CorePattern::Variable(CoreVariable::Evidence(prerequisite)) = core.patterns[pattern]
+        else {
+            panic!("the outer instance abstraction must bind its prerequisite dictionary");
+        };
+        let CoreExpression::Dictionary { superclasses, members } = &core.expressions[body] else {
+            panic!("the shared prerequisite abstraction must immediately contain the dictionary");
+        };
+
+        assert_eq!(superclasses.len(), 2, "Child must retain both direct superclass slots");
+        assert_eq!(
+            superclasses[0],
+            CoreSuperclassField::Erased,
+            "compiler-known superclass slots remain explicit without a runtime expression",
+        );
+        assert_eq!(members.len(), 2);
+        for member in members {
+            if let CoreExpression::Lambda { pattern, .. } = core.expressions[member.value] {
+                assert!(
+                    !matches!(
+                        core.patterns[pattern],
+                        CorePattern::Variable(CoreVariable::Evidence(_))
+                    ),
+                    "the shared instance prerequisite must not be repeated on each member",
+                );
+            }
+        }
+
+        let CoreSuperclassField::Runtime(superclass) = superclasses[1] else {
+            panic!("the runtime Parent superclass must not be erased");
+        };
+        let CoreExpression::Apply { function, argument } = core.expressions[superclass] else {
+            panic!("the Parent superclass must use the local constrained Parent instance");
+        };
+        let CoreExpression::Variable(CoreVariable::Instance(parent_origin)) =
+            core.expressions[function]
+        else {
+            panic!("superclass evidence must name the selected instance origin");
+        };
+        assert_eq!(
+            core.expressions[argument],
+            CoreExpression::Variable(CoreVariable::Evidence(prerequisite)),
+            "the local Parent instance must receive the shared prerequisite dictionary",
+        );
+        assert!(
+            matches!(parent_origin, InstanceCandidateOrigin::Instance(file, _) if file == id),
+            "the superclass solver must select the module-local Parent instance",
+        );
+        assert!(
+            core.instances.contains_key(&parent_origin),
+            "instance evidence origins must resolve to their module-local Core binding",
+        );
+
+        let parent_binding = core.instances[&parent_origin];
+        let group_of = |binding| {
+            core.top_level
+                .iter()
+                .position(|group| core.binding_groups[*group].bindings.contains(&binding))
+                .expect("every instance binding must belong to a top-level Core group")
+        };
+        assert!(
+            group_of(parent_binding) < group_of(*instance_binding),
+            "evidence-induced instance dependencies must participate in Core group ordering",
+        );
+        let child_group = core.top_level[group_of(*instance_binding)];
+        assert!(
+            core.binding_groups[child_group].recursive,
+            "a member that selects its own instance must make the Core dictionary recursive",
+        );
+    }
+
+    #[test]
+    fn test_elaboration_scopes_ado_lets_inside_action_lambdas() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+map :: forall a b. (a -> b) -> a -> b
+map function value = function value
+
+apply :: forall a b. (a -> b) -> a -> b
+apply function value = function value
+
+pure :: forall a. a -> a
+pure value = value
+
+scoped = ado
+  x <- pure 1
+  let y = x
+  in y
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+
+        let core = engine.elaborated(id).unwrap();
+        assert!(
+            core.expressions.iter().any(|(_, expression)| {
+                let CoreExpression::Lambda { body, .. } = expression else {
+                    return false;
+                };
+                matches!(core.expressions[*body], CoreExpression::Let { .. })
+            }),
+            "an ado let after an action must be nested inside that action's continuation lambda"
+        );
+    }
+
+    #[test]
+    fn test_evidence_dedup_respects_local_dictionary_scopes() {
+        fn resolved_binder(
+            evidence: &Evidences,
+            mut variable: EvidenceVarId,
+        ) -> Option<checking::evidence::EvidenceBinderId> {
+            for _ in 0..32 {
+                let EvidenceState::Solved(term) = evidence.variable(variable).state else {
+                    return None;
+                };
+                match evidence.evidence(term) {
+                    Evidence::Variable(next) => variable = *next,
+                    Evidence::Given(binder) => return Some(*binder),
+                    Evidence::Instance { .. }
+                    | Evidence::Superclass { .. }
+                    | Evidence::Compiler => return None,
+                }
+            }
+            panic!("evidence indirection must be acyclic");
+        }
+
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+class C a where
+  member :: a
+
+outer :: forall a. C a => { inner :: C a => a }
+outer = { inner: member }
+
+siblings :: forall a. C a => { left :: C a => a, right :: C a => a }
+siblings = { left: member, right: member }
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+
+        let mut local_binders = Vec::new();
+        for (&site, binders) in &checked.placements.abstractions {
+            let EvidenceAbstractionSite::Expression(expression) = site else {
+                continue;
+            };
+            let applications = checked
+                .placements
+                .applications
+                .get(&EvidenceApplicationSite::Expression(expression))
+                .expect("the constrained field value must use its local dictionary");
+            assert_eq!(binders.len(), 1);
+            assert_eq!(applications.len(), 1);
+            assert_eq!(
+                resolved_binder(&checked.evidence, applications[0]),
+                Some(binders[0]),
+                "a wanted occurrence must resolve to the binder at its own expression site",
+            );
+            local_binders.push(binders[0]);
+        }
+
+        local_binders.sort_unstable();
+        local_binders.dedup();
+        assert_eq!(
+            local_binders.len(),
+            3,
+            "the nested field and two sibling fields must retain distinct lexical binders",
+        );
+    }
+
+    #[test]
+    fn test_elaboration_transfers_derived_instance_requirements() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let eq = files.insert(
+            "./src/Data.Eq.purs",
+            r#"module Data.Eq where
+
+class Eq a where
+  eq :: a -> a -> Boolean
+"#,
+        );
+        engine.set_content(eq, files.content(eq));
+        engine.set_module_file("Data.Eq", eq);
+
+        let main = files.insert(
+            "./src/Main.purs",
+            r#"module Main where
+
+import Data.Eq (class Eq)
+
+data Box a = Box a
+
+derive instance Eq a => Eq (Box a)
+"#,
+        );
+        engine.set_content(main, files.content(main));
+
+        let checked = engine.checked(main).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+        assert_eq!(checked.placements.derived_requirements.len(), 1);
+
+        let core = engine.elaborated(main).unwrap();
+        let (_, binding) = core
+            .instances
+            .iter()
+            .find(|(origin, _)| matches!(origin, InstanceCandidateOrigin::Derive(file, _) if *file == main))
+            .expect("the derived instance must have a module-local Core binding");
+        assert!(core.binding_types.contains_key(binding));
+
+        let CoreBindingValue::Expression(expression) = core.bindings[*binding].value else {
+            panic!("derived dictionaries are semantic Core expressions");
+        };
+        let CoreExpression::Lambda { pattern, body } = core.expressions[expression] else {
+            panic!("the declared Eq prerequisite must abstract over the derived dictionary");
+        };
+        let CorePattern::Variable(CoreVariable::Evidence(binder)) = core.patterns[pattern] else {
+            panic!("the derived prerequisite must use an evidence binder");
+        };
+        let CoreExpression::DerivedDictionary { requirements, .. } = &core.expressions[body] else {
+            panic!("a valid derive must elaborate to the derived-dictionary primitive");
+        };
+        assert_eq!(requirements.len(), 1);
+        let CoreDerivedEvidence::Runtime(requirement) = requirements[0].evidence else {
+            panic!("the generated field requirement must retain runtime evidence");
+        };
+        assert_eq!(
+            core.expressions[requirement],
+            CoreExpression::Variable(CoreVariable::Evidence(binder)),
+        );
+    }
+
+    #[test]
+    fn test_derived_delegate_requirements_bind_local_proof_assumptions() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let eq = files.insert(
+            "./src/Data.Eq.purs",
+            r#"module Data.Eq where
+
+class Eq a where
+  eq :: a -> a -> Boolean
+
+class Eq1 f where
+  eq1 :: forall a. Eq a => f a -> f a -> Boolean
+"#,
+        );
+        engine.set_content(eq, files.content(eq));
+        engine.set_module_file("Data.Eq", eq);
+
+        let main = files.insert(
+            "./src/Main.purs",
+            r#"module Main where
+
+import Data.Eq (class Eq, class Eq1)
+
+data Id a = Id a
+
+derive instance Eq a => Eq (Id a)
+derive instance Eq1 Id
+"#,
+        );
+        engine.set_content(main, files.content(main));
+
+        let checked = engine.checked(main).unwrap();
+        assert!(checked.errors.is_empty(), "{:#?}", checked.errors);
+
+        let core = engine.elaborated(main).unwrap();
+        let (local, requirement) = core
+            .expressions
+            .iter()
+            .find_map(|(_, expression)| {
+                let CoreExpression::DerivedDictionary { local_binders, requirements, .. } =
+                    expression
+                else {
+                    return None;
+                };
+                match (local_binders.as_slice(), requirements.as_slice()) {
+                    ([local], [requirement]) => Some((*local, *requirement)),
+                    _ => None,
+                }
+            })
+            .expect("the Eq1 delegate must expose its method-local Eq assumption");
+        assert!(!local.erased);
+
+        let CoreDerivedEvidence::Runtime(requirement) = requirement.evidence else {
+            panic!("the delegate instance requirement must be retained at runtime");
+        };
+        let CoreExpression::Apply { function, argument } = core.expressions[requirement] else {
+            panic!("the selected Eq (Id a) instance must receive the local Eq a assumption");
+        };
+        assert_eq!(
+            core.expressions[argument],
+            CoreExpression::Variable(CoreVariable::Evidence(local.binder)),
+        );
+        let CoreExpression::Variable(CoreVariable::Instance(origin)) = core.expressions[function]
+        else {
+            panic!("the delegate requirement must name its selected derived Eq instance");
+        };
+        assert!(core.instances.contains_key(&origin));
+    }
+
+    #[test]
+    fn test_custom_failure_marks_wanted_evidence_as_errored() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let source = r#"module Main where
+
+import Prim.TypeError (class Fail, Text)
+
+boom :: Fail (Text "expected failure") => Int
+boom = 1
+
+use = boom
+"#;
+        let id = files.insert("./src/Main.purs", source);
+        engine.set_content(id, files.content(id));
+
+        let checked = engine.checked(id).unwrap();
+        assert!(checked.errors.iter().any(|error| {
+            matches!(error.kind, checking::error::ErrorKind::CustomFailure { .. })
+        }));
+        assert!(checked.evidence.variables().any(|(_, entry)| entry.state == EvidenceState::Error));
     }
 }

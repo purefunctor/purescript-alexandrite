@@ -46,9 +46,14 @@ pub enum EvidenceAbstractionSite {
     Expression(ExpressionId),
     Operator(TermOperatorId),
     RecordPun(RecordPunId),
+    /// Local proof assumptions used inside a compiler-generated dictionary.
+    Derived(DeriveId),
     Term(TermItemId),
     Let(LetBindingNameGroupId),
-    InstanceMember { instance: InstanceId, member: u32 },
+    InstanceMember {
+        instance: InstanceId,
+        member: u32,
+    },
 }
 
 /// Evidence arguments and parameters associated with semantic Core boundaries.

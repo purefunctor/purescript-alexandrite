@@ -78,6 +78,9 @@ pub struct CheckedHoles {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedNodes {
+    /// The elaborated core type represented by each source type node.
+    pub type_expressions: FxHashMap<lowering::TypeId, TypeId>,
+    /// The inferred kind of each source type node.
     pub types: FxHashMap<lowering::TypeId, TypeId>,
     pub expressions: FxHashMap<lowering::ExpressionId, TypeId>,
     pub binders: FxHashMap<lowering::BinderId, TypeId>,
@@ -145,6 +148,10 @@ impl CheckedModule {
 }
 
 impl CheckedNodes {
+    pub fn lookup_type_expression(&self, id: lowering::TypeId) -> Option<TypeId> {
+        self.type_expressions.get(&id).copied()
+    }
+
     pub fn lookup_expression(&self, id: lowering::ExpressionId) -> Option<TypeId> {
         self.expressions.get(&id).copied()
     }

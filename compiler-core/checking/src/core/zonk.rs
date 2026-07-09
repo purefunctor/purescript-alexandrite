@@ -58,6 +58,7 @@ where
         };
     }
 
+    zonk_type_map!(type_expressions);
     zonk_type_map!(types);
     zonk_type_map!(expressions);
     zonk_type_map!(binders);

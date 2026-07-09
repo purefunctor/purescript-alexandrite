@@ -9,6 +9,7 @@ use sugar::bracketing::BracketingResult;
 
 use crate::context::CheckContext;
 use crate::core::{Type, TypeId, normalise, toolkit, unification};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
 use crate::source::types::application;
 use crate::source::{binder, synonym, terms, types};
 use crate::state::CheckState;
@@ -87,13 +88,19 @@ where
 
         OperatorTree::Leaf(Some(type_id)) => match mode {
             OperatorKindMode::Infer => E::infer_surface(state, context, *type_id),
-            OperatorKindMode::Check { expected_type } => {
+            OperatorKindMode::Check { expected_type } => state.with_implication(|state| {
                 // Peel constraints from the expected type as givens,
                 // so operator arguments like `unsafePartial $ expr`
                 // can discharge constraints like Partial properly.
-                let expected_type = toolkit::collect_givens(state, context, expected_type)?;
+                let expected_type = if let Some(site) = E::abstraction_site(*type_id) {
+                    state.capture_binders(site, |state| {
+                        toolkit::collect_givens(state, context, expected_type)
+                    })?
+                } else {
+                    toolkit::collect_givens(state, context, expected_type)?
+                };
                 E::check_surface(state, context, *type_id, expected_type)
-            }
+            }),
         },
 
         OperatorTree::Branch(operator_id, children) => {
@@ -110,15 +117,17 @@ where
 
             let operator_type = E::lookup_item(state, context, file_id, item_id)?;
 
-            traverse_operator_branch(
-                state,
-                context,
-                *operator_id,
-                (file_id, item_id),
-                operator_type,
-                children,
-                mode,
-            )
+            state.with_implication(|state| {
+                traverse_operator_branch(
+                    state,
+                    context,
+                    *operator_id,
+                    (file_id, item_id),
+                    operator_type,
+                    children,
+                    mode,
+                )
+            })
         }
     }
 }
@@ -142,8 +151,15 @@ where
         OperatorKindMode::Check { expected_type } => (unknown_elaborated, expected_type),
     };
 
-    let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-    let operator_type = toolkit::collect_wanteds(state, context, operator_type)?;
+    let operator_type = if let Some(site) = E::application_site(operator_id) {
+        state.capture_wanteds(site, |state| {
+            let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
+            toolkit::collect_wanteds(state, context, operator_type)
+        })?
+    } else {
+        let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
+        toolkit::collect_wanteds(state, context, operator_type)?
+    };
 
     let Some((left_type, operator_type)) =
         toolkit::decompose_function(state, context, operator_type)?
@@ -159,6 +175,7 @@ where
     };
 
     E::record_branch_types(state, operator_id, left_type, right_type, result_type);
+    E::record_operator_target(state, context, operator_id, operator)?;
 
     let check_left_right = |state: &mut CheckState| {
         let [left_tree, right_tree] = children;
@@ -189,8 +206,20 @@ where
     if let OperatorKindMode::Check { expected_type } = mode {
         // Peel constraints from the expected type as givens,
         // so operator result constraints can be discharged.
-        let expected_type = toolkit::collect_givens(state, context, expected_type)?;
-        let _ = unification::subtype(state, context, result_type, expected_type)?;
+        let expected_type = if let Some(site) = E::branch_abstraction_site(operator_id) {
+            state.capture_binders(site, |state| {
+                toolkit::collect_givens(state, context, expected_type)
+            })?
+        } else {
+            toolkit::collect_givens(state, context, expected_type)?
+        };
+        if let Some(site) = E::result_application_site(operator_id) {
+            state.capture_wanteds(site, |state| {
+                unification::subtype(state, context, result_type, expected_type)
+            })?;
+        } else {
+            unification::subtype(state, context, result_type, expected_type)?;
+        }
     }
 
     E::build(state, context, operator, (left, right), (left_type, right_type), result_type)
@@ -211,6 +240,22 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         context: &CheckContext<Q>,
         id: Self::OperatorId,
     ) -> Option<(FileId, Self::ItemId)>;
+
+    fn application_site(_id: Self::OperatorId) -> Option<EvidenceApplicationSite> {
+        None
+    }
+
+    fn abstraction_site(_id: Self) -> Option<EvidenceAbstractionSite> {
+        None
+    }
+
+    fn branch_abstraction_site(_id: Self::OperatorId) -> Option<EvidenceAbstractionSite> {
+        None
+    }
+
+    fn result_application_site(_id: Self::OperatorId) -> Option<EvidenceApplicationSite> {
+        None
+    }
 
     fn lookup_item(
         state: &mut CheckState,
@@ -256,6 +301,15 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         right: TypeId,
         result: TypeId,
     );
+
+    fn record_operator_target(
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        _operator_id: Self::OperatorId,
+        _operator: (FileId, Self::ItemId),
+    ) -> QueryResult<()> {
+        Ok(())
+    }
 }
 
 impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
@@ -276,6 +330,22 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         id: Self::OperatorId,
     ) -> Option<(FileId, Self::ItemId)> {
         context.lowered.info.get_term_operator(id)
+    }
+
+    fn application_site(id: Self::OperatorId) -> Option<EvidenceApplicationSite> {
+        Some(EvidenceApplicationSite::Operator(id))
+    }
+
+    fn abstraction_site(id: Self) -> Option<EvidenceAbstractionSite> {
+        Some(EvidenceAbstractionSite::Expression(id))
+    }
+
+    fn branch_abstraction_site(id: Self::OperatorId) -> Option<EvidenceAbstractionSite> {
+        Some(EvidenceAbstractionSite::Operator(id))
+    }
+
+    fn result_application_site(id: Self::OperatorId) -> Option<EvidenceApplicationSite> {
+        Some(EvidenceApplicationSite::OperatorResult(id))
     }
 
     fn lookup_item(
@@ -329,6 +399,18 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
             .nodes
             .term_operator
             .insert(operator_id, OperatorBranchTypes { left, right, result });
+    }
+
+    fn record_operator_target(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        operator_id: Self::OperatorId,
+        (file_id, item_id): (FileId, Self::ItemId),
+    ) -> QueryResult<()> {
+        if let Some(target) = toolkit::resolve_term_operator_target(context, file_id, item_id)? {
+            state.checked.nodes.term_operator_targets.insert(operator_id, target);
+        }
+        Ok(())
     }
 }
 
@@ -529,5 +611,17 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
             .nodes
             .term_operator
             .insert(operator_id, OperatorBranchTypes { left, right, result });
+    }
+
+    fn record_operator_target(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        operator_id: Self::OperatorId,
+        (file_id, item_id): (FileId, Self::ItemId),
+    ) -> QueryResult<()> {
+        if let Some(target) = toolkit::resolve_term_operator_target(context, file_id, item_id)? {
+            state.checked.nodes.term_operator_targets.insert(operator_id, target);
+        }
+        Ok(())
     }
 }

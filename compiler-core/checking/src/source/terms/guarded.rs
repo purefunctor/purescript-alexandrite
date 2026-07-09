@@ -5,6 +5,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit};
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::terms::form_let;
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -19,6 +20,17 @@ enum GuardedExpressionMode {
 enum WhereExpressionMode {
     Infer,
     Check { expected: TypeId },
+}
+
+pub fn inferred_result_expression(
+    guarded: &lowering::GuardedExpression,
+) -> Option<lowering::ExpressionId> {
+    let lowering::GuardedExpression::Unconditional { where_expression: Some(where_expression) } =
+        guarded
+    else {
+        return None;
+    };
+    where_expression.expression
 }
 
 pub fn infer_guarded_expression<Q>(
@@ -110,7 +122,10 @@ where
 
     if let Some(binder) = guard.binder {
         let expression_type = terms::infer_expression(state, context, expression)?;
-        let expression_type = toolkit::instantiate_constrained(state, context, expression_type)?;
+        let expression_type = state
+            .capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+                toolkit::instantiate_constrained(state, context, expression_type)
+            })?;
 
         binder::check_binder(state, context, binder, expression_type)?;
     } else {

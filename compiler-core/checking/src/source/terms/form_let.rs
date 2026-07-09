@@ -4,6 +4,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{Type, exhaustive, normalise, toolkit, unification};
 use crate::error::ErrorCrumb;
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
 use crate::source::terms::{equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
@@ -48,7 +49,15 @@ where
         return Ok(());
     };
 
-    let expression_type = if binder::requires_instantiation(context, binder) {
+    let expression_type = if let Some(expression) = where_expression.expression {
+        state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+            if binder::requires_instantiation(context, binder) {
+                toolkit::instantiate_constrained(state, context, expression_type)
+            } else {
+                toolkit::collect_wanteds(state, context, expression_type)
+            }
+        })?
+    } else if binder::requires_instantiation(context, binder) {
         toolkit::instantiate_constrained(state, context, expression_type)?
     } else {
         toolkit::collect_wanteds(state, context, expression_type)?
@@ -117,7 +126,9 @@ where
 {
     state.with_implication(|state| {
         state.with_error_crumb(ErrorCrumb::CheckingLetName(id), |state| {
-            check_let_name_binding_core(state, context, id)
+            state.capture_binders(EvidenceAbstractionSite::Let(id), |state| {
+                check_let_name_binding_core(state, context, id)
+            })
         })
     })
 }
@@ -164,7 +175,14 @@ where
             if let Type::Unification(unification_id) = context.lookup_type(name_type) {
                 unification::solve(state, context, name_type, unification_id, inferred_type)?;
             } else {
-                unification::subtype(state, context, inferred_type, name_type)?;
+                if let Some(expression) = guarded::inferred_result_expression(guarded) {
+                    state.capture_wanteds(
+                        EvidenceApplicationSite::Expression(expression),
+                        |state| unification::subtype(state, context, inferred_type, name_type),
+                    )?;
+                } else {
+                    unification::subtype(state, context, inferred_type, name_type)?;
+                }
             }
         } else {
             let equation_patterns =

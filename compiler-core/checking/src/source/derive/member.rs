@@ -28,7 +28,10 @@ where
                     state.push_given_with_evidence(constraint, evidence);
                 }
                 state.capture_derived_requirements(result.derive_id, |state| {
-                    check_derive_member(state, context, result)
+                    state.capture_binders(
+                        EvidenceAbstractionSite::Derived(result.derive_id),
+                        |state| check_derive_member(state, context, result),
+                    )
                 })
             })
         })?;

@@ -3,6 +3,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::terms::{form_let, guarded};
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -96,7 +97,9 @@ where
 
     let result_type = if let Some(body) = expression {
         let body_type = super::infer_expression(state, context, body)?;
-        toolkit::instantiate_constrained(state, context, body_type)?
+        state.capture_wanteds(EvidenceApplicationSite::Expression(body), |state| {
+            toolkit::instantiate_constrained(state, context, body_type)
+        })?
     } else {
         state.fresh_unification(context.queries, context.prim.t)
     };
@@ -227,7 +230,10 @@ where
     let mut trunk_types = vec![];
     for trunk in trunk.iter() {
         let trunk_type = super::infer_expression(state, context, *trunk)?;
-        let trunk_type = toolkit::instantiate_constrained(state, context, trunk_type)?;
+        let trunk_type = state
+            .capture_wanteds(EvidenceApplicationSite::Expression(*trunk), |state| {
+                toolkit::instantiate_constrained(state, context, trunk_type)
+            })?;
         trunk_types.push(trunk_type);
     }
 
@@ -241,7 +247,14 @@ where
             match mode {
                 CaseOfMode::Infer => {
                     let guarded_type = guarded::infer_guarded_expression(state, context, guarded)?;
-                    unification::subtype(state, context, guarded_type, expected)?;
+                    if let Some(expression) = guarded::inferred_result_expression(guarded) {
+                        state.capture_wanteds(
+                            EvidenceApplicationSite::Expression(expression),
+                            |state| unification::subtype(state, context, guarded_type, expected),
+                        )?;
+                    } else {
+                        unification::subtype(state, context, guarded_type, expected)?;
+                    }
                 }
                 CaseOfMode::Check { .. } => {
                     guarded::check_guarded_expression(state, context, guarded, expected)?;

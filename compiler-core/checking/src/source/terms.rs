@@ -21,6 +21,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
 use crate::holes::{HoleBinding, TermHole};
 use crate::source::{operator, types};
 use crate::state::CheckState;
@@ -36,9 +37,11 @@ where
     Q: ExternalQueries,
 {
     state.with_error_crumb(ErrorCrumb::CheckingExpression(expression), |state| {
-        let expected = check_expression_quiet(state, context, expression, expected)?;
-        state.checked.nodes.expressions.insert(expression, expected);
-        Ok(expected)
+        state.with_implication(|state| {
+            let expected = check_expression_quiet(state, context, expression, expected)?;
+            state.checked.nodes.expressions.insert(expression, expected);
+            Ok(expected)
+        })
     })
 }
 
@@ -53,7 +56,10 @@ where
 {
     let expected = normalise::normalise(state, context, expected)?;
     let expected = toolkit::skolemise_forall(state, context, expected)?;
-    let expected = toolkit::collect_givens(state, context, expected)?;
+    let expected = state
+        .capture_binders(EvidenceAbstractionSite::Expression(expression), |state| {
+            toolkit::collect_givens(state, context, expected)
+        })?;
 
     if let Some(section_result) = context.sectioned.expressions.get(&expression) {
         check_sectioned_expression(state, context, expression, section_result, expected)
@@ -96,9 +102,12 @@ where
     }
 
     let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = toolkit::instantiate_constrained(state, context, result_type)?;
-
-    unification::subtype(state, context, result_type, current)?;
+    let result_type =
+        state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+            let result_type = toolkit::instantiate_constrained(state, context, result_type)?;
+            unification::subtype(state, context, result_type, current)?;
+            Ok(result_type)
+        })?;
 
     let function_type = context.intern_function_list(&parameters, result_type);
     Ok(function_type)
@@ -149,8 +158,14 @@ where
         }
         _ => {
             let inferred = infer_expression_quiet(state, context, expression)?;
-            let inferred = toolkit::instantiate_constrained(state, context, inferred)?;
-            unification::subtype(state, context, inferred, expected)?;
+            let inferred = state.capture_wanteds(
+                EvidenceApplicationSite::Expression(expression),
+                |state| {
+                    let inferred = toolkit::instantiate_constrained(state, context, inferred)?;
+                    unification::subtype(state, context, inferred, expected)?;
+                    Ok(inferred)
+                },
+            )?;
             Ok(inferred)
         }
     }
@@ -205,7 +220,10 @@ where
     let parameter_types = parameter_types.collect_vec();
 
     let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = toolkit::instantiate_constrained(state, context, result_type)?;
+    let result_type = state
+        .capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+            toolkit::instantiate_constrained(state, context, result_type)
+        })?;
 
     Ok(context.intern_function_list(&parameter_types, result_type))
 }
@@ -242,15 +260,21 @@ where
 
         lowering::ExpressionKind::InfixChain { head, tail } => {
             let Some(head) = *head else { return Ok(unknown) };
-            application::infer_infix_chain(state, context, head, tail)
+            application::infer_infix_chain(state, context, expression, head, tail)
         }
 
-        lowering::ExpressionKind::Negate { negate, expression } => {
+        lowering::ExpressionKind::Negate { negate, expression: inner } => {
             let Some(negate) = negate else { return Ok(unknown) };
-            let Some(expression) = expression else { return Ok(unknown) };
+            let Some(inner) = inner else { return Ok(unknown) };
 
             let negate_type = toolkit::lookup_term_variable(state, context, *negate)?;
-            application::check_function_term_application(state, context, negate_type, *expression)
+            application::check_function_term_application(
+                state,
+                context,
+                negate_type,
+                *inner,
+                EvidenceApplicationSite::Negate(expression),
+            )
         }
 
         lowering::ExpressionKind::Application { function, arguments } => {
@@ -258,9 +282,16 @@ where
 
             let mut function_t = infer_expression(state, context, *function)?;
 
-            for argument in arguments.iter() {
-                function_t =
-                    application::check_function_application(state, context, function_t, argument)?;
+            for (argument, application_argument) in arguments.iter().enumerate() {
+                let site =
+                    EvidenceApplicationSite::Application { expression, argument: argument as u32 };
+                function_t = application::check_function_application(
+                    state,
+                    context,
+                    function_t,
+                    application_argument,
+                    site,
+                )?;
             }
 
             Ok(function_t)
@@ -287,11 +318,11 @@ where
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {
-            form_do::infer_do(state, context, *bind, *discard, statements)
+            form_do::infer_do(state, context, expression, *bind, *discard, statements)
         }
 
-        lowering::ExpressionKind::Ado { map, apply, pure, statements, expression } => {
-            form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)
+        lowering::ExpressionKind::Ado { map, apply, pure, statements, expression: inner } => {
+            form_ado::infer_ado(state, context, expression, *map, *apply, *pure, statements, *inner)
         }
 
         lowering::ExpressionKind::Constructor { resolution } => {
@@ -354,7 +385,7 @@ where
         lowering::ExpressionKind::RecordAccess { record, labels } => {
             let Some(record) = *record else { return Ok(unknown) };
             let Some(labels) = labels else { return Ok(unknown) };
-            collections::infer_record_access(state, context, record, labels)
+            collections::infer_record_access(state, context, expression, record, labels)
         }
 
         lowering::ExpressionKind::RecordUpdate { record, updates } => {

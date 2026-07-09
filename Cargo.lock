@@ -253,6 +253,7 @@ dependencies = [
  "building-types",
  "checking",
  "documenting",
+ "elaborating",
  "files",
  "indexing",
  "interner",
@@ -603,6 +604,7 @@ dependencies = [
  "console_error_panic_hook",
  "diagnostics",
  "documenting",
+ "elaborating",
  "files",
  "indexing",
  "interner",
@@ -663,6 +665,21 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+
+[[package]]
+name = "elaborating"
+version = "0.1.0"
+dependencies = [
+ "checking",
+ "files",
+ "indexing",
+ "la-arena",
+ "lowering",
+ "petgraph",
+ "rustc-hash",
+ "smol_str",
+ "sugar",
+]
 
 [[package]]
 name = "encode_unicode"

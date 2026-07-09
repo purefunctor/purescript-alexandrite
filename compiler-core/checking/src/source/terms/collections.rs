@@ -4,6 +4,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, Type, TypeId, normalise, toolkit, unification};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
 use crate::state::CheckState;
 
 fn infer_record_field_expression<Q>(
@@ -17,8 +18,10 @@ where
     let id = super::infer_expression(state, context, expression)?;
 
     if should_instantiate_record_field(context, expression) {
-        let id = toolkit::instantiate_unifications(state, context, id)?;
-        toolkit::collect_wanteds(state, context, id)
+        state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+            let id = toolkit::instantiate_unifications(state, context, id)?;
+            toolkit::collect_wanteds(state, context, id)
+        })
     } else {
         Ok(id)
     }
@@ -63,13 +66,16 @@ fn instantiate_variable<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: lowering::TermVariableResolution,
+    site: EvidenceApplicationSite,
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
     let id = toolkit::lookup_term_variable(state, context, resolution)?;
-    let id = toolkit::instantiate_unifications(state, context, id)?;
-    toolkit::collect_wanteds(state, context, id)
+    state.capture_wanteds(site, |state| {
+        let id = toolkit::instantiate_unifications(state, context, id)?;
+        toolkit::collect_wanteds(state, context, id)
+    })
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -149,7 +155,10 @@ where
         match mode {
             ArrayMode::Infer => {
                 let inferred = super::infer_expression(state, context, *expression)?;
-                unification::subtype(state, context, inferred, element)?;
+                state
+                    .capture_wanteds(EvidenceApplicationSite::Expression(*expression), |state| {
+                        unification::subtype(state, context, inferred, element)
+                    })?;
             }
             ArrayMode::Check { .. } => {
                 super::check_expression(state, context, *expression, element)?;
@@ -255,12 +264,17 @@ where
 
         let checked_type = normalise::expand(state, context, expected_type)?;
         let checked_type = toolkit::skolemise_forall(state, context, checked_type)?;
-        let checked_type = toolkit::collect_givens(state, context, checked_type)?;
-        unification::subtype(state, context, id, checked_type)?;
+        let checked_type = state
+            .capture_binders(EvidenceAbstractionSite::RecordPun(pun), |state| {
+                toolkit::collect_givens(state, context, checked_type)
+            })?;
+        state.capture_wanteds(EvidenceApplicationSite::RecordPun(pun), |state| {
+            unification::subtype(state, context, id, checked_type)
+        })?;
 
         expected_type
     } else {
-        instantiate_variable(state, context, resolution)?
+        instantiate_variable(state, context, resolution, EvidenceApplicationSite::RecordPun(pun))?
     };
 
     state.checked.nodes.puns.insert(pun, id);
@@ -289,7 +303,9 @@ where
             lowering::ExpressionRecordItem::RecordPun { id, name, resolution } => {
                 let Some(name) = name else { continue };
                 let Some(resolution) = resolution else { continue };
-                record_pun_type(state, context, *id, name, *resolution, mode)?
+                state.with_implication(|state| {
+                    record_pun_type(state, context, *id, name, *resolution, mode)
+                })?
             }
         };
 
@@ -303,6 +319,7 @@ where
 pub fn infer_record_access<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     record: lowering::ExpressionId,
     labels: &[SmolStr],
 ) -> QueryResult<TypeId>
@@ -311,7 +328,7 @@ where
 {
     let mut current_type = super::infer_expression(state, context, record)?;
 
-    for label in labels.iter() {
+    for (index, label) in labels.iter().enumerate() {
         let label = SmolStr::clone(label);
 
         let field_type = state.fresh_unification(context.queries, context.prim.t);
@@ -320,7 +337,10 @@ where
         let row_type = context.intern_row([RowField { label, id: field_type }], Some(tail_type));
         let record_type = context.intern_application(context.prim.record, row_type);
 
-        unification::subtype(state, context, current_type, record_type)?;
+        let site = EvidenceApplicationSite::RecordAccess { expression, label: index as u32 };
+        state.capture_wanteds(site, |state| {
+            unification::subtype(state, context, current_type, record_type)
+        })?;
         current_type = field_type;
     }
 

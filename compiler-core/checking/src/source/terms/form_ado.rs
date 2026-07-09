@@ -4,6 +4,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::binder;
 use crate::source::terms::{application, form_do, form_let};
 use crate::state::CheckState;
@@ -23,6 +24,7 @@ enum AdoStep<'a> {
 pub fn infer_ado<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    ado_expression: lowering::ExpressionId,
     map: Option<lowering::TermVariableResolution>,
     apply: Option<lowering::TermVariableResolution>,
     pure: Option<lowering::TermVariableResolution>,
@@ -85,7 +87,13 @@ where
         }
         return if let Some(expression) = expression {
             let pure_type = form_do::lookup_or_synthesise_pure(state, context, pure)?;
-            application::check_function_term_application(state, context, pure_type, expression)
+            application::check_function_term_application(
+                state,
+                context,
+                pure_type,
+                expression,
+                EvidenceApplicationSite::AdoPure(ado_expression),
+            )
         } else {
             state.insert_error(ErrorKind::EmptyAdoBlock);
             Ok(context.unknown("empty ado block"))
@@ -170,6 +178,8 @@ where
                         infer_ado_apply_core(
                             state,
                             context,
+                            ado_expression,
+                            *statement,
                             apply_type,
                             continuation_type,
                             *expression,
@@ -177,7 +187,15 @@ where
                     })?
                 } else {
                     state.with_error_crumb(ErrorCrumb::InferringAdoMap(*statement), |state| {
-                        infer_ado_map_core(state, context, map_type, lambda_type, *expression)
+                        infer_ado_map_core(
+                            state,
+                            context,
+                            ado_expression,
+                            *statement,
+                            map_type,
+                            lambda_type,
+                            *expression,
+                        )
                     })?
                 };
                 continuation_type = Some(statement_type);
@@ -207,6 +225,8 @@ where
 pub fn infer_ado_map_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    ado_expression: lowering::ExpressionId,
+    statement: lowering::DoStatementId,
     map_type: TypeId,
     lambda_type: TypeId,
     expression: lowering::ExpressionId,
@@ -216,19 +236,29 @@ where
 {
     let expression_type = super::infer_expression(state, context, expression)?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, map_type)?
+    let first_site =
+        EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 0 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(first_site, |state| {
+            application::check_generic_application(state, context, map_type)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
     unification::subtype(state, context, lambda_type, argument)?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, result)?
+    let second_site =
+        EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 1 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(second_site, |state| {
+            application::check_generic_application(state, context, result)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    unification::subtype(state, context, expression_type, argument)?;
+    state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+        unification::subtype(state, context, expression_type, argument)
+    })?;
 
     Ok(result)
 }
@@ -236,6 +266,8 @@ where
 pub fn infer_ado_apply_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    ado_expression: lowering::ExpressionId,
+    statement: lowering::DoStatementId,
     apply_type: TypeId,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
@@ -245,19 +277,32 @@ where
 {
     let expression_type = super::infer_expression(state, context, expression)?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, apply_type)?
+    let first_site =
+        EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 0 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(first_site, |state| {
+            application::check_generic_application(state, context, apply_type)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    unification::subtype(state, context, continuation_type, argument)?;
+    let result_site = EvidenceApplicationSite::AdoResult { expression: ado_expression, statement };
+    state.capture_wanteds(result_site, |state| {
+        unification::subtype(state, context, continuation_type, argument)
+    })?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, result)?
+    let second_site =
+        EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 1 };
+    let Some(application::GenericApplication { argument, result }) = state
+        .capture_wanteds(second_site, |state| {
+            application::check_generic_application(state, context, result)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    unification::subtype(state, context, expression_type, argument)?;
+    state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
+        unification::subtype(state, context, expression_type, argument)
+    })?;
 
     Ok(result)
 }

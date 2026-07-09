@@ -537,7 +537,7 @@ where
             .iter()
             .map(|field| {
                 let field_type = self.traverse(Precedence::Top, field.id);
-                (field.label.to_string(), field_type)
+                (render_row_label(&field.label), field_type)
             })
             .collect_vec();
 
@@ -569,6 +569,16 @@ where
             fields
         }
     }
+}
+
+fn render_row_label(label: &str) -> String {
+    let mut characters = label.chars();
+    let identifier = characters
+        .next()
+        .is_some_and(|character| character.is_alphabetic() || character == '_')
+        && characters
+            .all(|character| character.is_alphanumeric() || character == '_' || character == '\'');
+    if identifier { label.to_owned() } else { format!("{label:?}") }
 }
 
 #[cfg(test)]
@@ -617,5 +627,12 @@ mod tests {
         names.next_suffix.insert(smol_str("t4294967295"), FIRST_SUFFIX);
 
         names.allocate_display_name(smol_str("t"));
+    }
+
+    #[test]
+    fn row_labels_quote_non_identifiers() {
+        assert_eq!(render_row_label("value"), "value");
+        assert_eq!(render_row_label("foo-bar"), "\"foo-bar\"");
+        assert_eq!(render_row_label(""), "\"\"");
     }
 }

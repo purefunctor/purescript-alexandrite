@@ -7,6 +7,7 @@ use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification};
 use crate::error::ErrorKind;
+use crate::evidence::EvidenceApplicationSite;
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -146,6 +147,7 @@ pub fn check_function_application<Q>(
     context: &CheckContext<Q>,
     function_type: TypeId,
     argument: &lowering::ExpressionArgument,
+    site: EvidenceApplicationSite,
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
@@ -161,7 +163,7 @@ where
             let Some(term_argument) = term_argument else {
                 return Ok(context.unknown("missing term argument"));
             };
-            check_function_term_application(state, context, function_type, *term_argument)
+            check_function_term_application(state, context, function_type, *term_argument, site)
         }
     }
 }
@@ -171,12 +173,13 @@ pub fn check_function_term_application<Q>(
     context: &CheckContext<Q>,
     function: TypeId,
     expression_id: lowering::ExpressionId,
+    site: EvidenceApplicationSite,
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
     let Some(GenericApplication { argument, result }) =
-        check_generic_application(state, context, function)?
+        state.capture_wanteds(site, |state| check_generic_application(state, context, function))?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -236,6 +239,7 @@ where
 pub fn infer_infix_chain<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     head: lowering::ExpressionId,
     tail: &[lowering::InfixPair<lowering::ExpressionId>],
 ) -> QueryResult<TypeId>
@@ -244,20 +248,29 @@ where
 {
     let mut infix_type = super::infer_expression(state, context, head)?;
 
-    for lowering::InfixPair { tick, element } in tail.iter() {
+    for (pair, lowering::InfixPair { tick, element }) in tail.iter().enumerate() {
         let Some(tick) = tick else { return Ok(context.unknown("missing infix tick")) };
         let Some(element) = element else { return Ok(context.unknown("missing infix element")) };
 
         let tick_type = super::infer_expression(state, context, *tick)?;
-        let Some(GenericApplication { argument, result }) =
-            check_generic_application(state, context, tick_type)?
+        let left_site =
+            EvidenceApplicationSite::Infix { expression, pair: pair as u32, argument: 0 };
+        let Some(GenericApplication { argument, result }) = state
+            .capture_wanteds(EvidenceApplicationSite::Expression(*tick), |state| {
+                check_generic_application(state, context, tick_type)
+            })?
         else {
             return Ok(context.unknown("invalid function application"));
         };
-        unification::subtype(state, context, infix_type, argument)?;
+        state.capture_wanteds(left_site, |state| {
+            unification::subtype(state, context, infix_type, argument)
+        })?;
         let applied_tick = result;
 
-        infix_type = check_function_term_application(state, context, applied_tick, *element)?;
+        let second_site =
+            EvidenceApplicationSite::Infix { expression, pair: pair as u32, argument: 1 };
+        infix_type =
+            check_function_term_application(state, context, applied_tick, *element, second_site)?;
     }
 
     Ok(infix_type)
