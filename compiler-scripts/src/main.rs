@@ -9,7 +9,7 @@ use compiler_scripts::test_runner::{
 #[derive(Parser)]
 #[command(about = "Compiler development scripts")]
 struct Cli {
-    /// Test category: checking (c), lowering (l), resolving (r), lsp, docs
+    /// Test category: checking (c), elaborating (e), lowering (l), resolving (r), lsp, docs
     category: TestCategory,
 
     #[command(flatten)]

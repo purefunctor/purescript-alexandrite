@@ -1,0 +1,55 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+Pair : forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type) = #external[constructor]
+
+add : Int -> Int -> Int = #external[foreign]
+
+(+) : Int -> Int -> Int = add
+
+identity : forall (a :: Type). (a :: Type) -> (a :: Type) = \$synthetic0 -> case $synthetic0 of value -> value | _ -> #error[pattern-match-failure]
+
+visible : forall (@a :: Type). (a :: Type) -> (a :: Type) = \$synthetic1 -> case $synthetic1 of value -> value | _ -> #error[pattern-match-failure]
+
+typed : Int = identity 1
+
+visibleInt : Int = visible @Int 1
+
+visibleArray : Array Int = visible @(Array Int) [1]
+
+sum : Int = add (add 1 2) 3
+
+backtick : Int = add 1 2
+
+section : Int = (\$synthetic2 -> add $synthetic2 1) 2
+
+choose : forall (t :: Type). Boolean -> (t :: Type) -> (t :: Type) -> (t :: Type) = \$synthetic3 $synthetic4 $synthetic5 -> case $synthetic3, $synthetic4, $synthetic5 of condition, whenTrue, whenFalse -> (if condition then whenTrue else whenFalse) | _, _, _ -> #error[pattern-match-failure]
+
+first : forall (t :: Type) (t1 :: Type). Pair (t :: Type) (t1 :: Type) -> (t :: Type) = \$synthetic6 -> case $synthetic6 of pair -> (let $synthetic7 = pair in case $synthetic7 of Pair value _ -> value | _ -> #error[pattern-match-failure]) | _ -> #error[pattern-match-failure]
+
+local : Int -> Int = \$synthetic8 -> case $synthetic8 of value -> (let doubled : Int = add value value in doubled) | _ -> #error[pattern-match-failure]
+
+array : Array Int = [1, 2, 3]
+
+record : { nested :: { enabled :: Boolean }, value :: Int } = { value = 1, nested = { enabled = true } }
+
+quoted : { "foo-bar" :: Int } = { "foo-bar" = 1 }
+
+quotedAccess : forall (t :: Type) (t1 :: Row Type). { "foo-bar" :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type) = \$synthetic9 -> case $synthetic9 of input -> input."foo-bar" | _ -> #error[pattern-match-failure]
+
+quotedUpdate : forall (t :: Type) (t1 :: Row Type).
+  { "foo-bar" :: (t :: Type) | (t1 :: Row Type) } -> { "foo-bar" :: Int | (t1 :: Row Type) } = \$synthetic10 -> case $synthetic10 of input -> (input { "foo-bar" = 2 }) | _ -> #error[pattern-match-failure]
+
+access : forall (t :: Type) (t1 :: Row Type) (t2 :: Row Type).
+  { nested :: { enabled :: (t :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) } -> (t :: Type) = \$synthetic11 -> case $synthetic11 of input -> input.nested.enabled | _ -> #error[pattern-match-failure]
+
+update : forall (t :: Type) (t1 :: Row Type) (t2 :: Type) (t3 :: Row Type).
+  { nested :: { enabled :: (t :: Type) | (t1 :: Row Type) }
+  , value :: (t2 :: Type)
+  | (t3 :: Row Type)
+  } ->
+  { nested :: { enabled :: Boolean | (t1 :: Row Type) }, value :: Int | (t3 :: Row Type) } = \$synthetic12 -> case $synthetic12 of input -> (input { value = 2, nested.enabled = false }) | _ -> #error[pattern-match-failure]

@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+Box : forall (@a :: Type). (a :: Type) -> Box (a :: Type) = #external[constructor]
+
+$derive0 : forall (t :: Type). Eq (t :: Type) => Eq (Box (t :: Type)) = \$dict4 -> derived stock Data.Eq.Eq { binders = [], requirements = [Eq (t :: Type) = $dict4] }
+
+fancy : forall (@a :: Type). Fancy (a :: Type) => (a :: Type) -> Boolean = #external[class-member]
+
+fancyBox : forall (t :: Type). Partial => Eq (t :: Type) => Fancy (Box (t :: Type)) = \$dict3 -> dictionary { $super0 = #erased, $super1 = $derive0 $dict3, fancy = (\$synthetic0 -> case $synthetic0 of _ -> true | _ -> #error[pattern-match-failure]) }
+
+concrete : Boolean = Data.Eq.eq ($derive0 Data.Eq.$instance0) (Box 1) (Box 2)
+
+generalised : forall (t :: Type).
+  Eq (t :: Type) => (t :: Type) -> (t :: Type) -> { first :: Boolean, second :: Boolean } = \$dict0 $synthetic1 $synthetic2 -> case $synthetic1, $synthetic2 of left, right -> { first = Data.Eq.eq $dict0 left right, second = Data.Eq.eq $dict0 left right } | _, _ -> #error[pattern-match-failure]
+
+usesSuperclass : forall (a :: Type). Fancy (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean = \$dict1 $synthetic3 $synthetic4 -> case $synthetic3, $synthetic4 of left, right -> Data.Eq.eq (#superclass[1] $dict1) left right | _, _ -> #error[pattern-match-failure]

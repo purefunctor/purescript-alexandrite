@@ -2600,6 +2600,7 @@ dependencies = [
  "datatest-stable",
  "diagnostics",
  "documentation",
+ "elaborating",
  "files",
  "glob",
  "indexing",

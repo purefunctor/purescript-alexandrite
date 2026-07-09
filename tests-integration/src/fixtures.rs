@@ -52,6 +52,24 @@ pub fn checking(path: &Path) -> FixtureResult {
     Ok(())
 }
 
+pub fn elaborating(path: &Path) -> FixtureResult {
+    let folder = fixture_folder(path)?;
+    let file = module_name(path)?;
+    let (engine, _) = crate::load_compiler(folder);
+    let Some(id) = engine.module_file(&file) else {
+        return Err(missing_module(path, &file).into());
+    };
+
+    let report = crate::generated::elaborating::report(&engine, id, &file);
+
+    let mut settings = insta::Settings::clone_current();
+    settings.set_snapshot_path(snapshot_path(folder));
+    settings.set_prepend_module_to_snapshot(false);
+    settings.bind(|| insta::assert_snapshot!(file, report));
+
+    Ok(())
+}
+
 pub fn lowering(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
