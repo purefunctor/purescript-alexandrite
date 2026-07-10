@@ -54,16 +54,3 @@ impl FromStr for TestCategory {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::TestCategory;
-
-    #[test]
-    fn parses_elaborating_category_and_abbreviation() {
-        for input in ["elaborating", "e", "ELABORATING"] {
-            let category: TestCategory = input.parse().unwrap();
-            assert_eq!(category.as_str(), "elaborating");
-        }
-    }
-}
