@@ -41,6 +41,10 @@ name = "parsing"
 harness = false
 
 [[bench]]
+name = "indexing"
+harness = false
+
+[[bench]]
 name = "checking_single_core"
 harness = false
 
