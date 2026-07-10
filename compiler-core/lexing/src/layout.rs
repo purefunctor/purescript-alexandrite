@@ -54,7 +54,7 @@ impl<'s> Layout<'s> {
     pub(super) fn new(lexed: &'s Lexed<'s>) -> Layout<'s> {
         let index = 0;
         let stack = vec![(Position { line: 1, column: 1 }, Delimiter::Root)];
-        let output = vec![];
+        let output = Vec::with_capacity(lexed.len());
         Layout { lexed, index, stack, output }
     }
 
@@ -64,10 +64,11 @@ impl<'s> Layout<'s> {
 
     pub(super) fn take_token(&mut self) {
         let token = self.lexed.kind(self.index);
-        let qualifier = self.lexed.qualifier(self.index);
-        let position = self.lexed.position(self.index);
-        let next = self.lexed.position(self.index + 1);
-        self.insert(token, qualifier, position, next);
+        let info = self.lexed.info(self.index);
+        let qualified = info.annotation < info.qualifier;
+        let position = info.position;
+        let next = self.lexed.info(self.index + 1).position;
+        self.insert(token, qualified, position, next);
         self.index += 1;
     }
 
@@ -83,21 +84,15 @@ impl<'s> Layout<'s> {
 }
 
 impl<'s> Layout<'s> {
-    fn insert(
-        &mut self,
-        token: SyntaxKind,
-        qualifier: Option<&'s str>,
-        position: Position,
-        next: Position,
-    ) {
-        Insert::new(self, token, qualifier, position, next).invoke();
+    fn insert(&mut self, token: SyntaxKind, qualified: bool, position: Position, next: Position) {
+        Insert::new(self, token, qualified, position, next).invoke();
     }
 }
 
 struct Insert<'l, 's> {
     layout: &'l mut Layout<'s>,
     token: SyntaxKind,
-    qualifier: Option<&'s str>,
+    qualified: bool,
     position: Position,
     next: Position,
 }
@@ -106,16 +101,16 @@ impl<'l, 's> Insert<'l, 's> {
     fn new(
         layout: &'l mut Layout<'s>,
         token: SyntaxKind,
-        qualifier: Option<&'s str>,
+        qualified: bool,
         position: Position,
         next: Position,
     ) -> Insert<'l, 's> {
-        Insert { layout, token, qualifier, position, next }
+        Insert { layout, token, qualified, position, next }
     }
 
     fn invoke(&mut self) {
         match self.token {
-            SyntaxKind::DATA if self.qualifier.is_none() => {
+            SyntaxKind::DATA if !self.qualified => {
                 self.insert_default();
                 if self.is_top_declaration(self.position) {
                     self.push_stack(self.position, Delimiter::TopDecl);
@@ -124,7 +119,7 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             }
 
-            SyntaxKind::CLASS if self.qualifier.is_none() => {
+            SyntaxKind::CLASS if !self.qualified => {
                 self.insert_default();
                 if self.is_top_declaration(self.position) {
                     self.push_stack(self.position, Delimiter::TopDeclHead);
@@ -133,7 +128,7 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             }
 
-            SyntaxKind::WHERE if self.qualifier.is_none() => match &self.layout.stack[..] {
+            SyntaxKind::WHERE if !self.qualified => match &self.layout.stack[..] {
                 [.., (_, Delimiter::TopDeclHead)] => {
                     self.pop_stack();
                     self.insert_token(self.token);
@@ -150,7 +145,7 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             },
 
-            SyntaxKind::IN if self.qualifier.is_none() => {
+            SyntaxKind::IN if !self.qualified => {
                 let collapse = self.collapse(Insert::in_p);
                 match collapse.preview(self.layout) {
                     [.., (_, Delimiter::Ado), (_, Delimiter::LetStmt)] => {
@@ -174,7 +169,7 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             }
 
-            SyntaxKind::LET if self.qualifier.is_none() => {
+            SyntaxKind::LET if !self.qualified => {
                 self.insert_keyword_property(|this| match &this.layout.stack[..] {
                     [.., (position, Delimiter::Do)] if position.column == this.position.column => {
                         this.insert_start(Delimiter::LetStmt);
@@ -200,13 +195,13 @@ impl<'l, 's> Insert<'l, 's> {
                 });
             }
 
-            SyntaxKind::CASE if self.qualifier.is_none() => {
+            SyntaxKind::CASE if !self.qualified => {
                 self.insert_keyword_property(|this| {
                     this.push_stack(this.position, Delimiter::Case);
                 });
             }
 
-            SyntaxKind::OF if self.qualifier.is_none() => {
+            SyntaxKind::OF if !self.qualified => {
                 let collapse = self.collapse(Insert::indented_p);
                 match collapse.preview(self.layout) {
                     [.., (_, Delimiter::Case)] => {
@@ -223,13 +218,13 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             }
 
-            SyntaxKind::IF if self.qualifier.is_none() => {
+            SyntaxKind::IF if !self.qualified => {
                 self.insert_keyword_property(|this| {
                     this.push_stack(this.position, Delimiter::If);
                 });
             }
 
-            SyntaxKind::THEN if self.qualifier.is_none() => {
+            SyntaxKind::THEN if !self.qualified => {
                 let collapse = self.collapse(Insert::indented_p);
                 match collapse.preview(self.layout) {
                     [.., (_, Delimiter::If)] => {
@@ -245,7 +240,7 @@ impl<'l, 's> Insert<'l, 's> {
                 }
             }
 
-            SyntaxKind::ELSE if self.qualifier.is_none() => {
+            SyntaxKind::ELSE if !self.qualified => {
                 let collapse = self.collapse(Insert::indented_p);
                 match collapse.preview(self.layout) {
                     [.., (_, Delimiter::Then)] => {
@@ -397,7 +392,7 @@ impl<'l, 's> Insert<'l, 's> {
                 self.pop_stack_if(|delimiter| delimiter == Delimiter::Property);
             }
 
-            _ if LOWER.contains(self.token) && self.qualifier.is_none() => {
+            _ if LOWER.contains(self.token) && !self.qualified => {
                 self.insert_default();
                 self.pop_stack_if(|delimiter| delimiter == Delimiter::Property);
             }

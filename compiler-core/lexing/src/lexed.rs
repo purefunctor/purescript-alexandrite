@@ -77,8 +77,9 @@ pub(super) struct LexedBuilder<'s> {
 
 impl<'s> LexedBuilder<'s> {
     pub(super) fn new(source: &'s str) -> LexedBuilder<'s> {
-        let kinds = vec![];
-        let infos = vec![];
+        let capacity = source.len() / 4;
+        let kinds = Vec::with_capacity(capacity);
+        let infos = Vec::with_capacity(capacity);
         let errors = vec![];
         LexedBuilder { source, kinds, infos, errors }
     }
