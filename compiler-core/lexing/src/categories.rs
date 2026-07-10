@@ -10,15 +10,23 @@ pub(super) trait LexerCategories {
 
 impl LexerCategories for char {
     fn is_lower_start(self) -> bool {
-        self.is_letter_lowercase() || self == '_'
+        if self.is_ascii() {
+            self.is_ascii_lowercase() || self == '_'
+        } else {
+            self.is_letter_lowercase()
+        }
     }
 
     fn is_upper_start(self) -> bool {
-        self.is_letter_uppercase()
+        if self.is_ascii() { self.is_ascii_uppercase() } else { self.is_letter_uppercase() }
     }
 
     fn is_name(self) -> bool {
-        self.is_alphanumeric() || self == '_' || self == '\''
+        if self.is_ascii() {
+            self.is_ascii_alphanumeric() || self == '_' || self == '\''
+        } else {
+            self.is_alphanumeric()
+        }
     }
 
     fn is_operator(self) -> bool {
