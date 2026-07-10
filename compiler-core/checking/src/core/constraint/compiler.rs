@@ -205,26 +205,31 @@ where
     }
 
     (canonical.file_id == context.prim_int.file_id
-        && (canonical.type_id == context.prim_int.add
-            || canonical.type_id == context.prim_int.mul
-            || canonical.type_id == context.prim_int.compare
-            || canonical.type_id == context.prim_int.to_string))
+        && [
+            context.prim_int.add,
+            context.prim_int.mul,
+            context.prim_int.compare,
+            context.prim_int.to_string,
+        ]
+        .contains(&canonical.type_id))
         || (canonical.file_id == context.prim_symbol.file_id
-            && (canonical.type_id == context.prim_symbol.append
-                || canonical.type_id == context.prim_symbol.compare
-                || canonical.type_id == context.prim_symbol.cons))
+            && [context.prim_symbol.append, context.prim_symbol.compare, context.prim_symbol.cons]
+                .contains(&canonical.type_id))
         || (canonical.file_id == context.prim_row.file_id
-            && (canonical.type_id == context.prim_row.union
-                || canonical.type_id == context.prim_row.cons
-                || canonical.type_id == context.prim_row.lacks
-                || canonical.type_id == context.prim_row.nub))
+            && [
+                context.prim_row.union,
+                context.prim_row.cons,
+                context.prim_row.lacks,
+                context.prim_row.nub,
+            ]
+            .contains(&canonical.type_id))
         || (canonical.file_id == context.prim_row_list.file_id
             && canonical.type_id == context.prim_row_list.row_to_list)
         || (canonical.file_id == context.prim_coerce.file_id
             && canonical.type_id == context.prim_coerce.coercible)
         || (canonical.file_id == context.prim_type_error.file_id
-            && (canonical.type_id == context.prim_type_error.warn
-                || canonical.type_id == context.prim_type_error.fail))
+            && [context.prim_type_error.warn, context.prim_type_error.fail]
+                .contains(&canonical.type_id))
         || context.known_reflectable.is_symbol == Some(class)
         || context.known_reflectable.reflectable == Some(class)
 }
