@@ -6,6 +6,15 @@ foreign import add :: Int -> Int -> Int
 
 infixl 6 add as +
 
+map :: forall a b. (a -> b) -> a -> b
+map function value = function value
+
+apply :: forall a b. (a -> b) -> a -> b
+apply function value = function value
+
+pure :: forall a. a -> a
+pure value = value
+
 identity :: forall a. a -> a
 identity value = value
 
@@ -36,6 +45,11 @@ local value =
   in
     doubled
 
+scoped = ado
+  value <- pure 1
+  let copy = value
+  in copy
+
 array = [1, 2, 3]
 
 record = { value: 1, nested: { enabled: true } }
@@ -49,3 +63,5 @@ quotedUpdate input = input { "foo-bar" = 2 }
 access input = input.nested.enabled
 
 update input = input { value = 2, nested { enabled = false } }
+
+hole = ?coreHole

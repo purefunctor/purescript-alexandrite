@@ -7,15 +7,30 @@ module Main where
 
 Box : forall (@a :: Type). (a :: Type) -> Box (a :: Type) = #external[constructor]
 
-$derive0 : forall (t :: Type). Eq (t :: Type) => Eq (Box (t :: Type)) = \$dict4 -> derived stock Data.Eq.Eq { binders = [], requirements = [Eq (t :: Type) = $dict4] }
+$derive0 : forall (t :: Type). Eq (t :: Type) => Eq (Box (t :: Type)) = \$dict9 -> derived stock Data.Eq.Eq { binders = [], requirements = [Eq (t :: Type) = $dict9] }
+
+$derive1 : Eq1 Box = derived stock Data.Eq.Eq1 { binders = [$dict10 : Eq (t :: Type)], requirements = [Eq (Box (t :: Type)) = $derive0 $dict10] }
 
 fancy : forall (@a :: Type). Fancy (a :: Type) => (a :: Type) -> Boolean = #external[class-member]
 
-fancyBox : forall (t :: Type). Partial => Eq (t :: Type) => Fancy (Box (t :: Type)) = \$dict3 -> dictionary { $super0 = #erased, $super1 = $derive0 $dict3, fancy = (\$synthetic0 -> case $synthetic0 of _ -> true | _ -> #error[pattern-match-failure]) }
+fancyAgain : forall (@a :: Type). Fancy (a :: Type) => (a :: Type) -> Boolean = #external[class-member]
+
+rec fancyBox : forall (t :: Type). Partial => Eq (t :: Type) => Fancy (Box (t :: Type)) = \$dict8 -> dictionary { $super0 = #erased, $super1 = $derive0 $dict8, fancyAgain = (\$synthetic0 -> case $synthetic0 of value -> fancy (fancyBox $dict8) value | _ -> #error[pattern-match-failure]), fancy = (\$synthetic1 -> case $synthetic1 of _ -> true | _ -> #error[pattern-match-failure]) }
 
 concrete : Boolean = Data.Eq.eq ($derive0 Data.Eq.$instance0) (Box 1) (Box 2)
 
 generalised : forall (t :: Type).
-  Eq (t :: Type) => (t :: Type) -> (t :: Type) -> { first :: Boolean, second :: Boolean } = \$dict0 $synthetic1 $synthetic2 -> case $synthetic1, $synthetic2 of left, right -> { first = Data.Eq.eq $dict0 left right, second = Data.Eq.eq $dict0 left right } | _, _ -> #error[pattern-match-failure]
+  Eq (t :: Type) => (t :: Type) -> (t :: Type) -> { first :: Boolean, second :: Boolean } = \$dict0 $synthetic2 $synthetic3 -> case $synthetic2, $synthetic3 of left, right -> { first = Data.Eq.eq $dict0 left right, second = Data.Eq.eq $dict0 left right } | _, _ -> #error[pattern-match-failure]
 
-usesSuperclass : forall (a :: Type). Fancy (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean = \$dict1 $synthetic3 $synthetic4 -> case $synthetic3, $synthetic4 of left, right -> Data.Eq.eq (#superclass[1] $dict1) left right | _, _ -> #error[pattern-match-failure]
+usesSuperclass : forall (a :: Type). Fancy (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean = \$dict1 $synthetic4 $synthetic5 -> case $synthetic4, $synthetic5 of left, right -> Data.Eq.eq (#superclass[1] $dict1) left right | _, _ -> #error[pattern-match-failure]
+
+member : forall (@a :: Type). C (a :: Type) => (a :: Type) = #external[class-member]
+
+outer : forall (a :: Type). C (a :: Type) => { inner :: C (a :: Type) => (a :: Type) } = \$dict2 -> { inner = (\$dict3 -> member $dict3) }
+
+siblings : forall (a :: Type).
+  C (a :: Type) => { left :: C (a :: Type) => (a :: Type), right :: C (a :: Type) => (a :: Type) } = \$dict4 -> { left = (\$dict5 -> member $dict5), right = (\$dict6 -> member $dict6) }
+
+boom : Fail (Text "expected failure") => Int = 1
+
+useFailure : Int = boom #error[evidence]
