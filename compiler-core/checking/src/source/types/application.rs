@@ -182,7 +182,7 @@ where
             Ok(argument_type)
         }
         Argument::Core(argument_type, argument_kind) => {
-            unification::subtype(state, context, argument_kind, expected_kind)?;
+            unification::subtype_non_elaborating(state, context, argument_kind, expected_kind)?;
             Ok(argument_type)
         }
     }

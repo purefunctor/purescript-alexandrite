@@ -10,6 +10,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, RowType, Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::WantedCollector;
 use crate::source::terms::application;
 use crate::source::{operator, types};
 use crate::state::CheckState;
@@ -29,13 +30,14 @@ where
     Q: ExternalQueries,
 {
     state.with_error_crumb(ErrorCrumb::InferringBinder(binder_id), |state| {
-        binder_core(state, context, binder_id, BinderMode::Infer)
+        binder_core(state, context, None, binder_id, BinderMode::Infer)
     })
 }
 
 pub fn check_binder<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     binder_id: lowering::BinderId,
     expected_type: TypeId,
 ) -> QueryResult<TypeId>
@@ -46,6 +48,7 @@ where
         binder_core(
             state,
             context,
+            Some(collector),
             binder_id,
             BinderMode::Check { expected_type, elaborating: true },
         )
@@ -65,6 +68,7 @@ where
         binder_core(
             state,
             context,
+            None,
             binder_id,
             BinderMode::Check { expected_type, elaborating: false },
         )
@@ -162,6 +166,7 @@ where
 fn binder_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    mut collector: Option<&mut WantedCollector>,
     binder_id: lowering::BinderId,
     mode: BinderMode,
 ) -> QueryResult<TypeId>
@@ -185,12 +190,27 @@ where
                     check_argument_binder(state, context, *binder_id, type_id)?;
                 }
                 _ => {
-                    check_binder(state, context, *binder_id, type_id)?;
+                    check_binder(
+                        state,
+                        context,
+                        collector
+                            .as_deref_mut()
+                            .expect("elaborating binder must have a wanted collector"),
+                        *binder_id,
+                        type_id,
+                    )?;
                 }
             }
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
-                subtype_for_mode(state, context, type_id, expected_type, elaborating)?;
+                subtype_for_mode(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    type_id,
+                    expected_type,
+                    elaborating,
+                )?;
             }
 
             type_id
@@ -200,7 +220,14 @@ where
             let (_, inferred_type) = operator::infer_operator_chain(state, context, binder_id)?;
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
-                subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
+                subtype_for_mode(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    inferred_type,
+                    expected_type,
+                    elaborating,
+                )?;
             }
 
             inferred_type
@@ -239,6 +266,7 @@ where
                     constructor_t = check_constructor_binder_application(
                         state,
                         context,
+                        collector.as_deref_mut(),
                         constructor_t,
                         argument,
                     )?;
@@ -247,7 +275,14 @@ where
             };
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
-                subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
+                subtype_for_mode(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    inferred_type,
+                    expected_type,
+                    elaborating,
+                )?;
                 expected_type
             } else {
                 inferred_type
@@ -266,7 +301,15 @@ where
                 BinderMode::Infer => infer_binder(state, context, *binder)?,
                 BinderMode::Check { expected_type, elaborating } => {
                     if elaborating {
-                        check_binder(state, context, *binder, expected_type)?
+                        check_binder(
+                            state,
+                            context,
+                            collector
+                                .as_deref_mut()
+                                .expect("elaborating binder must have a wanted collector"),
+                            *binder,
+                            expected_type,
+                        )?
                     } else {
                         check_argument_binder(state, context, *binder, expected_type)?
                     }
@@ -318,18 +361,20 @@ where
 
             for binder in array.iter() {
                 let binder_type = infer_binder(state, context, *binder)?;
-                unification::subtype_with::<unification::NonElaborating, Q>(
-                    state,
-                    context,
-                    binder_type,
-                    element_type,
-                )?;
+                unification::subtype_non_elaborating(state, context, binder_type, element_type)?;
             }
 
             let array_type = context.intern_application(context.prim.array, element_type);
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
-                subtype_for_mode(state, context, array_type, expected_type, elaborating)?;
+                subtype_for_mode(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    array_type,
+                    expected_type,
+                    elaborating,
+                )?;
             }
 
             array_type
@@ -337,7 +382,15 @@ where
 
         lowering::BinderKind::Record { record } => {
             if let BinderMode::Check { expected_type, elaborating } = mode {
-                check_record_binder(state, context, binder_id, record, expected_type, elaborating)?
+                check_record_binder(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    binder_id,
+                    record,
+                    expected_type,
+                    elaborating,
+                )?
             } else {
                 infer_record_binder(state, context, binder_id, record)?
             }
@@ -345,7 +398,7 @@ where
 
         lowering::BinderKind::Parenthesized { parenthesized } => {
             let Some(parenthesized) = parenthesized else { return Ok(unknown) };
-            binder_core(state, context, *parenthesized, mode)?
+            binder_core(state, context, collector, *parenthesized, mode)?
         }
     };
 
@@ -357,6 +410,7 @@ where
 fn subtype_for_mode<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: Option<&mut WantedCollector>,
     t1: TypeId,
     t2: TypeId,
     elaborating: bool,
@@ -365,15 +419,22 @@ where
     Q: ExternalQueries,
 {
     if elaborating {
-        unification::subtype(state, context, t1, t2)
+        unification::subtype(
+            state,
+            context,
+            collector.expect("elaborating binder must have a wanted collector"),
+            t1,
+            t2,
+        )
     } else {
-        unification::subtype_with::<unification::NonElaborating, Q>(state, context, t1, t2)
+        unification::subtype_non_elaborating(state, context, t1, t2)
     }
 }
 
 fn check_constructor_binder_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: Option<&mut WantedCollector>,
     constructor: TypeId,
     binder_id: lowering::BinderId,
 ) -> QueryResult<TypeId>
@@ -386,7 +447,11 @@ where
         return Ok(context.unknown("invalid function application"));
     };
 
-    check_binder(state, context, binder_id, argument)?;
+    if let Some(collector) = collector {
+        check_binder(state, context, collector, binder_id, argument)?;
+    } else {
+        check_argument_binder(state, context, binder_id, argument)?;
+    }
 
     Ok(result)
 }
@@ -420,6 +485,7 @@ fn collect_pattern_items(record: &[lowering::BinderRecordItem]) -> Vec<(SmolStr,
 fn check_pattern_item<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: Option<&mut WantedCollector>,
     item: &PatternItem,
     expected_type: TypeId,
     elaborating: bool,
@@ -430,7 +496,13 @@ where
     match *item {
         PatternItem::Field(binder_id) => {
             if elaborating {
-                check_binder(state, context, binder_id, expected_type)?;
+                check_binder(
+                    state,
+                    context,
+                    collector.expect("elaborating binder must have a wanted collector"),
+                    binder_id,
+                    expected_type,
+                )?;
             } else {
                 check_argument_binder(state, context, binder_id, expected_type)?;
             }
@@ -509,6 +581,7 @@ where
 fn check_record_binder<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    mut collector: Option<&mut WantedCollector>,
     binder_id: lowering::BinderId,
     record: &[lowering::BinderRecordItem],
     expected_type: TypeId,
@@ -547,11 +620,25 @@ where
     {
         match pair {
             EitherOrBoth::Both((_, item), expected) => {
-                check_pattern_item(state, context, item, expected.id, elaborating)?;
+                check_pattern_item(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    item,
+                    expected.id,
+                    elaborating,
+                )?;
             }
             EitherOrBoth::Left((label, item)) => {
                 let id = state.fresh_unification(context.queries, context.prim.t);
-                check_pattern_item(state, context, item, id, elaborating)?;
+                check_pattern_item(
+                    state,
+                    context,
+                    collector.as_deref_mut(),
+                    item,
+                    id,
+                    elaborating,
+                )?;
 
                 let label = SmolStr::clone(label);
                 extra_fields.push(RowField { label, id });

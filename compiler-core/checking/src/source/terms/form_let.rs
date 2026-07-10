@@ -4,7 +4,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{Type, exhaustive, normalise, toolkit, unification};
 use crate::error::ErrorCrumb;
-use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite, WantedCollector};
 use crate::source::terms::{equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
@@ -49,21 +49,27 @@ where
         return Ok(());
     };
 
-    let expression_type = if let Some(expression) = where_expression.expression {
-        state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
-            if binder::requires_instantiation(context, binder) {
-                toolkit::instantiate_constrained(state, context, expression_type)
-            } else {
-                toolkit::collect_wanteds(state, context, expression_type)
-            }
-        })?
-    } else if binder::requires_instantiation(context, binder) {
-        toolkit::instantiate_constrained(state, context, expression_type)?
+    let binder_type = if let Some(expression) = where_expression.expression {
+        state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
+            |state, collector| {
+                let expression_type = if binder::requires_instantiation(context, binder) {
+                    toolkit::instantiate_constrained(state, context, collector, expression_type)?
+                } else {
+                    toolkit::collect_wanteds(state, context, collector, expression_type)?
+                };
+                binder::check_binder(state, context, collector, binder, expression_type)
+            },
+        )?
     } else {
-        toolkit::collect_wanteds(state, context, expression_type)?
+        let expression_type = if binder::requires_instantiation(context, binder) {
+            toolkit::instantiate_unifications(state, context, expression_type)?
+        } else {
+            expression_type
+        };
+        let expression_type = toolkit::without_constraints(state, context, expression_type)?;
+        binder::check_argument_binder(state, context, binder, expression_type)?
     };
-
-    let binder_type = binder::check_binder(state, context, binder, expression_type)?;
 
     let exhaustiveness =
         exhaustive::check_lambda_patterns(state, context, &[binder_type], &[binder])?;
@@ -72,7 +78,9 @@ where
     state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
-        state.push_wanted(context.prim.partial);
+        state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
+            collector.collect(state, context.prim.partial)
+        });
     }
 
     Ok(())
@@ -176,12 +184,22 @@ where
                 unification::solve(state, context, name_type, unification_id, inferred_type)?;
             } else {
                 if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                    state.capture_wanteds(
-                        EvidenceApplicationSite::Expression(expression),
-                        |state| unification::subtype(state, context, inferred_type, name_type),
+                    state.with_wanted_collector(
+                        WantedCollector::application(EvidenceApplicationSite::Expression(
+                            expression,
+                        )),
+                        |state, collector| {
+                            unification::subtype(
+                                state,
+                                context,
+                                collector,
+                                inferred_type,
+                                name_type,
+                            )
+                        },
                     )?;
                 } else {
-                    unification::subtype(state, context, inferred_type, name_type)?;
+                    unification::subtype_non_elaborating(state, context, inferred_type, name_type)?;
                 }
             }
         } else {

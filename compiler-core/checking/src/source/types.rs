@@ -55,7 +55,7 @@ where
     let (inferred_type, inferred_kind) =
         instantiate_kind_applications(state, context, inferred_type, inferred_kind, expected_kind)?;
 
-    unification::subtype(state, context, inferred_kind, expected_kind)?;
+    unification::subtype_non_elaborating(state, context, inferred_kind, expected_kind)?;
     Ok((inferred_type, inferred_kind))
 }
 
@@ -312,7 +312,7 @@ where
         lowering::TypeKind::Record { items, tail } => {
             let (row_type, row_kind) =
                 infer_row_kind(state, context, items, tail, EmptyRowTail::Check)?;
-            unification::subtype(state, context, row_kind, context.prim.row_type)?;
+            unification::subtype_non_elaborating(state, context, row_kind, context.prim.row_type)?;
 
             let t = context.intern_application(context.prim.record, row_type);
             let k = context.prim.t;

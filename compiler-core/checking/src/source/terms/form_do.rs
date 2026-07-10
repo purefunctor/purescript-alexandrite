@@ -7,7 +7,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
-use crate::evidence::EvidenceApplicationSite;
+use crate::evidence::{EvidenceApplicationSite, WantedCollector};
 use crate::source::binder;
 use crate::source::terms::{application, form_let};
 use crate::state::CheckState;
@@ -371,9 +371,18 @@ where
                         expression: do_expression,
                         statement: *statement,
                     };
-                    state.capture_wanteds(site, |state| {
-                        unification::subtype(state, context, statement_type, now_type)
-                    })?;
+                    state.with_wanted_collector(
+                        WantedCollector::application(site),
+                        |state, collector| {
+                            unification::subtype(
+                                state,
+                                context,
+                                collector,
+                                statement_type,
+                                now_type,
+                            )
+                        },
+                    )?;
                     Ok(())
                 })?;
             }
@@ -398,9 +407,18 @@ where
                         expression: do_expression,
                         statement: *statement,
                     };
-                    state.capture_wanteds(site, |state| {
-                        unification::subtype(state, context, statement_type, now_type)
-                    })?;
+                    state.with_wanted_collector(
+                        WantedCollector::application(site),
+                        |state, collector| {
+                            unification::subtype(
+                                state,
+                                context,
+                                collector,
+                                statement_type,
+                                now_type,
+                            )
+                        },
+                    )?;
                     Ok(())
                 })?;
             }
@@ -442,27 +460,34 @@ where
 
     let first_site =
         EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 0 };
-    let Some(application::GenericApplication { argument, result }) = state
-        .capture_wanteds(first_site, |state| {
-            application::check_generic_application(state, context, bind_type)
-        })?
+    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
+        WantedCollector::application(first_site),
+        |state, collector| {
+            application::check_generic_application(state, context, collector, bind_type)
+        },
+    )?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
-        unification::subtype(state, context, expression_type, argument)
-    })?;
+    state.with_wanted_collector(
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
+        |state, collector| {
+            unification::subtype(state, context, collector, expression_type, argument)
+        },
+    )?;
 
     let second_site =
         EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 1 };
-    let Some(application::GenericApplication { argument, result }) = state
-        .capture_wanteds(second_site, |state| {
-            application::check_generic_application(state, context, result)
-        })?
+    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
+        WantedCollector::application(second_site),
+        |state, collector| {
+            application::check_generic_application(state, context, collector, result)
+        },
+    )?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    unification::subtype(state, context, lambda_type, argument)?;
+    unification::subtype_non_elaborating(state, context, lambda_type, argument)?;
 
     Ok(result)
 }

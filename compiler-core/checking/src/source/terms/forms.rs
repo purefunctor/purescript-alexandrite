@@ -3,7 +3,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
-use crate::evidence::EvidenceApplicationSite;
+use crate::evidence::{EvidenceApplicationSite, WantedCollector};
 use crate::source::terms::{form_let, guarded};
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -91,15 +91,18 @@ where
 
     for &binder_id in binders.iter() {
         let argument_type = state.fresh_unification(context.queries, context.prim.t);
-        binder::check_binder(state, context, binder_id, argument_type)?;
+        binder::check_argument_binder(state, context, binder_id, argument_type)?;
         argument_types.push(argument_type);
     }
 
     let result_type = if let Some(body) = expression {
         let body_type = super::infer_expression(state, context, body)?;
-        state.capture_wanteds(EvidenceApplicationSite::Expression(body), |state| {
-            toolkit::instantiate_constrained(state, context, body_type)
-        })?
+        state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(body)),
+            |state, collector| {
+                toolkit::instantiate_constrained(state, context, collector, body_type)
+            },
+        )?
     } else {
         state.fresh_unification(context.queries, context.prim.t)
     };
@@ -140,12 +143,12 @@ where
             } else {
                 argument
             };
-            binder::check_binder(state, context, binder_id, argument)?;
+            binder::check_argument_binder(state, context, binder_id, argument)?;
             arguments.push(argument);
             remaining = result;
         } else {
             let argument_type = state.fresh_unification(context.queries, context.prim.t);
-            binder::check_binder(state, context, binder_id, argument_type)?;
+            binder::check_argument_binder(state, context, binder_id, argument_type)?;
             arguments.push(argument_type);
         }
     }
@@ -164,7 +167,9 @@ where
     state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
-        state.push_wanted(context.prim.partial);
+        state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
+            collector.collect(state, context.prim.partial)
+        });
     }
 
     Ok(function_type)
@@ -230,30 +235,56 @@ where
     let mut trunk_types = vec![];
     for trunk in trunk.iter() {
         let trunk_type = super::infer_expression(state, context, *trunk)?;
-        let trunk_type = state
-            .capture_wanteds(EvidenceApplicationSite::Expression(*trunk), |state| {
-                toolkit::instantiate_constrained(state, context, trunk_type)
-            })?;
+        let trunk_type = state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(*trunk)),
+            |state, collector| {
+                toolkit::instantiate_constrained(state, context, collector, trunk_type)
+            },
+        )?;
         trunk_types.push(trunk_type);
     }
 
     instantiate_trunk_types(state, context, &mut trunk_types, branches)?;
 
     for branch in branches.iter() {
-        for (binder, trunk) in branch.binders.iter().zip(&trunk_types) {
-            binder::check_binder(state, context, *binder, *trunk)?;
+        for ((binder, trunk_type), trunk_expression) in
+            branch.binders.iter().zip(&trunk_types).zip(trunk)
+        {
+            state.with_wanted_collector(
+                WantedCollector::application(EvidenceApplicationSite::Expression(
+                    *trunk_expression,
+                )),
+                |state, collector| {
+                    binder::check_binder(state, context, collector, *binder, *trunk_type)
+                },
+            )?;
         }
         if let Some(guarded) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
                     let guarded_type = guarded::infer_guarded_expression(state, context, guarded)?;
                     if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                        state.capture_wanteds(
-                            EvidenceApplicationSite::Expression(expression),
-                            |state| unification::subtype(state, context, guarded_type, expected),
+                        state.with_wanted_collector(
+                            WantedCollector::application(EvidenceApplicationSite::Expression(
+                                expression,
+                            )),
+                            |state, collector| {
+                                unification::subtype(
+                                    state,
+                                    context,
+                                    collector,
+                                    guarded_type,
+                                    expected,
+                                )
+                            },
                         )?;
                     } else {
-                        unification::subtype(state, context, guarded_type, expected)?;
+                        unification::subtype_non_elaborating(
+                            state,
+                            context,
+                            guarded_type,
+                            expected,
+                        )?;
                     }
                 }
                 CaseOfMode::Check { .. } => {
@@ -272,7 +303,9 @@ where
         if let CaseOfMode::Infer = mode {
             return Ok(context.intern_constrained(context.prim.partial, expected));
         } else {
-            state.push_wanted(context.prim.partial);
+            state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
+                collector.collect(state, context.prim.partial)
+            });
         }
     }
 

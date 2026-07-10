@@ -6,6 +6,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{KindOrType, Type, TypeId, normalise, toolkit};
+use crate::evidence::WantedCollector;
 use crate::state::CheckState;
 
 use super::tools;
@@ -13,6 +14,7 @@ use super::tools;
 pub fn generate_field_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     data_file: FileId,
     data_id: TypeItemId,
     derived_type: TypeId,
@@ -36,7 +38,7 @@ where
         let field_types =
             instantiate_constructor_fields(state, context, constructor_t, &arguments)?;
         for field_type in field_types {
-            generate_constraint(state, context, field_type, class, class1)?;
+            generate_constraint(state, context, collector, field_type, class, class1)?;
         }
     }
 
@@ -79,6 +81,7 @@ where
 fn generate_constraint<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     type_id: TypeId,
     class: (FileId, TypeItemId),
     class1: Option<(FileId, TypeItemId)>,
@@ -92,26 +95,26 @@ where
         Type::Application(function, argument) => {
             let function = normalise::expand(state, context, function)?;
             if function == context.prim.record {
-                generate_constraint(state, context, argument, class, class1)?;
+                generate_constraint(state, context, collector, argument, class, class1)?;
             } else if is_type_to_type_variable(state, context, function)? {
                 if let Some(class1) = class1 {
-                    tools::emit_constraint(context, state, class1, function);
+                    tools::emit_constraint(context, state, collector, class1, function);
                 }
-                tools::emit_constraint(context, state, class, argument);
+                tools::emit_constraint(context, state, collector, class, argument);
             } else {
-                tools::emit_constraint(context, state, class, type_id);
+                tools::emit_constraint(context, state, collector, class, type_id);
             }
         }
         Type::Row(row_id) => {
             let row = context.lookup_row_type(row_id);
             for field in row.fields.iter() {
-                generate_constraint(state, context, field.id, class, class1)?;
+                generate_constraint(state, context, collector, field.id, class, class1)?;
             }
             if let Some(tail) = row.tail {
-                generate_constraint(state, context, tail, class, class1)?;
+                generate_constraint(state, context, collector, tail, class, class1)?;
             }
         }
-        _ => tools::emit_constraint(context, state, class, type_id),
+        _ => tools::emit_constraint(context, state, collector, class, type_id),
     }
 
     Ok(())

@@ -416,7 +416,8 @@ where
     match (signature, binding.kind) {
         (Some(signature_kind), Some(binding_kind)) => {
             let (binding_kind, _) = types::infer_kind(state, context, binding_kind)?;
-            let valid = unification::subtype(state, context, signature_kind, binding_kind)?;
+            let valid =
+                unification::subtype_non_elaborating(state, context, signature_kind, binding_kind)?;
             if valid { Ok(binding_kind) } else { Ok(context.unknown("invalid variable kind")) }
         }
         (Some(signature_kind), None) => {
@@ -449,7 +450,7 @@ where
     let inferred = context.intern_function_iter(kinds, context.prim.t);
 
     if let Some(expected) = state.checked.lookup_type(item_id) {
-        unification::subtype(state, context, inferred, expected)?;
+        unification::subtype_non_elaborating(state, context, inferred, expected)?;
     } else {
         state.checked.types.insert(item_id, inferred);
     }
@@ -691,7 +692,7 @@ where
     let inferred = context.intern_function_iter(kinds, result);
 
     if let Some(expected) = state.checked.lookup_type(item_id) {
-        unification::subtype(state, context, inferred, expected)?;
+        unification::subtype_non_elaborating(state, context, inferred, expected)?;
     } else {
         state.checked.types.insert(item_id, inferred);
     }
@@ -786,7 +787,7 @@ where
     let inferred = context.intern_function_iter(kinds, context.prim.constraint);
 
     if let Some(expected) = state.checked.lookup_type(item_id) {
-        unification::subtype(state, context, inferred, expected)?;
+        unification::subtype_non_elaborating(state, context, inferred, expected)?;
     } else {
         state.checked.types.insert(item_id, inferred);
     }
@@ -968,7 +969,7 @@ where
     let operator_kind = toolkit::lookup_file_type_operator(state, context, file_id, type_id)?;
 
     if let Some(item_kind) = state.checked.lookup_type(item_id) {
-        unification::subtype(state, context, operator_kind, item_kind)?;
+        unification::subtype_non_elaborating(state, context, operator_kind, item_kind)?;
     } else {
         state.checked.types.insert(item_id, operator_kind);
     }

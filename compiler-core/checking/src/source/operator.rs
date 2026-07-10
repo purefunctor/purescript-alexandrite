@@ -9,7 +9,7 @@ use sugar::bracketing::BracketingResult;
 
 use crate::context::CheckContext;
 use crate::core::{Type, TypeId, normalise, toolkit, unification};
-use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite, WantedCollector};
 use crate::source::types::application;
 use crate::source::{binder, synonym, terms, types};
 use crate::state::CheckState;
@@ -152,13 +152,13 @@ where
     };
 
     let operator_type = if let Some(site) = E::application_site(operator_id) {
-        state.capture_wanteds(site, |state| {
+        state.with_wanted_collector(WantedCollector::application(site), |state, collector| {
             let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-            toolkit::collect_wanteds(state, context, operator_type)
+            toolkit::collect_wanteds(state, context, collector, operator_type)
         })?
     } else {
         let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-        toolkit::collect_wanteds(state, context, operator_type)?
+        toolkit::without_constraints(state, context, operator_type)?
     };
 
     let Some((left_type, operator_type)) =
@@ -214,11 +214,14 @@ where
             toolkit::collect_givens(state, context, expected_type)?
         };
         if let Some(site) = E::result_application_site(operator_id) {
-            state.capture_wanteds(site, |state| {
-                unification::subtype(state, context, result_type, expected_type)
-            })?;
+            state.with_wanted_collector(
+                WantedCollector::application(site),
+                |state, collector| {
+                    unification::subtype(state, context, collector, result_type, expected_type)
+                },
+            )?;
         } else {
-            unification::subtype(state, context, result_type, expected_type)?;
+            unification::subtype_non_elaborating(state, context, result_type, expected_type)?;
         }
     }
 
@@ -584,7 +587,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         id: Self,
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let checked_type = binder::check_binder(state, context, id, expected)?;
+        let checked_type = binder::check_argument_binder(state, context, id, expected)?;
         Ok(((), checked_type))
     }
 

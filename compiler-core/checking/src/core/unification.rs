@@ -11,6 +11,7 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{Depth, Name, RowField, RowType, RowTypeId, Type, TypeId, normalise, toolkit};
 use crate::error::ErrorKind;
+use crate::evidence::WantedCollector;
 use crate::source::types;
 use crate::state::{CheckState, UnificationEntry};
 
@@ -27,87 +28,46 @@ impl CanUnify {
     }
 }
 
-/// Strategy for handling constrained types during [`subtype_with`].
-///
-/// Elaboration involves pushing constraints as "wanted". This behaviour is
-/// only wanted in positions where the type checker can insert dictionaries.
-///
-/// For example in [`Type::Function`], subtyping is [`NonElaborating`]
-/// because it's impossible to insert dictionaries there; the same is
-/// true when checking [`lowering::BinderKind`] in arguments and patterns.
-pub trait SubtypePolicy<Q>
-where
-    Q: ExternalQueries,
-{
-    fn on_constrained(
-        state: &mut CheckState,
-        context: &CheckContext<Q>,
-        t1: TypeId,
-        constraint: TypeId,
-        constrained: TypeId,
-        t2: TypeId,
-    ) -> QueryResult<bool>;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Elaborating;
-
-impl<Q> SubtypePolicy<Q> for Elaborating
-where
-    Q: ExternalQueries,
-{
-    fn on_constrained(
-        state: &mut CheckState,
-        context: &CheckContext<Q>,
-        _t1: TypeId,
-        constraint: TypeId,
-        constrained: TypeId,
-        t2: TypeId,
-    ) -> QueryResult<bool> {
-        state.push_wanted(constraint);
-        subtype_with::<Self, Q>(state, context, constrained, t2)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NonElaborating;
-
-impl<Q> SubtypePolicy<Q> for NonElaborating
-where
-    Q: ExternalQueries,
-{
-    fn on_constrained(
-        state: &mut CheckState,
-        context: &CheckContext<Q>,
-        t1: TypeId,
-        _constraint: TypeId,
-        _constrained: TypeId,
-        t2: TypeId,
-    ) -> QueryResult<bool> {
-        unify(state, context, t1, t2)
-    }
+/// Whether constrained types may introduce runtime evidence at this position.
+enum SubtypePolicy<'a> {
+    Elaborating(&'a mut WantedCollector),
+    NonElaborating,
 }
 
 pub fn subtype<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     t1: TypeId,
     t2: TypeId,
 ) -> QueryResult<bool>
 where
     Q: ExternalQueries,
 {
-    subtype_with::<Elaborating, Q>(state, context, t1, t2)
+    subtype_with(state, context, &mut SubtypePolicy::Elaborating(collector), t1, t2)
 }
 
-pub fn subtype_with<P, Q>(
+/// Subtyping for positions where no Core dictionary application can be placed.
+pub fn subtype_non_elaborating<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     t1: TypeId,
     t2: TypeId,
 ) -> QueryResult<bool>
 where
-    P: SubtypePolicy<Q>,
+    Q: ExternalQueries,
+{
+    subtype_with(state, context, &mut SubtypePolicy::NonElaborating, t1, t2)
+}
+
+fn subtype_with<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    policy: &mut SubtypePolicy<'_>,
+    t1: TypeId,
+    t2: TypeId,
+) -> QueryResult<bool>
+where
     Q: ExternalQueries,
 {
     let t1 = normalise::expand(state, context, t1)?;
@@ -189,7 +149,7 @@ where
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
 
             let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
-            state.with_depth(|state| subtype_with::<P, Q>(state, context, t1, inner))
+            state.with_depth(|state| subtype_with(state, context, policy, t1, inner))
         }
 
         // Forall-L
@@ -213,12 +173,16 @@ where
             let unification = state.fresh_unification(context.queries, binder.kind);
 
             let inner = SubstituteName::one(state, context, binder.name, unification, inner)?;
-            subtype_with::<P, Q>(state, context, inner, t2)
+            subtype_with(state, context, policy, inner, t2)
         }
 
-        (Type::Constrained(constraint, constrained), _) => {
-            P::on_constrained(state, context, t1, constraint, constrained, t2)
-        }
+        (Type::Constrained(constraint, constrained), _) => match policy {
+            SubtypePolicy::Elaborating(collector) => {
+                collector.collect(state, constraint);
+                subtype_with(state, context, policy, constrained, t2)
+            }
+            SubtypePolicy::NonElaborating => unify(state, context, t1, t2),
+        },
 
         // Record subtyping is implemented through subtype_rows. Unlike
         // unification, the directionality of subtyping allows us to emit
@@ -236,7 +200,7 @@ where
             if let (Type::Row(t1_row_id), Type::Row(t2_row_id)) =
                 (t1_argument_core, t2_argument_core)
             {
-                subtype_rows::<NonElaborating, Q>(state, context, t1_row_id, t2_row_id)
+                subtype_rows(state, context, t1_row_id, t2_row_id)
             } else {
                 unify(state, context, t1, t2)
             }
@@ -257,8 +221,8 @@ where
 {
     let (t1_argument, t1_result) = t1;
     let (t2_argument, t2_result) = t2;
-    Ok(subtype_with::<NonElaborating, Q>(state, context, t2_argument, t1_argument)?
-        && subtype_with::<NonElaborating, Q>(state, context, t1_result, t2_result)?)
+    Ok(subtype_non_elaborating(state, context, t2_argument, t1_argument)?
+        && subtype_non_elaborating(state, context, t1_result, t2_result)?)
 }
 
 pub fn unify<Q>(
@@ -762,26 +726,20 @@ where
 ///
 /// [`PropertyIsMissing`]: ErrorKind::PropertyIsMissing
 /// [`AdditionalProperty`]: ErrorKind::AdditionalProperty
-fn subtype_rows<P, Q>(
+fn subtype_rows<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     t1: RowTypeId,
     t2: RowTypeId,
 ) -> QueryResult<bool>
 where
-    P: SubtypePolicy<Q>,
     Q: ExternalQueries,
 {
     let t1_row = context.lookup_row_type(t1);
     let t2_row = context.lookup_row_type(t2);
 
-    let (left_only, right_only, ok) = partition_row_fields_with(
-        state,
-        context,
-        &t1_row,
-        &t2_row,
-        |state, context, left, right| subtype_with::<P, Q>(state, context, left, right),
-    )?;
+    let (left_only, right_only, ok) =
+        partition_row_fields_with(state, context, &t1_row, &t2_row, subtype_non_elaborating)?;
 
     if !ok {
         return Ok(false);

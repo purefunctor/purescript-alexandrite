@@ -8,7 +8,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, constraint, signature, toolkit, unification};
 use crate::error::ErrorKind;
-use crate::evidence::EvidenceApplicationSite;
+use crate::evidence::{EvidenceApplicationSite, WantedCollector};
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
@@ -98,17 +98,19 @@ where
 
         let inferred_argument_types = &inferred_argument_types[..minimum_equation_arity];
         let equation_type = context.intern_function_list(inferred_argument_types, result_type);
-        unification::subtype(state, context, equation_type, group_type)?;
+        unification::subtype_non_elaborating(state, context, equation_type, group_type)?;
 
         if let Some(guarded) = &equation.guarded {
             let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?;
             if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                state
-                    .capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
-                        unification::subtype(state, context, inferred_type, result_type)
-                    })?;
+                state.with_wanted_collector(
+                    WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
+                    |state, collector| {
+                        unification::subtype(state, context, collector, inferred_type, result_type)
+                    },
+                )?;
             } else {
-                unification::subtype(state, context, inferred_type, result_type)?;
+                unification::subtype_non_elaborating(state, context, inferred_type, result_type)?;
             }
         }
     }

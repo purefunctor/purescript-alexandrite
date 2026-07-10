@@ -16,6 +16,7 @@ use crate::core::{
     CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, Type, TypeId, constraint,
     normalise, unification,
 };
+use crate::evidence::WantedCollector;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -514,6 +515,7 @@ where
 pub fn collect_wanteds<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     mut id: TypeId,
 ) -> QueryResult<TypeId>
 where
@@ -523,7 +525,7 @@ where
         id = normalise::expand(state, context, id)?;
         match context.lookup_type(id) {
             Type::Constrained(constraint, constrained) => {
-                state.push_wanted(constraint);
+                collector.collect(state, constraint);
                 id = constrained;
             }
             _ => return Ok(id),
@@ -576,13 +578,14 @@ where
 pub fn instantiate_constrained<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     id: TypeId,
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
     let id = instantiate_unifications(state, context, id)?;
-    collect_wanteds(state, context, id)
+    collect_wanteds(state, context, collector, id)
 }
 
 pub fn contains_unification<Q>(

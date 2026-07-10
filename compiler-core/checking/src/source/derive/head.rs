@@ -160,7 +160,7 @@ where
         }
     }
 
-    unification::subtype(state, context, class_kind, context.prim.constraint)?;
+    unification::subtype_non_elaborating(state, context, class_kind, context.prim.constraint)?;
 
     let mut checked_constraints = Vec::with_capacity(constraints.len());
     for &constraint in constraints {

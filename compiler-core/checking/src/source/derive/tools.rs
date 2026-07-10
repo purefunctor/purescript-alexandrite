@@ -10,23 +10,26 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{CheckedClass, Type, TypeId, toolkit};
 use crate::error::ErrorKind;
+use crate::evidence::WantedCollector;
 use crate::state::CheckState;
 
 pub fn emit_constraint<Q>(
     context: &CheckContext<Q>,
     state: &mut CheckState,
+    collector: &mut WantedCollector,
     class: (FileId, TypeItemId),
     argument: TypeId,
 ) where
     Q: ExternalQueries,
 {
     let class_t = context.queries.intern_type(Type::Constructor(class.0, class.1));
-    state.push_wanted(context.intern_application(class_t, argument));
+    collector.collect(state, context.intern_application(class_t, argument));
 }
 
 pub fn emit_superclass_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     class_file: FileId,
     class_id: TypeItemId,
     arguments: &[TypeId],
@@ -52,7 +55,7 @@ where
 
     for superclass in superclasses {
         let specialised = SubstituteName::many(state, context, &bindings, superclass)?;
-        state.push_wanted(specialised);
+        collector.collect(state, specialised);
     }
 
     Ok(())

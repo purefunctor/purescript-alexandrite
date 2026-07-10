@@ -5,7 +5,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit};
-use crate::evidence::EvidenceApplicationSite;
+use crate::evidence::{EvidenceApplicationSite, WantedCollector};
 use crate::source::terms::form_let;
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -122,12 +122,14 @@ where
 
     if let Some(binder) = guard.binder {
         let expression_type = terms::infer_expression(state, context, expression)?;
-        let expression_type = state
-            .capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
-                toolkit::instantiate_constrained(state, context, expression_type)
-            })?;
-
-        binder::check_binder(state, context, binder, expression_type)?;
+        state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
+            |state, collector| {
+                let expression_type =
+                    toolkit::instantiate_constrained(state, context, collector, expression_type)?;
+                binder::check_binder(state, context, collector, binder, expression_type)
+            },
+        )?;
     } else {
         terms::check_expression(state, context, expression, context.prim.boolean)?;
     }

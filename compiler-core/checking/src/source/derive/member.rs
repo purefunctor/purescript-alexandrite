@@ -4,7 +4,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{Type, TypeId, constraint};
 use crate::error::ErrorCrumb;
-use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId, WantedCollector};
 use crate::state::CheckState;
 
 use super::{DeriveHeadResult, DeriveStrategy, field, tools, variance};
@@ -27,12 +27,15 @@ where
                 for &(constraint, evidence) in &givens {
                     state.push_given_with_evidence(constraint, evidence);
                 }
-                state.capture_derived_requirements(result.derive_id, |state| {
-                    state.capture_binders(
-                        EvidenceAbstractionSite::Derived(result.derive_id),
-                        |state| check_derive_member(state, context, result),
-                    )
-                })
+                state.with_wanted_collector(
+                    WantedCollector::derived_requirement(result.derive_id),
+                    |state, collector| {
+                        state.capture_binders(
+                            EvidenceAbstractionSite::Derived(result.derive_id),
+                            |state| check_derive_member(state, context, collector, result),
+                        )
+                    },
+                )
             })
         })?;
     }
@@ -61,6 +64,7 @@ where
 fn check_derive_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     result: &DeriveHeadResult,
 ) -> QueryResult<()>
 where
@@ -71,6 +75,7 @@ where
             tools::emit_superclass_constraints(
                 state,
                 context,
+                collector,
                 result.class_file,
                 result.class_id,
                 &result.arguments,
@@ -78,6 +83,7 @@ where
             field::generate_field_constraints(
                 state,
                 context,
+                collector,
                 data_file,
                 data_id,
                 derived_type,
@@ -89,21 +95,23 @@ where
             tools::emit_superclass_constraints(
                 state,
                 context,
+                collector,
                 result.class_file,
                 result.class_id,
                 &result.arguments,
             )?;
-            generate_delegate_constraint(state, context, derived_type, class);
+            generate_delegate_constraint(state, context, collector, derived_type, class);
             tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::NewtypeDeriveConstraint { delegate_constraint } => {
-            state.push_wanted(delegate_constraint);
+            collector.collect(state, delegate_constraint);
             tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::HeadOnly => {
             tools::emit_superclass_constraints(
                 state,
                 context,
+                collector,
                 result.class_file,
                 result.class_id,
                 &result.arguments,
@@ -114,6 +122,7 @@ where
             tools::emit_superclass_constraints(
                 state,
                 context,
+                collector,
                 result.class_file,
                 result.class_id,
                 &result.arguments,
@@ -121,6 +130,7 @@ where
             variance::generate_variance_constraints(
                 state,
                 context,
+                collector,
                 data_file,
                 data_id,
                 derived_type,
@@ -135,6 +145,7 @@ where
 fn generate_delegate_constraint<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     derived_type: crate::core::TypeId,
     class: (files::FileId, indexing::TypeItemId),
 ) where
@@ -148,5 +159,5 @@ fn generate_delegate_constraint<Q>(
     let wanted_constraint = context.intern_application(class_type, applied_type);
 
     state.push_given(given_constraint);
-    state.push_wanted(wanted_constraint);
+    collector.collect(state, wanted_constraint);
 }

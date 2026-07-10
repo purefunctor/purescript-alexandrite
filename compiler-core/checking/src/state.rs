@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::DeriveId;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
@@ -16,10 +15,8 @@ use crate::core::exhaustive::{
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
-use crate::evidence::{
-    EvidenceAbstractionSite, EvidenceApplicationSite, EvidenceBinderId, EvidenceVarId,
-};
-use crate::implication::{GivenConstraint, Implications, Patterns, WantedConstraint};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId, WantedCollector};
+use crate::implication::{GivenConstraint, Implications, Patterns};
 use crate::{CheckedModule, ExternalQueries};
 
 /// Manages [`Name`] values for [`CheckState`].
@@ -213,7 +210,6 @@ pub struct CheckState {
 
     pub crumbs: Vec<ErrorCrumb>,
 
-    wanted_captures: Vec<Vec<EvidenceVarId>>,
     binder_captures: Vec<(EvidenceAbstractionSite, Vec<EvidenceBinderId>)>,
 }
 
@@ -231,7 +227,6 @@ impl CheckState {
             defer_expansion: Default::default(),
             depth: Depth(0),
             crumbs: Default::default(),
-            wanted_captures: Default::default(),
             binder_captures: Default::default(),
         }
     }
@@ -290,15 +285,6 @@ impl CheckState {
         self.checked.errors.push(CheckingError { kind, crumbs });
     }
 
-    pub fn push_wanted(&mut self, constraint: TypeId) -> EvidenceVarId {
-        let evidence = self.checked.evidence.fresh_variable();
-        if let Some(variables) = self.wanted_captures.last_mut() {
-            variables.push(evidence);
-        }
-        self.implications.current_mut().wanted.push_back(WantedConstraint { constraint, evidence });
-        evidence
-    }
-
     pub fn push_given(&mut self, constraint: TypeId) -> EvidenceBinderId {
         let evidence = self.fresh_evidence_binder();
         self.push_given_with_evidence(constraint, evidence);
@@ -317,48 +303,12 @@ impl CheckState {
         evidence
     }
 
-    pub fn capture_wanteds<T>(
+    pub fn with_wanted_collector<T>(
         &mut self,
-        site: EvidenceApplicationSite,
-        f: impl FnOnce(&mut CheckState) -> T,
+        mut collector: WantedCollector,
+        f: impl FnOnce(&mut CheckState, &mut WantedCollector) -> T,
     ) -> T {
-        let (result, variables) = self.capture_wanted_variables(f);
-
-        if !variables.is_empty() {
-            self.checked.placements.applications.entry(site).or_default().extend(variables);
-        }
-
-        result
-    }
-
-    pub fn capture_derived_requirements<T>(
-        &mut self,
-        derive: DeriveId,
-        f: impl FnOnce(&mut CheckState) -> T,
-    ) -> T {
-        let (result, variables) = self.capture_wanted_variables(f);
-        if !variables.is_empty() {
-            self.checked
-                .placements
-                .derived_requirements
-                .entry(derive)
-                .or_default()
-                .extend(variables);
-        }
-        result
-    }
-
-    fn capture_wanted_variables<T>(
-        &mut self,
-        f: impl FnOnce(&mut CheckState) -> T,
-    ) -> (T, Vec<EvidenceVarId>) {
-        self.wanted_captures.push(vec![]);
-        let result = f(self);
-        let variables = self
-            .wanted_captures
-            .pop()
-            .expect("invariant violated: missing wanted evidence capture");
-        (result, variables)
+        f(self, &mut collector)
     }
 
     pub fn capture_binders<T>(
@@ -456,10 +406,10 @@ mod tests {
 
     use super::CheckState;
     use crate::TypeId;
-    use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
+    use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite, WantedCollector};
 
     #[test]
-    fn nested_evidence_captures_record_only_the_innermost_site() {
+    fn nested_wanted_collectors_record_only_their_own_sites() {
         let mut files = files::Files::default();
         let mut state = CheckState::new(files.insert("Test.purs", ""));
         let constraint = TypeId::new(NonZeroU32::new(1).unwrap());
@@ -468,14 +418,18 @@ mod tests {
         let outer_application = EvidenceApplicationSite::Expression(outer_expression);
         let inner_application = EvidenceApplicationSite::Expression(inner_expression);
 
-        let (outer_first, inner, outer_second) =
-            state.capture_wanteds(outer_application, |state| {
-                let outer_first = state.push_wanted(constraint);
-                let inner =
-                    state.capture_wanteds(inner_application, |state| state.push_wanted(constraint));
-                let outer_second = state.push_wanted(constraint);
+        let (outer_first, inner, outer_second) = state.with_wanted_collector(
+            WantedCollector::application(outer_application),
+            |state, outer| {
+                let outer_first = outer.collect(state, constraint);
+                let inner = state.with_wanted_collector(
+                    WantedCollector::application(inner_application),
+                    |state, inner| inner.collect(state, constraint),
+                );
+                let outer_second = outer.collect(state, constraint);
                 (outer_first, inner, outer_second)
-            });
+            },
+        );
 
         assert_eq!(
             state.checked.placements.applications[&outer_application],

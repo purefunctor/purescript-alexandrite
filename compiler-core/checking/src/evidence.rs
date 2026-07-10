@@ -6,6 +6,8 @@
 
 use crate::TypeId;
 pub use crate::core::constraint::instances::InstanceCandidateOrigin;
+use crate::implication::WantedConstraint;
+use crate::state::CheckState;
 use indexing::{DeriveId, InstanceId, TermItemId};
 use lowering::{DoStatementId, ExpressionId, LetBindingNameGroupId, RecordPunId, TermOperatorId};
 use rustc_hash::FxHashMap;
@@ -21,6 +23,72 @@ pub struct EvidenceId(pub u32);
 /// A dictionary parameter introduced by a given or generalised constraint.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EvidenceBinderId(pub u32);
+
+/// An explicit capability for introducing wanted constraints.
+///
+/// The capability records what will consume the resulting evidence. Passing it
+/// through constraint-producing functions makes evidence placement visible in
+/// their signatures without borrowing or wrapping [`crate::state::CheckState`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct WantedCollector {
+    destination: WantedDestination,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WantedDestination {
+    Application(EvidenceApplicationSite),
+    DerivedRequirement(DeriveId),
+    InstanceSuperclass(InstanceId),
+    Compiler,
+    NonCollecting,
+}
+
+impl WantedCollector {
+    pub fn application(site: EvidenceApplicationSite) -> WantedCollector {
+        WantedCollector { destination: WantedDestination::Application(site) }
+    }
+
+    pub fn derived_requirement(derive: DeriveId) -> WantedCollector {
+        WantedCollector { destination: WantedDestination::DerivedRequirement(derive) }
+    }
+
+    pub fn instance_superclass(instance: InstanceId) -> WantedCollector {
+        WantedCollector { destination: WantedDestination::InstanceSuperclass(instance) }
+    }
+
+    /// Evidence for a compiler-known constraint which is erased from Core.
+    pub fn compiler() -> WantedCollector {
+        WantedCollector { destination: WantedDestination::Compiler }
+    }
+
+    /// Evidence which is solved during checking but not collected for Core.
+    pub fn non_collecting() -> WantedCollector {
+        WantedCollector { destination: WantedDestination::NonCollecting }
+    }
+
+    pub fn collect(&mut self, state: &mut CheckState, constraint: TypeId) -> EvidenceVarId {
+        let evidence = state.checked.evidence.fresh_variable();
+        self.record(&mut state.checked.placements, evidence);
+        let implications = state.implications.current_mut();
+        implications.wanted.push_back(WantedConstraint { constraint, evidence });
+        evidence
+    }
+
+    fn record(&mut self, placements: &mut EvidencePlacements, variable: EvidenceVarId) {
+        match self.destination {
+            WantedDestination::Application(site) => {
+                placements.applications.entry(site).or_default().push(variable);
+            }
+            WantedDestination::DerivedRequirement(derive) => {
+                placements.derived_requirements.entry(derive).or_default().push(variable);
+            }
+            WantedDestination::InstanceSuperclass(instance) => {
+                placements.instance_superclasses.entry(instance).or_default().push(variable);
+            }
+            WantedDestination::Compiler | WantedDestination::NonCollecting => {}
+        }
+    }
+}
 
 /// A semantic application boundary where solved evidence is passed to a term.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

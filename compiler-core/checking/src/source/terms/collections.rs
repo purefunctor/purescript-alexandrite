@@ -4,7 +4,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, Type, TypeId, normalise, toolkit, unification};
-use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceApplicationSite, WantedCollector};
 use crate::state::CheckState;
 
 fn infer_record_field_expression<Q>(
@@ -18,10 +18,13 @@ where
     let id = super::infer_expression(state, context, expression)?;
 
     if should_instantiate_record_field(context, expression) {
-        state.capture_wanteds(EvidenceApplicationSite::Expression(expression), |state| {
-            let id = toolkit::instantiate_unifications(state, context, id)?;
-            toolkit::collect_wanteds(state, context, id)
-        })
+        state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
+            |state, collector| {
+                let id = toolkit::instantiate_unifications(state, context, id)?;
+                toolkit::collect_wanteds(state, context, collector, id)
+            },
+        )
     } else {
         Ok(id)
     }
@@ -72,9 +75,9 @@ where
     Q: ExternalQueries,
 {
     let id = toolkit::lookup_term_variable(state, context, resolution)?;
-    state.capture_wanteds(site, |state| {
+    state.with_wanted_collector(WantedCollector::application(site), |state, collector| {
         let id = toolkit::instantiate_unifications(state, context, id)?;
-        toolkit::collect_wanteds(state, context, id)
+        toolkit::collect_wanteds(state, context, collector, id)
     })
 }
 
@@ -104,6 +107,7 @@ where
 pub fn check_array<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     array: &[lowering::ExpressionId],
     expected: TypeId,
 ) -> QueryResult<TypeId>
@@ -116,7 +120,7 @@ where
     }
 
     let inferred = array_core(state, context, array, ArrayMode::Infer)?;
-    unification::subtype(state, context, inferred, expected)?;
+    unification::subtype(state, context, collector, inferred, expected)?;
     Ok(inferred)
 }
 
@@ -155,10 +159,12 @@ where
         match mode {
             ArrayMode::Infer => {
                 let inferred = super::infer_expression(state, context, *expression)?;
-                state
-                    .capture_wanteds(EvidenceApplicationSite::Expression(*expression), |state| {
-                        unification::subtype(state, context, inferred, element)
-                    })?;
+                state.with_wanted_collector(
+                    WantedCollector::application(EvidenceApplicationSite::Expression(*expression)),
+                    |state, collector| {
+                        unification::subtype(state, context, collector, inferred, element)
+                    },
+                )?;
             }
             ArrayMode::Check { .. } => {
                 super::check_expression(state, context, *expression, element)?;
@@ -183,6 +189,7 @@ where
 pub fn check_record<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     record: &[lowering::ExpressionRecordItem],
     expected: TypeId,
 ) -> QueryResult<TypeId>
@@ -202,14 +209,14 @@ where
                     record,
                     RecordMode::Check { expected_fields: &expected_fields.fields },
                 )?;
-                unification::subtype(state, context, record_type, expected)?;
+                unification::subtype(state, context, collector, record_type, expected)?;
                 return Ok(record_type);
             }
         }
     }
 
     let inferred = infer_record(state, context, record)?;
-    unification::subtype(state, context, inferred, expected)?;
+    unification::subtype(state, context, collector, inferred, expected)?;
     Ok(inferred)
 }
 
@@ -268,9 +275,10 @@ where
             .capture_binders(EvidenceAbstractionSite::RecordPun(pun), |state| {
                 toolkit::collect_givens(state, context, checked_type)
             })?;
-        state.capture_wanteds(EvidenceApplicationSite::RecordPun(pun), |state| {
-            unification::subtype(state, context, id, checked_type)
-        })?;
+        state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::RecordPun(pun)),
+            |state, collector| unification::subtype(state, context, collector, id, checked_type),
+        )?;
 
         expected_type
     } else {
@@ -338,8 +346,8 @@ where
         let record_type = context.intern_application(context.prim.record, row_type);
 
         let site = EvidenceApplicationSite::RecordAccess { expression, label: index as u32 };
-        state.capture_wanteds(site, |state| {
-            unification::subtype(state, context, current_type, record_type)
+        state.with_wanted_collector(WantedCollector::application(site), |state, collector| {
+            unification::subtype(state, context, collector, current_type, record_type)
         })?;
         current_type = field_type;
     }

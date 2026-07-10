@@ -15,7 +15,7 @@ use crate::core::{
     normalise, signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
-use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId, WantedCollector};
 use crate::source::terms::equations;
 use crate::source::{derive, types};
 use crate::state::CheckState;
@@ -148,7 +148,7 @@ where
         }
     }
 
-    unification::subtype(state, context, class_kind, context.prim.constraint)?;
+    unification::subtype_non_elaborating(state, context, class_kind, context.prim.constraint)?;
 
     let mut checked_constraints = Vec::with_capacity(constraints.len());
     for &constraint in constraints {
@@ -303,23 +303,25 @@ where
     let superclasses =
         specialise_instance_superclasses(state, context, class_file, class_id, arguments)?;
 
-    let (evidence, residuals) =
+    let residuals =
         state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
             state.with_implication(|state| {
                 for &(constraint, evidence) in givens {
                     state.push_given_with_evidence(constraint, evidence);
                 }
 
-                let evidence = superclasses
-                    .iter()
-                    .map(|&superclass| state.push_wanted(superclass))
-                    .collect::<Vec<_>>();
-                let residuals = state.solve_constraints(context)?;
-                Ok((evidence, residuals))
+                state.with_wanted_collector(
+                    WantedCollector::instance_superclass(instance_id),
+                    |state, collector| {
+                        for &superclass in &superclasses {
+                            collector.collect(state, superclass);
+                        }
+                        state.solve_constraints(context)
+                    },
+                )
             })
         })?;
 
-    state.checked.placements.instance_superclasses.insert(instance_id, evidence);
     state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
         report_instance_residuals(state, context, residuals);
     });
@@ -448,7 +450,18 @@ where
                         toolkit::skolemise_forall(state, context, class_member_type)?;
                     let class_member_type =
                         toolkit::collect_givens(state, context, class_member_type)?;
-                    unification::subtype(state, context, signature_member_type, class_member_type)
+                    state.with_wanted_collector(
+                        WantedCollector::non_collecting(),
+                        |state, collector| {
+                            unification::subtype(
+                                state,
+                                context,
+                                collector,
+                                signature_member_type,
+                                class_member_type,
+                            )
+                        },
+                    )
                 })?;
                 if !unified {
                     let expected = class_member_type;
@@ -978,7 +991,7 @@ where
     let operator_type = toolkit::lookup_file_term_operator(state, context, file_id, term_id)?;
 
     if let Some(item_type) = state.checked.lookup_term(item_id) {
-        unification::subtype(state, context, operator_type, item_type)?;
+        unification::subtype_non_elaborating(state, context, operator_type, item_type)?;
     } else {
         state.checked.terms.insert(item_id, operator_type);
     }

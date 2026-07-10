@@ -7,7 +7,7 @@ use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification};
 use crate::error::ErrorKind;
-use crate::evidence::EvidenceApplicationSite;
+use crate::evidence::{EvidenceApplicationSite, WantedCollector};
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -124,6 +124,7 @@ where
 pub fn check_generic_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     function: TypeId,
 ) -> QueryResult<Option<GenericApplication>>
 where
@@ -136,7 +137,7 @@ where
     };
 
     for constraint in constraints {
-        state.push_wanted(constraint);
+        collector.collect(state, constraint);
     }
 
     Ok(Some(GenericApplication { argument, result }))
@@ -178,8 +179,10 @@ pub fn check_function_term_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { argument, result }) =
-        state.capture_wanteds(site, |state| check_generic_application(state, context, function))?
+    let Some(GenericApplication { argument, result }) = state
+        .with_wanted_collector(WantedCollector::application(site), |state, collector| {
+            check_generic_application(state, context, collector, function)
+        })?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -255,16 +258,19 @@ where
         let tick_type = super::infer_expression(state, context, *tick)?;
         let left_site =
             EvidenceApplicationSite::Infix { expression, pair: pair as u32, argument: 0 };
-        let Some(GenericApplication { argument, result }) = state
-            .capture_wanteds(EvidenceApplicationSite::Expression(*tick), |state| {
-                check_generic_application(state, context, tick_type)
-            })?
+        let Some(GenericApplication { argument, result }) = state.with_wanted_collector(
+            WantedCollector::application(EvidenceApplicationSite::Expression(*tick)),
+            |state, collector| check_generic_application(state, context, collector, tick_type),
+        )?
         else {
             return Ok(context.unknown("invalid function application"));
         };
-        state.capture_wanteds(left_site, |state| {
-            unification::subtype(state, context, infix_type, argument)
-        })?;
+        state.with_wanted_collector(
+            WantedCollector::application(left_site),
+            |state, collector| {
+                unification::subtype(state, context, collector, infix_type, argument)
+            },
+        )?;
         let applied_tick = result;
 
         let second_site =

@@ -7,6 +7,7 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{KindOrType, Name, Type, TypeId, normalise, toolkit};
 use crate::error::ErrorKind;
+use crate::evidence::WantedCollector;
 use crate::state::CheckState;
 
 use super::tools;
@@ -64,6 +65,7 @@ impl DerivedRigids {
 pub fn generate_variance_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     data_file: FileId,
     data_id: TypeItemId,
     derived_type: TypeId,
@@ -78,7 +80,7 @@ where
             extract_fields_with_rigids(state, context, constructor_t, derived_type, config)?;
 
         for field in fields {
-            check_variance_field(state, context, field, Variance::Covariant, &rigids)?;
+            check_variance_field(state, context, collector, field, Variance::Covariant, &rigids)?;
         }
     }
 
@@ -150,6 +152,7 @@ where
 fn check_variance_field<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    collector: &mut WantedCollector,
     type_id: TypeId,
     variance: Variance,
     rigids: &DerivedRigids,
@@ -166,39 +169,39 @@ where
             }
         }
         Type::Function(argument, result) => {
-            check_variance_field(state, context, argument, variance.flip(), rigids)?;
-            check_variance_field(state, context, result, variance, rigids)?;
+            check_variance_field(state, context, collector, argument, variance.flip(), rigids)?;
+            check_variance_field(state, context, collector, result, variance, rigids)?;
         }
         Type::Application(function, argument) => {
             let function = normalise::expand(state, context, function)?;
             if function == context.prim.record {
-                check_variance_field(state, context, argument, variance, rigids)?;
+                check_variance_field(state, context, collector, argument, variance, rigids)?;
             } else {
                 for parameter in rigids.iter() {
                     if toolkit::contains_rigid(state, context, argument, parameter.name)? {
                         emit_variance_error(state, type_id, variance, parameter.expected);
                         if variance == parameter.expected {
                             if let Some(class) = parameter.class {
-                                tools::emit_constraint(context, state, class, function);
+                                tools::emit_constraint(context, state, collector, class, function);
                             } else {
                                 state.insert_error(ErrorKind::DeriveMissingFunctor);
                             }
                         }
                     }
                 }
-                check_variance_field(state, context, argument, variance, rigids)?;
+                check_variance_field(state, context, collector, argument, variance, rigids)?;
             }
         }
         Type::KindApplication(_, argument) => {
-            check_variance_field(state, context, argument, variance, rigids)?;
+            check_variance_field(state, context, collector, argument, variance, rigids)?;
         }
         Type::Row(row_id) => {
             let row = context.lookup_row_type(row_id);
             for field in row.fields.iter() {
-                check_variance_field(state, context, field.id, variance, rigids)?;
+                check_variance_field(state, context, collector, field.id, variance, rigids)?;
             }
             if let Some(tail) = row.tail {
-                check_variance_field(state, context, tail, variance, rigids)?;
+                check_variance_field(state, context, collector, tail, variance, rigids)?;
             }
         }
         _ => {}
