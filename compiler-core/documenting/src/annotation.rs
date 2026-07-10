@@ -201,10 +201,9 @@ fn extract_annotation(text: &str) -> Option<String> {
     let lines = text.lines().filter_map(documentation_line_content);
 
     let mut lines = lines.peekable();
-    if let Some(line) = lines.next() {
+    {
+        let line = lines.next()?;
         annotation.push_str(line);
-    } else {
-        return None;
     }
 
     lines.for_each(|line| {

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use documentation::schema::Location;
 
@@ -22,7 +22,7 @@ pub fn package_reference_location(reference: &spago::PackageReference) -> Option
     };
 
     let reference = Some(rev.to_string());
-    let subdir = subdir.as_ref().map(path_to_string);
+    let subdir = subdir.as_deref().map(path_to_string);
 
     Some(location_from_git_url(url.as_str(), reference, subdir))
 }
@@ -71,6 +71,6 @@ fn github_repository_url(owner: &str, repository: &str) -> String {
     format!("https://github.com/{owner}/{repository}")
 }
 
-fn path_to_string(path: &PathBuf) -> String {
+fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
