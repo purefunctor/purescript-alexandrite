@@ -572,12 +572,17 @@ where
 }
 
 fn render_row_label(label: &str) -> String {
+    fn is_identifier_head(character: char) -> bool {
+        character.is_alphabetic() || character == '_'
+    }
+
+    fn is_identifier_tail(character: char) -> bool {
+        character.is_alphanumeric() || character == '_' || character == '\''
+    }
+
     let mut characters = label.chars();
-    let identifier = characters
-        .next()
-        .is_some_and(|character| character.is_alphabetic() || character == '_')
-        && characters
-            .all(|character| character.is_alphanumeric() || character == '_' || character == '\'');
+    let identifier =
+        characters.next().is_some_and(is_identifier_head) && characters.all(is_identifier_tail);
     if identifier { label.to_owned() } else { format!("{label:?}") }
 }
 
