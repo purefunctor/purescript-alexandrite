@@ -7,11 +7,12 @@ pub use error::*;
 pub use items::*;
 pub use source::*;
 
-use std::collections::hash_map::Entry;
-use std::ops;
+use std::hash::BuildHasher;
+use std::{fmt, ops};
 
+use hashbrown::HashTable;
 use la_arena::Arena;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
 use syntax::{SyntaxNodePtr, cst};
@@ -97,15 +98,28 @@ pub struct IndexedNames {
     pub types: NameIndex<TypeItemId>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct NameIndex<ItemId> {
-    first: FxHashMap<SmolStr, ItemId>,
+    first: HashTable<usize>,
     entries: Vec<(SmolStr, ItemId)>,
 }
 
+impl<ItemId: fmt::Debug> fmt::Debug for NameIndex<ItemId> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.debug_struct("NameIndex").field("entries", &self.entries).finish()
+    }
+}
+
+impl<ItemId: PartialEq> PartialEq for NameIndex<ItemId> {
+    fn eq(&self, other: &Self) -> bool {
+        self.entries == other.entries
+    }
+}
+
+impl<ItemId: Eq> Eq for NameIndex<ItemId> {}
+
 impl<ItemId> Default for NameIndex<ItemId> {
     fn default() -> Self {
-        NameIndex { first: FxHashMap::default(), entries: Vec::default() }
+        NameIndex { first: HashTable::default(), entries: Vec::default() }
     }
 }
 
@@ -114,7 +128,11 @@ where
     ItemId: Copy + Eq,
 {
     pub fn lookup(&self, name: &str) -> Option<ItemId> {
-        self.first.get(name).copied()
+        let hash = FxBuildHasher.hash_one(name);
+        self.first.find(hash, |&index| self.entries[index].0 == name).map(|&index| {
+            let (_, id) = &self.entries[index];
+            *id
+        })
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&SmolStr, ItemId)> {
@@ -122,19 +140,60 @@ where
     }
 
     pub(crate) fn insert(&mut self, name: SmolStr, id: ItemId) -> Option<ItemId> {
-        let existing = match self.first.entry(SmolStr::clone(&name)) {
-            Entry::Occupied(entry) => {
-                let id = entry.get();
-                Some(*id)
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(id);
-                None
-            }
-        };
+        let hash = FxBuildHasher.hash_one(name.as_str());
+        let existing =
+            self.first.find(hash, |&index| self.entries[index].0 == name).map(|&index| {
+                let (_, id) = &self.entries[index];
+                *id
+            });
 
         self.entries.push((name, id));
+
+        if existing.is_none() {
+            let index = self.entries.len() - 1;
+            self.first.insert_unique(hash, index, |&index| {
+                FxBuildHasher.hash_one(&self.entries[index].0)
+            });
+        }
+
         existing.filter(|existing| *existing != id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NameIndex;
+
+    #[test]
+    fn name_index_preserves_first_and_insertion_order() {
+        let mut index = NameIndex::default();
+
+        assert_eq!(index.insert("first".into(), 0), None);
+        assert_eq!(index.insert("second".into(), 1), None);
+        assert_eq!(index.insert("first".into(), 2), Some(0));
+        assert_eq!(index.insert("first".into(), 0), None);
+
+        assert_eq!(index.lookup("first"), Some(0));
+        assert_eq!(index.lookup("second"), Some(1));
+        assert_eq!(index.lookup("missing"), None);
+
+        let entries: Vec<_> = index.iter().map(|(name, id)| (name.as_str(), id)).collect();
+        assert_eq!(entries, [("first", 0), ("second", 1), ("first", 2), ("first", 0)]);
+    }
+
+    #[test]
+    fn name_index_preserves_lookups_when_growing() {
+        let mut index = NameIndex::default();
+
+        for id in 0..1024 {
+            let name = format!("name_{id}");
+            assert_eq!(index.insert(name.into(), id), None);
+        }
+
+        for id in 0..1024 {
+            let name = format!("name_{id}");
+            assert_eq!(index.lookup(&name), Some(id));
+        }
     }
 }
 

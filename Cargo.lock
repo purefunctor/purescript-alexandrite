@@ -1188,6 +1188,7 @@ dependencies = [
 name = "indexing"
 version = "0.1.0"
 dependencies = [
+ "hashbrown 0.17.1",
  "insta",
  "itertools 0.14.0",
  "la-arena",
