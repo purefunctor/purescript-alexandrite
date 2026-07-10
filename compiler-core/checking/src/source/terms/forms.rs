@@ -97,12 +97,8 @@ where
 
     let result_type = if let Some(body) = expression {
         let body_type = super::infer_expression(state, context, body)?;
-        state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(body)),
-            |state, collector| {
-                toolkit::instantiate_constrained(state, context, collector, body_type)
-            },
-        )?
+        let mut collector = WantedCollector::application(EvidenceApplicationSite::Expression(body));
+        toolkit::instantiate_constrained(state, context, &mut collector, body_type)?
     } else {
         state.fresh_unification(context.queries, context.prim.t)
     };
@@ -167,9 +163,8 @@ where
     state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
-        state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
-            collector.collect(state, context.prim.partial)
-        });
+        let mut collector = WantedCollector::compiler();
+        collector.collect(state, context.prim.partial);
     }
 
     Ok(function_type)
@@ -235,48 +230,33 @@ where
     let mut trunk_types = vec![];
     for trunk in trunk.iter() {
         let trunk_type = super::infer_expression(state, context, *trunk)?;
-        let trunk_type = state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(*trunk)),
-            |state, collector| {
-                toolkit::instantiate_constrained(state, context, collector, trunk_type)
-            },
-        )?;
+        let mut collector =
+            WantedCollector::application(EvidenceApplicationSite::Expression(*trunk));
+        let trunk_type =
+            toolkit::instantiate_constrained(state, context, &mut collector, trunk_type)?;
         trunk_types.push(trunk_type);
     }
 
     instantiate_trunk_types(state, context, &mut trunk_types, branches)?;
 
     for branch in branches.iter() {
-        for ((binder, trunk_type), trunk_expression) in
-            branch.binders.iter().zip(&trunk_types).zip(trunk)
-        {
-            state.with_wanted_collector(
-                WantedCollector::application(EvidenceApplicationSite::Expression(
-                    *trunk_expression,
-                )),
-                |state, collector| {
-                    binder::check_binder(state, context, collector, *binder, *trunk_type)
-                },
-            )?;
+        for (binder, trunk_type) in branch.binders.iter().zip(&trunk_types) {
+            binder::check_argument_binder(state, context, *binder, *trunk_type)?;
         }
         if let Some(guarded) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
                     let guarded_type = guarded::infer_guarded_expression(state, context, guarded)?;
                     if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                        state.with_wanted_collector(
-                            WantedCollector::application(EvidenceApplicationSite::Expression(
-                                expression,
-                            )),
-                            |state, collector| {
-                                unification::subtype(
-                                    state,
-                                    context,
-                                    collector,
-                                    guarded_type,
-                                    expected,
-                                )
-                            },
+                        let mut collector = WantedCollector::application(
+                            EvidenceApplicationSite::Expression(expression),
+                        );
+                        unification::subtype(
+                            state,
+                            context,
+                            &mut collector,
+                            guarded_type,
+                            expected,
                         )?;
                     } else {
                         unification::subtype_non_elaborating(
@@ -303,9 +283,8 @@ where
         if let CaseOfMode::Infer = mode {
             return Ok(context.intern_constrained(context.prim.partial, expected));
         } else {
-            state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
-                collector.collect(state, context.prim.partial)
-            });
+            let mut collector = WantedCollector::compiler();
+            collector.collect(state, context.prim.partial);
         }
     }
 

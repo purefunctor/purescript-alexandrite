@@ -310,15 +310,11 @@ where
                     state.push_given_with_evidence(constraint, evidence);
                 }
 
-                state.with_wanted_collector(
-                    WantedCollector::instance_superclass(instance_id),
-                    |state, collector| {
-                        for &superclass in &superclasses {
-                            collector.collect(state, superclass);
-                        }
-                        state.solve_constraints(context)
-                    },
-                )
+                let mut collector = WantedCollector::instance_superclass(instance_id);
+                for &superclass in &superclasses {
+                    collector.collect(state, superclass);
+                }
+                state.solve_constraints(context)
             })
         })?;
 
@@ -450,17 +446,13 @@ where
                         toolkit::skolemise_forall(state, context, class_member_type)?;
                     let class_member_type =
                         toolkit::collect_givens(state, context, class_member_type)?;
-                    state.with_wanted_collector(
-                        WantedCollector::non_collecting(),
-                        |state, collector| {
-                            unification::subtype(
-                                state,
-                                context,
-                                collector,
-                                signature_member_type,
-                                class_member_type,
-                            )
-                        },
+                    let mut collector = WantedCollector::non_collecting();
+                    unification::subtype(
+                        state,
+                        context,
+                        &mut collector,
+                        signature_member_type,
+                        class_member_type,
                     )
                 })?;
                 if !unified {

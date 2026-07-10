@@ -27,15 +27,10 @@ where
                 for &(constraint, evidence) in &givens {
                     state.push_given_with_evidence(constraint, evidence);
                 }
-                state.with_wanted_collector(
-                    WantedCollector::derived_requirement(result.derive_id),
-                    |state, collector| {
-                        state.capture_binders(
-                            EvidenceAbstractionSite::Derived(result.derive_id),
-                            |state| check_derive_member(state, context, collector, result),
-                        )
-                    },
-                )
+                let mut collector = WantedCollector::derived_requirement(result.derive_id);
+                state.capture_binders(EvidenceAbstractionSite::Derived(result.derive_id), |state| {
+                    check_derive_member(state, context, &mut collector, result)
+                })
             })
         })?;
     }

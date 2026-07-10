@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+value : forall (@a :: Type). C (a :: Type) => (a :: Type) = #external[class-member]
+
+$instance0 : C Int = dictionary { value = 0 }
+
+test : (C Int => Int) -> Int = \$synthetic0 -> case $synthetic0 of input -> (let $synthetic1 = input in case $synthetic1 of output -> output $instance0 | _ -> (case $synthetic1 of _ -> 0 | _ -> #error[pattern-match-failure])) | _ -> #error[pattern-match-failure]

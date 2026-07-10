@@ -50,17 +50,14 @@ where
     };
 
     let binder_type = if let Some(expression) = where_expression.expression {
-        state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-            |state, collector| {
-                let expression_type = if binder::requires_instantiation(context, binder) {
-                    toolkit::instantiate_constrained(state, context, collector, expression_type)?
-                } else {
-                    toolkit::collect_wanteds(state, context, collector, expression_type)?
-                };
-                binder::check_binder(state, context, collector, binder, expression_type)
-            },
-        )?
+        let mut collector =
+            WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+        let expression_type = if binder::requires_instantiation(context, binder) {
+            toolkit::instantiate_constrained(state, context, &mut collector, expression_type)?
+        } else {
+            toolkit::collect_wanteds(state, context, &mut collector, expression_type)?
+        };
+        binder::check_argument_binder(state, context, binder, expression_type)?
     } else {
         let expression_type = if binder::requires_instantiation(context, binder) {
             toolkit::instantiate_unifications(state, context, expression_type)?
@@ -78,9 +75,8 @@ where
     state.report_exhaustiveness(exhaustiveness);
 
     if has_missing {
-        state.with_wanted_collector(WantedCollector::compiler(), |state, collector| {
-            collector.collect(state, context.prim.partial)
-        });
+        let mut collector = WantedCollector::compiler();
+        collector.collect(state, context.prim.partial);
     }
 
     Ok(())
@@ -184,20 +180,10 @@ where
                 unification::solve(state, context, name_type, unification_id, inferred_type)?;
             } else {
                 if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                    state.with_wanted_collector(
-                        WantedCollector::application(EvidenceApplicationSite::Expression(
-                            expression,
-                        )),
-                        |state, collector| {
-                            unification::subtype(
-                                state,
-                                context,
-                                collector,
-                                inferred_type,
-                                name_type,
-                            )
-                        },
-                    )?;
+                    let mut collector = WantedCollector::application(
+                        EvidenceApplicationSite::Expression(expression),
+                    );
+                    unification::subtype(state, context, &mut collector, inferred_type, name_type)?;
                 } else {
                     unification::subtype_non_elaborating(state, context, inferred_type, name_type)?;
                 }

@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+value :: forall (@a :: Type). C (a :: Type) => (a :: Type)
+test :: Int -> Int
+
+Types
+C :: Type -> Constraint
+
+Classes
+class forall (a :: Type). C (a :: Type)
+  value :: forall (@a :: Type). C (a :: Type) => (a :: Type)
+
+Instances
+instance C Int
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'C Int => Int' with 'Int'
+  --> 11:3..11:27
+   |
+11 |   (output :: C Int => Int) -> output
+   |   ^~~~~~~~~~~~~~~~~~~~~~~~

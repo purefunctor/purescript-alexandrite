@@ -103,12 +103,9 @@ where
         if let Some(guarded) = &equation.guarded {
             let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?;
             if let Some(expression) = guarded::inferred_result_expression(guarded) {
-                state.with_wanted_collector(
-                    WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-                    |state, collector| {
-                        unification::subtype(state, context, collector, inferred_type, result_type)
-                    },
-                )?;
+                let mut collector =
+                    WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+                unification::subtype(state, context, &mut collector, inferred_type, result_type)?;
             } else {
                 unification::subtype_non_elaborating(state, context, inferred_type, result_type)?;
             }

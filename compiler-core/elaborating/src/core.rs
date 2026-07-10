@@ -38,7 +38,6 @@ pub struct CoreModule {
     /// type annotations allocate no Core wrapper; any distinct final node is
     /// solely a checker-requested evidence application or abstraction.
     pub expressions_by_source: FxHashMap<ExpressionId, CoreExpressionId>,
-    pub expressions_by_core: FxHashMap<CoreExpressionId, ExpressionId>,
     /// Checked source facts remain keyed by source identity. Synthetic Core
     /// applications deliberately do not claim checker-produced types.
     pub expression_types: FxHashMap<ExpressionId, TypeId>,

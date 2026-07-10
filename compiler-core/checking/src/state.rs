@@ -15,7 +15,7 @@ use crate::core::exhaustive::{
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
-use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId, WantedCollector};
+use crate::evidence::{EvidenceAbstractionSite, EvidenceBinderId};
 use crate::implication::{GivenConstraint, Implications, Patterns};
 use crate::{CheckedModule, ExternalQueries};
 
@@ -303,14 +303,6 @@ impl CheckState {
         evidence
     }
 
-    pub fn with_wanted_collector<T>(
-        &mut self,
-        mut collector: WantedCollector,
-        f: impl FnOnce(&mut CheckState, &mut WantedCollector) -> T,
-    ) -> T {
-        f(self, &mut collector)
-    }
-
     pub fn capture_binders<T>(
         &mut self,
         site: EvidenceAbstractionSite,
@@ -418,18 +410,11 @@ mod tests {
         let outer_application = EvidenceApplicationSite::Expression(outer_expression);
         let inner_application = EvidenceApplicationSite::Expression(inner_expression);
 
-        let (outer_first, inner, outer_second) = state.with_wanted_collector(
-            WantedCollector::application(outer_application),
-            |state, outer| {
-                let outer_first = outer.collect(state, constraint);
-                let inner = state.with_wanted_collector(
-                    WantedCollector::application(inner_application),
-                    |state, inner| inner.collect(state, constraint),
-                );
-                let outer_second = outer.collect(state, constraint);
-                (outer_first, inner, outer_second)
-            },
-        );
+        let mut outer = WantedCollector::application(outer_application);
+        let outer_first = outer.collect(&mut state, constraint);
+        let mut inner = WantedCollector::application(inner_application);
+        let inner = inner.collect(&mut state, constraint);
+        let outer_second = outer.collect(&mut state, constraint);
 
         assert_eq!(
             state.checked.placements.applications[&outer_application],

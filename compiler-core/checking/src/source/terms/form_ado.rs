@@ -238,12 +238,9 @@ where
 
     let first_site =
         EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 0 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(first_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, map_type)
-        },
-    )?
+    let mut collector = WantedCollector::application(first_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, map_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -251,21 +248,15 @@ where
 
     let second_site =
         EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 1 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(second_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, result)
-        },
-    )?
+    let mut collector = WantedCollector::application(second_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    state.with_wanted_collector(
-        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-        |state, collector| {
-            unification::subtype(state, context, collector, expression_type, argument)
-        },
-    )?;
+    let mut collector =
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+    unification::subtype(state, context, &mut collector, expression_type, argument)?;
 
     Ok(result)
 }
@@ -286,40 +277,27 @@ where
 
     let first_site =
         EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 0 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(first_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, apply_type)
-        },
-    )?
+    let mut collector = WantedCollector::application(first_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, apply_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
     let result_site = EvidenceApplicationSite::AdoResult { expression: ado_expression, statement };
-    state.with_wanted_collector(
-        WantedCollector::application(result_site),
-        |state, collector| {
-            unification::subtype(state, context, collector, continuation_type, argument)
-        },
-    )?;
+    let mut collector = WantedCollector::application(result_site);
+    unification::subtype(state, context, &mut collector, continuation_type, argument)?;
 
     let second_site =
         EvidenceApplicationSite::Ado { expression: ado_expression, statement, argument: 1 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(second_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, result)
-        },
-    )?
+    let mut collector = WantedCollector::application(second_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    state.with_wanted_collector(
-        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-        |state, collector| {
-            unification::subtype(state, context, collector, expression_type, argument)
-        },
-    )?;
+    let mut collector =
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+    unification::subtype(state, context, &mut collector, expression_type, argument)?;
 
     Ok(result)
 }

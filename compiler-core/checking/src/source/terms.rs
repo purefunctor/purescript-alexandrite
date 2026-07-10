@@ -102,15 +102,11 @@ where
     }
 
     let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = state.with_wanted_collector(
-        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-        |state, collector| {
-            let result_type =
-                toolkit::instantiate_constrained(state, context, collector, result_type)?;
-            unification::subtype(state, context, collector, result_type, current)?;
-            Ok(result_type)
-        },
-    )?;
+    let mut collector =
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+    let result_type =
+        toolkit::instantiate_constrained(state, context, &mut collector, result_type)?;
+    unification::subtype(state, context, &mut collector, result_type, current)?;
 
     let function_type = context.intern_function_list(&parameters, result_type);
     Ok(function_type)
@@ -153,27 +149,23 @@ where
             let Some(parenthesized) = parenthesized else { return Ok(unknown) };
             check_expression(state, context, *parenthesized, expected)
         }
-        lowering::ExpressionKind::Array { array } => state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-            |state, collector| collections::check_array(state, context, collector, array, expected),
-        ),
-        lowering::ExpressionKind::Record { record } => state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-            |state, collector| {
-                collections::check_record(state, context, collector, record, expected)
-            },
-        ),
+        lowering::ExpressionKind::Array { array } => {
+            let mut collector =
+                WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+            collections::check_array(state, context, &mut collector, array, expected)
+        }
+        lowering::ExpressionKind::Record { record } => {
+            let mut collector =
+                WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+            collections::check_record(state, context, &mut collector, record, expected)
+        }
         _ => {
             let inferred = infer_expression_quiet(state, context, expression)?;
-            let inferred = state.with_wanted_collector(
-                WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-                |state, collector| {
-                    let inferred =
-                        toolkit::instantiate_constrained(state, context, collector, inferred)?;
-                    unification::subtype(state, context, collector, inferred, expected)?;
-                    Ok(inferred)
-                },
-            )?;
+            let mut collector =
+                WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+            let inferred =
+                toolkit::instantiate_constrained(state, context, &mut collector, inferred)?;
+            unification::subtype(state, context, &mut collector, inferred, expected)?;
             Ok(inferred)
         }
     }
@@ -228,10 +220,10 @@ where
     let parameter_types = parameter_types.collect_vec();
 
     let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = state.with_wanted_collector(
-        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-        |state, collector| toolkit::instantiate_constrained(state, context, collector, result_type),
-    )?;
+    let mut collector =
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+    let result_type =
+        toolkit::instantiate_constrained(state, context, &mut collector, result_type)?;
 
     Ok(context.intern_function_list(&parameter_types, result_type))
 }

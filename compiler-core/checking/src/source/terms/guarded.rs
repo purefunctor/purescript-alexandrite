@@ -122,14 +122,11 @@ where
 
     if let Some(binder) = guard.binder {
         let expression_type = terms::infer_expression(state, context, expression)?;
-        state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-            |state, collector| {
-                let expression_type =
-                    toolkit::instantiate_constrained(state, context, collector, expression_type)?;
-                binder::check_binder(state, context, collector, binder, expression_type)
-            },
-        )?;
+        let mut collector =
+            WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+        let expression_type =
+            toolkit::instantiate_constrained(state, context, &mut collector, expression_type)?;
+        binder::check_argument_binder(state, context, binder, expression_type)?;
     } else {
         terms::check_expression(state, context, expression, context.prim.boolean)?;
     }

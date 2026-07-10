@@ -179,10 +179,9 @@ pub fn check_function_term_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { argument, result }) = state
-        .with_wanted_collector(WantedCollector::application(site), |state, collector| {
-            check_generic_application(state, context, collector, function)
-        })?
+    let mut collector = WantedCollector::application(site);
+    let Some(GenericApplication { argument, result }) =
+        check_generic_application(state, context, &mut collector, function)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -258,19 +257,15 @@ where
         let tick_type = super::infer_expression(state, context, *tick)?;
         let left_site =
             EvidenceApplicationSite::Infix { expression, pair: pair as u32, argument: 0 };
-        let Some(GenericApplication { argument, result }) = state.with_wanted_collector(
-            WantedCollector::application(EvidenceApplicationSite::Expression(*tick)),
-            |state, collector| check_generic_application(state, context, collector, tick_type),
-        )?
+        let mut tick_collector =
+            WantedCollector::application(EvidenceApplicationSite::Expression(*tick));
+        let Some(GenericApplication { argument, result }) =
+            check_generic_application(state, context, &mut tick_collector, tick_type)?
         else {
             return Ok(context.unknown("invalid function application"));
         };
-        state.with_wanted_collector(
-            WantedCollector::application(left_site),
-            |state, collector| {
-                unification::subtype(state, context, collector, infix_type, argument)
-            },
-        )?;
+        let mut left_collector = WantedCollector::application(left_site);
+        unification::subtype(state, context, &mut left_collector, infix_type, argument)?;
         let applied_tick = result;
 
         let second_site =

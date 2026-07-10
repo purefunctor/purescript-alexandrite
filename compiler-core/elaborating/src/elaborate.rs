@@ -6,7 +6,7 @@ use checking::evidence::{
     InstanceCandidateOrigin,
 };
 use files::FileId;
-use indexing::{IndexedModule, InstanceId, TermItemId, TermItemKind};
+use indexing::{DeriveId, IndexedModule, InstanceId, TermItemId, TermItemKind};
 use lowering::{
     BinderId, BinderKind, BinderRecordItem, CaseBranch, DoStatement, DoStatementId, Equation,
     ExpressionArgument, ExpressionId, ExpressionKind, ExpressionRecordItem, GroupedModule,
@@ -47,15 +47,32 @@ struct Elaborator<'a> {
     input: ElaborationInput<'a>,
     core: CoreModule,
     section_variables: FxHashMap<ExpressionId, u32>,
+    unconsumed_evidence_applications: FxHashSet<EvidenceApplicationSite>,
+    unconsumed_evidence_abstractions: FxHashSet<EvidenceAbstractionSite>,
+    unconsumed_instance_superclasses: FxHashSet<InstanceId>,
+    unconsumed_derived_requirements: FxHashSet<DeriveId>,
     next_synthetic: u32,
 }
 
 impl<'a> Elaborator<'a> {
     fn new(input: ElaborationInput<'a>) -> Self {
+        let placements = &input.checked.placements;
         Elaborator {
             input,
             core: CoreModule::default(),
             section_variables: FxHashMap::default(),
+            unconsumed_evidence_applications: placements.applications.keys().copied().collect(),
+            unconsumed_evidence_abstractions: placements.abstractions.keys().copied().collect(),
+            unconsumed_instance_superclasses: placements
+                .instance_superclasses
+                .keys()
+                .copied()
+                .collect(),
+            unconsumed_derived_requirements: placements
+                .derived_requirements
+                .keys()
+                .copied()
+                .collect(),
             next_synthetic: 0,
         }
     }
@@ -68,7 +85,31 @@ impl<'a> Elaborator<'a> {
             }
         }
         self.group_top_level_bindings();
+        self.validate_evidence_placements();
         self.core
+    }
+
+    fn validate_evidence_placements(&self) {
+        assert!(
+            self.unconsumed_evidence_applications.is_empty(),
+            "invariant violated: unconsumed evidence application placements: {:?}",
+            self.unconsumed_evidence_applications,
+        );
+        assert!(
+            self.unconsumed_evidence_abstractions.is_empty(),
+            "invariant violated: unconsumed evidence abstraction placements: {:?}",
+            self.unconsumed_evidence_abstractions,
+        );
+        assert!(
+            self.unconsumed_instance_superclasses.is_empty(),
+            "invariant violated: unconsumed instance superclass placements: {:?}",
+            self.unconsumed_instance_superclasses,
+        );
+        assert!(
+            self.unconsumed_derived_requirements.is_empty(),
+            "invariant violated: unconsumed derived requirement placements: {:?}",
+            self.unconsumed_derived_requirements,
+        );
     }
 
     fn group_top_level_bindings(&mut self) {
@@ -408,6 +449,14 @@ impl<'a> Elaborator<'a> {
         instance: Option<InstanceId>,
         members: &[lowering::InstanceMemberGroup],
     ) -> CoreExpressionId {
+        if let Some(instance) = instance
+            && self.input.checked.placements.instance_superclasses.contains_key(&instance)
+        {
+            assert!(
+                self.unconsumed_instance_superclasses.remove(&instance),
+                "invariant violated: instance superclass placement consumed more than once: {instance:?}",
+            );
+        }
         let superclasses = instance
             .and_then(|instance| self.input.checked.placements.instance_superclasses.get(&instance))
             .cloned()
@@ -445,6 +494,21 @@ impl<'a> Elaborator<'a> {
         newtype: bool,
         class: Option<(FileId, indexing::TypeItemId)>,
     ) -> CoreExpressionId {
+        if let Some(derive) = derive {
+            let abstraction = EvidenceAbstractionSite::Derived(derive);
+            if self.input.checked.placements.abstractions.contains_key(&abstraction) {
+                assert!(
+                    self.unconsumed_evidence_abstractions.remove(&abstraction),
+                    "invariant violated: evidence abstraction placement consumed more than once: {abstraction:?}",
+                );
+            }
+            if self.input.checked.placements.derived_requirements.contains_key(&derive) {
+                assert!(
+                    self.unconsumed_derived_requirements.remove(&derive),
+                    "invariant violated: derived requirement placement consumed more than once: {derive:?}",
+                );
+            }
+        }
         let local_binders = derive
             .and_then(|derive| {
                 self.input
@@ -1349,6 +1413,12 @@ impl<'a> Elaborator<'a> {
         site: EvidenceApplicationSite,
         mut function: CoreExpressionId,
     ) -> CoreExpressionId {
+        if self.input.checked.placements.applications.contains_key(&site) {
+            assert!(
+                self.unconsumed_evidence_applications.remove(&site),
+                "invariant violated: evidence application placement consumed more than once: {site:?}",
+            );
+        }
         let variables =
             self.input.checked.placements.applications.get(&site).cloned().unwrap_or_default();
         for variable in variables {
@@ -1365,6 +1435,12 @@ impl<'a> Elaborator<'a> {
         site: EvidenceAbstractionSite,
         mut body: CoreExpressionId,
     ) -> CoreExpressionId {
+        if self.input.checked.placements.abstractions.contains_key(&site) {
+            assert!(
+                self.unconsumed_evidence_abstractions.remove(&site),
+                "invariant violated: evidence abstraction placement consumed more than once: {site:?}",
+            );
+        }
         let binders =
             self.input.checked.placements.abstractions.get(&site).cloned().unwrap_or_default();
         for binder in binders.into_iter().rev() {
@@ -1450,7 +1526,6 @@ impl<'a> Elaborator<'a> {
 
     fn record_source_expression(&mut self, source: ExpressionId, expression: CoreExpressionId) {
         self.core.expressions_by_source.insert(source, expression);
-        self.core.expressions_by_core.entry(expression).or_insert(source);
         if let Some(type_id) = self.input.checked.nodes.lookup_expression(source) {
             self.core.expression_types.insert(source, type_id);
         }

@@ -152,10 +152,9 @@ where
     };
 
     let operator_type = if let Some(site) = E::application_site(operator_id) {
-        state.with_wanted_collector(WantedCollector::application(site), |state, collector| {
-            let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-            toolkit::collect_wanteds(state, context, collector, operator_type)
-        })?
+        let mut collector = WantedCollector::application(site);
+        let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
+        toolkit::collect_wanteds(state, context, &mut collector, operator_type)?
     } else {
         let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
         toolkit::without_constraints(state, context, operator_type)?
@@ -214,12 +213,8 @@ where
             toolkit::collect_givens(state, context, expected_type)?
         };
         if let Some(site) = E::result_application_site(operator_id) {
-            state.with_wanted_collector(
-                WantedCollector::application(site),
-                |state, collector| {
-                    unification::subtype(state, context, collector, result_type, expected_type)
-                },
-            )?;
+            let mut collector = WantedCollector::application(site);
+            unification::subtype(state, context, &mut collector, result_type, expected_type)?;
         } else {
             unification::subtype_non_elaborating(state, context, result_type, expected_type)?;
         }

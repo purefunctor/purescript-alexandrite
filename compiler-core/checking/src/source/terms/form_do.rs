@@ -371,18 +371,8 @@ where
                         expression: do_expression,
                         statement: *statement,
                     };
-                    state.with_wanted_collector(
-                        WantedCollector::application(site),
-                        |state, collector| {
-                            unification::subtype(
-                                state,
-                                context,
-                                collector,
-                                statement_type,
-                                now_type,
-                            )
-                        },
-                    )?;
+                    let mut collector = WantedCollector::application(site);
+                    unification::subtype(state, context, &mut collector, statement_type, now_type)?;
                     Ok(())
                 })?;
             }
@@ -407,18 +397,8 @@ where
                         expression: do_expression,
                         statement: *statement,
                     };
-                    state.with_wanted_collector(
-                        WantedCollector::application(site),
-                        |state, collector| {
-                            unification::subtype(
-                                state,
-                                context,
-                                collector,
-                                statement_type,
-                                now_type,
-                            )
-                        },
-                    )?;
+                    let mut collector = WantedCollector::application(site);
+                    unification::subtype(state, context, &mut collector, statement_type, now_type)?;
                     Ok(())
                 })?;
             }
@@ -460,30 +440,21 @@ where
 
     let first_site =
         EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 0 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(first_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, bind_type)
-        },
-    )?
+    let mut collector = WantedCollector::application(first_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, bind_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
-    state.with_wanted_collector(
-        WantedCollector::application(EvidenceApplicationSite::Expression(expression)),
-        |state, collector| {
-            unification::subtype(state, context, collector, expression_type, argument)
-        },
-    )?;
+    let mut collector =
+        WantedCollector::application(EvidenceApplicationSite::Expression(expression));
+    unification::subtype(state, context, &mut collector, expression_type, argument)?;
 
     let second_site =
         EvidenceApplicationSite::Do { expression: do_expression, statement, argument: 1 };
-    let Some(application::GenericApplication { argument, result }) = state.with_wanted_collector(
-        WantedCollector::application(second_site),
-        |state, collector| {
-            application::check_generic_application(state, context, collector, result)
-        },
-    )?
+    let mut collector = WantedCollector::application(second_site);
+    let Some(application::GenericApplication { argument, result }) =
+        application::check_generic_application(state, context, &mut collector, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
