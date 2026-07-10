@@ -1009,7 +1009,7 @@ fn index_module_export(state: &mut State, id: ExportItemId, cst: &cst::ExportMod
             //
             // import Data.Maybe as Maybe
             // ```
-            for (_, items) in state.imports.iter_mut() {
+            for items in state.imports.values_mut() {
                 let alias = items.alias.as_deref();
                 let name = items.name.as_deref();
 
