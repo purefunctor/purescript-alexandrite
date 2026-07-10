@@ -15,9 +15,9 @@ pub type CoreBindingGroupId = Idx<CoreBindingGroup>;
 
 /// A module-local Core program.
 ///
-/// Core nodes deliberately have no type field. Checked types remain available
-/// as side-table facts, which keeps recovery nodes and desugaring-generated
-/// nodes from requiring invented checker identities.
+/// Core nodes deliberately have no type field. Their checked source types
+/// remain available from the checking result, so recovery nodes and
+/// desugaring-generated nodes need no invented checker identities.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CoreModule {
     pub expressions: Arena<CoreExpression>,
@@ -38,12 +38,7 @@ pub struct CoreModule {
     /// type annotations allocate no Core wrapper; any distinct final node is
     /// solely a checker-requested evidence application or abstraction.
     pub expressions_by_source: FxHashMap<ExpressionId, CoreExpressionId>,
-    /// Checked source facts remain keyed by source identity. Synthetic Core
-    /// applications deliberately do not claim checker-produced types.
-    pub expression_types: FxHashMap<ExpressionId, TypeId>,
-    pub pun_types: FxHashMap<RecordPunId, TypeId>,
     pub patterns_by_source: FxHashMap<BinderId, CorePatternId>,
-    pub pattern_types: FxHashMap<BinderId, TypeId>,
     pub binding_types: FxHashMap<CoreBindingId, TypeId>,
 }
 

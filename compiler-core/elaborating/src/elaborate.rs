@@ -808,9 +808,6 @@ impl<'a> Elaborator<'a> {
                     let mut value = self.elaborate_variable_resolution(*resolution);
                     value = self.apply_evidence(EvidenceApplicationSite::RecordPun(*id), value);
                     value = self.abstract_evidence(EvidenceAbstractionSite::RecordPun(*id), value);
-                    if let Some(type_id) = self.input.checked.nodes.lookup_pun(*id) {
-                        self.core.pun_types.insert(*id, type_id);
-                    }
                     fields.push(CoreRecordField { label, value });
                 }
             }
@@ -1526,16 +1523,10 @@ impl<'a> Elaborator<'a> {
 
     fn record_source_expression(&mut self, source: ExpressionId, expression: CoreExpressionId) {
         self.core.expressions_by_source.insert(source, expression);
-        if let Some(type_id) = self.input.checked.nodes.lookup_expression(source) {
-            self.core.expression_types.insert(source, type_id);
-        }
     }
 
     fn record_source_pattern(&mut self, source: BinderId, pattern: CorePatternId) {
         self.core.patterns_by_source.insert(source, pattern);
-        if let Some(type_id) = self.input.checked.nodes.lookup_binder(source) {
-            self.core.pattern_types.insert(source, type_id);
-        }
     }
 
     fn record_error_pattern(&mut self, source: BinderId, error: CoreError) -> CorePatternId {
