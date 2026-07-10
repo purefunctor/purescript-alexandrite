@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 building-types = { version = "0.1.0", path = "../building-types" }
 files = { version = "0.1.0", path = "../files" }
+hashbrown = "0.16.1"
 indexing = { version = "0.1.0", path = "../indexing" }
 rustc-hash = "2.1.2"
 smol_str = "0.3.4"

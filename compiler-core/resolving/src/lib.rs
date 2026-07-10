@@ -5,9 +5,12 @@ pub use error::*;
 
 use building_types::{QueryProxy, QueryResult};
 use files::FileId;
+use hashbrown::HashTable;
 use indexing::{ImportId, ImportKind, IndexedModule, TermItemId, TypeItemId};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use smol_str::SmolStr;
+use std::fmt;
+use std::hash::BuildHasher;
 use std::sync::Arc;
 
 pub trait ExternalQueries:
@@ -15,10 +18,33 @@ pub trait ExternalQueries:
 {
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResolvedClassMembers {
-    members: FxHashMap<(TypeItemId, SmolStr), (FileId, TermItemId)>,
+    index: HashTable<usize>,
+    members: Vec<(TypeItemId, SmolStr, FileId, TermItemId)>,
 }
+
+impl fmt::Debug for ResolvedClassMembers {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.debug_struct("ResolvedClassMembers").field("members", &self.members).finish()
+    }
+}
+
+impl Default for ResolvedClassMembers {
+    fn default() -> Self {
+        ResolvedClassMembers { index: HashTable::default(), members: Vec::default() }
+    }
+}
+
+impl PartialEq for ResolvedClassMembers {
+    fn eq(&self, other: &Self) -> bool {
+        self.members.len() == other.members.len()
+            && self.members.iter().all(|(class_id, name, file, term_id)| {
+                other.lookup(*class_id, name) == Some((*file, *term_id))
+            })
+    }
+}
+
+impl Eq for ResolvedClassMembers {}
 
 impl ResolvedClassMembers {
     pub fn insert(
@@ -28,26 +54,44 @@ impl ResolvedClassMembers {
         file: FileId,
         term_id: TermItemId,
     ) {
-        self.members.insert((class_id, name), (file, term_id));
+        let hash = FxBuildHasher.hash_one((class_id, name.as_str()));
+        if let Some(&index) = self.index.find(hash, |&index| {
+            let (existing_class_id, existing_name, _, _) = &self.members[index];
+            *existing_class_id == class_id && existing_name == &name
+        }) {
+            self.members[index] = (class_id, name, file, term_id);
+            return;
+        }
+
+        let index = self.members.len();
+        self.members.push((class_id, name, file, term_id));
+        self.index.insert_unique(hash, index, |&index| {
+            let (class_id, name, _, _) = &self.members[index];
+            FxBuildHasher.hash_one((class_id, name.as_str()))
+        });
     }
 
     pub fn lookup(&self, class_id: TypeItemId, name: &str) -> Option<(FileId, TermItemId)> {
-        let key = &(class_id, SmolStr::new(name));
-        self.members.get(key).copied()
+        let hash = FxBuildHasher.hash_one((class_id, name));
+        let &index = self.index.find(hash, |&index| {
+            let (existing_class_id, existing_name, _, _) = &self.members[index];
+            *existing_class_id == class_id && existing_name == name
+        })?;
+        let (_, _, file, term_id) = self.members[index];
+        Some((file, term_id))
     }
 
     pub fn class_members(
         &self,
         class_id: TypeItemId,
     ) -> impl Iterator<Item = (&SmolStr, FileId, TermItemId)> + '_ {
-        self.members
-            .iter()
-            .filter(move |((type_id, _), _)| *type_id == class_id)
-            .map(|((_, name), (file, id))| (name, *file, *id))
+        self.members.iter().filter_map(move |(type_id, name, file, id)| {
+            (*type_id == class_id).then_some((name, *file, *id))
+        })
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (TypeItemId, &SmolStr, FileId, TermItemId)> + '_ {
-        self.members.iter().map(|((class_id, name), (file, id))| (*class_id, name, *file, *id))
+        self.members.iter().map(|(class_id, name, file, id)| (*class_id, name, *file, *id))
     }
 }
 
