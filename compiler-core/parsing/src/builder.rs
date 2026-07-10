@@ -12,8 +12,14 @@ pub(crate) enum Output {
     Annotate,
     Qualify,
     Token { kind: SyntaxKind },
-    Error { message: Arc<str> },
+    Error { message: ParserError },
     Finish,
+}
+
+#[derive(Debug)]
+pub(crate) enum ParserError {
+    Message(&'static str),
+    Expected(SyntaxKind),
 }
 
 struct Builder<'l, 's> {
@@ -116,7 +122,10 @@ pub(crate) fn build(lexed: &Lexed<'_>, output: Vec<Output>) -> (ParsedModule, Ve
             Output::Annotate => builder.annotate(),
             Output::Qualify => builder.qualify(),
             Output::Token { kind } => builder.token(kind),
-            Output::Error { message } => builder.error(message),
+            Output::Error { message: ParserError::Message(message) } => builder.error(message),
+            Output::Error { message: ParserError::Expected(kind) } => {
+                builder.error(format!("Expected {kind:?}"));
+            }
             Output::Finish => builder.finish(),
         }
     }
