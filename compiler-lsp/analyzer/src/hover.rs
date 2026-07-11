@@ -74,7 +74,7 @@ fn hover_module_name(
     let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
-    let (_root, range) = AnnotationSyntaxRange::of_file(engine, module_id)?;
+    let range = AnnotationSyntaxRange::of_file(engine, module_id)?;
 
     let content = engine.content(module_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
@@ -301,7 +301,7 @@ fn hover_file_term(
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
-    let (_root, range) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id)?;
+    let range = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id)?;
     let content = engine.content(file_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
@@ -330,7 +330,7 @@ fn hover_file_type(
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
-    let (_root, range) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id)?;
+    let range = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id)?;
     let content = engine.content(file_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 

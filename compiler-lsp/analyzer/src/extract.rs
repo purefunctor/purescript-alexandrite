@@ -69,10 +69,8 @@ impl AnnotationSyntaxRange {
     pub fn of_file(
         engine: &QueryEngine,
         file_id: FileId,
-    ) -> Result<(SyntaxNode, AnnotationSyntaxRange), AnalyzerError> {
+    ) -> Result<AnnotationSyntaxRange, AnalyzerError> {
         let (parsed, _) = engine.parsed(file_id)?;
-
-        let root = parsed.syntax_node();
 
         let header = parsed.cst().header().ok_or(AnalyzerError::NonFatal)?;
         let header = header.syntax();
@@ -98,14 +96,14 @@ impl AnnotationSyntaxRange {
             Some(TextRange::new(start, end))
         };
 
-        Ok((root, AnnotationSyntaxRange { annotation, syntax }))
+        Ok(AnnotationSyntaxRange { annotation, syntax })
     }
 
     pub fn of_file_term(
         engine: &QueryEngine,
         file_id: FileId,
         term_id: TermItemId,
-    ) -> Result<(SyntaxNode, AnnotationSyntaxRange), AnalyzerError> {
+    ) -> Result<AnnotationSyntaxRange, AnalyzerError> {
         let (parsed, _) = engine.parsed(file_id)?;
         let stabilized = engine.stabilized(file_id)?;
         let indexed = engine.indexed(file_id)?;
@@ -138,14 +136,14 @@ impl AnnotationSyntaxRange {
             }
         };
 
-        Ok((root, range.ok_or(AnalyzerError::NonFatal)?))
+        range.ok_or(AnalyzerError::NonFatal)
     }
 
     pub fn of_file_type(
         engine: &QueryEngine,
         file_id: FileId,
         type_id: TypeItemId,
-    ) -> Result<(SyntaxNode, AnnotationSyntaxRange), AnalyzerError> {
+    ) -> Result<AnnotationSyntaxRange, AnalyzerError> {
         let (parsed, _) = engine.parsed(file_id)?;
         let stabilized = engine.stabilized(file_id)?;
         let indexed = engine.indexed(file_id)?;
@@ -174,7 +172,7 @@ impl AnnotationSyntaxRange {
             }
         };
 
-        Ok((root, range.ok_or(AnalyzerError::NonFatal)?))
+        range.ok_or(AnalyzerError::NonFatal)
     }
 }
 

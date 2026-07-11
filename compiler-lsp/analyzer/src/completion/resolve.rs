@@ -30,7 +30,7 @@ pub fn implementation(
     match resolve {
         CompletionResolveData::Import(file_id) => {
             match AnnotationSyntaxRange::of_file(engine, file_id) {
-                Ok((_root, range)) => {
+                Ok(range) => {
                     let content = engine.content(file_id);
                     Ok(resolve_documentation(&content, range, item))
                 }
@@ -86,7 +86,7 @@ fn resolve_term_item(
     term_id: TermItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    if let Ok((_root, range)) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
+    if let Ok(range) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
         let content = engine.content(file_id);
         let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
@@ -126,7 +126,7 @@ fn resolve_type_item(
     type_id: TypeItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    if let Ok((_root, range)) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
+    if let Ok(range) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
         let content = engine.content(file_id);
         let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
