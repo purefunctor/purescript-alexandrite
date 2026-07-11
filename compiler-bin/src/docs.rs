@@ -460,7 +460,8 @@ fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
     let results = results.collect::<Result<Vec<_>, DocsError>>()?;
     let mut module_files = BTreeMap::new();
     for (id, parsed) in results {
-        if let Some(name) = parsed.module_name(&compiler.engine.content(id)) {
+        let content = compiler.engine.content(id);
+        if let Some(name) = parsed.module_name(&content) {
             let name = name.to_string();
             if module_files.insert(String::clone(&name), id).is_some() {
                 return Err(DocsError::DuplicateModuleName(name));

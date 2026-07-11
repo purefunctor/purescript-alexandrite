@@ -117,15 +117,10 @@ mod tests {
 
     fn annotation(text_length: usize) -> SyntaxNode {
         let mut builder = syntree::Builder::new();
-        builder
-            .open(SyntaxValue { kind: SyntaxKind::Annotation, category: ElementCategory::Node })
-            .unwrap();
-        builder
-            .token(
-                SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token },
-                text_length,
-            )
-            .unwrap();
+        let node = SyntaxValue { kind: SyntaxKind::Annotation, category: ElementCategory::Node };
+        builder.open(node).unwrap();
+        let token = SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token };
+        builder.token(token, text_length).unwrap();
         builder.close().unwrap();
         let owner = TreeOwner::new(builder.build().unwrap());
         SyntaxNode::new_root(owner)
