@@ -1036,6 +1036,66 @@ mod tests {
     }
 
     #[test]
+    fn test_text_edit_preserves_structural_query_traces() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        macro_rules! assert_trace {
+            ($engine:expr, $field:ident($id:expr) => $trace:expr) => {{
+                let shard = $engine.derived.$field.shard(&$id);
+                let guard = shard.read();
+                assert_eq!(ShowTrace(guard.get(&$id).unwrap()), $trace);
+            }};
+        }
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(id, files.content(id));
+        let stabilized_a = engine.stabilized(id).unwrap();
+        let indexed_a = engine.indexed(id).unwrap();
+
+        assert_trace!(engine, parsed(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id)]
+        });
+        assert_trace!(engine, stabilized(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Parsed(id)]
+        });
+        assert_trace!(engine, indexed(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+        });
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\ntime = 42");
+        engine.set_content(id, files.content(id));
+        let stabilized_b = engine.stabilized(id).unwrap();
+        let indexed_b = engine.indexed(id).unwrap();
+
+        assert_trace!(engine, parsed(id) => Trace {
+            built: 20,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id)]
+        });
+        assert_trace!(engine, stabilized(id) => Trace {
+            built: 20,
+            changed: 19,
+            dependencies: &[QueryKey::Parsed(id)]
+        });
+        assert_trace!(engine, indexed(id) => Trace {
+            built: 20,
+            changed: 20,
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+        });
+
+        assert!(Arc::ptr_eq(&stabilized_a, &stabilized_b));
+        assert!(!Arc::ptr_eq(&indexed_a, &indexed_b));
+    }
+
+    #[test]
     fn test_verifying_step_traces() {
         let mut engine = QueryEngine::default();
         let mut files = Files::default();
