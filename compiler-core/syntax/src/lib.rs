@@ -275,9 +275,6 @@ pub enum SyntaxKind {
 
     TermOperator,
     TypeOperator,
-
-    #[doc(hidden)]
-    __LAST,
 }
 
 impl SyntaxKind {
