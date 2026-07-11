@@ -2,7 +2,7 @@ use std::fs;
 use std::hint::black_box;
 use std::sync::Arc;
 
-use criterion::{Criterion, Throughput, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, Throughput, criterion_group, criterion_main};
 use rayon::prelude::*;
 use tests_compatibility::all_source_files;
 use walkdir::WalkDir;
@@ -65,6 +65,20 @@ fn criterion_benchmark(c: &mut Criterion) {
                 black_box(parsing::parse(black_box(lexed), black_box(tokens)));
             });
         })
+    });
+
+    g.bench_function("parse-prelexed-retained-single-core", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                lexed
+                    .iter()
+                    .zip(tokens.iter())
+                    .map(|(lexed, tokens)| parsing::parse(black_box(lexed), black_box(tokens)))
+                    .collect::<Vec<_>>()
+            },
+            BatchSize::PerIteration,
+        )
     });
 
     let files = Arc::clone(&files);
