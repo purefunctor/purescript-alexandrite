@@ -4,7 +4,7 @@ use indexing::{IndexingError, TypeItemKind};
 use itertools::Itertools;
 use lowering::LoweringError;
 use resolving::ResolvingError;
-use rowan::ast::AstNode;
+use syntax::ast::AstNode;
 
 use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity};
 

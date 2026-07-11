@@ -3,7 +3,7 @@ use line_index::{LineCol, LineIndex, WideEncoding};
 use lsp_types::{
     DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Position, Range,
 };
-use rowan::TextSize;
+use syntax::TextSize;
 
 use crate::{Diagnostic, Severity, Span};
 

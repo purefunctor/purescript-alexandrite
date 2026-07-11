@@ -585,7 +585,6 @@ dependencies = [
  "lowering",
  "lsp-types",
  "resolving",
- "rowan",
  "smol_str",
  "stabilizing",
  "syntax",
