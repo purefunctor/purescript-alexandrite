@@ -6,18 +6,17 @@ mod names;
 mod types;
 
 use std::cell::Cell;
-use std::mem;
-use std::sync::Arc;
 
 use drop_bomb::DropBomb;
 use syntax::{SyntaxKind, TokenSet};
 
-use crate::builder::Output;
+use crate::builder::{Output, ParserError};
 
 pub(crate) struct Parser<'t> {
     index: usize,
     tokens: &'t [SyntaxKind],
     output: Vec<Output>,
+    errors: usize,
     fuel: Cell<u16>,
 }
 
@@ -26,9 +25,10 @@ type Rule = fn(&mut Parser);
 impl<'t> Parser<'t> {
     pub(crate) fn new(tokens: &'t [SyntaxKind]) -> Parser<'t> {
         let index = 0;
-        let output = vec![];
+        let output = Vec::with_capacity(tokens.len());
+        let errors = 0;
         let fuel = Cell::new(u16::MAX);
-        Parser { index, tokens, output, fuel }
+        Parser { index, tokens, output, errors, fuel }
     }
 
     pub(crate) fn finish(self) -> Vec<Output> {
@@ -67,68 +67,56 @@ impl<'t> Parser<'t> {
 
     fn optional(&mut self, rule: Rule) {
         let initial_index = self.index;
-        let initial_output = mem::take(&mut self.output);
+        let initial_output = self.output.len();
+        let initial_errors = self.errors;
 
         rule(self);
 
-        let index = mem::replace(&mut self.index, initial_index);
-        let mut output = mem::replace(&mut self.output, initial_output);
-        let finished = output.iter().all(|event| !matches!(event, Output::Error { .. }));
-
-        if finished {
-            self.index = index;
-            self.output.append(&mut output);
+        if self.errors != initial_errors {
+            self.index = initial_index;
+            self.output.truncate(initial_output);
+            self.errors = initial_errors;
         }
-    }
-
-    fn lookahead(&mut self, rule: Rule) -> bool {
-        let initial_index = self.index;
-        let initial_output = mem::take(&mut self.output);
-
-        rule(self);
-
-        let _ = mem::replace(&mut self.index, initial_index);
-        let output = mem::replace(&mut self.output, initial_output);
-
-        output.iter().all(|event| !matches!(event, Output::Error { .. }))
     }
 
     fn alternative(&mut self, rules: impl IntoIterator<Item = Rule>) {
         let initial_index = self.index;
-        let initial_output = mem::take(&mut self.output);
+        let initial_output = self.output.len();
+        let initial_errors = self.errors;
 
         let mut fallback = None;
-        let mut selected = None;
 
         for rule in rules.into_iter() {
             rule(self);
 
-            let index = mem::replace(&mut self.index, initial_index);
-            let output = mem::take(&mut self.output);
-            let finished = output.iter().all(|event| !matches!(event, Output::Error { .. }));
-
-            if finished {
-                selected = Some((index, output));
-                break;
-            } else if fallback.is_none() {
-                fallback = Some((index, output));
-                continue;
+            if self.errors == initial_errors {
+                return;
             }
+
+            if fallback.is_none() {
+                let output = self.output.drain(initial_output..).collect();
+                fallback = Some((self.index, self.errors, output));
+            } else {
+                self.output.truncate(initial_output);
+            }
+
+            self.index = initial_index;
+            self.errors = initial_errors;
         }
 
-        let (index, mut output) =
-            selected.or(fallback).expect("invariant violated: at least one branch");
-
+        let (index, errors, mut output) =
+            fallback.expect("invariant violated: at least one branch");
         self.index = index;
-        self.output = initial_output;
+        self.errors = errors;
         self.output.append(&mut output);
     }
 
-    fn error(&mut self, message: impl Into<Arc<str>>) {
-        self.output.push(Output::Error { message: message.into() });
+    fn error(&mut self, message: &'static str) {
+        self.errors += 1;
+        self.output.push(Output::Error { message: ParserError::Message(message) });
     }
 
-    fn error_recover(&mut self, message: impl Into<Arc<str>>) {
+    fn error_recover(&mut self, message: &'static str) {
         let mut marker = self.start();
         self.error(message);
         self.consume();
@@ -141,6 +129,14 @@ impl<'t> Parser<'t> {
 
     fn at_next(&self, kind: SyntaxKind) -> bool {
         self.nth(1) == kind
+    }
+
+    fn nth_at(&self, index: usize, kind: SyntaxKind) -> bool {
+        self.nth(index) == kind
+    }
+
+    fn nth_at_in(&self, index: usize, set: TokenSet) -> bool {
+        set.contains(self.nth(index))
     }
 
     fn at_eof(&self) -> bool {
@@ -163,6 +159,7 @@ impl<'t> Parser<'t> {
         if !self.at_in(set) {
             return false;
         }
+        self.fuel.set(u16::MAX);
         self.index += 1;
         self.output.push(Output::Token { kind });
         true
@@ -172,11 +169,12 @@ impl<'t> Parser<'t> {
         if self.eat(kind) {
             return true;
         }
-        self.error(format!("Expected {kind:?}"));
+        self.errors += 1;
+        self.output.push(Output::Error { message: ParserError::Expected(kind) });
         false
     }
 
-    fn expect_in(&mut self, set: TokenSet, kind: SyntaxKind, message: &str) -> bool {
+    fn expect_in(&mut self, set: TokenSet, kind: SyntaxKind, message: &'static str) -> bool {
         if self.eat_in(set, kind) {
             return true;
         }
@@ -383,7 +381,7 @@ fn type_items(p: &mut Parser) {
 fn imports_and_statements(p: &mut Parser) {
     let mut imports = p.start();
 
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {
@@ -616,18 +614,18 @@ fn role_or_synonym_signature_or_equation(p: &mut Parser) {
     }
 }
 
-fn is_class_signature(p: &mut Parser) {
-    p.expect(SyntaxKind::CLASS);
-    p.expect(SyntaxKind::UPPER);
-    p.expect(SyntaxKind::DOUBLE_COLON);
-}
-
 fn class_signature_or_declaration(p: &mut Parser) {
-    if p.lookahead(is_class_signature) {
+    if is_class_signature(p) {
         class_signature(p);
     } else {
         class_declaration(p);
     }
+}
+
+fn is_class_signature(p: &Parser) -> bool {
+    p.nth_at(0, SyntaxKind::CLASS)
+        && p.nth_at(1, SyntaxKind::UPPER)
+        && p.nth_at(2, SyntaxKind::DOUBLE_COLON)
 }
 
 fn class_signature(p: &mut Parser) {
@@ -740,7 +738,7 @@ fn class_functional_dependency(p: &mut Parser) {
 fn class_statements(p: &mut Parser) {
     let mut m = p.start();
     p.expect(SyntaxKind::LAYOUT_START);
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {
@@ -847,7 +845,7 @@ fn instance_head(p: &mut Parser) {
 fn instance_statements(p: &mut Parser) {
     let mut m = p.start();
     p.expect(SyntaxKind::LAYOUT_START);
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {

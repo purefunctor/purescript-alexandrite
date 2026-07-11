@@ -213,7 +213,7 @@ fn case_trunk(p: &mut Parser) {
 
 fn case_branches(p: &mut Parser) {
     let mut m = p.start();
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {
@@ -281,7 +281,7 @@ fn expression_do(p: &mut Parser, mut m: NodeMarker) {
 
 fn do_statements(p: &mut Parser) {
     let mut m = p.start();
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {
@@ -347,7 +347,7 @@ fn expression_ado(p: &mut Parser, mut m: NodeMarker) {
 fn expression_6(p: &mut Parser) {
     let mut m = p.start();
     expression_7(p);
-    if p.lookahead(is_record_update) {
+    if is_record_update(p) {
         record_updates(p);
         m.end(p, SyntaxKind::ExpressionRecordUpdate);
     } else {
@@ -355,12 +355,10 @@ fn expression_6(p: &mut Parser) {
     }
 }
 
-fn is_record_update(p: &mut Parser) {
-    p.expect(SyntaxKind::LEFT_CURLY);
-    names::label(p);
-    if !p.eat(SyntaxKind::EQUAL) && !p.eat(SyntaxKind::LEFT_CURLY) {
-        p.error("Expected EQUAL or LEFT_CURLY");
-    }
+fn is_record_update(p: &Parser) -> bool {
+    p.nth_at(0, SyntaxKind::LEFT_CURLY)
+        && p.nth_at_in(1, names::RECORD_LABEL)
+        && (p.nth_at(2, SyntaxKind::EQUAL) || p.nth_at(2, SyntaxKind::LEFT_CURLY))
 }
 
 fn record_updates(p: &mut Parser) {

@@ -8,7 +8,7 @@ const LET_BINDING_START: TokenSet = TokenSet::new(&[SyntaxKind::LOWER])
 
 pub(super) fn let_binding_statements(p: &mut Parser) {
     let mut m = p.start();
-    let recover_until_end = |p: &mut Parser, m: &str| {
+    let recover_until_end = |p: &mut Parser, m: &'static str| {
         let mut e = None;
         while !p.at(SyntaxKind::LAYOUT_SEPARATOR) && !p.at(SyntaxKind::LAYOUT_END) && !p.at_eof() {
             if e.is_none() {

@@ -177,42 +177,27 @@ fn type_variable_binding(p: &mut Parser) {
     m.end(p, SyntaxKind::TypeVariableBinding);
 }
 
-fn at_type_row_empty(p: &mut Parser) {
-    p.expect(SyntaxKind::LEFT_PARENTHESIS);
-    p.expect(SyntaxKind::RIGHT_PARENTHESIS);
-}
-
-fn at_type_row_tail(p: &mut Parser) {
-    p.expect(SyntaxKind::LEFT_PARENTHESIS);
-    p.expect(SyntaxKind::PIPE);
-}
-
-fn at_type_row(p: &mut Parser) {
-    p.expect(SyntaxKind::LEFT_PARENTHESIS);
-    if !p.at_in(names::RECORD_LABEL) {
-        return p.error("Expecting RECORD_LABEL");
-    } else {
-        p.consume();
-    }
-    p.expect(SyntaxKind::DOUBLE_COLON);
-}
-
-fn at_type_variable_kinded(p: &mut Parser) {
-    p.expect(SyntaxKind::LEFT_PARENTHESIS);
-    p.expect(SyntaxKind::LEFT_PARENTHESIS);
-    p.expect_in(names::LOWER, SyntaxKind::LOWER, "Expected LOWER");
-    p.expect(SyntaxKind::RIGHT_PARENTHESIS);
-    p.expect(SyntaxKind::DOUBLE_COLON);
-}
-
 fn type_parenthesis(p: &mut Parser) {
-    if p.lookahead(at_type_row_empty) || p.lookahead(at_type_row_tail) || p.lookahead(at_type_row) {
+    if is_type_row(p) {
         type_row(p);
-    } else if p.lookahead(at_type_variable_kinded) {
+    } else if is_kinded_type_variable(p) {
         type_kinded_variable(p);
     } else {
         type_parenthesized(p);
     }
+}
+
+fn is_type_row(p: &Parser) -> bool {
+    p.nth_at(1, SyntaxKind::RIGHT_PARENTHESIS)
+        || p.nth_at(1, SyntaxKind::PIPE)
+        || (p.nth_at_in(1, names::RECORD_LABEL) && p.nth_at(2, SyntaxKind::DOUBLE_COLON))
+}
+
+fn is_kinded_type_variable(p: &Parser) -> bool {
+    p.nth_at(1, SyntaxKind::LEFT_PARENTHESIS)
+        && p.nth_at_in(2, names::LOWER)
+        && p.nth_at(3, SyntaxKind::RIGHT_PARENTHESIS)
+        && p.nth_at(4, SyntaxKind::DOUBLE_COLON)
 }
 
 fn type_kinded_variable(p: &mut Parser) {

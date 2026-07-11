@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v rustup >/dev/null 2>&1; then
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+fi
+
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+
+rustup toolchain install stable --profile minimal
+rustup toolchain install nightly --profile minimal --component rustfmt
+rustup default stable
+
+if ! command -v cargo-binstall >/dev/null 2>&1; then
+  curl --proto '=https' --tlsv1.2 -LsSf \
+    https://raw.githubusercontent.com/cargo-bins/cargo-binstall/aaa84a43aec4955a42c5ffc65d258961e39f276e/install-from-binstall-release.sh \
+    | BINSTALL_VERSION=1.19.1 bash
+fi
+
+cargo binstall --no-confirm just cargo-nextest
