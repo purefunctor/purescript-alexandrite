@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use lexing::Lexed;
-use syntax::{ElementCategory, SyntaxKind, SyntaxValue, TreeOwner};
+use syntax::{SyntaxKind, SyntaxValue, TreeOwner};
 use syntree::Builder as SyntreeBuilder;
 
 use crate::{ParseError, ParsedModule};
@@ -48,9 +48,7 @@ impl<'l, 's> Builder<'l, 's> {
 
     fn start(&mut self, kind: SyntaxKind) {
         if kind != SyntaxKind::Node {
-            self.builder
-                .open(SyntaxValue { kind, category: ElementCategory::Node })
-                .expect("syntax tree capacity exceeded");
+            self.builder.open(SyntaxValue::node(kind)).expect("syntax tree capacity exceeded");
         }
     }
 
@@ -60,10 +58,7 @@ impl<'l, 's> Builder<'l, 's> {
         {
             self.start(SyntaxKind::Annotation);
             self.builder
-                .token(
-                    SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token },
-                    annotation.len(),
-                )
+                .token(SyntaxValue::token(SyntaxKind::TEXT), annotation.len())
                 .expect("syntax tree capacity exceeded");
             self.finish();
         }
@@ -77,10 +72,7 @@ impl<'l, 's> Builder<'l, 's> {
         {
             self.start(SyntaxKind::Qualifier);
             self.builder
-                .token(
-                    SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token },
-                    qualifier.len(),
-                )
+                .token(SyntaxValue::token(SyntaxKind::TEXT), qualifier.len())
                 .expect("syntax tree capacity exceeded");
             self.finish();
         }
@@ -91,7 +83,7 @@ impl<'l, 's> Builder<'l, 's> {
     fn token(&mut self, kind: SyntaxKind) {
         if kind.is_layout_token() {
             self.builder
-                .token_empty(SyntaxValue { kind, category: ElementCategory::Token })
+                .token_empty(SyntaxValue::token(kind))
                 .expect("syntax tree capacity exceeded");
             return;
         }
@@ -107,7 +99,7 @@ impl<'l, 's> Builder<'l, 's> {
         if !matches!(kind, SyntaxKind::ERROR) {
             let text = self.lexed.text(self.index);
             self.builder
-                .token(SyntaxValue { kind, category: ElementCategory::Token }, text.len())
+                .token(SyntaxValue::token(kind), text.len())
                 .expect("syntax tree capacity exceeded");
         }
 
@@ -122,7 +114,7 @@ impl<'l, 's> Builder<'l, 's> {
         let position = self.lexed.position(self.index);
         let message = message.into();
         self.builder
-            .token_empty(SyntaxValue { kind: SyntaxKind::ERROR, category: ElementCategory::Token })
+            .token_empty(SyntaxValue::token(SyntaxKind::ERROR))
             .expect("syntax tree capacity exceeded");
         self.errors.push(ParseError { offset, position, message });
     }

@@ -20,6 +20,16 @@ pub struct SyntaxValue {
     pub category: ElementCategory,
 }
 
+impl SyntaxValue {
+    pub const fn node(kind: SyntaxKind) -> SyntaxValue {
+        SyntaxValue { kind, category: ElementCategory::Node }
+    }
+
+    pub const fn token(kind: SyntaxKind) -> SyntaxValue {
+        SyntaxValue { kind, category: ElementCategory::Token }
+    }
+}
+
 pub type Syntree = syntree::Tree<SyntaxValue, syntree::FlavorDefault>;
 
 /// Owns the textless syntax structure shared by syntax handles.
@@ -564,14 +574,13 @@ mod tests {
 
     fn root_with_boundary_tokens() -> SyntaxNode {
         let mut builder = syntree::Builder::new();
-        let root = SyntaxValue { kind: SyntaxKind::Module, category: ElementCategory::Node };
+        let root = SyntaxValue::node(SyntaxKind::Module);
         builder.open(root).unwrap();
-        let lower = SyntaxValue { kind: SyntaxKind::LOWER, category: ElementCategory::Token };
+        let lower = SyntaxValue::token(SyntaxKind::LOWER);
         builder.token(lower, 1).unwrap();
-        let separator =
-            SyntaxValue { kind: SyntaxKind::LAYOUT_SEPARATOR, category: ElementCategory::Token };
+        let separator = SyntaxValue::token(SyntaxKind::LAYOUT_SEPARATOR);
         builder.token_empty(separator).unwrap();
-        let upper = SyntaxValue { kind: SyntaxKind::UPPER, category: ElementCategory::Token };
+        let upper = SyntaxValue::token(SyntaxKind::UPPER);
         builder.token(upper, 2).unwrap();
         builder.close().unwrap();
 

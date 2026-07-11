@@ -109,17 +109,15 @@ fn arena_hasher(arena: &[SyntaxNodePtr], id: NonZeroU32) -> u64 {
 #[cfg(test)]
 mod tests {
     use syntax::ast::AstPtr;
-    use syntax::{
-        ElementCategory, SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxValue, TreeOwner, cst,
-    };
+    use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxValue, TreeOwner, cst};
 
     use super::StabilizedModule;
 
     fn annotation(text_length: usize) -> SyntaxNode {
         let mut builder = syntree::Builder::new();
-        let node = SyntaxValue { kind: SyntaxKind::Annotation, category: ElementCategory::Node };
+        let node = SyntaxValue::node(SyntaxKind::Annotation);
         builder.open(node).unwrap();
-        let token = SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token };
+        let token = SyntaxValue::token(SyntaxKind::TEXT);
         builder.token(token, text_length).unwrap();
         builder.close().unwrap();
         let owner = TreeOwner::new(builder.build().unwrap());
