@@ -1,4 +1,4 @@
-use rowan::TextSize;
+use syntax::TextSize;
 
 use crate::position::{Utf8Position, utf8_position_to_offset};
 
@@ -66,7 +66,7 @@ fn last_on_crlf_line_clamp() {
 }
 
 mod text_range_to_range {
-    use rowan::{TextRange, TextSize};
+    use syntax::{TextRange, TextSize};
 
     use crate::position::{text_range_to_utf8_range, utf8_position_to_offset};
 

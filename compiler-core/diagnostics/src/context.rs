@@ -6,10 +6,9 @@ use checking::core::pretty::Pretty;
 use checking::error::ErrorCrumb;
 use indexing::IndexedModule;
 use lowering::LoweredModule;
-use rowan::ast::{AstNode, AstPtr};
-use rowan::{NodeOrToken, TextRange};
 use stabilizing::StabilizedModule;
-use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr, TextRange};
 
 use crate::Span;
 
@@ -28,8 +27,8 @@ where
 
 fn is_trivia(element: &SyntaxElement) -> bool {
     match element {
-        NodeOrToken::Node(node) => matches!(node.kind(), SyntaxKind::Annotation),
-        NodeOrToken::Token(token) => {
+        SyntaxElement::Node(node) => matches!(node.kind(), SyntaxKind::Annotation),
+        SyntaxElement::Token(token) => {
             token.text_range().is_empty()
                 || matches!(token.kind(), SyntaxKind::LAYOUT_SEPARATOR | SyntaxKind::ELSE)
         }
@@ -42,8 +41,8 @@ fn first_significant_range(node: &SyntaxNode) -> Option<TextRange> {
             continue;
         }
         match child {
-            NodeOrToken::Token(token) => return Some(token.text_range()),
-            NodeOrToken::Node(node) => {
+            SyntaxElement::Token(token) => return Some(token.text_range()),
+            SyntaxElement::Node(node) => {
                 if let Some(range) = first_significant_range(&node) {
                     return Some(range);
                 }
@@ -60,8 +59,8 @@ fn last_significant_range(node: &SyntaxNode) -> Option<TextRange> {
             continue;
         }
         match child {
-            NodeOrToken::Token(token) => significant = Some(token.text_range()),
-            NodeOrToken::Node(node) => {
+            SyntaxElement::Token(token) => significant = Some(token.text_range()),
+            SyntaxElement::Node(node) => {
                 if let Some(range) = last_significant_range(&node) {
                     significant = Some(range);
                 }
@@ -142,10 +141,7 @@ where
         self.span_from_syntax_node(&node)
     }
 
-    pub fn span_from_ast_ptr<N: AstNode<Language = syntax::PureScript>>(
-        &self,
-        ptr: &AstPtr<N>,
-    ) -> Option<Span> {
+    pub fn span_from_ast_ptr<N: AstNode>(&self, ptr: &AstPtr<N>) -> Option<Span> {
         let node = ptr.try_to_node(self.root)?;
         self.span_from_syntax_node(node.syntax())
     }

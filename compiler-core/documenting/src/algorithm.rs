@@ -13,14 +13,15 @@ pub struct State {
 }
 
 pub fn document_module(
+    source: &str,
     parsed: &ParsedModule,
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
 ) -> State {
     let root = parsed.syntax_node();
 
-    let annotations = annotation::AnnotationIndex::new(&root);
-    let documentation = annotation::module_documentation(parsed);
+    let annotations = annotation::AnnotationIndex::new(source, &root);
+    let documentation = annotation::module_documentation(source, parsed);
 
     let terms = indexed.items.iter_terms().map(|(id, item)| {
         let documentation = annotation::term_documentation(stabilized, &annotations, item);

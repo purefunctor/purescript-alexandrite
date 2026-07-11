@@ -307,8 +307,12 @@ impl IndexedPairs {
     }
 }
 
-pub fn index_module(cst: &cst::Module, stabilized: &StabilizedModule) -> IndexedModule {
+pub fn index_module(
+    source: &str,
+    cst: &cst::Module,
+    stabilized: &StabilizedModule,
+) -> IndexedModule {
     let algorithm::State { kind, names, exports, items, imports, pairs, errors, .. } =
-        algorithm::index_module(cst, stabilized);
+        algorithm::index_module(source, cst, stabilized);
     IndexedModule { kind, names, exports, items, imports, pairs, errors }
 }

@@ -2,15 +2,14 @@ use std::marker::PhantomData;
 use std::num::NonZeroU32;
 use std::{any, fmt, hash};
 
-use rowan::ast::{AstNode, AstPtr};
-use syntax::PureScript;
+use syntax::ast::{AstNode, AstPtr};
 
-pub struct AstId<N: AstNode<Language = PureScript>> {
+pub struct AstId<N: AstNode> {
     pub(crate) id: NonZeroU32,
     phantom: PhantomData<fn() -> AstPtr<N>>,
 }
 
-impl<N: AstNode<Language = PureScript>> AstId<N> {
+impl<N: AstNode> AstId<N> {
     pub const fn new(id: NonZeroU32) -> AstId<N> {
         AstId { id, phantom: PhantomData }
     }
@@ -20,41 +19,41 @@ impl<N: AstNode<Language = PureScript>> AstId<N> {
     }
 }
 
-impl<N: AstNode<Language = PureScript>> fmt::Debug for AstId<N> {
+impl<N: AstNode> fmt::Debug for AstId<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("AstId<{}>({})", any::type_name::<N>(), self.id))
     }
 }
 
-impl<N: AstNode<Language = PureScript>> Clone for AstId<N> {
+impl<N: AstNode> Clone for AstId<N> {
     fn clone(&self) -> AstId<N> {
         *self
     }
 }
 
-impl<N: AstNode<Language = PureScript>> Copy for AstId<N> {}
+impl<N: AstNode> Copy for AstId<N> {}
 
-impl<N: AstNode<Language = PureScript>> PartialEq for AstId<N> {
+impl<N: AstNode> PartialEq for AstId<N> {
     fn eq(&self, other: &AstId<N>) -> bool {
         self.id == other.id
     }
 }
 
-impl<N: AstNode<Language = PureScript>> Eq for AstId<N> {}
+impl<N: AstNode> Eq for AstId<N> {}
 
-impl<N: AstNode<Language = PureScript>> PartialOrd for AstId<N> {
+impl<N: AstNode> PartialOrd for AstId<N> {
     fn partial_cmp(&self, other: &AstId<N>) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<N: AstNode<Language = PureScript>> Ord for AstId<N> {
+impl<N: AstNode> Ord for AstId<N> {
     fn cmp(&self, other: &AstId<N>) -> std::cmp::Ordering {
         self.id.cmp(&other.id)
     }
 }
 
-impl<N: AstNode<Language = PureScript>> hash::Hash for AstId<N> {
+impl<N: AstNode> hash::Hash for AstId<N> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }

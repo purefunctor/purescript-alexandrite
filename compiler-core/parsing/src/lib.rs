@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use lexing::{Lexed, Position};
-use rowan::GreenNode;
-use rowan::ast::AstNode;
 use smol_str::{SmolStr, ToSmolStr};
-use syntax::{SyntaxKind, SyntaxNode, cst};
+use syntax::ast::AstNode;
+use syntax::{SyntaxKind, SyntaxNode, TreeOwner, cst};
 
 mod builder;
 mod parser;
@@ -18,17 +17,16 @@ pub struct ParseError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedModule {
-    node: GreenNode,
+    owner: Arc<TreeOwner>,
 }
 
 impl ParsedModule {
-    pub(crate) fn new(node: GreenNode) -> ParsedModule {
-        ParsedModule { node }
+    pub(crate) fn new(owner: Arc<TreeOwner>) -> ParsedModule {
+        ParsedModule { owner }
     }
 
     pub fn syntax_node(&self) -> SyntaxNode {
-        let node = self.node.clone();
-        SyntaxNode::new_root(node)
+        SyntaxNode::new_root(self.owner.clone())
     }
 
     pub fn cst(&self) -> cst::Module {
@@ -36,8 +34,8 @@ impl ParsedModule {
         cst::Module::cast(node).expect("invariant violated: expected cst::Module")
     }
 
-    pub fn module_name(&self) -> Option<SmolStr> {
-        Some(self.cst().header()?.name()?.syntax().text().to_smolstr())
+    pub fn module_name(&self, source: &str) -> Option<SmolStr> {
+        Some(self.cst().header()?.name()?.syntax().text(source).to_smolstr())
     }
 }
 

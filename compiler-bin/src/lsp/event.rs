@@ -4,7 +4,7 @@ use async_lsp::lsp_types::*;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
 use files::FileId;
 use itertools::Itertools;
-use rowan::TextSize;
+use syntax::TextSize;
 
 use crate::lsp::error::LspError;
 use crate::lsp::{State, StateSnapshot};

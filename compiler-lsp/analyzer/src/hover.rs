@@ -5,10 +5,9 @@ use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
-use rowan::TextRange;
-use rowan::ast::{AstNode, AstPtr};
 use smol_str::ToSmolStr;
-use syntax::{SyntaxNode, cst};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::{TextRange, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::{AnalyzerError, LanguageContext, extract, locate, position};
@@ -66,18 +65,20 @@ fn hover_module_name(
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
     let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
 
-    let module_name = module_name.syntax().text().to_smolstr();
+    let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
-    let (root, range) = AnnotationSyntaxRange::of_file(engine, module_id)?;
+    let content = engine.content(module_id);
+    let range = AnnotationSyntaxRange::of_file(engine, module_id)?;
 
-    let annotation = range.annotation.and_then(|range| render_annotation(&root, range));
-    let syntax = range.syntax.and_then(|range| render_syntax(&root, range));
+    let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
+    let syntax = range.syntax.and_then(|range| render_syntax(&content, range));
 
     let array = [syntax, annotation].into_iter().flatten().collect_vec();
     let contents = HoverContents::Array(array);
@@ -91,6 +92,7 @@ fn hover_import(
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -103,8 +105,12 @@ fn hover_import(
         .ancestors()
         .find_map(cst::ImportStatement::cast)
         .ok_or(AnalyzerError::NonFatal)?;
-    let module_name =
-        statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().text().to_smolstr();
+    let module_name = statement
+        .module_name()
+        .ok_or(AnalyzerError::NonFatal)?
+        .syntax()
+        .text(&content)
+        .to_smolstr();
 
     let import_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
     let import_resolved = engine.resolved(import_id)?;
@@ -139,27 +145,27 @@ fn hover_import(
     match node {
         cst::ImportItem::ImportValue(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             hover_term_import(engine, name)
         }
         cst::ImportItem::ImportClass(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             hover_class_import(engine, name)
         }
         cst::ImportItem::ImportType(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             hover_type_import(engine, name)
         }
         cst::ImportItem::ImportOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             hover_term_import(engine, name)
         }
         cst::ImportItem::ImportTypeOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             hover_type_import(engine, name)
         }
     }
@@ -292,11 +298,12 @@ fn hover_file_term(
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(file_id);
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
-    let (root, range) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id)?;
-    let annotation = range.annotation.and_then(|range| render_annotation(&root, range));
+    let range = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id)?;
+    let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
@@ -320,11 +327,12 @@ fn hover_file_type(
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(file_id);
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
-    let (root, range) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id)?;
-    let annotation = range.annotation.and_then(|range| render_annotation(&root, range));
+    let range = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id)?;
+    let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
@@ -343,13 +351,13 @@ fn hover_file_type(
     Ok(Some(Hover { contents, range }))
 }
 
-fn render_annotation(root: &SyntaxNode, range: TextRange) -> Option<MarkedString> {
-    let cleaned = extract::extract_annotation(root, range);
+fn render_annotation(source: &str, range: TextRange) -> Option<MarkedString> {
+    let cleaned = extract::extract_annotation(source, range);
     if cleaned.is_empty() { None } else { Some(MarkedString::String(cleaned)) }
 }
 
-fn render_syntax(root: &SyntaxNode, range: TextRange) -> Option<MarkedString> {
-    let value = extract::extract_syntax(root, range);
+fn render_syntax(source: &str, range: TextRange) -> Option<MarkedString> {
+    let value = extract::extract_syntax(source, range);
     let string = LanguageString { language: "purescript".to_string(), value };
     Some(MarkedString::LanguageString(string))
 }

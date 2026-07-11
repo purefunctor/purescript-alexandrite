@@ -1,8 +1,7 @@
-use rowan::ast::AstNode;
-use rowan::{NodeOrToken, WalkEvent};
 use rustc_hash::FxHashMap;
 use stabilizing::StabilizedModule;
-use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr};
+use syntax::ast::AstNode;
+use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr, WalkEvent};
 
 use indexing::{DataConstructorId, TermItem, TermItemKind, TypeItem, TypeItemKind};
 use parsing::ParsedModule;
@@ -14,7 +13,7 @@ pub struct AnnotationIndex {
 }
 
 impl AnnotationIndex {
-    pub fn new(root: &SyntaxNode) -> AnnotationIndex {
+    pub fn new(source: &str, root: &SyntaxNode) -> AnnotationIndex {
         let mut documentation = FxHashMap::default();
         let mut constructors = FxHashMap::default();
 
@@ -22,12 +21,12 @@ impl AnnotationIndex {
             let WalkEvent::Enter(node) = event else { continue };
             let ptr = SyntaxNodePtr::new(&node);
 
-            if let Some(text) = first_child_documentation(&node) {
+            if let Some(text) = first_child_documentation(source, &node) {
                 documentation.insert(ptr, text);
             }
 
             if matches!(node.kind(), SyntaxKind::DataConstructor)
-                && let Some(text) = data_constructor_documentation(&node)
+                && let Some(text) = data_constructor_documentation(source, &node)
             {
                 constructors.insert(ptr, text);
             }
@@ -45,12 +44,12 @@ impl AnnotationIndex {
     }
 }
 
-pub fn module_documentation(parsed: &ParsedModule) -> String {
+pub fn module_documentation(source: &str, parsed: &ParsedModule) -> String {
     parsed
         .cst()
         .header()
         .and_then(|header| header.annotation())
-        .and_then(|annotation| annotation_documentation(annotation.syntax()))
+        .and_then(|annotation| annotation_documentation(source, annotation.syntax()))
         .unwrap_or_default()
 }
 
@@ -119,8 +118,8 @@ fn signature_equation_documentation<S, E>(
     equation: &Option<AstId<E>>,
 ) -> String
 where
-    S: AstNode<Language = syntax::PureScript>,
-    E: AstNode<Language = syntax::PureScript>,
+    S: AstNode,
+    E: AstNode,
 {
     if let Some(id) = signature
         && let Some(ptr) = stabilized.syntax_ptr(*id)
@@ -151,8 +150,8 @@ fn data_constructor_item_documentation(
         .unwrap_or_default()
 }
 
-fn data_constructor_documentation(node: &SyntaxNode) -> Option<String> {
-    if let Some(documentation) = first_child_documentation(node) {
+fn data_constructor_documentation(source: &str, node: &SyntaxNode) -> Option<String> {
+    if let Some(documentation) = first_child_documentation(source, node) {
         return Some(documentation);
     }
 
@@ -161,27 +160,30 @@ fn data_constructor_documentation(node: &SyntaxNode) -> Option<String> {
         return None;
     }
 
-    let annotation = separator.prev_sibling_or_token()?;
+    let annotation = match separator {
+        SyntaxElement::Node(node) => node.prev_sibling_or_token()?,
+        SyntaxElement::Token(token) => token.prev_sibling_or_token()?,
+    };
     match annotation {
-        NodeOrToken::Node(node) => annotation_documentation(&node),
-        NodeOrToken::Token(_) => None,
+        SyntaxElement::Node(node) => annotation_documentation(source, &node),
+        SyntaxElement::Token(_) => None,
     }
 }
 
-fn first_child_documentation(node: &SyntaxNode) -> Option<String> {
+fn first_child_documentation(source: &str, node: &SyntaxNode) -> Option<String> {
     let first_child = node.children_with_tokens().next()?;
     match first_child {
-        NodeOrToken::Node(node) => annotation_documentation(&node),
-        NodeOrToken::Token(_) => None,
+        SyntaxElement::Node(node) => annotation_documentation(source, &node),
+        SyntaxElement::Token(_) => None,
     }
 }
 
-fn annotation_documentation(node: &SyntaxNode) -> Option<String> {
+fn annotation_documentation(source: &str, node: &SyntaxNode) -> Option<String> {
     if !matches!(node.kind(), SyntaxKind::Annotation) {
         return None;
     }
 
-    let text = node.first_token()?.text().to_owned();
+    let text = node.first_token()?.text(source).to_owned();
     extract_annotation(&text)
 }
 
@@ -238,8 +240,8 @@ value = 1
         let cst = parsed.cst();
 
         let stabilized = stabilizing::stabilize_module(&root);
-        let indexed = indexing::index_module(&cst, &stabilized);
-        let annotations = AnnotationIndex::new(&root);
+        let indexed = indexing::index_module(source, &cst, &stabilized);
+        let annotations = AnnotationIndex::new(source, &root);
 
         let id = indexed.names.terms.lookup("value").unwrap();
         let item = &indexed.items[id];
@@ -269,8 +271,8 @@ data Maybe a
         let cst = parsed.cst();
 
         let stabilized = stabilizing::stabilize_module(&root);
-        let indexed = indexing::index_module(&cst, &stabilized);
-        let annotations = AnnotationIndex::new(&root);
+        let indexed = indexing::index_module(source, &cst, &stabilized);
+        let annotations = AnnotationIndex::new(source, &root);
 
         let documentation = indexed.items.iter_terms().filter_map(|(_, item)| {
             if !matches!(item.kind, TermItemKind::Constructor { .. }) {

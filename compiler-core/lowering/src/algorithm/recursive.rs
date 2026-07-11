@@ -3,18 +3,18 @@ use std::sync::Arc;
 
 use itertools::{Itertools, Position};
 use petgraph::algo::tarjan_scc;
-use rowan::ast::AstNode;
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, StrExt};
 use stabilizing::ExpectId;
+use syntax::ast::AstNode;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxToken, cst};
 
 use crate::*;
 
 use super::{Context, State};
 
-fn string_text(token: SyntaxToken) -> SmolStr {
-    let text = token.text();
+fn string_text(source: &str, token: SyntaxToken) -> SmolStr {
+    let text = token.text(source);
     string_text_from_token_text(text)
 }
 
@@ -27,13 +27,14 @@ fn string_text_from_token_text(original: &str) -> SmolStr {
 }
 
 fn string_literal(
+    source: &str,
     string: Option<SyntaxToken>,
     raw_string: Option<SyntaxToken>,
 ) -> (StringKind, Option<SmolStr>) {
     if let Some(value) = string {
-        (StringKind::String, Some(string_text(value)))
+        (StringKind::String, Some(string_text(source, value)))
     } else if let Some(value) = raw_string {
-        (StringKind::RawString, Some(string_text(value)))
+        (StringKind::RawString, Some(string_text(source, value)))
     } else {
         (StringKind::String, None)
     }
@@ -111,19 +112,20 @@ fn lower_binder_kind(
             BinderKind::OperatorChain { head, tail }
         }
         cst::Binder::BinderInteger(cst) => {
-            let value = cst
-                .integer_token()
-                .and_then(|token| integer_literal(token.text(), cst.minus_token().is_some()));
+            let value = cst.integer_token().and_then(|token| {
+                integer_literal(token.text(context.source), cst.minus_token().is_some())
+            });
             BinderKind::Integer { value }
         }
         cst::Binder::BinderNumber(cst) => {
             let negative = cst.minus_token().is_some();
-            let value = cst.number_token().map(|token| SmolStr::from(token.text()));
+            let value = cst.number_token().map(|token| SmolStr::from(token.text(context.source)));
             BinderKind::Number { negative, value }
         }
         cst::Binder::BinderConstructor(cst) => {
             let resolution = cst.name().and_then(|cst| {
-                let (qualifier, name) = lower_qualified_name(&cst, cst::QualifiedName::upper)?;
+                let (qualifier, name) =
+                    lower_qualified_name(context.source, &cst, cst::QualifiedName::upper)?;
                 state.resolve_term_reference(context, qualifier.as_deref(), &name)
             });
             let arguments = cst.children().map(|cst| lower_binder(state, context, &cst)).collect();
@@ -131,7 +133,7 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderVariable(cst) => {
             let variable = cst.name_token().map(|cst| {
-                let text = cst.text();
+                let text = cst.text(context.source);
                 SmolStr::from(text)
             });
             if let Some(name) = &variable {
@@ -141,7 +143,7 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderNamed(cst) => {
             let named = cst.name_token().map(|cst| {
-                let text = cst.text();
+                let text = cst.text(context.source);
                 SmolStr::from(text)
             });
             if let Some(name) = &named {
@@ -152,11 +154,11 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderWildcard(_) => BinderKind::Wildcard,
         cst::Binder::BinderString(cst) => {
-            let (kind, value) = string_literal(cst.string(), cst.raw_string());
+            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
             BinderKind::String { kind, value }
         }
         cst::Binder::BinderChar(cst) => {
-            let value = cst.char_token().and_then(|token| char_literal(token.text()));
+            let value = cst.char_token().and_then(|token| char_literal(token.text(context.source)));
             BinderKind::Char { value }
         }
         cst::Binder::BinderTrue(_) => BinderKind::Boolean { boolean: true },
@@ -170,7 +172,7 @@ fn lower_binder_kind(
                 cst::RecordItem::RecordField(cst) => {
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(token))
+                        Some(string_text(context.source, token))
                     });
                     let value = cst.binder().map(|cst| lower_binder(state, context, &cst));
                     BinderRecordItem::RecordField { name, value }
@@ -180,7 +182,7 @@ fn lower_binder_kind(
 
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(token))
+                        Some(string_text(context.source, token))
                     });
 
                     if let Some(name) = &name {
@@ -351,7 +353,7 @@ fn lower_expression_kind(
         cst::Expression::ExpressionDo(cst) => state.with_scope(|state| {
             let qualifier = cst.qualifier().and_then(|cst| {
                 let token = cst.text()?;
-                let text = token.text().trim_end_matches('.');
+                let text = token.text(context.source).trim_end_matches('.');
                 Some(SmolStr::from(text))
             });
 
@@ -402,7 +404,7 @@ fn lower_expression_kind(
         cst::Expression::ExpressionAdo(cst) => state.with_scope(|state| {
             let qualifier = cst.qualifier().and_then(|cst| {
                 let token = cst.text()?;
-                let text = token.text().trim_end_matches('.');
+                let text = token.text(context.source).trim_end_matches('.');
                 Some(SmolStr::from(text))
             });
 
@@ -461,7 +463,8 @@ fn lower_expression_kind(
         }),
         cst::Expression::ExpressionConstructor(cst) => {
             let resolution = cst.name().and_then(|cst| {
-                let (qualifier, name) = lower_qualified_name(&cst, cst::QualifiedName::upper)?;
+                let (qualifier, name) =
+                    lower_qualified_name(context.source, &cst, cst::QualifiedName::upper)?;
                 state.resolve_term_reference(context, qualifier.as_deref(), &name)
             });
             if resolution.is_none() {
@@ -472,7 +475,8 @@ fn lower_expression_kind(
         }
         cst::Expression::ExpressionVariable(cst) => {
             let resolution = cst.name().and_then(|cst| {
-                let (qualifier, name) = lower_qualified_name(&cst, cst::QualifiedName::lower)?;
+                let (qualifier, name) =
+                    lower_qualified_name(context.source, &cst, cst::QualifiedName::lower)?;
                 state.resolve_term_full(context, qualifier.as_deref(), name.as_str())
             });
             if resolution.is_none() {
@@ -484,7 +488,7 @@ fn lower_expression_kind(
         cst::Expression::ExpressionOperatorName(cst) => {
             let resolution = cst.name().and_then(|cst| {
                 let (qualifier, name) =
-                    lower_qualified_name(&cst, cst::QualifiedName::operator_name)?;
+                    lower_qualified_name(context.source, &cst, cst::QualifiedName::operator_name)?;
                 state.resolve_term_reference(context, qualifier.as_deref(), &name)
             });
             if resolution.is_none() {
@@ -498,24 +502,24 @@ fn lower_expression_kind(
         cst::Expression::ExpressionString(cst) => {
             let string = child_token(cst.syntax(), SyntaxKind::STRING);
             let raw_string = child_token(cst.syntax(), SyntaxKind::RAW_STRING);
-            let (kind, value) = string_literal(string, raw_string);
+            let (kind, value) = string_literal(context.source, string, raw_string);
             ExpressionKind::String { kind, value }
         }
         cst::Expression::ExpressionChar(cst) => {
             let value = child_token(cst.syntax(), SyntaxKind::CHAR)
-                .and_then(|token| char_literal(token.text()));
+                .and_then(|token| char_literal(token.text(context.source)));
             ExpressionKind::Char { value }
         }
         cst::Expression::ExpressionTrue(_) => ExpressionKind::Boolean { boolean: true },
         cst::Expression::ExpressionFalse(_) => ExpressionKind::Boolean { boolean: false },
         cst::Expression::ExpressionInteger(cst) => {
             let value = child_token(cst.syntax(), SyntaxKind::INTEGER)
-                .and_then(|token| integer_literal(token.text(), false));
+                .and_then(|token| integer_literal(token.text(context.source), false));
             ExpressionKind::Integer { value }
         }
         cst::Expression::ExpressionNumber(cst) => {
             let value = child_token(cst.syntax(), SyntaxKind::NUMBER)
-                .map(|token| SmolStr::from(token.text()));
+                .map(|token| SmolStr::from(token.text(context.source)));
             ExpressionKind::Number { value }
         }
         cst::Expression::ExpressionArray(cst) => {
@@ -527,7 +531,7 @@ fn lower_expression_kind(
                 cst::RecordItem::RecordField(cst) => {
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(token))
+                        Some(string_text(context.source, token))
                     });
                     let value = cst.expression().map(|cst| lower_expression(state, context, &cst));
                     ExpressionRecordItem::RecordField { name, value }
@@ -537,7 +541,7 @@ fn lower_expression_kind(
 
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(token))
+                        Some(string_text(context.source, token))
                     });
                     let resolution = name.as_ref().and_then(|name| {
                         let qualifier: Option<&str> = None;
@@ -561,7 +565,7 @@ fn lower_expression_kind(
                 .children()
                 .map(|cst| {
                     let token = cst.text()?;
-                    Some(string_text(token))
+                    Some(string_text(context.source, token))
                 })
                 .collect();
             ExpressionKind::RecordAccess { record, labels }
@@ -713,11 +717,11 @@ fn lower_equation_chunk(
             unreachable!("invariant violated: expected LetBindingSignature / LetBindingEquation");
         }
         cst::LetBinding::LetBindingSignature(cst) => cst.name_token().map(|cst| {
-            let text = cst.text();
+            let text = cst.text(context.source);
             SmolStr::from(text)
         }),
         cst::LetBinding::LetBindingEquation(cst) => cst.name_token().map(|cst| {
-            let text = cst.text();
+            let text = cst.text(context.source);
             SmolStr::from(text)
         }),
     });
@@ -929,7 +933,7 @@ fn lower_record_updates(
             cst::RecordUpdate::RecordUpdateLeaf(cst) => {
                 let name = cst.name().and_then(|cst| {
                     let token = cst.text()?;
-                    Some(string_text(token))
+                    Some(string_text(context.source, token))
                 });
                 let expression = cst.expression().map(|cst| lower_expression(state, context, &cst));
                 RecordUpdate::Leaf { name, expression }
@@ -937,7 +941,7 @@ fn lower_record_updates(
             cst::RecordUpdate::RecordUpdateBranch(cst) => {
                 let name = cst.name().and_then(|cst| {
                     let token = cst.text()?;
-                    Some(string_text(token))
+                    Some(string_text(context.source, token))
                 });
                 let updates =
                     recover! { lower_record_updates(state, context, &cst.record_updates()?) };
@@ -985,7 +989,8 @@ fn lower_type_kind(
         }
         cst::Type::TypeConstructor(cst) => {
             let resolution = cst.name().and_then(|cst| {
-                let (qualifier, name) = lower_qualified_name(&cst, cst::QualifiedName::upper)?;
+                let (qualifier, name) =
+                    lower_qualified_name(context.source, &cst, cst::QualifiedName::upper)?;
                 if state.in_constraint {
                     state.resolve_class_reference(context, qualifier.as_deref(), &name).or_else(
                         || state.resolve_type_reference(context, qualifier.as_deref(), &name),
@@ -1012,9 +1017,9 @@ fn lower_type_kind(
         }),
         cst::Type::TypeHole(_) => TypeKind::Hole,
         cst::Type::TypeInteger(cst) => {
-            let value = cst
-                .integer_token()
-                .and_then(|token| integer_literal(token.text(), cst.minus_token().is_some()));
+            let value = cst.integer_token().and_then(|token| {
+                integer_literal(token.text(context.source), cst.minus_token().is_some())
+            });
             TypeKind::Integer { value }
         }
         cst::Type::TypeKinded(cst) => {
@@ -1024,9 +1029,9 @@ fn lower_type_kind(
             TypeKind::Kinded { type_, kind }
         }
         cst::Type::TypeOperatorName(cst) => {
-            let qualified = cst
-                .name()
-                .and_then(|cst| lower_qualified_name(&cst, cst::QualifiedName::operator_name));
+            let qualified = cst.name().and_then(|cst| {
+                lower_qualified_name(context.source, &cst, cst::QualifiedName::operator_name)
+            });
 
             const FUNCTION_ARROW: &str = "->";
 
@@ -1077,16 +1082,16 @@ fn lower_type_kind(
             TypeKind::OperatorChain { head, tail }
         }
         cst::Type::TypeString(cst) => {
-            let (kind, value) = string_literal(cst.string(), cst.raw_string());
+            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
             TypeKind::String { kind, value }
         }
         cst::Type::TypeVariable(cst) => {
             let name = cst.name_token().map(|cst| {
-                let text = cst.text();
+                let text = cst.text(context.source);
                 SmolStr::from(text)
             });
             let resolution = cst.name_token().and_then(|cst| {
-                let text = cst.text();
+                let text = cst.text(context.source);
                 state.resolve_type_variable(id, text)
             });
             if resolution.is_none() {
@@ -1146,20 +1151,9 @@ fn lower_term_operator(
     cst: &cst::TermOperator,
 ) -> Option<TermOperatorId> {
     let id = context.stabilized.lookup_cst(cst).expect_id();
-
-    let (qualifier, name) = cst.qualified().and_then(|cst| {
-        let qualifier = cst.qualifier().and_then(|cst| {
-            let token = cst.text()?;
-            let text = token.text().trim_end_matches('.');
-            Some(SmolStr::from(text))
-        });
-
-        let token = cst.operator()?;
-        let text = token.text().trim_start_matches('(').trim_end_matches(')');
-        let name = SmolStr::from(text);
-
-        Some((qualifier, name))
-    })?;
+    let (qualifier, name) = cst
+        .qualified()
+        .and_then(|cst| lower_qualified_name(context.source, &cst, cst::QualifiedName::operator))?;
 
     let Some((file_id, term_id)) =
         state.resolve_term_reference(context, qualifier.as_deref(), &name)
@@ -1180,8 +1174,9 @@ fn lower_type_operator(
     cst: &cst::TypeOperator,
 ) -> Option<TypeOperatorId> {
     let id = context.stabilized.lookup_cst(cst).expect_id();
-    let (qualifier, name) =
-        cst.qualified().and_then(|cst| lower_qualified_name(&cst, cst::QualifiedName::operator))?;
+    let (qualifier, name) = cst
+        .qualified()
+        .and_then(|cst| lower_qualified_name(context.source, &cst, cst::QualifiedName::operator))?;
 
     let Some((file_id, type_id)) =
         state.resolve_type_reference(context, qualifier.as_deref(), &name)
@@ -1197,17 +1192,18 @@ fn lower_type_operator(
 }
 
 pub(crate) fn lower_qualified_name(
+    source: &str,
     cst: &cst::QualifiedName,
     token: impl Fn(&cst::QualifiedName) -> Option<SyntaxToken>,
 ) -> Option<(Option<SmolStr>, SmolStr)> {
     let qualifier = cst.qualifier().and_then(|cst| {
         let token = cst.text()?;
-        let text = token.text().trim_end_matches('.');
+        let text = token.text(source).trim_end_matches('.');
         Some(SmolStr::from(text))
     });
 
     let token = token(cst)?;
-    let text = token.text().trim_start_matches('(').trim_end_matches(')');
+    let text = token.text(source).trim_start_matches('(').trim_end_matches(')');
     let name = SmolStr::from(text);
 
     Some((qualifier, name))
@@ -1222,7 +1218,7 @@ pub(crate) fn lower_type_variable_binding(
     let id = context.stabilized.lookup_cst(cst).expect_id();
     let visible = cst.at().is_some() || default_visible;
     let name = cst.name().map(|cst| {
-        let text = cst.text();
+        let text = cst.text(context.source);
         SmolStr::from(text)
     });
     let kind = cst.kind().map(|cst| lower_type(state, context, &cst));
@@ -1235,7 +1231,7 @@ pub(crate) fn lower_type_variable_binding(
 fn lower_row_item(state: &mut State, context: &Context, cst: &cst::TypeRowItem) -> TypeRowItem {
     let name = cst.name().and_then(|cst| {
         let token = cst.text()?;
-        Some(string_text(token))
+        Some(string_text(context.source, token))
     });
     let type_ = cst.type_().map(|t| lower_type(state, context, &t));
     TypeRowItem { name, type_ }

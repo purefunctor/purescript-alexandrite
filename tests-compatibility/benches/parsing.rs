@@ -1,39 +1,12 @@
-use std::fs;
 use std::hint::black_box;
 use std::sync::Arc;
 
-use criterion::{Criterion, Throughput, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, Throughput, criterion_group, criterion_main};
 use rayon::prelude::*;
-use tests_compatibility::all_source_files;
-use walkdir::WalkDir;
-
-fn source_files() -> (&'static str, Arc<[String]>) {
-    let mut paths = all_source_files();
-    let corpus = if paths.is_empty() {
-        let fixtures = concat!(env!("CARGO_MANIFEST_DIR"), "/../tests-integration/fixtures");
-        paths.extend(WalkDir::new(fixtures).into_iter().filter_map(|entry| {
-            let path = entry.expect("failed to walk integration fixture corpus").into_path();
-            (path.extension().is_some_and(|extension| extension == "purs")).then_some(path)
-        }));
-        "integration-fixtures"
-    } else {
-        "compatibility-cache"
-    };
-
-    let files: Arc<[_]> = paths
-        .iter()
-        .map(|path| {
-            fs::read_to_string(path)
-                .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
-        })
-        .collect();
-    assert!(!files.is_empty(), "benchmark corpus is empty");
-
-    (corpus, files)
-}
+use tests_compatibility::benchmark_sources;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let (corpus, files) = source_files();
+    let (corpus, files) = benchmark_sources();
     let bytes = files.iter().map(String::len).sum::<usize>() as u64;
     assert!(bytes > 0, "benchmark corpus contains no source text");
     let lexed: Arc<[_]> = files.iter().map(|file| lexing::lex(file)).collect();
@@ -65,6 +38,20 @@ fn criterion_benchmark(c: &mut Criterion) {
                 black_box(parsing::parse(black_box(lexed), black_box(tokens)));
             });
         })
+    });
+
+    g.bench_function("parse-prelexed-retained-single-core", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                lexed
+                    .iter()
+                    .zip(tokens.iter())
+                    .map(|(lexed, tokens)| parsing::parse(black_box(lexed), black_box(tokens)))
+                    .collect::<Vec<_>>()
+            },
+            BatchSize::PerIteration,
+        )
     });
 
     let files = Arc::clone(&files);

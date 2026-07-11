@@ -693,11 +693,12 @@ impl QueryEngine {
             id,
             |derived| &derived.indexed,
             |this| {
+                let content = this.content(id);
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
 
                 let module = parsed.cst();
-                let indexed = indexing::index_module(&module, &stabilized);
+                let indexed = indexing::index_module(&content, &module, &stabilized);
 
                 Ok(Arc::new(indexed))
             },
@@ -710,6 +711,7 @@ impl QueryEngine {
             id,
             |derived| &derived.lowered,
             |this| {
+                let content = this.content(id);
                 let (parsed, _) = this.parsed(id)?;
 
                 let prim = {
@@ -722,8 +724,15 @@ impl QueryEngine {
                 let resolved = this.resolved(id)?;
 
                 let module = parsed.cst();
-                let lowered =
-                    lowering::lower_module(id, &module, &prim, &stabilized, &indexed, &resolved);
+                let lowered = lowering::lower_module(
+                    id,
+                    &content,
+                    &module,
+                    &prim,
+                    &stabilized,
+                    &indexed,
+                    &resolved,
+                );
 
                 Ok(Arc::new(lowered))
             },
@@ -800,10 +809,11 @@ impl QueryEngine {
             id,
             |derived| &derived.documented,
             |this| {
+                let content = this.content(id);
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
                 let indexed = this.indexed(id)?;
-                Ok(documenting::document_module(&parsed, &stabilized, &indexed))
+                Ok(documenting::document_module(&content, &parsed, &stabilized, &indexed))
             },
         )
     }
@@ -1008,6 +1018,84 @@ mod tests {
     }
 
     #[test]
+    fn test_indexed_depends_on_source_text() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(id, files.content(id));
+        let indexed = engine.indexed(id).unwrap();
+        assert!(indexed.names.terms.lookup("life").is_some());
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\ntime = 42");
+        engine.set_content(id, files.content(id));
+        let indexed = engine.indexed(id).unwrap();
+        assert!(indexed.names.terms.lookup("life").is_none());
+        assert!(indexed.names.terms.lookup("time").is_some());
+    }
+
+    #[test]
+    fn test_text_edit_preserves_structural_query_traces() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        macro_rules! assert_trace {
+            ($engine:expr, $field:ident($id:expr) => $trace:expr) => {{
+                let shard = $engine.derived.$field.shard(&$id);
+                let guard = shard.read();
+                assert_eq!(ShowTrace(guard.get(&$id).unwrap()), $trace);
+            }};
+        }
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(id, files.content(id));
+        let stabilized_a = engine.stabilized(id).unwrap();
+        let indexed_a = engine.indexed(id).unwrap();
+
+        assert_trace!(engine, parsed(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id)]
+        });
+        assert_trace!(engine, stabilized(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Parsed(id)]
+        });
+        assert_trace!(engine, indexed(id) => Trace {
+            built: 19,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+        });
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\ntime = 42");
+        engine.set_content(id, files.content(id));
+        let stabilized_b = engine.stabilized(id).unwrap();
+        let indexed_b = engine.indexed(id).unwrap();
+
+        assert_trace!(engine, parsed(id) => Trace {
+            built: 20,
+            changed: 19,
+            dependencies: &[QueryKey::Content(id)]
+        });
+        assert_trace!(engine, stabilized(id) => Trace {
+            built: 20,
+            changed: 19,
+            dependencies: &[QueryKey::Parsed(id)]
+        });
+        assert_trace!(engine, indexed(id) => Trace {
+            built: 20,
+            changed: 20,
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+        });
+
+        assert!(Arc::ptr_eq(&stabilized_a, &stabilized_b));
+        assert!(!Arc::ptr_eq(&indexed_a, &indexed_b));
+    }
+
+    #[test]
     fn test_verifying_step_traces() {
         let mut engine = QueryEngine::default();
         let mut files = Files::default();
@@ -1037,7 +1125,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 19,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 19,
@@ -1061,7 +1149,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 20,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 20,
@@ -1085,7 +1173,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 21,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 21,

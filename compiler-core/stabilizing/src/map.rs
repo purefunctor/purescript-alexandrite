@@ -3,9 +3,9 @@ use std::hash::BuildHasher;
 use std::num::NonZeroU32;
 
 use hashbrown::HashTable;
-use rowan::ast::{AstNode, AstPtr};
 use rustc_hash::FxBuildHasher;
-use syntax::{PureScript, SyntaxNode, SyntaxNodePtr};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::{SyntaxNode, SyntaxNodePtr};
 
 use crate::AstId;
 
@@ -38,15 +38,12 @@ impl StabilizedModule {
         self.table.insert_unique(hash, id, |&id| arena_hasher(&self.arena, id));
     }
 
-    pub fn lookup_cst<N: AstNode<Language = PureScript>>(&self, cst: &N) -> Option<AstId<N>> {
+    pub fn lookup_cst<N: AstNode>(&self, cst: &N) -> Option<AstId<N>> {
         let ptr = AstPtr::new(cst);
         self.lookup_ptr(&ptr)
     }
 
-    pub fn lookup_ptr<N: AstNode<Language = PureScript>>(
-        &self,
-        ptr: &AstPtr<N>,
-    ) -> Option<AstId<N>> {
+    pub fn lookup_ptr<N: AstNode>(&self, ptr: &AstPtr<N>) -> Option<AstId<N>> {
         let ptr = ptr.syntax_node_ptr();
         let hash = FxBuildHasher.hash_one(ptr);
         self.table
@@ -59,14 +56,11 @@ impl StabilizedModule {
             .map(|&id| AstId::new(id))
     }
 
-    pub fn ast_ptr<N: AstNode<Language = PureScript>>(&self, id: AstId<N>) -> Option<AstPtr<N>> {
+    pub fn ast_ptr<N: AstNode>(&self, id: AstId<N>) -> Option<AstPtr<N>> {
         self.syntax_ptr(id)?.cast()
     }
 
-    pub fn syntax_ptr<N: AstNode<Language = PureScript>>(
-        &self,
-        id: AstId<N>,
-    ) -> Option<SyntaxNodePtr> {
+    pub fn syntax_ptr<N: AstNode>(&self, id: AstId<N>) -> Option<SyntaxNodePtr> {
         arena_index(&self.arena, id.id)
     }
 
@@ -86,12 +80,12 @@ impl Eq for StabilizedModule {}
 
 pub trait ExpectId<N>
 where
-    N: AstNode<Language = PureScript>,
+    N: AstNode,
 {
     fn expect_id(&self) -> AstId<N>;
 }
 
-impl<N: AstNode<Language = PureScript>> ExpectId<N> for Option<AstId<N>> {
+impl<N: AstNode> ExpectId<N> for Option<AstId<N>> {
     #[inline]
     fn expect_id(&self) -> AstId<N> {
         self.unwrap_or_else(|| unreachable!("invariant violated: {}", any::type_name::<N>()))
@@ -114,23 +108,26 @@ fn arena_hasher(arena: &[SyntaxNodePtr], id: NonZeroU32) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use rowan::ast::AstPtr;
-    use rowan::{GreenNode, GreenToken, NodeOrToken};
-    use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, cst};
+    use syntax::ast::AstPtr;
+    use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxValue, TreeOwner, cst};
 
     use super::StabilizedModule;
 
+    fn annotation(text_length: usize) -> SyntaxNode {
+        let mut builder = syntree::Builder::new();
+        let node = SyntaxValue::node(SyntaxKind::Annotation);
+        builder.open(node).unwrap();
+        let token = SyntaxValue::token(SyntaxKind::TEXT);
+        builder.token(token, text_length).unwrap();
+        builder.close().unwrap();
+        let owner = TreeOwner::new(builder.build().unwrap());
+        SyntaxNode::new_root(owner)
+    }
+
     #[test]
     fn test_api() {
-        let zero = SyntaxNode::new_root(GreenNode::new(
-            SyntaxKind::Annotation.into(),
-            vec![NodeOrToken::Token(GreenToken::new(SyntaxKind::TEXT.into(), "ZERO"))],
-        ));
-
-        let one = SyntaxNode::new_root(GreenNode::new(
-            SyntaxKind::Annotation.into(),
-            vec![NodeOrToken::Token(GreenToken::new(SyntaxKind::TEXT.into(), "ONE"))],
-        ));
+        let zero = annotation("ZERO".len());
+        let one = annotation("ONE".len());
 
         // In revision 1, we only allocate zero
         let mut map_1 = StabilizedModule::default();
@@ -170,18 +167,9 @@ mod tests {
 
     #[test]
     fn test_equality() {
-        let zero = SyntaxNode::new_root(GreenNode::new(
-            SyntaxKind::Annotation.into(),
-            vec![NodeOrToken::Token(GreenToken::new(SyntaxKind::TEXT.into(), "ZERO"))],
-        ));
-        let one = SyntaxNode::new_root(GreenNode::new(
-            SyntaxKind::Annotation.into(),
-            vec![NodeOrToken::Token(GreenToken::new(SyntaxKind::TEXT.into(), "ONE"))],
-        ));
-        let two = SyntaxNode::new_root(GreenNode::new(
-            SyntaxKind::Annotation.into(),
-            vec![NodeOrToken::Token(GreenToken::new(SyntaxKind::TEXT.into(), "TWO TWO"))],
-        ));
+        let zero = annotation("ZERO".len());
+        let one = annotation("ONE".len());
+        let two = annotation("TWO TWO".len());
 
         {
             let mut map_a = StabilizedModule::default();

@@ -436,7 +436,7 @@ fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError
 
     let (parsed, _) = state.engine.parsed(id)?;
 
-    if let Some(name) = parsed.module_name() {
+    if let Some(name) = parsed.module_name(content) {
         state.engine.set_module_file(&name, id);
     }
 

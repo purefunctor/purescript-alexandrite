@@ -83,7 +83,7 @@ fn register_modules(
             Ok((parsed, errors)) => {
                 report.diagnostics.extend(parse_diagnostics(file_meta, &errors));
 
-                if let Some(module_name) = parsed.module_name() {
+                if let Some(module_name) = parsed.module_name(&file_meta.content) {
                     let module_name = module_name.to_string();
                     if let Some(existing) = modules.get(&module_name) {
                         let first = meta.get(existing).expect("file metadata exists");

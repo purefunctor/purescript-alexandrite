@@ -5,8 +5,8 @@ use files::FileId;
 use indexing::{ImportKind, IndexedModule, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use itertools::Itertools;
 use resolving::ResolvedImport;
-use rowan::ast::AstNode;
 use smol_str::{SmolStrBuilder, ToSmolStr};
+use syntax::ast::AstNode;
 
 use crate::completion::CompletionContext;
 use crate::{locate, position};
@@ -70,7 +70,7 @@ where
             .children()
             .map(|cst| {
                 let cst = cst.syntax();
-                cst.text().to_smolstr()
+                cst.text(context.content).to_smolstr()
             })
             .chain(iter::once(import_item_name))
             .join(",");

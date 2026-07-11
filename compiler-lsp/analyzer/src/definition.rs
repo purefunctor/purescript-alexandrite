@@ -7,8 +7,8 @@ use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, ImplicitTypeVariable,
     LetBindingNameGroupId, TermVariableResolution, TypeId, TypeKind, TypeVariableResolution,
 };
-use rowan::ast::{AstNode, AstPtr};
 use smol_str::ToSmolStr;
+use syntax::ast::{AstNode, AstPtr};
 use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::extract::AnnotationSyntaxRange;
@@ -72,12 +72,13 @@ fn definition_module_name(
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.engine;
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
     let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
 
-    let module_name = module_name.syntax().text().to_smolstr();
+    let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
     let content = engine.content(module_id);
@@ -100,6 +101,7 @@ fn definition_import(
     import_id: ImportItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.engine;
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -112,7 +114,12 @@ fn definition_import(
         .ancestors()
         .find_map(cst::ImportStatement::cast)
         .ok_or(AnalyzerError::NonFatal)?;
-    let module_name = statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().to_smolstr();
+    let module_name = statement
+        .module_name()
+        .ok_or(AnalyzerError::NonFatal)?
+        .syntax()
+        .text(&content)
+        .to_smolstr();
 
     let import_resolved = {
         let import_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
@@ -149,27 +156,27 @@ fn definition_import(
     match node {
         cst::ImportItem::ImportValue(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             goto_term(name)
         }
         cst::ImportItem::ImportClass(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             goto_class(name)
         }
         cst::ImportItem::ImportType(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             goto_type(name)
         }
         cst::ImportItem::ImportOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             goto_term(name)
         }
         cst::ImportItem::ImportTypeOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             goto_type(name)
         }
     }

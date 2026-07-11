@@ -6,7 +6,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" => |content: &str| {
     let tokens = lexing::layout(&lexed);
     let (parsed, errors) = parsing::parse(&lexed, &tokens);
     let node = parsed.syntax_node();
-    insta::assert_debug_snapshot!((node, errors));
+    insta::assert_debug_snapshot!((node.debug(&content), errors));
 }}
 
 test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |content: &str| {
@@ -15,7 +15,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |cont
     let tokens = lexing::layout(&lexed);
     let (parsed, _) = parsing::parse(&lexed, &tokens);
     let node = parsed.syntax_node();
-    assert_eq!(node.to_string(), content);
+    assert_eq!(node.text(&content), content);
 }}
 
 test_each_file! { in "./compiler-core/parsing/tests/parser" as stability => |content: &str| {
@@ -27,6 +27,6 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" as stability => |con
         let tokens = lexing::layout(&lexed);
         let (parsed, _) = parsing::parse(&lexed, &tokens);
         let node = parsed.syntax_node();
-        assert_eq!(node.to_string(), partial);
+        assert_eq!(node.text(partial), partial);
     }
 }}

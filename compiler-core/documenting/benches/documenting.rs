@@ -5,6 +5,7 @@ use std::sync::Arc;
 use criterion::{Criterion, criterion_group, criterion_main};
 
 struct Fixture {
+    source: String,
     parsed: parsing::ParsedModule,
     stabilized: Arc<stabilizing::StabilizedModule>,
     indexed: Arc<indexing::IndexedModule>,
@@ -20,9 +21,9 @@ fn fixture(item_count: usize) -> Fixture {
     let cst = parsed.cst();
 
     let stabilized = Arc::new(stabilizing::stabilize_module(&root));
-    let indexed = Arc::new(indexing::index_module(&cst, &stabilized));
+    let indexed = Arc::new(indexing::index_module(&source, &cst, &stabilized));
 
-    Fixture { parsed, stabilized, indexed }
+    Fixture { source, parsed, stabilized, indexed }
 }
 
 fn synthetic_module(item_count: usize) -> String {
@@ -56,6 +57,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("document-module-synthetic", |b| {
         b.iter(|| {
             let documented = documenting::document_module(
+                black_box(&fixture.source),
                 black_box(&fixture.parsed),
                 black_box(&fixture.stabilized),
                 black_box(&fixture.indexed),
