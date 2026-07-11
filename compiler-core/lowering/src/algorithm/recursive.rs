@@ -1151,20 +1151,9 @@ fn lower_term_operator(
     cst: &cst::TermOperator,
 ) -> Option<TermOperatorId> {
     let id = context.stabilized.lookup_cst(cst).expect_id();
-
-    let (qualifier, name) = cst.qualified().and_then(|cst| {
-        let qualifier = cst.qualifier().and_then(|cst| {
-            let token = cst.text()?;
-            let text = token.text(context.source).trim_end_matches('.');
-            Some(SmolStr::from(text))
-        });
-
-        let token = cst.operator()?;
-        let text = token.text(context.source).trim_start_matches('(').trim_end_matches(')');
-        let name = SmolStr::from(text);
-
-        Some((qualifier, name))
-    })?;
+    let (qualifier, name) = cst
+        .qualified()
+        .and_then(|cst| lower_qualified_name(context.source, &cst, cst::QualifiedName::operator))?;
 
     let Some((file_id, term_id)) =
         state.resolve_term_reference(context, qualifier.as_deref(), &name)
