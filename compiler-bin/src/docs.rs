@@ -453,14 +453,14 @@ fn load_modules(compiler: &mut Compiler, files: Vec<PathBuf>) -> Result<Vec<File
 
 fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
     let results = compiler.files.par_iter_id().map(|id| {
+        let content = compiler.engine.content(id);
         let (parsed, _) = compiler.engine.parsed(id)?;
-        Ok((id, parsed))
+        Ok((id, content, parsed))
     });
 
     let results = results.collect::<Result<Vec<_>, DocsError>>()?;
     let mut module_files = BTreeMap::new();
-    for (id, parsed) in results {
-        let content = compiler.engine.content(id);
+    for (id, content, parsed) in results {
         if let Some(name) = parsed.module_name(&content) {
             let name = name.to_string();
             if module_files.insert(String::clone(&name), id).is_some() {

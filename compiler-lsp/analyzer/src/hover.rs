@@ -298,11 +298,11 @@ fn hover_file_term(
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(file_id);
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
     let range = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id)?;
-    let content = engine.content(file_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
@@ -327,11 +327,11 @@ fn hover_file_type(
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
+    let content = engine.content(file_id);
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
     let range = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id)?;
-    let content = engine.content(file_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };

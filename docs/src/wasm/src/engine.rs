@@ -184,8 +184,8 @@ impl WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let (parsed, _) = self.parsed(id)?;
         let content = self.content(id);
+        let (parsed, _) = self.parsed(id)?;
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
         let documented = documenting::document_module(&content, &parsed, &stabilized, &indexed);
@@ -248,8 +248,8 @@ impl QueryProxy for WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let (parsed, _) = self.parsed(id)?;
         let content = self.content(id);
+        let (parsed, _) = self.parsed(id)?;
         let stabilized = self.stabilized(id)?;
 
         let module = parsed.cst();
@@ -264,8 +264,8 @@ impl QueryProxy for WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let (parsed, _) = self.parsed(id)?;
         let content = self.content(id);
+        let (parsed, _) = self.parsed(id)?;
         let prim = self.resolved(self.prim_id)?;
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
