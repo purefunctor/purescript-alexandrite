@@ -693,9 +693,9 @@ impl QueryEngine {
             id,
             |derived| &derived.indexed,
             |this| {
+                let content = this.content(id);
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
-                let content = this.content(id);
 
                 let module = parsed.cst();
                 let indexed = indexing::index_module(&content, &module, &stabilized);
@@ -711,8 +711,8 @@ impl QueryEngine {
             id,
             |derived| &derived.lowered,
             |this| {
-                let (parsed, _) = this.parsed(id)?;
                 let content = this.content(id);
+                let (parsed, _) = this.parsed(id)?;
 
                 let prim = {
                     let prim_id = this.prim_id();
@@ -809,8 +809,8 @@ impl QueryEngine {
             id,
             |derived| &derived.documented,
             |this| {
-                let (parsed, _) = this.parsed(id)?;
                 let content = this.content(id);
+                let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
                 let indexed = this.indexed(id)?;
                 Ok(documenting::document_module(&content, &parsed, &stabilized, &indexed))

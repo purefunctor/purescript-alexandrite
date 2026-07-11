@@ -74,9 +74,9 @@ fn hover_module_name(
     let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
+    let content = engine.content(module_id);
     let range = AnnotationSyntaxRange::of_file(engine, module_id)?;
 
-    let content = engine.content(module_id);
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
     let syntax = range.syntax.and_then(|range| render_syntax(&content, range));
 
