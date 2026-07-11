@@ -303,6 +303,109 @@ impl ResolvedModule {
 type ResolvedImportsUnqualified = FxHashMap<SmolStr, Vec<ResolvedImport>>;
 type ResolvedImportsQualified = FxHashMap<SmolStr, Vec<ResolvedImport>>;
 
+/// Precomputes unqualified lookups with the same precedence as [`ResolvedModule`].
+#[derive(Debug, Default)]
+pub struct ResolvedVisibleImports {
+    terms: FxHashMap<SmolStr, (u8, FileId, TermItemId)>,
+    types: FxHashMap<SmolStr, (u8, FileId, TypeItemId)>,
+    classes: FxHashMap<SmolStr, (u8, FileId, TypeItemId)>,
+}
+
+impl ResolvedVisibleImports {
+    pub fn new(module: &ResolvedModule) -> ResolvedVisibleImports {
+        let mut visible = ResolvedVisibleImports::default();
+        for import in module.unqualified.values().flatten() {
+            for (name, file, id, kind) in import.iter_terms() {
+                insert_visible(&mut visible.terms, name, file, id, kind);
+            }
+            for (name, file, id, kind) in import.iter_types() {
+                insert_visible(&mut visible.types, name, file, id, kind);
+            }
+            for (name, file, id, kind) in import.iter_classes() {
+                insert_visible(&mut visible.classes, name, file, id, kind);
+            }
+        }
+        visible
+    }
+
+    pub fn lookup_term(
+        &self,
+        module: &ResolvedModule,
+        prim: &ResolvedModule,
+        qualifier: Option<&str>,
+        name: &str,
+    ) -> Option<(FileId, TermItemId)> {
+        if qualifier.is_some() {
+            return module.lookup_term(prim, qualifier, name);
+        }
+        module
+            .locals
+            .lookup_term(name)
+            .or_else(|| self.terms.get(name).map(|&(_, file, id)| (file, id)))
+            .or_else(|| {
+                let lookup_item = |import: &ResolvedImport| import.lookup_term(name);
+                let lookup_prim = || prim.exports.lookup_term(name);
+                module.lookup_prim_import(lookup_item, lookup_prim)
+            })
+    }
+
+    pub fn lookup_type(
+        &self,
+        module: &ResolvedModule,
+        prim: &ResolvedModule,
+        qualifier: Option<&str>,
+        name: &str,
+    ) -> Option<(FileId, TypeItemId)> {
+        if qualifier.is_some() {
+            return module.lookup_type(prim, qualifier, name);
+        }
+        module
+            .locals
+            .lookup_type(name)
+            .or_else(|| self.types.get(name).map(|&(_, file, id)| (file, id)))
+            .or_else(|| {
+                let lookup_item = |import: &ResolvedImport| import.lookup_type(name);
+                let lookup_prim = || prim.exports.lookup_type(name);
+                module.lookup_prim_import(lookup_item, lookup_prim)
+            })
+    }
+
+    pub fn lookup_class(
+        &self,
+        module: &ResolvedModule,
+        prim: &ResolvedModule,
+        qualifier: Option<&str>,
+        name: &str,
+    ) -> Option<(FileId, TypeItemId)> {
+        if qualifier.is_some() {
+            return module.lookup_class(prim, qualifier, name);
+        }
+        module
+            .locals
+            .lookup_class(name)
+            .or_else(|| self.classes.get(name).map(|&(_, file, id)| (file, id)))
+            .or_else(|| {
+                let lookup_item = |import: &ResolvedImport| import.lookup_class(name);
+                let lookup_prim = || prim.exports.lookup_class(name);
+                module.lookup_prim_import(lookup_item, lookup_prim)
+            })
+    }
+}
+
+fn insert_visible<ItemId: Copy>(
+    visible: &mut FxHashMap<SmolStr, (u8, FileId, ItemId)>,
+    name: &SmolStr,
+    file: FileId,
+    id: ItemId,
+    kind: ImportKind,
+) {
+    let Some(priority) = ResolvedModule::visible_import_priority(kind) else { return };
+    if visible.get(name).is_some_and(|&(current, _, _)| current <= priority) {
+        return;
+    }
+    visible.insert(SmolStr::clone(name), (priority, file, id));
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResolvedLocals {
     terms: FxHashMap<SmolStr, (FileId, TermItemId)>,
