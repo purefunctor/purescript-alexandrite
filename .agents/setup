@@ -13,7 +13,8 @@ rustup default stable
 
 if ! command -v cargo-binstall >/dev/null 2>&1; then
   curl --proto '=https' --tlsv1.2 -LsSf \
-    https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    https://raw.githubusercontent.com/cargo-bins/cargo-binstall/aaa84a43aec4955a42c5ffc65d258961e39f276e/install-from-binstall-release.sh \
+    | BINSTALL_VERSION=1.19.1 bash
 fi
 
 cargo binstall --no-confirm just cargo-nextest
