@@ -24,7 +24,8 @@ impl<N: AstNode> AstPtr<N> {
     }
 
     pub fn to_node(&self, root: &SyntaxNode) -> N {
-        N::cast(self.raw.to_node(root)).expect("AST pointer resolved to an unexpected node")
+        N::cast(self.raw.to_node(root))
+            .expect("invariant violated: AST pointer resolved to an unexpected node")
     }
 
     pub fn try_to_node(&self, root: &SyntaxNode) -> Option<N> {

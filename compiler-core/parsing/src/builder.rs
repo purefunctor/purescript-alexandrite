@@ -42,13 +42,18 @@ impl<'l, 's> Builder<'l, 's> {
     }
 
     fn build(self) -> (ParsedModule, Vec<ParseError>) {
-        let tree = self.builder.build().expect("parser must produce a balanced syntax tree");
+        let tree = self
+            .builder
+            .build()
+            .expect("invariant violated: parser must produce a balanced syntax tree");
         (ParsedModule::new(TreeOwner::new(tree)), self.errors)
     }
 
     fn start(&mut self, kind: SyntaxKind) {
         if kind != SyntaxKind::Node {
-            self.builder.open(SyntaxValue::node(kind)).expect("syntax tree capacity exceeded");
+            self.builder
+                .open(SyntaxValue::node(kind))
+                .expect("critical violation: syntax tree capacity exceeded");
         }
     }
 
@@ -59,7 +64,7 @@ impl<'l, 's> Builder<'l, 's> {
             self.start(SyntaxKind::Annotation);
             self.builder
                 .token(SyntaxValue::token(SyntaxKind::TEXT), annotation.len())
-                .expect("syntax tree capacity exceeded");
+                .expect("critical violation: syntax tree capacity exceeded");
             self.finish();
         }
 
@@ -73,7 +78,7 @@ impl<'l, 's> Builder<'l, 's> {
             self.start(SyntaxKind::Qualifier);
             self.builder
                 .token(SyntaxValue::token(SyntaxKind::TEXT), qualifier.len())
-                .expect("syntax tree capacity exceeded");
+                .expect("critical violation: syntax tree capacity exceeded");
             self.finish();
         }
 
@@ -84,7 +89,7 @@ impl<'l, 's> Builder<'l, 's> {
         if kind.is_layout_token() {
             self.builder
                 .token_empty(SyntaxValue::token(kind))
-                .expect("syntax tree capacity exceeded");
+                .expect("critical violation: syntax tree capacity exceeded");
             return;
         }
 
@@ -100,7 +105,7 @@ impl<'l, 's> Builder<'l, 's> {
             let text = self.lexed.text(self.index);
             self.builder
                 .token(SyntaxValue::token(kind), text.len())
-                .expect("syntax tree capacity exceeded");
+                .expect("critical violation: syntax tree capacity exceeded");
         }
 
         self.index += 1;
@@ -115,12 +120,14 @@ impl<'l, 's> Builder<'l, 's> {
         let message = message.into();
         self.builder
             .token_empty(SyntaxValue::token(SyntaxKind::ERROR))
-            .expect("syntax tree capacity exceeded");
+            .expect("critical violation: syntax tree capacity exceeded");
         self.errors.push(ParseError { offset, position, message });
     }
 
     fn finish(&mut self) {
-        self.builder.close().expect("parser must produce a balanced syntax tree");
+        self.builder
+            .close()
+            .expect("invariant violated: parser must produce a balanced syntax tree");
     }
 }
 

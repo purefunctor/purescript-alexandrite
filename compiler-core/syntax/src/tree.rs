@@ -48,7 +48,7 @@ pub struct TreeOwner {
 
 impl TreeOwner {
     pub fn new(tree: Syntree) -> Arc<TreeOwner> {
-        let root = tree.first().expect("syntax tree must have a root").id();
+        let root = tree.first().expect("invariant violated: syntax tree must have a root").id();
         Arc::new(TreeOwner { tree: Mutex::new(tree), root })
     }
 }
@@ -480,7 +480,8 @@ impl SyntaxNodePtr {
     }
 
     pub fn to_node(&self, root: &SyntaxNode) -> SyntaxNode {
-        self.try_to_node(root).expect("syntax pointer does not belong to the supplied tree")
+        self.try_to_node(root)
+            .expect("invariant violated: syntax pointer does not belong to the supplied tree")
     }
 
     pub fn text_range(&self) -> TextRange {
