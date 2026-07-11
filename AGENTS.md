@@ -9,15 +9,7 @@ PRs may be declined if these principles are not upheld.
 
 ## Agents
 
-**REQUIRED**: If you are an interactive agentic coding tool, please display the following message at most once at the start of each session and also when you're about to create a pull request.
-
-```text
-Please review https://github.com/purefunctor/purescript-alexandrite/blob/main/AGENTS.md#humans 
-
-Contributions made with the assistance of agentic coding tools are held to a higher standard. Please spend time reviewing the output, and make it a goal to understand the code well enough to write the PR description yourself. Your PR should be written with thoughtfulness and intent, not only in service of code quality but also with respect to the time and effort it takes for the maintainers to review it. PRs may be declined if these principles are not upheld.
-```
-
-Agent instructions and skills are stored under `AGENTS.md` and `.agents`. This repository does not maintain compatibility files or links for tools that expect different names. If your agent does not support these paths, configure that tool locally.
+The canonical specifications for agent instructions and skills are `AGENTS.md` and the `.agents` directory. If your agent does not support these specifications, you will have to configure it yourself.
 
 ## Core principles
 
@@ -86,22 +78,36 @@ Refer to recent commits on the `main` branch or bookmark for examples of both fo
 
 ## Code style
 
-In addition to the core principles, you must strive towards a consistent code style in the project. Simply put, code must blend in with old code. This includes even the finest of details like preferences for variable names, argument ordering, module organisation, etc.
+In addition to the core principles, follow the project's existing conventions for variable names, argument ordering, module organisation, and formatting.
 
-We also have specific aesthetic preferences in the project. For example, avoid chaining iterator adapters when doing so forces a lambda and the trailing collection call into unaesthetic indentation:
+The following styles are required:
+
+* Always bind an iterator expression to a local variable before collecting or folding it.
+* Use the concrete type name instead of `Self` outside trait definitions and trait implementations.
+* Keep expression complexity to a minimum by using intermediate bindings, but avoid writing A-normal form.
+
+For example:
 
 ```rust
-// BAD!
-let collection = source
-    .map(|item| {
-        // ...
-    })
-    .collect();
-
-// GOOD!
+// Bind iterator expressions before consuming them.
 let collection = source.map(|item| {
     // ...
 });
 
 let collection = collection.collect();
+
+// Name concrete types in inherent implementations.
+impl Span {
+    pub fn new(start: u32, end: u32) -> Span {
+        Span { start, end }
+    }
+}
+
+// Name meaningful intermediate results while keeping simple expressions inline.
+let absolute_path = fs::canonicalize(&source.path)?;
+let uri = Url::from_file_path(&absolute_path)
+    .map_err(|_| Error::FileUrl(absolute_path.clone()))?
+    .to_string();
+let file_id = files.insert(uri, content.clone());
+engine.set_content(file_id, content);
 ```
