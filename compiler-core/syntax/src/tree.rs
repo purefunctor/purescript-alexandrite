@@ -37,9 +37,9 @@ pub struct TreeOwner {
 }
 
 impl TreeOwner {
-    pub fn new(tree: Syntree) -> Arc<Self> {
+    pub fn new(tree: Syntree) -> Arc<TreeOwner> {
         let root = tree.first().expect("syntax tree must have a root").id();
-        Arc::new(Self { tree: Mutex::new(tree), root })
+        Arc::new(TreeOwner { tree: Mutex::new(tree), root })
     }
 }
 
@@ -102,19 +102,19 @@ fn range(node: &syntree::Node<'_, SyntaxValue, syntree::FlavorDefault>) -> TextR
 
 fn element(owner: &Arc<TreeOwner>, id: PointerUsize, value: SyntaxValue) -> SyntaxElement {
     match value.category {
-        ElementCategory::Node => SyntaxNode { owner: owner.clone(), id }.into(),
-        ElementCategory::Token => SyntaxToken { owner: owner.clone(), id }.into(),
+        ElementCategory::Node => SyntaxNode { owner: Arc::clone(owner), id }.into(),
+        ElementCategory::Token => SyntaxToken { owner: Arc::clone(owner), id }.into(),
     }
 }
 
 impl SyntaxNode {
-    pub fn new_root(owner: Arc<TreeOwner>) -> Self {
+    pub fn new_root(owner: Arc<TreeOwner>) -> SyntaxNode {
         let id = owner.root;
-        Self { owner, id }
+        SyntaxNode { owner, id }
     }
 
     pub fn owner(&self) -> Arc<TreeOwner> {
-        self.owner.clone()
+        Arc::clone(&self.owner)
     }
 
     pub fn kind(&self) -> SyntaxKind {
@@ -126,20 +126,23 @@ impl SyntaxNode {
     }
 
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
-        &source[usize::from(self.text_range().start())..usize::from(self.text_range().end())]
+        let range = self.text_range();
+        let start: usize = range.start().into();
+        let end: usize = range.end().into();
+        &source[start..end]
     }
 
-    pub fn parent(&self) -> Option<Self> {
+    pub fn parent(&self) -> Option<SyntaxNode> {
         let id = self.owner.tree.lock().get(self.id)?.parent()?.id();
-        Some(Self { owner: self.owner.clone(), id })
+        Some(SyntaxNode { owner: Arc::clone(&self.owner), id })
     }
 
-    pub fn ancestors(&self) -> impl Iterator<Item = Self> {
-        std::iter::successors(Some(self.clone()), Self::parent)
+    pub fn ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
+        std::iter::successors(Some(self.clone()), SyntaxNode::parent)
     }
 
-    pub fn parent_ancestors(&self) -> impl Iterator<Item = Self> {
-        std::iter::successors(self.parent(), Self::parent)
+    pub fn parent_ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
+        std::iter::successors(self.parent(), SyntaxNode::parent)
     }
 
     pub fn children(&self) -> SyntaxNodeChildren {
@@ -160,10 +163,10 @@ impl SyntaxNode {
                 (tokens || value.category == ElementCategory::Node)
                     .then(|| element(&self.owner, node.id(), value))
             })
-            .collect()
+            .collect::<Vec<_>>()
     }
 
-    pub fn first_child(&self) -> Option<Self> {
+    pub fn first_child(&self) -> Option<SyntaxNode> {
         self.children().next()
     }
 
@@ -172,7 +175,7 @@ impl SyntaxNode {
         let node = tree.get(self.id)?;
         let id =
             node.walk().inside().find(|node| node.value().category == ElementCategory::Token)?.id();
-        Some(SyntaxToken { owner: self.owner.clone(), id })
+        Some(SyntaxToken { owner: Arc::clone(&self.owner), id })
     }
 
     pub fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
@@ -183,11 +186,11 @@ impl SyntaxNode {
         sibling(&self.owner, self.id, false)
     }
 
-    pub fn next_sibling(&self) -> Option<Self> {
+    pub fn next_sibling(&self) -> Option<SyntaxNode> {
         node_sibling(self, true)
     }
 
-    pub fn prev_sibling(&self) -> Option<Self> {
+    pub fn prev_sibling(&self) -> Option<SyntaxNode> {
         node_sibling(self, false)
     }
 
@@ -229,12 +232,15 @@ impl SyntaxToken {
     }
 
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
-        &source[usize::from(self.text_range().start())..usize::from(self.text_range().end())]
+        let range = self.text_range();
+        let start: usize = range.start().into();
+        let end: usize = range.end().into();
+        &source[start..end]
     }
 
     pub fn parent(&self) -> SyntaxNode {
         let id = self.owner.tree.lock().get(self.id).unwrap().parent().unwrap().id();
-        SyntaxNode { owner: self.owner.clone(), id }
+        SyntaxNode { owner: Arc::clone(&self.owner), id }
     }
 
     pub fn parent_ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
@@ -258,32 +264,32 @@ pub enum SyntaxElement {
 
 impl SyntaxElement {
     pub fn into_node(self) -> Option<SyntaxNode> {
-        if let Self::Node(value) = self { Some(value) } else { None }
+        if let SyntaxElement::Node(value) = self { Some(value) } else { None }
     }
 
     pub fn into_token(self) -> Option<SyntaxToken> {
-        if let Self::Token(value) = self { Some(value) } else { None }
+        if let SyntaxElement::Token(value) = self { Some(value) } else { None }
     }
 
     pub fn as_node(&self) -> Option<&SyntaxNode> {
-        if let Self::Node(value) = self { Some(value) } else { None }
+        if let SyntaxElement::Node(value) = self { Some(value) } else { None }
     }
 
     pub fn as_token(&self) -> Option<&SyntaxToken> {
-        if let Self::Token(value) = self { Some(value) } else { None }
+        if let SyntaxElement::Token(value) = self { Some(value) } else { None }
     }
 
     pub fn kind(&self) -> SyntaxKind {
         match self {
-            Self::Node(n) => n.kind(),
-            Self::Token(t) => t.kind(),
+            SyntaxElement::Node(n) => n.kind(),
+            SyntaxElement::Token(t) => t.kind(),
         }
     }
 
     pub fn text_range(&self) -> TextRange {
         match self {
-            Self::Node(n) => n.text_range(),
-            Self::Token(t) => t.text_range(),
+            SyntaxElement::Node(n) => n.text_range(),
+            SyntaxElement::Token(t) => t.text_range(),
         }
     }
 }
@@ -391,15 +397,15 @@ pub enum TokenAtOffset<T> {
 impl<T> TokenAtOffset<T> {
     pub fn left_biased(self) -> Option<T> {
         match self {
-            Self::None => None,
-            Self::Single(token) | Self::Between(token, _) => Some(token),
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) | TokenAtOffset::Between(token, _) => Some(token),
         }
     }
 
     pub fn right_biased(self) -> Option<T> {
         match self {
-            Self::None => None,
-            Self::Single(token) | Self::Between(_, token) => Some(token),
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) | TokenAtOffset::Between(_, token) => Some(token),
         }
     }
 }
@@ -420,17 +426,17 @@ fn token_at_offset(node: &SyntaxNode, offset: TextSize) -> TokenAtOffset<SyntaxT
             return left
                 .filter(|(_, range): &(PointerUsize, TextRange)| range.end() == offset)
                 .map_or_else(
-                    || TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id }),
+                    || TokenAtOffset::Single(SyntaxToken { owner: Arc::clone(&node.owner), id }),
                     |(left, _)| {
                         TokenAtOffset::Between(
-                            SyntaxToken { owner: node.owner.clone(), id: left },
-                            SyntaxToken { owner: node.owner.clone(), id },
+                            SyntaxToken { owner: Arc::clone(&node.owner), id: left },
+                            SyntaxToken { owner: Arc::clone(&node.owner), id },
                         )
                     },
                 );
         }
         if range.contains(offset) {
-            return TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id });
+            return TokenAtOffset::Single(SyntaxToken { owner: Arc::clone(&node.owner), id });
         }
         if !range.is_empty() && range.end() == offset {
             left = Some((id, range));
@@ -438,7 +444,7 @@ fn token_at_offset(node: &SyntaxNode, offset: TextSize) -> TokenAtOffset<SyntaxT
     }
 
     left.map_or(TokenAtOffset::None, |(id, _)| {
-        TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id })
+        TokenAtOffset::Single(SyntaxToken { owner: Arc::clone(&node.owner), id })
     })
 }
 
@@ -450,8 +456,8 @@ pub struct SyntaxNodePtr {
 }
 
 impl SyntaxNodePtr {
-    pub fn new(node: &SyntaxNode) -> Self {
-        Self { id: node.id, kind: node.kind(), range: node.text_range() }
+    pub fn new(node: &SyntaxNode) -> SyntaxNodePtr {
+        SyntaxNodePtr { id: node.id, kind: node.kind(), range: node.text_range() }
     }
 
     pub fn try_to_node(&self, root: &SyntaxNode) -> Option<SyntaxNode> {
@@ -460,7 +466,7 @@ impl SyntaxNodePtr {
         (node.value().category == ElementCategory::Node
             && node.value().kind == self.kind
             && range(&node) == self.range)
-            .then(|| SyntaxNode { owner: root.owner.clone(), id: self.id })
+            .then(|| SyntaxNode { owner: Arc::clone(&root.owner), id: self.id })
     }
 
     pub fn to_node(&self, root: &SyntaxNode) -> SyntaxNode {
