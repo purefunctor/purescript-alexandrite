@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 drop_bomb = "0.1.5"
 lexing = { version = "0.1.0", path = "../lexing" }
-rowan = "0.16.1"
 smol_str = "0.3.4"
+syntree = "0.18.0"
 syntax = { version = "0.1.0", path = "../syntax" }
 
 [dev-dependencies]

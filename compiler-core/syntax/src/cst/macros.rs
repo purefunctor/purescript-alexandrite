@@ -6,9 +6,7 @@ macro_rules! create_cst_struct {
                 node: crate::SyntaxNode,
             }
 
-            impl rowan::ast::AstNode for $kind {
-                type Language = crate::PureScript;
-
+            impl crate::ast::AstNode for $kind {
                 fn can_cast(kind: crate::SyntaxKind) -> bool
                 where
                     Self: Sized,
@@ -50,9 +48,7 @@ macro_rules! create_cst_enum {
             create_cst_struct!($key);
         )*
 
-        impl rowan::ast::AstNode for $kind {
-            type Language = crate::PureScript;
-
+        impl crate::ast::AstNode for $kind {
             fn can_cast(kind: crate::SyntaxKind) -> bool
             where
                 Self: Sized,
@@ -90,7 +86,7 @@ macro_rules! has_token {
         impl $kind {
             $(
                 pub fn $name(&self) -> Option<crate::SyntaxToken> {
-                    rowan::ast::support::token(self.syntax(), crate::SyntaxKind::$token)
+                    crate::ast::support::token(self.syntax(), crate::SyntaxKind::$token)
                 }
             )+
         }
@@ -136,7 +132,7 @@ macro_rules! has_child {
         impl $kind {
             $(
                 pub fn $name(&self) -> Option<crate::cst::$child> {
-                    rowan::ast::support::child(self.syntax())
+                    crate::ast::support::child(self.syntax())
                 }
             )+
         }
@@ -147,8 +143,8 @@ macro_rules! has_children {
     ($kind:ident $(|$name:ident() -> $child:ident)+) => {
         impl $kind {
             $(
-                pub fn $name(&self) -> rowan::ast::AstChildren<crate::cst::$child> {
-                    rowan::ast::support::children(self.syntax())
+                pub fn $name(&self) -> crate::ast::AstChildren<crate::cst::$child> {
+                    crate::ast::support::children(self.syntax())
                 }
             )+
         }

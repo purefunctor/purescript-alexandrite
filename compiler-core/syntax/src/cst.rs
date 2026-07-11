@@ -1,4 +1,4 @@
-use rowan::ast::AstNode;
+use crate::ast::AstNode;
 
 use crate::names;
 

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use lexing::Lexed;
-use rowan::GreenNodeBuilder;
-use syntax::SyntaxKind;
+use syntax::{ElementCategory, SyntaxKind, SyntaxValue, TreeOwner};
+use syntree::Builder as SyntreeBuilder;
 
 use crate::{ParseError, ParsedModule};
 
@@ -27,7 +27,7 @@ struct Builder<'l, 's> {
     index: usize,
     annotated: bool,
     qualified: bool,
-    builder: GreenNodeBuilder<'static>,
+    builder: SyntreeBuilder<SyntaxValue>,
     errors: Vec<ParseError>,
 }
 
@@ -36,19 +36,21 @@ impl<'l, 's> Builder<'l, 's> {
         let index = 0;
         let annotated = false;
         let qualified = false;
-        let builder = GreenNodeBuilder::new();
+        let builder = SyntreeBuilder::new();
         let errors = vec![];
         Builder { lexed, index, annotated, qualified, builder, errors }
     }
 
     fn build(self) -> (ParsedModule, Vec<ParseError>) {
-        let node = self.builder.finish();
-        (ParsedModule::new(node), self.errors)
+        let tree = self.builder.build().expect("parser must produce a balanced syntax tree");
+        (ParsedModule::new(TreeOwner::new(tree)), self.errors)
     }
 
     fn start(&mut self, kind: SyntaxKind) {
         if kind != SyntaxKind::Node {
-            self.builder.start_node(kind.into());
+            self.builder
+                .open(SyntaxValue { kind, category: ElementCategory::Node })
+                .expect("syntax tree capacity exceeded");
         }
     }
 
@@ -56,9 +58,14 @@ impl<'l, 's> Builder<'l, 's> {
         if let Some(annotation) = self.lexed.annotation(self.index)
             && !self.annotated
         {
-            self.builder.start_node(SyntaxKind::Annotation.into());
-            self.builder.token(SyntaxKind::TEXT.into(), annotation);
-            self.builder.finish_node();
+            self.start(SyntaxKind::Annotation);
+            self.builder
+                .token(
+                    SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token },
+                    annotation.len(),
+                )
+                .expect("syntax tree capacity exceeded");
+            self.finish();
         }
 
         self.annotated = true;
@@ -68,9 +75,14 @@ impl<'l, 's> Builder<'l, 's> {
         if let Some(qualifier) = self.lexed.qualifier(self.index)
             && !self.qualified
         {
-            self.builder.start_node(SyntaxKind::Qualifier.into());
-            self.builder.token(SyntaxKind::TEXT.into(), qualifier);
-            self.builder.finish_node();
+            self.start(SyntaxKind::Qualifier);
+            self.builder
+                .token(
+                    SyntaxValue { kind: SyntaxKind::TEXT, category: ElementCategory::Token },
+                    qualifier.len(),
+                )
+                .expect("syntax tree capacity exceeded");
+            self.finish();
         }
 
         self.qualified = true;
@@ -78,7 +90,10 @@ impl<'l, 's> Builder<'l, 's> {
 
     fn token(&mut self, kind: SyntaxKind) {
         if kind.is_layout_token() {
-            return self.builder.token(kind.into(), "");
+            self.builder
+                .token_empty(SyntaxValue { kind, category: ElementCategory::Token })
+                .expect("syntax tree capacity exceeded");
+            return;
         }
 
         self.annotate();
@@ -91,7 +106,9 @@ impl<'l, 's> Builder<'l, 's> {
 
         if !matches!(kind, SyntaxKind::ERROR) {
             let text = self.lexed.text(self.index);
-            self.builder.token(kind.into(), text);
+            self.builder
+                .token(SyntaxValue { kind, category: ElementCategory::Token }, text.len())
+                .expect("syntax tree capacity exceeded");
         }
 
         self.index += 1;
@@ -104,12 +121,14 @@ impl<'l, 's> Builder<'l, 's> {
         let offset = info.qualifier as usize;
         let position = self.lexed.position(self.index);
         let message = message.into();
-        self.builder.token(SyntaxKind::ERROR.into(), "");
+        self.builder
+            .token_empty(SyntaxValue { kind: SyntaxKind::ERROR, category: ElementCategory::Token })
+            .expect("syntax tree capacity exceeded");
         self.errors.push(ParseError { offset, position, message });
     }
 
     fn finish(&mut self) {
-        self.builder.finish_node();
+        self.builder.close().expect("parser must produce a balanced syntax tree");
     }
 }
 
