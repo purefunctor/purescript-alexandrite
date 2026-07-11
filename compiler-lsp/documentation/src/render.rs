@@ -19,6 +19,12 @@ pub struct PackageInput<'a> {
     pub modules: &'a [FileId],
 }
 
+fn module_name(engine: &QueryEngine, file_id: FileId) -> Result<Option<String>, Error> {
+    let content = engine.content(file_id);
+    let (parsed, _) = engine.parsed(file_id)?;
+    Ok(parsed.module_name(&content).map(|name| name.to_string()))
+}
+
 struct TypeEncoder<'a> {
     engine: &'a QueryEngine,
     checked: Arc<checking::CheckedModule>,
@@ -183,9 +189,7 @@ impl<'a> TypeEncoder<'a> {
             if id == file_id { Some(package.to_string()) } else { None }
         });
 
-        let content = self.engine.content(file_id);
-        let (parsed, _) = self.engine.parsed(file_id)?;
-        let module = parsed.module_name(&content).map(|name| name.to_string());
+        let module = module_name(self.engine, file_id)?;
 
         let indexed = self.engine.indexed(file_id)?;
         let name = indexed.items[type_id].name.as_ref().map(|name| name.to_string());
@@ -213,14 +217,12 @@ impl<'a> ModuleEncoder<'a> {
         file_id: FileId,
         package_by_file: &'a [(FileId, &'a str)],
     ) -> Result<(Option<String>, ModuleEncoder<'a>), Error> {
-        let content = engine.content(file_id);
-        let (parsed, _) = engine.parsed(file_id)?;
+        let name = module_name(engine, file_id)?;
         let indexed = engine.indexed(file_id)?;
         let lowered = engine.lowered(file_id)?;
         let checked = engine.checked(file_id)?;
         let documented = engine.documented(file_id)?;
 
-        let name = parsed.module_name(&content).map(|name| name.to_string());
         let type_encoder = TypeEncoder::new(engine, Arc::clone(&checked), package_by_file);
 
         Ok((name, ModuleEncoder { file_id, indexed, lowered, documented, checked, type_encoder }))
@@ -378,10 +380,8 @@ pub fn render_package_manifest(
 ) -> Result<schema::Package, Error> {
     let mut modules = vec![];
     for &id in package.modules {
-        let content = engine.content(id);
-        let (parsed, _) = engine.parsed(id)?;
-        if let Some(name) = parsed.module_name(&content) {
-            modules.push(name.to_string());
+        if let Some(name) = module_name(engine, id)? {
+            modules.push(name);
         }
     }
 
