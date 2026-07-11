@@ -38,11 +38,13 @@ impl StabilizedModule {
         self.table.insert_unique(hash, id, |&id| arena_hasher(&self.arena, id));
     }
 
+    #[inline]
     pub fn lookup_cst<N: AstNode<Language = PureScript>>(&self, cst: &N) -> Option<AstId<N>> {
         let ptr = AstPtr::new(cst);
         self.lookup_ptr(&ptr)
     }
 
+    #[inline]
     pub fn lookup_ptr<N: AstNode<Language = PureScript>>(
         &self,
         ptr: &AstPtr<N>,
