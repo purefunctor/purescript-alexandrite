@@ -45,6 +45,10 @@ name = "indexing"
 harness = false
 
 [[bench]]
+name = "lowering_resolving"
+harness = false
+
+[[bench]]
 name = "checking_single_core"
 harness = false
 
