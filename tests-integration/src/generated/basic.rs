@@ -11,7 +11,7 @@ use lowering::{
     ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
     TypeVariableResolution,
 };
-use rowan::ast::AstNode;
+use syntax::ast::AstNode;
 use syntax::cst;
 
 macro_rules! pos {
@@ -183,7 +183,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 
         let cst = stabilized.ast_ptr(type_id).unwrap();
         let node = cst.syntax_node_ptr().to_node(module.syntax());
-        let text = node.text().to_string();
+        let text = node.text(&content).to_string();
 
         writeln!(out, "{}@{}", text.trim(), pos!(&content, &stabilized, type_id)).unwrap();
         match resolution {
@@ -355,7 +355,7 @@ fn write_literal_expression(
 ) {
     let cst = stabilized.ast_ptr(expression_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
-    let text = node.text().to_string();
+    let text = node.text(content).to_string();
     let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
 
     writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
@@ -392,7 +392,7 @@ fn write_term_resolution(
 ) {
     let cst = stabilized.ast_ptr(expression_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
-    let text = node.text().to_string();
+    let text = node.text(content).to_string();
     let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
 
     writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();

@@ -41,7 +41,8 @@ impl CompletionSource for QualifiedModules {
         for (name, imports) in source {
             let Some(import) = imports.first() else { continue };
             let (parsed, _) = context.language.engine.parsed(import.file)?;
-            let description = parsed.module_name().map(|name| name.to_string());
+            let content = context.language.engine.content(import.file);
+            let description = parsed.module_name(&content).map(|name| name.to_string());
 
             let mut item = CompletionItemSpec::new(
                 name.to_string(),
@@ -344,7 +345,8 @@ impl CompletionSource for ImportedTerms {
 
             for (name, file_id, term_id, _) in source {
                 let (parsed, _) = context.language.engine.parsed(file_id)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(file_id);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -385,7 +387,8 @@ impl CompletionSource for ImportedTypes {
             });
             for (name, f, t, _) in source {
                 let (parsed, _) = context.language.engine.parsed(f)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(f);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -406,7 +409,8 @@ impl CompletionSource for ImportedTypes {
             });
             for (name, f, t, _) in source {
                 let (parsed, _) = context.language.engine.parsed(f)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(f);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -450,7 +454,8 @@ impl CompletionSource for QualifiedTerms<'_> {
 
             for (name, file_id, term_id, _) in source {
                 let (parsed, _) = context.language.engine.parsed(file_id)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(file_id);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -495,7 +500,8 @@ impl CompletionSource for QualifiedTypes<'_> {
 
             for (name, file_id, type_id, _) in source {
                 let (parsed, _) = context.language.engine.parsed(file_id)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(file_id);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -518,7 +524,8 @@ impl CompletionSource for QualifiedTypes<'_> {
 
             for (name, file_id, type_id, _) in source {
                 let (parsed, _) = context.language.engine.parsed(file_id)?;
-                let description = parsed.module_name().map(|name| name.to_string());
+                let content = context.language.engine.content(file_id);
+                let description = parsed.module_name(&content).map(|name| name.to_string());
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
@@ -584,7 +591,8 @@ impl SuggestionsHelper for SuggestedTerms {
         }
 
         let (parsed, _) = context.language.engine.parsed(file_id)?;
-        let Some(module_name) = parsed.module_name() else {
+        let content = context.language.engine.content(file_id);
+        let Some(module_name) = parsed.module_name(&content) else {
             return Ok(None);
         };
 
@@ -637,7 +645,8 @@ impl SuggestionsHelper for SuggestedTypes {
         }
 
         let (parsed, _) = context.language.engine.parsed(file_id)?;
-        let Some(module_name) = parsed.module_name() else {
+        let content = context.language.engine.content(file_id);
+        let Some(module_name) = parsed.module_name(&content) else {
             return Ok(None);
         };
 
@@ -840,7 +849,8 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
         item_id: Self::ItemId,
     ) -> Result<Option<CompletionItem>, AnalyzerError> {
         let (parsed, _) = context.language.engine.parsed(import_id)?;
-        let Some(module_name) = parsed.module_name() else {
+        let content = context.language.engine.content(import_id);
+        let Some(module_name) = parsed.module_name(&content) else {
             return Ok(None);
         };
 
@@ -884,7 +894,8 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
         item_id: Self::ItemId,
     ) -> Result<Option<CompletionItem>, AnalyzerError> {
         let (parsed, _) = context.language.engine.parsed(import_id)?;
-        let Some(module_name) = parsed.module_name() else {
+        let content = context.language.engine.content(import_id);
+        let Some(module_name) = parsed.module_name(&content) else {
             return Ok(None);
         };
 
@@ -929,8 +940,9 @@ fn suggestions_candidates_qualified<T: SuggestionsHelper>(
     for import_id in file_ids {
         let (parsed, _) = context.language.engine.parsed(import_id)?;
         let resolved = context.language.engine.resolved(import_id)?;
+        let content = context.language.engine.content(import_id);
 
-        if parsed.module_name().is_some_and(|module_name| {
+        if parsed.module_name(&content).is_some_and(|module_name| {
             let filter = PerfectSegmentFuzzy(&module_name);
             !filter.matches(prefix)
         }) {
@@ -989,8 +1001,9 @@ impl CompletionSource for WorkspaceModules {
     ) -> Result<Self::T, AnalyzerError> {
         for id in context.language.files.iter_id() {
             let (parsed, _) = context.language.engine.parsed(id)?;
+            let content = context.language.engine.content(id);
 
-            let Some(module_name) = parsed.module_name() else {
+            let Some(module_name) = parsed.module_name(&content) else {
                 continue;
             };
 

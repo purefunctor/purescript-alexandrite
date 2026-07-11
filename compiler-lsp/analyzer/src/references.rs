@@ -7,11 +7,11 @@ use lowering::{
 };
 use parsing::ParsedModule;
 use resolving::ResolvedImport;
-use rowan::ast::{AstNode, AstPtr};
 use rustc_hash::FxHashSet;
 use smol_str::ToSmolStr;
 use stabilizing::{AstId, StabilizedModule};
-use syntax::{PureScript, cst};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::cst;
 
 use crate::{AnalyzerError, LanguageContext, common, locate, position};
 
@@ -76,12 +76,13 @@ fn references_module_name(
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let engine = context.engine;
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
     let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
 
-    let module_name = module_name.syntax().text().to_smolstr();
+    let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
     let candidates = probe_imports_for(context, module_id)?;
@@ -112,6 +113,7 @@ fn references_import(
     import_id: ImportItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let engine = context.engine;
+    let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -124,7 +126,12 @@ fn references_import(
         .ancestors()
         .find_map(cst::ImportStatement::cast)
         .ok_or(AnalyzerError::NonFatal)?;
-    let module_name = statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().to_smolstr();
+    let module_name = statement
+        .module_name()
+        .ok_or(AnalyzerError::NonFatal)?
+        .syntax()
+        .text(&content)
+        .to_smolstr();
 
     let import_resolved = {
         let import_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
@@ -161,27 +168,27 @@ fn references_import(
     match node {
         cst::ImportItem::ImportValue(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             references_term(name)
         }
         cst::ImportItem::ImportClass(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             references_class(name)
         }
         cst::ImportItem::ImportType(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             references_type(name)
         }
         cst::ImportItem::ImportOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             references_term(name)
         }
         cst::ImportItem::ImportTypeOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            let name = token.text();
+            let name = token.text(&content);
             references_type(name)
         }
     }
@@ -304,7 +311,7 @@ fn id_range<T>(
     item_id: AstId<T>,
 ) -> Option<Range>
 where
-    T: AstNode<Language = PureScript>,
+    T: AstNode,
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;

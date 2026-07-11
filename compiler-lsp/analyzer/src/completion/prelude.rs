@@ -3,11 +3,12 @@ use files::FileId;
 use lowering::{GraphNodeId, LoweredModule};
 use parsing::ParsedModule;
 use resolving::ResolvedModule;
-use rowan::ast::{AstNode, AstPtr};
-use rowan::{TextRange, TextSize, TokenAtOffset};
 use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
-use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::{
+    SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize, TokenAtOffset, cst,
+};
 
 use crate::position::{PositionEncoding, Utf8Position};
 use crate::{AnalyzerError, LanguageContext, position};
@@ -214,9 +215,9 @@ impl CursorSemantics {
             }
             TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(left, right) => {
-                if left.text().contains(COMPLETION_MARKER) {
+                if left.text(&source).contains(COMPLETION_MARKER) {
                     left
-                } else if right.text().contains(COMPLETION_MARKER) {
+                } else if right.text(&source).contains(COMPLETION_MARKER) {
                     right
                 } else {
                     return CursorSemantics::General;
@@ -274,7 +275,7 @@ impl CursorText {
 
             let prefix_token = qualified.qualifier().and_then(|qualifier| qualifier.text());
             let prefix_range = prefix_token.as_ref().map(|token| token.text_range());
-            let prefix = prefix_token.map(|token| token.text().into());
+            let prefix = prefix_token.map(|token| token.text(content).into());
 
             let name_token = qualified
                 .lower()
@@ -295,8 +296,9 @@ impl CursorText {
                 }
             });
 
-            let name = name_token
-                .map(|token| token.text().trim_start_matches('(').trim_end_matches(')').into());
+            let name = name_token.map(|token| {
+                token.text(content).trim_start_matches('(').trim_end_matches(')').into()
+            });
 
             let range = match (prefix_range, name_range) {
                 (Some(p), Some(n)) => Some(p.cover(n)),
@@ -327,7 +329,7 @@ impl CursorText {
             let qualifier = cst::Qualifier::cast(node)?;
             let token = qualifier.text()?;
 
-            let prefix = token.text();
+            let prefix = token.text(content);
             let prefix = SmolStr::new(prefix);
 
             let range = token.text_range();
@@ -350,11 +352,11 @@ impl CursorText {
 
             let prefix_token = module_name.qualifier().and_then(|qualifier| qualifier.text());
             let prefix_range = prefix_token.as_ref().map(|token| token.text_range());
-            let prefix = prefix_token.map(|token| token.text().into());
+            let prefix = prefix_token.map(|token| token.text(content).into());
 
             let name_token = module_name.name_token();
             let name_range = name_token.as_ref().map(|token| token.text_range());
-            let name = name_token.map(|token| token.text().into());
+            let name = name_token.map(|token| token.text(content).into());
 
             let range = match (prefix_range, name_range) {
                 (Some(p), Some(n)) => Some(p.cover(n)),

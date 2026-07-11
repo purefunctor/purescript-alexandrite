@@ -16,4 +16,3 @@ lexing = { path = "../lexing" }
 lowering = { path = "../lowering" }
 parsing = { path = "../parsing" }
 paste = "1.0.15"
-rowan = "0.16.1"

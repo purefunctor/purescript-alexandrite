@@ -10,7 +10,6 @@ use lowering::{
     TypeVariableBindingId,
 };
 use serde::{Deserialize, Serialize};
-use syntax::SyntaxNode;
 
 use crate::AnalyzerError;
 use crate::extract::{AnnotationSyntaxRange, extract_annotation, extract_syntax};
@@ -31,7 +30,10 @@ pub fn implementation(
     match resolve {
         CompletionResolveData::Import(file_id) => {
             match AnnotationSyntaxRange::of_file(engine, file_id) {
-                Ok((root, range)) => Ok(resolve_documentation(root, range, item)),
+                Ok((_root, range)) => {
+                    let content = engine.content(file_id);
+                    Ok(resolve_documentation(&content, range, item))
+                }
                 Err(error) => Err((error, item)),
             }
         }
@@ -60,12 +62,12 @@ pub fn implementation(
 }
 
 fn resolve_documentation(
-    root: SyntaxNode,
+    source: &str,
     range: AnnotationSyntaxRange,
     mut item: CompletionItem,
 ) -> CompletionItem {
-    let annotation = range.annotation.map(|range| extract_annotation(&root, range));
-    let syntax = range.syntax.map(|range| extract_syntax(&root, range));
+    let annotation = range.annotation.map(|range| extract_annotation(source, range));
+    let syntax = range.syntax.map(|range| extract_syntax(source, range));
 
     item.detail = syntax;
     item.documentation = annotation.map(|annotation| {
@@ -84,8 +86,9 @@ fn resolve_term_item(
     term_id: TermItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    if let Ok((root, range)) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
-        let annotation = range.annotation.map(|range| extract_annotation(&root, range));
+    if let Ok((_root, range)) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
+        let content = engine.content(file_id);
+        let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
             Documentation::MarkupContent(MarkupContent {
                 kind: MarkupKind::Markdown,
@@ -123,8 +126,9 @@ fn resolve_type_item(
     type_id: TypeItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    if let Ok((root, range)) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
-        let annotation = range.annotation.map(|range| extract_annotation(&root, range));
+    if let Ok((_root, range)) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
+        let content = engine.content(file_id);
+        let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
             Documentation::MarkupContent(MarkupContent {
                 kind: MarkupKind::Markdown,
@@ -287,15 +291,14 @@ mod id {
 mod ast_id {
     use std::num::NonZeroU32;
 
-    use rowan::ast::AstNode;
     use serde::de::Error;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use stabilizing::AstId;
-    use syntax::PureScript;
+    use syntax::ast::AstNode;
 
     pub(super) fn serialize<N, S>(index: &AstId<N>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        N: AstNode<Language = PureScript>,
+        N: AstNode,
         S: Serializer,
     {
         index.into_raw().get().serialize(serializer)
@@ -303,7 +306,7 @@ mod ast_id {
 
     pub(super) fn deserialize<'d, N, D>(deserializer: D) -> Result<AstId<N>, D::Error>
     where
-        N: AstNode<Language = PureScript>,
+        N: AstNode,
         D: Deserializer<'d>,
     {
         let value = u32::deserialize(deserializer)?;

@@ -18,12 +18,12 @@ fn load_file(engine: &mut QueryEngine, files: &mut Files, path: &Path) {
     let id = files.insert(uri, file);
     let content = files.content(id);
 
-    engine.set_content(id, content);
+    engine.set_content(id, content.clone());
     let Ok((parsed, _)) = engine.parsed(id) else {
         return;
     };
 
-    if let Some(name) = parsed.module_name() {
+    if let Some(name) = parsed.module_name(&content) {
         engine.set_module_file(&name, id);
     }
 }

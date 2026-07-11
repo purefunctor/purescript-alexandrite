@@ -1,10 +1,9 @@
 use building::QueryEngine;
 use files::FileId;
 use indexing::{TermItemId, TermItemKind, TypeItemId, TypeItemKind};
-use rowan::TextRange;
-use rowan::ast::AstNode;
 use stabilizing::{AstId, StabilizedModule};
-use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr};
+use syntax::ast::AstNode;
+use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, TextRange};
 
 use crate::AnalyzerError;
 
@@ -37,13 +36,13 @@ impl AnnotationSyntaxRange {
     }
 }
 
-pub fn extract_annotation(root: &SyntaxNode, range: TextRange) -> String {
-    let text = root.text().slice(range);
+pub fn extract_annotation(source: &str, range: TextRange) -> String {
+    let text = &source[usize::from(range.start())..usize::from(range.end())];
 
     let mut annotation = String::default();
 
-    text.for_each_chunk(|chunk| {
-        let lines = chunk.lines().filter_map(|line| {
+    {
+        let lines = text.lines().filter_map(|line| {
             let trimmed = line.trim_start_matches("-- |");
             if line != trimmed { Some(trimmed.trim_matches(' ')) } else { None }
         });
@@ -57,13 +56,13 @@ pub fn extract_annotation(root: &SyntaxNode, range: TextRange) -> String {
             annotation.push('\n');
             annotation.push_str(line);
         });
-    });
+    }
 
     annotation
 }
 
-pub fn extract_syntax(root: &SyntaxNode, range: TextRange) -> String {
-    root.text().slice(range).to_string()
+pub fn extract_syntax(source: &str, range: TextRange) -> String {
+    source[usize::from(range.start())..usize::from(range.end())].to_string()
 }
 
 impl AnnotationSyntaxRange {
@@ -79,15 +78,18 @@ impl AnnotationSyntaxRange {
         let header = header.syntax();
 
         let annotation = header
-            .first_child_by_kind(&|kind| matches!(kind, SyntaxKind::Annotation))
+            .children()
+            .find(|child| matches!(child.kind(), SyntaxKind::Annotation))
             .map(|annotation| annotation.text_range());
 
         let syntax = {
             let module_token = header
-                .first_child_or_token_by_kind(&|kind| matches!(kind, SyntaxKind::MODULE))
+                .children_with_tokens()
+                .find(|element| matches!(element.kind(), SyntaxKind::MODULE))
                 .ok_or(AnalyzerError::NonFatal)?;
             let where_token = header
-                .first_child_or_token_by_kind(&|kind| matches!(kind, SyntaxKind::WHERE))
+                .children_with_tokens()
+                .find(|element| matches!(element.kind(), SyntaxKind::WHERE))
                 .ok_or(AnalyzerError::NonFatal)?;
 
             let start = module_token.text_range().start();
@@ -183,8 +185,8 @@ fn signature_equation_range<S, E>(
     equation: &Option<AstId<E>>,
 ) -> Option<AnnotationSyntaxRange>
 where
-    S: AstNode<Language = syntax::PureScript>,
-    E: AstNode<Language = syntax::PureScript>,
+    S: AstNode,
+    E: AstNode,
 {
     let signature = signature.and_then(|id| {
         let ptr = stabilized.syntax_ptr(id)?;

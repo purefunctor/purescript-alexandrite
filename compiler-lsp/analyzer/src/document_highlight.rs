@@ -7,10 +7,10 @@ use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
 };
-use rowan::ast::AstNode;
 use smol_str::ToSmolStr;
 use stabilizing::AstId;
-use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, cst};
+use syntax::ast::AstNode;
+use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::position::{PositionEncoding, Utf8Range};
 use crate::{AnalyzerError, LanguageContext, locate, position};
@@ -105,6 +105,7 @@ fn import_target(
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<HighlightTarget, AnalyzerError> {
+    let content = context.engine.content(current_file);
     let (parsed, _) = context.engine.parsed(current_file)?;
     let stabilized = context.engine.stabilized(current_file)?;
 
@@ -117,8 +118,12 @@ fn import_target(
         .ancestors()
         .find_map(cst::ImportStatement::cast)
         .ok_or(AnalyzerError::NonFatal)?;
-    let module_name =
-        statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().text().to_smolstr();
+    let module_name = statement
+        .module_name()
+        .ok_or(AnalyzerError::NonFatal)?
+        .syntax()
+        .text(&content)
+        .to_smolstr();
 
     let imported_file = context.engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
     let imported_resolved = context.engine.resolved(imported_file)?;
@@ -153,23 +158,23 @@ fn import_target(
     match node {
         cst::ImportItem::ImportValue(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            term_target(token.text())
+            term_target(token.text(&content))
         }
         cst::ImportItem::ImportClass(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            class_target(token.text())
+            class_target(token.text(&content))
         }
         cst::ImportItem::ImportType(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            type_target(token.text())
+            type_target(token.text(&content))
         }
         cst::ImportItem::ImportOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            term_target(token.text())
+            term_target(token.text(&content))
         }
         cst::ImportItem::ImportTypeOperator(cst) => {
             let token = cst.name_token().ok_or(AnalyzerError::NonFatal)?;
-            type_target(token.text())
+            type_target(token.text(&content))
         }
     }
 }
@@ -728,7 +733,7 @@ fn push_name_highlight<T>(
     range: fn(&str, &SyntaxNode, &SyntaxNodePtr) -> Option<Utf8Range>,
 ) -> Result<(), AnalyzerError>
 where
-    T: AstNode<Language = PureScript>,
+    T: AstNode,
 {
     let content = context.engine.content(current_file);
     let (parsed, _) = context.engine.parsed(current_file)?;

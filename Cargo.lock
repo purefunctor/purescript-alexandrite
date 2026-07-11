@@ -41,8 +41,7 @@ dependencies = [
  "parsing",
  "radix_trie",
  "resolving",
- "rowan",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "serde",
  "serde_json",
  "smol_str",
@@ -265,7 +264,7 @@ dependencies = [
  "parsing",
  "prim-constants",
  "resolving",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "smol_str",
  "stabilizing",
  "sugar",
@@ -280,7 +279,7 @@ version = "0.1.0"
 dependencies = [
  "files",
  "parking_lot",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "string-interner",
  "thiserror",
 ]
@@ -355,7 +354,7 @@ dependencies = [
  "petgraph",
  "pretty",
  "resolving",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "smol_str",
  "stabilizing",
  "sugar",
@@ -481,12 +480,6 @@ dependencies = [
  "cfg-if",
  "wasm-bindgen",
 ]
-
-[[package]]
-name = "countme"
-version = "3.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7704b5fdd17b18ae31c4c1da5a2e0305a2bf17b5249300a9ee9ed7b72114c636"
 
 [[package]]
 name = "crc32fast"
@@ -618,7 +611,7 @@ dependencies = [
  "parsing",
  "prim-constants",
  "resolving",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
  "smol_str",
@@ -654,7 +647,7 @@ dependencies = [
  "insta",
  "lexing",
  "parsing",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "stabilizing",
  "syntax",
 ]
@@ -729,7 +722,7 @@ dependencies = [
  "indexmap",
  "la-arena",
  "rayon",
- "rustc-hash 2.1.2",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -940,12 +933,6 @@ dependencies = [
  "crunchy",
  "zerocopy",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.14.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hashbrown"
@@ -1192,7 +1179,7 @@ dependencies = [
  "lexing",
  "parsing",
  "paste",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "smol_str",
  "stabilizing",
  "syntax",
@@ -1242,7 +1229,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "papaya",
  "parking_lot",
- "rustc-hash 2.1.2",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1470,7 +1457,7 @@ dependencies = [
  "paste",
  "petgraph",
  "resolving",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "smol_str",
  "stabilizing",
  "syntax",
@@ -1845,8 +1832,7 @@ dependencies = [
  "radix_trie",
  "rayon",
  "resolving",
- "rowan",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "serde",
  "serde_json",
  "smol_str",
@@ -1875,7 +1861,7 @@ dependencies = [
  "pin-project-lite",
  "quinn-proto",
  "quinn-udp",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "rustls",
  "socket2",
  "thiserror",
@@ -1895,7 +1881,7 @@ dependencies = [
  "lru-slab",
  "rand",
  "ring",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "rustls",
  "rustls-pki-types",
  "slab",
@@ -2092,8 +2078,7 @@ dependencies = [
  "lowering",
  "parsing",
  "paste",
- "rowan",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "smol_str",
 ]
 
@@ -2110,24 +2095,6 @@ dependencies = [
  "untrusted",
  "windows-sys 0.52.0",
 ]
-
-[[package]]
-name = "rowan"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "417a3a9f582e349834051b8a10c8d71ca88da4211e4093528e36b9845f6b5f21"
-dependencies = [
- "countme",
- "hashbrown 0.14.5",
- "rustc-hash 1.1.0",
- "text-size",
-]
-
-[[package]]
-name = "rustc-hash"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc-hash"
@@ -2383,7 +2350,7 @@ dependencies = [
  "globset",
  "insta",
  "itertools 0.14.0",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "serde",
  "serde_json",
  "smol_str",
@@ -2399,7 +2366,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "la-arena",
  "paste",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "syntax",
  "syntree",
 ]
@@ -2441,7 +2408,7 @@ dependencies = [
  "indexing",
  "lowering",
  "resolving",
- "rustc-hash 2.1.2",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -2482,7 +2449,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "la-arena",
  "paste",
- "rustc-hash 2.1.2",
+ "rustc-hash",
  "syntree",
  "text-size",
 ]
@@ -2623,7 +2590,6 @@ dependencies = [
  "itertools 0.14.0",
  "line-index",
  "lowering",
- "rowan",
  "serde_json",
  "stabilizing",
  "sugar",

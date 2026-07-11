@@ -21,6 +21,11 @@ pub struct SyntaxValue {
 
 pub type Syntree = syntree::Tree<SyntaxValue, syntree::FlavorDefault>;
 
+/// Owns the textless syntax structure shared by syntax handles.
+///
+/// Structural equality deliberately ignores source text. Consumers which derive
+/// values from [`SyntaxNode::text`] or [`SyntaxToken::text`] must also track the
+/// corresponding source as an input.
 #[derive(Debug)]
 pub struct TreeOwner {
     tree: Mutex<Syntree>,
@@ -140,10 +145,11 @@ impl SyntaxNode {
         self.children().next()
     }
     pub fn first_token(&self) -> Option<SyntaxToken> {
-        self.preorder_with_tokens().find_map(|event| match event {
-            WalkEvent::Enter(element) => element.into_token(),
-            _ => None,
-        })
+        let tree = self.owner.tree.lock().unwrap();
+        let node = tree.get(self.id)?;
+        let id =
+            node.walk().inside().find(|node| node.value().category == ElementCategory::Token)?.id();
+        Some(SyntaxToken { owner: self.owner.clone(), id })
     }
     pub fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
         sibling(&self.owner, self.id, true)
@@ -336,30 +342,41 @@ impl<T> TokenAtOffset<T> {
     }
 }
 fn token_at_offset(node: &SyntaxNode, offset: TextSize) -> TokenAtOffset<SyntaxToken> {
-    let tokens = node.preorder_with_tokens().filter_map(|event| match event {
-        WalkEvent::Enter(element) => element.into_token(),
-        _ => None,
-    });
+    let tree = node.owner.tree.lock().unwrap();
+    let root = tree.get(node.id).unwrap();
     let mut left = None;
-    for token in tokens {
-        let range = token.text_range();
+
+    for raw in root.walk().inside() {
+        if raw.value().category != ElementCategory::Token {
+            continue;
+        }
+
+        let id = raw.id();
+        let range = range(&raw);
         if !range.is_empty() && range.start() == offset {
             return left
-                .filter(|token: &SyntaxToken| {
-                    !token.text_range().is_empty() && token.text_range().end() == offset
-                })
-                .map_or(TokenAtOffset::Single(token.clone()), |left| {
-                    TokenAtOffset::Between(left, token)
-                });
+                .filter(|(_, range): &(PointerUsize, TextRange)| range.end() == offset)
+                .map_or_else(
+                    || TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id }),
+                    |(left, _)| {
+                        TokenAtOffset::Between(
+                            SyntaxToken { owner: node.owner.clone(), id: left },
+                            SyntaxToken { owner: node.owner.clone(), id },
+                        )
+                    },
+                );
         }
         if range.contains(offset) {
-            return TokenAtOffset::Single(token);
+            return TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id });
         }
         if !range.is_empty() && range.end() == offset {
-            left = Some(token);
+            left = Some((id, range));
         }
     }
-    left.map_or(TokenAtOffset::None, TokenAtOffset::Single)
+
+    left.map_or(TokenAtOffset::None, |(id, _)| {
+        TokenAtOffset::Single(SyntaxToken { owner: node.owner.clone(), id })
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -382,6 +399,9 @@ impl SyntaxNodePtr {
     }
     pub fn to_node(&self, root: &SyntaxNode) -> SyntaxNode {
         self.try_to_node(root).expect("syntax pointer does not belong to the supplied tree")
+    }
+    pub fn text_range(&self) -> TextRange {
+        self.range
     }
     pub fn cast<N: crate::ast::AstNode>(self) -> Option<crate::ast::AstPtr<N>> {
         N::can_cast(self.kind).then(|| crate::ast::AstPtr::from_raw(self))
@@ -458,5 +478,55 @@ impl fmt::Debug for SyntaxToken {
             .field("kind", &self.kind())
             .field("range", &self.text_range())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn root_with_boundary_tokens() -> SyntaxNode {
+        let mut builder = syntree::Builder::new();
+        builder
+            .open(SyntaxValue { kind: SyntaxKind::Module, category: ElementCategory::Node })
+            .unwrap();
+        builder
+            .token(SyntaxValue { kind: SyntaxKind::LOWER, category: ElementCategory::Token }, 1)
+            .unwrap();
+        builder
+            .token_empty(SyntaxValue {
+                kind: SyntaxKind::LAYOUT_SEPARATOR,
+                category: ElementCategory::Token,
+            })
+            .unwrap();
+        builder
+            .token(SyntaxValue { kind: SyntaxKind::UPPER, category: ElementCategory::Token }, 2)
+            .unwrap();
+        builder.close().unwrap();
+
+        SyntaxNode::new_root(TreeOwner::new(builder.build().unwrap()))
+    }
+
+    #[test]
+    fn token_at_offset_preserves_boundaries_around_empty_tokens() {
+        let root = root_with_boundary_tokens();
+
+        assert!(matches!(
+            root.token_at_offset(TextSize::new(0)),
+            TokenAtOffset::Single(token) if token.kind() == SyntaxKind::LOWER
+        ));
+        assert!(matches!(
+            root.token_at_offset(TextSize::new(1)),
+            TokenAtOffset::Between(left, right)
+                if left.kind() == SyntaxKind::LOWER && right.kind() == SyntaxKind::UPPER
+        ));
+        assert!(matches!(
+            root.token_at_offset(TextSize::new(2)),
+            TokenAtOffset::Single(token) if token.kind() == SyntaxKind::UPPER
+        ));
+        assert!(matches!(
+            root.token_at_offset(TextSize::new(3)),
+            TokenAtOffset::Single(token) if token.kind() == SyntaxKind::UPPER
+        ));
     }
 }

@@ -12,14 +12,13 @@ use async_lsp::lsp_types::*;
 use filter::{FuzzyMatch, NoFilter, StartsWith};
 use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use radix_trie::Trie;
-use rowan::TokenAtOffset;
 use smol_str::SmolStr;
 use sources::{
     ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes, QualifiedModules,
     QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes, QualifiedTypesSuggestions,
     ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes, WorkspaceModules,
 };
-use syntax::SyntaxKind;
+use syntax::{SyntaxKind, TokenAtOffset};
 
 use crate::{AnalyzerError, LanguageContext, position};
 

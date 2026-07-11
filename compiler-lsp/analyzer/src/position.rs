@@ -1,8 +1,7 @@
 use async_lsp::lsp_types;
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
-use rowan::ast::AstNode;
-use rowan::{TextRange, TextSize};
-use syntax::{SyntaxNode, SyntaxNodePtr, cst};
+use syntax::ast::AstNode;
+use syntax::{SyntaxNode, SyntaxNodePtr, TextRange, TextSize, cst};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PositionEncoding {
@@ -246,7 +245,7 @@ pub fn infix_operator_range(
 #[cfg(test)]
 mod tests {
     use async_lsp::lsp_types::{Position, PositionEncodingKind};
-    use rowan::TextSize;
+    use syntax::TextSize;
 
     use super::{
         PositionEncoding, Utf8Position, offset_to_utf8_position, protocol_position_to_utf8,

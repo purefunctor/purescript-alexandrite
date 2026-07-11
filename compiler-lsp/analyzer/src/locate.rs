@@ -9,10 +9,9 @@ use lowering::{
     BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordPunId, TermOperatorId,
     TypeId, TypeOperatorId,
 };
-use rowan::TokenAtOffset;
-use rowan::ast::{AstNode, AstPtr};
 use stabilizing::{AstId, StabilizedModule};
-use syntax::{PureScript, SyntaxNode, SyntaxNodePtr, SyntaxToken, cst};
+use syntax::ast::{AstNode, AstPtr};
+use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TokenAtOffset, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::position::{Utf8Position, Utf8Range};
@@ -30,7 +29,7 @@ pub fn id_range<T>(
     item_id: AstId<T>,
 ) -> Option<Utf8Range>
 where
-    T: AstNode<Language = PureScript>,
+    T: AstNode,
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;

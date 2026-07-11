@@ -184,7 +184,8 @@ impl<'a> TypeEncoder<'a> {
         });
 
         let (parsed, _) = self.engine.parsed(file_id)?;
-        let module = parsed.module_name().map(|name| name.to_string());
+        let content = self.engine.content(file_id);
+        let module = parsed.module_name(&content).map(|name| name.to_string());
 
         let indexed = self.engine.indexed(file_id)?;
         let name = indexed.items[type_id].name.as_ref().map(|name| name.to_string());
@@ -218,7 +219,8 @@ impl<'a> ModuleEncoder<'a> {
         let checked = engine.checked(file_id)?;
         let documented = engine.documented(file_id)?;
 
-        let name = parsed.module_name().map(|name| name.to_string());
+        let content = engine.content(file_id);
+        let name = parsed.module_name(&content).map(|name| name.to_string());
         let type_encoder = TypeEncoder::new(engine, Arc::clone(&checked), package_by_file);
 
         Ok((name, ModuleEncoder { file_id, indexed, lowered, documented, checked, type_encoder }))
@@ -377,7 +379,8 @@ pub fn render_package_manifest(
     let mut modules = vec![];
     for &id in package.modules {
         let (parsed, _) = engine.parsed(id)?;
-        if let Some(name) = parsed.module_name() {
+        let content = engine.content(id);
+        if let Some(name) = parsed.module_name(&content) {
             modules.push(name.to_string());
         }
     }

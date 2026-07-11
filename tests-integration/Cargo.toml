@@ -17,7 +17,6 @@ itertools = "0.14.0"
 insta = "1.45.1"
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
-rowan = "0.16.1"
 serde_json = "1.0"
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-core/sugar" }

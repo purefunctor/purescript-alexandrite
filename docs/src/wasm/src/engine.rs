@@ -185,9 +185,9 @@ impl WasmQueryEngine {
         }
 
         let (parsed, _) = self.parsed(id)?;
+        let content = self.content(id);
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
-        let content = self.content(id);
         let documented = documenting::document_module(&content, &parsed, &stabilized, &indexed);
 
         self.derived.borrow_mut().documented.insert(id, documented.clone());
@@ -249,6 +249,7 @@ impl QueryProxy for WasmQueryEngine {
         }
 
         let (parsed, _) = self.parsed(id)?;
+        let content = self.content(id);
         let stabilized = self.stabilized(id)?;
 
         let module = parsed.cst();
@@ -264,6 +265,7 @@ impl QueryProxy for WasmQueryEngine {
         }
 
         let (parsed, _) = self.parsed(id)?;
+        let content = self.content(id);
         let prim = self.resolved(self.prim_id)?;
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
