@@ -4,8 +4,7 @@ mod map;
 pub use id::*;
 pub use map::*;
 
-use rowan::WalkEvent;
-use syntax::{SyntaxKind, SyntaxNode};
+use syntax::{SyntaxKind, SyntaxNode, WalkEvent};
 
 /// Allocates stable IDs for text ranges.
 ///

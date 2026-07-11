@@ -2403,9 +2403,9 @@ dependencies = [
  "hashbrown 0.17.1",
  "la-arena",
  "paste",
- "rowan",
  "rustc-hash 2.1.2",
  "syntax",
+ "syntree",
 ]
 
 [[package]]

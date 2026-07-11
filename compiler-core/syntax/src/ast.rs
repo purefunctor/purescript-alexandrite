@@ -30,6 +30,10 @@ impl<N: AstNode> AstPtr<N> {
     pub fn try_to_node(&self, root: &SyntaxNode) -> Option<N> {
         self.raw.try_to_node(root).and_then(N::cast)
     }
+
+    pub fn syntax_node_ptr(&self) -> SyntaxNodePtr {
+        self.raw
+    }
 }
 
 pub struct AstChildren<N> {
