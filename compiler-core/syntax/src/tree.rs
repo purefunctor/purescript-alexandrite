@@ -1,6 +1,6 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use syntree::pointer::PointerUsize;
 pub use text_size::{TextRange, TextSize};
@@ -23,14 +23,14 @@ pub type Syntree = syntree::Tree<SyntaxValue, syntree::FlavorDefault>;
 
 #[derive(Debug)]
 pub struct TreeOwner {
-    tree: RwLock<Syntree>,
+    tree: Mutex<Syntree>,
     root: PointerUsize,
 }
 
 impl TreeOwner {
     pub fn new(tree: Syntree) -> Arc<Self> {
         let root = tree.first().expect("syntax tree must have a root").id();
-        Arc::new(Self { tree: RwLock::new(tree), root })
+        Arc::new(Self { tree: Mutex::new(tree), root })
     }
 }
 impl PartialEq for TreeOwner {
@@ -38,7 +38,15 @@ impl PartialEq for TreeOwner {
         if std::ptr::eq(self, other) {
             return true;
         }
-        *self.tree.read().unwrap() == *other.tree.read().unwrap()
+        if std::ptr::from_ref(self) < std::ptr::from_ref(other) {
+            let this = self.tree.lock().unwrap();
+            let other = other.tree.lock().unwrap();
+            *this == *other
+        } else {
+            let other = other.tree.lock().unwrap();
+            let this = self.tree.lock().unwrap();
+            *this == *other
+        }
     }
 }
 impl Eq for TreeOwner {}
@@ -92,16 +100,16 @@ impl SyntaxNode {
         self.owner.clone()
     }
     pub fn kind(&self) -> SyntaxKind {
-        self.owner.tree.read().unwrap().get(self.id).unwrap().value().kind
+        self.owner.tree.lock().unwrap().get(self.id).unwrap().value().kind
     }
     pub fn text_range(&self) -> TextRange {
-        range(&self.owner.tree.read().unwrap().get(self.id).unwrap())
+        range(&self.owner.tree.lock().unwrap().get(self.id).unwrap())
     }
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
         &source[usize::from(self.text_range().start())..usize::from(self.text_range().end())]
     }
     pub fn parent(&self) -> Option<Self> {
-        let id = self.owner.tree.read().unwrap().get(self.id)?.parent()?.id();
+        let id = self.owner.tree.lock().unwrap().get(self.id)?.parent()?.id();
         Some(Self { owner: self.owner.clone(), id })
     }
     pub fn ancestors(&self) -> impl Iterator<Item = Self> {
@@ -117,7 +125,7 @@ impl SyntaxNode {
         SyntaxElementChildren(self.elements(true).into_iter())
     }
     fn elements(&self, tokens: bool) -> Vec<SyntaxElement> {
-        let tree = self.owner.tree.read().unwrap();
+        let tree = self.owner.tree.lock().unwrap();
         tree.get(self.id)
             .unwrap()
             .children()
@@ -161,7 +169,7 @@ impl SyntaxNode {
         )
     }
     pub fn preorder_with_tokens(&self) -> PreorderWithTokens {
-        let tree = self.owner.tree.read().unwrap();
+        let tree = self.owner.tree.lock().unwrap();
         let mut events = Vec::new();
         collect_events(&self.owner, tree.get(self.id).unwrap(), &mut events);
         PreorderWithTokens(events.into_iter())
@@ -176,16 +184,16 @@ impl SyntaxNode {
 
 impl SyntaxToken {
     pub fn kind(&self) -> SyntaxKind {
-        self.owner.tree.read().unwrap().get(self.id).unwrap().value().kind
+        self.owner.tree.lock().unwrap().get(self.id).unwrap().value().kind
     }
     pub fn text_range(&self) -> TextRange {
-        range(&self.owner.tree.read().unwrap().get(self.id).unwrap())
+        range(&self.owner.tree.lock().unwrap().get(self.id).unwrap())
     }
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
         &source[usize::from(self.text_range().start())..usize::from(self.text_range().end())]
     }
     pub fn parent(&self) -> SyntaxNode {
-        let id = self.owner.tree.read().unwrap().get(self.id).unwrap().parent().unwrap().id();
+        let id = self.owner.tree.lock().unwrap().get(self.id).unwrap().parent().unwrap().id();
         SyntaxNode { owner: self.owner.clone(), id }
     }
     pub fn parent_ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
@@ -288,7 +296,7 @@ fn collect_events(
     out.push(WalkEvent::Leave(current));
 }
 fn sibling(owner: &Arc<TreeOwner>, id: PointerUsize, next: bool) -> Option<SyntaxElement> {
-    let tree = owner.tree.read().unwrap();
+    let tree = owner.tree.lock().unwrap();
     let node = tree.get(id)?;
     let node = if next { node.next()? } else { node.prev()? };
     Some(element(owner, node.id(), node.value()))
@@ -365,7 +373,7 @@ impl SyntaxNodePtr {
         Self { id: node.id, kind: node.kind(), range: node.text_range() }
     }
     pub fn try_to_node(&self, root: &SyntaxNode) -> Option<SyntaxNode> {
-        let tree = root.owner.tree.read().unwrap();
+        let tree = root.owner.tree.lock().unwrap();
         let node = tree.get(self.id)?;
         (node.value().category == ElementCategory::Node
             && node.value().kind == self.kind

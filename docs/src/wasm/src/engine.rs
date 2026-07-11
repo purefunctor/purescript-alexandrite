@@ -94,7 +94,7 @@ impl WasmQueryEngine {
         self.input.borrow_mut().content.insert(id, Arc::from(source));
 
         let (parsed, _) = self.parsed(id).ok()?;
-        let module_name = parsed.module_name()?;
+        let module_name = parsed.module_name(source)?;
 
         let name_id = self.interned.borrow().module.intern(&module_name);
         self.input.borrow_mut().module.insert(name_id, id);
@@ -187,7 +187,8 @@ impl WasmQueryEngine {
         let (parsed, _) = self.parsed(id)?;
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
-        let documented = documenting::document_module(&parsed, &stabilized, &indexed);
+        let content = self.content(id);
+        let documented = documenting::document_module(&content, &parsed, &stabilized, &indexed);
 
         self.derived.borrow_mut().documented.insert(id, documented.clone());
         Ok(documented)
@@ -251,7 +252,7 @@ impl QueryProxy for WasmQueryEngine {
         let stabilized = self.stabilized(id)?;
 
         let module = parsed.cst();
-        let indexed = Arc::new(indexing::index_module(&module, &stabilized));
+        let indexed = Arc::new(indexing::index_module(&content, &module, &stabilized));
 
         self.derived.borrow_mut().indexed.insert(id, indexed.clone());
         Ok(indexed)
@@ -269,8 +270,15 @@ impl QueryProxy for WasmQueryEngine {
         let resolved = self.resolved(id)?;
 
         let module = parsed.cst();
-        let lowered =
-            Arc::new(lowering::lower_module(id, &module, &prim, &stabilized, &indexed, &resolved));
+        let lowered = Arc::new(lowering::lower_module(
+            id,
+            &content,
+            &module,
+            &prim,
+            &stabilized,
+            &indexed,
+            &resolved,
+        ));
 
         self.derived.borrow_mut().lowered.insert(id, lowered.clone());
         Ok(lowered)

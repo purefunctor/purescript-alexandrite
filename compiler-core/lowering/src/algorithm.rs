@@ -11,10 +11,10 @@ use indexing::{
 use itertools::Itertools;
 use petgraph::prelude::DiGraphMap;
 use resolving::ResolvedModule;
-use rowan::ast::AstNode;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 use stabilizing::{ExpectId, StabilizedModule};
+use syntax::ast::AstNode;
 use syntax::cst;
 
 use crate::error::*;
@@ -53,6 +53,7 @@ type ItemGraph<T> = DiGraphMap<T, (), FxBuildHasher>;
 struct Context<'c> {
     file_id: FileId,
     root: &'c syntax::SyntaxNode,
+    source: &'c str,
     prim: &'c ResolvedModule,
     stabilized: &'c StabilizedModule,
     indexed: &'c IndexedModule,
@@ -377,6 +378,7 @@ impl Context<'_> {
 
 pub(super) fn lower_module(
     file_id: FileId,
+    source: &str,
     module: &cst::Module,
     prim: &ResolvedModule,
     stabilized: &StabilizedModule,
@@ -386,7 +388,7 @@ pub(super) fn lower_module(
     let mut state = State::default();
 
     let root = module.syntax();
-    let context = Context { file_id, root, prim, stabilized, indexed, resolved };
+    let context = Context { file_id, root, source, prim, stabilized, indexed, resolved };
 
     for (id, item) in context.indexed.items.iter_terms() {
         state.with_scope(|state| {
@@ -419,8 +421,11 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             let resolution = cst.as_ref().and_then(|cst| {
                 let head = cst.instance_head()?;
                 let qualified = head.qualified()?;
-                let (qualifier, name) =
-                    recursive::lower_qualified_name(&qualified, cst::QualifiedName::upper)?;
+                let (qualifier, name) = recursive::lower_qualified_name(
+                    context.source,
+                    &qualified,
+                    cst::QualifiedName::upper,
+                )?;
                 state.resolve_class_reference(context, qualifier.as_deref(), &name)
             });
 
@@ -467,8 +472,11 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             let resolution = cst.as_ref().and_then(|cst| {
                 let head = cst.instance_head()?;
                 let qualified = head.qualified()?;
-                let (qualifier, name) =
-                    recursive::lower_qualified_name(&qualified, cst::QualifiedName::upper)?;
+                let (qualifier, name) = recursive::lower_qualified_name(
+                    context.source,
+                    &qualified,
+                    cst::QualifiedName::upper,
+                )?;
                 state.resolve_class_reference(context, qualifier.as_deref(), &name)
             });
 
@@ -514,14 +522,26 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
 
             let precedence = cst.as_ref().and_then(|cst| {
                 let cst = cst.precedence()?;
-                cst.text().parse().ok()
+                cst.text(context.source).parse().ok()
             });
 
             let resolution = cst.as_ref().and_then(|cst| {
                 let cst = cst.qualified()?;
                 let (qualifier, name) = None
-                    .or_else(|| recursive::lower_qualified_name(&cst, cst::QualifiedName::lower))
-                    .or_else(|| recursive::lower_qualified_name(&cst, cst::QualifiedName::upper))?;
+                    .or_else(|| {
+                        recursive::lower_qualified_name(
+                            context.source,
+                            &cst,
+                            cst::QualifiedName::lower,
+                        )
+                    })
+                    .or_else(|| {
+                        recursive::lower_qualified_name(
+                            context.source,
+                            &cst,
+                            cst::QualifiedName::upper,
+                        )
+                    })?;
                 state.resolve_term_reference(context, qualifier.as_deref(), &name)
             });
 
@@ -705,7 +725,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
                 let functional_dependencies = recover! {
                     cst.class_functional_dependencies()?
                         .children()
-                        .map(|dep| lower_functional_dependency(&variable_map, &dep))
+                        .map(|dep| lower_functional_dependency(context, &variable_map, &dep))
                         .collect()
                 };
 
@@ -748,15 +768,18 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
 
             let precedence = cst.as_ref().and_then(|cst| {
                 let cst = cst.precedence()?;
-                cst.text().parse().ok()
+                cst.text(context.source).parse().ok()
             });
 
             state.begin_kind(item_id);
 
             let resolution = cst.as_ref().and_then(|cst| {
                 let cst = cst.qualified()?;
-                let (qualifier, name) =
-                    recursive::lower_qualified_name(&cst, cst::QualifiedName::upper)?;
+                let (qualifier, name) = recursive::lower_qualified_name(
+                    context.source,
+                    &cst,
+                    cst::QualifiedName::upper,
+                )?;
                 state.resolve_type_reference(context, qualifier.as_deref(), &name)
             });
 
@@ -814,11 +837,11 @@ fn lower_instance_statements(
 ) -> Arc<[InstanceMemberGroup]> {
     let children = cst.children().chunk_by(|statement| match statement {
         cst::InstanceMemberStatement::InstanceSignatureStatement(s) => s.name_token().map(|t| {
-            let text = t.text();
+            let text = t.text(context.source);
             SmolStr::from(text)
         }),
         cst::InstanceMemberStatement::InstanceEquationStatement(e) => e.name_token().map(|t| {
-            let text = t.text();
+            let text = t.text(context.source);
             SmolStr::from(text)
         }),
     });
@@ -906,20 +929,27 @@ fn lower_roles(context: &Context, id: TypeRoleId) -> Arc<[Role]> {
 }
 
 fn lower_functional_dependency(
+    context: &Context,
     var_map: &FxHashMap<&str, u8>,
     cst: &cst::FunctionalDependency,
 ) -> FunctionalDependency {
     match cst {
         cst::FunctionalDependency::FunctionalDependencyDetermined(fd) => {
-            let determined: Arc<[u8]> =
-                fd.children().filter_map(|t| var_map.get(t.text()).copied()).collect();
+            let determined: Arc<[u8]> = fd
+                .children()
+                .filter_map(|t| var_map.get(t.text(context.source)).copied())
+                .collect();
             FunctionalDependency { determiners: Arc::from([]), determined }
         }
         cst::FunctionalDependency::FunctionalDependencyDetermines(fd) => {
-            let determiners: Arc<[u8]> =
-                fd.determiners().filter_map(|t| var_map.get(t.text()).copied()).collect();
-            let determined: Arc<[u8]> =
-                fd.determined().filter_map(|t| var_map.get(t.text()).copied()).collect();
+            let determiners: Arc<[u8]> = fd
+                .determiners()
+                .filter_map(|t| var_map.get(t.text(context.source)).copied())
+                .collect();
+            let determined: Arc<[u8]> = fd
+                .determined()
+                .filter_map(|t| var_map.get(t.text(context.source)).copied())
+                .collect();
             FunctionalDependency { determiners, determined }
         }
     }

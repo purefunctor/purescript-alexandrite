@@ -70,6 +70,7 @@ impl<T> Scc<T> {
 
 pub fn lower_module(
     file_id: FileId,
+    source: &str,
     module: &cst::Module,
     prim: &ResolvedModule,
     stabilized: &StabilizedModule,
@@ -86,7 +87,7 @@ pub fn lower_module(
         synonym_edges,
         errors,
         ..
-    } = algorithm::lower_module(file_id, module, prim, stabilized, indexed, resolved);
+    } = algorithm::lower_module(file_id, source, module, prim, stabilized, indexed, resolved);
 
     LoweredModule { info, graph, nodes, term_edges, type_edges, kind_edges, synonym_edges, errors }
 }

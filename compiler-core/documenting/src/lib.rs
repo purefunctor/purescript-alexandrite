@@ -25,11 +25,12 @@ pub struct DocumentedType {
 }
 
 pub fn document_module(
+    source: &str,
     parsed: &parsing::ParsedModule,
     stabilized: &stabilizing::StabilizedModule,
     indexed: &indexing::IndexedModule,
 ) -> Arc<DocumentedModule> {
     let algorithm::State { documentation, terms, types } =
-        algorithm::document_module(parsed, stabilized, indexed);
+        algorithm::document_module(source, parsed, stabilized, indexed);
     Arc::new(DocumentedModule { documentation, terms, types })
 }

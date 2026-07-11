@@ -695,9 +695,10 @@ impl QueryEngine {
             |this| {
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
+                let content = this.content(id);
 
                 let module = parsed.cst();
-                let indexed = indexing::index_module(&module, &stabilized);
+                let indexed = indexing::index_module(&content, &module, &stabilized);
 
                 Ok(Arc::new(indexed))
             },
@@ -711,6 +712,7 @@ impl QueryEngine {
             |derived| &derived.lowered,
             |this| {
                 let (parsed, _) = this.parsed(id)?;
+                let content = this.content(id);
 
                 let prim = {
                     let prim_id = this.prim_id();
@@ -722,8 +724,15 @@ impl QueryEngine {
                 let resolved = this.resolved(id)?;
 
                 let module = parsed.cst();
-                let lowered =
-                    lowering::lower_module(id, &module, &prim, &stabilized, &indexed, &resolved);
+                let lowered = lowering::lower_module(
+                    id,
+                    &content,
+                    &module,
+                    &prim,
+                    &stabilized,
+                    &indexed,
+                    &resolved,
+                );
 
                 Ok(Arc::new(lowered))
             },
@@ -801,9 +810,10 @@ impl QueryEngine {
             |derived| &derived.documented,
             |this| {
                 let (parsed, _) = this.parsed(id)?;
+                let content = this.content(id);
                 let stabilized = this.stabilized(id)?;
                 let indexed = this.indexed(id)?;
-                Ok(documenting::document_module(&parsed, &stabilized, &indexed))
+                Ok(documenting::document_module(&content, &parsed, &stabilized, &indexed))
             },
         )
     }
@@ -1008,6 +1018,24 @@ mod tests {
     }
 
     #[test]
+    fn test_indexed_depends_on_source_text() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(id, files.content(id));
+        let indexed = engine.indexed(id).unwrap();
+        assert!(indexed.names.terms.lookup("life").is_some());
+
+        let id = files.insert("./src/Main.purs", "module Main where\n\ntime = 42");
+        engine.set_content(id, files.content(id));
+        let indexed = engine.indexed(id).unwrap();
+        assert!(indexed.names.terms.lookup("life").is_none());
+        assert!(indexed.names.terms.lookup("time").is_some());
+    }
+
+    #[test]
     fn test_verifying_step_traces() {
         let mut engine = QueryEngine::default();
         let mut files = Files::default();
@@ -1037,7 +1065,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 19,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 19,
@@ -1061,7 +1089,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 20,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 20,
@@ -1085,7 +1113,7 @@ mod tests {
         assert_trace!(engine, indexed(id) => Trace {
             built: 21,
             changed: 19,
-            dependencies: &[QueryKey::Parsed(id), QueryKey::Stabilized(id)]
+            dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
             built: 21,
