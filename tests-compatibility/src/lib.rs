@@ -46,6 +46,29 @@ pub fn all_source_files() -> Vec<PathBuf> {
     source_files
 }
 
+pub fn benchmark_sources() -> (&'static str, Arc<[String]>) {
+    let mut paths = all_source_files();
+    let corpus = if paths.is_empty() {
+        paths.extend(find_purs_files(workspace_root().join("tests-integration/fixtures")));
+        paths.sort();
+        paths.dedup();
+        "integration-fixtures"
+    } else {
+        "compatibility-cache"
+    };
+
+    let sources = paths
+        .iter()
+        .map(|path| {
+            fs::read_to_string(path)
+                .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
+        })
+        .collect::<Arc<[_]>>();
+    assert!(!sources.is_empty(), "benchmark corpus is empty");
+
+    (corpus, sources)
+}
+
 fn package_purs_files(pkg_dir: &Path) -> impl Iterator<Item = PathBuf> {
     [pkg_dir.join("src"), pkg_dir.join("test")].into_iter().flat_map(find_purs_files)
 }
