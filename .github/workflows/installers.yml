@@ -1,0 +1,58 @@
+name: Installer Tests
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag to install
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to install, or latest
+        default: latest
+        required: true
+        type: string
+
+permissions:
+  attestations: read
+  contents: read
+
+jobs:
+  install:
+    name: Install on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Require GitHub attestation verification
+        shell: bash
+        run: gh attestation verify --help >/dev/null
+
+      - name: Install on Linux or macOS
+        if: runner.os != 'Windows'
+        env:
+          ALEXANDRITE_INSTALL_DIR: ${{ runner.temp }}/alexandrite/bin
+          ALEXANDRITE_VERSION: ${{ inputs.version }}
+        run: |
+          sh ./install.sh
+          "$ALEXANDRITE_INSTALL_DIR/purescript-alexandrite" --version
+
+      - name: Install on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          ALEXANDRITE_INSTALL_DIR: ${{ runner.temp }}\alexandrite\bin
+          ALEXANDRITE_VERSION: ${{ inputs.version }}
+        run: |
+          & ./install.ps1
+          & "$env:ALEXANDRITE_INSTALL_DIR\purescript-alexandrite.exe" --version
