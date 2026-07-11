@@ -603,7 +603,7 @@ impl SuggestionsHelper for SuggestedTerms {
             import_range.or_else(|| context.insert_import_range()).zip(import_text);
 
         item.label_detail(format!(" (import {module_name})"));
-        item.label_description(format!("{module_name}"));
+        item.label_description(module_name.to_string());
         item.sort_text(format!("{module_name}.{name}"));
 
         if let Some((range, new_text)) = range_new_text {
@@ -655,7 +655,7 @@ impl SuggestionsHelper for SuggestedTypes {
             import_range.or_else(|| context.insert_import_range()).zip(import_text);
 
         item.label_detail(format!(" (import {module_name})"));
-        item.label_description(format!("{module_name}"));
+        item.label_description(module_name.to_string());
         item.sort_text(format!("{module_name}.{name}"));
 
         if let Some((range, new_text)) = range_new_text {
@@ -851,7 +851,7 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
         );
 
         item.label_detail(format!(" (import {module_name} as {})", self.0));
-        item.label_description(format!("{module_name}"));
+        item.label_description(module_name.to_string());
 
         item.edit_text(format!("{}.{name}", self.0));
         item.sort_text(format!("{module_name}.{name}"));
@@ -894,7 +894,7 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
         );
 
         item.label_detail(format!(" (import {module_name} as {})", self.0));
-        item.label_description(format!("{module_name}"));
+        item.label_description(module_name.to_string());
 
         item.edit_text(format!("{}.{name}", self.0));
         item.sort_text(format!("{module_name}.{name}"));
@@ -1001,7 +1001,7 @@ impl CompletionSource for WorkspaceModules {
                 CompletionResolveData::Import(id),
             );
 
-            item.label_description(format!("{module_name}"));
+            item.label_description(module_name.to_string());
 
             items.push(item.build())
         }
