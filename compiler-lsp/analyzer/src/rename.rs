@@ -4,12 +4,15 @@ use std::path::Path;
 use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{
-    ImplicitItems, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind, TypeSelection,
+    ImplicitItems, ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind,
+    TypeSelection,
 };
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use stabilizing::AstId;
 use syntax::ast::AstNode;
-use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TokenAtOffset, cst};
+use syntax::{
+    SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst,
+};
 
 use crate::position::Utf8Range;
 use crate::{AnalyzerError, LanguageContext, common, locate, position, references};
@@ -18,6 +21,7 @@ use crate::{AnalyzerError, LanguageContext, common, locate, position, references
 enum RenameTarget {
     Term(FileId, TermItemId),
     Type(FileId, TypeItemId),
+    Qualifier(FileId, ImportId),
 }
 
 #[derive(Clone, Copy)]
@@ -43,8 +47,12 @@ pub fn implementation(
     let utf8_position = position::protocol_position_to_utf8(&content, position, context.encoding)
         .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.engine, current_file, utf8_position)?;
-    let target = rename_target(context, current_file, located)?;
+    let target = if let Some(target) = qualifier_target(context, current_file, utf8_position)? {
+        target
+    } else {
+        let located = locate::locate(context.engine, current_file, utf8_position)?;
+        rename_target(context, current_file, located)?
+    };
 
     let Some((old_name, name_kind)) = target_name(context, target)? else {
         return Ok(None);
@@ -54,10 +62,19 @@ pub fn implementation(
     }
 
     let target_file = match target {
-        RenameTarget::Term(file_id, _) | RenameTarget::Type(file_id, _) => file_id,
+        RenameTarget::Term(file_id, _)
+        | RenameTarget::Type(file_id, _)
+        | RenameTarget::Qualifier(file_id, _) => file_id,
     };
     if !editable_file(context, workspace_root, target_file) {
         return Ok(None);
+    }
+
+    if let RenameTarget::Qualifier(file_id, import_id) = target {
+        let mut edits = vec![];
+        qualifier_edits(context, file_id, import_id, &new_name, &mut edits)?;
+
+        return finish_workspace_edit(context, edits);
     }
 
     let locations = references::implementation(context, uri, position)?.unwrap_or_default();
@@ -78,6 +95,139 @@ pub fn implementation(
     item_surface_edits(context, workspace_root, target, &old_name, &new_name, &mut edits)?;
 
     finish_workspace_edit(context, edits)
+}
+
+fn qualifier_target(
+    context: &LanguageContext,
+    current_file: FileId,
+    position: position::Utf8Position,
+) -> Result<Option<RenameTarget>, AnalyzerError> {
+    let content = context.engine.content(current_file);
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
+
+    let token = match root.token_at_offset(offset) {
+        TokenAtOffset::None => return Ok(None),
+        TokenAtOffset::Single(token) => token,
+        TokenAtOffset::Between(_, right) => right,
+    };
+
+    let qualifier_name = token.parent_ancestors().find_map(|node| {
+        let qualifier = cst::Qualifier::cast(node)?;
+        qualifier.syntax().parent().and_then(cst::QualifiedName::cast)?;
+
+        let text = qualifier.text()?.text(&content);
+        Some(text.trim_end_matches('.').to_string())
+    });
+
+    let alias_name = token.parent_ancestors().find_map(|node| {
+        let module_name = cst::ModuleName::cast(node)?;
+        let parent = module_name.syntax().parent()?;
+        let is_alias = cst::ImportAlias::cast(parent.clone()).is_some();
+        let is_export = cst::ExportModule::cast(parent).is_some();
+
+        if !is_alias && !is_export {
+            return None;
+        }
+
+        Some(module_name.syntax().text(&content).to_string())
+    });
+
+    let Some(name) = qualifier_name.or(alias_name) else {
+        return Ok(None);
+    };
+
+    let indexed = context.engine.indexed(current_file)?;
+    let import_id = indexed.imports.iter().find_map(|(import_id, import)| {
+        (import.alias.as_deref() == Some(name.as_str())).then_some(*import_id)
+    });
+
+    Ok(import_id.map(|import_id| RenameTarget::Qualifier(current_file, import_id)))
+}
+
+fn qualifier_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    import_id: ImportId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let indexed = context.engine.indexed(file_id)?;
+    let old_name = indexed
+        .imports
+        .get(&import_id)
+        .and_then(|import| import.alias.as_deref())
+        .ok_or(AnalyzerError::NonFatal)?;
+
+    let content = context.engine.content(file_id);
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+
+    let statements = root.preorder().filter_map(|event| {
+        let WalkEvent::Enter(node) = event else {
+            return None;
+        };
+
+        cst::ImportStatement::cast(node)
+    });
+
+    for statement in statements {
+        let Some(module_name) = statement.import_alias().and_then(|alias| alias.module_name())
+        else {
+            continue;
+        };
+        if module_name.syntax().text(&content) != old_name {
+            continue;
+        }
+
+        push_text_range_edit(context, file_id, module_name.syntax().text_range(), new_name, edits)?;
+    }
+
+    let qualified_names = root.preorder().filter_map(|event| {
+        let WalkEvent::Enter(node) = event else {
+            return None;
+        };
+
+        cst::QualifiedName::cast(node)
+    });
+
+    for qualified in qualified_names {
+        let Some(qualifier) = qualified.qualifier() else {
+            continue;
+        };
+        let Some(token) = qualifier.text() else {
+            continue;
+        };
+        if token.text(&content).trim_end_matches('.') != old_name {
+            continue;
+        }
+
+        let replacement = format!("{new_name}.");
+        push_text_range_edit(context, file_id, token.text_range(), &replacement, edits)?;
+    }
+
+    let exports = root.preorder().filter_map(|event| {
+        let WalkEvent::Enter(node) = event else {
+            return None;
+        };
+
+        cst::ExportModule::cast(node)
+    });
+
+    for export in exports {
+        let Some(module_name) = export.module_name() else {
+            continue;
+        };
+        if module_name.syntax().text(&content) != old_name {
+            continue;
+        }
+
+        push_text_range_edit(context, file_id, module_name.syntax().text_range(), new_name, edits)?;
+    }
+
+    Ok(())
 }
 
 fn rename_target(
@@ -265,6 +415,12 @@ fn target_name(
 
             Some((name.to_string(), kind))
         }
+        RenameTarget::Qualifier(file_id, import_id) => {
+            let indexed = context.engine.indexed(file_id)?;
+            let name = indexed.imports.get(&import_id).and_then(|import| import.alias.as_ref());
+
+            name.map(|name| (name.to_string(), NameKind::Upper))
+        }
     };
 
     Ok(result)
@@ -399,6 +555,7 @@ fn declaration_edits(
         RenameTarget::Type(file_id, type_id) => {
             type_declaration_edits(context, file_id, type_id, new_name, edits)
         }
+        RenameTarget::Qualifier(_, _) => Ok(()),
     }
 }
 
@@ -559,6 +716,7 @@ fn import_edits(
                     }
                 }
             }
+            RenameTarget::Qualifier(_, _) => {}
         }
     }
 
@@ -654,6 +812,7 @@ fn export_edits(
                 }
             }
         }
+        RenameTarget::Qualifier(_, _) => {}
     }
 
     Ok(())
@@ -764,6 +923,20 @@ fn push_constructor_token_edit(
     }
 
     Ok(())
+}
+
+fn push_text_range_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    range: TextRange,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let range =
+        position::text_range_to_utf8_range(&content, range).ok_or(AnalyzerError::NonFatal)?;
+
+    push_utf8_edit(context, file_id, range, new_name, edits)
 }
 
 fn push_utf8_edit(

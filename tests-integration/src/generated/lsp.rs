@@ -462,6 +462,10 @@ fn rename_target_name(
         TokenAtOffset::Between(_, right) => right,
     };
 
+    if token.parent().kind() == SyntaxKind::Qualifier {
+        return Some("Renamed".to_string());
+    }
+
     match token.kind() {
         SyntaxKind::LOWER => Some("renamed".to_string()),
         SyntaxKind::UPPER => Some("Renamed".to_string()),
