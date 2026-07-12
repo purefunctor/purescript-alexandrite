@@ -1174,57 +1174,28 @@ mod tests {
 
     #[test]
     fn validates_new_names_by_kind() {
-        let actual = vec![
-            ("lower name", valid_new_name("renamed", NameKind::Lower)),
-            ("upper name", valid_new_name("Renamed", NameKind::Upper)),
-            ("module name", valid_new_name("Library.Renamed", NameKind::Module)),
-            ("upper as lower", valid_new_name("Renamed", NameKind::Lower)),
-            ("lower as upper", valid_new_name("renamed", NameKind::Upper)),
-            ("empty module", valid_new_name("", NameKind::Module)),
-            ("lower module segment", valid_new_name("Library.renamed", NameKind::Module)),
-            ("empty module segment", valid_new_name("Library..Renamed", NameKind::Module)),
-            ("spaced module", valid_new_name("Library Renamed", NameKind::Module)),
-            ("multiple names", valid_new_name("two names", NameKind::Lower)),
-            ("qualified lower", valid_new_name("Library.renamed", NameKind::Lower)),
-            ("trailing space", valid_new_name("renamed ", NameKind::Lower)),
-        ];
-
-        let expected = vec![
-            ("lower name", true),
-            ("upper name", true),
-            ("module name", true),
-            ("upper as lower", false),
-            ("lower as upper", false),
-            ("empty module", false),
-            ("lower module segment", false),
-            ("empty module segment", false),
-            ("spaced module", false),
-            ("multiple names", false),
-            ("qualified lower", false),
-            ("trailing space", false),
-        ];
-
-        assert_eq!(actual, expected);
+        assert!(valid_new_name("renamed", NameKind::Lower));
+        assert!(valid_new_name("Renamed", NameKind::Upper));
+        assert!(valid_new_name("Library.Renamed", NameKind::Module));
+        assert!(!valid_new_name("Renamed", NameKind::Lower));
+        assert!(!valid_new_name("renamed", NameKind::Upper));
+        assert!(!valid_new_name("", NameKind::Module));
+        assert!(!valid_new_name("Library.renamed", NameKind::Module));
+        assert!(!valid_new_name("Library..Renamed", NameKind::Module));
+        assert!(!valid_new_name("Library Renamed", NameKind::Module));
+        assert!(!valid_new_name("two names", NameKind::Lower));
+        assert!(!valid_new_name("Library.renamed", NameKind::Lower));
+        assert!(!valid_new_name("renamed ", NameKind::Lower));
     }
 
     #[test]
     fn validates_operator_names() {
-        let names = vec!["<~>", ":", "-", "..", "<=", "renamed", "(<~>)"];
-        let actual = names.into_iter().map(|name| {
-            let valid = valid_new_name(name, NameKind::Operator);
-            (name, valid)
-        });
-        let actual = actual.collect::<Vec<_>>();
-        let expected = vec![
-            ("<~>", true),
-            (":", true),
-            ("-", true),
-            ("..", true),
-            ("<=", true),
-            ("renamed", false),
-            ("(<~>)", false),
-        ];
-
-        assert_eq!(actual, expected);
+        assert!(valid_new_name("<~>", NameKind::Operator));
+        assert!(valid_new_name(":", NameKind::Operator));
+        assert!(valid_new_name("-", NameKind::Operator));
+        assert!(valid_new_name("..", NameKind::Operator));
+        assert!(valid_new_name("<=", NameKind::Operator));
+        assert!(!valid_new_name("renamed", NameKind::Operator));
+        assert!(!valid_new_name("(<~>)", NameKind::Operator));
     }
 }
