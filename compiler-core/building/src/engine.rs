@@ -666,7 +666,7 @@ impl QueryEngine {
     }
 
     pub fn module_file(&self, name: &str) -> Option<FileId> {
-        let id = self.interned.module.lookup(name)?;
+        let id = self.interned.module.intern(name);
         self.get_input(QueryKey::Module(id), id, |input| &input.module).flatten()
     }
 
@@ -1008,6 +1008,26 @@ mod tests {
     }
 
     #[test]
+    fn test_module_registration_invalidates_unresolved_import() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+
+        let main = files.insert("Main.purs", "module Main where\n\nimport Library");
+        let library = files.insert("Library.purs", "module Library where");
+
+        engine.set_content(main, files.content(main));
+        engine.set_content(library, files.content(library));
+
+        let unresolved = engine.resolved(main).unwrap();
+        assert!(!unresolved.unqualified.contains_key("Library"));
+
+        engine.set_module_file("Library", library);
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(resolved.unqualified.contains_key("Library"));
+    }
+
+    #[test]
     fn test_remove_module_file() {
         let engine = QueryEngine::default();
         let mut files = Files::default();
@@ -1019,6 +1039,7 @@ mod tests {
         engine.set_content(main, files.content(main));
         engine.set_content(library, files.content(library));
         engine.set_content(replacement, files.content(replacement));
+
         engine.set_module_file("Old", library);
 
         let resolved = engine.resolved(main).unwrap();
