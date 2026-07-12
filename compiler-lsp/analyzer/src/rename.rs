@@ -10,9 +10,7 @@ use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use lsp_types::*;
 use stabilizing::AstId;
 use syntax::ast::{AstNode, AstPtr};
-use syntax::{
-    SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst,
-};
+use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst};
 
 use crate::position::Utf8Range;
 use crate::{AnalyzerError, LanguageContext, common, locate, position, references};
@@ -570,41 +568,11 @@ fn target_name(
 }
 
 fn valid_new_name(new_name: &str, kind: NameKind) -> bool {
-    if matches!(kind, NameKind::Module) {
-        return !new_name.is_empty()
-            && new_name.split('.').all(|segment| valid_new_name(segment, NameKind::Upper));
-    }
-
-    let lexed = lexing::lex(new_name);
-    let is_single_token = lexed.len() == 2 && lexed.kind(1) == SyntaxKind::END_OF_FILE;
-    if !is_single_token {
-        return false;
-    }
-
-    let has_lexing_error = lexed.error(0).is_some() || lexed.error(1).is_some();
-    let has_qualifier = lexed.qualifier(0).is_some();
-    if has_lexing_error || has_qualifier {
-        return false;
-    }
-
-    if lexed.text(0) != new_name {
-        return false;
-    }
-
-    let token_kind = lexed.kind(0);
-
     match kind {
-        NameKind::Lower => token_kind == SyntaxKind::LOWER,
-        NameKind::Upper => token_kind == SyntaxKind::UPPER,
-        NameKind::Operator => matches!(
-            token_kind,
-            SyntaxKind::OPERATOR
-                | SyntaxKind::COLON
-                | SyntaxKind::MINUS
-                | SyntaxKind::DOUBLE_PERIOD
-                | SyntaxKind::LEFT_THICK_ARROW
-        ),
-        NameKind::Module => unreachable!(),
+        NameKind::Lower => lexing::is_lower_name(new_name),
+        NameKind::Upper => lexing::is_upper_name(new_name),
+        NameKind::Operator => lexing::is_operator_name(new_name),
+        NameKind::Module => new_name.split('.').all(lexing::is_upper_name),
     }
 }
 
@@ -1165,4 +1133,44 @@ fn finish_workspace_edit(
     }
 
     Ok(Some(WorkspaceEdit { changes: Some(changes), ..WorkspaceEdit::default() }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NameKind, valid_new_name};
+
+    #[test]
+    fn validates_new_names_by_kind() {
+        assert!(valid_new_name("renamed", NameKind::Lower));
+        assert!(valid_new_name("éclair", NameKind::Lower));
+        assert!(valid_new_name("Renamed", NameKind::Upper));
+        assert!(valid_new_name("Éclair", NameKind::Upper));
+        assert!(valid_new_name("Library.Renamed", NameKind::Module));
+        assert!(!valid_new_name("Renamed", NameKind::Lower));
+        assert!(!valid_new_name("renamed", NameKind::Upper));
+        assert!(!valid_new_name("module", NameKind::Lower));
+        assert!(!valid_new_name("_", NameKind::Lower));
+        assert!(!valid_new_name("", NameKind::Module));
+        assert!(!valid_new_name("Library.renamed", NameKind::Module));
+        assert!(!valid_new_name("Library..Renamed", NameKind::Module));
+        assert!(!valid_new_name("Library Renamed", NameKind::Module));
+        assert!(!valid_new_name("two names", NameKind::Lower));
+        assert!(!valid_new_name("Library.renamed", NameKind::Lower));
+        assert!(!valid_new_name("renamed ", NameKind::Lower));
+    }
+
+    #[test]
+    fn validates_operator_names() {
+        assert!(valid_new_name("<~>", NameKind::Operator));
+        assert!(valid_new_name(":", NameKind::Operator));
+        assert!(valid_new_name("-", NameKind::Operator));
+        assert!(valid_new_name("..", NameKind::Operator));
+        assert!(valid_new_name("<=", NameKind::Operator));
+        assert!(valid_new_name("⊗", NameKind::Operator));
+        assert!(!valid_new_name("renamed", NameKind::Operator));
+        assert!(!valid_new_name("(<~>)", NameKind::Operator));
+        assert!(!valid_new_name("=", NameKind::Operator));
+        assert!(!valid_new_name("->", NameKind::Operator));
+        assert!(!valid_new_name("--", NameKind::Operator));
+    }
 }

@@ -8,6 +8,68 @@ use crate::{Lexed, Position};
 
 const EOF_CHAR: char = '\0';
 
+pub(super) fn operator_kind(source: &str) -> SyntaxKind {
+    match source {
+        "∷" => SyntaxKind::DOUBLE_COLON,
+        "←" => SyntaxKind::LEFT_ARROW,
+        "→" => SyntaxKind::RIGHT_ARROW,
+        "⇐" => SyntaxKind::LEFT_THICK_ARROW,
+        "⇒" => SyntaxKind::RIGHT_THICK_ARROW,
+        "∀" => SyntaxKind::FORALL,
+        "=" => SyntaxKind::EQUAL,
+        ":" => SyntaxKind::COLON,
+        "::" => SyntaxKind::DOUBLE_COLON,
+        "." => SyntaxKind::PERIOD,
+        ".." => SyntaxKind::DOUBLE_PERIOD,
+        "<-" => SyntaxKind::LEFT_ARROW,
+        "->" => SyntaxKind::RIGHT_ARROW,
+        "<=" => SyntaxKind::LEFT_THICK_ARROW,
+        "=>" => SyntaxKind::RIGHT_THICK_ARROW,
+        "|" => SyntaxKind::PIPE,
+        "@" => SyntaxKind::AT,
+        "-" => SyntaxKind::MINUS,
+        "\\" => SyntaxKind::BACKSLASH,
+        _ => SyntaxKind::OPERATOR,
+    }
+}
+
+pub(super) fn lower_kind(source: &str) -> SyntaxKind {
+    match source {
+        "ado" => SyntaxKind::ADO,
+        "as" => SyntaxKind::AS,
+        "case" => SyntaxKind::CASE,
+        "class" => SyntaxKind::CLASS,
+        "data" => SyntaxKind::DATA,
+        "derive" => SyntaxKind::DERIVE,
+        "do" => SyntaxKind::DO,
+        "else" => SyntaxKind::ELSE,
+        "false" => SyntaxKind::FALSE,
+        "forall" => SyntaxKind::FORALL,
+        "foreign" => SyntaxKind::FOREIGN,
+        "hiding" => SyntaxKind::HIDING,
+        "if" => SyntaxKind::IF,
+        "import" => SyntaxKind::IMPORT,
+        "in" => SyntaxKind::IN,
+        "infix" => SyntaxKind::INFIX,
+        "infixl" => SyntaxKind::INFIXL,
+        "infixr" => SyntaxKind::INFIXR,
+        "instance" => SyntaxKind::INSTANCE,
+        "let" => SyntaxKind::LET,
+        "module" => SyntaxKind::MODULE,
+        "newtype" => SyntaxKind::NEWTYPE,
+        "nominal" => SyntaxKind::NOMINAL,
+        "of" => SyntaxKind::OF,
+        "phantom" => SyntaxKind::PHANTOM,
+        "representational" => SyntaxKind::REPRESENTATIONAL,
+        "role" => SyntaxKind::ROLE,
+        "then" => SyntaxKind::THEN,
+        "true" => SyntaxKind::TRUE,
+        "type" => SyntaxKind::TYPE,
+        "where" => SyntaxKind::WHERE,
+        _ => SyntaxKind::LOWER,
+    }
+}
+
 pub(super) struct Lexer<'s> {
     source: &'s str,
     chars: Chars<'s>,
@@ -247,28 +309,7 @@ impl Lexer<'_> {
         let start = self.consumed();
         self.take_while(char::is_operator);
         let end = self.consumed();
-        match &self.source[start..end] {
-            "∷" => SyntaxKind::DOUBLE_COLON,
-            "←" => SyntaxKind::LEFT_ARROW,
-            "→" => SyntaxKind::RIGHT_ARROW,
-            "⇐" => SyntaxKind::LEFT_THICK_ARROW,
-            "⇒" => SyntaxKind::RIGHT_THICK_ARROW,
-            "∀" => SyntaxKind::FORALL,
-            "=" => SyntaxKind::EQUAL,
-            ":" => SyntaxKind::COLON,
-            "::" => SyntaxKind::DOUBLE_COLON,
-            "." => SyntaxKind::PERIOD,
-            ".." => SyntaxKind::DOUBLE_PERIOD,
-            "<-" => SyntaxKind::LEFT_ARROW,
-            "->" => SyntaxKind::RIGHT_ARROW,
-            "<=" => SyntaxKind::LEFT_THICK_ARROW,
-            "=>" => SyntaxKind::RIGHT_THICK_ARROW,
-            "|" => SyntaxKind::PIPE,
-            "@" => SyntaxKind::AT,
-            "-" => SyntaxKind::MINUS,
-            "\\" => SyntaxKind::BACKSLASH,
-            _ => SyntaxKind::OPERATOR,
-        }
+        operator_kind(&self.source[start..end])
     }
 
     fn take_operator_name_or_left_parenthesis(&mut self) {
@@ -428,40 +469,7 @@ impl Lexer<'_> {
         let start = self.consumed();
         self.take_while(char::is_name);
         let end = self.consumed();
-        let kind = match &self.source[start..end] {
-            "ado" => SyntaxKind::ADO,
-            "as" => SyntaxKind::AS,
-            "case" => SyntaxKind::CASE,
-            "class" => SyntaxKind::CLASS,
-            "data" => SyntaxKind::DATA,
-            "derive" => SyntaxKind::DERIVE,
-            "do" => SyntaxKind::DO,
-            "else" => SyntaxKind::ELSE,
-            "false" => SyntaxKind::FALSE,
-            "forall" => SyntaxKind::FORALL,
-            "foreign" => SyntaxKind::FOREIGN,
-            "hiding" => SyntaxKind::HIDING,
-            "if" => SyntaxKind::IF,
-            "import" => SyntaxKind::IMPORT,
-            "in" => SyntaxKind::IN,
-            "infix" => SyntaxKind::INFIX,
-            "infixl" => SyntaxKind::INFIXL,
-            "infixr" => SyntaxKind::INFIXR,
-            "instance" => SyntaxKind::INSTANCE,
-            "let" => SyntaxKind::LET,
-            "module" => SyntaxKind::MODULE,
-            "newtype" => SyntaxKind::NEWTYPE,
-            "nominal" => SyntaxKind::NOMINAL,
-            "of" => SyntaxKind::OF,
-            "phantom" => SyntaxKind::PHANTOM,
-            "representational" => SyntaxKind::REPRESENTATIONAL,
-            "role" => SyntaxKind::ROLE,
-            "then" => SyntaxKind::THEN,
-            "true" => SyntaxKind::TRUE,
-            "type" => SyntaxKind::TYPE,
-            "where" => SyntaxKind::WHERE,
-            _ => SyntaxKind::LOWER,
-        };
+        let kind = lower_kind(&self.source[start..end]);
         self.push(kind, None);
     }
 

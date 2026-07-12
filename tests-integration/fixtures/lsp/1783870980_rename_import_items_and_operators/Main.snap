@@ -1,0 +1,72 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 2, character: 14 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 0:12..0:17 => "renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 2:0..2:5 => "renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 13:14..13:19 => "renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 13:24..13:29 => "renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 2:12..2:17 => "renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 5:11..5:16 => "renamed"
+
+
+Rename at Position { line: 2, character: 27 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 0:25..0:32 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 4:6..4:13 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 2:25..2:32 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 7:22..7:29 => "Renamed"
+
+
+Rename at Position { line: 2, character: 34 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 0:34..0:38 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 6:5..6:9 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 10:18..10:22 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 15:23..15:27 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 15:31..15:35 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 2:34..2:38 => "Renamed"
+
+
+Rename at Position { line: 2, character: 55 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 0:53..0:58 => "(<~>)"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 8:17..8:20 => "<~>"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 13:20..13:23 => "<~>"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 2:53..2:58 => "(<~>)"
+
+
+Rename at Position { line: 2, character: 66 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 0:65..0:69 => "(<~>)"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Lib.purs @ 10:21..10:23 => "<~>"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 15:28..15:30 => "<~>"
+file:///tests-integration/fixtures/lsp/1783870980_rename_import_items_and_operators/Main.purs @ 2:65..2:69 => "(<~>)"
