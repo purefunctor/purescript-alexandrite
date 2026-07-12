@@ -1,0 +1,65 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 5, character: 11 }
+
+```
+term = original
+--         /
+```
+
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Bridge.purs @ 2:32..2:40 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 0:32..0:40 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 4:0..4:8 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 5:0..5:8 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 2:35..2:43 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 5:7..5:15 => "renamed"
+
+
+Rename at Position { line: 8, character: 19 }
+
+```
+type Example = Original
+--                 /
+```
+
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Bridge.purs @ 2:12..2:20 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 0:12..0:20 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 2:5..2:13 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 4:12..4:20 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 7:10..7:18 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 2:15..2:23 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 8:15..8:23 => "Renamed"
+
+
+Rename at Position { line: 11, character: 18 }
+
+```
+constructor = Original
+--                /
+```
+
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Bridge.purs @ 2:21..2:29 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 0:21..0:29 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 2:16..2:24 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 5:11..5:19 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 8:9..8:17 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 11:14..11:22 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 2:24..2:32 => "Renamed"
+
+
+Rename at Position { line: 14, character: 25 }
+
+```
+hiddenTerm = Library.hidden
+--                       /
+```
+
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Bridge.purs @ 2:42..2:48 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Hidden.purs @ 2:22..2:28 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 0:42..0:48 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 7:0..7:6 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Lib.purs @ 8:0..8:6 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865940_rename_item_surfaces/Main.purs @ 14:21..14:27 => "renamed"
