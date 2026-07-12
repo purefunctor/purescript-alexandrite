@@ -3,7 +3,9 @@ use std::path::Path;
 
 use async_lsp::lsp_types::*;
 use files::FileId;
-use indexing::{ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{
+    ImplicitItems, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind, TypeSelection,
+};
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use stabilizing::AstId;
 use syntax::ast::AstNode;
@@ -73,6 +75,8 @@ pub fn implementation(
     }
 
     declaration_edits(context, target, &new_name, &mut edits)?;
+    item_surface_edits(context, workspace_root, target, &old_name, &new_name, &mut edits)?;
+
     finish_workspace_edit(context, edits)
 }
 
@@ -479,6 +483,302 @@ fn type_declaration_edits(
             push_name_edits!(position::infix_operator_range; Some(id));
         }
     }
+
+    Ok(())
+}
+
+fn item_surface_edits(
+    context: &LanguageContext,
+    workspace_root: Option<&Path>,
+    target: RenameTarget,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    for file_id in context.files.iter_id() {
+        if !editable_file(context, workspace_root, file_id) {
+            continue;
+        }
+
+        import_edits(context, file_id, target, old_name, new_name, edits)?;
+        export_edits(context, file_id, target, old_name, new_name, edits)?;
+    }
+
+    Ok(())
+}
+
+fn import_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    target: RenameTarget,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let indexed = context.engine.indexed(file_id)?;
+    let resolved = context.engine.resolved(file_id)?;
+
+    let unqualified = resolved.unqualified.values().flatten();
+    let qualified = resolved.qualified.values().flatten();
+
+    for import in unqualified.chain(qualified) {
+        let Some(indexed_import) = indexed.imports.get(&import.id) else {
+            continue;
+        };
+
+        match target {
+            RenameTarget::Term(target_file, target_term) => {
+                let imported_terms = import.iter_terms().filter(|(_, file_id, term_id, _)| {
+                    (*file_id, *term_id) == (target_file, target_term)
+                });
+
+                for (name, _, _, _) in imported_terms {
+                    if let Some(import_item_id) = indexed_import.terms.get(name) {
+                        push_import_item_edit(context, file_id, *import_item_id, new_name, edits)?;
+                    }
+                }
+
+                constructor_import_edits(
+                    context,
+                    file_id,
+                    import,
+                    indexed_import,
+                    (target_file, target_term),
+                    (old_name, new_name),
+                    edits,
+                )?;
+            }
+            RenameTarget::Type(target_file, target_type) => {
+                let imported_types = import.iter_types().chain(import.iter_classes()).filter(
+                    |(_, file_id, type_id, _)| (*file_id, *type_id) == (target_file, target_type),
+                );
+
+                for (name, _, _, _) in imported_types {
+                    if let Some((import_item_id, _)) = indexed_import.types.get(name) {
+                        push_import_item_edit(context, file_id, *import_item_id, new_name, edits)?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn constructor_import_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    import: &resolving::ResolvedImport,
+    indexed_import: &indexing::IndexedImport,
+    target: (FileId, TermItemId),
+    names: (&str, &str),
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let (target_file, target_term) = target;
+    let (old_name, new_name) = names;
+    let target_indexed = context.engine.indexed(target_file)?;
+    let Some(parent_type) = target_indexed.constructor_type(target_term) else {
+        return Ok(());
+    };
+
+    let imported_types = import
+        .iter_types()
+        .filter(|(_, file_id, type_id, _)| (*file_id, *type_id) == (target_file, parent_type));
+
+    for (name, _, _, _) in imported_types {
+        let Some((import_item_id, Some(selection))) = indexed_import.types.get(name) else {
+            continue;
+        };
+        let ImplicitItems::Enumerated(constructors) = selection else {
+            continue;
+        };
+        if !constructors.iter().any(|constructor| constructor == old_name) {
+            continue;
+        }
+
+        push_import_constructor_edit(context, file_id, *import_item_id, old_name, new_name, edits)?;
+    }
+
+    Ok(())
+}
+
+fn export_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    target: RenameTarget,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let indexed = context.engine.indexed(file_id)?;
+    let resolved = context.engine.resolved(file_id)?;
+
+    match target {
+        RenameTarget::Term(target_file, target_term) => {
+            for export in &indexed.exports.terms {
+                if resolved.exports.lookup_term(&export.name) == Some((target_file, target_term)) {
+                    push_export_item_edit(context, file_id, export.id, new_name, edits)?;
+                }
+            }
+
+            let target_indexed = context.engine.indexed(target_file)?;
+            let Some(parent_type) = target_indexed.constructor_type(target_term) else {
+                return Ok(());
+            };
+
+            for export in &indexed.exports.types {
+                if resolved.exports.lookup_type(&export.name) != Some((target_file, parent_type)) {
+                    continue;
+                }
+                let Some(TypeSelection::Enumerated(constructors)) = &export.selection else {
+                    continue;
+                };
+                if !constructors.iter().any(|constructor| constructor == old_name) {
+                    continue;
+                }
+
+                push_export_constructor_edit(
+                    context, file_id, export.id, old_name, new_name, edits,
+                )?;
+            }
+        }
+        RenameTarget::Type(target_file, target_type) => {
+            for export in &indexed.exports.types {
+                let exported_type = resolved
+                    .exports
+                    .lookup_type(&export.name)
+                    .or_else(|| resolved.exports.lookup_class(&export.name));
+
+                if exported_type == Some((target_file, target_type)) {
+                    push_export_item_edit(context, file_id, export.id, new_name, edits)?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn push_import_item_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    import_item_id: ImportItemId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
+    let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let range = position::import_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+
+    push_utf8_edit(context, file_id, range, new_name, edits)
+}
+
+fn push_export_item_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    export_item_id: indexing::ExportItemId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
+    let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let range = position::export_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+
+    push_utf8_edit(context, file_id, range, new_name, edits)
+}
+
+fn push_import_constructor_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    import_item_id: ImportItemId,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
+    let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let cst::ImportItem::ImportType(item) = item else {
+        return Err(AnalyzerError::NonFatal);
+    };
+
+    let type_items = item.type_items().ok_or(AnalyzerError::NonFatal)?;
+    push_constructor_token_edit(context, file_id, type_items, old_name, new_name, edits)
+}
+
+fn push_export_constructor_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    export_item_id: indexing::ExportItemId,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
+    let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let cst::ExportItem::ExportType(item) = item else {
+        return Err(AnalyzerError::NonFatal);
+    };
+
+    let type_items = item.type_items().ok_or(AnalyzerError::NonFatal)?;
+    push_constructor_token_edit(context, file_id, type_items, old_name, new_name, edits)
+}
+
+fn push_constructor_token_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    type_items: cst::TypeItems,
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let cst::TypeItems::TypeItemsList(items) = type_items else {
+        return Ok(());
+    };
+
+    for token in items.name_tokens() {
+        if token.text(&content) == old_name {
+            let range = position::text_range_to_utf8_range(&content, token.text_range())
+                .ok_or(AnalyzerError::NonFatal)?;
+
+            push_utf8_edit(context, file_id, range, new_name, edits)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn push_utf8_edit(
+    context: &LanguageContext,
+    file_id: FileId,
+    range: Utf8Range,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
+    let replacement = replacement_text(context, file_id, range, new_name)?;
+
+    edits.push((file_id, TextEdit { range, new_text: replacement }));
 
     Ok(())
 }
