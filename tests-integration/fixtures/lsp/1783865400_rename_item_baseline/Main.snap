@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 4, character: 19 }
+
+```
+term = Library.original
+--                 /
+```
+
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 4:0..4:8 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 5:0..5:8 => "renamed"
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Main.purs @ 4:15..4:23 => "renamed"
+
+
+Rename at Position { line: 7, character: 27 }
+
+```
+type Example = Library.Original
+--                         /
+```
+
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 2:5..2:13 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 4:12..4:20 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Main.purs @ 7:23..7:31 => "Renamed"

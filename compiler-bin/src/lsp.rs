@@ -92,6 +92,7 @@ impl State {
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
+            root: self.root.clone(),
             position_encoding: self.position_encoding,
         };
         task::spawn_blocking(move || f(snapshot))
@@ -114,6 +115,7 @@ struct StateSnapshot {
     files: Arc<RwLock<Files>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
+    root: Option<PathBuf>,
     position_encoding: PositionEncoding,
 }
 
@@ -174,6 +176,7 @@ fn initialize(
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
@@ -334,6 +337,19 @@ fn references(
 
     let result = snapshot.with_language_context(|context| {
         analyzer::references::implementation(context, uri, position)
+    });
+
+    result.on_non_fatal(None)
+}
+
+fn rename(snapshot: StateSnapshot, p: RenameParams) -> Result<Option<WorkspaceEdit>, LspError> {
+    let _span = tracing::info_span!("rename").entered();
+    let uri = p.text_document_position.text_document.uri;
+    let position = p.text_document_position.position;
+    let new_name = p.new_name;
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::rename::implementation(context, snapshot.root.as_deref(), uri, position, new_name)
     });
 
     result.on_non_fatal(None)
@@ -520,6 +536,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .request_snapshot::<request::Completion>(completion)
             .request_snapshot::<request::ResolveCompletionItem>(resolve_completion_item)
             .request_snapshot::<request::References>(references)
+            .request_snapshot::<request::Rename>(rename)
             .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
             .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)

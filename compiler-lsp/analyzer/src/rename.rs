@@ -1,0 +1,543 @@
+use std::collections::HashMap;
+use std::path::Path;
+
+use async_lsp::lsp_types::*;
+use files::FileId;
+use indexing::{ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
+use stabilizing::AstId;
+use syntax::ast::AstNode;
+use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TokenAtOffset, cst};
+
+use crate::position::Utf8Range;
+use crate::{AnalyzerError, LanguageContext, common, locate, position, references};
+
+#[derive(Clone, Copy)]
+enum RenameTarget {
+    Term(FileId, TermItemId),
+    Type(FileId, TypeItemId),
+}
+
+#[derive(Clone, Copy)]
+enum NameKind {
+    Lower,
+    Upper,
+    Operator,
+}
+
+pub fn implementation(
+    context: &LanguageContext,
+    workspace_root: Option<&Path>,
+    uri: Url,
+    position: Position,
+    new_name: String,
+) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
+    let current_file = {
+        let uri = uri.as_str();
+        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+    };
+
+    let content = context.engine.content(current_file);
+    let utf8_position = position::protocol_position_to_utf8(&content, position, context.encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
+
+    let located = locate::locate(context.engine, current_file, utf8_position)?;
+    let target = rename_target(context, current_file, located)?;
+
+    let Some((old_name, name_kind)) = target_name(context, target)? else {
+        return Ok(None);
+    };
+    if old_name == new_name || !valid_new_name(&new_name, name_kind) {
+        return Ok(None);
+    }
+
+    let target_file = match target {
+        RenameTarget::Term(file_id, _) | RenameTarget::Type(file_id, _) => file_id,
+    };
+    if !editable_file(context, workspace_root, target_file) {
+        return Ok(None);
+    }
+
+    let locations = references::implementation(context, uri, position)?.unwrap_or_default();
+    let mut edits = vec![];
+
+    for location in locations {
+        let file_id = context.files.id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
+        if !editable_file(context, workspace_root, file_id) {
+            continue;
+        }
+
+        let range = reference_name_range(context, file_id, location.range, name_kind)?;
+        let replacement = replacement_text(context, file_id, range, &new_name)?;
+        edits.push((file_id, TextEdit { range, new_text: replacement }));
+    }
+
+    declaration_edits(context, target, &new_name, &mut edits)?;
+    finish_workspace_edit(context, edits)
+}
+
+fn rename_target(
+    context: &LanguageContext,
+    current_file: FileId,
+    located: locate::Located,
+) -> Result<RenameTarget, AnalyzerError> {
+    let lowered = context.engine.lowered(current_file)?;
+
+    let target = match located {
+        locate::Located::ImportItem(import_id) => import_target(context, current_file, import_id)?,
+        locate::Located::Binder(binder_id) => {
+            let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+
+            let BinderKind::Constructor { resolution: Some((file_id, term_id)), .. } = kind else {
+                return Err(AnalyzerError::NonFatal);
+            };
+
+            RenameTarget::Term(*file_id, *term_id)
+        }
+        locate::Located::Expression(expression_id) => {
+            let kind =
+                lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+
+            let resolution = match kind {
+                ExpressionKind::Constructor { resolution: Some(resolution) }
+                | ExpressionKind::OperatorName { resolution: Some(resolution) } => *resolution,
+                ExpressionKind::Variable {
+                    resolution: Some(TermVariableResolution::Reference(file_id, term_id)),
+                } => (*file_id, *term_id),
+                _ => return Err(AnalyzerError::NonFatal),
+            };
+
+            RenameTarget::Term(resolution.0, resolution.1)
+        }
+        locate::Located::Type(type_id) => {
+            let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+
+            let resolution = match kind {
+                TypeKind::Constructor { resolution: Some(resolution) }
+                | TypeKind::Operator { resolution: Some(resolution) } => *resolution,
+                _ => return Err(AnalyzerError::NonFatal),
+            };
+
+            RenameTarget::Type(resolution.0, resolution.1)
+        }
+        locate::Located::TermOperator(operator_id) => {
+            let (file_id, term_id) =
+                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Term(file_id, term_id)
+        }
+        locate::Located::TypeOperator(operator_id) => {
+            let (file_id, type_id) =
+                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Type(file_id, type_id)
+        }
+        locate::Located::TermItem(term_id) => RenameTarget::Term(current_file, term_id),
+        locate::Located::TypeItem(type_id) => RenameTarget::Type(current_file, type_id),
+        _ => return Err(AnalyzerError::NonFatal),
+    };
+
+    Ok(target)
+}
+
+fn import_target(
+    context: &LanguageContext,
+    current_file: FileId,
+    import_id: ImportItemId,
+) -> Result<RenameTarget, AnalyzerError> {
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let stabilized = context.engine.stabilized(current_file)?;
+
+    let root = parsed.syntax_node();
+    let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
+    let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+
+    let statement = node
+        .syntax()
+        .ancestors()
+        .find_map(cst::ImportStatement::cast)
+        .ok_or(AnalyzerError::NonFatal)?;
+    let module_name =
+        statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().text(&content).to_string();
+
+    let imported_file = context.engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
+    let resolved = context.engine.resolved(imported_file)?;
+
+    let target = match node {
+        cst::ImportItem::ImportValue(item) => {
+            let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
+
+            let (file_id, term_id) =
+                resolved.exports.lookup_term(name).ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Term(file_id, term_id)
+        }
+        cst::ImportItem::ImportClass(item) => {
+            let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
+
+            let (file_id, type_id) = resolved
+                .exports
+                .lookup_class(name)
+                .or_else(|| resolved.exports.lookup_type(name))
+                .ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Type(file_id, type_id)
+        }
+        cst::ImportItem::ImportType(item) => {
+            let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
+
+            let (file_id, type_id) = resolved
+                .exports
+                .lookup_type(name)
+                .or_else(|| resolved.exports.lookup_class(name))
+                .ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Type(file_id, type_id)
+        }
+        cst::ImportItem::ImportOperator(item) => {
+            let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
+
+            let (file_id, term_id) = resolved
+                .exports
+                .lookup_term(trim_operator_name(name))
+                .ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Term(file_id, term_id)
+        }
+        cst::ImportItem::ImportTypeOperator(item) => {
+            let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
+
+            let (file_id, type_id) = resolved
+                .exports
+                .lookup_type(trim_operator_name(name))
+                .ok_or(AnalyzerError::NonFatal)?;
+
+            RenameTarget::Type(file_id, type_id)
+        }
+    };
+
+    Ok(target)
+}
+
+fn trim_operator_name(name: &str) -> &str {
+    name.trim_start_matches('(').trim_end_matches(')')
+}
+
+fn target_name(
+    context: &LanguageContext,
+    target: RenameTarget,
+) -> Result<Option<(String, NameKind)>, AnalyzerError> {
+    let result = match target {
+        RenameTarget::Term(file_id, term_id) => {
+            let indexed = context.engine.indexed(file_id)?;
+            let item = &indexed.items[term_id];
+
+            let Some(name) = item.name.as_ref() else {
+                return Ok(None);
+            };
+
+            let kind = match item.kind {
+                TermItemKind::Constructor { .. } => NameKind::Upper,
+                TermItemKind::Operator { .. } => NameKind::Operator,
+                TermItemKind::Derive { .. } | TermItemKind::Instance { .. } => return Ok(None),
+                _ => NameKind::Lower,
+            };
+
+            Some((name.to_string(), kind))
+        }
+        RenameTarget::Type(file_id, type_id) => {
+            let indexed = context.engine.indexed(file_id)?;
+            let item = &indexed.items[type_id];
+
+            let Some(name) = item.name.as_ref() else {
+                return Ok(None);
+            };
+
+            let kind = match item.kind {
+                TypeItemKind::Operator { .. } => NameKind::Operator,
+                _ => NameKind::Upper,
+            };
+
+            Some((name.to_string(), kind))
+        }
+    };
+
+    Ok(result)
+}
+
+fn valid_new_name(new_name: &str, kind: NameKind) -> bool {
+    let lexed = lexing::lex(new_name);
+    let is_single_token = lexed.len() == 2 && lexed.kind(1) == SyntaxKind::END_OF_FILE;
+    if !is_single_token {
+        return false;
+    }
+
+    let has_lexing_error = lexed.error(0).is_some() || lexed.error(1).is_some();
+    let has_qualifier = lexed.qualifier(0).is_some();
+    if has_lexing_error || has_qualifier {
+        return false;
+    }
+
+    if lexed.text(0) != new_name {
+        return false;
+    }
+
+    let token_kind = lexed.kind(0);
+
+    match kind {
+        NameKind::Lower => token_kind == SyntaxKind::LOWER,
+        NameKind::Upper => token_kind == SyntaxKind::UPPER,
+        NameKind::Operator => matches!(
+            token_kind,
+            SyntaxKind::OPERATOR
+                | SyntaxKind::COLON
+                | SyntaxKind::MINUS
+                | SyntaxKind::DOUBLE_PERIOD
+                | SyntaxKind::LEFT_THICK_ARROW
+        ),
+    }
+}
+
+fn editable_file(
+    context: &LanguageContext,
+    workspace_root: Option<&Path>,
+    file_id: FileId,
+) -> bool {
+    let Some(workspace_root) = workspace_root else {
+        return true;
+    };
+
+    let path = context.files.path(file_id);
+    let Ok(uri) = Url::parse(&path) else {
+        return false;
+    };
+    let Ok(path) = uri.to_file_path() else {
+        return false;
+    };
+
+    path.starts_with(workspace_root)
+}
+
+fn reference_name_range(
+    context: &LanguageContext,
+    file_id: FileId,
+    range: Range,
+    name_kind: NameKind,
+) -> Result<Range, AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let position = position::protocol_position_to_utf8(&content, range.start, context.encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+
+    let token = match root.token_at_offset(offset) {
+        TokenAtOffset::None => return Err(AnalyzerError::NonFatal),
+        TokenAtOffset::Single(token) => token,
+        TokenAtOffset::Between(left, right) => {
+            if qualified_name_token(&right, name_kind).is_some() { right } else { left }
+        }
+    };
+
+    let token = qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
+
+    position::text_range_to_protocol(&content, token.text_range(), context.encoding)
+        .ok_or(AnalyzerError::NonFatal)
+}
+
+fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
+    let qualified = token.parent_ancestors().find_map(cst::QualifiedName::cast)?;
+
+    match name_kind {
+        NameKind::Lower => qualified.lower(),
+        NameKind::Upper => qualified.upper(),
+        NameKind::Operator => qualified.operator().or_else(|| qualified.operator_name()),
+    }
+}
+
+fn replacement_text(
+    context: &LanguageContext,
+    file_id: FileId,
+    range: Range,
+    new_name: &str,
+) -> Result<String, AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let start = position::protocol_position_to_utf8(&content, range.start, context.encoding)
+        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .ok_or(AnalyzerError::NonFatal)?;
+    let end = position::protocol_position_to_utf8(&content, range.end, context.encoding)
+        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .ok_or(AnalyzerError::NonFatal)?;
+
+    let range = TextRange::new(start, end);
+    let text = &content[range];
+
+    if text.starts_with('(') && text.ends_with(')') {
+        Ok(format!("({new_name})"))
+    } else {
+        Ok(new_name.to_string())
+    }
+}
+
+fn declaration_edits(
+    context: &LanguageContext,
+    target: RenameTarget,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    match target {
+        RenameTarget::Term(file_id, term_id) => {
+            term_declaration_edits(context, file_id, term_id, new_name, edits)
+        }
+        RenameTarget::Type(file_id, type_id) => {
+            type_declaration_edits(context, file_id, type_id, new_name, edits)
+        }
+    }
+}
+
+fn term_declaration_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    term_id: TermItemId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let indexed = context.engine.indexed(file_id)?;
+
+    macro_rules! push_name_edits {
+        ($range:expr; $($id:expr),+ $(,)?) => {
+            $(push_name_edit(context, file_id, $id, $range, new_name, edits)?;)+
+        };
+    }
+
+    match &indexed.items[term_id].kind {
+        TermItemKind::ClassMember { id } => {
+            push_name_edits!(position::class_member_name_range; Some(*id));
+        }
+        TermItemKind::Constructor { id } => {
+            push_name_edits!(position::data_constructor_name_range; Some(*id));
+        }
+        TermItemKind::Derive { id } => {
+            push_name_edits!(position::declaration_name_range; Some(*id));
+        }
+        TermItemKind::Foreign { id } => {
+            push_name_edits!(position::declaration_name_range; Some(*id));
+        }
+        TermItemKind::Instance { id } => {
+            push_name_edits!(position::instance_declaration_name_range; Some(*id));
+        }
+        TermItemKind::Operator { id } => {
+            push_name_edits!(position::infix_operator_range; Some(*id));
+        }
+        TermItemKind::Value { signature, equations } => {
+            push_name_edits!(position::declaration_name_range; *signature);
+
+            for &equation in equations {
+                push_name_edits!(position::declaration_name_range; Some(equation));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn type_declaration_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    type_id: TypeItemId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let indexed = context.engine.indexed(file_id)?;
+
+    macro_rules! push_name_edits {
+        ($range:expr; $($id:expr),+ $(,)?) => {
+            $(push_name_edit(context, file_id, $id, $range, new_name, edits)?;)+
+        };
+    }
+
+    match indexed.items[type_id].kind {
+        TypeItemKind::Data { signature, equation, role, .. } => {
+            push_name_edits!(position::declaration_name_range; signature, equation, role);
+        }
+        TypeItemKind::Newtype { signature, equation, role, .. } => {
+            push_name_edits!(position::declaration_name_range; signature, equation, role);
+        }
+        TypeItemKind::Synonym { signature, equation } => {
+            push_name_edits!(position::declaration_name_range; signature, equation);
+        }
+        TypeItemKind::Class { signature, declaration, .. } => {
+            push_name_edits!(position::declaration_name_range; signature, declaration);
+        }
+        TypeItemKind::Foreign { id, role } => {
+            push_name_edits!(position::declaration_name_range; Some(id), role);
+        }
+        TypeItemKind::Operator { id } => {
+            push_name_edits!(position::infix_operator_range; Some(id));
+        }
+    }
+
+    Ok(())
+}
+
+fn push_name_edit<T>(
+    context: &LanguageContext,
+    file_id: FileId,
+    id: Option<AstId<T>>,
+    range: fn(&str, &SyntaxNode, &SyntaxNodePtr) -> Option<Utf8Range>,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError>
+where
+    T: AstNode,
+{
+    let Some(id) = id else {
+        return Ok(());
+    };
+
+    let content = context.engine.content(file_id);
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    let ptr = stabilized.syntax_ptr(id).ok_or(AnalyzerError::NonFatal)?;
+    let range = range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
+    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+        .ok_or(AnalyzerError::NonFatal)?;
+    let replacement = replacement_text(context, file_id, range, new_name)?;
+
+    edits.push((file_id, TextEdit { range, new_text: replacement }));
+
+    Ok(())
+}
+
+fn finish_workspace_edit(
+    context: &LanguageContext,
+    mut edits: Vec<(FileId, TextEdit)>,
+) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
+    edits.sort_by_key(|(file_id, edit)| {
+        (
+            file_id.into_raw().into_u32(),
+            edit.range.start.line,
+            edit.range.start.character,
+            edit.range.end.line,
+            edit.range.end.character,
+        )
+    });
+    edits.dedup_by(|left, right| left.0 == right.0 && left.1.range == right.1.range);
+
+    if edits.is_empty() {
+        return Ok(None);
+    }
+
+    let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::default();
+    for (file_id, edit) in edits {
+        let uri = common::file_uri(context, file_id)?;
+        changes.entry(uri).or_default().push(edit);
+    }
+
+    Ok(Some(WorkspaceEdit { changes: Some(changes), ..WorkspaceEdit::default() }))
+}
