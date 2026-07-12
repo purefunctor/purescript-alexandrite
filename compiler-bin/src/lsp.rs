@@ -424,6 +424,15 @@ fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspEr
 }
 
 fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError> {
+    let previous_id = state.files.read().id(uri);
+    let previous_name = if let Some(id) = previous_id {
+        let previous_content = state.engine.content(id);
+        let (parsed, _) = state.engine.parsed(id)?;
+        parsed.module_name(&previous_content)
+    } else {
+        None
+    };
+
     // Cancel in-flight queries so that threads holding a read lock
     // over `files` are terminated quickly, compared to having to
     // wait for expensive LSP requests to complete successfully.
@@ -435,8 +444,15 @@ fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError
     state.engine.set_content(id, content);
 
     let (parsed, _) = state.engine.parsed(id)?;
+    let current_name = parsed.module_name(content);
 
-    if let Some(name) = parsed.module_name(content) {
+    if previous_name != current_name
+        && let Some(previous_name) = previous_name
+    {
+        state.engine.remove_module_file(&previous_name, id);
+    }
+
+    if let Some(name) = current_name {
         state.engine.set_module_file(&name, id);
     }
 
