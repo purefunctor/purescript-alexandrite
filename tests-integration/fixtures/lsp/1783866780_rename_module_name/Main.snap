@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 0, character: 9 }
+
+```
+module Main (module Alias, original) where
+--       /
+```
+
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 0:7..0:11 => "Renamed"
+
+
+Rename at Position { line: 3, character: 10 }
+
+```
+import Library.Original
+--        /
+```
+
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Bridge.purs @ 0:22..0:38 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Bridge.purs @ 2:7..2:23 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Library.purs @ 0:32..0:48 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Library.purs @ 0:7..0:23 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 3:7..3:23 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 5:7..5:23 => "Renamed"
