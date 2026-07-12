@@ -9,7 +9,7 @@ use indexing::{
 };
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use stabilizing::AstId;
-use syntax::ast::AstNode;
+use syntax::ast::{AstNode, AstPtr};
 use syntax::{
     SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst,
 };
@@ -22,6 +22,7 @@ enum RenameTarget {
     Term(FileId, TermItemId),
     Type(FileId, TypeItemId),
     Qualifier(FileId, ImportId),
+    Module(FileId),
 }
 
 #[derive(Clone, Copy)]
@@ -29,6 +30,7 @@ enum NameKind {
     Lower,
     Upper,
     Operator,
+    Module,
 }
 
 pub fn implementation(
@@ -64,7 +66,8 @@ pub fn implementation(
     let target_file = match target {
         RenameTarget::Term(file_id, _)
         | RenameTarget::Type(file_id, _)
-        | RenameTarget::Qualifier(file_id, _) => file_id,
+        | RenameTarget::Qualifier(file_id, _)
+        | RenameTarget::Module(file_id) => file_id,
     };
     if !editable_file(context, workspace_root, target_file) {
         return Ok(None);
@@ -73,6 +76,13 @@ pub fn implementation(
     if let RenameTarget::Qualifier(file_id, import_id) = target {
         let mut edits = vec![];
         qualifier_edits(context, file_id, import_id, &new_name, &mut edits)?;
+
+        return finish_workspace_edit(context, edits);
+    }
+
+    if let RenameTarget::Module(file_id) = target {
+        let mut edits = vec![];
+        module_edits(context, workspace_root, file_id, &new_name, &mut edits)?;
 
         return finish_workspace_edit(context, edits);
     }
@@ -116,7 +126,10 @@ fn qualifier_target(
 
     let qualifier_name = token.parent_ancestors().find_map(|node| {
         let qualifier = cst::Qualifier::cast(node)?;
-        qualifier.syntax().parent().and_then(cst::QualifiedName::cast)?;
+        let parent = qualifier.syntax().parent()?;
+        if !cst::QualifiedName::can_cast(parent.kind()) {
+            return None;
+        }
 
         let text = qualifier.text()?.text(&content);
         Some(text.trim_end_matches('.').to_string())
@@ -125,8 +138,9 @@ fn qualifier_target(
     let alias_name = token.parent_ancestors().find_map(|node| {
         let module_name = cst::ModuleName::cast(node)?;
         let parent = module_name.syntax().parent()?;
-        let is_alias = cst::ImportAlias::cast(parent.clone()).is_some();
-        let is_export = cst::ExportModule::cast(parent).is_some();
+        let parent_kind = parent.kind();
+        let is_alias = cst::ImportAlias::can_cast(parent_kind);
+        let is_export = cst::ExportModule::can_cast(parent_kind);
 
         if !is_alias && !is_export {
             return None;
@@ -230,6 +244,100 @@ fn qualifier_edits(
     Ok(())
 }
 
+fn module_edits(
+    context: &LanguageContext,
+    workspace_root: Option<&Path>,
+    target_file: FileId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let (parsed, _) = context.engine.parsed(target_file)?;
+    let module_name =
+        parsed.cst().header().and_then(|header| header.name()).ok_or(AnalyzerError::NonFatal)?;
+
+    push_text_range_edit(context, target_file, module_name.syntax().text_range(), new_name, edits)?;
+
+    for file_id in context.files.iter_id() {
+        if !editable_file(context, workspace_root, file_id) {
+            continue;
+        }
+
+        module_import_edits(context, file_id, target_file, new_name, edits)?;
+        module_export_edits(context, file_id, target_file, new_name, edits)?;
+    }
+
+    Ok(())
+}
+
+fn module_import_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    target_file: FileId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let indexed = context.engine.indexed(file_id)?;
+    let stabilized = context.engine.stabilized(file_id)?;
+
+    for (import_id, import) in &indexed.imports {
+        let Some(name) = import.name.as_deref() else {
+            continue;
+        };
+        if context.engine.module_file(name) != Some(target_file) {
+            continue;
+        }
+
+        let ptr = stabilized.ast_ptr(*import_id).ok_or(AnalyzerError::NonFatal)?;
+        let statement = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+        let module_name = statement.module_name().ok_or(AnalyzerError::NonFatal)?;
+
+        push_text_range_edit(context, file_id, module_name.syntax().text_range(), new_name, edits)?;
+    }
+
+    Ok(())
+}
+
+fn module_export_edits(
+    context: &LanguageContext,
+    file_id: FileId,
+    target_file: FileId,
+    new_name: &str,
+    edits: &mut Vec<(FileId, TextEdit)>,
+) -> Result<(), AnalyzerError> {
+    let content = context.engine.content(file_id);
+    let (parsed, _) = context.engine.parsed(file_id)?;
+    let root = parsed.syntax_node();
+    let indexed = context.engine.indexed(file_id)?;
+    let stabilized = context.engine.stabilized(file_id)?;
+    let current_module = parsed.module_name(&content);
+
+    for export in &indexed.exports.modules {
+        let exports_self = file_id == target_file && current_module.as_ref() == Some(&export.name);
+        let exports_import = indexed.imports.values().any(|import| {
+            import.alias.is_none()
+                && import.name.as_ref() == Some(&export.name)
+                && context.engine.module_file(&export.name) == Some(target_file)
+        });
+
+        if !exports_self && !exports_import {
+            continue;
+        }
+
+        let ptr = stabilized.ast_ptr(export.id).ok_or(AnalyzerError::NonFatal)?;
+        let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+        let cst::ExportItem::ExportModule(export) = item else {
+            return Err(AnalyzerError::NonFatal);
+        };
+        let module_name = export.module_name().ok_or(AnalyzerError::NonFatal)?;
+
+        push_text_range_edit(context, file_id, module_name.syntax().text_range(), new_name, edits)?;
+    }
+
+    Ok(())
+}
+
 fn rename_target(
     context: &LanguageContext,
     current_file: FileId,
@@ -238,6 +346,9 @@ fn rename_target(
     let lowered = context.engine.lowered(current_file)?;
 
     let target = match located {
+        locate::Located::ModuleName(module_name) => {
+            module_target(context, current_file, module_name)?
+        }
         locate::Located::ImportItem(import_id) => import_target(context, current_file, import_id)?,
         locate::Located::Binder(binder_id) => {
             let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
@@ -292,6 +403,32 @@ fn rename_target(
     };
 
     Ok(target)
+}
+
+fn module_target(
+    context: &LanguageContext,
+    current_file: FileId,
+    module_name: AstPtr<cst::ModuleName>,
+) -> Result<RenameTarget, AnalyzerError> {
+    let content = context.engine.content(current_file);
+    let (parsed, _) = context.engine.parsed(current_file)?;
+    let root = parsed.syntax_node();
+    let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let parent = module_name.syntax().parent().ok_or(AnalyzerError::NonFatal)?;
+    let parent_kind = parent.kind();
+
+    if cst::ModuleHeader::can_cast(parent_kind) {
+        return Ok(RenameTarget::Module(current_file));
+    }
+
+    if !cst::ImportStatement::can_cast(parent_kind) && !cst::ExportModule::can_cast(parent_kind) {
+        return Err(AnalyzerError::NonFatal);
+    }
+
+    let name = module_name.syntax().text(&content);
+    let file_id = context.engine.module_file(name).ok_or(AnalyzerError::NonFatal)?;
+
+    Ok(RenameTarget::Module(file_id))
 }
 
 fn import_target(
@@ -421,12 +558,23 @@ fn target_name(
 
             name.map(|name| (name.to_string(), NameKind::Upper))
         }
+        RenameTarget::Module(file_id) => {
+            let content = context.engine.content(file_id);
+            let (parsed, _) = context.engine.parsed(file_id)?;
+
+            parsed.module_name(&content).map(|name| (name.to_string(), NameKind::Module))
+        }
     };
 
     Ok(result)
 }
 
 fn valid_new_name(new_name: &str, kind: NameKind) -> bool {
+    if matches!(kind, NameKind::Module) {
+        return !new_name.is_empty()
+            && new_name.split('.').all(|segment| valid_new_name(segment, NameKind::Upper));
+    }
+
     let lexed = lexing::lex(new_name);
     let is_single_token = lexed.len() == 2 && lexed.kind(1) == SyntaxKind::END_OF_FILE;
     if !is_single_token {
@@ -456,6 +604,7 @@ fn valid_new_name(new_name: &str, kind: NameKind) -> bool {
                 | SyntaxKind::DOUBLE_PERIOD
                 | SyntaxKind::LEFT_THICK_ARROW
         ),
+        NameKind::Module => unreachable!(),
     }
 }
 
@@ -515,6 +664,7 @@ fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<Synt
         NameKind::Lower => qualified.lower(),
         NameKind::Upper => qualified.upper(),
         NameKind::Operator => qualified.operator().or_else(|| qualified.operator_name()),
+        NameKind::Module => None,
     }
 }
 
@@ -556,6 +706,7 @@ fn declaration_edits(
             type_declaration_edits(context, file_id, type_id, new_name, edits)
         }
         RenameTarget::Qualifier(_, _) => Ok(()),
+        RenameTarget::Module(_) => Ok(()),
     }
 }
 
@@ -717,6 +868,7 @@ fn import_edits(
                 }
             }
             RenameTarget::Qualifier(_, _) => {}
+            RenameTarget::Module(_) => {}
         }
     }
 
@@ -813,6 +965,7 @@ fn export_edits(
             }
         }
         RenameTarget::Qualifier(_, _) => {}
+        RenameTarget::Module(_) => {}
     }
 
     Ok(())
