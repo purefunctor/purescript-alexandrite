@@ -372,16 +372,18 @@ where
         };
 
         for residual in residuals {
-            let attached = state.canonical_errors.remove(&residual.wanted);
+            state.checked.evidence.mark_error(residual.evidence.wanted);
+            let attached = state.canonical_errors.remove(&residual.key.wanted);
             attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
             let given = residual
+                .key
                 .given
                 .iter()
                 .map(|given| state.canonicals.type_id(context, *given))
                 .collect::<Arc<[_]>>();
 
-            let constraint = state.canonicals.type_id(context, residual.wanted);
+            let constraint = state.canonicals.type_id(context, residual.key.wanted);
             state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
         }
 
@@ -799,18 +801,20 @@ where
             });
         }
         for error in errors.unsatisfied {
+            state.checked.evidence.mark_error(error.evidence.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
-                let attached = state.canonical_errors.remove(&error.wanted);
+                let attached = state.canonical_errors.remove(&error.key.wanted);
                 attached.into_iter().flatten().for_each(|error| state.insert_error(error));
             });
 
             let given = error
+                .key
                 .given
                 .iter()
                 .map(|given| state.canonicals.type_id(context, *given))
                 .collect::<Arc<[_]>>();
 
-            let constraint = state.canonicals.type_id(context, error.wanted);
+            let constraint = state.canonicals.type_id(context, error.key.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
             });

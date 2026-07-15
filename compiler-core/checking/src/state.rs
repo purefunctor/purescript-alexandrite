@@ -15,7 +15,8 @@ use crate::core::exhaustive::{
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
-use crate::implication::{Implications, Patterns};
+use crate::evidence::{EvidenceBinderId, EvidenceVarId};
+use crate::implication::{GivenConstraint, Implications, Patterns, WantedConstraint};
 use crate::{CheckedModule, ExternalQueries};
 
 /// Manages [`Name`] values for [`CheckState`].
@@ -281,12 +282,16 @@ impl CheckState {
         self.checked.errors.push(CheckingError { kind, crumbs });
     }
 
-    pub fn push_wanted(&mut self, constraint: TypeId) {
-        self.implications.current_mut().wanted.push_back(constraint);
+    pub fn push_wanted(&mut self, constraint: TypeId) -> EvidenceVarId {
+        let evidence = self.checked.evidence.fresh_variable();
+        self.implications.current_mut().wanted.push_back(WantedConstraint { constraint, evidence });
+        evidence
     }
 
-    pub fn push_given(&mut self, constraint: TypeId) {
-        self.implications.current_mut().given.push(constraint);
+    pub fn push_given(&mut self, constraint: TypeId) -> EvidenceBinderId {
+        let evidence = self.checked.evidence.fresh_binder(constraint);
+        self.implications.current_mut().given.push(GivenConstraint { constraint, evidence });
+        evidence
     }
 
     pub fn with_implication<T>(&mut self, f: impl FnOnce(&mut CheckState) -> T) -> T {

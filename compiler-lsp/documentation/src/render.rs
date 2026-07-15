@@ -63,8 +63,10 @@ impl<'a> TypeEncoder<'a> {
         self.names.reset();
         let binders = self.encode_forall_binders(class.type_parameters)?;
 
-        let superclasses =
-            class.superclasses.into_iter().map(|superclass| self.encode_type(superclass));
+        let superclasses = class
+            .superclasses
+            .into_iter()
+            .map(|superclass| self.encode_type(superclass.constraint));
         let superclasses = superclasses.collect::<Result<Vec<_>, Error>>()?;
 
         Ok((schema::TypeDeclaration { binders }, superclasses))

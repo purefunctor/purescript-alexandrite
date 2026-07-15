@@ -15,6 +15,7 @@ use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::unification::{CanUnify, can_unify};
 use crate::core::{RowField, RowType, Type, TypeId, normalise};
+use crate::evidence::{Evidence, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -183,7 +184,7 @@ pub fn match_compiler_instance<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     wanted: CanonicalConstraintId,
-    given: &[CanonicalConstraintId],
+    given: impl IntoIterator<Item = CanonicalConstraintId>,
 ) -> QueryResult<Option<MatchInstance>>
 where
     Q: ExternalQueries,
@@ -306,4 +307,66 @@ where
     };
 
     Ok(match_instance)
+}
+
+pub fn is_compiler_error_constraint<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+) -> bool
+where
+    Q: ExternalQueries,
+{
+    let canonical = &state.canonicals[constraint];
+    canonical.file_id == context.prim_type_error.file_id
+        && canonical.type_id == context.prim_type_error.fail
+}
+
+pub fn evidence_for_solved_constraint<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    constraint: CanonicalConstraintId,
+) -> QueryResult<Evidence>
+where
+    Q: ExternalQueries,
+{
+    let canonical = &state.canonicals[constraint];
+    let class = (canonical.file_id, canonical.type_id);
+
+    if context.known_reflectable.is_symbol == Some(class) {
+        let Some([symbol]) = canonical.expect_type_arguments::<1>() else {
+            unreachable!("invariant violated: solved IsSymbol constraint has invalid arguments");
+        };
+        let symbol = extract_symbol(state, context, symbol)?.unwrap_or_else(|| {
+            unreachable!("invariant violated: solved IsSymbol constraint has no symbol")
+        });
+        return Ok(Evidence::Synthesized(SynthesizedEvidence::IsSymbol(symbol)));
+    }
+
+    if context.known_reflectable.reflectable == Some(class) {
+        let Some([value, _]) = canonical.expect_type_arguments::<2>() else {
+            unreachable!("invariant violated: solved Reflectable constraint has invalid arguments");
+        };
+        let value = recursively_normalise(state, context, value)?;
+        let reflected = if let Some(symbol) = extract_symbol(state, context, value)? {
+            ReflectableEvidence::String(symbol)
+        } else if let Some(integer) = extract_integer(state, context, value)? {
+            ReflectableEvidence::Integer(integer)
+        } else if value == context.prim_boolean.true_ {
+            ReflectableEvidence::Boolean(true)
+        } else if value == context.prim_boolean.false_ {
+            ReflectableEvidence::Boolean(false)
+        } else if value == context.prim_ordering.lt {
+            ReflectableEvidence::Ordering(ReflectableOrdering::Less)
+        } else if value == context.prim_ordering.eq {
+            ReflectableEvidence::Ordering(ReflectableOrdering::Equal)
+        } else if value == context.prim_ordering.gt {
+            ReflectableEvidence::Ordering(ReflectableOrdering::Greater)
+        } else {
+            unreachable!("invariant violated: solved Reflectable constraint has no value");
+        };
+        return Ok(Evidence::Synthesized(SynthesizedEvidence::Reflectable(reflected)));
+    }
+
+    Ok(Evidence::Trivial)
 }

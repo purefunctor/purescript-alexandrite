@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 use building_types::QueryResult;
 use itertools::Itertools;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::canonical::CanonicalConstraint;
@@ -14,11 +14,12 @@ use crate::core::constraint::matching::MatchInstance;
 use crate::core::constraint::{CanonicalConstraintId, canonical, compiler};
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{CheckedClass, KindOrType, Name, Type, TypeId, normalise, toolkit};
+use crate::evidence::{Evidence, EvidenceId, Evidences, SuperclassId};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
 pub struct ElaboratedGiven {
-    pub given: Vec<CanonicalConstraintId>,
+    pub given: Vec<(CanonicalConstraintId, EvidenceId)>,
     pub substitution: NameToType,
 }
 
@@ -26,15 +27,53 @@ pub struct ElaboratedGiven {
 pub fn elaborate_given<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    given: &[CanonicalConstraintId],
+    given: &[(CanonicalConstraintId, EvidenceId)],
 ) -> QueryResult<ElaboratedGiven>
 where
     Q: ExternalQueries,
 {
-    let given = elaborate_superclasses(state, context, given)?;
+    let given = elaborate_superclasses_with_evidence(state, context, given)?;
     let given = elaborate_coercible(state, context, given);
     let (given, substitution) = extract_compiler_solved(state, context, given)?;
     Ok(ElaboratedGiven { given, substitution })
+}
+
+/// Elaborates superclasses while retaining the dictionary projection path.
+pub fn elaborate_superclasses_with_evidence<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    given: &[(CanonicalConstraintId, EvidenceId)],
+) -> QueryResult<Vec<(CanonicalConstraintId, EvidenceId)>>
+where
+    Q: ExternalQueries,
+{
+    let mut elaborated = Vec::with_capacity(given.len());
+    let mut seen = FxHashSet::default();
+
+    for &(constraint, evidence) in given {
+        if seen.insert(constraint) {
+            elaborated.push((constraint, evidence));
+        }
+    }
+
+    let constraints = elaborated.iter().map(|&(constraint, _)| constraint);
+    let constraints = constraints.collect_vec();
+    let edges = superclass_edges(state, context, &constraints)?;
+
+    let evidence_by_constraint = elaborated.iter().copied();
+    let mut evidence_by_constraint = evidence_by_constraint.collect::<FxHashMap<_, _>>();
+
+    for edge in edges {
+        let parent = evidence_by_constraint[&edge.parent];
+
+        let evidence = Evidence::Superclass { parent, superclass: edge.superclass_id };
+        let projection = state.checked.evidence.allocate(evidence);
+
+        evidence_by_constraint.insert(edge.child, projection);
+        elaborated.push((edge.child, projection));
+    }
+
+    Ok(elaborated)
 }
 
 /// Elaborates superclasses from a given [`CanonicalConstraint`].
@@ -47,66 +86,73 @@ where
     Q: ExternalQueries,
 {
     let mut elaborated = Vec::with_capacity(given.len());
-    let mut pending = VecDeque::with_capacity(given.len());
     let mut seen = FxHashSet::default();
 
     for &given in given {
         if seen.insert(given) {
             elaborated.push(given);
-            pending.push_back(given);
         }
     }
 
-    while let Some(constraint) = pending.pop_front() {
-        elaborate_via_superclass(
-            state,
-            context,
-            constraint,
-            &mut elaborated,
-            &mut pending,
-            &mut seen,
-        )?;
-    }
+    let edges = superclass_edges(state, context, &elaborated)?;
+    let superclasses = edges.into_iter().map(|edge| edge.child);
+    elaborated.extend(superclasses);
 
     Ok(elaborated)
 }
 
-fn elaborate_via_superclass<Q>(
+struct SuperclassEdge {
+    parent: CanonicalConstraintId,
+    child: CanonicalConstraintId,
+    superclass_id: SuperclassId,
+}
+
+fn superclass_edges<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    constraint: CanonicalConstraintId,
-    constraints: &mut Vec<CanonicalConstraintId>,
-    pending: &mut VecDeque<CanonicalConstraintId>,
-    seen: &mut FxHashSet<CanonicalConstraintId>,
-) -> QueryResult<()>
+    roots: &[CanonicalConstraintId],
+) -> QueryResult<Vec<SuperclassEdge>>
 where
     Q: ExternalQueries,
 {
-    let CanonicalConstraint { file_id, type_id, .. } = state.canonicals[constraint];
-    let Some(class) = toolkit::lookup_file_class(state, context, file_id, type_id)? else {
-        return Ok(());
-    };
+    let mut edges = vec![];
+    let mut pending = VecDeque::with_capacity(roots.len());
+    let mut seen = FxHashSet::default();
 
-    if class.superclasses.is_empty() {
-        return Ok(());
-    }
-
-    let CanonicalConstraint { arguments, .. } = &state.canonicals[constraint];
-    let Some(substitutions) = superclass_substitutions(context, &class, arguments)? else {
-        return Ok(());
-    };
-
-    for superclass in class.superclasses {
-        let superclass = SubstituteName::many(state, context, &substitutions, superclass)?;
-        if let Some(superclass) = canonical::canonicalise(state, context, superclass)?
-            && seen.insert(superclass)
-        {
-            constraints.push(superclass);
-            pending.push_back(superclass);
+    for &root in roots {
+        if seen.insert(root) {
+            pending.push_back(root);
         }
     }
 
-    Ok(())
+    while let Some(parent) = pending.pop_front() {
+        let CanonicalConstraint { file_id, type_id, .. } = state.canonicals[parent];
+        let Some(class) = toolkit::lookup_file_class(state, context, file_id, type_id)? else {
+            continue;
+        };
+
+        if class.superclasses.is_empty() {
+            continue;
+        }
+
+        let CanonicalConstraint { arguments, .. } = &state.canonicals[parent];
+        let Some(substitutions) = superclass_substitutions(context, &class, arguments)? else {
+            continue;
+        };
+
+        for crate::core::CheckedSuperclass { source_id, constraint } in class.superclasses {
+            let child = SubstituteName::many(state, context, &substitutions, constraint)?;
+            if let Some(child) = canonical::canonicalise(state, context, child)?
+                && seen.insert(child)
+            {
+                let superclass_id = SuperclassId { file_id, type_id, source_id };
+                edges.push(SuperclassEdge { parent, child, superclass_id });
+                pending.push_back(child);
+            }
+        }
+    }
+
+    Ok(edges)
 }
 
 fn superclass_substitutions<Q>(
@@ -147,13 +193,16 @@ where
 pub fn elaborate_coercible<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    mut given: Vec<CanonicalConstraintId>,
-) -> Vec<CanonicalConstraintId>
+    mut given: Vec<(CanonicalConstraintId, EvidenceId)>,
+) -> Vec<(CanonicalConstraintId, EvidenceId)>
 where
     Q: ExternalQueries,
 {
-    let symmetric = given.iter().filter_map(|given| {
-        let CanonicalConstraint { file_id, type_id, ref arguments } = state.canonicals[*given];
+    let constraints = given.iter().map(|&(constraint, _)| constraint);
+    let mut seen: FxHashSet<_> = constraints.collect();
+
+    let symmetric = given.iter().filter_map(|&(given, _)| {
+        let CanonicalConstraint { file_id, type_id, ref arguments } = state.canonicals[given];
 
         if (file_id, type_id) != (context.prim_coerce.file_id, context.prim_coerce.coercible) {
             return None;
@@ -166,7 +215,15 @@ where
         };
 
         let arguments = [kind, right, left].into();
-        Some(state.canonicals.intern(CanonicalConstraint { file_id, type_id, arguments }))
+        let constraint =
+            state.canonicals.intern(CanonicalConstraint { file_id, type_id, arguments });
+
+        if !seen.insert(constraint) {
+            return None;
+        }
+
+        let evidence = state.checked.evidence.allocate(Evidence::Trivial);
+        Some((constraint, evidence))
     });
 
     let symmetric = symmetric.collect_vec();
@@ -178,20 +235,32 @@ where
 fn extract_compiler_solved<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    given: Vec<CanonicalConstraintId>,
-) -> QueryResult<(Vec<CanonicalConstraintId>, NameToType)>
+    given: Vec<(CanonicalConstraintId, EvidenceId)>,
+) -> QueryResult<(Vec<(CanonicalConstraintId, EvidenceId)>, NameToType)>
 where
     Q: ExternalQueries,
 {
     let mut substitution = NameToType::default();
     let mut conflicts = FxHashSet::default();
 
-    safe_loop! {
-        let given = canonical::substitute_canonicals(state, context, &substitution, &given)?;
+    loop {
+        let given = given.iter().map(|&(constraint, evidence)| {
+            let constraint =
+                canonical::substitute_canonical(state, context, &substitution, constraint)?;
+            Ok((constraint, evidence))
+        });
+
+        let given_evidence = given.collect::<QueryResult<Vec<_>>>()?;
+
+        let given_evidence =
+            retain_innermost_given_evidence(&state.checked.evidence, given_evidence);
+
         let mut changed = false;
 
-        for &constraint in &given {
-            let Some(matched) = compiler::match_compiler_instance(state, context, constraint, &given)?
+        for &(constraint, _) in &given_evidence {
+            let given_constraints = given_evidence.iter().map(|&(constraint, _)| constraint);
+            let Some(matched) =
+                compiler::match_compiler_instance(state, context, constraint, given_constraints)?
             else {
                 continue;
             };
@@ -201,7 +270,8 @@ where
             };
 
             for (left, right) in unifications {
-                let improvements = extract_improvements(state, context, &substitution, left, right)?;
+                let improvements =
+                    extract_improvements(state, context, &substitution, left, right)?;
                 for (name, replacement) in improvements {
                     if register_improvement(
                         state,
@@ -218,9 +288,34 @@ where
         }
 
         if !changed {
-            return Ok((given, substitution));
+            return Ok((given_evidence, substitution));
         }
     }
+}
+
+fn retain_innermost_given_evidence(
+    evidences: &Evidences,
+    given: Vec<(CanonicalConstraintId, EvidenceId)>,
+) -> Vec<(CanonicalConstraintId, EvidenceId)> {
+    let mut retained = Vec::with_capacity(given.len());
+    for (constraint, evidence) in given {
+        if let Some((_, retained_evidence)) =
+            retained.iter_mut().find(|(retained, _)| *retained == constraint)
+        {
+            let retained_status = &evidences[*retained_evidence];
+            let replacement_status = &evidences[evidence];
+
+            let retained_is_trivial = matches!(retained_status, Evidence::Trivial);
+            let replacement_is_trivial = matches!(replacement_status, Evidence::Trivial);
+
+            if retained_is_trivial || !replacement_is_trivial {
+                *retained_evidence = evidence;
+            }
+        } else {
+            retained.push((constraint, evidence));
+        }
+    }
+    retained
 }
 
 fn extract_improvements<Q>(
@@ -313,5 +408,46 @@ where
             return Ok(type_id);
         }
         type_id = substituted;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use interner::Id;
+
+    use super::retain_innermost_given_evidence;
+    use crate::core::constraint::canonical::CanonicalConstraint;
+    use crate::evidence::{Evidence, EvidenceBinderId, Evidences};
+
+    #[test]
+    fn deduplicated_givens_retain_innermost_evidence() {
+        let first = Id::<CanonicalConstraint>::new(NonZeroU32::new(1).unwrap());
+        let second = Id::<CanonicalConstraint>::new(NonZeroU32::new(2).unwrap());
+
+        let mut evidences = Evidences::default();
+        let outer = evidences.allocate(Evidence::Given(EvidenceBinderId(0)));
+        let unrelated = evidences.allocate(Evidence::Given(EvidenceBinderId(1)));
+        let inner = evidences.allocate(Evidence::Given(EvidenceBinderId(2)));
+
+        let given = vec![(first, outer), (second, unrelated), (first, inner)];
+        let retained = retain_innermost_given_evidence(&evidences, given);
+
+        assert_eq!(retained, vec![(first, inner), (second, unrelated)]);
+    }
+
+    #[test]
+    fn symmetric_coercible_evidence_does_not_replace_explicit_given() {
+        let constraint = Id::<CanonicalConstraint>::new(NonZeroU32::new(1).unwrap());
+
+        let mut evidences = Evidences::default();
+        let explicit = evidences.allocate(Evidence::Given(EvidenceBinderId(0)));
+        let generated = evidences.allocate(Evidence::Trivial);
+
+        let given = vec![(constraint, explicit), (constraint, generated)];
+        let retained = retain_innermost_given_evidence(&evidences, given);
+
+        assert_eq!(retained, vec![(constraint, explicit)]);
     }
 }

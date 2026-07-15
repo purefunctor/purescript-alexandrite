@@ -13,8 +13,8 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedDataDeclaration, CheckedSynonym, ForallBinder, Role, Type, TypeId, fd,
-    fold, generalise, signature, toolkit, unification, zonk,
+    CheckedClass, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym, ForallBinder, Role,
+    Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
 use crate::source::types;
@@ -34,7 +34,7 @@ struct PendingSynonymType {
 
 struct PendingClassType {
     parameters: Vec<ForallBinder>,
-    superclasses: Vec<TypeId>,
+    superclasses: Vec<CheckedSuperclass>,
     functional_dependencies: Arc<[fd::Fd]>,
     members: Vec<(TermItemId, TypeId)>,
 }
@@ -740,10 +740,10 @@ where
     };
 
     let mut superclasses = vec![];
-    for &constraint in constraints.iter() {
-        let (superclass, _) =
-            types::check_kind(state, context, constraint, context.prim.constraint)?;
-        superclasses.push(superclass);
+    for &source_id in constraints.iter() {
+        let (constraint, _) =
+            types::check_kind(state, context, source_id, context.prim.constraint)?;
+        superclasses.push(CheckedSuperclass { source_id, constraint });
     }
 
     let functional_dependencies =
@@ -895,7 +895,10 @@ where
 
         let superclasses = superclasses
             .into_iter()
-            .map(|superclass| zonk::zonk(state, context, superclass))
+            .map(|superclass| {
+                let constraint = zonk::zonk(state, context, superclass.constraint)?;
+                Ok(CheckedSuperclass { source_id: superclass.source_id, constraint })
+            })
             .collect::<QueryResult<Vec<_>>>()?;
 
         for (member_id, member_type) in members.iter() {
