@@ -773,7 +773,7 @@ where
                 marker
             }
             Some(PendingValueGroup::Inferred { residuals }) => {
-                generalise::insert_inferred_residuals(
+                generalise::constrain_using_residuals(
                     state,
                     context,
                     marker,
