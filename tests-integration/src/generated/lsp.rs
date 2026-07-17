@@ -1,6 +1,7 @@
 pub mod render;
 
 use std::fmt::Write;
+use std::path::Path;
 
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
@@ -411,8 +412,15 @@ fn dispatch_cursor(
                 return;
             };
             let context = analyzer::LanguageContext::new(engine, files, encoding);
-            let response =
-                analyzer::rename::implementation(&context, None, uri, position, new_name);
+            let workspace_root =
+                uri.to_file_path().ok().and_then(|path| path.parent().map(Path::to_path_buf));
+            let response = analyzer::rename::implementation(
+                &context,
+                workspace_root.as_deref(),
+                uri,
+                position,
+                new_name,
+            );
             if let Ok(Some(edit)) = response {
                 let edits = render_rename_edit(edit);
                 writeln!(result, "{}", edits.join("\n")).unwrap();

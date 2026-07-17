@@ -1,0 +1,93 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 2, character: 20 }
+
+```
+foreign import data ForeignType :: Type
+--                  /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:26..11:37 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 2:20..2:31 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 5:31..5:42 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 8:15..8:26 => "Renamed"
+
+
+Rename at Position { line: 5, character: 15 }
+
+```
+foreign import foreignValue :: ForeignType
+--             /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:14..25:26 => "renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:31..25:43 => "renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 5:15..5:27 => "renamed"
+
+
+Rename at Position { line: 8, character: 5 }
+
+```
+type Synonym = ForeignType
+--   /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:19..30:26 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:31..30:38 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 8:5..8:12 => "Renamed"
+
+
+Rename at Position { line: 11, character: 8 }
+
+```
+newtype Wrapper = Wrapper ForeignType
+--      /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:8..11:15 => "Renamed"
+
+
+Rename at Position { line: 15, character: 3 }
+
+```
+  member :: a -> a
+-- /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 15:2..15:8 => "renamed"
+
+
+Rename at Position { line: 18, character: 8 }
+
+```
+unwrap (Wrapper value) = value
+--      /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:18..11:25 => "Renamed"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 18:8..18:15 => "Renamed"
+
+
+Rename at Position { line: 25, character: 27 }
+
+```
+operatorUse = foreignValue <?> foreignValue
+--                         /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 23:20..23:23 => "<~>"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:27..25:30 => "<~>"
+
+
+Rename at Position { line: 30, character: 27 }
+
+```
+type OperatorUse = Synonym :+: Synonym
+--                         /
+```
+
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 28:25..28:28 => "<~>"
+file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:27..30:30 => "<~>"
