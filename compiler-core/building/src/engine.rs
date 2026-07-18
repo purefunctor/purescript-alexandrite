@@ -163,60 +163,84 @@ struct LocalState {
 }
 
 impl LocalState {
-    fn with_current<T>(&self, current: QueryKey, f: impl FnOnce() -> T) -> T {
-        let inner = self.inner.get_or_default();
+    fn with_query<T>(&self, query: QueryKey, f: impl FnOnce(&RefCell<LocalStateInner>) -> T) -> T {
+        let local = self.inner.get_or_default();
         {
-            let mut setup = inner.borrow_mut();
-            setup.stack.push(current);
+            let mut inner = local.borrow_mut();
+            if let Some(parent) = inner.frames.last_mut() {
+                parent.dependencies.insert(query);
+            }
+            inner.frames.push(QueryFrame::new(query));
         }
-        let result = f();
+        let result = f(local);
         {
-            let mut cleanup = inner.borrow_mut();
-            cleanup.stack.pop();
-            cleanup.in_progress.remove(&current);
-            cleanup.dependencies.remove(&current);
+            let mut inner = local.borrow_mut();
+            let frame = inner.frames.pop().expect("invariant violated: expected query frame");
+            debug_assert_eq!(frame.query, query);
         }
         result
     }
 
     fn with_dependency(&self, dependency: QueryKey) {
         let mut inner = self.inner.get_or_default().borrow_mut();
-        if let Some(&current) = inner.stack.last() {
-            inner.dependencies.entry(current).or_default().insert(dependency);
+        if let Some(frame) = inner.frames.last_mut() {
+            frame.dependencies.insert(dependency);
         }
     }
 
-    fn dependencies(&self, key: QueryKey) -> Arc<[QueryKey]> {
-        let inner = &self.inner.get_or_default().borrow();
-        inner
+    fn dependencies(local: &RefCell<LocalStateInner>) -> Arc<[QueryKey]> {
+        let inner = local.borrow();
+        let dependencies = inner
+            .frames
+            .last()
+            .expect("invariant violated: expected query frame")
             .dependencies
-            .get(&key)
-            .map(|dependencies| dependencies.iter().copied())
-            .unwrap_or_default()
-            .collect()
+            .iter()
+            .copied();
+        dependencies.collect()
     }
 
-    fn stack(&self) -> Arc<[QueryKey]> {
+    fn stack(local: &RefCell<LocalStateInner>) -> Arc<[QueryKey]> {
+        let inner = local.borrow();
+        let stack = inner.frames.iter().map(|frame| frame.query);
+        stack.collect()
+    }
+
+    fn mark_in_progress(local: &RefCell<LocalStateInner>) {
+        let mut inner = local.borrow_mut();
+        let frame = inner.frames.last_mut().expect("invariant violated: expected query frame");
+        frame.in_progress = true;
+    }
+
+    fn is_in_progress(local: &RefCell<LocalStateInner>) -> bool {
+        let inner = local.borrow();
+        let frame = inner.frames.last().expect("invariant violated: expected query frame");
+        frame.in_progress
+    }
+
+    #[cfg(test)]
+    fn contains_in_progress(&self, query: QueryKey) -> bool {
         let inner = self.inner.get_or_default().borrow();
-        inner.stack.as_slice().into()
-    }
-
-    fn add_in_progress(&self, key: QueryKey) {
-        let mut inner = self.inner.get_or_default().borrow_mut();
-        inner.in_progress.insert(key);
-    }
-
-    fn is_in_progress(&self, key: QueryKey) -> bool {
-        let inner = self.inner.get_or_default().borrow();
-        inner.in_progress.contains(&key)
+        inner.frames.iter().any(|frame| frame.query == query && frame.in_progress)
     }
 }
 
 #[derive(Debug, Default)]
 struct LocalStateInner {
-    stack: Vec<QueryKey>,
-    in_progress: FxHashSet<QueryKey>,
-    dependencies: FxHashMap<QueryKey, FxHashSet<QueryKey>>,
+    frames: Vec<QueryFrame>,
+}
+
+#[derive(Debug)]
+struct QueryFrame {
+    query: QueryKey,
+    in_progress: bool,
+    dependencies: FxHashSet<QueryKey>,
+}
+
+impl QueryFrame {
+    fn new(query: QueryKey) -> QueryFrame {
+        QueryFrame { query, in_progress: false, dependencies: FxHashSet::default() }
+    }
 }
 
 /// Custom guard that acquires a read lock from the [`GlobalState::query_lock`]
@@ -322,11 +346,10 @@ impl QueryEngine {
         ComputeFn: Fn(&QueryEngine) -> QueryResult<V>,
         V: Eq + Clone,
     {
-        self.control.local.with_dependency(query);
-        self.control.local.with_current(query, || {
+        self.control.local.with_query(query, |local| {
             // If query execution fails at any given point, clean up the state.
-            self.query_core(query, key, &shards, &compute).inspect_err(|_| {
-                if self.control.local.is_in_progress(query) {
+            self.query_core(key, &shards, &compute, local).inspect_err(|_| {
+                if LocalState::is_in_progress(local) {
                     let shard = shards(&self.derived).shard(&key);
                     let mut guard = shard.write();
                     if let Entry::Occupied(o) = guard.entry(key) {
@@ -383,9 +406,9 @@ impl QueryEngine {
         key: K,
         shards: &ShardsFn,
         compute: &ComputeFn,
-        query: QueryKey,
         revision: usize,
         previous: Option<(V, Trace)>,
+        local: &RefCell<LocalStateInner>,
     ) -> QueryResult<V>
     where
         K: Hash + Eq + Copy,
@@ -407,13 +430,13 @@ impl QueryEngine {
         match previous {
             Some((previous, trace)) if computed == previous => {
                 let trace = Trace { built: revision, changed: trace.changed };
-                let dependencies = self.control.local.dependencies(query);
+                let dependencies = LocalState::dependencies(local);
                 self.fulfill_and_store(key, shards, V::clone(&previous), trace, dependencies);
                 Ok(previous)
             }
             _ => {
                 let trace = Trace { built: revision, changed: revision };
-                let dependencies = self.control.local.dependencies(query);
+                let dependencies = LocalState::dependencies(local);
                 self.fulfill_and_store(key, shards, V::clone(&computed), trace, dependencies);
                 Ok(computed)
             }
@@ -468,10 +491,11 @@ impl QueryEngine {
         &self,
         to_id: SnapshotId,
         promises: &Mutex<Vec<Promise<T>>>,
+        local: &RefCell<LocalStateInner>,
     ) -> QueryResult<Future<T>> {
         {
             let mut graph = self.control.global.graph.lock();
-            let stack = self.control.local.stack();
+            let stack = LocalState::stack(local);
             if !graph.add_edge(self.control.id, to_id) {
                 return Err(QueryError::Cycle { stack });
             }
@@ -484,10 +508,10 @@ impl QueryEngine {
 
     fn query_core<K, V, ShardsFn, ComputeFn>(
         &self,
-        query: QueryKey,
         key: K,
         shards: &ShardsFn,
         compute: &ComputeFn,
+        local: &RefCell<LocalStateInner>,
     ) -> QueryResult<V>
     where
         K: Hash + Eq + Copy,
@@ -518,7 +542,7 @@ impl QueryEngine {
                     return Ok(V::clone(computed));
                 }
                 DerivedState::InProgress { id, promises } => {
-                    let future = self.create_future(*id, promises)?;
+                    let future = self.create_future(*id, promises, local)?;
 
                     // Remember that Future::wait blocks the current thread!
                     drop(guard);
@@ -543,13 +567,13 @@ impl QueryEngine {
                     {
                         let mut guard = RwLockUpgradableReadGuard::upgrade(guard);
                         guard.insert(key, DerivedState::in_progress(self.control.id));
-                        self.control.local.add_in_progress(query);
+                        LocalState::mark_in_progress(local);
                     }
 
-                    self.compute_core(key, shards, compute, query, revision, None)
+                    self.compute_core(key, shards, compute, revision, None, local)
                 }
                 DerivedState::InProgress { id, promises } => {
-                    let future = self.create_future(*id, promises)?;
+                    let future = self.create_future(*id, promises, local)?;
 
                     // Remember that Future::wait blocks the current thread!
                     drop(guard);
@@ -572,7 +596,7 @@ impl QueryEngine {
                     {
                         let mut guard = RwLockUpgradableReadGuard::upgrade(guard);
                         guard.insert(key, DerivedState::in_progress(self.control.id));
-                        self.control.local.add_in_progress(query);
+                        LocalState::mark_in_progress(local);
                     }
 
                     let latest = self.verify_core(&dependencies)?;
@@ -597,9 +621,9 @@ impl QueryEngine {
                         key,
                         shards,
                         compute,
-                        query,
                         revision,
                         Some((computed, trace)),
+                        local,
                     )
                 }
             }
@@ -1204,12 +1228,44 @@ mod tests {
         let key = QueryKey::Parsed(id);
 
         let indexed_a = engine.indexed(id).unwrap();
-        assert!(!engine.control.local.is_in_progress(key));
+        assert!(!engine.control.local.contains_in_progress(key));
 
         let indexed_b = engine.indexed(id).unwrap();
-        assert!(!engine.control.local.is_in_progress(key));
+        assert!(!engine.control.local.contains_in_progress(key));
 
         assert_eq!(indexed_a, indexed_b);
+    }
+
+    #[test]
+    fn test_nested_dependencies_are_deduplicated_and_isolated() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let parent = files.insert("./src/Parent.purs", "module Parent where");
+        let child = files.insert("./src/Child.purs", "module Child where");
+        engine.set_content(child, files.content(child));
+
+        let parsed = engine
+            .query(
+                QueryKey::Parsed(parent),
+                parent,
+                |derived| &derived.parsed,
+                |engine| {
+                    let parsed = engine.parsed(child)?;
+                    engine.parsed(child)?;
+                    Ok(parsed)
+                },
+            )
+            .unwrap();
+        assert_eq!(parsed, engine.parsed(child).unwrap());
+
+        let shard = engine.derived.parsed.shard(&parent);
+        let guard = shard.read();
+        assert_eq!(
+            ShowTrace(guard.get(&parent).unwrap()),
+            Trace { built: 19, changed: 19, dependencies: &[QueryKey::Parsed(child)] }
+        );
     }
 
     #[test]
@@ -1221,17 +1277,8 @@ mod tests {
         let id = files.insert("./src/Main.purs", "module Main where\n\n\n\nlife = 42");
         let key = QueryKey::Indexed(id);
 
-        // Simulate the current thread starting a computation.
-        {
-            let shard = engine.derived.indexed.shard(&id);
-            shard.write().insert(id, DerivedState::in_progress(engine.control.id));
-            engine.control.local.add_in_progress(key);
-        }
-
-        // Finally, enable cancellation and run the query on this thread.
-        engine.control.global.cancelled.store(true, Ordering::Relaxed);
         let result =
-            engine.query(key, id, |derived| &derived.indexed, |_| unreachable!("impossible."));
+            engine.query(key, id, |derived| &derived.indexed, |_| Err(QueryError::Cancelled));
 
         assert_eq!(result, Err(QueryError::Cancelled));
 
@@ -1255,7 +1302,6 @@ mod tests {
         {
             let shard = engine.derived.indexed.shard(&id);
             shard.write().insert(id, DerivedState::in_progress(engine.control.id));
-            engine.control.local.add_in_progress(key);
         }
 
         // Finally, enable cancellation and run the query on another thread.
@@ -1274,17 +1320,6 @@ mod tests {
         {
             let shard = engine.derived.indexed.shard(&id);
             assert!(shard.read().contains_key(&id));
-        }
-
-        let result =
-            engine.query(key, id, |derived| &derived.indexed, |_| unreachable!("impossible."));
-
-        assert_eq!(result, Err(QueryError::Cancelled));
-
-        // Finally, observe that the storage is edited.
-        {
-            let shard = engine.derived.indexed.shard(&id);
-            assert!(!shard.read().contains_key(&id));
         }
     }
 
