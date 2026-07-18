@@ -4,11 +4,12 @@ use smol_str::{SmolStr, format_smolstr};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::constraint::matching::{self, MatchInstance};
+use crate::core::constraint::matching;
 use crate::core::pretty::Pretty;
 use crate::core::{Type, TypeId, normalise, toolkit, zonk};
-use crate::error::ErrorKind;
 use crate::state::CheckState;
+
+use super::{CompilerMatch, CompilerResolution};
 
 fn first_blocking_unification<Q>(
     state: &mut CheckState,
@@ -155,7 +156,7 @@ pub fn match_warn<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     arguments: &[TypeId],
-) -> QueryResult<Option<MatchInstance>>
+) -> QueryResult<Option<CompilerMatch>>
 where
     Q: ExternalQueries,
 {
@@ -163,24 +164,23 @@ where
 
     let message = match render_doc(state, context, doc) {
         Ok(Some(message)) => message,
-        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![], skolem: false })),
+        Ok(None) => return Ok(Some(CompilerMatch::Stuck { stuck: vec![], skolem: false })),
         Err(RenderStuck::Blocked(u)) => {
-            return Ok(Some(MatchInstance::Stuck { stuck: vec![u], skolem: false }));
+            return Ok(Some(CompilerMatch::Stuck { stuck: vec![u], skolem: false }));
         }
         Err(RenderStuck::Query(cycle)) => return Err(cycle),
     };
 
     let message_id = context.queries.intern_smol_str(message);
-    state.insert_error(ErrorKind::CustomWarning { message_id });
-
-    Ok(Some(MatchInstance::empty()))
+    let resolution = CompilerResolution::Warning { message_id };
+    Ok(Some(CompilerMatch::resolved(resolution)))
 }
 
 pub fn match_fail<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     arguments: &[TypeId],
-) -> QueryResult<Option<MatchInstance>>
+) -> QueryResult<Option<CompilerMatch>>
 where
     Q: ExternalQueries,
 {
@@ -188,15 +188,14 @@ where
 
     let message = match render_doc(state, context, doc) {
         Ok(Some(message)) => message,
-        Ok(None) => return Ok(Some(MatchInstance::Stuck { stuck: vec![], skolem: false })),
+        Ok(None) => return Ok(Some(CompilerMatch::Stuck { stuck: vec![], skolem: false })),
         Err(RenderStuck::Blocked(u)) => {
-            return Ok(Some(MatchInstance::Stuck { stuck: vec![u], skolem: false }));
+            return Ok(Some(CompilerMatch::Stuck { stuck: vec![u], skolem: false }));
         }
         Err(RenderStuck::Query(cycle)) => return Err(cycle),
     };
 
     let message_id = context.queries.intern_smol_str(message);
-    state.insert_error(ErrorKind::CustomFailure { message_id });
-
-    Ok(Some(MatchInstance::empty()))
+    let resolution = CompilerResolution::Failure { message_id };
+    Ok(Some(CompilerMatch::resolved(resolution)))
 }

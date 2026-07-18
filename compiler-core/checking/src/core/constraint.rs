@@ -256,27 +256,43 @@ where
 
         let given = constraint.key.given.iter().copied();
         match compiler::match_compiler_instance(state, context, constraint.key.wanted, given)? {
-            Some(matching::MatchInstance::Match { unifications, constraints }) => {
-                if compiler::is_compiler_error_constraint(state, context, constraint.key.wanted) {
-                    state.checked.evidence.mark_error(constraint.evidence.wanted);
-                } else {
-                    let evidence = compiler::evidence_for_solved_constraint(
-                        state,
-                        context,
-                        constraint.key.wanted,
-                    )?;
+            Some(compiler::CompilerMatch::Match { unifications, constraints, resolution }) => {
+                let solve_with_evidence = |state: &mut CheckState, evidence: Evidence| {
                     let evidence = state.checked.evidence.allocate(evidence);
                     state.checked.evidence.solve(constraint.evidence.wanted, evidence);
+                };
+
+                match resolution {
+                    compiler::CompilerResolution::Trivial => {
+                        solve_with_evidence(state, Evidence::Trivial);
+                    }
+                    compiler::CompilerResolution::Synthesized => {
+                        let evidence = compiler::synthesized_evidence_for_constraint(
+                            state,
+                            context,
+                            constraint.key.wanted,
+                        )?;
+                        solve_with_evidence(state, Evidence::Synthesized(evidence));
+                    }
+                    compiler::CompilerResolution::Warning { message_id } => {
+                        state.insert_error(ErrorKind::CustomWarning { message_id });
+                        solve_with_evidence(state, Evidence::Trivial);
+                    }
+                    compiler::CompilerResolution::Failure { message_id } => {
+                        state.insert_error(ErrorKind::CustomFailure { message_id });
+                        state.checked.evidence.mark_error(constraint.evidence.wanted);
+                    }
                 }
+
                 let constraints = fresh_scoped_constraints(state, &constraint, constraints);
                 work.extend_from_parts(unifications, constraints);
                 continue 'work;
             }
-            Some(matching::MatchInstance::Stuck { stuck, skolem }) => {
+            Some(compiler::CompilerMatch::Stuck { stuck, skolem }) => {
                 blocked.extend(stuck);
                 blocked_on_skolem |= skolem;
             }
-            Some(matching::MatchInstance::Apart) | None => (),
+            Some(compiler::CompilerMatch::Apart) | None => (),
         }
 
         let search = instances::collect_instance_chains(state, context, constraint.key.wanted)?;

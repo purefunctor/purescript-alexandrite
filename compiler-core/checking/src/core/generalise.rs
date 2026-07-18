@@ -415,7 +415,7 @@ where
     let mut generalisable = vec![];
 
     for constraint in constraints {
-        if compiler::is_compiler_error_constraint(state, context, constraint.key.wanted) {
+        if compiler::is_fail_constraint(state, context, constraint.key.wanted) {
             state.checked.evidence.mark_error(constraint.evidence.wanted);
         } else {
             generalisable.push(constraint)

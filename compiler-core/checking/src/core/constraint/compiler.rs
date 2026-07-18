@@ -14,13 +14,49 @@ use smol_str::SmolStr;
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::unification::{CanUnify, can_unify};
-use crate::core::{RowField, RowType, Type, TypeId, normalise};
-use crate::evidence::{Evidence, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence};
+use crate::core::{RowField, RowType, SmolStrId, Type, TypeId, normalise};
+use crate::evidence::{ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
 use super::CanonicalConstraintId;
 use super::matching::MatchInstance;
+
+pub enum CompilerResolution {
+    Trivial,
+    Synthesized,
+    Warning { message_id: SmolStrId },
+    Failure { message_id: SmolStrId },
+}
+
+pub enum CompilerMatch {
+    Match {
+        unifications: Vec<(TypeId, TypeId)>,
+        constraints: Vec<CanonicalConstraintId>,
+        resolution: CompilerResolution,
+    },
+    Apart,
+    Stuck {
+        stuck: Vec<u32>,
+        skolem: bool,
+    },
+}
+
+impl CompilerMatch {
+    fn from_instance(instance: MatchInstance, resolution: CompilerResolution) -> CompilerMatch {
+        match instance {
+            MatchInstance::Match { unifications, constraints } => {
+                CompilerMatch::Match { unifications, constraints, resolution }
+            }
+            MatchInstance::Apart => CompilerMatch::Apart,
+            MatchInstance::Stuck { stuck, skolem } => CompilerMatch::Stuck { stuck, skolem },
+        }
+    }
+
+    fn resolved(resolution: CompilerResolution) -> CompilerMatch {
+        CompilerMatch::Match { unifications: vec![], constraints: vec![], resolution }
+    }
+}
 
 #[derive(Clone)]
 pub enum RowView {
@@ -185,13 +221,29 @@ pub fn match_compiler_instance<Q>(
     context: &CheckContext<Q>,
     wanted: CanonicalConstraintId,
     given: impl IntoIterator<Item = CanonicalConstraintId>,
-) -> QueryResult<Option<MatchInstance>>
+) -> QueryResult<Option<CompilerMatch>>
 where
     Q: ExternalQueries,
 {
     let canonical = &state.canonicals[wanted];
     let file_id = canonical.file_id;
     let item_id = canonical.type_id;
+
+    if file_id == context.prim_type_error.file_id {
+        if item_id == context.prim_type_error.warn {
+            let Some(arguments) = canonical.expect_type_arguments::<1>() else {
+                return Ok(None);
+            };
+            return prim_type_error::match_warn(state, context, &arguments);
+        } else if item_id == context.prim_type_error.fail {
+            let Some(arguments) = canonical.expect_type_arguments::<1>() else {
+                return Ok(None);
+            };
+            return prim_type_error::match_fail(state, context, &arguments);
+        } else {
+            return Ok(None);
+        }
+    }
 
     let match_instance = if file_id == context.prim_int.file_id {
         if item_id == context.prim_int.add {
@@ -278,20 +330,6 @@ where
         } else {
             None
         }
-    } else if file_id == context.prim_type_error.file_id {
-        if item_id == context.prim_type_error.warn {
-            let Some(arguments) = canonical.expect_type_arguments::<1>() else {
-                return Ok(None);
-            };
-            prim_type_error::match_warn(state, context, &arguments)?
-        } else if item_id == context.prim_type_error.fail {
-            let Some(arguments) = canonical.expect_type_arguments::<1>() else {
-                return Ok(None);
-            };
-            prim_type_error::match_fail(state, context, &arguments)?
-        } else {
-            None
-        }
     } else if context.known_reflectable.is_symbol == Some((file_id, item_id)) {
         let Some(arguments) = canonical.expect_type_arguments::<1>() else {
             return Ok(None);
@@ -306,10 +344,20 @@ where
         None
     };
 
+    let resolution = if context.known_reflectable.is_symbol == Some((file_id, item_id))
+        || context.known_reflectable.reflectable == Some((file_id, item_id))
+    {
+        CompilerResolution::Synthesized
+    } else {
+        CompilerResolution::Trivial
+    };
+
+    let match_instance =
+        match_instance.map(|instance| CompilerMatch::from_instance(instance, resolution));
     Ok(match_instance)
 }
 
-pub fn is_compiler_error_constraint<Q>(
+pub fn is_fail_constraint<Q>(
     state: &CheckState,
     context: &CheckContext<Q>,
     constraint: CanonicalConstraintId,
@@ -322,11 +370,11 @@ where
         && canonical.type_id == context.prim_type_error.fail
 }
 
-pub fn evidence_for_solved_constraint<Q>(
+pub fn synthesized_evidence_for_constraint<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     constraint: CanonicalConstraintId,
-) -> QueryResult<Evidence>
+) -> QueryResult<SynthesizedEvidence>
 where
     Q: ExternalQueries,
 {
@@ -340,7 +388,7 @@ where
         let symbol = extract_symbol(state, context, symbol)?.unwrap_or_else(|| {
             unreachable!("invariant violated: solved IsSymbol constraint has no symbol")
         });
-        return Ok(Evidence::Synthesized(SynthesizedEvidence::IsSymbol(symbol)));
+        return Ok(SynthesizedEvidence::IsSymbol(symbol));
     }
 
     if context.known_reflectable.reflectable == Some(class) {
@@ -365,8 +413,8 @@ where
         } else {
             unreachable!("invariant violated: solved Reflectable constraint has no value");
         };
-        return Ok(Evidence::Synthesized(SynthesizedEvidence::Reflectable(reflected)));
+        return Ok(SynthesizedEvidence::Reflectable(reflected));
     }
 
-    Ok(Evidence::Trivial)
+    unreachable!("invariant violated: compiler constraint does not synthesize evidence")
 }

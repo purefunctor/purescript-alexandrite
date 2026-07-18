@@ -10,7 +10,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::canonical::CanonicalConstraint;
-use crate::core::constraint::matching::MatchInstance;
 use crate::core::constraint::{CanonicalConstraintId, canonical, compiler};
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{CheckedClass, KindOrType, Name, Type, TypeId, normalise, toolkit};
@@ -265,7 +264,7 @@ where
                 continue;
             };
 
-            let MatchInstance::Match { unifications, .. } = matched else {
+            let compiler::CompilerMatch::Match { unifications, .. } = matched else {
                 continue;
             };
 
