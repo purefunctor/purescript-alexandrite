@@ -63,7 +63,7 @@ enum DerivedState<T> {
     NotComputed,
     InProgress {
         id: SnapshotId,
-        promises: Mutex<Vec<Promise<T>>>,
+        waiters: Mutex<Vec<Waiter<T>>>,
     },
     Computed {
         computed: T,
@@ -74,8 +74,14 @@ enum DerivedState<T> {
 
 impl<T> DerivedState<T> {
     fn in_progress(id: SnapshotId) -> DerivedState<T> {
-        DerivedState::InProgress { id, promises: Mutex::default() }
+        DerivedState::InProgress { id, waiters: Mutex::default() }
     }
+}
+
+#[derive(Debug)]
+struct Waiter<T> {
+    id: SnapshotId,
+    promise: Promise<T>,
 }
 
 #[derive(Debug)]
@@ -353,11 +359,11 @@ impl QueryEngine {
                     let shard = shards(&self.derived).shard(&key);
                     let mut guard = shard.write();
                     if let Entry::Occupied(o) = guard.entry(key) {
-                        if let DerivedState::InProgress { id, promises } = o.remove() {
-                            let mut graph = self.control.global.graph.lock();
-                            drop(promises);
+                        if let DerivedState::InProgress { id, waiters } = o.remove() {
+                            let waiters = waiters.into_inner();
+                            self.remove_waiter_edges(id, &waiters);
                             drop(guard);
-                            graph.remove_edge(id);
+                            drop(waiters);
                         } else {
                             unreachable!("invariant violated: expected InProgress");
                         }
@@ -384,14 +390,13 @@ impl QueryEngine {
         let shard = shards(&self.derived).shard(&key);
         let mut guard = shard.write();
         if let Entry::Occupied(o) = guard.entry(key) {
-            if let DerivedState::InProgress { id, promises } = o.remove() {
-                let mut graph = self.control.global.graph.lock();
-                let promises = promises.into_inner();
-                promises.into_iter().for_each(|promise| {
+            if let DerivedState::InProgress { id, waiters } = o.remove() {
+                let waiters = waiters.into_inner();
+                self.remove_waiter_edges(id, &waiters);
+                waiters.into_iter().for_each(|waiter| {
                     let computed = V::clone(&computed);
-                    promise.fulfill(computed);
+                    waiter.promise.fulfill(computed);
                 });
-                graph.remove_edge(id);
             } else {
                 unreachable!("invariant violated: expected InProgress");
             }
@@ -399,6 +404,17 @@ impl QueryEngine {
 
         let state = DerivedState::Computed { computed, trace, dependencies };
         guard.insert(key, state);
+    }
+
+    fn remove_waiter_edges<T>(&self, to_id: SnapshotId, waiters: &[Waiter<T>]) {
+        if waiters.is_empty() {
+            return;
+        }
+
+        let mut graph = self.control.global.graph.lock();
+        for waiter in waiters {
+            graph.remove_edge(waiter.id, to_id);
+        }
     }
 
     fn compute_core<K, V, ShardsFn, ComputeFn>(
@@ -490,7 +506,7 @@ impl QueryEngine {
     fn create_future<T>(
         &self,
         to_id: SnapshotId,
-        promises: &Mutex<Vec<Promise<T>>>,
+        waiters: &Mutex<Vec<Waiter<T>>>,
         local: &RefCell<LocalStateInner>,
     ) -> QueryResult<Future<T>> {
         {
@@ -502,7 +518,8 @@ impl QueryEngine {
         }
 
         let (future, promise) = Future::new();
-        promises.lock().push(promise);
+        let waiter = Waiter { id: self.control.id, promise };
+        waiters.lock().push(waiter);
         Ok(future)
     }
 
@@ -534,15 +551,15 @@ impl QueryEngine {
         // cached value was built during the current revision.
         //
         // For in-progress queries, we can simply push to the internally mutable
-        // vector of promises and then wait on the future.
+        // vector of waiters and then wait on the future.
         {
             let guard = shard.read();
             match guard.get(&key).unwrap_or(&DerivedState::NotComputed) {
                 DerivedState::Computed { computed, trace, .. } if trace.built == revision => {
                     return Ok(V::clone(computed));
                 }
-                DerivedState::InProgress { id, promises } => {
-                    let future = self.create_future(*id, promises, local)?;
+                DerivedState::InProgress { id, waiters } => {
+                    let future = self.create_future(*id, waiters, local)?;
 
                     // Remember that Future::wait blocks the current thread!
                     drop(guard);
@@ -572,8 +589,8 @@ impl QueryEngine {
 
                     self.compute_core(key, shards, compute, revision, None, local)
                 }
-                DerivedState::InProgress { id, promises } => {
-                    let future = self.create_future(*id, promises, local)?;
+                DerivedState::InProgress { id, waiters } => {
+                    let future = self.create_future(*id, waiters, local)?;
 
                     // Remember that Future::wait blocks the current thread!
                     drop(guard);
@@ -978,7 +995,7 @@ mod tests {
 
     use crate::prim;
 
-    use super::{DerivedState, QueryEngine, QueryKey};
+    use super::{DerivedState, QueryEngine, QueryKey, SnapshotId};
 
     #[derive(Debug)]
     struct Trace<'a> {
@@ -1266,6 +1283,33 @@ mod tests {
             ShowTrace(guard.get(&parent).unwrap()),
             Trace { built: 19, changed: 19, dependencies: &[QueryKey::Parsed(child)] }
         );
+    }
+
+    #[test]
+    fn test_query_completion_preserves_unrelated_waiter_edges() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let parent = files.insert("./src/Parent.purs", "module Parent where");
+        let child = files.insert("./src/Child.purs", "module Child where");
+        engine.set_content(child, files.content(child));
+        let computed = engine.parsed(child).unwrap();
+
+        let computing = SnapshotId(1);
+        let waiting = SnapshotId(2);
+        let shard = engine.derived.parsed.shard(&parent);
+        shard.write().insert(parent, DerivedState::in_progress(computing));
+
+        assert!(engine.control.global.graph.lock().add_edge(waiting, computing));
+        engine.fulfill_and_store(
+            parent,
+            &|derived| &derived.parsed,
+            computed,
+            super::Trace { built: 19, changed: 19 },
+            Arc::from([]),
+        );
+        assert!(!engine.control.global.graph.lock().add_edge(computing, waiting));
     }
 
     #[test]

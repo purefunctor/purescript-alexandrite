@@ -20,9 +20,10 @@ impl SnapshotGraph {
         true
     }
 
-    pub(crate) fn remove_edge(&mut self, to_id: SnapshotId) {
-        self.inner.retain(|_, &mut id| id != to_id);
-        self.inner.remove(&to_id);
+    pub(crate) fn remove_edge(&mut self, from_id: SnapshotId, to_id: SnapshotId) {
+        if self.inner.get(&from_id) == Some(&to_id) {
+            self.inner.remove(&from_id);
+        }
     }
 }
 
@@ -55,5 +56,20 @@ mod tests {
         let mut graph = SnapshotGraph::default();
         let id_a = SnapshotId(0);
         assert!(!graph.add_edge(id_a, id_a));
+    }
+
+    #[test]
+    fn test_removes_only_matching_edge() {
+        let mut graph = SnapshotGraph::default();
+        let id_a = SnapshotId(0);
+        let id_b = SnapshotId(1);
+        let id_c = SnapshotId(2);
+
+        assert!(graph.add_edge(id_a, id_b));
+        graph.remove_edge(id_c, id_b);
+        assert!(!graph.add_edge(id_b, id_a));
+
+        graph.remove_edge(id_a, id_b);
+        assert!(graph.add_edge(id_b, id_a));
     }
 }
