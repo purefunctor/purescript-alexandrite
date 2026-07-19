@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+apply ::
+  forall (t :: Type) (t1 :: Type). ((t :: Type) -> (t1 :: Type)) -> (t :: Type) -> (t1 :: Type)
+apply function argument = function argument

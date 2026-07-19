@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+test :: Int
+test = identity @Int 0
