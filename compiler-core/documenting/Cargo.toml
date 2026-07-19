@@ -11,7 +11,7 @@ stabilizing = { version = "0.1.0", path = "../stabilizing" }
 syntax = { version = "0.1.0", path = "../syntax" }
 
 [dev-dependencies]
-criterion = "0.6.0"
+criterion = { version = "5.0.1", package = "codspeed-criterion-compat" }
 insta = "1.45.1"
 lexing = { path = "../lexing" }
 

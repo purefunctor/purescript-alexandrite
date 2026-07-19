@@ -9,7 +9,6 @@ anyhow = "1"
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4", features = ["derive"] }
-criterion = { version = "0.6.0", features = ["html_reports"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 flate2 = "1"
@@ -34,6 +33,7 @@ url = "2.5.7"
 walkdir = "2.5.0"
 
 [dev-dependencies]
+criterion = { version = "5.0.1", package = "codspeed-criterion-compat", features = ["html_reports"] }
 tempfile = "3"
 
 [[bench]]

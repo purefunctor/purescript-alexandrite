@@ -1,5 +1,8 @@
 <h1 align="center">alexandrite</h1>
 <p align="center">a language implementation for PureScript</p>
+<p align="center">
+  <a href="https://app.codspeed.io/purefunctor/purescript-alexandrite?utm_source=badge"><img src="https://img.shields.io/endpoint?url=https://codspeed.io/badge.json" alt="CodSpeed"/></a>
+</p>
 
 ---
 
