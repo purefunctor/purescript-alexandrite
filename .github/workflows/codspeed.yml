@@ -42,13 +42,12 @@ jobs:
           tool: cargo-codspeed
 
       - name: Build the benchmark target(s)
-        run: >
-          cargo codspeed build -m simulation
-          -p documenting
-          -p tests-compatibility --bench parsing --bench stabilizing
+        run: |
+          cargo codspeed build -m simulation -p documenting
+          cargo codspeed build -m simulation -p tests-compatibility --bench parsing --bench stabilizing
 
       - name: Run the benchmarks
         uses: CodSpeedHQ/action@v4
         with:
           mode: simulation
-          run: cargo codspeed run
+          run: cargo codspeed run -m simulation -p documenting -p tests-compatibility
