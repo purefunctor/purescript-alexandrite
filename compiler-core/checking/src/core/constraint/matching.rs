@@ -9,7 +9,7 @@ use crate::context::CheckContext;
 use crate::core::constraint::instances::InstanceCandidate;
 use crate::core::constraint::{CanonicalConstraintId, canonical};
 use crate::core::fd::{
-    Fd, compute_closure, compute_covering_sets, get_all_determined, get_functional_dependencies,
+    Fd, compute_closure, get_all_determined, get_functional_dependencies, positions_cover_all,
 };
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
@@ -713,9 +713,7 @@ where
     }
 
     let functional_dependencies = get_functional_dependencies(state, context, file_id, type_id)?;
-    let covering_sets = compute_covering_sets(&functional_dependencies, left_arguments.len());
-
-    Ok(!instances_are_apart(state, context, &covering_sets, &left_arguments, &right_arguments)?)
+    instances_overlap(state, context, &functional_dependencies, &left_arguments, &right_arguments)
 }
 
 fn type_arguments(arguments: &[KindOrType]) -> Vec<TypeId> {
@@ -725,40 +723,50 @@ fn type_arguments(arguments: &[KindOrType]) -> Vec<TypeId> {
         .collect_vec()
 }
 
-fn instances_are_apart<Q>(
+fn instances_overlap<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    covering_sets: &[FxHashSet<usize>],
+    functional_dependencies: &[Fd],
     left_arguments: &[TypeId],
     right_arguments: &[TypeId],
 ) -> QueryResult<bool>
 where
     Q: ExternalQueries,
 {
-    for covering_set in covering_sets {
-        let mut covering_set_is_apart = false;
+    let all_positions = FxHashSet::from_iter(0..left_arguments.len());
+    let mut known_non_apart = FxHashSet::default();
+    let mut possibly_non_apart = all_positions.clone();
 
-        for &position in covering_set {
-            if types_apart(
-                state,
-                context,
-                left_arguments[position],
-                right_arguments[position],
-                false,
-            )?
-            .is_apart()
-            {
-                covering_set_is_apart = true;
-                break;
+    // Closure monotonicity lets these bounds decide whether the final non-apart positions contain
+    // a covering set before every argument has been compared.
+    if positions_cover_all(functional_dependencies, &known_non_apart, &all_positions) {
+        return Ok(true);
+    }
+
+    for position in 0..left_arguments.len() {
+        let apart = types_apart(
+            state,
+            context,
+            left_arguments[position],
+            right_arguments[position],
+            false,
+        )?
+        .is_apart();
+
+        if apart {
+            possibly_non_apart.remove(&position);
+            if !positions_cover_all(functional_dependencies, &possibly_non_apart, &all_positions) {
+                return Ok(false);
             }
-        }
-
-        if !covering_set_is_apart {
-            return Ok(false);
+        } else {
+            known_non_apart.insert(position);
+            if positions_cover_all(functional_dependencies, &known_non_apart, &all_positions) {
+                return Ok(true);
+            }
         }
     }
 
-    Ok(true)
+    Ok(positions_cover_all(functional_dependencies, &known_non_apart, &all_positions))
 }
 
 fn types_apart<Q>(

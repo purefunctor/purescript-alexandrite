@@ -210,7 +210,7 @@ where
                 constraint.type_id,
             );
         } else {
-            let checked = context.queries.checked(file_id)?;
+            let checked = context.checked_dependency(file_id)?;
             let indexed = context.queries.indexed(file_id)?;
             collect_instances_from_checked(
                 &mut instances,
