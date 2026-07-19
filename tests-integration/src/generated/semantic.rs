@@ -3,12 +3,15 @@ use std::fmt::Write;
 use analyzer::QueryEngine;
 use checking::CheckedModule;
 use checking::core::pretty;
-use checking::evidence::{EvidenceBinderId, EvidenceVarId};
+use checking::evidence::{
+    Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
+    ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
+};
 use checking::semantic::{
     CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind, CheckedLiteral,
 };
 use files::FileId;
-use indexing::{TermItem, TermItemId};
+use indexing::{TermItem, TermItemId, TermItemKind};
 use lowering::{BinderKind, Equation, GuardedExpression, TermItemIr, TermVariableResolution};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -114,7 +117,7 @@ impl<'a> SemanticPrinter<'a> {
             }
             CheckedExpressionKind::EvidenceApplication { expression, evidence } => {
                 let expression = self.expression(expression, Precedence::Application);
-                let evidence = evidence.iter().map(|evidence| Self::evidence_variable(*evidence));
+                let evidence = evidence.iter().map(|evidence| self.evidence_variable(*evidence));
                 let evidence = evidence.collect::<Vec<_>>();
                 (format!("{expression} @{{{}}}", evidence.join(", ")), Precedence::Application)
             }
@@ -203,8 +206,93 @@ impl<'a> SemanticPrinter<'a> {
         }
     }
 
-    fn evidence_variable(EvidenceVarId(id): EvidenceVarId) -> String {
-        format!("ev{id}")
+    fn evidence_variable(&self, variable @ EvidenceVarId(id): EvidenceVarId) -> String {
+        match self.checked.evidence[variable].state {
+            EvidenceState::Unsolved => format!("<unsolved evidence ev{id}>"),
+            EvidenceState::Solved(evidence) => self.evidence(evidence),
+            EvidenceState::Error => format!("<error evidence ev{id}>"),
+        }
+    }
+
+    fn evidence(&self, evidence_id: EvidenceId) -> String {
+        match self.checked.evidence[evidence_id].clone() {
+            Evidence::Variable(variable) => self.evidence_variable(variable),
+            Evidence::Given(binder) => Self::evidence_binder(binder),
+            Evidence::Instance { origin, subgoals } => {
+                let instance = self.instance_name(origin);
+                if subgoals.is_empty() {
+                    instance
+                } else {
+                    let subgoals =
+                        subgoals.into_iter().map(|subgoal| self.evidence_variable(subgoal));
+                    let subgoals = subgoals.collect::<Vec<_>>();
+                    format!("{instance} @{{{}}}", subgoals.join(", "))
+                }
+            }
+            Evidence::Superclass { parent, superclass } => {
+                let superclass = self.superclass_name(superclass);
+                let parent = self.evidence(parent);
+                format!("superclass[{superclass}] {parent}")
+            }
+            Evidence::Trivial => "<trivial>".to_string(),
+            Evidence::Synthesized(evidence) => Self::synthesized_evidence(evidence),
+        }
+    }
+
+    fn instance_name(&self, origin: InstanceCandidateOrigin) -> String {
+        let file_id = match origin {
+            InstanceCandidateOrigin::Instance(file_id, _)
+            | InstanceCandidateOrigin::Derive(file_id, _) => file_id,
+        };
+        let indexed = self.engine.indexed(file_id).ok();
+        let name = indexed.and_then(|indexed| {
+            indexed.items.iter_terms().find_map(|(_, item)| {
+                let matches = match (origin, &item.kind) {
+                    (
+                        InstanceCandidateOrigin::Instance(_, origin_id),
+                        TermItemKind::Instance { id },
+                    ) => origin_id == *id,
+                    (
+                        InstanceCandidateOrigin::Derive(_, origin_id),
+                        TermItemKind::Derive { id },
+                    ) => origin_id == *id,
+                    _ => false,
+                };
+                matches.then(|| item.name.clone()).flatten()
+            })
+        });
+
+        name.map(String::from).unwrap_or_else(|| match origin {
+            InstanceCandidateOrigin::Instance(_, _) => "<anonymous instance>".to_string(),
+            InstanceCandidateOrigin::Derive(_, _) => "<anonymous derived instance>".to_string(),
+        })
+    }
+
+    fn superclass_name(&self, superclass: SuperclassId) -> String {
+        let indexed = self.engine.indexed(superclass.file_id).ok();
+        indexed
+            .and_then(|indexed| indexed.items[superclass.type_id].name.clone())
+            .map(String::from)
+            .unwrap_or_else(|| "<anonymous superclass>".to_string())
+    }
+
+    fn synthesized_evidence(evidence: SynthesizedEvidence) -> String {
+        match evidence {
+            SynthesizedEvidence::IsSymbol(symbol) => format!("isSymbol({symbol:?})"),
+            SynthesizedEvidence::Reflectable(evidence) => match evidence {
+                ReflectableEvidence::Integer(integer) => format!("reflectable({integer})"),
+                ReflectableEvidence::String(string) => format!("reflectable({string:?})"),
+                ReflectableEvidence::Boolean(boolean) => format!("reflectable({boolean})"),
+                ReflectableEvidence::Ordering(ordering) => {
+                    let ordering = match ordering {
+                        ReflectableOrdering::Less => "LT",
+                        ReflectableOrdering::Equal => "EQ",
+                        ReflectableOrdering::Greater => "GT",
+                    };
+                    format!("reflectable({ordering})")
+                }
+            },
+        }
     }
 
     fn evidence_binder(EvidenceBinderId(id): EvidenceBinderId) -> String {

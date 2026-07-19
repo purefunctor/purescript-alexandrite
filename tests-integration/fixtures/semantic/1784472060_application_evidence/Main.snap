@@ -6,4 +6,4 @@ expression: report
 module Main where
 
 test :: String
-test = make @{ev0} 0
+test = make @{constraintString} 0

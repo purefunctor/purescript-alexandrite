@@ -6,4 +6,4 @@ expression: report
 module Main where
 
 test :: forall (a :: Type). Constraint @Type (a :: Type) => (a :: Type) -> String
-test value = make @{ev0} value
+test value = make @{dict0} value
