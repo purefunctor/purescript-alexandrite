@@ -10,6 +10,7 @@ indexing = { version = "0.1.0", path = "../indexing" }
 interner = { version = "0.1.0", path = "../interner" }
 indexmap = "2.12.1"
 itertools = "0.14.0"
+la-arena = "0.3.1"
 lowering = { version = "0.1.0", path = "../lowering" }
 parking_lot = "0.12.5"
 petgraph = "0.8.3"

@@ -22,6 +22,7 @@ use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TermHole};
+use crate::semantic::CheckedExpressionKind;
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -301,7 +302,13 @@ where
 
         lowering::ExpressionKind::Variable { resolution } => {
             let Some(resolution) = *resolution else { return Ok(unknown) };
-            toolkit::lookup_term_variable(state, context, resolution)
+            let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
+            let checked_expression = state
+                .checked
+                .core
+                .allocate_expression(type_id, CheckedExpressionKind::Variable { resolution });
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
         }
 
         lowering::ExpressionKind::OperatorName { resolution } => {

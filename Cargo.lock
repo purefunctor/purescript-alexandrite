@@ -359,6 +359,7 @@ dependencies = [
  "indexmap",
  "interner",
  "itertools 0.14.0",
+ "la-arena",
  "lowering",
  "parking_lot",
  "parsing",

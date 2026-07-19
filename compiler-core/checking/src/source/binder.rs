@@ -10,6 +10,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, RowType, Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::semantic::CheckedBinderKind;
 use crate::source::terms::application;
 use crate::source::{operator, types};
 use crate::state::CheckState;
@@ -254,10 +255,16 @@ where
             }
         }
 
-        lowering::BinderKind::Variable { .. } => match mode {
-            BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
-            BinderMode::Check { expected_type, .. } => expected_type,
-        },
+        lowering::BinderKind::Variable { .. } => {
+            let type_id = match mode {
+                BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
+                BinderMode::Check { expected_type, .. } => expected_type,
+            };
+            let checked_binder =
+                state.checked.core.allocate_binder(type_id, CheckedBinderKind::Variable);
+            state.checked.core.record_binder(binder_id, checked_binder);
+            type_id
+        }
 
         lowering::BinderKind::Named { binder, .. } => {
             let Some(binder) = binder else { return Ok(unknown) };
@@ -273,6 +280,13 @@ where
                 }
             };
 
+            if let Some(checked_binder) = state.checked.core.lookup_binder(*binder) {
+                let checked_binder = state
+                    .checked
+                    .core
+                    .allocate_binder(type_id, CheckedBinderKind::Named { binder: checked_binder });
+                state.checked.core.record_binder(binder_id, checked_binder);
+            }
             state.checked.nodes.binders.insert(binder_id, type_id);
 
             type_id
@@ -345,7 +359,11 @@ where
 
         lowering::BinderKind::Parenthesized { parenthesized } => {
             let Some(parenthesized) = parenthesized else { return Ok(unknown) };
-            binder_core(state, context, *parenthesized, mode)?
+            let type_id = binder_core(state, context, *parenthesized, mode)?;
+            if let Some(checked_binder) = state.checked.core.lookup_binder(*parenthesized) {
+                state.checked.core.record_binder(binder_id, checked_binder);
+            }
+            type_id
         }
     };
 

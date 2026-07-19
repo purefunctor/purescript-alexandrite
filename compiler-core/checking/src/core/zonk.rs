@@ -9,6 +9,7 @@ use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
+use crate::semantic::{CheckedBinderId, CheckedExpressionId, CheckedExpressionKind};
 use crate::state::CheckState;
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
@@ -69,6 +70,57 @@ where
     zonk_operator_map!(term_operator);
     zonk_operator_map!(type_operator);
 
+    Ok(())
+}
+
+pub fn zonk_core<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let expressions = state.checked.core.expressions.iter().map(|(id, _)| id);
+    let expressions = expressions.collect::<Vec<_>>();
+    for expression_id in expressions {
+        zonk_checked_expression(state, context, expression_id)?;
+    }
+
+    let binders = state.checked.core.binders.iter().map(|(id, _)| id);
+    let binders = binders.collect::<Vec<_>>();
+    for binder_id in binders {
+        zonk_checked_binder(state, context, binder_id)?;
+    }
+
+    Ok(())
+}
+
+fn zonk_checked_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    expression_id: CheckedExpressionId,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let mut expression = state.checked.core.expressions[expression_id].clone();
+    expression.type_id = zonk(state, context, expression.type_id)?;
+
+    if let CheckedExpressionKind::TypeApplication { argument, .. } = &mut expression.kind {
+        *argument = zonk(state, context, *argument)?;
+    }
+
+    state.checked.core.expressions[expression_id] = expression;
+    Ok(())
+}
+
+fn zonk_checked_binder<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    binder_id: CheckedBinderId,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let type_id = state.checked.core.binders[binder_id].type_id;
+    state.checked.core.binders[binder_id].type_id = zonk(state, context, type_id)?;
     Ok(())
 }
 
