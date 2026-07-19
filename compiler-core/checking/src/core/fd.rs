@@ -82,6 +82,14 @@ pub fn compute_closure(
     }
 }
 
+pub fn positions_cover_all(
+    functional_dependencies: &[Fd],
+    positions: &FxHashSet<usize>,
+    all_positions: &FxHashSet<usize>,
+) -> bool {
+    compute_closure(functional_dependencies, positions) == *all_positions
+}
+
 pub fn compute_covering_sets(
     functional_dependencies: &[Fd],
     argument_count: usize,
@@ -246,5 +254,75 @@ mod tests {
         let fundeps = vec![Fd::new([], [0])];
         let result = compute_covering_sets(&fundeps, 1);
         assert_eq!(result, vec![FxHashSet::default()]);
+    }
+
+    #[test]
+    fn closure_decision_matches_covering_sets() {
+        for argument_count in 0..=3 {
+            let all_positions = FxHashSet::from_iter(0..argument_count);
+            let mut possible_dependencies = vec![];
+
+            for determined in 0..argument_count {
+                possible_dependencies.push(Fd::new([], [determined]));
+                for determiner in 0..argument_count {
+                    possible_dependencies.push(Fd::new([determiner], [determined]));
+                }
+            }
+
+            for dependency_mask in 0..(1 << possible_dependencies.len()) {
+                let functional_dependencies = possible_dependencies
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| dependency_mask & (1 << index) != 0)
+                    .map(|(_, dependency)| dependency.clone());
+                let functional_dependencies = functional_dependencies.collect_vec();
+                let covering_sets = compute_covering_sets(&functional_dependencies, argument_count);
+
+                for non_apart_mask in 0..(1 << argument_count) {
+                    let non_apart_positions = (0..argument_count)
+                        .filter(|position| non_apart_mask & (1 << position) != 0);
+                    let non_apart_positions = FxHashSet::from_iter(non_apart_positions);
+                    let expected = covering_sets
+                        .iter()
+                        .any(|covering_set| covering_set.is_subset(&non_apart_positions));
+                    let actual = positions_cover_all(
+                        &functional_dependencies,
+                        &non_apart_positions,
+                        &all_positions,
+                    );
+
+                    assert_eq!(actual, expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn closure_decision_preserves_complex_dependency_semantics() {
+        let argument_count = 4;
+        let all_positions = FxHashSet::from_iter(0..argument_count);
+        let cases = [
+            vec![Fd::new([0, 1], [2, 3]), Fd::new([2], [0])],
+            vec![Fd::new([0, 1], [2, 4]), Fd::new([], [3])],
+        ];
+
+        for functional_dependencies in cases {
+            let covering_sets = compute_covering_sets(&functional_dependencies, argument_count);
+            for non_apart_mask in 0..(1 << argument_count) {
+                let non_apart_positions =
+                    (0..argument_count).filter(|position| non_apart_mask & (1 << position) != 0);
+                let non_apart_positions = FxHashSet::from_iter(non_apart_positions);
+                let expected = covering_sets
+                    .iter()
+                    .any(|covering_set| covering_set.is_subset(&non_apart_positions));
+                let actual = positions_cover_all(
+                    &functional_dependencies,
+                    &non_apart_positions,
+                    &all_positions,
+                );
+
+                assert_eq!(actual, expected);
+            }
+        }
     }
 }
