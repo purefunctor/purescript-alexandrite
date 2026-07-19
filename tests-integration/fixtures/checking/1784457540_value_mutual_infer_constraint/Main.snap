@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+first :: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+second :: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+
+Types
+Semigroup :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Semigroup (a :: Type)
+  append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)

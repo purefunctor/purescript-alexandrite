@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+guardedFailure :: Fail (Text "failure was demanded") => Int
+test :: Int
+
+Types
+
+Diagnostics
+error[CustomFailure]: failure was demanded
+  --> 8:1..8:45
+  |
+8 | test = if true then test else guardedFailure
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

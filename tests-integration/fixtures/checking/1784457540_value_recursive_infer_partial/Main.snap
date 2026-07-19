@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+partialValue :: Partial => Int
+test :: Partial => Int
+
+Types
