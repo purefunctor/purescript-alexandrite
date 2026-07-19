@@ -21,6 +21,7 @@ just t <category> --delete "name"  # Dry-run fixture deletion (use --confirm)
 | Category | Alias | Description |
 |----------|-------|-------------|
 | checking | c | Type checker tests |
+| semantic | s | Checked Core semantic-tree tests |
 | lowering | l | Lowering tests |
 | resolving | r | Resolver tests |
 | lsp | - | LSP tests |

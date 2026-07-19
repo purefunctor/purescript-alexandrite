@@ -1,6 +1,6 @@
 ---
 name: workflow-integration-tests
-description: "Workflow for adding and updating Alexandrite integration-test fixtures for checking, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots, or using `just t <category>`."
+description: "Workflow for adding and updating Alexandrite integration-test fixtures for checking, semantic Core, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots, or using `just t <category>`."
 ---
 
 # Workflow: Alexandrite Integration Tests
@@ -14,6 +14,7 @@ Use the command reference at `reference/compiler-scripts.md` for test runner syn
 | Category | Alias | Use for | Harness pattern |
 |----------|-------|---------|-----------------|
 | `checking` | `c` | Type checking, inference, kinds, roles, constraints, diagnostics after checking | `Main.purs` only |
+| `semantic` | `s` | Checked Core trees, resolved variables and binders, applications, and evidence placement | `Main.purs` only |
 | `lowering` | `l` | Lowered core output, binding/equation structure, source-to-core name links | every `.purs` file |
 | `resolving` | `r` | Name resolution, imports, exports, qualification, duplicate-name diagnostics | every `.purs` file |
 | `lsp` | - | Hover, definition, completion, import edits, source locations in LSP reports | `Main.purs` only |
@@ -52,6 +53,13 @@ test' [x] = x
 ```
 
 Name declarations predictably: `test`, `test'`, `test2`, `test2'`, etc. Include only edge cases relevant to the behavior.
+
+#### Semantic fixtures
+
+Write source that exposes the checked Core structure being tested. Snapshots use a Core-like
+language rather than valid PureScript: visible type applications use `@Type`, evidence applications
+use `@{ev0}`, and evidence abstractions use `\@{dict0} -> expression`. An `<unimplemented>` body
+means a checking rule has not yet produced that part of the checked Core tree.
 
 #### Lowering fixtures
 
@@ -112,7 +120,7 @@ test = Just life
 ```
 
 - Module name must match filename
-- Checking and LSP fixtures snapshot only `Main.purs`
+- Checking, semantic, and LSP fixtures snapshot only `Main.purs`
 - Lowering and resolving fixtures snapshot every `.purs` file
 
 ## Snapshot Review Focus
@@ -134,6 +142,12 @@ ErrorKind { details } at [location]
 
 Check inferred/checked types, kind/role output, constraints, diagnostics, and source locations.
 
+### Semantic
+
+Check the checked Core tree, especially application associativity, visible type arguments, evidence
+placement and order, resolved variables, and explicit `<unimplemented>` recovery. The report is
+Core-like rather than valid PureScript.
+
 ### Lowering
 
 Check the lowered module report, especially declarations, binders, equations, and source links. Unexpected name-link changes are often as important as textual output changes.
@@ -152,6 +166,7 @@ Before accepting, verify:
 
 1. **The category is appropriate**
    - Checking owns type inference/checking behavior
+   - Semantic owns checked Core structure and evidence placement
    - Lowering owns lowered core/source-link behavior
    - Resolving owns name/import/export behavior
    - LSP owns editor-facing reports
@@ -164,7 +179,7 @@ Before accepting, verify:
    - Checking types are correct
    - `test :: Array Int -> Int` - signature preserved
    - `test' :: forall t. Array t -> t` - polymorphism inferred
-   - Lowering/resolving/LSP changes match the feature or bug being tested
+   - Semantic/lowering/resolving/LSP changes match the feature or bug being tested
 
 4. **No unexpected `???`**
    - `test :: ???` - STOP: inference failure
