@@ -206,6 +206,12 @@ impl LocalState {
         dependencies.collect()
     }
 
+    fn clear_dependencies(local: &RefCell<LocalStateInner>) {
+        let mut inner = local.borrow_mut();
+        let frame = inner.frames.last_mut().expect("invariant violated: expected query frame");
+        frame.dependencies.clear();
+    }
+
     fn stack(local: &RefCell<LocalStateInner>) -> Arc<[QueryKey]> {
         let inner = local.borrow();
         let stack = inner.frames.iter().map(|frame| frame.query);
@@ -634,6 +640,7 @@ impl QueryEngine {
                         return Ok(computed);
                     }
 
+                    LocalState::clear_dependencies(local);
                     self.compute_core(
                         key,
                         shards,
@@ -1283,6 +1290,58 @@ mod tests {
             ShowTrace(guard.get(&parent).unwrap()),
             Trace { built: 19, changed: 19, dependencies: &[QueryKey::Parsed(child)] }
         );
+    }
+
+    #[test]
+    fn test_recomputation_replaces_dependencies() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let parent = files.insert("./src/Parent.purs", "module Parent where");
+        let child_a = files.insert("./src/ChildA.purs", "module ChildA where\n\nvalue = 1");
+        let child_b = files.insert("./src/ChildB.purs", "module ChildB where\n\nvalue = 2");
+        engine.set_content(child_a, files.content(child_a));
+        engine.set_content(child_b, files.content(child_b));
+
+        engine
+            .query(
+                QueryKey::Parsed(parent),
+                parent,
+                |derived| &derived.parsed,
+                |engine| engine.parsed(child_a),
+            )
+            .unwrap();
+
+        engine.set_content(child_a, "module ChildA where\n\nvalue = 3\nother = 4");
+        let parsed_b = engine
+            .query(
+                QueryKey::Parsed(parent),
+                parent,
+                |derived| &derived.parsed,
+                |engine| engine.parsed(child_b),
+            )
+            .unwrap();
+
+        {
+            let shard = engine.derived.parsed.shard(&parent);
+            let guard = shard.read();
+            let Some(DerivedState::Computed { dependencies, .. }) = guard.get(&parent) else {
+                panic!("invariant violated: expected computed parent query");
+            };
+            assert_eq!(dependencies.as_ref(), &[QueryKey::Parsed(child_b)]);
+        }
+
+        engine.set_content(child_a, "module ChildA where\n\nvalue = 4\nother = 5\nthird = 6");
+        let cached = engine
+            .query(
+                QueryKey::Parsed(parent),
+                parent,
+                |derived| &derived.parsed,
+                |_| unreachable!("removed dependency should not cause recomputation"),
+            )
+            .unwrap();
+        assert_eq!(cached, parsed_b);
     }
 
     #[test]
