@@ -31,6 +31,7 @@ pub fn elaborate_given<Q>(
 where
     Q: ExternalQueries,
 {
+    let given = given.iter().copied();
     let given = elaborate_superclasses_with_evidence(state, context, given)?;
     let given = elaborate_coercible(state, context, given);
     let (given, substitution) = extract_compiler_solved(state, context, given)?;
@@ -41,19 +42,14 @@ where
 pub fn elaborate_superclasses_with_evidence<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    given: &[(CanonicalConstraintId, EvidenceId)],
+    given: impl IntoIterator<Item = (CanonicalConstraintId, EvidenceId)>,
 ) -> QueryResult<Vec<(CanonicalConstraintId, EvidenceId)>>
 where
     Q: ExternalQueries,
 {
-    let mut elaborated = Vec::with_capacity(given.len());
     let mut seen = FxHashSet::default();
-
-    for &(constraint, evidence) in given {
-        if seen.insert(constraint) {
-            elaborated.push((constraint, evidence));
-        }
-    }
+    let elaborated = given.into_iter().filter(|(constraint, _)| seen.insert(*constraint));
+    let mut elaborated = elaborated.collect_vec();
 
     let constraints = elaborated.iter().map(|&(constraint, _)| constraint);
     let constraints = constraints.collect_vec();

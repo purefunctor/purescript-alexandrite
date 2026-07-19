@@ -434,21 +434,22 @@ where
     let MinimisedBySuperclasses { retained, dropped } =
         minimise_by_superclasses(state, context, generalisable)?;
 
-    let mut given_evidence = Vec::with_capacity(retained.len());
-    let mut generalised = Vec::with_capacity(retained.len());
-    for ConstraintInScope { key, evidence: wanted_evidence } in &retained {
+    let generalised = retained.iter().map(|ConstraintInScope { key, evidence }| {
         let canonical = state.canonicals.type_id(context, key.wanted);
         let binder = state.checked.evidence.fresh_binder(canonical);
 
         let given = state.checked.evidence.allocate(Evidence::Given(binder));
-        state.checked.evidence.solve(wanted_evidence.wanted, given);
+        state.checked.evidence.solve(evidence.wanted, given);
 
-        generalised.push((key.wanted, binder));
-        given_evidence.push((key.wanted, given));
-    }
+        (key.wanted, binder, given)
+    });
 
+    let generalised = generalised.collect_vec();
+
+    let given_evidence =
+        generalised.iter().map(|&(constraint, _, evidence)| (constraint, evidence));
     let projections =
-        elaborate::elaborate_superclasses_with_evidence(state, context, &given_evidence)?;
+        elaborate::elaborate_superclasses_with_evidence(state, context, given_evidence)?;
     let projections = projections.into_iter().collect::<FxHashMap<_, _>>();
 
     for constraint in dropped {
@@ -459,7 +460,8 @@ where
         }
     }
 
-    Ok(generalised)
+    let generalised = generalised.into_iter().map(|(constraint, binder, _)| (constraint, binder));
+    Ok(generalised.collect_vec())
 }
 
 struct MinimisedBySuperclasses {
