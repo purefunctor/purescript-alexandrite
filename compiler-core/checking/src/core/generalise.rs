@@ -248,18 +248,23 @@ pub struct ConstraintErrors {
     pub unsatisfied: Vec<ConstraintInScope>,
 }
 
+pub struct ConstrainedByResiduals {
+    pub type_id: TypeId,
+    pub has_constraints: bool,
+}
+
 pub fn constrain_using_residuals<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     unconstrained: TypeId,
     mut residuals: Vec<ConstraintInScope>,
     errors: &mut ConstraintErrors,
-) -> QueryResult<TypeId>
+) -> QueryResult<ConstrainedByResiduals>
 where
     Q: ExternalQueries,
 {
     if residuals.is_empty() {
-        return Ok(unconstrained);
+        return Ok(ConstrainedByResiduals { type_id: unconstrained, has_constraints: false });
     }
 
     for residual in residuals.iter_mut() {
@@ -273,13 +278,14 @@ where
     let residuals = partial.into_iter().chain(residuals);
     let generalised = residuals.sorted_by_key(|constraint| constraint.key.wanted).collect_vec();
     let generalised = finalise_generalised_constraints(state, context, generalised)?;
+    let has_constraints = !generalised.is_empty();
 
     let constrained = generalised.into_iter().rfold(unconstrained, |inner, constraint| {
         let constraint = state.canonicals.type_id(context, constraint);
         context.intern_constrained(constraint, inner)
     });
 
-    Ok(constrained)
+    Ok(ConstrainedByResiduals { type_id: constrained, has_constraints })
 }
 
 type PrunedPartial = (Vec<ConstraintInScope>, Option<ConstraintInScope>);

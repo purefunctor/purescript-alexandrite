@@ -226,6 +226,11 @@ impl ToDiagnostics for CheckingError {
                 let message = render_type(*type_id);
                 (Severity::Error, "CannotDeriveForType", format!("Cannot derive for type: {message}"))
             }
+            ErrorKind::CannotGeneraliseRecursiveFunction { .. } => (
+                Severity::Error,
+                "CannotGeneraliseRecursiveFunction",
+                "Unable to generalise the type of this recursive function.".to_string(),
+            ),
             ErrorKind::ContravariantOccurrence { type_id } => {
                 let message = render_type(*type_id);
                 (
@@ -480,6 +485,12 @@ impl ToDiagnostics for CheckingError {
                 if let Some(hole) = context.checked.lookup_type_hole(*source_type) {
                     diagnostic = attach_hole_binding_trivia(diagnostic, context, &hole.bindings);
                 }
+            }
+            ErrorKind::CannotGeneraliseRecursiveFunction { type_id } => {
+                let inferred = render_type(*type_id);
+                let trivia = format!("The inferred type was: {inferred}");
+                diagnostic = diagnostic.with_trivia(trivia);
+                diagnostic = diagnostic.with_trivia("Try adding a type signature.");
             }
             _ => {}
         }

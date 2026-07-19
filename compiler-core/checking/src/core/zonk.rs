@@ -141,6 +141,10 @@ where
             let type_id = zonk(state, context, type_id)?;
             ErrorKind::CannotDeriveForType { type_id }
         }
+        ErrorKind::CannotGeneraliseRecursiveFunction { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::CannotGeneraliseRecursiveFunction { type_id }
+        }
         ErrorKind::ContravariantOccurrence { type_id } => {
             let type_id = zonk(state, context, type_id)?;
             ErrorKind::ContravariantOccurrence { type_id }
