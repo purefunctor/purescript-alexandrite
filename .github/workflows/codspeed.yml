@@ -43,7 +43,7 @@ jobs:
 
       - name: Build the benchmark target(s)
         run: >
-          cargo codspeed build
+          cargo codspeed build -m simulation
           -p documenting
           -p tests-compatibility --bench parsing --bench stabilizing
 
