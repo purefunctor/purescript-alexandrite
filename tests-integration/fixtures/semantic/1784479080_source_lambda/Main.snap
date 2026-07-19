@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+test :: forall (a :: Type). (a :: Type) -> (a :: Type)
+test = \value -> value
+
+test' :: forall (t :: Type). (t :: Type) -> (t :: Type)
+test' = \value -> value

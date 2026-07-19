@@ -2,12 +2,15 @@
 //!
 //! See [`check_value_equations`] and [`infer_value_equations`].
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, constraint, signature, toolkit, unification};
 use crate::error::ErrorKind;
+use crate::evidence::EvidenceBinderId;
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
@@ -29,17 +32,26 @@ struct ValueEquationSignature {
 /// See documentation for [`check_value_equations`].
 pub type ValueEquationPatterns = Vec<TypeId>;
 
+/// Results shared by equation exhaustiveness checking and checked Core construction.
+pub struct CheckedValueEquations {
+    pub patterns: ValueEquationPatterns,
+    /// Dictionary parameters introduced by the checked signature, in constraint order.
+    pub evidence_binders: Arc<[EvidenceBinderId]>,
+    /// The skolemised function type after removing `forall` and constraint binders.
+    pub function_type: TypeId,
+}
+
 /// Checks a group of [`lowering::Equation`].
 ///
-/// This function returns the instantiated types of the equation's
-/// arguments for use in exhaustiveness checking by the callers.
+/// The result retains the instantiated pattern types for exhaustiveness checking and the
+/// signature binders needed to construct a checked Core binding.
 pub fn check_value_equations<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     origin: EquationTypeOrigin,
     expected_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<ValueEquationPatterns>
+) -> QueryResult<CheckedValueEquations>
 where
     Q: ExternalQueries,
 {
@@ -48,9 +60,10 @@ where
     let signature::SkolemisedSignature { substitution, constraints, arguments, result } =
         signature::expect_term_signature(state, context, expected_type, required)?;
 
+    let mut evidence_binders = Vec::with_capacity(constraints.len());
     for &constraint in &constraints {
         if !constraint::is_type_error(state, context, constraint)? {
-            state.push_given(constraint);
+            evidence_binders.push(state.push_given(constraint));
         }
     }
 
@@ -64,7 +77,11 @@ where
         check_equations(state, context, origin, &signature, &arguments, equations)
     })?;
 
-    Ok(arguments)
+    Ok(CheckedValueEquations {
+        patterns: arguments,
+        evidence_binders: Arc::from(evidence_binders),
+        function_type: signature.signature,
+    })
 }
 
 /// Infers a group of [`lowering::Equation`].

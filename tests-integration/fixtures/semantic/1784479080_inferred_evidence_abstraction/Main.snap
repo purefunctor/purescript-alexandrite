@@ -5,5 +5,5 @@ expression: report
 ---
 module Main where
 
-test :: forall (a :: Type). Constraint @Type (a :: Type) => (a :: Type) -> String
+test :: forall (t :: Type). Constraint @Type (t :: Type) => (t :: Type) -> String
 test = \@{dict0} -> \value -> make @{dict0} value

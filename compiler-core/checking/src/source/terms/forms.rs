@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
+use crate::semantic::CheckedExpressionKind;
 use crate::source::terms::{form_let, guarded};
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -80,6 +83,7 @@ where
 pub fn infer_lambda<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    lambda: lowering::ExpressionId,
     binders: &[lowering::BinderId],
     expression: Option<lowering::ExpressionId>,
 ) -> QueryResult<TypeId>
@@ -109,16 +113,20 @@ where
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
 
-    if has_missing {
-        Ok(context.intern_constrained(context.prim.partial, function_type))
+    let lambda_type = if has_missing {
+        context.intern_constrained(context.prim.partial, function_type)
     } else {
-        Ok(function_type)
-    }
+        function_type
+    };
+
+    record_lambda(state, lambda, binders, expression, lambda_type);
+    Ok(lambda_type)
 }
 
 pub fn check_lambda<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    lambda: lowering::ExpressionId,
     binders: &[lowering::BinderId],
     expression: Option<lowering::ExpressionId>,
     expected: TypeId,
@@ -164,7 +172,35 @@ where
         state.push_wanted(context.prim.partial);
     }
 
+    record_lambda(state, lambda, binders, expression, function_type);
     Ok(function_type)
+}
+
+fn record_lambda(
+    state: &mut CheckState,
+    lambda: lowering::ExpressionId,
+    binders: &[lowering::BinderId],
+    expression: Option<lowering::ExpressionId>,
+    type_id: TypeId,
+) {
+    let Some(expression) =
+        expression.and_then(|expression| state.checked.core.lookup_expression(expression))
+    else {
+        return;
+    };
+
+    let checked_binders = binders.iter().map(|binder| state.checked.core.lookup_binder(*binder));
+    let checked_binders = checked_binders.collect::<Option<Vec<_>>>();
+    let Some(checked_binders) = checked_binders else { return };
+
+    if checked_binders.is_empty() {
+        state.checked.core.record_expression(lambda, expression);
+        return;
+    }
+
+    let kind = CheckedExpressionKind::Lambda { binders: Arc::from(checked_binders), expression };
+    let checked_lambda = state.checked.core.allocate_expression(type_id, kind);
+    state.checked.core.record_expression(lambda, checked_lambda);
 }
 
 pub fn instantiate_trunk_types<Q>(

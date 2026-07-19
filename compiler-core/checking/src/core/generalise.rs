@@ -28,7 +28,7 @@ use crate::context::CheckContext;
 use crate::core::constraint::{CanonicalConstraintId, ConstraintInScope, compiler, elaborate};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{ForallBinder, Name, Type, TypeId, normalise, zonk};
-use crate::evidence::Evidence;
+use crate::evidence::{Evidence, EvidenceBinderId};
 use crate::state::{CheckState, UnificationEntry, UnificationState};
 use crate::{ExternalQueries, safe_loop};
 
@@ -250,7 +250,7 @@ pub struct ConstraintErrors {
 
 pub struct ConstrainedByResiduals {
     pub type_id: TypeId,
-    pub has_constraints: bool,
+    pub evidence_binders: Vec<EvidenceBinderId>,
 }
 
 pub fn constrain_using_residuals<Q>(
@@ -264,7 +264,7 @@ where
     Q: ExternalQueries,
 {
     if residuals.is_empty() {
-        return Ok(ConstrainedByResiduals { type_id: unconstrained, has_constraints: false });
+        return Ok(ConstrainedByResiduals { type_id: unconstrained, evidence_binders: vec![] });
     }
 
     for residual in residuals.iter_mut() {
@@ -278,14 +278,17 @@ where
     let residuals = partial.into_iter().chain(residuals);
     let generalised = residuals.sorted_by_key(|constraint| constraint.key.wanted).collect_vec();
     let generalised = finalise_generalised_constraints(state, context, generalised)?;
-    let has_constraints = !generalised.is_empty();
 
-    let constrained = generalised.into_iter().rfold(unconstrained, |inner, constraint| {
+    let evidence_binders = generalised.iter().map(|(_, binder)| *binder);
+    let evidence_binders = evidence_binders.collect();
+
+    let constraints = generalised.into_iter().map(|(constraint, _)| constraint);
+    let constrained = constraints.rfold(unconstrained, |inner, constraint| {
         let constraint = state.canonicals.type_id(context, constraint);
         context.intern_constrained(constraint, inner)
     });
 
-    Ok(ConstrainedByResiduals { type_id: constrained, has_constraints })
+    Ok(ConstrainedByResiduals { type_id: constrained, evidence_binders })
 }
 
 type PrunedPartial = (Vec<ConstraintInScope>, Option<ConstraintInScope>);
@@ -414,7 +417,7 @@ fn finalise_generalised_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     constraints: Vec<ConstraintInScope>,
-) -> QueryResult<Vec<CanonicalConstraintId>>
+) -> QueryResult<Vec<(CanonicalConstraintId, EvidenceBinderId)>>
 where
     Q: ExternalQueries,
 {
@@ -431,18 +434,21 @@ where
     let MinimisedBySuperclasses { retained, dropped } =
         minimise_by_superclasses(state, context, generalisable)?;
 
-    let mut evidences = vec![];
-    for ConstraintInScope { key, evidence } in &retained {
+    let mut given_evidence = Vec::with_capacity(retained.len());
+    let mut generalised = Vec::with_capacity(retained.len());
+    for ConstraintInScope { key, evidence: wanted_evidence } in &retained {
         let canonical = state.canonicals.type_id(context, key.wanted);
         let binder = state.checked.evidence.fresh_binder(canonical);
 
         let given = state.checked.evidence.allocate(Evidence::Given(binder));
-        state.checked.evidence.solve(evidence.wanted, given);
+        state.checked.evidence.solve(wanted_evidence.wanted, given);
 
-        evidences.push((key.wanted, given));
+        generalised.push((key.wanted, binder));
+        given_evidence.push((key.wanted, given));
     }
 
-    let projections = elaborate::elaborate_superclasses_with_evidence(state, context, &evidences)?;
+    let projections =
+        elaborate::elaborate_superclasses_with_evidence(state, context, &given_evidence)?;
     let projections = projections.into_iter().collect::<FxHashMap<_, _>>();
 
     for constraint in dropped {
@@ -453,7 +459,7 @@ where
         }
     }
 
-    Ok(retained.into_iter().map(|constraint| constraint.key.wanted).collect())
+    Ok(generalised)
 }
 
 struct MinimisedBySuperclasses {

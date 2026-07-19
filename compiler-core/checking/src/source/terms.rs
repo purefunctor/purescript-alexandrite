@@ -121,8 +121,8 @@ where
     };
 
     match kind {
-        lowering::ExpressionKind::Lambda { binders, expression } => {
-            forms::check_lambda(state, context, binders, *expression, expected)
+        lowering::ExpressionKind::Lambda { binders, expression: body } => {
+            forms::check_lambda(state, context, expression, binders, *body, expected)
         }
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
             forms::check_if_then_else(state, context, *if_, *then, *else_, expected)
@@ -300,8 +300,8 @@ where
             infer_expression(state, context, *expression)
         }
 
-        lowering::ExpressionKind::Lambda { binders, expression } => {
-            forms::infer_lambda(state, context, binders, *expression)
+        lowering::ExpressionKind::Lambda { binders, expression: body } => {
+            forms::infer_lambda(state, context, expression, binders, *body)
         }
 
         lowering::ExpressionKind::CaseOf { trunk, branches } => {

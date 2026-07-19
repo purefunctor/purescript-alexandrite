@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use indexing::TermItemId;
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
@@ -16,6 +17,7 @@ pub type CheckedBinderId = Idx<CheckedBinder>;
 pub struct CheckedCore {
     pub expressions: Arena<CheckedExpression>,
     pub binders: Arena<CheckedBinder>,
+    pub term_roots: FxHashMap<TermItemId, CheckedExpressionId>,
     pub expressions_by_source: FxHashMap<lowering::ExpressionId, CheckedExpressionId>,
     pub binders_by_source: FxHashMap<lowering::BinderId, CheckedBinderId>,
 }
@@ -49,12 +51,21 @@ impl CheckedCore {
         assert!(previous.is_none(), "invariant violated: source binder checked twice");
     }
 
+    pub fn record_term_root(&mut self, source: TermItemId, checked: CheckedExpressionId) {
+        let previous = self.term_roots.insert(source, checked);
+        assert!(previous.is_none(), "invariant violated: term root checked twice");
+    }
+
     pub fn lookup_expression(&self, source: lowering::ExpressionId) -> Option<CheckedExpressionId> {
         self.expressions_by_source.get(&source).copied()
     }
 
     pub fn lookup_binder(&self, source: lowering::BinderId) -> Option<CheckedBinderId> {
         self.binders_by_source.get(&source).copied()
+    }
+
+    pub fn lookup_term_root(&self, source: TermItemId) -> Option<CheckedExpressionId> {
+        self.term_roots.get(&source).copied()
     }
 }
 
@@ -68,6 +79,7 @@ pub struct CheckedExpression {
 pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
     Literal { literal: CheckedLiteral },
+    Lambda { binders: Arc<[CheckedBinderId]>, expression: CheckedExpressionId },
     TermApplication { function: CheckedExpressionId, argument: CheckedExpressionId },
     TypeApplication { function: CheckedExpressionId, argument: TypeId },
     EvidenceApplication { expression: CheckedExpressionId, evidence: Arc<[EvidenceVarId]> },

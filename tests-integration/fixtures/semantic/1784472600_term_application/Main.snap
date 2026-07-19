@@ -7,4 +7,4 @@ module Main where
 
 apply ::
   forall (t :: Type) (t1 :: Type). ((t :: Type) -> (t1 :: Type)) -> (t :: Type) -> (t1 :: Type)
-apply function argument = function argument
+apply = \function argument -> function argument

@@ -15,6 +15,8 @@ use crate::core::{
     normalise, signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::EvidenceBinderId;
+use crate::semantic::{CheckedExpressionId, CheckedExpressionKind};
 use crate::source::terms::equations;
 use crate::source::{derive, types};
 use crate::state::CheckState;
@@ -25,8 +27,8 @@ struct TermSccState {
 }
 
 enum PendingValueGroup {
-    Checked { residuals: Vec<ConstraintInScope> },
-    Inferred { residuals: Vec<ConstraintInScope> },
+    Checked { residuals: Vec<ConstraintInScope>, root: Option<CheckedExpressionId> },
+    Inferred { residuals: Vec<ConstraintInScope>, root: Option<CheckedExpressionId> },
 }
 
 pub fn check_term_items<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
@@ -335,7 +337,7 @@ where
                 }
             }
 
-            let equation_patterns = equations::check_value_equations(
+            let checked_equations = equations::check_value_equations(
                 state,
                 context,
                 equations::EquationTypeOrigin::Explicit(signature_id),
@@ -345,14 +347,14 @@ where
             let exhaustiveness = exhaustive::check_equation_patterns(
                 state,
                 context,
-                &equation_patterns,
+                &checked_equations.patterns,
                 &member.equations,
             )?;
 
             state.report_exhaustiveness(exhaustiveness);
             state.solve_constraints(context)?
         } else if let Some(expected_type) = class_member_type {
-            let equation_patterns = equations::check_value_equations(
+            let checked_equations = equations::check_value_equations(
                 state,
                 context,
                 equations::EquationTypeOrigin::Implicit,
@@ -362,7 +364,7 @@ where
             let exhaustiveness = exhaustive::check_equation_patterns(
                 state,
                 context,
-                &equation_patterns,
+                &checked_equations.patterns,
                 &member.equations,
             )?;
 
@@ -689,12 +691,12 @@ where
     if let Some(signature_id) = signature
         && let Some(signature_type) = state.checked.lookup_term(item_id)
     {
-        let residuals =
+        let pending =
             check_value_group_core_check(state, context, signature_id, signature_type, equations)?;
-        Ok(Some(PendingValueGroup::Checked { residuals }))
+        Ok(Some(pending))
     } else {
-        let residuals = check_value_group_core_infer(state, context, item_id, equations)?;
-        Ok(Some(PendingValueGroup::Inferred { residuals }))
+        let pending = check_value_group_core_infer(state, context, item_id, equations)?;
+        Ok(Some(pending))
     }
 }
 
@@ -704,21 +706,32 @@ fn check_value_group_core_check<Q>(
     signature_id: lowering::TypeId,
     signature_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<Vec<ConstraintInScope>>
+) -> QueryResult<PendingValueGroup>
 where
     Q: ExternalQueries,
 {
-    let equation_patterns = equations::check_value_equations(
+    let checked_equations = equations::check_value_equations(
         state,
         context,
         equations::EquationTypeOrigin::Explicit(signature_id),
         signature_type,
         equations,
     )?;
-    let exhaustiveness =
-        exhaustive::check_equation_patterns(state, context, &equation_patterns, equations)?;
+    let exhaustiveness = exhaustive::check_equation_patterns(
+        state,
+        context,
+        &checked_equations.patterns,
+        equations,
+    )?;
     state.report_exhaustiveness(exhaustiveness);
-    state.solve_constraints(context)
+
+    let root = single_equation_root(state, equations, checked_equations.function_type);
+    let root = root.map(|root| {
+        abstract_evidence(state, signature_type, &checked_equations.evidence_binders, root)
+    });
+
+    let residuals = state.solve_constraints(context)?;
+    Ok(PendingValueGroup::Checked { residuals, root })
 }
 
 fn check_value_group_core_infer<Q>(
@@ -726,7 +739,7 @@ fn check_value_group_core_infer<Q>(
     context: &CheckContext<Q>,
     item_id: TermItemId,
     equations: &[lowering::Equation],
-) -> QueryResult<Vec<ConstraintInScope>>
+) -> QueryResult<PendingValueGroup>
 where
     Q: ExternalQueries,
 {
@@ -738,7 +751,61 @@ where
         exhaustive::check_equation_patterns(state, context, &equation_patterns, equations)?;
     state.report_exhaustiveness(exhaustiveness);
 
-    state.solve_constraints(context)
+    let root = single_equation_root(state, equations, group_type);
+    let residuals = state.solve_constraints(context)?;
+    Ok(PendingValueGroup::Inferred { residuals, root })
+}
+
+fn single_equation_root(
+    state: &mut CheckState,
+    equations: &[lowering::Equation],
+    function_type: TypeId,
+) -> Option<CheckedExpressionId> {
+    let [equation] = equations else {
+        return None;
+    };
+
+    let Some(lowering::GuardedExpression::Unconditional { where_expression }) = &equation.guarded
+    else {
+        return None;
+    };
+
+    let Some(where_expression) = where_expression else {
+        return None;
+    };
+
+    if !where_expression.bindings.is_empty() {
+        return None;
+    }
+
+    let source_expression = where_expression.expression?;
+    let expression = state.checked.core.lookup_expression(source_expression)?;
+
+    let checked_binders =
+        equation.binders.iter().map(|binder| state.checked.core.lookup_binder(*binder));
+
+    let checked_binders = checked_binders.collect::<Option<Vec<_>>>()?;
+    if checked_binders.is_empty() {
+        return Some(expression);
+    }
+
+    let kind = CheckedExpressionKind::Lambda { binders: Arc::from(checked_binders), expression };
+    Some(state.checked.core.allocate_expression(function_type, kind))
+}
+
+fn abstract_evidence(
+    state: &mut CheckState,
+    type_id: TypeId,
+    binders: &[EvidenceBinderId],
+    expression: CheckedExpressionId,
+) -> CheckedExpressionId {
+    if binders.is_empty() {
+        return expression;
+    }
+
+    let kind =
+        CheckedExpressionKind::EvidenceAbstraction { binders: Arc::from(binders), expression };
+    state.checked.core.allocate_expression(type_id, kind)
 }
 
 fn finalise_term_binding_group<Q>(
@@ -755,7 +822,8 @@ where
         marker: TypeId,
         unsolved: Vec<u32>,
         errors: generalise::ConstraintErrors,
-        has_constraints: bool,
+        evidence_binders: Vec<EvidenceBinderId>,
+        root: Option<CheckedExpressionId>,
     }
 
     let mut pending = vec![];
@@ -770,12 +838,12 @@ where
 
         let mut errors = generalise::ConstraintErrors::default();
 
-        let (marker, has_constraints) = match group {
-            Some(PendingValueGroup::Checked { residuals }) => {
+        let (marker, evidence_binders, root) = match group {
+            Some(PendingValueGroup::Checked { residuals, root }) => {
                 errors.unsatisfied.extend(residuals);
-                (marker, false)
+                (marker, vec![], root)
             }
-            Some(PendingValueGroup::Inferred { residuals }) => {
+            Some(PendingValueGroup::Inferred { residuals, root }) => {
                 let constrained = generalise::constrain_using_residuals(
                     state,
                     context,
@@ -783,25 +851,32 @@ where
                     residuals,
                     &mut errors,
                 )?;
-                (constrained.type_id, constrained.has_constraints)
+                (constrained.type_id, constrained.evidence_binders, root)
             }
-            None => (marker, false),
+            None => (marker, vec![], None),
         };
 
         let marker = zonk::zonk(state, context, marker)?;
         let unsolved = generalise::unsolved_unifications(state, context, marker)?;
 
-        let pending_group = Pending { marker, unsolved, errors, has_constraints };
+        let pending_group = Pending { marker, unsolved, errors, evidence_binders, root };
         pending.push((item_id, pending_group));
     }
 
-    for (item_id, Pending { marker, unsolved, errors, has_constraints }) in pending {
+    for (item_id, Pending { marker, unsolved, errors, evidence_binders, root }) in pending {
         let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
         state.checked.terms.insert(item_id, marker);
 
+        let root = root.map(|root| abstract_evidence(state, marker, &evidence_binders, root));
+        if let Some(root) = root {
+            state.checked.core.record_term_root(item_id, root);
+        }
+
+        let has_constraints = !evidence_binders.is_empty();
         if recursive && has_constraints {
-            // Keep constraint evidence consistent with the candidate type used for error recovery.
-            // The diagnostic prevents the invalid recursive dictionary abstraction from proceeding.
+            // Keep constraint evidence consistent with the candidate type used
+            // for error recovery. The diagnostic prevents the invalid recursive
+            // dictionary abstraction from reaching elaboration.
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 let error = ErrorKind::CannotGeneraliseRecursiveFunction { type_id: marker };
                 state.insert_error(error);

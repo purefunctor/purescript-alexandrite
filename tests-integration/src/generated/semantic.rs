@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 
 use analyzer::QueryEngine;
@@ -8,7 +9,7 @@ use checking::evidence::{
     ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
 };
 use checking::semantic::{
-    CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind, CheckedLiteral,
+    CheckedBinderId, CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind, CheckedLiteral,
 };
 use files::FileId;
 use indexing::{TermItem, TermItemId, TermItemKind};
@@ -26,6 +27,7 @@ struct SemanticPrinter<'a> {
     checked: &'a CheckedModule,
     lowered: &'a lowering::LoweredModule,
     pretty: pretty::Pretty<'a, QueryEngine>,
+    binder_sources: HashMap<CheckedBinderId, lowering::BinderId>,
 }
 
 impl<'a> SemanticPrinter<'a> {
@@ -35,7 +37,10 @@ impl<'a> SemanticPrinter<'a> {
         lowered: &'a lowering::LoweredModule,
     ) -> SemanticPrinter<'a> {
         let pretty = pretty::Pretty::new(engine, checked);
-        SemanticPrinter { engine, checked, lowered, pretty }
+        let binder_sources =
+            checked.core.binders_by_source.iter().map(|(source, checked)| (*checked, *source));
+        let binder_sources = binder_sources.collect();
+        SemanticPrinter { engine, checked, lowered, pretty, binder_sources }
     }
 
     fn write_item(&mut self, output: &mut String, item_id: TermItemId, item: &TermItem) {
@@ -51,8 +56,13 @@ impl<'a> SemanticPrinter<'a> {
         let signature = self.pretty.render_signature(name, type_id);
         writeln!(output, "{signature}").unwrap();
 
-        for equation in equations.iter() {
-            self.write_equation(output, name, equation);
+        if let Some(expression) = self.checked.core.lookup_term_root(item_id) {
+            let expression = self.expression(expression, Precedence::Abstraction);
+            writeln!(output, "{name} = {expression}").unwrap();
+        } else {
+            for equation in equations.iter() {
+                self.write_equation(output, name, equation);
+            }
         }
 
         writeln!(output).unwrap();
@@ -104,6 +114,12 @@ impl<'a> SemanticPrinter<'a> {
             }
             CheckedExpressionKind::Literal { literal } => {
                 (Self::literal(literal), Precedence::Atom)
+            }
+            CheckedExpressionKind::Lambda { binders, expression } => {
+                let binders = binders.iter().map(|binder| self.checked_binder(*binder));
+                let binders = binders.collect::<Vec<_>>();
+                let expression = self.expression(expression, Precedence::Abstraction);
+                (format!("\\{} -> {expression}", binders.join(" ")), Precedence::Abstraction)
             }
             CheckedExpressionKind::TermApplication { function, argument } => {
                 let function = self.expression(function, Precedence::Application);
@@ -168,6 +184,13 @@ impl<'a> SemanticPrinter<'a> {
                 _ => "<invalid named binder>".to_string(),
             },
         }
+    }
+
+    fn checked_binder(&self, checked: CheckedBinderId) -> String {
+        self.binder_sources
+            .get(&checked)
+            .map(|source| self.binder(*source))
+            .unwrap_or_else(|| "<unimplemented>".to_string())
     }
 
     fn binder_name(&self, source: lowering::BinderId) -> String {
