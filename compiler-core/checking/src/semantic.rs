@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
+use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::evidence::{EvidenceBinderId, EvidenceVarId};
@@ -66,10 +67,20 @@ pub struct CheckedExpression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
+    Literal { literal: CheckedLiteral },
     TermApplication { function: CheckedExpressionId, argument: CheckedExpressionId },
     TypeApplication { function: CheckedExpressionId, argument: TypeId },
     EvidenceApplication { expression: CheckedExpressionId, evidence: Arc<[EvidenceVarId]> },
     EvidenceAbstraction { binders: Arc<[EvidenceBinderId]>, expression: CheckedExpressionId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedLiteral {
+    String { kind: lowering::StringKind, value: Option<SmolStr> },
+    Char(Option<char>),
+    Boolean(bool),
+    Integer(Option<i32>),
+    Number(Option<SmolStr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

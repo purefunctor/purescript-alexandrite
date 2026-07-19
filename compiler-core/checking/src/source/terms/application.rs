@@ -1,12 +1,15 @@
 use std::mem;
 use std::ops::ControlFlow;
+use std::sync::Arc;
 
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification};
+use crate::core::substitute::SubstituteName;
+use crate::core::{ForallBinder, Type, TypeId, normalise, unification};
 use crate::error::ErrorKind;
+use crate::evidence::EvidenceVarId;
+use crate::semantic::{CheckedExpressionId, CheckedExpressionKind};
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -18,8 +21,19 @@ pub struct ApplicationAnalysis {
 }
 
 pub struct GenericApplication {
+    pub evidence: Arc<[EvidenceVarId]>,
     pub argument: TypeId,
     pub result: TypeId,
+}
+
+pub struct CheckedApplication {
+    pub type_id: TypeId,
+    pub expression: Option<CheckedExpressionId>,
+}
+
+struct CheckedTypeApplication {
+    argument: Option<TypeId>,
+    result: TypeId,
 }
 
 fn analyse_function_application_step<Q>(
@@ -134,11 +148,10 @@ where
         return Ok(None);
     };
 
-    for constraint in constraints {
-        state.push_wanted(constraint);
-    }
+    let evidence = constraints.into_iter().map(|constraint| state.push_wanted(constraint));
+    let evidence = evidence.collect();
 
-    Ok(Some(GenericApplication { argument, result }))
+    Ok(Some(GenericApplication { evidence, argument, result }))
 }
 
 pub fn check_function_application<Q>(
@@ -155,14 +168,117 @@ where
             let Some(type_argument) = type_argument else {
                 return Ok(context.unknown("missing type argument"));
             };
-            check_function_type_application(state, context, function_type, *type_argument)
+            let result =
+                check_function_type_application(state, context, function_type, *type_argument)?;
+            Ok(result)
         }
         lowering::ExpressionArgument::Term(term_argument) => {
             let Some(term_argument) = term_argument else {
                 return Ok(context.unknown("missing term argument"));
             };
-            check_function_term_application(state, context, function_type, *term_argument)
+            let result =
+                check_function_term_application(state, context, function_type, *term_argument)?;
+            Ok(result)
         }
+    }
+}
+
+pub fn check_core_function_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    function_type: TypeId,
+    function_expression: Option<CheckedExpressionId>,
+    argument: &lowering::ExpressionArgument,
+) -> QueryResult<CheckedApplication>
+where
+    Q: ExternalQueries,
+{
+    match argument {
+        lowering::ExpressionArgument::Type(type_argument) => {
+            let Some(type_argument) = type_argument else {
+                let type_id = context.unknown("missing type argument");
+                return Ok(CheckedApplication { type_id, expression: None });
+            };
+            let application = check_core_function_type_application(
+                state,
+                context,
+                function_type,
+                *type_argument,
+            )?;
+            let expression = function_expression.zip(application.argument);
+            let expression = expression.map(|(function, argument)| {
+                let kind = CheckedExpressionKind::TypeApplication { function, argument };
+                state.checked.core.allocate_expression(application.result, kind)
+            });
+            Ok(CheckedApplication { type_id: application.result, expression })
+        }
+        lowering::ExpressionArgument::Term(term_argument) => {
+            let Some(term_argument) = term_argument else {
+                let type_id = context.unknown("missing term argument");
+                return Ok(CheckedApplication { type_id, expression: None });
+            };
+            let application = check_core_function_term_application(
+                state,
+                context,
+                function_type,
+                function_expression,
+                *term_argument,
+            )?;
+            Ok(application)
+        }
+    }
+}
+
+fn check_core_function_term_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    function_type: TypeId,
+    function_expression: Option<CheckedExpressionId>,
+    argument_expression: lowering::ExpressionId,
+) -> QueryResult<CheckedApplication>
+where
+    Q: ExternalQueries,
+{
+    let Some(GenericApplication { evidence, argument: argument_type, result }) =
+        check_generic_application(state, context, function_type)?
+    else {
+        let type_id = context.unknown("invalid function application");
+        return Ok(CheckedApplication { type_id, expression: None });
+    };
+
+    let function_expression = function_expression
+        .map(|function| apply_evidence(state, context, function, argument_type, result, evidence));
+
+    super::check_expression(state, context, argument_expression, argument_type)?;
+    let argument_expression = state.checked.core.lookup_expression(argument_expression);
+    let expression = function_expression.zip(argument_expression);
+    let expression = expression.map(|(function, argument)| {
+        let kind = CheckedExpressionKind::TermApplication { function, argument };
+        state.checked.core.allocate_expression(result, kind)
+    });
+
+    Ok(CheckedApplication { type_id: result, expression })
+}
+
+fn apply_evidence<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    function: CheckedExpressionId,
+    argument_type: TypeId,
+    result_type: TypeId,
+    evidence: Arc<[EvidenceVarId]>,
+) -> CheckedExpressionId
+where
+    Q: ExternalQueries,
+{
+    if evidence.is_empty() {
+        function
+    } else {
+        let function_type = context.intern_function(argument_type, result_type);
+        state.checked.core.allocate_expression(
+            function_type,
+            CheckedExpressionKind::EvidenceApplication { expression: function, evidence },
+        )
     }
 }
 
@@ -175,7 +291,7 @@ pub fn check_function_term_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { argument, result }) =
+    let Some(GenericApplication { argument, result, .. }) =
         check_generic_application(state, context, function)?
     else {
         return Ok(context.unknown("invalid function application"));
@@ -193,44 +309,41 @@ pub fn check_function_type_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let signature::DecomposedSignature { binders, constraints, arguments, result } =
-        signature::decompose_signature(
-            state,
-            context,
-            function,
-            signature::DecomposeSignatureMode::Full,
-        )?;
+    let application = check_core_function_type_application(state, context, function, argument)?;
+    Ok(application.result)
+}
 
-    let Some(index) = binders.iter().position(|binder| binder.visible) else {
-        let function_type = function;
-        state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
-        return Ok(context.unknown("invalid visible type application"));
-    };
+fn check_core_function_type_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut function: TypeId,
+    argument: lowering::TypeId,
+) -> QueryResult<CheckedTypeApplication>
+where
+    Q: ExternalQueries,
+{
+    let function_type = function;
 
-    let mut substitution = NameToType::default();
+    safe_loop! {
+        function = normalise::expand(state, context, function)?;
+        let Type::Forall(binder_id, inner) = context.lookup_type(function) else {
+            state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
+            let result = context.unknown("invalid visible type application");
+            return Ok(CheckedTypeApplication { argument: None, result });
+        };
 
-    for binder in binders.iter().take(index) {
-        let binder_kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let binder_kind = normalise::expand(state, context, binder_kind)?;
-        let replacement = state.fresh_unification(context.queries, binder_kind);
-        substitution.insert(binder.name, replacement);
+        let ForallBinder { visible, name, kind } = context.lookup_forall_binder(binder_id);
+        let kind = normalise::expand(state, context, kind)?;
+
+        if visible {
+            let (argument_type, _) = types::check_kind(state, context, argument, kind)?;
+            let result = SubstituteName::one(state, context, name, argument_type, inner)?;
+            return Ok(CheckedTypeApplication { argument: Some(argument_type), result });
+        }
+
+        let replacement = state.fresh_unification(context.queries, kind);
+        function = SubstituteName::one(state, context, name, replacement, inner)?;
     }
-
-    let ForallBinder { name: visible_name, kind: visible_kind, .. } = binders[index];
-
-    let visible_kind = SubstituteName::many(state, context, &substitution, visible_kind)?;
-    let visible_kind = normalise::expand(state, context, visible_kind)?;
-
-    let (argument_type, _) = types::check_kind(state, context, argument, visible_kind)?;
-    substitution.insert(visible_name, argument_type);
-
-    let binders = binders.iter().skip(index + 1).copied();
-
-    let function = context.intern_function_list(&arguments, result);
-    let constrained = context.intern_constrained_list(&constraints, function);
-    let quantified = context.intern_forall_iter(binders, constrained);
-
-    SubstituteName::many(state, context, &substitution, quantified)
 }
 
 pub fn infer_infix_chain<Q>(
@@ -249,7 +362,7 @@ where
         let Some(element) = element else { return Ok(context.unknown("missing infix element")) };
 
         let tick_type = super::infer_expression(state, context, *tick)?;
-        let Some(GenericApplication { argument, result }) =
+        let Some(GenericApplication { argument, result, .. }) =
             check_generic_application(state, context, tick_type)?
         else {
             return Ok(context.unknown("invalid function application"));

@@ -22,7 +22,7 @@ use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TermHole};
-use crate::semantic::CheckedExpressionKind;
+use crate::semantic::{CheckedExpressionKind, CheckedLiteral};
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -140,7 +140,11 @@ where
         }
         lowering::ExpressionKind::Parenthesized { parenthesized } => {
             let Some(parenthesized) = parenthesized else { return Ok(unknown) };
-            check_expression(state, context, *parenthesized, expected)
+            let type_id = check_expression(state, context, *parenthesized, expected)?;
+            if let Some(checked_expression) = state.checked.core.lookup_expression(*parenthesized) {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
+            Ok(type_id)
         }
         lowering::ExpressionKind::Array { array } => {
             collections::check_array(state, context, array, expected)
@@ -226,12 +230,15 @@ where
     };
 
     match kind {
-        lowering::ExpressionKind::Typed { expression, type_ } => {
-            let Some(e) = expression else { return Ok(unknown) };
+        lowering::ExpressionKind::Typed { expression: annotated, type_ } => {
+            let Some(annotated) = annotated else { return Ok(unknown) };
             let Some(t) = type_ else { return Ok(unknown) };
 
             let (t, _) = types::infer_kind(state, context, *t)?;
-            check_expression(state, context, *e, t)?;
+            check_expression(state, context, *annotated, t)?;
+            if let Some(checked_expression) = state.checked.core.lookup_expression(*annotated) {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
 
             Ok(t)
         }
@@ -257,14 +264,28 @@ where
         lowering::ExpressionKind::Application { function, arguments } => {
             let Some(function) = function else { return Ok(unknown) };
 
-            let mut function_t = infer_expression(state, context, *function)?;
+            let function_type = infer_expression(state, context, *function)?;
+            let function_expression = state.checked.core.lookup_expression(*function);
+            let mut application = application::CheckedApplication {
+                type_id: function_type,
+                expression: function_expression,
+            };
 
             for argument in arguments.iter() {
-                function_t =
-                    application::check_function_application(state, context, function_t, argument)?;
+                application = application::check_core_function_application(
+                    state,
+                    context,
+                    application.type_id,
+                    application.expression,
+                    argument,
+                )?;
             }
 
-            Ok(function_t)
+            if let Some(checked_expression) = application.expression {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
+
+            Ok(application.type_id)
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
@@ -297,23 +318,31 @@ where
 
         lowering::ExpressionKind::Constructor { resolution } => {
             let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
-            toolkit::lookup_file_term(state, context, *file_id, *term_id)
+            let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
+            let resolution = lowering::TermVariableResolution::Reference(*file_id, *term_id);
+            let kind = CheckedExpressionKind::Variable { resolution };
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
         }
 
         lowering::ExpressionKind::Variable { resolution } => {
             let Some(resolution) = *resolution else { return Ok(unknown) };
             let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
-            let checked_expression = state
-                .checked
-                .core
-                .allocate_expression(type_id, CheckedExpressionKind::Variable { resolution });
+            let kind = CheckedExpressionKind::Variable { resolution };
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
             state.checked.core.record_expression(expression, checked_expression);
             Ok(type_id)
         }
 
         lowering::ExpressionKind::OperatorName { resolution } => {
             let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
-            toolkit::lookup_file_term(state, context, *file_id, *term_id)
+            let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
+            let resolution = lowering::TermVariableResolution::Reference(*file_id, *term_id);
+            let kind = CheckedExpressionKind::Variable { resolution };
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
         }
 
         lowering::ExpressionKind::Section => {
@@ -335,15 +364,50 @@ where
             Ok(type_id)
         }
 
-        lowering::ExpressionKind::String { .. } => Ok(context.prim.string),
+        lowering::ExpressionKind::String { kind, value } => {
+            let literal = CheckedLiteral::String { kind: *kind, value: value.clone() };
+            let kind = CheckedExpressionKind::Literal { literal };
+            let type_id = context.prim.string;
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
+        }
 
-        lowering::ExpressionKind::Char { .. } => Ok(context.prim.char),
+        lowering::ExpressionKind::Char { value } => {
+            let literal = CheckedLiteral::Char(*value);
+            let kind = CheckedExpressionKind::Literal { literal };
+            let type_id = context.prim.char;
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
+        }
 
-        lowering::ExpressionKind::Boolean { .. } => Ok(context.prim.boolean),
+        lowering::ExpressionKind::Boolean { boolean } => {
+            let literal = CheckedLiteral::Boolean(*boolean);
+            let kind = CheckedExpressionKind::Literal { literal };
+            let type_id = context.prim.boolean;
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
+        }
 
-        lowering::ExpressionKind::Integer { .. } => Ok(context.prim.int),
+        lowering::ExpressionKind::Integer { value } => {
+            let literal = CheckedLiteral::Integer(*value);
+            let kind = CheckedExpressionKind::Literal { literal };
+            let type_id = context.prim.int;
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
+        }
 
-        lowering::ExpressionKind::Number { .. } => Ok(context.prim.number),
+        lowering::ExpressionKind::Number { value } => {
+            let literal = CheckedLiteral::Number(value.clone());
+            let kind = CheckedExpressionKind::Literal { literal };
+            let type_id = context.prim.number;
+            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            state.checked.core.record_expression(expression, checked_expression);
+            Ok(type_id)
+        }
 
         lowering::ExpressionKind::Array { array } => {
             collections::infer_array(state, context, array)
@@ -355,7 +419,11 @@ where
 
         lowering::ExpressionKind::Parenthesized { parenthesized } => {
             let Some(parenthesized) = parenthesized else { return Ok(unknown) };
-            infer_expression(state, context, *parenthesized)
+            let type_id = infer_expression(state, context, *parenthesized)?;
+            if let Some(checked_expression) = state.checked.core.lookup_expression(*parenthesized) {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
+            Ok(type_id)
         }
 
         lowering::ExpressionKind::RecordAccess { record, labels } => {
