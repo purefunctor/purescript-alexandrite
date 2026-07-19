@@ -82,6 +82,8 @@ pub fn compute_closure(
     }
 }
 
+/// Closure monotonicity makes this equivalent to `positions` containing a covering set.
+/// Exact equality preserves behavior when a malformed dependency introduces out-of-range positions.
 pub fn positions_cover_all(
     functional_dependencies: &[Fd],
     positions: &FxHashSet<usize>,
@@ -303,6 +305,7 @@ mod tests {
         let all_positions = FxHashSet::from_iter(0..argument_count);
         let cases = [
             vec![Fd::new([0, 1], [2, 3]), Fd::new([2], [0])],
+            // The out-of-range position preserves exact closure-equality behavior for malformed dependencies.
             vec![Fd::new([0, 1], [2, 4]), Fd::new([], [3])],
         ];
 

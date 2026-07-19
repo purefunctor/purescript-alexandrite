@@ -737,6 +737,8 @@ where
     let mut known_non_apart = FxHashSet::default();
     let mut possibly_non_apart = all_positions.clone();
 
+    // Closure monotonicity lets these bounds decide whether the final non-apart positions contain
+    // a covering set before every argument has been compared.
     if positions_cover_all(functional_dependencies, &known_non_apart, &all_positions) {
         return Ok(true);
     }
