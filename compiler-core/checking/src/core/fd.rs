@@ -47,7 +47,7 @@ where
     let functional_dependencies = if file_id == context.id {
         state.checked.classes.get(&type_id).map(|class| Arc::clone(&class.functional_dependencies))
     } else {
-        let checked = context.queries.checked(file_id)?;
+        let checked = context.checked_dependency(file_id)?;
         checked.classes.get(&type_id).map(|class| Arc::clone(&class.functional_dependencies))
     };
 

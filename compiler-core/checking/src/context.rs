@@ -2,6 +2,7 @@
 //!
 //! See documentation for [`CheckContext`] for more information.
 
+use std::cell::RefCell;
 use std::sync::Arc;
 
 use building_types::QueryResult;
@@ -10,14 +11,16 @@ use indexing::{IndexedModule, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{GroupedModule, LoweredModule};
 use resolving::ResolvedModule;
+use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
 use sugar::{Bracketed, Sectioned};
 
-use crate::ExternalQueries;
 use crate::core::{
-    Depth, ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, Type, TypeId,
+    CheckedSynonym, Depth, ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, Type,
+    TypeId,
 };
+use crate::{CheckedModule, ExternalQueries};
 
 /// The read-only environment threaded through the type checking algorithm.
 ///
@@ -55,6 +58,9 @@ where
 
     pub prim_indexed: Arc<IndexedModule>,
     pub prim_resolved: Arc<ResolvedModule>,
+
+    checked_dependencies: RefCell<FxHashMap<FileId, Arc<CheckedModule>>>,
+    checked_synonyms: RefCell<FxHashMap<(FileId, TypeItemId), Option<CheckedSynonym>>>,
 }
 
 impl<'q, Q> CheckContext<'q, Q>
@@ -113,7 +119,41 @@ where
             resolved,
             prim_indexed,
             prim_resolved,
+            checked_dependencies: RefCell::default(),
+            checked_synonyms: RefCell::default(),
         })
+    }
+
+    pub(crate) fn checked_dependency(&self, file_id: FileId) -> QueryResult<Arc<CheckedModule>> {
+        debug_assert_ne!(file_id, self.id);
+
+        let checked = self.checked_dependencies.borrow().get(&file_id).cloned();
+        if let Some(checked) = checked {
+            return Ok(checked);
+        }
+
+        let checked = self.queries.checked(file_id)?;
+        self.checked_dependencies.borrow_mut().insert(file_id, Arc::clone(&checked));
+        Ok(checked)
+    }
+
+    pub(crate) fn checked_synonym_dependency(
+        &self,
+        file_id: FileId,
+        type_id: TypeItemId,
+    ) -> QueryResult<Option<CheckedSynonym>> {
+        debug_assert_ne!(file_id, self.id);
+
+        let key = (file_id, type_id);
+        let checked_synonym = self.checked_synonyms.borrow().get(&key).cloned();
+        if let Some(checked_synonym) = checked_synonym {
+            return Ok(checked_synonym);
+        }
+
+        let checked = self.checked_dependency(file_id)?;
+        let checked_synonym = checked.lookup_synonym(type_id);
+        self.checked_synonyms.borrow_mut().insert(key, checked_synonym.clone());
+        Ok(checked_synonym)
     }
 }
 
