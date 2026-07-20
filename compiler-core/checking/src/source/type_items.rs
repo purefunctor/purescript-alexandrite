@@ -13,8 +13,9 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym, ForallBinder, Role,
-    Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
+    CheckedClass, CheckedDataConstructor, CheckedDataDeclaration, CheckedDataDeclarationKind,
+    CheckedSuperclass, CheckedSynonym, ForallBinder, Role, Type, TypeId, fd, fold, generalise,
+    signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
 use crate::source::types;
@@ -22,6 +23,7 @@ use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
 struct PendingDataType {
+    kind: CheckedDataDeclarationKind,
     parameters: Vec<ForallBinder>,
     constructors: Vec<(TermItemId, Vec<TypeId>)>,
     declared_roles: Arc<[lowering::Role]>,
@@ -302,11 +304,29 @@ where
     match item {
         TypeItemIr::DataGroup { signature, data, roles } => {
             let Some(DataIr { variables }) = data else { return Ok(()) };
-            check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
+            let pending = check_data_equation(
+                state,
+                context,
+                item_id,
+                CheckedDataDeclarationKind::Data,
+                *signature,
+                variables,
+                roles,
+            )?;
+            scc.data.push((item_id, pending));
         }
         TypeItemIr::NewtypeGroup { signature, newtype, roles } => {
             let Some(NewtypeIr { variables }) = newtype else { return Ok(()) };
-            check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
+            let pending = check_data_equation(
+                state,
+                context,
+                item_id,
+                CheckedDataDeclarationKind::Newtype,
+                *signature,
+                variables,
+                roles,
+            )?;
+            scc.data.push((item_id, pending));
         }
         TypeItemIr::SynonymGroup { signature, synonym, .. } => {
             let Some(SynonymIr { variables, synonym }) = synonym else { return Ok(()) };
@@ -330,12 +350,12 @@ where
 fn check_data_equation<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    scc: &mut TypeSccState,
     item_id: TypeItemId,
+    kind: CheckedDataDeclarationKind,
     signature: Option<lowering::TypeId>,
     variables: &[TypeVariableBinding],
     declared_roles: &Arc<[lowering::Role]>,
-) -> QueryResult<()>
+) -> QueryResult<PendingDataType>
 where
     Q: ExternalQueries,
 {
@@ -350,9 +370,7 @@ where
     let constructors = check_data_constructors(state, context, item_id)?;
     let declared_roles = Arc::clone(declared_roles);
 
-    scc.data.push((item_id, PendingDataType { parameters, constructors, declared_roles }));
-
-    Ok(())
+    Ok(PendingDataType { kind, parameters, constructors, declared_roles })
 }
 
 fn check_data_equation_check<Q>(
@@ -497,7 +515,9 @@ fn finalise_data_declarations<Q>(
 where
     Q: ExternalQueries,
 {
-    for (item_id, PendingDataType { parameters, constructors, .. }) in mem::take(&mut scc.data) {
+    for (item_id, PendingDataType { kind, parameters, constructors, .. }) in
+        mem::take(&mut scc.data)
+    {
         // constructor_kind should have already been generalised by the
         // finalise_binding_group function. The kind signature is used
         // as the source of truth for constructing kind applications.
@@ -548,6 +568,8 @@ where
 
         let type_parameters = type_parameters.collect_vec();
 
+        let mut checked_constructors = Vec::with_capacity(constructors.len());
+
         for (constructor_id, checked_arguments) in constructors {
             let mut result = type_reference;
 
@@ -559,9 +581,13 @@ where
             }
 
             // a -> Tagged @k t a
-            for argument in checked_arguments.into_iter().rev() {
+            let checked_arguments = checked_arguments.into_iter().map(|argument| {
                 let argument = zonk::zonk(state, context, argument)?;
-                let argument = ApplyKinds::on(state, context, item_id, type_reference, argument)?;
+                ApplyKinds::on(state, context, item_id, type_reference, argument)
+            });
+            let checked_arguments = checked_arguments.collect::<QueryResult<Vec<_>>>()?;
+
+            for &argument in checked_arguments.iter().rev() {
                 result = context.intern_function(argument, result);
             }
 
@@ -578,9 +604,15 @@ where
             }
 
             state.checked.terms.insert(constructor_id, result);
+            checked_constructors.push(CheckedDataConstructor {
+                item_id: constructor_id,
+                arguments: checked_arguments,
+            });
         }
 
-        state.checked.data_declarations.insert(item_id, CheckedDataDeclaration { type_parameters });
+        let declaration =
+            CheckedDataDeclaration { kind, type_parameters, constructors: checked_constructors };
+        state.checked.data_declarations.insert(item_id, declaration);
     }
 
     Ok(())
@@ -595,7 +627,7 @@ where
     Q: ExternalQueries,
 {
     for (item_id, pending) in &scc.data {
-        let PendingDataType { parameters, constructors, declared_roles } = pending;
+        let PendingDataType { parameters, constructors, declared_roles, .. } = pending;
         let inferred_roles =
             super::roles::infer_data_roles(state, context, parameters, constructors)?;
         let resolved_roles = super::roles::check_declared_roles(

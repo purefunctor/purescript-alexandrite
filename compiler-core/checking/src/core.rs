@@ -95,7 +95,21 @@ pub enum KindOrType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedDataDeclaration {
+    pub kind: CheckedDataDeclarationKind,
     pub type_parameters: Vec<ForallBinderId>,
+    pub constructors: Vec<CheckedDataConstructor>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedDataDeclarationKind {
+    Data,
+    Newtype,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedDataConstructor {
+    pub item_id: TermItemId,
+    pub arguments: Vec<TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

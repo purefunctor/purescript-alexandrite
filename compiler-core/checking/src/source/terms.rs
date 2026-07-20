@@ -22,7 +22,7 @@ use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TermHole};
-use crate::semantic::{CheckedExpressionKind, CheckedLiteral};
+use crate::semantic::{CheckedExpressionId, CheckedExpressionKind, CheckedLiteral};
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -326,9 +326,8 @@ where
         lowering::ExpressionKind::Constructor { resolution } => {
             let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
             let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
-            let resolution = lowering::TermVariableResolution::Reference(*file_id, *term_id);
-            let kind = CheckedExpressionKind::Variable { resolution };
-            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            let checked_expression =
+                allocate_term_reference(state, context, *file_id, *term_id, type_id)?;
             state.checked.core.record_expression(expression, checked_expression);
             Ok(type_id)
         }
@@ -351,10 +350,8 @@ where
             };
             let type_id =
                 toolkit::lookup_file_term(state, context, target_file_id, target_item_id)?;
-            let resolution =
-                lowering::TermVariableResolution::Reference(target_file_id, target_item_id);
-            let kind = CheckedExpressionKind::Variable { resolution };
-            let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+            let checked_expression =
+                allocate_term_reference(state, context, target_file_id, target_item_id, type_id)?;
             state.checked.core.record_expression(expression, checked_expression);
             Ok(type_id)
         }
@@ -451,6 +448,51 @@ where
             collections::infer_record_update(state, context, record, updates)
         }
     }
+}
+
+pub(crate) fn allocate_term_reference<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    item_id: TermItemId,
+    type_id: TypeId,
+) -> QueryResult<CheckedExpressionId>
+where
+    Q: ExternalQueries,
+{
+    let is_constructor = is_term_constructor(context, file_id, item_id)?;
+
+    let kind = if is_constructor {
+        CheckedExpressionKind::Constructor { file_id, item_id }
+    } else {
+        let resolution = lowering::TermVariableResolution::Reference(file_id, item_id);
+        CheckedExpressionKind::Variable { resolution }
+    };
+
+    Ok(state.checked.core.allocate_expression(type_id, kind))
+}
+
+pub(crate) fn is_term_constructor<Q>(
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    item_id: TermItemId,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    let is_constructor = if file_id == context.id {
+        matches!(
+            context.lowered.info.get_term_item(item_id),
+            Some(lowering::TermItemIr::Constructor { .. })
+        )
+    } else {
+        let lowered = context.queries.lowered(file_id)?;
+        matches!(
+            lowered.info.get_term_item(item_id),
+            Some(lowering::TermItemIr::Constructor { .. })
+        )
+    };
+    Ok(is_constructor)
 }
 
 fn term_hole_bindings<Q>(

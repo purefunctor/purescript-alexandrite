@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use analyzer::QueryEngine;
-use checking::CheckedModule;
-use checking::core::pretty;
+use checking::core::{CheckedDataDeclarationKind, pretty};
 use checking::evidence::{
     Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
     ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
@@ -11,8 +10,9 @@ use checking::evidence::{
 use checking::semantic::{
     CheckedBinderId, CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind, CheckedLiteral,
 };
+use checking::{CheckedModule, PrettyQueries};
 use files::FileId;
-use indexing::{TermItem, TermItemId, TermItemKind};
+use indexing::{TermItem, TermItemId, TermItemKind, TypeItem, TypeItemId};
 use lowering::{BinderKind, Equation, GuardedExpression, TermItemIr, TermVariableResolution};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -24,6 +24,7 @@ enum Precedence {
 
 struct SemanticPrinter<'a> {
     engine: &'a QueryEngine,
+    file_id: FileId,
     checked: &'a CheckedModule,
     lowered: &'a lowering::LoweredModule,
     pretty: pretty::Pretty<'a, QueryEngine>,
@@ -33,6 +34,7 @@ struct SemanticPrinter<'a> {
 impl<'a> SemanticPrinter<'a> {
     fn new(
         engine: &'a QueryEngine,
+        file_id: FileId,
         checked: &'a CheckedModule,
         lowered: &'a lowering::LoweredModule,
     ) -> SemanticPrinter<'a> {
@@ -40,7 +42,7 @@ impl<'a> SemanticPrinter<'a> {
         let binder_sources =
             checked.core.binders_by_source.iter().map(|(source, checked)| (*checked, *source));
         let binder_sources = binder_sources.collect();
-        SemanticPrinter { engine, checked, lowered, pretty, binder_sources }
+        SemanticPrinter { engine, file_id, checked, lowered, pretty, binder_sources }
     }
 
     fn write_item(&mut self, output: &mut String, item_id: TermItemId, item: &TermItem) {
@@ -65,6 +67,47 @@ impl<'a> SemanticPrinter<'a> {
             }
         }
 
+        writeln!(output).unwrap();
+    }
+
+    fn write_data_declaration(
+        &mut self,
+        output: &mut String,
+        item_id: TypeItemId,
+        item: &TypeItem,
+    ) {
+        let Some(name) = item.name.as_deref() else { return };
+        let Some(declaration) = self.checked.lookup_data_declaration(item_id) else { return };
+
+        self.pretty.reset();
+        let type_parameters = declaration.type_parameters.iter().map(|&binder_id| {
+            let binder = self.engine.lookup_forall_binder(binder_id);
+            let name = self.pretty.display_name(binder.name);
+            let kind = self.pretty.render(binder.kind);
+            format!("({name} :: {kind})")
+        });
+        let type_parameters = type_parameters.collect::<Vec<_>>();
+        let head = if type_parameters.is_empty() {
+            name.to_string()
+        } else {
+            format!("{name} {}", type_parameters.join(" "))
+        };
+
+        let constructors = declaration.constructors.iter().map(|constructor| {
+            let name = self.item_name(self.file_id, constructor.item_id);
+            let arguments = constructor
+                .arguments
+                .iter()
+                .map(|&argument| self.pretty.render(argument))
+                .collect::<Vec<_>>();
+            if arguments.is_empty() { name } else { format!("{name} ({})", arguments.join(") (")) }
+        });
+        let constructors = constructors.collect::<Vec<_>>().join(" | ");
+        let keyword = match declaration.kind {
+            CheckedDataDeclarationKind::Data => "data",
+            CheckedDataDeclarationKind::Newtype => "newtype",
+        };
+        writeln!(output, "{keyword} {head} = {constructors}").unwrap();
         writeln!(output).unwrap();
     }
 
@@ -111,6 +154,10 @@ impl<'a> SemanticPrinter<'a> {
         let (rendered, precedence) = match expression.kind {
             CheckedExpressionKind::Variable { resolution } => {
                 (self.variable(resolution), Precedence::Atom)
+            }
+            CheckedExpressionKind::Constructor { file_id, item_id } => {
+                let constructor = self.item_name(file_id, item_id);
+                (constructor, Precedence::Atom)
             }
             CheckedExpressionKind::Literal { literal } => {
                 (Self::literal(literal), Precedence::Atom)
@@ -327,11 +374,15 @@ pub fn report(engine: &QueryEngine, id: FileId, name: &str) -> String {
     let checked = engine.checked(id).unwrap();
     let lowered = engine.lowered(id).unwrap();
     let indexed = engine.indexed(id).unwrap();
-    let mut printer = SemanticPrinter::new(engine, &checked, &lowered);
+    let mut printer = SemanticPrinter::new(engine, id, &checked, &lowered);
 
     let mut output = String::new();
     writeln!(output, "module {name} where").unwrap();
     writeln!(output).unwrap();
+
+    for (item_id, item) in indexed.items.iter_types() {
+        printer.write_data_declaration(&mut output, item_id, item);
+    }
 
     for (item_id, item) in indexed.items.iter_terms() {
         printer.write_item(&mut output, item_id, item);

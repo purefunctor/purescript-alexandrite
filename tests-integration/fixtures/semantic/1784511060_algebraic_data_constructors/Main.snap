@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+data Choice (a :: Type) = Empty | One ((a :: Type)) | Pair ((a :: Type)) ((a :: Type))
+
+newtype Wrapped (a :: Type) = Wrapped (Choice (a :: Type))
+
+data Fix (f :: ((k :: Type) -> Type) -> (k :: Type) -> Type) (a :: (k :: Type)) = Fix ((f :: ((k :: Type) -> Type) -> (k :: Type) -> Type)
+  (Fix @(k :: Type) (f :: ((k :: Type) -> Type) -> (k :: Type) -> Type))
+  (a :: (k :: Type)))
+
+bare :: forall (t :: Type). (t :: Type) -> Choice (t :: Type)
+bare = One
+
+nullary :: forall (t :: Type). Choice (t :: Type)
+nullary = Empty
+
+applied :: Choice Int
+applied = One 1
+
+partial :: Int -> Choice Int
+partial = Pair 1
+
+operatorApplied :: Choice Int
+operatorApplied = Pair 1 2
+
+operatorBare :: forall (t :: Type). (t :: Type) -> (t :: Type) -> Choice (t :: Type)
+operatorBare = Pair
+
+wrapped :: forall (t :: Type). Wrapped (t :: Type)
+wrapped = Wrapped Empty

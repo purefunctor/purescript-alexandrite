@@ -345,10 +345,13 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
 
         let operator_type =
             toolkit::lookup_file_term(state, context, target_file_id, target_item_id)?;
-        let resolution =
-            lowering::TermVariableResolution::Reference(target_file_id, target_item_id);
-        let kind = CheckedExpressionKind::Variable { resolution };
-        let operator = state.checked.core.allocate_expression(operator_type, kind);
+        let operator = terms::allocate_term_reference(
+            state,
+            context,
+            target_file_id,
+            target_item_id,
+            operator_type,
+        )?;
 
         let partial_type = context.intern_function(right_type, result_type);
         let operator = terms::application::apply_evidence(

@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use files::FileId;
 use indexing::TermItemId;
 use la_arena::{Arena, Idx};
 use rustc_hash::FxHashMap;
@@ -78,6 +79,7 @@ pub struct CheckedExpression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
+    Constructor { file_id: FileId, item_id: TermItemId },
     Literal { literal: CheckedLiteral },
     Lambda { binders: Arc<[CheckedBinderId]>, expression: CheckedExpressionId },
     TermApplication { function: CheckedExpressionId, argument: CheckedExpressionId },
