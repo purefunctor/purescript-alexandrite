@@ -150,10 +150,10 @@ where
             Ok(type_id)
         }
         lowering::ExpressionKind::Array { array } => {
-            collections::check_array(state, context, array, expected)
+            collections::check_array(state, context, expression, array, expected)
         }
         lowering::ExpressionKind::Record { record } => {
-            collections::check_record(state, context, record, expected)
+            collections::check_record(state, context, expression, record, expected)
         }
         _ => {
             let inferred = infer_expression_quiet(state, context, expression)?;
@@ -419,11 +419,11 @@ where
         }
 
         lowering::ExpressionKind::Array { array } => {
-            collections::infer_array(state, context, array)
+            collections::infer_array(state, context, expression, array)
         }
 
         lowering::ExpressionKind::Record { record } => {
-            collections::infer_record(state, context, record)
+            collections::infer_record(state, context, expression, record)
         }
 
         lowering::ExpressionKind::Parenthesized { parenthesized } => {

@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use smol_str::SmolStr;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, Type, TypeId, normalise, toolkit, unification};
+use crate::semantic::{CheckedExpressionKind, CheckedRecordField};
 use crate::state::CheckState;
 
 fn infer_record_field_expression<Q>(
@@ -87,17 +90,19 @@ enum RecordMode<'a> {
 pub fn infer_array<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     array: &[lowering::ExpressionId],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    array_core(state, context, array, ArrayMode::Infer)
+    array_core(state, context, expression, array, ArrayMode::Infer)
 }
 
 pub fn check_array<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     array: &[lowering::ExpressionId],
     expected: TypeId,
 ) -> QueryResult<TypeId>
@@ -105,11 +110,11 @@ where
     Q: ExternalQueries,
 {
     if let Some(element) = expected_array_element(state, context, expected)? {
-        array_core(state, context, array, ArrayMode::Check { element })?;
+        array_core(state, context, expression, array, ArrayMode::Check { element })?;
         return Ok(expected);
     }
 
-    let inferred = array_core(state, context, array, ArrayMode::Infer)?;
+    let inferred = array_core(state, context, expression, array, ArrayMode::Infer)?;
     unification::subtype(state, context, inferred, expected)?;
     Ok(inferred)
 }
@@ -134,6 +139,7 @@ where
 fn array_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::ExpressionId,
     array: &[lowering::ExpressionId],
     mode: ArrayMode,
 ) -> QueryResult<TypeId>
@@ -157,23 +163,38 @@ where
         }
     }
 
-    Ok(context.intern_application(context.prim.array, element))
+    let type_id = context.intern_application(context.prim.array, element);
+    let elements = array.iter().map(|expression| {
+        if let Some(expression) = state.checked.core.lookup_expression(*expression) {
+            expression
+        } else {
+            state.checked.core.allocate_expression(element, CheckedExpressionKind::Error)
+        }
+    });
+    let elements = elements.collect::<Vec<_>>();
+    let kind = CheckedExpressionKind::Array { elements: Arc::from(elements) };
+    let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+    state.checked.core.record_expression(source, checked_expression);
+
+    Ok(type_id)
 }
 
 pub fn infer_record<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     record: &[lowering::ExpressionRecordItem],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    record_core(state, context, record, RecordMode::Infer)
+    record_core(state, context, expression, record, RecordMode::Infer)
 }
 
 pub fn check_record<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     record: &[lowering::ExpressionRecordItem],
     expected: TypeId,
 ) -> QueryResult<TypeId>
@@ -190,6 +211,7 @@ where
                 let record_type = record_core(
                     state,
                     context,
+                    expression,
                     record,
                     RecordMode::Check { expected_fields: &expected_fields.fields },
                 )?;
@@ -199,7 +221,7 @@ where
         }
     }
 
-    let inferred = infer_record(state, context, record)?;
+    let inferred = infer_record(state, context, expression, record)?;
     unification::subtype(state, context, inferred, expected)?;
     Ok(inferred)
 }
@@ -271,6 +293,7 @@ where
 fn record_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::ExpressionId,
     record: &[lowering::ExpressionRecordItem],
     mode: RecordMode<'_>,
 ) -> QueryResult<TypeId>
@@ -278,26 +301,44 @@ where
     Q: ExternalQueries,
 {
     let mut fields = vec![];
+    let mut checked_fields = vec![];
 
     for field in record.iter() {
-        let field = match field {
+        let (field, expression) = match field {
             lowering::ExpressionRecordItem::RecordField { name, value } => {
                 let Some(name) = name else { continue };
                 let Some(value) = value else { continue };
-                record_field_type(state, context, name, *value, mode)?
+                let field = record_field_type(state, context, name, *value, mode)?;
+                let expression = if let Some(expression) =
+                    state.checked.core.lookup_expression(*value)
+                {
+                    expression
+                } else {
+                    state.checked.core.allocate_expression(field.id, CheckedExpressionKind::Error)
+                };
+                (field, expression)
             }
             lowering::ExpressionRecordItem::RecordPun { id, name, resolution } => {
                 let Some(name) = name else { continue };
                 let Some(resolution) = resolution else { continue };
-                record_pun_type(state, context, *id, name, *resolution, mode)?
+                let field = record_pun_type(state, context, *id, name, *resolution, mode)?;
+                let kind = CheckedExpressionKind::Variable { resolution: *resolution };
+                let expression = state.checked.core.allocate_expression(field.id, kind);
+                (field, expression)
             }
         };
 
+        checked_fields.push(CheckedRecordField { label: field.label.clone(), expression });
         fields.push(field);
     }
 
     let row_type = context.intern_row(fields, None);
-    Ok(context.intern_application(context.prim.record, row_type))
+    let type_id = context.intern_application(context.prim.record, row_type);
+    let kind = CheckedExpressionKind::Record { fields: Arc::from(checked_fields) };
+    let checked_expression = state.checked.core.allocate_expression(type_id, kind);
+    state.checked.core.record_expression(source, checked_expression);
+
+    Ok(type_id)
 }
 
 pub fn infer_record_access<Q>(

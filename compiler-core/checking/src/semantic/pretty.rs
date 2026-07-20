@@ -17,7 +17,7 @@ use crate::semantic::{
     CheckedBinderKind, CheckedBlockStatement, CheckedCaseAlternative, CheckedDoExpression,
     CheckedDoStep, CheckedExpressionId, CheckedExpressionKind, CheckedGuardedExpression,
     CheckedLetBinding, CheckedLetStatement, CheckedLiteral, CheckedPatternGuard,
-    CheckedUnaryApplication,
+    CheckedRecordField, CheckedUnaryApplication,
 };
 use crate::{CheckedModule, PrettyQueries, TypeId};
 
@@ -168,6 +168,12 @@ where
             CheckedExpressionKind::Literal { literal } => {
                 (self.arena.text(self.literal(literal)), Precedence::Atom)
             }
+            CheckedExpressionKind::Array { elements } => {
+                (self.array_expression(&elements), Precedence::Atom)
+            }
+            CheckedExpressionKind::Record { fields } => {
+                (self.record_expression(&fields), Precedence::Atom)
+            }
             CheckedExpressionKind::Error => (self.arena.text("<error>"), Precedence::Atom),
             CheckedExpressionKind::Do { expression } => {
                 (self.do_expression(&expression), Precedence::Abstraction)
@@ -221,6 +227,31 @@ where
         };
 
         self.parenthesize_if(precedence < outer, document)
+    }
+
+    fn array_expression(&mut self, elements: &[CheckedExpressionId]) -> Doc<'arena> {
+        let elements =
+            elements.iter().map(|element| self.expression(*element, Precedence::Abstraction));
+        let elements = elements.collect_vec();
+        let elements = self.separated_by_comma(elements).group();
+        self.arena.text("[").append(elements).append(self.arena.text("]"))
+    }
+
+    fn record_expression(&mut self, fields: &[CheckedRecordField]) -> Doc<'arena> {
+        if fields.is_empty() {
+            return self.arena.text("{}");
+        }
+
+        let fields = fields.iter().map(|field| {
+            let expression = self.expression(field.expression, Precedence::Abstraction);
+            self.arena
+                .text(field.label.to_string())
+                .append(self.arena.text(": "))
+                .append(expression)
+        });
+        let fields = fields.collect_vec();
+        let fields = self.separated_by_comma(fields).group();
+        self.arena.text("{ ").append(fields).append(self.arena.text(" }")).group()
     }
 
     fn do_expression(&mut self, expression: &CheckedDoExpression) -> Doc<'arena> {

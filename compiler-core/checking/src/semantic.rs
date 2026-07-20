@@ -99,6 +99,8 @@ pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
     Constructor { file_id: FileId, item_id: TermItemId },
     Literal { literal: CheckedLiteral },
+    Array { elements: Arc<[CheckedExpressionId]> },
+    Record { fields: Arc<[CheckedRecordField]> },
     Error,
     Do { expression: CheckedDoExpression },
     Ado { expression: CheckedAdoExpression },
@@ -108,6 +110,12 @@ pub enum CheckedExpressionKind {
     TypeApplication { function: CheckedExpressionId, argument: TypeId },
     EvidenceApplication { expression: CheckedExpressionId, evidence: Arc<[EvidenceVarId]> },
     EvidenceAbstraction { binders: Arc<[EvidenceBinderId]>, expression: CheckedExpressionId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRecordField {
+    pub label: SmolStr,
+    pub expression: CheckedExpressionId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

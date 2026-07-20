@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+checkedArray :: Array Int
+checkedArray = [identity 1, 2]
+
+inferredArray :: Array String
+inferredArray = ["one", "two"]
+
+emptyArray :: forall (t :: Type). Array (t :: Type)
+emptyArray = []
+
+checkedRecord :: { number :: Int, text :: String }
+checkedRecord = { number: identity 1, text: "value" }
+
+inferredRecord :: { array :: Array Int, nested :: { value :: Boolean } }
+inferredRecord = { array: [1, 2], nested: { value: true } }
+
+punValue :: Int
+punValue = 42
+
+punnedRecord :: { punValue :: Int }
+punnedRecord = { punValue: punValue }
+
+emptyRecord :: {}
+emptyRecord = {}
