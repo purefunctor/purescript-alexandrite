@@ -43,4 +43,11 @@ guarded condition choice = case choice of
 matchPartial choice = case choice of
   One value -> value
 
+chooseNested choice = case choice of
+  One nested -> case nested of
+    One value -> value
+    Pair left _ -> left
+    _ -> 0
+  _ -> 0
+
 wrapped = Wrapped Empty

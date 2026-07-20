@@ -1,5 +1,7 @@
 //! Checked Core semantic trees produced by source checking rules.
 
+pub mod pretty;
+
 use std::sync::Arc;
 
 use files::FileId;

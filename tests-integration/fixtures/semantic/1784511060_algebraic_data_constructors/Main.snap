@@ -41,13 +41,31 @@ unwrapNested :: forall (t :: Type). Choice (Choice (t :: Type)) -> Choice (t :: 
 unwrapNested = \Pair(first, Pair(second, third)) -> first
 
 choose :: Choice Int -> Int
-choose = \choice -> case choice of Empty -> 0; One(value) -> value; Pair(left, _) -> left; else -> unreachable
+choose = \choice -> case choice of
+  Empty -> 0
+  One(value) -> value
+  Pair(left, _) -> left
 
 guarded :: Boolean -> Choice (Choice Int) -> Int
-guarded = \condition choice -> case choice of One(nested) | condition, One(value) <- nested -> value; Pair(left, right) | One(value) <- left -> value | One(value) <- right -> value; _ -> 0; else -> unreachable
+guarded = \condition choice -> case choice of
+  One(nested)
+    | condition, One(value) <- nested -> value
+  Pair(left, right)
+    | One(value) <- left -> value
+    | One(value) <- right -> value
+  _ -> 0
 
 matchPartial :: forall (t :: Type). Partial => Choice (t :: Type) -> (t :: Type)
-matchPartial = \@{dict0} -> \choice -> case choice of One(value) -> value; else -> unreachable
+matchPartial = \@{dict0} -> \choice -> case choice of
+  One(value) -> value
+
+chooseNested :: Choice (Choice Int) -> Int
+chooseNested = \choice -> case choice of
+  One(nested) -> case nested of
+    One(value) -> value
+    Pair(left, _) -> left
+    _ -> 0
+  _ -> 0
 
 wrapped :: forall (t :: Type). Wrapped (t :: Type)
 wrapped = Wrapped Empty
