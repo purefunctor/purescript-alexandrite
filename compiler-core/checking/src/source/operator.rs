@@ -596,7 +596,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
             item_id: target_item_id,
             arguments: Arc::from([left, right]),
         };
-        let binder = state.checked.core.allocate_binder(result_type, kind);
+        let binder = state.checked.core.allocate_synthesized_binder(result_type, kind);
         Ok((Some(binder), result_type))
     }
 

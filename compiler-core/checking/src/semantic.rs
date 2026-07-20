@@ -33,8 +33,24 @@ impl CheckedCore {
         self.expressions.alloc(expression)
     }
 
-    pub fn allocate_binder(&mut self, type_id: TypeId, kind: CheckedBinderKind) -> CheckedBinderId {
-        let binder = CheckedBinder { type_id, kind };
+    pub fn allocate_source_binder(
+        &mut self,
+        source: lowering::BinderId,
+        type_id: TypeId,
+        kind: CheckedBinderKind,
+    ) -> CheckedBinderId {
+        let binder = CheckedBinder { source: Some(source), type_id, kind };
+        let checked = self.binders.alloc(binder);
+        self.record_binder(source, checked);
+        checked
+    }
+
+    pub fn allocate_synthesized_binder(
+        &mut self,
+        type_id: TypeId,
+        kind: CheckedBinderKind,
+    ) -> CheckedBinderId {
+        let binder = CheckedBinder { source: None, type_id, kind };
         self.binders.alloc(binder)
     }
 
@@ -118,6 +134,8 @@ pub enum CheckedLiteral {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedBinder {
+    /// The canonical allocation origin; additional lowering aliases live in `binders_by_source`.
+    pub source: Option<lowering::BinderId>,
     pub type_id: TypeId,
     pub kind: CheckedBinderKind,
 }

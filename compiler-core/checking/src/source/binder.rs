@@ -276,8 +276,7 @@ where
                     item_id: *term_id,
                     arguments: Arc::from(checked_arguments),
                 };
-                let checked_binder = state.checked.core.allocate_binder(binder_type, kind);
-                state.checked.core.record_binder(binder_id, checked_binder);
+                state.checked.core.allocate_source_binder(binder_id, binder_type, kind);
             }
 
             binder_type
@@ -288,9 +287,11 @@ where
                 BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
                 BinderMode::Check { expected_type, .. } => expected_type,
             };
-            let checked_binder =
-                state.checked.core.allocate_binder(type_id, CheckedBinderKind::Variable);
-            state.checked.core.record_binder(binder_id, checked_binder);
+            state.checked.core.allocate_source_binder(
+                binder_id,
+                type_id,
+                CheckedBinderKind::Variable,
+            );
             type_id
         }
 
@@ -309,13 +310,12 @@ where
             };
 
             if let Some(checked_binder) = state.checked.core.lookup_binder(*binder) {
-                let checked_binder = state
-                    .checked
-                    .core
-                    .allocate_binder(type_id, CheckedBinderKind::Named { binder: checked_binder });
-                state.checked.core.record_binder(binder_id, checked_binder);
+                state.checked.core.allocate_source_binder(
+                    binder_id,
+                    type_id,
+                    CheckedBinderKind::Named { binder: checked_binder },
+                );
             }
-            state.checked.nodes.binders.insert(binder_id, type_id);
 
             type_id
         }
@@ -325,9 +325,11 @@ where
                 BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
                 BinderMode::Check { expected_type, .. } => expected_type,
             };
-            let checked_binder =
-                state.checked.core.allocate_binder(type_id, CheckedBinderKind::Wildcard);
-            state.checked.core.record_binder(binder_id, checked_binder);
+            state.checked.core.allocate_source_binder(
+                binder_id,
+                type_id,
+                CheckedBinderKind::Wildcard,
+            );
             type_id
         }
 
