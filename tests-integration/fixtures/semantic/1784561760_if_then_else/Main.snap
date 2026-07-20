@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+checked :: Boolean -> Int
+checked = \condition -> case condition of
+  true -> 1
+  false -> 2
+
+inferred :: Boolean -> String
+inferred = \condition -> case condition of
+  true -> "yes"
+  false -> "no"

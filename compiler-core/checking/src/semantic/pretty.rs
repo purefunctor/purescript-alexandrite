@@ -565,6 +565,7 @@ where
                 }
             }
             CheckedBinderKind::Wildcard => self.arena.text("_"),
+            CheckedBinderKind::Literal(literal) => self.arena.text(self.literal(literal)),
             CheckedBinderKind::Constructor { file_id, item_id, arguments } => {
                 let constructor = self.item_name(file_id, item_id);
                 if arguments.is_empty() {

@@ -6,7 +6,8 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
 use crate::semantic::{
-    CheckedCaseAlternative, CheckedExpressionKind, CheckedGuardedExpression, CheckedPatternGuard,
+    CheckedBinderKind, CheckedCaseAlternative, CheckedExpressionKind, CheckedGuardedExpression,
+    CheckedLiteral, CheckedPatternGuard,
 };
 use crate::source::terms::{form_let, guarded};
 use crate::source::{binder, terms};
@@ -27,6 +28,7 @@ enum CaseOfMode {
 pub fn infer_if_then_else<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     if_: Option<lowering::ExpressionId>,
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
@@ -34,12 +36,13 @@ pub fn infer_if_then_else<Q>(
 where
     Q: ExternalQueries,
 {
-    if_then_else_core(state, context, if_, then, else_, IfThenElseMode::Infer)
+    if_then_else_core(state, context, expression, if_, then, else_, IfThenElseMode::Infer)
 }
 
 pub fn check_if_then_else<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     if_: Option<lowering::ExpressionId>,
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
@@ -48,12 +51,21 @@ pub fn check_if_then_else<Q>(
 where
     Q: ExternalQueries,
 {
-    if_then_else_core(state, context, if_, then, else_, IfThenElseMode::Check { expected })
+    if_then_else_core(
+        state,
+        context,
+        expression,
+        if_,
+        then,
+        else_,
+        IfThenElseMode::Check { expected },
+    )
 }
 
 fn if_then_else_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    expression: lowering::ExpressionId,
     if_: Option<lowering::ExpressionId>,
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
@@ -79,7 +91,56 @@ where
         super::check_expression(state, context, else_, result_type)?;
     }
 
+    record_if_then_else(state, context.prim.boolean, expression, if_, then, else_, result_type);
+
     Ok(result_type)
+}
+
+fn record_if_then_else(
+    state: &mut CheckState,
+    boolean_type: TypeId,
+    expression: lowering::ExpressionId,
+    if_: Option<lowering::ExpressionId>,
+    then: Option<lowering::ExpressionId>,
+    else_: Option<lowering::ExpressionId>,
+    result_type: TypeId,
+) {
+    let Some(if_) = if_.and_then(|if_| state.checked.core.lookup_expression(if_)) else {
+        return;
+    };
+    let Some(then) = then.and_then(|then| state.checked.core.lookup_expression(then)) else {
+        return;
+    };
+    let Some(else_) = else_.and_then(|else_| state.checked.core.lookup_expression(else_)) else {
+        return;
+    };
+
+    let true_binder = state.checked.core.allocate_synthesized_binder(
+        boolean_type,
+        CheckedBinderKind::Literal(CheckedLiteral::Boolean(true)),
+    );
+    let false_binder = state.checked.core.allocate_synthesized_binder(
+        boolean_type,
+        CheckedBinderKind::Literal(CheckedLiteral::Boolean(false)),
+    );
+    let then_result = CheckedGuardedExpression { guards: Arc::from([]), expression: then };
+    let else_result = CheckedGuardedExpression { guards: Arc::from([]), expression: else_ };
+    let alternatives = [
+        CheckedCaseAlternative {
+            binders: Arc::from([true_binder]),
+            results: Arc::from([then_result]),
+        },
+        CheckedCaseAlternative {
+            binders: Arc::from([false_binder]),
+            results: Arc::from([else_result]),
+        },
+    ];
+    let kind = CheckedExpressionKind::Case {
+        scrutinees: Arc::from([if_]),
+        alternatives: Arc::from(alternatives),
+    };
+    let checked_expression = state.checked.core.allocate_expression(result_type, kind);
+    state.checked.core.record_expression(expression, checked_expression);
 }
 
 pub fn infer_lambda<Q>(

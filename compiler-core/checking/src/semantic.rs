@@ -260,6 +260,7 @@ pub enum CheckedBinderKind {
     Variable,
     Named { binder: CheckedBinderId },
     Wildcard,
+    Literal(CheckedLiteral),
     Constructor { file_id: FileId, item_id: TermItemId, arguments: Arc<[CheckedBinderId]> },
     Error,
 }

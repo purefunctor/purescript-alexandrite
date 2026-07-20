@@ -125,7 +125,7 @@ where
             forms::check_lambda(state, context, expression, binders, *body, expected)
         }
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            forms::check_if_then_else(state, context, *if_, *then, *else_, expected)
+            forms::check_if_then_else(state, context, expression, *if_, *then, *else_, expected)
         }
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
             forms::check_case_of(state, context, expression, trunk, branches, expected)
@@ -293,7 +293,7 @@ where
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            forms::infer_if_then_else(state, context, *if_, *then, *else_)
+            forms::infer_if_then_else(state, context, expression, *if_, *then, *else_)
         }
 
         lowering::ExpressionKind::LetIn { bindings, expression } => {
