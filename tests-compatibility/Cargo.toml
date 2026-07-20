@@ -34,6 +34,7 @@ url = "2.5.7"
 walkdir = "2.5.0"
 
 [dev-dependencies]
+analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 tempfile = "3"
 
 [[bench]]
@@ -50,4 +51,8 @@ harness = false
 
 [[bench]]
 name = "checking_multi_core"
+harness = false
+
+[[bench]]
+name = "diagnostics_positions"
 harness = false
