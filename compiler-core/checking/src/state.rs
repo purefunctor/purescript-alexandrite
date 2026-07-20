@@ -53,6 +53,7 @@ pub struct UnificationEntry {
 #[derive(Debug, Default)]
 pub struct Unifications {
     entries: Vec<UnificationEntry>,
+    solved: Vec<u32>,
     unique: u32,
 }
 
@@ -75,7 +76,17 @@ impl Unifications {
     }
 
     pub fn solve(&mut self, index: u32, solution: TypeId) {
-        self.get_mut(index).state = UnificationState::Solved(solution);
+        let entry = self.get_mut(index);
+        let newly_solved = matches!(entry.state, UnificationState::Unsolved);
+        entry.state = UnificationState::Solved(solution);
+
+        if newly_solved {
+            self.solved.push(index);
+        }
+    }
+
+    pub fn take_solved(&mut self) -> Vec<u32> {
+        mem::take(&mut self.solved)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &UnificationEntry> {
@@ -355,5 +366,27 @@ impl CheckState {
 
     pub fn allocate_wildcard(&mut self, t: TypeId) -> PatternId {
         self.allocate_pattern(PatternKind::Wildcard, t)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::{Depth, TypeId, Unifications};
+
+    fn type_id(id: u32) -> TypeId {
+        TypeId::new(NonZeroU32::new(id).unwrap())
+    }
+
+    #[test]
+    fn solved_notifications_only_report_transitions() {
+        let mut unifications = Unifications::default();
+        let id = unifications.fresh(Depth(0), type_id(1));
+
+        unifications.solve(id, type_id(2));
+        unifications.solve(id, type_id(3));
+
+        assert_eq!(unifications.take_solved(), [id]);
     }
 }

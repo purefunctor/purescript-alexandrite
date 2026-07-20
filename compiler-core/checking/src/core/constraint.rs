@@ -29,7 +29,7 @@ use crate::core::fd::{compute_closure, get_functional_dependencies};
 use crate::core::{KindOrType, TypeId, unification};
 use crate::error::{CheckingError, ErrorKind};
 use crate::implication::{ImplicationId, Patterns};
-use crate::state::{CheckState, UnificationState};
+use crate::state::CheckState;
 use crate::{ExternalQueries, Type};
 
 pub fn solve_implication<Q>(
@@ -94,9 +94,127 @@ impl Work {
     }
 }
 
-type Stuck = FxHashMap<u32, Vec<ConstraintInScope>>;
+#[derive(Default)]
+struct Stuck {
+    by_unification: FxHashMap<u32, Vec<ConstraintInScope>>,
+    by_constraint: FxHashMap<ConstraintInScope, StuckConstraint>,
+    next_order: usize,
+    entries: usize,
+}
+
+struct StuckConstraint {
+    blockers: FxHashSet<u32>,
+    order: usize,
+}
+
+impl Stuck {
+    fn register(
+        &mut self,
+        constraint: ConstraintInScope,
+        blockers: FxHashSet<u32>,
+        statistics: &mut WakeStatistics,
+    ) {
+        let order = self.next_order;
+        self.next_order += 1;
+
+        let entry = self
+            .by_constraint
+            .entry(constraint.clone())
+            .or_insert_with(|| StuckConstraint { blockers: FxHashSet::default(), order });
+
+        for blocker in blockers {
+            if !entry.blockers.insert(blocker) {
+                statistics.duplicate_registrations += 1;
+                continue;
+            }
+
+            self.by_unification.entry(blocker).or_default().push(constraint.clone());
+            self.entries += 1;
+        }
+
+        statistics.peak_stuck_entries = statistics.peak_stuck_entries.max(self.entries);
+    }
+
+    fn wake(
+        &mut self,
+        solved: Vec<u32>,
+        statistics: &mut WakeStatistics,
+    ) -> Vec<ConstraintInScope> {
+        let mut awake = FxHashSet::default();
+
+        for id in solved {
+            statistics.solved_ids_examined += 1;
+            statistics.stuck_keys_scanned += 1;
+
+            let Some(constraints) = self.by_unification.remove(&id) else { continue };
+            statistics.stuck_entries_scanned += constraints.len();
+            awake.extend(constraints);
+        }
+
+        let mut awake = awake
+            .into_iter()
+            .filter_map(|constraint| {
+                let entry = self.by_constraint.remove(&constraint)?;
+                self.entries -= entry.blockers.len();
+
+                for blocker in &entry.blockers {
+                    let Some(constraints) = self.by_unification.get_mut(blocker) else { continue };
+                    statistics.stuck_entries_scanned += constraints.len();
+                    constraints.retain(|registered| registered != &constraint);
+                    if constraints.is_empty() {
+                        self.by_unification.remove(blocker);
+                    }
+                }
+
+                Some((entry.order, constraint))
+            })
+            .collect_vec();
+        awake.sort_unstable_by_key(|(order, _)| *order);
+        statistics.awakened_constraints += awake.len();
+
+        let awake = awake.into_iter().map(|(_, constraint)| constraint);
+        awake.collect()
+    }
+
+    fn into_constraints(self) -> Vec<ConstraintInScope> {
+        let mut constraints = ConstraintSet::default();
+        for registered in self.by_unification.into_values() {
+            constraints.extend(registered);
+        }
+        constraints.into_iter().collect()
+    }
+}
+
 type ConstraintSet = IndexSet<ConstraintInScope, FxBuildHasher>;
 type Skolem = Vec<ConstraintInScope>;
+
+#[derive(Default)]
+struct WakeStatistics {
+    wake_calls: usize,
+    solved_ids_examined: usize,
+    stuck_keys_scanned: usize,
+    stuck_entries_scanned: usize,
+    duplicate_registrations: usize,
+    awakened_constraints: usize,
+    peak_stuck_entries: usize,
+}
+
+impl Drop for WakeStatistics {
+    fn drop(&mut self) {
+        if std::env::var_os("ALEXANDRITE_PROFILE_CONSTRAINT_WAKE").is_some() {
+            eprintln!(
+                "constraint-wake wake_calls={} solved_ids_examined={} stuck_keys_scanned={} stuck_entries_scanned={} duplicate_registrations={} awakened_constraints={} peak_stuck_entries={}",
+                self.wake_calls,
+                self.solved_ids_examined,
+                self.stuck_keys_scanned,
+                self.stuck_entries_scanned,
+                self.duplicate_registrations,
+                self.awakened_constraints,
+                self.peak_stuck_entries,
+            );
+        }
+    }
+}
 
 fn is_improving_constraint<Q>(
     state: &mut CheckState,
@@ -140,31 +258,14 @@ where
     Ok(false)
 }
 
-fn wake_constraints(work: &mut Work, stuck: &mut Stuck, state: &CheckState) {
-    let mut awake = ConstraintSet::default();
-
-    stuck.retain(|&id, constraints| {
-        if let UnificationState::Solved(_) = state.unifications.get(id).state {
-            awake.extend(constraints.iter().cloned());
-            false
-        } else {
-            true
-        }
-    });
-
-    if awake.is_empty() {
-        return;
-    }
-
-    // For each constraint in the constraint set;
-    for constraints in stuck.values_mut() {
-        // keep only the constraints that are not awake;
-        constraints.retain(|constraint| !awake.contains(constraint));
-    }
-
-    // and keep only the non-empty constraint sets.
-    stuck.retain(|_, constraints| !constraints.is_empty());
-
+fn wake_constraints(
+    work: &mut Work,
+    stuck: &mut Stuck,
+    solved: Vec<u32>,
+    statistics: &mut WakeStatistics,
+) {
+    statistics.wake_calls += 1;
+    let awake = stuck.wake(solved, statistics);
     work.extend_constraints(awake);
 }
 
@@ -180,15 +281,17 @@ where
     let mut stuck = Stuck::default();
     let mut skolem = Skolem::default();
     let mut residuals = vec![];
+    let mut wake_statistics = WakeStatistics::default();
+    state.unifications.take_solved();
 
     'work: loop {
-        let mut has_unification = false;
         for (t1, t2) in mem::take(&mut work.unifications) {
-            has_unification |= unification::unify(state, context, t1, t2)?;
+            unification::unify(state, context, t1, t2)?;
         }
 
-        if has_unification {
-            wake_constraints(&mut work, &mut stuck, state);
+        let solved = state.unifications.take_solved();
+        if !solved.is_empty() {
+            wake_constraints(&mut work, &mut stuck, solved, &mut wake_statistics);
             work.extend_constraints(mem::take(&mut skolem));
         }
 
@@ -271,19 +374,14 @@ where
                 residuals.push(constraint);
             }
         } else {
-            for id in blocked {
-                let constraint = ConstraintInScope::clone(&constraint);
-                stuck.entry(id).or_default().push(constraint);
-            }
+            stuck.register(constraint, blocked, &mut wake_statistics);
         }
     }
 
     let mut unique_residuals = ConstraintSet::default();
     unique_residuals.extend(residuals);
 
-    for (_, constraints) in stuck {
-        unique_residuals.extend(constraints);
-    }
+    unique_residuals.extend(stuck.into_constraints());
     unique_residuals.extend(skolem);
 
     Ok(unique_residuals.into_iter().collect())
@@ -435,4 +533,71 @@ where
     }
 
     Ok(constraints)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::{
+        CanonicalConstraintId, ConstraintInScope, Stuck, WakeStatistics, Work, wake_constraints,
+    };
+    use rustc_hash::FxHashSet;
+
+    fn constraint(id: u32) -> ConstraintInScope {
+        let wanted = CanonicalConstraintId::new(NonZeroU32::new(id).unwrap());
+        ConstraintInScope { given: [].into(), wanted }
+    }
+
+    #[test]
+    fn many_blockers_only_examine_solved_wait_lists() {
+        const BLOCKERS: u32 = 1_000;
+
+        let mut stuck = Stuck::default();
+        let mut statistics = WakeStatistics::default();
+
+        for blocker in 0..BLOCKERS {
+            stuck.register(
+                constraint(blocker + 1),
+                FxHashSet::from_iter([blocker]),
+                &mut statistics,
+            );
+        }
+
+        let mut work = Work::new(Default::default());
+        for blocker in (0..BLOCKERS).rev() {
+            wake_constraints(&mut work, &mut stuck, vec![blocker], &mut statistics);
+            assert!(work.unclassified.pop_front() == Some(constraint(blocker + 1)));
+        }
+
+        assert_eq!(statistics.wake_calls, BLOCKERS as usize);
+        assert_eq!(statistics.solved_ids_examined, BLOCKERS as usize);
+        assert_eq!(statistics.stuck_keys_scanned, BLOCKERS as usize);
+        assert_eq!(statistics.stuck_entries_scanned, BLOCKERS as usize);
+        assert_eq!(statistics.awakened_constraints, BLOCKERS as usize);
+        assert_eq!(statistics.peak_stuck_entries, BLOCKERS as usize);
+        assert!(stuck.into_constraints().is_empty());
+    }
+
+    #[test]
+    fn multiple_solved_blockers_requeue_each_constraint_once_in_registration_order() {
+        let first = constraint(1);
+        let second = constraint(2);
+        let mut stuck = Stuck::default();
+        let mut statistics = WakeStatistics::default();
+
+        stuck.register(first.clone(), FxHashSet::from_iter([10, 20]), &mut statistics);
+        stuck.register(second.clone(), FxHashSet::from_iter([20]), &mut statistics);
+        stuck.register(first.clone(), FxHashSet::from_iter([10, 20]), &mut statistics);
+
+        let mut work = Work::new(Default::default());
+        wake_constraints(&mut work, &mut stuck, vec![20, 10], &mut statistics);
+        let awake = work.unclassified.into_iter().collect::<Vec<_>>();
+
+        assert!(awake == [first, second]);
+        assert_eq!(statistics.wake_calls, 1);
+        assert_eq!(statistics.duplicate_registrations, 2);
+        assert_eq!(statistics.awakened_constraints, 2);
+        assert!(stuck.into_constraints().is_empty());
+    }
 }
