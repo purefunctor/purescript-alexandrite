@@ -29,4 +29,9 @@ tracing = "0.1.44"
 url = "2.5.7"
 
 [dev-dependencies]
+criterion = "0.6.0"
 insta = "1.45.1"
+
+[[bench]]
+name = "position"
+harness = false

@@ -71,9 +71,9 @@ fn collect_diagnostics_core(
         all_diagnostics.extend(error.to_diagnostics(&context));
     }
 
+    let position_converter = position::PositionConverter::new(&content);
     let to_position = |offset: u32| {
-        let position = position::offset_to_utf8_position(&content, TextSize::from(offset))?;
-        position::utf8_position_to_protocol(&content, position, snapshot.position_encoding)
+        position_converter.offset_to_protocol(TextSize::from(offset), snapshot.position_encoding)
     };
 
     let diagnostics = all_diagnostics

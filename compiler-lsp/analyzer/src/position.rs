@@ -50,6 +50,34 @@ pub struct Utf8Range {
     pub end: Utf8Position,
 }
 
+pub struct PositionConverter {
+    line_index: LineIndex,
+}
+
+impl PositionConverter {
+    pub fn new(content: &str) -> PositionConverter {
+        let line_index = LineIndex::new(content);
+        PositionConverter { line_index }
+    }
+
+    pub fn offset_to_protocol(
+        &self,
+        offset: TextSize,
+        encoding: PositionEncoding,
+    ) -> Option<lsp_types::Position> {
+        let line_col = self.line_index.try_line_col(offset)?;
+        let position = match encoding.wide() {
+            None => lsp_types::Position { line: line_col.line, character: line_col.col },
+            Some(encoding) => {
+                let line_col = self.line_index.to_wide(encoding, line_col)?;
+                lsp_types::Position { line: line_col.line, character: line_col.col }
+            }
+        };
+
+        Some(position)
+    }
+}
+
 pub fn protocol_position_to_utf8(
     content: &str,
     position: lsp_types::Position,
@@ -248,9 +276,18 @@ mod tests {
     use syntax::TextSize;
 
     use super::{
-        PositionEncoding, Utf8Position, offset_to_utf8_position, protocol_position_to_utf8,
-        utf8_position_to_offset, utf8_position_to_protocol,
+        PositionConverter, PositionEncoding, Utf8Position, offset_to_utf8_position,
+        protocol_position_to_utf8, utf8_position_to_offset, utf8_position_to_protocol,
     };
+
+    fn offset_to_protocol(
+        content: &str,
+        offset: TextSize,
+        encoding: PositionEncoding,
+    ) -> Option<Position> {
+        let position = offset_to_utf8_position(content, offset)?;
+        utf8_position_to_protocol(content, position, encoding)
+    }
 
     #[test]
     fn utf16_protocol_position_maps_to_utf8_column() {
@@ -320,5 +357,20 @@ mod tests {
         let position =
             protocol_position_to_utf8(content, position, PositionEncoding::Utf16).unwrap();
         assert_eq!(position, Utf8Position { line: 0, column: 3 });
+    }
+
+    #[test]
+    fn reusable_converter_matches_existing_offset_conversion() {
+        let content = "ascii\r\na😀b\n𐐀z";
+        let converter = PositionConverter::new(content);
+
+        for encoding in [PositionEncoding::Utf8, PositionEncoding::Utf16, PositionEncoding::Utf32] {
+            for offset in 0..=content.len() as u32 + 1 {
+                let offset = TextSize::new(offset);
+                let existing = offset_to_protocol(content, offset, encoding);
+                let reused = converter.offset_to_protocol(offset, encoding);
+                assert_eq!(reused, existing, "{encoding:?} at byte offset {offset:?}");
+            }
+        }
     }
 }

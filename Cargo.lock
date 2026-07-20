@@ -30,6 +30,7 @@ dependencies = [
  "async-lsp",
  "building",
  "checking",
+ "criterion",
  "files",
  "indexing",
  "insta",
