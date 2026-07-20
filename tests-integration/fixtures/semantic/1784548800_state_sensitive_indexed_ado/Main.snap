@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+data Quadruple (a :: Type) (b :: Type) (c :: Type) (d :: Type) = Quadruple ((a :: Type)) ((b :: Type)) ((c :: Type)) ((d :: Type))
+
+indexed :: Render 0 4 (Quadruple Unit Unit Unit Unit)
+indexed = <unimplemented>

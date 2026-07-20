@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+missingAction :: Box Int
+missingAction = <unimplemented>
+
+missingFinalAction :: Box Int
+missingFinalAction = <unimplemented>
+
+localLet :: Box Int
+localLet = <unimplemented>
+
+finalBind :: Box Int
+finalBind = <unimplemented>
+
+finalLet :: Box Int
+finalLet = <unimplemented>
+
+empty :: ?[empty do block]
+empty = <unimplemented>
+
+partialApplication :: ?[invalid function application]
+partialApplication = <unimplemented>

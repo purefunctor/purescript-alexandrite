@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
+
+test :: Box (Pair Int String)
+test = <unimplemented>
+
+discard :: Box String
+discard = <unimplemented>
+
+pureAdo :: forall (t :: Type -> Type). Rebindable (t :: Type -> Type) => (t :: Type -> Type) Int
+pureAdo = <unimplemented>
+
+indexed :: Render Start (Use2 (Use1 Start)) (Pair Unit Unit)
+indexed = <unimplemented>
+
+indexedPure :: forall (hooks :: Type). Render (hooks :: Type) (hooks :: Type) Int
+indexedPure = <unimplemented>

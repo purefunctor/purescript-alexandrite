@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
+
+test :: Box (Pair Int String)
+test = <unimplemented>
+
+indexed :: Render Start (Use2 (Use1 Start)) Unit
+indexed = <unimplemented>

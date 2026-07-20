@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
+
+missingAction :: Box (Pair Int String)
+missingAction = <unimplemented>
+
+soleMissingAction :: Box Int
+soleMissingAction = <unimplemented>
+
+localLet :: Box (Pair Int String)
+localLet = <unimplemented>
+
+missingIn :: Box Int
+missingIn = <unimplemented>
+
+pureLet :: Box Int
+pureLet = <unimplemented>
+
+empty :: ?[empty ado block]
+empty = <unimplemented>
+
+partialApplication :: ?[invalid function application]
+partialApplication = <unimplemented>
+
+errorApplication :: ?[invalid function application]
+errorApplication = <unimplemented>
+
+partialApplyApplication :: ?[invalid function application]
+partialApplyApplication = <unimplemented>
+
+errorApplyApplication :: ?[invalid function application]
+errorApplyApplication = <unimplemented>
+
+errorPureApplication :: ?[invalid function application]
+errorPureApplication = <unimplemented>
