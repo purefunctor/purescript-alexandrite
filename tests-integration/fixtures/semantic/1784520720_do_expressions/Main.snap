@@ -8,7 +8,8 @@ module Main where
 data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
 
 test :: Box (Pair Int String)
-test = <unimplemented>
+test = bind @{rebindableBox} boxedInt
+  (\value -> discard @{rebindableBox} boxedString (\_ -> pure @{rebindableBox} (Pair value "done")))
 
 indexed :: Render Start (Use2 (Use1 Start)) Unit
-indexed = <unimplemented>
+indexed = bind use1 (\first -> discard use2 (\_ -> pure first))

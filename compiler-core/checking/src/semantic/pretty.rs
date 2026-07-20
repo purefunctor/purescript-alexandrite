@@ -3,7 +3,7 @@
 use files::FileId;
 use indexing::{TermItemId, TermItemKind};
 use itertools::Itertools;
-use lowering::{BinderKind, TermVariableResolution};
+use lowering::{BinderKind, GraphNode, LetBindingNameGroupId, TermVariableResolution};
 use pretty::{Arena, DocAllocator, DocBuilder};
 use smol_str::{SmolStr, SmolStrBuilder};
 
@@ -13,8 +13,11 @@ use crate::evidence::{
     ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
 };
 use crate::semantic::{
-    CheckedBinderId, CheckedBinderKind, CheckedCaseAlternative, CheckedExpressionId,
-    CheckedExpressionKind, CheckedGuardedExpression, CheckedLiteral, CheckedPatternGuard,
+    CheckedAdoExpression, CheckedAdoStep, CheckedBinaryApplication, CheckedBinderId,
+    CheckedBinderKind, CheckedBlockStatement, CheckedCaseAlternative, CheckedDoExpression,
+    CheckedDoStep, CheckedExpressionId, CheckedExpressionKind, CheckedGuardedExpression,
+    CheckedLetBinding, CheckedLetStatement, CheckedLiteral, CheckedPatternGuard,
+    CheckedUnaryApplication,
 };
 use crate::{CheckedModule, PrettyQueries, TypeId};
 
@@ -165,28 +168,28 @@ where
             CheckedExpressionKind::Literal { literal } => {
                 (self.arena.text(self.literal(literal)), Precedence::Atom)
             }
+            CheckedExpressionKind::Error => (self.arena.text("<error>"), Precedence::Atom),
+            CheckedExpressionKind::Do { expression } => {
+                (self.do_expression(&expression), Precedence::Abstraction)
+            }
+            CheckedExpressionKind::Ado { expression } => {
+                (self.ado_expression(&expression), Precedence::Abstraction)
+            }
             CheckedExpressionKind::Case { scrutinees, alternatives } => {
                 let document = self.case_expression(&scrutinees, &alternatives);
                 (document, Precedence::Abstraction)
             }
             CheckedExpressionKind::Lambda { binders, expression } => {
                 let binders = binders.iter().map(|binder_id| self.binder(*binder_id));
-                let binders = binders.collect::<Vec<_>>();
-                let binders = self.separated_by_space(binders).group();
+                let binders = binders.collect_vec();
                 let expression = self.expression(expression, Precedence::Abstraction);
-                let document = self
-                    .arena
-                    .text("\\")
-                    .append(binders)
-                    .append(self.arena.text(" -> "))
-                    .append(expression);
+                let document = self.lambda_document(binders, expression);
                 (document, Precedence::Abstraction)
             }
             CheckedExpressionKind::TermApplication { function, argument } => {
                 let function = self.expression(function, Precedence::Application);
                 let argument = self.expression(argument, Precedence::Atom);
-                let argument = self.arena.line().append(argument).nest(2);
-                let application = function.append(argument).group();
+                let application = self.term_application(function, argument);
                 (application, Precedence::Application)
             }
             CheckedExpressionKind::TypeApplication { function, argument } => {
@@ -199,18 +202,7 @@ where
             }
             CheckedExpressionKind::EvidenceApplication { expression, evidence } => {
                 let expression = self.expression(expression, Precedence::Application);
-                let evidence =
-                    evidence.iter().map(|evidence_id| self.evidence_variable(*evidence_id));
-                let evidence = evidence.collect::<Vec<_>>();
-                let evidence = self.separated_by_comma(evidence).group();
-                let argument = self
-                    .arena
-                    .line()
-                    .append(self.arena.text("@{"))
-                    .append(evidence)
-                    .append(self.arena.text("}"))
-                    .nest(2);
-                let application = expression.append(argument).group();
+                let application = self.evidence_application(expression, &evidence);
                 (application, Precedence::Application)
             }
             CheckedExpressionKind::EvidenceAbstraction { binders, expression } => {
@@ -229,6 +221,212 @@ where
         };
 
         self.parenthesize_if(precedence < outer, document)
+    }
+
+    fn do_expression(&mut self, expression: &CheckedDoExpression) -> Doc<'arena> {
+        let mut continuation =
+            self.expression(expression.final_expression, Precedence::Abstraction);
+
+        for step in expression.steps.iter().rev() {
+            match step {
+                CheckedDoStep::Bind { binder, expression, application, .. }
+                | CheckedDoStep::Discard { binder, expression, application, .. } => {
+                    let binder = self.binder(*binder);
+                    let lambda = self.lambda_document(vec![binder], continuation);
+                    let lambda = self.parenthesize_if(true, lambda);
+                    let action = self.expression(*expression, Precedence::Atom);
+                    continuation = self.binary_application(application, action, lambda);
+                }
+                CheckedDoStep::Statement(statement) => {
+                    continuation = self.block_statement(statement, continuation);
+                }
+            }
+        }
+
+        continuation
+    }
+
+    fn ado_expression(&mut self, expression: &CheckedAdoExpression) -> Doc<'arena> {
+        match expression {
+            CheckedAdoExpression::Pure { statements, expression, application } => {
+                let argument = self.expression(*expression, Precedence::Atom);
+                let mut application = self.unary_application(application, argument);
+                for statement in statements.iter().rev() {
+                    application = self.block_statement(statement, application);
+                }
+                application
+            }
+            CheckedAdoExpression::Error { statements, .. } => {
+                let mut recovery = self.arena.text("<error-ado>");
+                for statement in statements.iter().rev() {
+                    recovery = self.block_statement(statement, recovery);
+                }
+                recovery
+            }
+            CheckedAdoExpression::Actions { steps, expression, .. } => {
+                let binders = steps.iter().filter_map(|step| match step {
+                    CheckedAdoStep::Map { binder, .. } | CheckedAdoStep::Apply { binder, .. } => {
+                        Some(self.binder(*binder))
+                    }
+                    CheckedAdoStep::Statement(_) => None,
+                });
+                let binders = binders.collect_vec();
+                let mut body = self.expression(*expression, Precedence::Abstraction);
+                for step in steps.iter().rev() {
+                    if let CheckedAdoStep::Statement(statement) = step {
+                        body = self.block_statement(statement, body);
+                    }
+                }
+                let lambda = self.lambda_document(binders, body);
+                let mut continuation = self.parenthesize_if(true, lambda);
+
+                for step in steps.iter() {
+                    let (action, application, parenthesize_continuation) = match step {
+                        CheckedAdoStep::Map { expression, application, .. } => {
+                            (*expression, application, false)
+                        }
+                        CheckedAdoStep::Apply { expression, application, .. } => {
+                            (*expression, application, true)
+                        }
+                        CheckedAdoStep::Statement(_) => continue,
+                    };
+                    if parenthesize_continuation {
+                        continuation = self.parenthesize_if(true, continuation);
+                    }
+                    let action = self.expression(action, Precedence::Atom);
+                    continuation = self.binary_application(application, continuation, action);
+                }
+                continuation
+            }
+        }
+    }
+
+    fn block_statement(
+        &mut self,
+        statement: &CheckedBlockStatement,
+        continuation: Doc<'arena>,
+    ) -> Doc<'arena> {
+        match statement {
+            CheckedBlockStatement::Let(statement) => {
+                self.let_statement(statement).append(self.arena.text(" in ")).append(continuation)
+            }
+            CheckedBlockStatement::Error(_) => {
+                self.arena.text("<error-statement>; ").append(continuation)
+            }
+        }
+    }
+
+    fn let_statement(&mut self, statement: &CheckedLetStatement) -> Doc<'arena> {
+        let bindings = statement.bindings.iter().map(|binding| match binding {
+            CheckedLetBinding::Pattern { binder: Some(binder) } => self.binder(*binder),
+            CheckedLetBinding::Pattern { binder: None } => self.arena.text("<missing-pattern>"),
+            CheckedLetBinding::Name { binding, type_id } => {
+                let name = self.let_binding_name(*binding);
+                let type_document = self.type_document(*type_id);
+                self.arena.text(name).append(self.arena.text(" :: ")).append(type_document)
+            }
+        });
+        let bindings = bindings.collect_vec();
+        let bindings = self.separated_by_comma(bindings);
+        self.arena.text("let { ").append(bindings).append(self.arena.text(" }")).group()
+    }
+
+    fn binary_application(
+        &mut self,
+        application: &CheckedBinaryApplication,
+        first: Doc<'arena>,
+        second: Doc<'arena>,
+    ) -> Doc<'arena> {
+        match application {
+            CheckedBinaryApplication::Complete {
+                function,
+                first: first_step,
+                second: second_step,
+            } => {
+                let function = self.expression(*function, Precedence::Application);
+                let function = self.evidence_application(function, &first_step.evidence);
+                let partial = self.term_application(function, first);
+                let partial = self.evidence_application(partial, &second_step.evidence);
+                self.term_application(partial, second)
+            }
+            CheckedBinaryApplication::Partial { function, first: first_step } => {
+                let function = self.expression(*function, Precedence::Application);
+                let function = self.evidence_application(function, &first_step.evidence);
+                let partial = self.term_application(function, first);
+                self.arena
+                    .text("<partial-application ")
+                    .append(partial)
+                    .append(self.arena.text(" "))
+                    .append(second)
+                    .append(self.arena.text(">"))
+            }
+            CheckedBinaryApplication::Error { function } => {
+                let function = self.expression(*function, Precedence::Application);
+                self.arena
+                    .text("<error-application ")
+                    .append(function)
+                    .append(self.arena.text(" "))
+                    .append(first)
+                    .append(self.arena.text(" "))
+                    .append(second)
+                    .append(self.arena.text(">"))
+            }
+        }
+    }
+
+    fn unary_application(
+        &mut self,
+        application: &CheckedUnaryApplication,
+        argument: Doc<'arena>,
+    ) -> Doc<'arena> {
+        match application {
+            CheckedUnaryApplication::Complete { function, application } => {
+                let function = self.expression(*function, Precedence::Application);
+                let function = self.evidence_application(function, &application.evidence);
+                self.term_application(function, argument)
+            }
+            CheckedUnaryApplication::Error { function } => {
+                let function = self.expression(*function, Precedence::Application);
+                self.arena
+                    .text("<error-application ")
+                    .append(function)
+                    .append(self.arena.text(" "))
+                    .append(argument)
+                    .append(self.arena.text(">"))
+            }
+        }
+    }
+
+    fn evidence_application(
+        &mut self,
+        expression: Doc<'arena>,
+        evidence: &[EvidenceVarId],
+    ) -> Doc<'arena> {
+        if evidence.is_empty() {
+            return expression;
+        }
+
+        let evidence = evidence.iter().map(|evidence_id| self.evidence_variable(*evidence_id));
+        let evidence = evidence.collect_vec();
+        let evidence = self.separated_by_comma(evidence).group();
+        let argument = self
+            .arena
+            .line()
+            .append(self.arena.text("@{"))
+            .append(evidence)
+            .append(self.arena.text("}"))
+            .nest(2);
+        expression.append(argument).group()
+    }
+
+    fn term_application(&self, function: Doc<'arena>, argument: Doc<'arena>) -> Doc<'arena> {
+        let argument = self.arena.line().append(argument).nest(2);
+        function.append(argument).group()
+    }
+
+    fn lambda_document(&self, binders: Vec<Doc<'arena>>, expression: Doc<'arena>) -> Doc<'arena> {
+        let binders = self.separated_by_space(binders).group();
+        self.arena.text("\\").append(binders).append(self.arena.text(" -> ")).append(expression)
     }
 
     fn case_expression(
@@ -315,14 +513,26 @@ where
     fn variable(&self, variable: TermVariableResolution) -> String {
         match variable {
             TermVariableResolution::Binder(binder) => self.binder_name(binder),
-            TermVariableResolution::Let(binding) => {
-                format!("let{}", binding.into_raw().into_u32())
-            }
+            TermVariableResolution::Let(binding) => self.let_binding_name(binding),
             TermVariableResolution::RecordPun(pun) => {
                 format!("pun{}", pun.into_raw().get())
             }
             TermVariableResolution::Reference(file_id, item_id) => self.item_name(file_id, item_id),
         }
+    }
+
+    fn let_binding_name(&self, binding: LetBindingNameGroupId) -> String {
+        let graph_node = self.lowered.nodes.let_node(binding);
+        graph_node
+            .and_then(|graph_node| match &self.lowered.graph[graph_node] {
+                GraphNode::Let { bindings, .. } => {
+                    bindings.iter().find_map(|(name, &candidate)| {
+                        (candidate == binding).then(|| name.to_string())
+                    })
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| "<missing-let-name>".to_string())
     }
 
     fn item_name(&self, file_id: FileId, item_id: TermItemId) -> String {
@@ -370,6 +580,7 @@ where
                     .append(arguments)
                     .append(self.arena.text(")"))
             }
+            CheckedBinderKind::Error => self.arena.text("<error>"),
         }
     }
 

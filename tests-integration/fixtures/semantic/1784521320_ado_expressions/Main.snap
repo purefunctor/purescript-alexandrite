@@ -8,16 +8,16 @@ module Main where
 data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
 
 test :: Box (Pair Int String)
-test = <unimplemented>
+test = apply @{rebindableBox} (map @{rebindableBox} (\left right -> Pair left right) boxedInt) boxedString
 
 discard :: Box String
-discard = <unimplemented>
+discard = apply @{rebindableBox} (map @{rebindableBox} (\_ value -> value) boxedInt) boxedString
 
 pureAdo :: forall (t :: Type -> Type). Rebindable (t :: Type -> Type) => (t :: Type -> Type) Int
-pureAdo = <unimplemented>
+pureAdo = \@{dict0} -> pure @{dict0} 42
 
 indexed :: Render Start (Use2 (Use1 Start)) (Pair Unit Unit)
-indexed = <unimplemented>
+indexed = apply (map (\first second -> Pair first second) use1) use2
 
 indexedPure :: forall (hooks :: Type). Render (hooks :: Type) (hooks :: Type) Int
-indexedPure = <unimplemented>
+indexedPure = pure 42

@@ -9,7 +9,9 @@ use crate::core::substitute::SubstituteName;
 use crate::core::{ForallBinder, Type, TypeId, normalise, unification};
 use crate::error::ErrorKind;
 use crate::evidence::EvidenceVarId;
-use crate::semantic::{CheckedExpressionId, CheckedExpressionKind};
+use crate::semantic::{
+    CheckedApplication, CheckedBinaryApplication, CheckedExpressionId, CheckedExpressionKind,
+};
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -20,15 +22,15 @@ pub struct ApplicationAnalysis {
     pub result: TypeId,
 }
 
-pub struct GenericApplication {
-    pub evidence: Arc<[EvidenceVarId]>,
-    pub argument: TypeId,
-    pub result: TypeId,
+pub(super) enum BinaryApplicationOutcome {
+    Complete { first: CheckedApplication, second: CheckedApplication },
+    Partial { first: CheckedApplication },
+    Error,
 }
 
-pub struct CheckedApplication {
+pub(super) struct InferredBinaryApplication {
     pub type_id: TypeId,
-    pub expression: Option<CheckedExpressionId>,
+    pub outcome: BinaryApplicationOutcome,
 }
 
 struct CheckedTypeApplication {
@@ -138,7 +140,7 @@ pub fn check_generic_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     function: TypeId,
-) -> QueryResult<Option<GenericApplication>>
+) -> QueryResult<Option<CheckedApplication>>
 where
     Q: ExternalQueries,
 {
@@ -151,7 +153,60 @@ where
     let evidence = constraints.into_iter().map(|constraint| state.push_wanted(constraint));
     let evidence = evidence.collect();
 
-    Ok(Some(GenericApplication { evidence, argument, result }))
+    Ok(Some(CheckedApplication { evidence, argument, result }))
+}
+
+pub(super) fn check_binary_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    function_type: TypeId,
+    first_argument_type: TypeId,
+    second_argument_type: TypeId,
+) -> QueryResult<InferredBinaryApplication>
+where
+    Q: ExternalQueries,
+{
+    let Some(first @ CheckedApplication { argument, result, .. }) =
+        check_generic_application(state, context, function_type)?
+    else {
+        let type_id = context.unknown("invalid function application");
+        let outcome = BinaryApplicationOutcome::Error;
+        return Ok(InferredBinaryApplication { type_id, outcome });
+    };
+    unification::subtype(state, context, first_argument_type, argument)?;
+
+    let Some(second @ CheckedApplication { argument, result, .. }) =
+        check_generic_application(state, context, result)?
+    else {
+        let type_id = context.unknown("invalid function application");
+        let outcome = BinaryApplicationOutcome::Partial { first };
+        return Ok(InferredBinaryApplication { type_id, outcome });
+    };
+    unification::subtype(state, context, second_argument_type, argument)?;
+
+    let outcome = BinaryApplicationOutcome::Complete { first, second };
+    Ok(InferredBinaryApplication { type_id: result, outcome })
+}
+
+pub(super) fn record_binary_application(
+    state: &mut CheckState,
+    function: Option<lowering::TermVariableResolution>,
+    function_type: TypeId,
+    outcome: BinaryApplicationOutcome,
+) -> CheckedBinaryApplication {
+    let kind = function.map_or(CheckedExpressionKind::Error, |resolution| {
+        CheckedExpressionKind::Variable { resolution }
+    });
+    let function = state.checked.core.allocate_expression(function_type, kind);
+    match outcome {
+        BinaryApplicationOutcome::Complete { first, second } => {
+            CheckedBinaryApplication::Complete { function, first, second }
+        }
+        BinaryApplicationOutcome::Partial { first } => {
+            CheckedBinaryApplication::Partial { function, first }
+        }
+        BinaryApplicationOutcome::Error => CheckedBinaryApplication::Error { function },
+    }
 }
 
 pub fn check_function_application<Q>(
@@ -189,7 +244,7 @@ pub fn check_core_function_application<Q>(
     function_type: TypeId,
     function_expression: Option<CheckedExpressionId>,
     argument: &lowering::ExpressionArgument,
-) -> QueryResult<CheckedApplication>
+) -> QueryResult<(TypeId, Option<CheckedExpressionId>)>
 where
     Q: ExternalQueries,
 {
@@ -197,7 +252,7 @@ where
         lowering::ExpressionArgument::Type(type_argument) => {
             let Some(type_argument) = type_argument else {
                 let type_id = context.unknown("missing type argument");
-                return Ok(CheckedApplication { type_id, expression: None });
+                return Ok((type_id, None));
             };
             let application = check_core_function_type_application(
                 state,
@@ -210,12 +265,12 @@ where
                 let kind = CheckedExpressionKind::TypeApplication { function, argument };
                 state.checked.core.allocate_expression(application.result, kind)
             });
-            Ok(CheckedApplication { type_id: application.result, expression })
+            Ok((application.result, expression))
         }
         lowering::ExpressionArgument::Term(term_argument) => {
             let Some(term_argument) = term_argument else {
                 let type_id = context.unknown("missing term argument");
-                return Ok(CheckedApplication { type_id, expression: None });
+                return Ok((type_id, None));
             };
             let application = check_core_function_term_application(
                 state,
@@ -235,21 +290,21 @@ fn check_core_function_term_application<Q>(
     function_type: TypeId,
     function_expression: Option<CheckedExpressionId>,
     argument_expression: lowering::ExpressionId,
-) -> QueryResult<CheckedApplication>
+) -> QueryResult<(TypeId, Option<CheckedExpressionId>)>
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { evidence, argument: argument_type, result }) =
+    let Some(CheckedApplication { evidence, argument, result }) =
         check_generic_application(state, context, function_type)?
     else {
         let type_id = context.unknown("invalid function application");
-        return Ok(CheckedApplication { type_id, expression: None });
+        return Ok((type_id, None));
     };
 
     let function_expression = function_expression
-        .map(|function| apply_evidence(state, context, function, argument_type, result, evidence));
+        .map(|function| apply_evidence(state, context, function, argument, result, evidence));
 
-    super::check_expression(state, context, argument_expression, argument_type)?;
+    super::check_expression(state, context, argument_expression, argument)?;
     let argument_expression = state.checked.core.lookup_expression(argument_expression);
     let expression = function_expression.zip(argument_expression);
     let expression = expression.map(|(function, argument)| {
@@ -257,7 +312,7 @@ where
         state.checked.core.allocate_expression(result, kind)
     });
 
-    Ok(CheckedApplication { type_id: result, expression })
+    Ok((result, expression))
 }
 
 pub(crate) fn apply_evidence<Q>(
@@ -291,7 +346,7 @@ pub fn check_function_term_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { argument, result, .. }) =
+    let Some(CheckedApplication { argument, result, .. }) =
         check_generic_application(state, context, function)?
     else {
         return Ok(context.unknown("invalid function application"));
@@ -362,7 +417,7 @@ where
         let Some(element) = element else { return Ok(context.unknown("missing infix element")) };
 
         let tick_type = super::infer_expression(state, context, *tick)?;
-        let Some(GenericApplication { argument, result, .. }) =
+        let Some(CheckedApplication { argument, result, .. }) =
             check_generic_application(state, context, tick_type)?
         else {
             return Ok(context.unknown("invalid function application"));

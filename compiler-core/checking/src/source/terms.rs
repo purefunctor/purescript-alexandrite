@@ -271,28 +271,25 @@ where
         lowering::ExpressionKind::Application { function, arguments } => {
             let Some(function) = function else { return Ok(unknown) };
 
-            let function_type = infer_expression(state, context, *function)?;
-            let function_expression = state.checked.core.lookup_expression(*function);
-            let mut application = application::CheckedApplication {
-                type_id: function_type,
-                expression: function_expression,
-            };
+            let mut function_type = infer_expression(state, context, *function)?;
+            let mut function_expression = state.checked.core.lookup_expression(*function);
 
             for argument in arguments.iter() {
-                application = application::check_core_function_application(
-                    state,
-                    context,
-                    application.type_id,
-                    application.expression,
-                    argument,
-                )?;
+                (function_type, function_expression) =
+                    application::check_core_function_application(
+                        state,
+                        context,
+                        function_type,
+                        function_expression,
+                        argument,
+                    )?;
             }
 
-            if let Some(checked_expression) = application.expression {
+            if let Some(checked_expression) = function_expression {
                 state.checked.core.record_expression(expression, checked_expression);
             }
 
-            Ok(application.type_id)
+            Ok(function_type)
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
@@ -316,11 +313,12 @@ where
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {
-            form_do::infer_do(state, context, *bind, *discard, statements)
+            form_do::infer_do(state, context, expression, *bind, *discard, statements)
         }
 
-        lowering::ExpressionKind::Ado { map, apply, pure, statements, expression } => {
-            form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)
+        lowering::ExpressionKind::Ado { map, apply, pure, statements, expression: body } => {
+            let functions = form_ado::AdoFunctions { map: *map, apply: *apply, pure: *pure };
+            form_ado::infer_ado(state, context, expression, functions, statements, *body)
         }
 
         lowering::ExpressionKind::Constructor { resolution } => {

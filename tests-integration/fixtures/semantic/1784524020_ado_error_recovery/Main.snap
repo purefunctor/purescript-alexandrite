@@ -8,34 +8,34 @@ module Main where
 data Pair (a :: Type) (b :: Type) = Pair ((a :: Type)) ((b :: Type))
 
 missingAction :: Box (Pair Int String)
-missingAction = <unimplemented>
+missingAction = map (\right -> <error-statement>; Pair left right) boxedString
 
 soleMissingAction :: Box Int
-soleMissingAction = <unimplemented>
+soleMissingAction = <error-statement>; <error-ado>
 
 localLet :: Box (Pair Int String)
-localLet = <unimplemented>
+localLet = apply (map (\left right -> let { kept :: Int } in Pair kept right) boxedInt) boxedString
 
 missingIn :: Box Int
-missingIn = <unimplemented>
+missingIn = map (\value -> <error>) boxedInt
 
 pureLet :: Box Int
-pureLet = <unimplemented>
+pureLet = let { value :: Int } in pure value
 
 empty :: ?[empty ado block]
-empty = <unimplemented>
+empty = <error-application <error> <error>>
 
 partialApplication :: ?[invalid function application]
-partialApplication = <unimplemented>
+partialApplication = <partial-application map (\value -> value) boxedInt>
 
 errorApplication :: ?[invalid function application]
-errorApplication = <unimplemented>
+errorApplication = <error-application map (\value -> value) boxedInt>
 
 partialApplyApplication :: ?[invalid function application]
-partialApplyApplication = <unimplemented>
+partialApplyApplication = <partial-application apply (map (\first second -> Pair first second) boxedInt) boxedInt>
 
 errorApplyApplication :: ?[invalid function application]
-errorApplyApplication = <unimplemented>
+errorApplyApplication = <error-application apply (map (\first second -> Pair first second) boxedInt) boxedInt>
 
 errorPureApplication :: ?[invalid function application]
-errorPureApplication = <unimplemented>
+errorPureApplication = <error-application pure 42>

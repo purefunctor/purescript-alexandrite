@@ -8,4 +8,12 @@ module Main where
 data Quadruple (a :: Type) (b :: Type) (c :: Type) (d :: Type) = Quadruple ((a :: Type)) ((b :: Type)) ((c :: Type)) ((d :: Type))
 
 indexed :: Render 0 4 (Quadruple Unit Unit Unit Unit)
-indexed = <unimplemented>
+indexed = apply @{applyAtFallback, <trivial>}
+  (apply @{applyAtTwo, <trivial>}
+    (apply @{applyAtFallback, <trivial>}
+      (map @{mapAtZero, <trivial>}
+        (\first second third fourth -> Quadruple first second third fourth)
+        action)
+      action)
+    action)
+  action

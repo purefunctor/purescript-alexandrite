@@ -8,4 +8,8 @@ module Main where
 data Quadruple (a :: Type) (b :: Type) (c :: Type) (d :: Type) = Quadruple ((a :: Type)) ((b :: Type)) ((c :: Type)) ((d :: Type))
 
 indexed :: Render 0 4 (Quadruple Unit Unit Unit Unit)
-indexed = <unimplemented>
+indexed = bind @{bindAtZero, <trivial>} action
+  (\first -> bind @{bindAtFallback, <trivial>} action
+    (\second -> bind @{bindAtTwo, <trivial>} action
+      (\third -> bind @{bindAtFallback, <trivial>} action
+        (\fourth -> pure (Quadruple first second third fourth)))))

@@ -99,12 +99,125 @@ pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
     Constructor { file_id: FileId, item_id: TermItemId },
     Literal { literal: CheckedLiteral },
+    Error,
+    Do { expression: CheckedDoExpression },
+    Ado { expression: CheckedAdoExpression },
     Case { scrutinees: Arc<[CheckedExpressionId]>, alternatives: Arc<[CheckedCaseAlternative]> },
     Lambda { binders: Arc<[CheckedBinderId]>, expression: CheckedExpressionId },
     TermApplication { function: CheckedExpressionId, argument: CheckedExpressionId },
     TypeApplication { function: CheckedExpressionId, argument: TypeId },
     EvidenceApplication { expression: CheckedExpressionId, evidence: Arc<[EvidenceVarId]> },
     EvidenceAbstraction { binders: Arc<[EvidenceBinderId]>, expression: CheckedExpressionId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedApplication {
+    pub evidence: Arc<[EvidenceVarId]>,
+    pub argument: TypeId,
+    pub result: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedUnaryApplication {
+    Complete { function: CheckedExpressionId, application: CheckedApplication },
+    Error { function: CheckedExpressionId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedBinaryApplication {
+    Complete {
+        function: CheckedExpressionId,
+        first: CheckedApplication,
+        second: CheckedApplication,
+    },
+    Partial {
+        function: CheckedExpressionId,
+        first: CheckedApplication,
+    },
+    Error {
+        function: CheckedExpressionId,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedDoExpression {
+    pub steps: Arc<[CheckedDoStep]>,
+    pub final_expression: CheckedExpressionId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedDoStep {
+    Bind {
+        binder: CheckedBinderId,
+        expression: CheckedExpressionId,
+        continuation_type: TypeId,
+        application: CheckedBinaryApplication,
+    },
+    Discard {
+        binder: CheckedBinderId,
+        expression: CheckedExpressionId,
+        continuation_type: TypeId,
+        application: CheckedBinaryApplication,
+    },
+    Statement(CheckedBlockStatement),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedAdoExpression {
+    Pure {
+        statements: Arc<[CheckedBlockStatement]>,
+        expression: CheckedExpressionId,
+        application: CheckedUnaryApplication,
+    },
+    Error {
+        statements: Arc<[CheckedBlockStatement]>,
+        expression: CheckedExpressionId,
+    },
+    Actions {
+        steps: Arc<[CheckedAdoStep]>,
+        expression: CheckedExpressionId,
+        lambda_type: TypeId,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedAdoStep {
+    Map {
+        binder: CheckedBinderId,
+        expression: CheckedExpressionId,
+        application: CheckedBinaryApplication,
+    },
+    Apply {
+        binder: CheckedBinderId,
+        expression: CheckedExpressionId,
+        application: CheckedBinaryApplication,
+    },
+    Statement(CheckedBlockStatement),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedBlockStatement {
+    Let(CheckedLetStatement),
+    Error(CheckedErrorStatement),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedLetStatement {
+    pub source: lowering::DoStatementId,
+    pub bindings: Arc<[CheckedLetBinding]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedLetBinding {
+    Pattern { binder: Option<CheckedBinderId> },
+    Name { binding: lowering::LetBindingNameGroupId, type_id: TypeId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedErrorStatement {
+    pub source: lowering::DoStatementId,
+    pub binder: Option<CheckedBinderId>,
+    pub expression: Option<CheckedExpressionId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,4 +261,5 @@ pub enum CheckedBinderKind {
     Named { binder: CheckedBinderId },
     Wildcard,
     Constructor { file_id: FileId, item_id: TermItemId, arguments: Arc<[CheckedBinderId]> },
+    Error,
 }

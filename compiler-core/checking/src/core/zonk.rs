@@ -9,7 +9,11 @@ use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
-use crate::semantic::{CheckedBinderId, CheckedExpressionId, CheckedExpressionKind};
+use crate::semantic::{
+    CheckedAdoExpression, CheckedAdoStep, CheckedApplication, CheckedBinaryApplication,
+    CheckedBinderId, CheckedBlockStatement, CheckedDoExpression, CheckedDoStep,
+    CheckedExpressionId, CheckedExpressionKind, CheckedLetBinding,
+};
 use crate::state::CheckState;
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
@@ -103,11 +107,149 @@ where
     let mut expression = state.checked.core.expressions[expression_id].clone();
     expression.type_id = zonk(state, context, expression.type_id)?;
 
-    if let CheckedExpressionKind::TypeApplication { argument, .. } = &mut expression.kind {
-        *argument = zonk(state, context, *argument)?;
+    match &mut expression.kind {
+        CheckedExpressionKind::Do { expression } => {
+            zonk_do_expression(state, context, expression)?;
+        }
+        CheckedExpressionKind::Ado { expression } => {
+            zonk_ado_expression(state, context, expression)?;
+        }
+        CheckedExpressionKind::TypeApplication { argument, .. } => {
+            *argument = zonk(state, context, *argument)?;
+        }
+        _ => (),
     }
 
     state.checked.core.expressions[expression_id] = expression;
+    Ok(())
+}
+
+fn zonk_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    application: &mut CheckedApplication,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    application.argument = zonk(state, context, application.argument)?;
+    application.result = zonk(state, context, application.result)?;
+    Ok(())
+}
+
+fn zonk_binary_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    application: &mut CheckedBinaryApplication,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    match application {
+        CheckedBinaryApplication::Complete { first, second, .. } => {
+            zonk_application(state, context, first)?;
+            zonk_application(state, context, second)?;
+        }
+        CheckedBinaryApplication::Partial { first, .. } => {
+            zonk_application(state, context, first)?;
+        }
+        CheckedBinaryApplication::Error { .. } => (),
+    }
+    Ok(())
+}
+
+fn zonk_do_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    expression: &mut CheckedDoExpression,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for step in Arc::make_mut(&mut expression.steps) {
+        match step {
+            CheckedDoStep::Bind { continuation_type, application, .. }
+            | CheckedDoStep::Discard { continuation_type, application, .. } => {
+                *continuation_type = zonk(state, context, *continuation_type)?;
+                zonk_binary_application(state, context, application)?;
+            }
+            CheckedDoStep::Statement(statement) => {
+                zonk_block_statement(state, context, statement)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn zonk_ado_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    expression: &mut CheckedAdoExpression,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    match expression {
+        CheckedAdoExpression::Pure { statements, application, .. } => {
+            if let crate::semantic::CheckedUnaryApplication::Complete { application, .. } =
+                application
+            {
+                zonk_application(state, context, application)?;
+            }
+            for statement in Arc::make_mut(statements) {
+                zonk_block_statement(state, context, statement)?;
+            }
+        }
+        CheckedAdoExpression::Error { statements, .. } => {
+            for statement in Arc::make_mut(statements) {
+                zonk_block_statement(state, context, statement)?;
+            }
+        }
+        CheckedAdoExpression::Actions { steps, lambda_type, .. } => {
+            *lambda_type = zonk(state, context, *lambda_type)?;
+            for step in Arc::make_mut(steps) {
+                zonk_ado_step(state, context, step)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn zonk_ado_step<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    step: &mut CheckedAdoStep,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    match step {
+        CheckedAdoStep::Map { application, .. } | CheckedAdoStep::Apply { application, .. } => {
+            zonk_binary_application(state, context, application)?;
+        }
+        CheckedAdoStep::Statement(statement) => {
+            zonk_block_statement(state, context, statement)?;
+        }
+    }
+    Ok(())
+}
+
+fn zonk_block_statement<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    statement: &mut CheckedBlockStatement,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let CheckedBlockStatement::Let(statement) = statement else {
+        return Ok(());
+    };
+    for binding in Arc::make_mut(&mut statement.bindings) {
+        if let CheckedLetBinding::Name { type_id, .. } = binding {
+            *type_id = zonk(state, context, *type_id)?;
+        }
+    }
     Ok(())
 }
 

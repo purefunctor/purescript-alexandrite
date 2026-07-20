@@ -1,4 +1,5 @@
 use std::iter;
+use std::sync::Arc;
 
 use building_types::QueryResult;
 use itertools::{Itertools, Position};
@@ -7,13 +8,21 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::semantic::{
+    CheckedBinderKind, CheckedBlockStatement, CheckedDoExpression, CheckedDoStep,
+    CheckedErrorStatement, CheckedExpressionId, CheckedExpressionKind,
+};
 use crate::source::binder;
 use crate::source::terms::{application, form_let};
 use crate::state::CheckState;
 
 enum DoStep<'a> {
+    Error {
+        statement: lowering::DoStatementId,
+    },
     Bind {
         statement: lowering::DoStatementId,
+        binder: Option<lowering::BinderId>,
         binder_type: TypeId,
         expression: Option<lowering::ExpressionId>,
     },
@@ -35,9 +44,19 @@ impl DoStep<'_> {
 
 enum DoBlockFinalStep {
     Empty,
-    InvalidBind { statement: lowering::DoStatementId, expression: Option<lowering::ExpressionId> },
-    Discard { expression: Option<lowering::ExpressionId> },
-    InvalidLet { statement: lowering::DoStatementId },
+    InvalidBind {
+        statement: lowering::DoStatementId,
+        binder: Option<lowering::BinderId>,
+        binder_type: TypeId,
+        expression: Option<lowering::ExpressionId>,
+    },
+    Discard {
+        statement: lowering::DoStatementId,
+        expression: Option<lowering::ExpressionId>,
+    },
+    InvalidLet {
+        statement: lowering::DoStatementId,
+    },
 }
 
 impl DoBlockFinalStep {
@@ -148,6 +167,7 @@ where
 pub fn infer_do<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source_expression: lowering::ExpressionId,
     bind: Option<lowering::TermVariableResolution>,
     discard: Option<lowering::TermVariableResolution>,
     statement_id: &[lowering::DoStatementId],
@@ -162,6 +182,7 @@ where
     let mut steps = vec![];
     for &statement_id in statement_id.iter() {
         let Some(statement) = context.lowered.info.get_do_statement(statement_id) else {
+            steps.push(DoStep::Error { statement: statement_id });
             continue;
         };
         match statement {
@@ -173,6 +194,7 @@ where
                 };
                 steps.push(DoStep::Bind {
                     statement: statement_id,
+                    binder: *binder,
                     binder_type,
                     expression: *expression,
                 });
@@ -186,28 +208,35 @@ where
         }
     }
 
-    let final_step = match steps.last() {
-        Some(DoStep::Bind { statement, expression, .. }) => {
-            DoBlockFinalStep::InvalidBind { statement: *statement, expression: *expression }
+    let final_step = match steps.iter().rev().find(|step| !matches!(step, DoStep::Error { .. })) {
+        Some(DoStep::Bind { statement, binder, binder_type, expression }) => {
+            DoBlockFinalStep::InvalidBind {
+                statement: *statement,
+                binder: *binder,
+                binder_type: *binder_type,
+                expression: *expression,
+            }
         }
-        Some(DoStep::Discard { expression, .. }) => {
-            DoBlockFinalStep::Discard { expression: *expression }
+        Some(DoStep::Discard { statement, expression }) => {
+            DoBlockFinalStep::Discard { statement: *statement, expression: *expression }
         }
         Some(DoStep::Let { statement, .. }) => {
             DoBlockFinalStep::InvalidLet { statement: *statement }
         }
+        Some(DoStep::Error { .. }) => unreachable!("error steps were filtered out"),
         None => DoBlockFinalStep::Empty,
     };
 
     let (has_bind_step, has_discard_step) = {
         let mut has_bind = false;
         let mut has_discard = false;
-        for (position, statement) in steps.iter().with_position() {
+        let checked_steps = steps.iter().filter(|step| !matches!(step, DoStep::Error { .. }));
+        for (position, statement) in checked_steps.with_position() {
             let is_final = matches!(position, Position::Last | Position::Only);
             match statement {
                 DoStep::Bind { .. } => has_bind = true,
                 DoStep::Discard { .. } if !is_final => has_discard = true,
-                _ => (),
+                DoStep::Error { .. } | DoStep::Discard { .. } | DoStep::Let { .. } => (),
             }
         }
         (has_bind, has_discard)
@@ -228,27 +257,47 @@ where
     let final_expression = match final_step {
         DoBlockFinalStep::Empty => {
             state.insert_error(ErrorKind::EmptyDoBlock);
-            return Ok(context.unknown("empty do block"));
+            let result_type = context.unknown("empty do block");
+            let checked_steps = steps.iter().filter_map(|step| match step {
+                DoStep::Error { statement } => {
+                    let error = CheckedErrorStatement {
+                        source: *statement,
+                        binder: None,
+                        expression: None,
+                    };
+                    let statement = CheckedBlockStatement::Error(error);
+                    Some(CheckedDoStep::Statement(statement))
+                }
+                DoStep::Bind { .. } | DoStep::Discard { .. } | DoStep::Let { .. } => None,
+            });
+            let checked_steps = checked_steps.collect_vec();
+            let final_expression = allocate_missing_expression(state, result_type);
+            record_do_expression(
+                state,
+                source_expression,
+                checked_steps,
+                final_expression,
+                result_type,
+            );
+            return Ok(result_type);
         }
         // Technically valid, syntactically disallowed. This allows
         // partially-written do expressions to infer, with a friendly
         // warning to nudge the user that `bind` is prohibited.
-        DoBlockFinalStep::InvalidBind { statement, expression } => {
+        DoBlockFinalStep::InvalidBind { statement, expression, .. } => {
             state.with_error_crumb(ErrorCrumb::InferringDoBind(statement), |state| {
                 state.insert_error(ErrorKind::InvalidFinalBind);
             });
-            let Some(expression) = expression else {
+            if expression.is_none() {
                 state.insert_error(ErrorKind::EmptyDoBlock);
-                return Ok(context.unknown("empty do block"));
-            };
-            Some(expression)
+            }
+            expression
         }
-        DoBlockFinalStep::Discard { expression } => {
-            let Some(expression) = expression else {
+        DoBlockFinalStep::Discard { expression, .. } => {
+            if expression.is_none() {
                 state.insert_error(ErrorKind::EmptyDoBlock);
-                return Ok(context.unknown("empty do block"));
-            };
-            Some(expression)
+            }
+            expression
         }
         DoBlockFinalStep::InvalidLet { statement } => {
             state.with_error_crumb(ErrorCrumb::CheckingDoLet(statement), |state| {
@@ -339,47 +388,134 @@ where
     // to the previous approach that emulated desugared checking.
 
     let mut continuations = continuation_types.iter().tuple_windows::<(_, _)>();
+    let mut checked_steps = vec![];
+    let missing_expression_type = context.unknown("missing do expression");
 
     for step in &steps {
         match step {
+            DoStep::Error { statement } => {
+                let error =
+                    CheckedErrorStatement { source: *statement, binder: None, expression: None };
+                let statement = CheckedBlockStatement::Error(error);
+                checked_steps.push(CheckedDoStep::Statement(statement));
+            }
             DoStep::Let { statement, statements } => {
                 state.with_error_crumb(ErrorCrumb::CheckingDoLet(*statement), |state| {
                     form_let::check_let_chunks(state, context, statements)
                 })?;
+                let statement =
+                    form_let::checked_let_statement(state, context, *statement, statements);
+                let statement = CheckedBlockStatement::Let(statement);
+                checked_steps.push(CheckedDoStep::Statement(statement));
             }
-            DoStep::Bind { statement, binder_type, expression } => {
+            DoStep::Bind { statement, binder, binder_type, expression } => {
                 let Some((&now_type, &next_type)) = continuations.next() else {
                     continue;
                 };
-                let Some(expression) = *expression else {
+                let Some(source_expression) = *expression else {
+                    let binder = match binder {
+                        Some(source) => match state.checked.core.lookup_binder(*source) {
+                            Some(binder) => binder,
+                            None => record_malformed_binder(state, *source, *binder_type),
+                        },
+                        None => allocate_missing_binder(state, *binder_type),
+                    };
+                    let expression = allocate_missing_expression(state, missing_expression_type);
+                    let error = CheckedErrorStatement {
+                        source: *statement,
+                        binder: Some(binder),
+                        expression: Some(expression),
+                    };
+                    let statement = CheckedBlockStatement::Error(error);
+                    checked_steps.push(CheckedDoStep::Statement(statement));
                     continue;
                 };
-                state.with_error_crumb(ErrorCrumb::InferringDoBind(*statement), |state| {
-                    let statement_type = infer_do_bind_core(
-                        state,
-                        context,
-                        bind_type,
-                        next_type,
-                        expression,
-                        *binder_type,
-                    )?;
-                    unification::subtype(state, context, statement_type, now_type)?;
-                    Ok(())
-                })?;
+                let inferred =
+                    state.with_error_crumb(ErrorCrumb::InferringDoBind(*statement), |state| {
+                        let inferred = infer_do_bind_core(
+                            state,
+                            context,
+                            bind_type,
+                            next_type,
+                            source_expression,
+                            *binder_type,
+                        )?;
+                        unification::subtype(state, context, inferred.type_id, now_type)?;
+                        Ok(inferred)
+                    })?;
+                let binder = match binder {
+                    Some(source) => match state.checked.core.lookup_binder(*source) {
+                        Some(binder) => binder,
+                        None => record_malformed_binder(state, *source, *binder_type),
+                    },
+                    None => allocate_missing_binder(state, *binder_type),
+                };
+                let expression = match state.checked.core.lookup_expression(source_expression) {
+                    Some(expression) => expression,
+                    None => record_malformed_expression(state, source_expression, now_type),
+                };
+                let application = application::record_binary_application(
+                    state,
+                    bind,
+                    bind_type,
+                    inferred.outcome,
+                );
+                checked_steps.push(CheckedDoStep::Bind {
+                    binder,
+                    expression,
+                    continuation_type: next_type,
+                    application,
+                });
             }
             DoStep::Discard { statement, expression } => {
                 let Some((&now_type, &next_type)) = continuations.next() else {
                     continue;
                 };
-                let Some(expression) = *expression else {
+                let Some(source_expression) = *expression else {
+                    let expression = allocate_missing_expression(state, missing_expression_type);
+                    let error = CheckedErrorStatement {
+                        source: *statement,
+                        binder: None,
+                        expression: Some(expression),
+                    };
+                    let statement = CheckedBlockStatement::Error(error);
+                    checked_steps.push(CheckedDoStep::Statement(statement));
                     continue;
                 };
-                state.with_error_crumb(ErrorCrumb::InferringDoDiscard(*statement), |state| {
-                    let statement_type =
-                        infer_do_discard_core(state, context, discard_type, next_type, expression)?;
-                    unification::subtype(state, context, statement_type, now_type)?;
-                    Ok(())
-                })?;
+                let (binder_type, inferred) = state.with_error_crumb(
+                    ErrorCrumb::InferringDoDiscard(*statement),
+                    |state| {
+                        let (binder_type, inferred) = infer_do_discard_core(
+                            state,
+                            context,
+                            discard_type,
+                            next_type,
+                            source_expression,
+                        )?;
+                        unification::subtype(state, context, inferred.type_id, now_type)?;
+                        Ok((binder_type, inferred))
+                    },
+                )?;
+                let binder = state
+                    .checked
+                    .core
+                    .allocate_synthesized_binder(binder_type, CheckedBinderKind::Wildcard);
+                let expression = match state.checked.core.lookup_expression(source_expression) {
+                    Some(expression) => expression,
+                    None => record_malformed_expression(state, source_expression, now_type),
+                };
+                let application = application::record_binary_application(
+                    state,
+                    discard,
+                    discard_type,
+                    inferred.outcome,
+                );
+                checked_steps.push(CheckedDoStep::Discard {
+                    binder,
+                    expression,
+                    continuation_type: next_type,
+                    application,
+                });
             }
         }
     }
@@ -398,50 +534,155 @@ where
         super::check_expression(state, context, final_expression, final_continuation)?;
     }
 
+    let final_expression = match final_step {
+        DoBlockFinalStep::InvalidBind { statement, binder, binder_type, expression } => {
+            let binder = match binder {
+                Some(source) => match state.checked.core.lookup_binder(source) {
+                    Some(binder) => binder,
+                    None => record_malformed_binder(state, source, binder_type),
+                },
+                None => allocate_missing_binder(state, binder_type),
+            };
+            let expression = match expression {
+                Some(source) => match state.checked.core.lookup_expression(source) {
+                    Some(expression) => expression,
+                    None => record_malformed_expression(
+                        state,
+                        source,
+                        context.unknown("malformed final do expression"),
+                    ),
+                },
+                None => allocate_missing_expression(
+                    state,
+                    context.unknown("missing final do expression"),
+                ),
+            };
+            let error = CheckedErrorStatement {
+                source: statement,
+                binder: Some(binder),
+                expression: Some(expression),
+            };
+            let statement = CheckedBlockStatement::Error(error);
+            checked_steps.push(CheckedDoStep::Statement(statement));
+            None
+        }
+        DoBlockFinalStep::Discard { statement: _, expression: Some(expression) } => {
+            Some(expression)
+        }
+        DoBlockFinalStep::Discard { statement, expression: None } => {
+            let expression =
+                allocate_missing_expression(state, context.unknown("missing final do expression"));
+            let error = CheckedErrorStatement {
+                source: statement,
+                binder: None,
+                expression: Some(expression),
+            };
+            let statement = CheckedBlockStatement::Error(error);
+            checked_steps.push(CheckedDoStep::Statement(statement));
+            None
+        }
+        DoBlockFinalStep::InvalidLet { .. } => None,
+        DoBlockFinalStep::Empty => unreachable!("empty do blocks return before checking steps"),
+    };
+    let final_expression = match final_expression {
+        Some(source) => match state.checked.core.lookup_expression(source) {
+            Some(expression) => expression,
+            None => record_malformed_expression(state, source, final_continuation),
+        },
+        None => allocate_missing_expression(state, final_continuation),
+    };
+    record_do_expression(
+        state,
+        source_expression,
+        checked_steps,
+        final_expression,
+        first_continuation,
+    );
+
     Ok(first_continuation)
 }
 
-pub fn infer_do_bind_core<Q>(
+fn record_do_expression(
+    state: &mut CheckState,
+    source_expression: lowering::ExpressionId,
+    steps: Vec<CheckedDoStep>,
+    final_expression: CheckedExpressionId,
+    result_type: TypeId,
+) {
+    let expression = CheckedDoExpression { steps: Arc::from(steps), final_expression };
+    let kind = CheckedExpressionKind::Do { expression };
+    let expression = state.checked.core.allocate_expression(result_type, kind);
+    state.checked.core.record_expression(source_expression, expression);
+}
+
+pub(super) fn allocate_missing_expression(
+    state: &mut CheckState,
+    type_id: TypeId,
+) -> CheckedExpressionId {
+    state.checked.core.allocate_expression(type_id, CheckedExpressionKind::Error)
+}
+
+pub(super) fn record_malformed_expression(
+    state: &mut CheckState,
+    source: lowering::ExpressionId,
+    fallback_type: TypeId,
+) -> CheckedExpressionId {
+    let type_id = state.checked.nodes.lookup_expression(source).unwrap_or(fallback_type);
+    let expression = state.checked.core.allocate_expression(type_id, CheckedExpressionKind::Error);
+    state.checked.core.record_expression(source, expression);
+    expression
+}
+
+pub(super) fn allocate_missing_binder(
+    state: &mut CheckState,
+    type_id: TypeId,
+) -> crate::semantic::CheckedBinderId {
+    state.checked.core.allocate_synthesized_binder(type_id, CheckedBinderKind::Error)
+}
+
+pub(super) fn record_malformed_binder(
+    state: &mut CheckState,
+    source: lowering::BinderId,
+    fallback_type: TypeId,
+) -> crate::semantic::CheckedBinderId {
+    let type_id = state.checked.nodes.lookup_binder(source).unwrap_or(fallback_type);
+    state.checked.core.allocate_source_binder(source, type_id, CheckedBinderKind::Error)
+}
+
+pub(super) fn infer_do_bind_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     bind_type: TypeId,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
     binder_type: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<application::InferredBinaryApplication>
 where
     Q: ExternalQueries,
 {
     let expression_type = super::infer_expression(state, context, expression)?;
     let lambda_type = context.intern_function(binder_type, continuation_type);
-
-    let Some(application::GenericApplication { argument, result, .. }) =
-        application::check_generic_application(state, context, bind_type)?
-    else {
-        return Ok(context.unknown("invalid function application"));
-    };
-    unification::subtype(state, context, expression_type, argument)?;
-
-    let Some(application::GenericApplication { argument, result, .. }) =
-        application::check_generic_application(state, context, result)?
-    else {
-        return Ok(context.unknown("invalid function application"));
-    };
-    unification::subtype(state, context, lambda_type, argument)?;
-
-    Ok(result)
+    application::check_binary_application(state, context, bind_type, expression_type, lambda_type)
 }
 
-pub fn infer_do_discard_core<Q>(
+fn infer_do_discard_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     discard_type: TypeId,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+) -> QueryResult<(TypeId, application::InferredBinaryApplication)>
 where
     Q: ExternalQueries,
 {
     let binder_type = state.fresh_unification(context.queries, context.prim.t);
-    infer_do_bind_core(state, context, discard_type, continuation_type, expression, binder_type)
+    let application = infer_do_bind_core(
+        state,
+        context,
+        discard_type,
+        continuation_type,
+        expression,
+        binder_type,
+    )?;
+    Ok((binder_type, application))
 }

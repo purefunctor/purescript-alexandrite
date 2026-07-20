@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{Type, exhaustive, normalise, toolkit, unification};
 use crate::error::ErrorCrumb;
+use crate::semantic::{CheckedLetBinding, CheckedLetStatement};
 use crate::source::terms::{equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
@@ -27,6 +30,39 @@ where
         }
     }
     Ok(())
+}
+
+pub(super) fn checked_let_statement<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    source: lowering::DoStatementId,
+    chunks: &[lowering::LetBindingChunk],
+) -> CheckedLetStatement
+where
+    Q: ExternalQueries,
+{
+    let mut checked_bindings = vec![];
+    for chunk in chunks {
+        match chunk {
+            lowering::LetBindingChunk::Pattern { binder, .. } => {
+                let binder = binder.and_then(|binder| state.checked.core.lookup_binder(binder));
+                checked_bindings.push(CheckedLetBinding::Pattern { binder });
+            }
+            lowering::LetBindingChunk::Names { bindings, .. } => {
+                let name_bindings = bindings.iter().map(|&binding| {
+                    let type_id = state
+                        .checked
+                        .nodes
+                        .lookup_let(binding)
+                        .unwrap_or_else(|| context.unknown("malformed let binding"));
+                    CheckedLetBinding::Name { binding, type_id }
+                });
+                checked_bindings.extend(name_bindings);
+            }
+        }
+    }
+    let bindings = Arc::from(checked_bindings);
+    CheckedLetStatement { source, bindings }
 }
 
 pub fn check_pattern_let_binding<Q>(

@@ -6,22 +6,22 @@ expression: report
 module Main where
 
 missingAction :: Box Int
-missingAction = <unimplemented>
+missingAction = <error-statement>; pure 42
 
 missingFinalAction :: Box Int
-missingFinalAction = <unimplemented>
+missingFinalAction = bind boxedInt (\value -> <error-statement>; <error>)
 
 localLet :: Box Int
-localLet = <unimplemented>
+localLet = bind boxedInt (\value -> let { kept :: Int } in pure kept)
 
 finalBind :: Box Int
-finalBind = <unimplemented>
+finalBind = <error-statement>; <error>
 
 finalLet :: Box Int
-finalLet = <unimplemented>
+finalLet = let { value :: Int } in <error>
 
 empty :: ?[empty do block]
-empty = <unimplemented>
+empty = <error>
 
 partialApplication :: ?[invalid function application]
-partialApplication = <unimplemented>
+partialApplication = <partial-application bind boxedInt (\value -> pure value)>
