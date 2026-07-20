@@ -1,3 +1,4 @@
+use std::io::{self, IsTerminal};
 use std::process::{Command, Stdio};
 
 use anyhow::Context;
@@ -21,7 +22,9 @@ pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command 
 
     if args.verbose {
         cmd.arg("--status-level=fail");
-        cmd.arg("--color=always");
+        if !io::stderr().is_terminal() {
+            cmd.arg("--color=never");
+        }
     } else {
         cmd.arg("--status-level=none");
     }
