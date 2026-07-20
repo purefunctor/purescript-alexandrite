@@ -131,8 +131,11 @@ where
             forms::check_case_of(state, context, trunk, branches, expected)
         }
         lowering::ExpressionKind::OperatorChain { .. } => {
-            let (_, checked_type) =
+            let (checked_expression, checked_type) =
                 operator::check_operator_chain(state, context, expression, expected)?;
+            if let Some(checked_expression) = checked_expression {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
             Ok(checked_type)
         }
         lowering::ExpressionKind::LetIn { bindings, expression } => {
@@ -244,7 +247,11 @@ where
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {
-            let (_, inferred_type) = operator::infer_operator_chain(state, context, expression)?;
+            let (checked_expression, inferred_type) =
+                operator::infer_operator_chain(state, context, expression)?;
+            if let Some(checked_expression) = checked_expression {
+                state.checked.core.record_expression(expression, checked_expression);
+            }
             Ok(inferred_type)
         }
 
@@ -337,8 +344,15 @@ where
 
         lowering::ExpressionKind::OperatorName { resolution } => {
             let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
-            let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
-            let resolution = lowering::TermVariableResolution::Reference(*file_id, *term_id);
+            let Some((target_file_id, target_item_id)) =
+                toolkit::resolve_term_operator_target(context, *file_id, *term_id)?
+            else {
+                return Ok(unknown);
+            };
+            let type_id =
+                toolkit::lookup_file_term(state, context, target_file_id, target_item_id)?;
+            let resolution =
+                lowering::TermVariableResolution::Reference(target_file_id, target_item_id);
             let kind = CheckedExpressionKind::Variable { resolution };
             let checked_expression = state.checked.core.allocate_expression(type_id, kind);
             state.checked.core.record_expression(expression, checked_expression);

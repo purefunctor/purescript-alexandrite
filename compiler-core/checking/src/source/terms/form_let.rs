@@ -51,7 +51,7 @@ where
     let expression_type = if binder::requires_instantiation(context, binder) {
         toolkit::instantiate_constrained(state, context, expression_type)?
     } else {
-        toolkit::collect_wanteds(state, context, expression_type)?
+        toolkit::collect_wanted(state, context, expression_type)?
     };
 
     let binder_type = binder::check_binder(state, context, binder, expression_type)?;

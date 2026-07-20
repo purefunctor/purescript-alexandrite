@@ -1,5 +1,7 @@
 //! Implements surface-generic operator chain inference.
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use files::FileId;
 use indexing::TermItemId;
@@ -9,6 +11,8 @@ use sugar::bracketing::BracketingResult;
 
 use crate::context::CheckContext;
 use crate::core::{Type, TypeId, normalise, toolkit, unification};
+use crate::evidence::EvidenceVarId;
+use crate::semantic::{CheckedExpressionId, CheckedExpressionKind};
 use crate::source::types::application;
 use crate::source::{binder, synonym, terms, types};
 use crate::state::CheckState;
@@ -143,7 +147,8 @@ where
     };
 
     let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-    let operator_type = toolkit::collect_wanteds(state, context, operator_type)?;
+    let (operator_type, evidence) =
+        toolkit::collect_wanted_with_evidence(state, context, operator_type)?;
 
     let Some((left_type, operator_type)) =
         toolkit::decompose_function(state, context, operator_type)?
@@ -193,7 +198,15 @@ where
         let _ = unification::subtype(state, context, result_type, expected_type)?;
     }
 
-    E::build(state, context, operator, (left, right), (left_type, right_type), result_type)
+    E::build(
+        state,
+        context,
+        operator,
+        (left, right),
+        (left_type, right_type),
+        result_type,
+        Arc::from(evidence),
+    )
 }
 
 pub trait IsOperator<Q: ExternalQueries>: IsElement {
@@ -247,6 +260,7 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         result_tree: (Self::Elaborated, Self::Elaborated),
         argument_types: (TypeId, TypeId),
         result_type: TypeId,
+        evidence: Arc<[EvidenceVarId]>,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
 
     fn record_branch_types(
@@ -260,9 +274,11 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
 
 impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     type ItemId = TermItemId;
-    type Elaborated = ();
+    type Elaborated = Option<CheckedExpressionId>;
 
-    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {}
+    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {
+        None
+    }
 
     fn lookup_tree<'q>(
         context: &'q CheckContext<Q>,
@@ -293,7 +309,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let inferred_type = terms::infer_expression(state, context, id)?;
-        Ok(((), inferred_type))
+        let expression = state.checked.core.lookup_expression(id);
+        Ok((expression, inferred_type))
     }
 
     fn check_surface(
@@ -303,18 +320,53 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked_type = terms::check_expression(state, context, id, expected)?;
-        Ok(((), checked_type))
+        let expression = state.checked.core.lookup_expression(id);
+        Ok((expression, checked_type))
     }
 
     fn build(
-        _state: &mut CheckState,
-        _context: &CheckContext<Q>,
-        (_, _): (FileId, Self::ItemId),
-        (_, _): (Self::Elaborated, Self::Elaborated),
-        (_, _): (TypeId, TypeId),
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        (file_id, item_id): (FileId, Self::ItemId),
+        (left, right): (Self::Elaborated, Self::Elaborated),
+        (left_type, right_type): (TypeId, TypeId),
         result_type: TypeId,
+        evidence: Arc<[EvidenceVarId]>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), result_type))
+        let Some((left, right)) = left.zip(right) else {
+            return Ok((None, result_type));
+        };
+
+        let Some((target_file_id, target_item_id)) =
+            toolkit::resolve_term_operator_target(context, file_id, item_id)?
+        else {
+            return Ok((None, result_type));
+        };
+
+        let operator_type =
+            toolkit::lookup_file_term(state, context, target_file_id, target_item_id)?;
+        let resolution =
+            lowering::TermVariableResolution::Reference(target_file_id, target_item_id);
+        let kind = CheckedExpressionKind::Variable { resolution };
+        let operator = state.checked.core.allocate_expression(operator_type, kind);
+
+        let partial_type = context.intern_function(right_type, result_type);
+        let operator = terms::application::apply_evidence(
+            state,
+            context,
+            operator,
+            left_type,
+            partial_type,
+            evidence,
+        );
+
+        let kind = CheckedExpressionKind::TermApplication { function: operator, argument: left };
+        let partial = state.checked.core.allocate_expression(partial_type, kind);
+
+        let kind = CheckedExpressionKind::TermApplication { function: partial, argument: right };
+        let expression = state.checked.core.allocate_expression(result_type, kind);
+
+        Ok((Some(expression), result_type))
     }
 
     fn record_branch_types(
@@ -400,6 +452,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
         (left, right): (Self::Elaborated, Self::Elaborated),
         (left_kind, right_kind): (TypeId, TypeId),
         result_kind: TypeId,
+        _evidence: Arc<[EvidenceVarId]>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let Some((target_file_id, target_item_id)) =
             toolkit::resolve_type_operator_target(context, file_id, item_id)?
@@ -513,6 +566,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         (_, _): (Self::Elaborated, Self::Elaborated),
         (_, _): (TypeId, TypeId),
         result_type: TypeId,
+        _evidence: Arc<[EvidenceVarId]>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         Ok(((), result_type))
     }

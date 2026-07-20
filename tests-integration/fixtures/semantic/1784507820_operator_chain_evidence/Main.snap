@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+resolved :: Int
+resolved = combine @{combineInt} 1 2
+
+given :: forall (a :: Type). Combine (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+given = \@{dict0} -> \left right -> combine @{dict0} left right

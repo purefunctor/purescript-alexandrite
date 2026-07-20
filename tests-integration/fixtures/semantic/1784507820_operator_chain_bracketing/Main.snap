@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+module Main where
+
+precedence :: Int
+precedence = add (add 1 (multiply 2 3)) 4
+
+rightAssociative :: Int
+rightAssociative = append 1 (append 2 3)
+
+prefix :: Int
+prefix = add 1 2

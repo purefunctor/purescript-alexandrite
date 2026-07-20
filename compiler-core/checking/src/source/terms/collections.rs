@@ -18,7 +18,7 @@ where
 
     if should_instantiate_record_field(context, expression) {
         let id = toolkit::instantiate_unifications(state, context, id)?;
-        toolkit::collect_wanteds(state, context, id)
+        toolkit::collect_wanted(state, context, id)
     } else {
         Ok(id)
     }
@@ -69,7 +69,7 @@ where
 {
     let id = toolkit::lookup_term_variable(state, context, resolution)?;
     let id = toolkit::instantiate_unifications(state, context, id)?;
-    toolkit::collect_wanteds(state, context, id)
+    toolkit::collect_wanted(state, context, id)
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
-use lowering::TypeItemIr;
+use lowering::{TermItemIr, TypeItemIr};
 
 use rustc_hash::FxHashMap;
 
@@ -16,6 +16,7 @@ use crate::core::{
     CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, Type, TypeId, constraint,
     normalise, unification,
 };
+use crate::evidence::EvidenceVarId;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -238,6 +239,29 @@ where
     let resolve = |lowered: &lowering::LoweredModule| {
         lowered.info.get_type_item(type_id).and_then(|item| match item {
             TypeItemIr::Operator { resolution, .. } => *resolution,
+            _ => None,
+        })
+    };
+
+    if file_id == context.id {
+        Ok(resolve(&context.lowered))
+    } else {
+        let lowered = context.queries.lowered(file_id)?;
+        Ok(resolve(&lowered))
+    }
+}
+
+pub fn resolve_term_operator_target<Q>(
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    term_id: TermItemId,
+) -> QueryResult<Option<(FileId, TermItemId)>>
+where
+    Q: ExternalQueries,
+{
+    let resolve = |lowered: &lowering::LoweredModule| {
+        lowered.info.get_term_item(term_id).and_then(|item| match item {
+            TermItemIr::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };
@@ -486,11 +510,11 @@ where
     Ok(id)
 }
 
-/// Peels constraint layers, pushing each as a wanted.
-pub fn collect_wanteds<Q>(
+fn collect_wanted_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     mut id: TypeId,
+    mut record_evidence: impl FnMut(EvidenceVarId),
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
@@ -499,12 +523,39 @@ where
         id = normalise::expand(state, context, id)?;
         match context.lookup_type(id) {
             Type::Constrained(constraint, constrained) => {
-                state.push_wanted(constraint);
+                let evidence = state.push_wanted(constraint);
+                record_evidence(evidence);
                 id = constrained;
             }
             _ => return Ok(id),
         }
     }
+}
+
+/// Peels constraint layers, pushing each as a wanted.
+pub fn collect_wanted<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+) -> QueryResult<TypeId>
+where
+    Q: ExternalQueries,
+{
+    collect_wanted_core(state, context, id, |_| {})
+}
+
+/// Peels constraint layers, pushing each as a wanted and returning its evidence variable.
+pub fn collect_wanted_with_evidence<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+) -> QueryResult<(TypeId, Vec<EvidenceVarId>)>
+where
+    Q: ExternalQueries,
+{
+    let mut evidence = vec![];
+    let id = collect_wanted_core(state, context, id, |variable| evidence.push(variable))?;
+    Ok((id, evidence))
 }
 
 /// Peels constraint layers, pushing each as a given.
@@ -558,7 +609,7 @@ where
     Q: ExternalQueries,
 {
     let id = instantiate_unifications(state, context, id)?;
-    collect_wanteds(state, context, id)
+    collect_wanted(state, context, id)
 }
 
 pub fn contains_unification<Q>(

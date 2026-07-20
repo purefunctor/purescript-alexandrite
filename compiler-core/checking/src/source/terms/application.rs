@@ -260,7 +260,7 @@ where
     Ok(CheckedApplication { type_id: result, expression })
 }
 
-fn apply_evidence<Q>(
+pub(crate) fn apply_evidence<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     function: CheckedExpressionId,
