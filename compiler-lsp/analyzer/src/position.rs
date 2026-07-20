@@ -153,6 +153,19 @@ pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Op
     text_range_to_utf8_range(content, range)
 }
 
+pub fn export_item_name_range(content: &str, export_item: cst::ExportItem) -> Option<Utf8Range> {
+    let range = match export_item {
+        cst::ExportItem::ExportValue(cst) => cst.name_token()?.text_range(),
+        cst::ExportItem::ExportClass(cst) => cst.name_token()?.text_range(),
+        cst::ExportItem::ExportType(cst) => cst.name_token()?.text_range(),
+        cst::ExportItem::ExportOperator(cst) => cst.name_token()?.text_range(),
+        cst::ExportItem::ExportTypeOperator(cst) => cst.name_token()?.text_range(),
+        cst::ExportItem::ExportModule(_) => return None,
+    };
+
+    text_range_to_utf8_range(content, range)
+}
+
 pub fn declaration_name_range(
     content: &str,
     root: &SyntaxNode,

@@ -92,6 +92,7 @@ impl State {
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
+            root: self.root.clone(),
             position_encoding: self.position_encoding,
         };
         task::spawn_blocking(move || f(snapshot))
@@ -114,6 +115,7 @@ struct StateSnapshot {
     files: Arc<RwLock<Files>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
+    root: Option<PathBuf>,
     position_encoding: PositionEncoding,
 }
 
@@ -174,6 +176,7 @@ fn initialize(
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
@@ -339,6 +342,19 @@ fn references(
     result.on_non_fatal(None)
 }
 
+fn rename(snapshot: StateSnapshot, p: RenameParams) -> Result<Option<WorkspaceEdit>, LspError> {
+    let _span = tracing::info_span!("rename").entered();
+    let uri = p.text_document_position.text_document.uri;
+    let position = p.text_document_position.position;
+    let new_name = p.new_name;
+
+    let result = snapshot.with_language_context(|context| {
+        analyzer::rename::implementation(context, snapshot.root.as_deref(), uri, position, new_name)
+    });
+
+    result.on_non_fatal(None)
+}
+
 fn document_highlight(
     snapshot: StateSnapshot,
     p: DocumentHighlightParams,
@@ -424,6 +440,15 @@ fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspEr
 }
 
 fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError> {
+    let previous_id = state.files.read().id(uri);
+    let previous_name = if let Some(id) = previous_id {
+        let previous_content = state.engine.content(id);
+        let (parsed, _) = state.engine.parsed(id)?;
+        parsed.module_name(&previous_content)
+    } else {
+        None
+    };
+
     // Cancel in-flight queries so that threads holding a read lock
     // over `files` are terminated quickly, compared to having to
     // wait for expensive LSP requests to complete successfully.
@@ -435,8 +460,15 @@ fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError
     state.engine.set_content(id, content);
 
     let (parsed, _) = state.engine.parsed(id)?;
+    let current_name = parsed.module_name(content);
 
-    if let Some(name) = parsed.module_name(content) {
+    if previous_name != current_name
+        && let Some(previous_name) = previous_name
+    {
+        state.engine.remove_module_file(&previous_name, id);
+    }
+
+    if let Some(name) = current_name {
         state.engine.set_module_file(&name, id);
     }
 
@@ -504,6 +536,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .request_snapshot::<request::Completion>(completion)
             .request_snapshot::<request::ResolveCompletionItem>(resolve_completion_item)
             .request_snapshot::<request::References>(references)
+            .request_snapshot::<request::Rename>(rename)
             .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
             .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)

@@ -1,6 +1,7 @@
 pub mod render;
 
 use std::fmt::Write;
+use std::path::Path;
 
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
@@ -16,6 +17,7 @@ use files::{FileId, Files};
 use itertools::Itertools;
 use line_index::{LineIndex, TextSize};
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
+use syntax::{SyntaxKind, TokenAtOffset};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
 
@@ -26,13 +28,14 @@ enum CursorKind {
     Completion,
     CompletionCached,
     References,
+    Rename,
     DocumentHighlight,
     DocumentSymbols,
     CodeAction,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!', '&', '.'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '/', '!', '&', '.'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -41,6 +44,7 @@ impl CursorKind {
             "^" => Some(CursorKind::Completion),
             "~" => Some(CursorKind::CompletionCached),
             "%" => Some(CursorKind::References),
+            "/" => Some(CursorKind::Rename),
             "&" => Some(CursorKind::DocumentHighlight),
             "!" => Some(CursorKind::DocumentSymbols),
             "." => Some(CursorKind::CodeAction),
@@ -208,6 +212,21 @@ fn render_workspace_edit(edit: WorkspaceEdit) -> Vec<String> {
     if let Some(changes) = edit.changes {
         for edits in changes.into_values() {
             result.extend(edits.into_iter().map(render_text_edit));
+        }
+    }
+
+    result.sort();
+    result
+}
+
+fn render_rename_edit(edit: WorkspaceEdit) -> Vec<String> {
+    let mut result = vec![];
+
+    if let Some(changes) = edit.changes {
+        for (uri, edits) in changes {
+            for edit in edits {
+                result.push(format!("{uri} @ {}", render_text_edit(edit)));
+            }
         }
     }
 
@@ -386,6 +405,29 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+        CursorKind::Rename => {
+            let Some(new_name) = rename_target_name(engine, files, uri.clone(), position, encoding)
+            else {
+                writeln!(result, "<empty>").unwrap();
+                return;
+            };
+            let context = analyzer::LanguageContext::new(engine, files, encoding);
+            let workspace_root =
+                uri.to_file_path().ok().and_then(|path| path.parent().map(Path::to_path_buf));
+            let response = analyzer::rename::implementation(
+                &context,
+                workspace_root.as_deref(),
+                uri,
+                position,
+                new_name,
+            );
+            if let Ok(Some(edit)) = response {
+                let edits = render_rename_edit(edit);
+                writeln!(result, "{}", edits.join("\n")).unwrap();
+            } else {
+                writeln!(result, "<empty>").unwrap();
+            }
+        }
         CursorKind::DocumentHighlight => {
             let render_highlight = |h: DocumentHighlight| -> String {
                 format!(
@@ -406,6 +448,43 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+    }
+}
+
+fn rename_target_name(
+    engine: &QueryEngine,
+    files: &Files,
+    uri: Url,
+    position: Position,
+    encoding: PositionEncoding,
+) -> Option<String> {
+    let file_id = files.id(uri.as_str())?;
+    let content = engine.content(file_id);
+    let position = analyzer::position::protocol_position_to_utf8(&content, position, encoding)?;
+    let offset = analyzer::position::utf8_position_to_offset(&content, position)?;
+    let (parsed, _) = engine.parsed(file_id).ok()?;
+    let root = parsed.syntax_node();
+    let token = match root.token_at_offset(offset) {
+        TokenAtOffset::None => return None,
+        TokenAtOffset::Single(token) => token,
+        TokenAtOffset::Between(_, right) => right,
+    };
+
+    if token.parent().kind() == SyntaxKind::Qualifier {
+        return Some("Renamed".to_string());
+    }
+
+    match token.kind() {
+        SyntaxKind::LOWER => Some("renamed".to_string()),
+        SyntaxKind::UPPER => Some("Renamed".to_string()),
+        SyntaxKind::OPERATOR
+        | SyntaxKind::OPERATOR_NAME
+        | SyntaxKind::COLON
+        | SyntaxKind::DOUBLE_PERIOD
+        | SyntaxKind::DOUBLE_PERIOD_OPERATOR_NAME
+        | SyntaxKind::MINUS
+        | SyntaxKind::LEFT_THICK_ARROW => Some("<~>".to_string()),
+        _ => None,
     }
 }
 

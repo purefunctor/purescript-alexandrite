@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 116
+expression: report
+---
+Rename at Position { line: 2, character: 15 }
+
+```
+import Lib as Library
+--             /
+```
+
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 0:20..0:27 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 2:14..2:21 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 5:7..5:15 => "Renamed."
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 8:15..8:23 => "Renamed."
+
+
+Rename at Position { line: 5, character: 9 }
+
+```
+term = Library.original
+--       /
+```
+
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 0:20..0:27 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 2:14..2:21 => "Renamed"
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 5:7..5:15 => "Renamed."
+file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 8:15..8:23 => "Renamed."

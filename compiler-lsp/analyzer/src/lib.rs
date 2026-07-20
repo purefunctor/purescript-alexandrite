@@ -10,6 +10,7 @@ pub mod hover;
 pub mod locate;
 pub mod position;
 pub mod references;
+pub mod rename;
 pub mod symbols;
 
 pub use building::{QueryEngine, QueryError, prim};

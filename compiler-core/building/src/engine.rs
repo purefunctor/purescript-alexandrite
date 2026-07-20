@@ -117,7 +117,7 @@ where
 #[derive(Default)]
 struct InputStorage {
     content: Shards<FileId, InputState<Arc<str>>>,
-    module: Shards<ModuleNameId, InputState<FileId>>,
+    module: Shards<ModuleNameId, InputState<Option<FileId>>>,
 }
 
 #[derive(Default)]
@@ -697,12 +697,25 @@ impl QueryEngine {
 
     pub fn set_module_file(&self, name: &str, file_id: FileId) {
         let id = self.interned.module.intern(name);
-        self.set_input(id, |input| &input.module, file_id);
+        self.set_input(id, |input| &input.module, Some(file_id));
+    }
+
+    pub fn remove_module_file(&self, name: &str, file_id: FileId) {
+        let Some(id) = self.interned.module.lookup(name) else {
+            return;
+        };
+
+        let current = self.get_input(QueryKey::Module(id), id, |input| &input.module);
+        if current != Some(Some(file_id)) {
+            return;
+        }
+
+        self.set_input(id, |input| &input.module, None);
     }
 
     pub fn module_file(&self, name: &str) -> Option<FileId> {
-        let id = self.interned.module.lookup(name)?;
-        self.get_input(QueryKey::Module(id), id, |input| &input.module)
+        let id = self.interned.module.intern(name);
+        self.get_input(QueryKey::Module(id), id, |input| &input.module).flatten()
     }
 
     pub fn parsed(&self, id: FileId) -> QueryResult<FullParsedModule> {
@@ -1040,6 +1053,59 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_module_registration_invalidates_unresolved_import() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+
+        let main = files.insert("Main.purs", "module Main where\n\nimport Library");
+        let library = files.insert("Library.purs", "module Library where");
+
+        engine.set_content(main, files.content(main));
+        engine.set_content(library, files.content(library));
+
+        let unresolved = engine.resolved(main).unwrap();
+        assert!(!unresolved.unqualified.contains_key("Library"));
+
+        engine.set_module_file("Library", library);
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(resolved.unqualified.contains_key("Library"));
+    }
+
+    #[test]
+    fn test_remove_module_file() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+
+        let main = files.insert("Main.purs", "module Main where\n\nimport Old\n\nvalue = imported");
+        let library = files.insert("Library.purs", "module Old where\n\nimported = 42");
+        let replacement = files.insert("Replacement.purs", "module Old where");
+
+        engine.set_content(main, files.content(main));
+        engine.set_content(library, files.content(library));
+        engine.set_content(replacement, files.content(replacement));
+
+        engine.set_module_file("Old", library);
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(resolved.unqualified.contains_key("Old"));
+
+        engine.remove_module_file("Old", library);
+        engine.set_module_file("New", library);
+
+        assert_eq!(engine.module_file("Old"), None);
+        assert_eq!(engine.module_file("New"), Some(library));
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(!resolved.unqualified.contains_key("Old"));
+
+        engine.set_module_file("Old", replacement);
+        engine.remove_module_file("Old", library);
+
+        assert_eq!(engine.module_file("Old"), Some(replacement));
     }
 
     #[test]
