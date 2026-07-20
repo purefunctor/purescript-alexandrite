@@ -31,5 +31,23 @@ operatorApplied = Pair 1 2
 operatorBare :: forall (t :: Type). (t :: Type) -> (t :: Type) -> Choice (t :: Type)
 operatorBare = Pair
 
+unwrapOne :: forall (t :: Type). Choice (t :: Type) -> (t :: Type)
+unwrapOne = \One(value) -> value
+
+unwrapPair :: forall (t :: Type). Choice (t :: Type) -> (t :: Type)
+unwrapPair = \Pair(left, right) -> left
+
+unwrapNested :: forall (t :: Type). Choice (Choice (t :: Type)) -> Choice (t :: Type)
+unwrapNested = \Pair(first, Pair(second, third)) -> first
+
+choose :: Choice Int -> Int
+choose = \choice -> case choice of Empty -> 0; One(value) -> value; Pair(left, _) -> left; else -> unreachable
+
+guarded :: Boolean -> Choice (Choice Int) -> Int
+guarded = \condition choice -> case choice of One(nested) | condition, One(value) <- nested -> value; Pair(left, right) | One(value) <- left -> value | One(value) <- right -> value; _ -> 0; else -> unreachable
+
+matchPartial :: forall (t :: Type). Partial => Choice (t :: Type) -> (t :: Type)
+matchPartial = \@{dict0} -> \choice -> case choice of One(value) -> value; else -> unreachable
+
 wrapped :: forall (t :: Type). Wrapped (t :: Type)
 wrapped = Wrapped Empty

@@ -12,7 +12,9 @@ use sugar::bracketing::BracketingResult;
 use crate::context::CheckContext;
 use crate::core::{Type, TypeId, normalise, toolkit, unification};
 use crate::evidence::EvidenceVarId;
-use crate::semantic::{CheckedExpressionId, CheckedExpressionKind};
+use crate::semantic::{
+    CheckedBinderId, CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind,
+};
 use crate::source::types::application;
 use crate::source::{binder, synonym, terms, types};
 use crate::state::CheckState;
@@ -516,9 +518,11 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
 
 impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     type ItemId = TermItemId;
-    type Elaborated = ();
+    type Elaborated = Option<CheckedBinderId>;
 
-    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {}
+    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {
+        None
+    }
 
     fn lookup_tree<'q>(
         context: &'q CheckContext<Q>,
@@ -549,7 +553,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let inferred_type = binder::infer_binder(state, context, id)?;
-        Ok(((), inferred_type))
+        let binder = state.checked.core.lookup_binder(id);
+        Ok((binder, inferred_type))
     }
 
     fn check_surface(
@@ -559,19 +564,40 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked_type = binder::check_binder(state, context, id, expected)?;
-        Ok(((), checked_type))
+        let binder = state.checked.core.lookup_binder(id);
+        Ok((binder, checked_type))
     }
 
     fn build(
-        _state: &mut CheckState,
-        _context: &CheckContext<Q>,
-        (_, _): (FileId, Self::ItemId),
-        (_, _): (Self::Elaborated, Self::Elaborated),
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        (file_id, item_id): (FileId, Self::ItemId),
+        (left, right): (Self::Elaborated, Self::Elaborated),
         (_, _): (TypeId, TypeId),
         result_type: TypeId,
         _evidence: Arc<[EvidenceVarId]>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), result_type))
+        let Some((left, right)) = left.zip(right) else {
+            return Ok((None, result_type));
+        };
+
+        let Some((target_file_id, target_item_id)) =
+            toolkit::resolve_term_operator_target(context, file_id, item_id)?
+        else {
+            return Ok((None, result_type));
+        };
+
+        if !terms::is_term_constructor(context, target_file_id, target_item_id)? {
+            return Ok((None, result_type));
+        }
+
+        let kind = CheckedBinderKind::Constructor {
+            file_id: target_file_id,
+            item_id: target_item_id,
+            arguments: Arc::from([left, right]),
+        };
+        let binder = state.checked.core.allocate_binder(result_type, kind);
+        Ok((Some(binder), result_type))
     }
 
     fn record_branch_types(

@@ -5,7 +5,9 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
-use crate::semantic::CheckedExpressionKind;
+use crate::semantic::{
+    CheckedCaseAlternative, CheckedExpressionKind, CheckedGuardedExpression, CheckedPatternGuard,
+};
 use crate::source::terms::{form_let, guarded};
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -223,18 +225,20 @@ where
 pub fn infer_case_of<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    case: lowering::ExpressionId,
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    case_of_core(state, context, trunk, branches, CaseOfMode::Infer)
+    case_of_core(state, context, case, trunk, branches, CaseOfMode::Infer)
 }
 
 pub fn check_case_of<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    case: lowering::ExpressionId,
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
     expected: TypeId,
@@ -242,12 +246,13 @@ pub fn check_case_of<Q>(
 where
     Q: ExternalQueries,
 {
-    case_of_core(state, context, trunk, branches, CaseOfMode::Check { expected })
+    case_of_core(state, context, case, trunk, branches, CaseOfMode::Check { expected })
 }
 
 fn case_of_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    case: lowering::ExpressionId,
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
     mode: CaseOfMode,
@@ -291,15 +296,136 @@ where
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
 
-    if has_missing {
-        if let CaseOfMode::Infer = mode {
-            return Ok(context.intern_constrained(context.prim.partial, expected));
-        } else {
-            state.push_wanted(context.prim.partial);
+    let result_type = if has_missing {
+        match mode {
+            CaseOfMode::Infer => context.intern_constrained(context.prim.partial, expected),
+            CaseOfMode::Check { .. } => {
+                state.push_wanted(context.prim.partial);
+                expected
+            }
         }
+    } else {
+        expected
+    };
+
+    record_case(state, case, trunk, branches, result_type);
+
+    Ok(result_type)
+}
+
+fn record_case(
+    state: &mut CheckState,
+    case: lowering::ExpressionId,
+    trunk: &[lowering::ExpressionId],
+    branches: &[lowering::CaseBranch],
+    case_type: TypeId,
+) {
+    if trunk.is_empty() || branches.is_empty() {
+        return;
     }
 
-    Ok(expected)
+    let scrutinees =
+        trunk.iter().map(|expression| state.checked.core.lookup_expression(*expression));
+    let Some(scrutinees) = scrutinees.collect::<Option<Vec<_>>>() else { return };
+
+    let mut alternatives = Vec::with_capacity(branches.len());
+    for branch in branches {
+        if branch.binders.len() != trunk.len() {
+            return;
+        }
+
+        let binders = branch.binders.iter().map(|binder| state.checked.core.lookup_binder(*binder));
+        let Some(binders) = binders.collect::<Option<Vec<_>>>() else { return };
+        let Some(results) = checked_guarded_expressions(state, &branch.guarded_expression) else {
+            return;
+        };
+
+        alternatives.push(CheckedCaseAlternative {
+            binders: Arc::from(binders),
+            results: Arc::from(results),
+        });
+    }
+
+    let kind = CheckedExpressionKind::Case {
+        scrutinees: Arc::from(scrutinees),
+        alternatives: Arc::from(alternatives),
+    };
+    let checked_case = state.checked.core.allocate_expression(case_type, kind);
+    state.checked.core.record_expression(case, checked_case);
+}
+
+fn checked_guarded_expressions(
+    state: &CheckState,
+    guarded: &Option<lowering::GuardedExpression>,
+) -> Option<Vec<CheckedGuardedExpression>> {
+    match guarded.as_ref()? {
+        lowering::GuardedExpression::Unconditional { where_expression } => {
+            let expression = checked_where_expression(state, where_expression.as_ref()?)?;
+            let guarded = CheckedGuardedExpression { guards: Arc::from([]), expression };
+            Some(vec![guarded])
+        }
+        lowering::GuardedExpression::Conditionals { pattern_guarded } => {
+            checked_conditional_guarded_expressions(state, pattern_guarded)
+        }
+    }
+}
+
+fn checked_conditional_guarded_expressions(
+    state: &CheckState,
+    guarded: &[lowering::PatternGuarded],
+) -> Option<Vec<CheckedGuardedExpression>> {
+    if guarded.is_empty() {
+        return None;
+    }
+
+    let mut results = Vec::with_capacity(guarded.len());
+    for guarded in guarded {
+        results.push(checked_conditional_guarded_expression(state, guarded)?);
+    }
+    Some(results)
+}
+
+fn checked_conditional_guarded_expression(
+    state: &CheckState,
+    guarded: &lowering::PatternGuarded,
+) -> Option<CheckedGuardedExpression> {
+    if guarded.pattern_guards.is_empty() {
+        return None;
+    }
+
+    let guards = guarded.pattern_guards.iter().map(|guard| checked_pattern_guard(state, guard));
+    let guards = guards.collect::<Option<Vec<_>>>()?;
+
+    let where_expression = guarded.where_expression.as_ref()?;
+    let expression = checked_where_expression(state, where_expression)?;
+    Some(CheckedGuardedExpression { guards: Arc::from(guards), expression })
+}
+
+fn checked_pattern_guard(
+    state: &CheckState,
+    guard: &lowering::PatternGuard,
+) -> Option<CheckedPatternGuard> {
+    let source_expression = guard.expression?;
+    let expression = state.checked.core.lookup_expression(source_expression)?;
+    match guard.binder {
+        Some(source_binder) => {
+            let binder = state.checked.core.lookup_binder(source_binder)?;
+            Some(CheckedPatternGuard::Pattern { binder, expression })
+        }
+        None => Some(CheckedPatternGuard::Boolean { expression }),
+    }
+}
+
+fn checked_where_expression(
+    state: &CheckState,
+    where_expression: &lowering::WhereExpression,
+) -> Option<crate::semantic::CheckedExpressionId> {
+    if !where_expression.bindings.is_empty() {
+        return None;
+    }
+
+    let expression = where_expression.expression?;
+    state.checked.core.lookup_expression(expression)
 }
 
 pub fn check_let_in<Q>(

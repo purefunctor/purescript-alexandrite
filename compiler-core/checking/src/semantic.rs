@@ -81,11 +81,30 @@ pub enum CheckedExpressionKind {
     Variable { resolution: lowering::TermVariableResolution },
     Constructor { file_id: FileId, item_id: TermItemId },
     Literal { literal: CheckedLiteral },
+    Case { scrutinees: Arc<[CheckedExpressionId]>, alternatives: Arc<[CheckedCaseAlternative]> },
     Lambda { binders: Arc<[CheckedBinderId]>, expression: CheckedExpressionId },
     TermApplication { function: CheckedExpressionId, argument: CheckedExpressionId },
     TypeApplication { function: CheckedExpressionId, argument: TypeId },
     EvidenceApplication { expression: CheckedExpressionId, evidence: Arc<[EvidenceVarId]> },
     EvidenceAbstraction { binders: Arc<[EvidenceBinderId]>, expression: CheckedExpressionId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCaseAlternative {
+    pub binders: Arc<[CheckedBinderId]>,
+    pub results: Arc<[CheckedGuardedExpression]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedGuardedExpression {
+    pub guards: Arc<[CheckedPatternGuard]>,
+    pub expression: CheckedExpressionId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedPatternGuard {
+    Boolean { expression: CheckedExpressionId },
+    Pattern { binder: CheckedBinderId, expression: CheckedExpressionId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,4 +126,6 @@ pub struct CheckedBinder {
 pub enum CheckedBinderKind {
     Variable,
     Named { binder: CheckedBinderId },
+    Wildcard,
+    Constructor { file_id: FileId, item_id: TermItemId, arguments: Arc<[CheckedBinderId]> },
 }

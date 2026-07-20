@@ -21,4 +21,26 @@ operatorApplied = 1 :+: 2
 
 operatorBare = (:+:)
 
+unwrapOne (One value) = value
+
+unwrapPair (left :+: right) = left
+
+unwrapNested (first :+: second :+: third) = first
+
+choose choice = case choice of
+  Empty -> 0
+  One value -> value
+  Pair left _ -> left
+
+guarded condition choice = case choice of
+  One nested
+    | condition, One value <- nested -> value
+  Pair left right
+    | One value <- left -> value
+    | One value <- right -> value
+  _ -> 0
+
+matchPartial choice = case choice of
+  One value -> value
+
 wrapped = Wrapped Empty

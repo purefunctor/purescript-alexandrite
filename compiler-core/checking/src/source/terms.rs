@@ -128,7 +128,7 @@ where
             forms::check_if_then_else(state, context, *if_, *then, *else_, expected)
         }
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            forms::check_case_of(state, context, trunk, branches, expected)
+            forms::check_case_of(state, context, expression, trunk, branches, expected)
         }
         lowering::ExpressionKind::OperatorChain { .. } => {
             let (checked_expression, checked_type) =
@@ -312,7 +312,7 @@ where
         }
 
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            forms::infer_case_of(state, context, trunk, branches)
+            forms::infer_case_of(state, context, expression, trunk, branches)
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {

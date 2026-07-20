@@ -9,6 +9,7 @@ use checking::evidence::{
 };
 use checking::semantic::{
     CheckedBinderId, CheckedBinderKind, CheckedExpressionId, CheckedExpressionKind, CheckedLiteral,
+    CheckedPatternGuard,
 };
 use checking::{CheckedModule, PrettyQueries};
 use files::FileId;
@@ -40,7 +41,15 @@ impl<'a> SemanticPrinter<'a> {
     ) -> SemanticPrinter<'a> {
         let pretty = pretty::Pretty::new(engine, checked);
         let binder_sources =
-            checked.core.binders_by_source.iter().map(|(source, checked)| (*checked, *source));
+            checked.core.binders_by_source.iter().filter_map(|(source, checked)| {
+                let kind = lowered.info.get_binder_kind(*source)?;
+                match kind {
+                    BinderKind::Variable { .. } | BinderKind::Named { .. } => {
+                        Some((*checked, *source))
+                    }
+                    _ => None,
+                }
+            });
         let binder_sources = binder_sources.collect();
         SemanticPrinter { engine, file_id, checked, lowered, pretty, binder_sources }
     }
@@ -162,6 +171,40 @@ impl<'a> SemanticPrinter<'a> {
             CheckedExpressionKind::Literal { literal } => {
                 (Self::literal(literal), Precedence::Atom)
             }
+            CheckedExpressionKind::Case { scrutinees, alternatives, failure } => {
+                let scrutinees = scrutinees
+                    .iter()
+                    .map(|scrutinee| self.expression(*scrutinee, Precedence::Abstraction));
+                let scrutinees = scrutinees.collect::<Vec<_>>();
+
+                let mut rendered_alternatives = vec![];
+                for alternative in alternatives.iter() {
+                    let binders =
+                        alternative.binders.iter().map(|binder| self.checked_binder(*binder));
+                    let binders = binders.collect::<Vec<_>>().join(", ");
+
+                    let mut rendered_results = vec![];
+                    for result in alternative.results.iter() {
+                        let guards = result.guards.iter().map(|guard| self.pattern_guard(guard));
+                        let guards = guards.collect::<Vec<_>>();
+                        let expression =
+                            self.expression(result.expression, Precedence::Abstraction);
+                        if guards.is_empty() {
+                            rendered_results.push(format!("-> {expression}"));
+                        } else {
+                            let guards = guards.join(", ");
+                            rendered_results.push(format!("| {guards} -> {expression}"));
+                        }
+                    }
+                    rendered_alternatives.push(format!("{binders} {}", rendered_results.join(" ")));
+                }
+
+                let failure = self.expression(failure, Precedence::Abstraction);
+                rendered_alternatives.push(format!("else -> {failure}"));
+                let alternatives = rendered_alternatives.join("; ");
+                let rendered = format!("case {} of {alternatives}", scrutinees.join(", "));
+                (rendered, Precedence::Abstraction)
+            }
             CheckedExpressionKind::Lambda { binders, expression } => {
                 let binders = binders.iter().map(|binder| self.checked_binder(*binder));
                 let binders = binders.collect::<Vec<_>>();
@@ -219,25 +262,52 @@ impl<'a> SemanticPrinter<'a> {
             return "<unimplemented>".to_string();
         };
 
-        match self.checked.core.binders[checked].kind {
-            CheckedBinderKind::Variable => self.binder_name(source),
-            CheckedBinderKind::Named { .. } => match self.lowered.info.get_binder_kind(source) {
-                Some(BinderKind::Named { named, binder }) => {
-                    let named = named.as_deref().unwrap_or("<missing>");
-                    let binder = binder.map(|binder| self.binder(binder));
-                    let binder = binder.unwrap_or_else(|| "<unimplemented>".to_string());
-                    format!("{named}@{binder}")
-                }
-                _ => "<invalid named binder>".to_string(),
-            },
-        }
+        self.checked_binder(checked)
     }
 
     fn checked_binder(&self, checked: CheckedBinderId) -> String {
-        self.binder_sources
-            .get(&checked)
-            .map(|source| self.binder(*source))
-            .unwrap_or_else(|| "<unimplemented>".to_string())
+        match self.checked.core.binders[checked].kind.clone() {
+            CheckedBinderKind::Variable => self
+                .binder_sources
+                .get(&checked)
+                .map(|source| self.binder_name(*source))
+                .unwrap_or_else(|| "<unimplemented>".to_string()),
+            CheckedBinderKind::Named { binder: checked_binder } => {
+                let source = self.binder_sources.get(&checked).copied();
+                match source.and_then(|source| self.lowered.info.get_binder_kind(source)) {
+                    Some(BinderKind::Named { named, .. }) => {
+                        let named = named.as_deref().unwrap_or("<missing>");
+                        let binder = self.checked_binder(checked_binder);
+                        format!("{named}@{binder}")
+                    }
+                    _ => "<invalid>".to_string(),
+                }
+            }
+            CheckedBinderKind::Wildcard => "_".to_string(),
+            CheckedBinderKind::Constructor { file_id, item_id, arguments } => {
+                let constructor = self.item_name(file_id, item_id);
+                if arguments.is_empty() {
+                    constructor
+                } else {
+                    let arguments = arguments.iter().map(|argument| self.checked_binder(*argument));
+                    let arguments = arguments.collect::<Vec<_>>().join(", ");
+                    format!("{constructor}({arguments})")
+                }
+            }
+        }
+    }
+
+    fn pattern_guard(&mut self, guard: &CheckedPatternGuard) -> String {
+        match *guard {
+            CheckedPatternGuard::Boolean { expression } => {
+                self.expression(expression, Precedence::Abstraction)
+            }
+            CheckedPatternGuard::Pattern { binder, expression } => {
+                let binder = self.checked_binder(binder);
+                let expression = self.expression(expression, Precedence::Abstraction);
+                format!("{binder} <- {expression}")
+            }
+        }
     }
 
     fn binder_name(&self, source: lowering::BinderId) -> String {

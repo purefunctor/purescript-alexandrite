@@ -11,7 +11,7 @@ use crate::context::CheckContext;
 use crate::core::{RowField, RowType, Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::semantic::CheckedBinderKind;
-use crate::source::terms::application;
+use crate::source::terms::{self, application};
 use crate::source::{operator, types};
 use crate::state::CheckState;
 
@@ -177,16 +177,16 @@ where
 
     let binder_type = match kind {
         lowering::BinderKind::Typed { binder, type_ } => {
-            let Some(binder_id) = binder else { return Ok(unknown) };
+            let Some(source_binder) = binder else { return Ok(unknown) };
             let Some(type_id) = type_ else { return Ok(unknown) };
 
             let (type_id, _) = types::infer_kind(state, context, *type_id)?;
             match mode {
                 BinderMode::Check { elaborating: false, .. } => {
-                    check_argument_binder(state, context, *binder_id, type_id)?;
+                    check_argument_binder(state, context, *source_binder, type_id)?;
                 }
                 _ => {
-                    check_binder(state, context, *binder_id, type_id)?;
+                    check_binder(state, context, *source_binder, type_id)?;
                 }
             }
 
@@ -194,14 +194,23 @@ where
                 subtype_for_mode(state, context, type_id, expected_type, elaborating)?;
             }
 
+            if let Some(checked_binder) = state.checked.core.lookup_binder(*source_binder) {
+                state.checked.core.record_binder(binder_id, checked_binder);
+            }
+
             type_id
         }
 
         lowering::BinderKind::OperatorChain { .. } => {
-            let (_, inferred_type) = operator::infer_operator_chain(state, context, binder_id)?;
+            let (checked_binder, inferred_type) =
+                operator::infer_operator_chain(state, context, binder_id)?;
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
                 subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
+            }
+
+            if let Some(checked_binder) = checked_binder {
+                state.checked.core.record_binder(binder_id, checked_binder);
             }
 
             inferred_type
@@ -249,10 +258,29 @@ where
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
                 subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
-                expected_type
-            } else {
-                inferred_type
             }
+
+            let binder_type = match mode {
+                BinderMode::Infer => inferred_type,
+                BinderMode::Check { expected_type, .. } => expected_type,
+            };
+
+            let checked_arguments =
+                arguments.iter().map(|argument| state.checked.core.lookup_binder(*argument));
+            let checked_arguments = checked_arguments.collect::<Option<Vec<_>>>();
+            if let Some(checked_arguments) = checked_arguments
+                && terms::is_term_constructor(context, *file_id, *term_id)?
+            {
+                let kind = CheckedBinderKind::Constructor {
+                    file_id: *file_id,
+                    item_id: *term_id,
+                    arguments: Arc::from(checked_arguments),
+                };
+                let checked_binder = state.checked.core.allocate_binder(binder_type, kind);
+                state.checked.core.record_binder(binder_id, checked_binder);
+            }
+
+            binder_type
         }
 
         lowering::BinderKind::Variable { .. } => {
@@ -292,10 +320,16 @@ where
             type_id
         }
 
-        lowering::BinderKind::Wildcard => match mode {
-            BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
-            BinderMode::Check { expected_type, .. } => expected_type,
-        },
+        lowering::BinderKind::Wildcard => {
+            let type_id = match mode {
+                BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
+                BinderMode::Check { expected_type, .. } => expected_type,
+            };
+            let checked_binder =
+                state.checked.core.allocate_binder(type_id, CheckedBinderKind::Wildcard);
+            state.checked.core.record_binder(binder_id, checked_binder);
+            type_id
+        }
 
         lowering::BinderKind::String { .. } => {
             let inferred_type = context.prim.string;
