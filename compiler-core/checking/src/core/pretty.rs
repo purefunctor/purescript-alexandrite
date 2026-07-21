@@ -29,10 +29,21 @@ pub trait PrettyQueries: QueryProxy<Indexed = Arc<indexing::IndexedModule>> {
     fn lookup_smol_str(&self, id: SmolStrId) -> SmolStr;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PrettyNames {
     display_by_name: FxHashMap<Name, SmolStr>,
     next_suffix: FxHashMap<SmolStr, NonZeroU32>,
+    default_name: SmolStr,
+}
+
+impl Default for PrettyNames {
+    fn default() -> PrettyNames {
+        PrettyNames {
+            display_by_name: FxHashMap::default(),
+            next_suffix: FxHashMap::default(),
+            default_name: SmolStr::new("t"),
+        }
+    }
 }
 
 impl PrettyNames {
@@ -43,6 +54,10 @@ impl PrettyNames {
     pub fn reset(&mut self) {
         self.display_by_name.clear();
         self.next_suffix.clear();
+    }
+
+    fn set_default_name(&mut self, default_name: &str) {
+        self.default_name = SmolStr::new(default_name);
     }
 
     pub fn display_name<Q>(
@@ -61,7 +76,7 @@ impl PrettyNames {
         let base = names
             .get(&name)
             .map(|&id| queries.lookup_smol_str(id))
-            .unwrap_or_else(|| SmolStr::new("t"));
+            .unwrap_or_else(|| SmolStr::clone(&self.default_name));
 
         let display = self.allocate_display_name(base);
         self.display_by_name.insert(name, SmolStr::clone(&display));
@@ -105,6 +120,7 @@ pub struct Pretty<'a, Q: ?Sized> {
     width: usize,
     checked: &'a CheckedModule,
     names: PrettyNames,
+    show_rigid_kinds: bool,
 }
 
 impl<'a, Q> Pretty<'a, Q>
@@ -112,11 +128,16 @@ where
     Q: PrettyQueries + ?Sized,
 {
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Self {
-        Pretty { queries, width: 100, checked, names: PrettyNames::new() }
+        Pretty { queries, width: 100, checked, names: PrettyNames::new(), show_rigid_kinds: true }
     }
 
     pub fn width(mut self, width: usize) -> Self {
         self.width = width;
+        self
+    }
+
+    pub fn without_rigid_kinds(mut self) -> Pretty<'a, Q> {
+        self.show_rigid_kinds = false;
         self
     }
 
@@ -125,20 +146,34 @@ where
     }
 
     pub fn display_name(&mut self, name: Name) -> SmolStr {
+        self.names.set_default_name("t");
         self.names.display_name(self.queries, &self.checked.names, name)
     }
 
     pub fn render(&mut self, id: TypeId) -> SmolStr {
+        self.names.set_default_name("t");
         self.render_with_signature(None, id)
     }
 
     pub fn render_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
+        self.names.set_default_name("t");
+        self.render_with_signature(Some(name), id)
+    }
+
+    pub fn render_kind_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
+        self.names.set_default_name("k");
         self.render_with_signature(Some(name), id)
     }
 
     fn render_with_signature(&mut self, signature: Option<&str>, id: TypeId) -> SmolStr {
         let arena = Arena::new();
-        let mut printer = Printer::new(&arena, self.queries, &self.checked.names, &mut self.names);
+        let mut printer = Printer::new(
+            &arena,
+            self.queries,
+            &self.checked.names,
+            &mut self.names,
+            self.show_rigid_kinds,
+        );
 
         let document = if let Some(name) = signature {
             printer.signature(name, id)
@@ -171,6 +206,7 @@ where
     queries: &'context Q,
     names: &'context FxHashMap<Name, SmolStrId>,
     pretty_names: &'names mut PrettyNames,
+    show_rigid_kinds: bool,
 }
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
@@ -182,8 +218,9 @@ where
         queries: &'context Q,
         names: &'context FxHashMap<Name, SmolStrId>,
         pretty_names: &'names mut PrettyNames,
+        show_rigid_kinds: bool,
     ) -> Printer<'arena, 'context, 'names, Q> {
-        Printer { arena, queries, names, pretty_names }
+        Printer { arena, queries, names, pretty_names, show_rigid_kinds }
     }
 
     fn lookup_type(&self, id: TypeId) -> Type {
@@ -289,8 +326,15 @@ where
 
             Type::Rigid(name, _, kind) => {
                 let text = self.pretty_names.display_name(self.queries, self.names, name);
-                let kind = self.traverse(Precedence::Top, kind);
-                self.arena.text(format!("({text} :: ")).append(kind).append(self.arena.text(")"))
+                if self.show_rigid_kinds {
+                    let kind = self.traverse(Precedence::Top, kind);
+                    self.arena
+                        .text(format!("({text} :: "))
+                        .append(kind)
+                        .append(self.arena.text(")"))
+                } else {
+                    self.arena.text(text.to_string())
+                }
             }
 
             Type::Unification(unification_id) => self.arena.text(format!("?{unification_id}")),

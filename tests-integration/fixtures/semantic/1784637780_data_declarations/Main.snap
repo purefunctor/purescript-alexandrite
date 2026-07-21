@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Proxy :: forall (k :: Type). k -> Type
+data Proxy @a
+  | Proxy :: Proxy a
+
+newtype Tagged :: forall (k :: Type). k -> Type -> Type
+newtype Tagged @t @a
+  | Tagged :: a -> Tagged t a
+
+data Maybe :: Type -> Type
+data Maybe @a
+  | Just :: a -> Maybe a
+  | Nothing :: Maybe a

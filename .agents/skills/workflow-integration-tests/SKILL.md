@@ -1,6 +1,6 @@
 ---
 name: workflow-integration-tests
-description: "Workflow for adding and updating Alexandrite integration-test fixtures for checking, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots, or using `just t <category>`."
+description: "Workflow for adding and updating Alexandrite integration-test fixtures for checking, semantic trees, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots, or using `just t <category>`."
 ---
 
 # Workflow: Alexandrite Integration Tests
@@ -14,6 +14,7 @@ Use the command reference at `reference/compiler-scripts.md` for test runner syn
 | Category | Alias | Use for | Harness pattern |
 |----------|-------|---------|-----------------|
 | `checking` | `c` | Type checking, inference, kinds, roles, constraints, diagnostics after checking | `Main.purs` only |
+| `semantic` | `s` | Checked semantic tree declarations, typed expressions and binders, and explicit evidence | `Main.purs` only |
 | `lowering` | `l` | Lowered core output, binding/equation structure, source-to-core name links | every `.purs` file |
 | `resolving` | `r` | Name resolution, imports, exports, qualification, duplicate-name diagnostics | every `.purs` file |
 | `lsp` | - | Hover, definition, completion, import edits, source locations in LSP reports | `Main.purs` only |
@@ -52,6 +53,10 @@ test' [x] = x
 ```
 
 Name declarations predictably: `test`, `test'`, `test2`, `test2'`, etc. Include only edge cases relevant to the behavior.
+
+#### Semantic fixtures
+
+Write source that exposes the checked semantic structure being tested. Keep fixtures focused on the smallest declaration, expression, binder, or evidence shape that distinguishes the behavior.
 
 #### Lowering fixtures
 
@@ -112,7 +117,7 @@ test = Just life
 ```
 
 - Module name must match filename
-- Checking and LSP fixtures snapshot only `Main.purs`
+- Checking, semantic, and LSP fixtures snapshot only `Main.purs`
 - Lowering and resolving fixtures snapshot every `.purs` file
 
 ## Snapshot Review Focus
@@ -134,6 +139,10 @@ ErrorKind { details } at [location]
 
 Check inferred/checked types, kind/role output, constraints, diagnostics, and source locations.
 
+### Semantic
+
+Check semantic declaration kinds, finalized types and kinds, constructor arguments, binders, expressions, and explicit evidence. Confirm that syntax sugar expected to disappear is absent and syntax intentionally preserved by checking remains present.
+
 ### Lowering
 
 Check the lowered module report, especially declarations, binders, equations, and source links. Unexpected name-link changes are often as important as textual output changes.
@@ -152,6 +161,7 @@ Before accepting, verify:
 
 1. **The category is appropriate**
    - Checking owns type inference/checking behavior
+   - Semantic owns the typed semantic tree produced by checking
    - Lowering owns lowered core/source-link behavior
    - Resolving owns name/import/export behavior
    - LSP owns editor-facing reports
@@ -164,7 +174,7 @@ Before accepting, verify:
    - Checking types are correct
    - `test :: Array Int -> Int` - signature preserved
    - `test' :: forall t. Array t -> t` - polymorphism inferred
-   - Lowering/resolving/LSP changes match the feature or bug being tested
+   - Semantic/lowering/resolving/LSP changes match the feature or bug being tested
 
 4. **No unexpected `???`**
    - `test :: ???` - STOP: inference failure
@@ -186,5 +196,5 @@ Before accepting, verify:
 | Unexpected monomorphism | Missing polymorphic context |
 | Wrong error location | Check binder/expression placement |
 | Missing types in snapshot | Module header or imports incorrect |
-| Missing expected module snapshot | Category snapshots only `Main.purs` (`checking`, `lsp`) or module filename does not match module header |
+| Missing expected module snapshot | Category snapshots only `Main.purs` (`checking`, `semantic`, `lsp`) or module filename does not match module header |
 | Extra resolving/lowering snapshot | Every `.purs` file is snapshotted in `resolving` and `lowering` |

@@ -306,7 +306,8 @@ impl<'a> ModuleEncoder<'a> {
             indexing::TypeItemKind::Data { constructors, .. } => {
                 let declaration = self.checked.lookup_data_declaration(type_id);
                 let declaration = if let Some(declaration) = declaration {
-                    Some(self.type_encoder.encode_declaration(declaration.type_parameters)?)
+                    let type_parameters = declaration.type_parameters.iter().copied();
+                    Some(self.type_encoder.encode_declaration(type_parameters)?)
                 } else {
                     None
                 };
@@ -319,7 +320,8 @@ impl<'a> ModuleEncoder<'a> {
             indexing::TypeItemKind::Newtype { constructors, .. } => {
                 let declaration = self.checked.lookup_data_declaration(type_id);
                 let declaration = if let Some(declaration) = declaration {
-                    Some(self.type_encoder.encode_declaration(declaration.type_parameters)?)
+                    let type_parameters = declaration.type_parameters.iter().copied();
+                    Some(self.type_encoder.encode_declaration(type_parameters)?)
                 } else {
                     None
                 };
