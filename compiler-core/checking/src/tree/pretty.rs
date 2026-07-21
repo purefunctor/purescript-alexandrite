@@ -12,8 +12,8 @@ use crate::core::Type;
 use crate::core::pretty::{Pretty as TypePretty, PrettyQueries};
 use crate::evidence::Evidence;
 use crate::tree::{
-    BinderId, BinderKind, ExpressionId, ExpressionKind, GuardedExpression, TermDeclarationKind,
-    TypeDeclarationKind,
+    BinderId, BinderKind, ExpressionId, ExpressionKind, GuardedAlternative, GuardedExpression,
+    PatternGuard, TermDeclarationKind, TypeDeclarationKind,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -244,9 +244,7 @@ where
 
         let mut equations = vec![];
         for equation in value.equations.iter() {
-            let GuardedExpression::Unconditional { where_expression } =
-                &equation.guarded_expression;
-            let mut expression = self.expression(where_expression.expression)?;
+            let mut expression = self.guarded_expression(&equation.guarded_expression)?;
 
             for &binder in equation.binders.iter().rev() {
                 let binder = self.binder(binder)?;
@@ -285,6 +283,62 @@ where
         });
 
         Ok(Some(signature.append(self.arena.hardline()).append(equations)))
+    }
+
+    fn guarded_expression(&self, guarded: &GuardedExpression) -> QueryResult<Doc<'arena>> {
+        if let [alternative] = guarded.alternatives.as_ref()
+            && alternative.pattern_guards.is_empty()
+        {
+            return self.expression(alternative.where_expression.expression);
+        }
+
+        let mut alternatives = vec![];
+        for alternative in guarded.alternatives.iter() {
+            alternatives.push(self.guarded_alternative(alternative)?);
+        }
+
+        let mut alternatives = alternatives.into_iter();
+        let Some(first) = alternatives.next() else {
+            return Ok(self.arena.text("<error>"));
+        };
+        let alternatives = alternatives.fold(first, |document, alternative| {
+            document.append(self.arena.hardline()).append(alternative)
+        });
+        Ok(alternatives)
+    }
+
+    fn guarded_alternative(&self, alternative: &GuardedAlternative) -> QueryResult<Doc<'arena>> {
+        let mut pattern_guards = vec![];
+        for pattern_guard in alternative.pattern_guards.iter() {
+            pattern_guards.push(self.pattern_guard(pattern_guard)?);
+        }
+
+        let expression = self.expression(alternative.where_expression.expression)?;
+        let mut pattern_guards = pattern_guards.into_iter();
+        let Some(first) = pattern_guards.next() else {
+            return Ok(self.arena.text("| -> ").append(expression));
+        };
+        let pattern_guards = pattern_guards.fold(first, |document, pattern_guard| {
+            document.append(self.arena.text(", ")).append(pattern_guard)
+        });
+        let alternative = self
+            .arena
+            .text("| ")
+            .append(pattern_guards)
+            .append(self.arena.text(" -> "))
+            .append(expression);
+        Ok(alternative)
+    }
+
+    fn pattern_guard(&self, pattern_guard: &PatternGuard) -> QueryResult<Doc<'arena>> {
+        match *pattern_guard {
+            PatternGuard::Boolean { expression } => self.expression(expression),
+            PatternGuard::Pattern { binder, expression } => {
+                let binder = self.binder(binder)?;
+                let expression = self.expression(expression)?;
+                Ok(binder.append(self.arena.text(" <- ")).append(expression))
+            }
+        }
     }
 
     fn binder(&self, binder_id: BinderId) -> QueryResult<Doc<'arena>> {

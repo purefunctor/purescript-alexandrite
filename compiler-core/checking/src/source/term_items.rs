@@ -908,7 +908,7 @@ where
         let expression = allocate_value_expression(state, context, expression)?;
 
         let where_expression = tree::WhereExpression { expression };
-        let guarded_expression = tree::GuardedExpression::Unconditional { where_expression };
+        let guarded_expression = tree::GuardedExpression::unconditional(where_expression);
         let equation = tree::Equation { source, binders: Arc::from(binders), guarded_expression };
         checked_equations.push(equation);
     }
