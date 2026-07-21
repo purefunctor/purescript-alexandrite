@@ -3,15 +3,15 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-Types
-data Proxy :: forall (t :: Type). (t :: Type) -> Type
-  parameters: [a :: (t :: Type)]
-  roles: [Phantom]
-  Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
-newtype Tagged :: forall (t :: Type). (t :: Type) -> Type -> Type
-  parameters: [t1 :: (t :: Type), a :: Type]
-  roles: [Phantom, Representational]
-  Tagged ::
-  forall (t :: Type) (@t1 :: (t :: Type)) (@a :: Type).
-    (a :: Type) -> Tagged @(t :: Type) (t1 :: (t :: Type)) (a :: Type)
-    (a :: Type)
+data Proxy :: forall (k :: Type). k -> Type
+data Proxy @a
+  | Proxy :: Proxy a
+
+newtype Tagged :: forall (k :: Type). k -> Type -> Type
+newtype Tagged @t @a
+  | Tagged :: a -> Tagged t a
+
+data Maybe :: Type -> Type
+data Maybe @a
+  | Just :: a -> Maybe a
+  | Nothing :: Maybe a

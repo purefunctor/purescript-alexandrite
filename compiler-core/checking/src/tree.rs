@@ -1,3 +1,5 @@
+pub mod pretty;
+
 use std::ops::Index;
 use std::sync::Arc;
 
