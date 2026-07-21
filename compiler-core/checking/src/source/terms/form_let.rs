@@ -139,7 +139,7 @@ where
     };
 
     if let Some(signature_id) = name.signature {
-        let equation_patterns = equations::check_value_equations(
+        let checked_equations = equations::check_value_equations(
             state,
             context,
             equations::EquationTypeOrigin::Explicit(signature_id),
@@ -149,7 +149,7 @@ where
         let exhaustiveness = exhaustive::check_equation_patterns(
             state,
             context,
-            &equation_patterns,
+            &checked_equations.patterns,
             &name.equations,
         )?;
         state.report_exhaustiveness(exhaustiveness);
