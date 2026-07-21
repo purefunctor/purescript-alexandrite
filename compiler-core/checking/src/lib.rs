@@ -6,6 +6,7 @@ pub mod implication;
 pub mod safety;
 pub mod source;
 pub mod state;
+pub mod tree;
 
 pub mod core;
 pub use core::pretty::PrettyQueries;
@@ -64,6 +65,7 @@ pub struct CheckedModule {
     pub derived: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
     pub nodes: CheckedNodes,
+    pub tree: tree::Module,
     pub holes: CheckedHoles,
     pub errors: Vec<CheckingError>,
     pub names: FxHashMap<Name, SmolStrId>,
