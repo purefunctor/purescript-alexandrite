@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+Types
+data Proxy :: forall (t :: Type). (t :: Type) -> Type
+  parameters: [a :: (t :: Type)]
+  roles: [Phantom]
+  Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
+newtype Tagged :: forall (t :: Type). (t :: Type) -> Type -> Type
+  parameters: [t1 :: (t :: Type), a :: Type]
+  roles: [Phantom, Representational]
+  Tagged ::
+  forall (t :: Type) (@t1 :: (t :: Type)) (@a :: Type).
+    (a :: Type) -> Tagged @(t :: Type) (t1 :: (t :: Type)) (a :: Type)
+    (a :: Type)

@@ -1,6 +1,6 @@
 ---
 name: workflow-regression-tests
-description: "Workflow for splitting a known compiler bug fix into auditable jj history. Use when the current or parent commit already contains a compiler fix and needs a preceding failing integration-test fixture plus a fix commit that updates the same checking, lowering, resolving, or LSP snapshot."
+description: "Workflow for splitting a known compiler bug fix into auditable jj history. Use when the current or parent commit already contains a compiler fix and needs a preceding failing integration-test fixture plus a fix commit that updates the same checking, semantic, lowering, resolving, or LSP snapshot."
 ---
 
 # Workflow: Regression Tests
@@ -31,6 +31,7 @@ Use the category that owns the observable regression:
 | Category | Alias | Use when the regression is visible in |
 |----------|-------|----------------------------------------|
 | `checking` | `c` | Type checking, inference, kinding, roles, constraints, or checking diagnostics |
+| `semantic` | `s` | Checked semantic declarations, expressions, binders, or explicit evidence |
 | `lowering` | `l` | Lowered core output, equation/binder shape, or source-to-core links |
 | `resolving` | `r` | Name resolution, imports, exports, qualification, re-exports, or resolver diagnostics |
 | `lsp` | - | Hover, definition, completion, import edits, or editor-facing source positions |
@@ -67,7 +68,7 @@ Write a focused PureScript fixture that reproduces one behavior. Use `Main.purs`
 
 Snapshot expectations differ by category:
 
-- `checking` and `lsp` snapshot `Main.purs` only.
+- `checking`, `semantic`, and `lsp` snapshot `Main.purs` only.
 - `lowering` and `resolving` snapshot every `.purs` file in the fixture.
 
 Accept the snapshot in the failing fixture commit:
@@ -76,7 +77,7 @@ Accept the snapshot in the failing fixture commit:
 just t <category> NNN --accept
 ```
 
-The snapshot should intentionally encode the bug: the wrong error, missing type, bad constraint, incorrect lowered output, wrong resolution target, incorrect LSP response, unexpected `???`, or other undesirable current behavior. Do not try to make this commit green by changing compiler behavior; its purpose is to record the failure before the fix.
+The snapshot should intentionally encode the bug: the wrong error, missing type, bad constraint, incorrect semantic tree, incorrect lowered output, wrong resolution target, incorrect LSP response, unexpected `???`, or other undesirable current behavior. Do not try to make this commit green by changing compiler behavior; its purpose is to record the failure before the fix.
 
 ### 3. Return to the fix commit and update the snapshot
 
@@ -107,7 +108,7 @@ Before finishing, verify:
 - The failing fixture commit snapshot captures the bug clearly.
 - The fix commit snapshot changes only what the fix should change.
 - Unexpected `???` does not appear unless it is the regression being documented.
-- Error kinds, locations, inferred types, constraints, lowered bindings, resolved references, and LSP payloads are intentional for the selected category.
+- Error kinds, locations, inferred types, constraints, semantic nodes, lowered bindings, resolved references, and LSP payloads are intentional for the selected category.
 - The fixture is narrow enough for the snapshot diff to be easy to audit.
 - For `lowering` and `resolving`, every changed module snapshot in the fixture is expected.
 
