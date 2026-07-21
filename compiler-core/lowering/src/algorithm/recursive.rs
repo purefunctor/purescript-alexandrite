@@ -802,6 +802,7 @@ fn lower_equation_chunk(
                 Some(lower_equation_like(
                     state,
                     context,
+                    None,
                     cst,
                     cst::LetBindingEquation::function_binders,
                     cst::LetBindingEquation::guarded_expression,
@@ -843,6 +844,7 @@ fn lower_equation_chunk(
 pub(crate) fn lower_equation_like<T: AstNode>(
     state: &mut State,
     context: &Context,
+    source: Option<indexing::ValueEquationId>,
     equation: T,
     binders: impl Fn(&T) -> Option<cst::FunctionBinders>,
     guarded: impl Fn(&T) -> Option<cst::GuardedExpression>,
@@ -856,7 +858,7 @@ pub(crate) fn lower_equation_like<T: AstNode>(
                 .collect()
         };
         let guarded = guarded(&equation).map(|cst| lower_guarded(state, context, &cst));
-        Equation { binders, guarded }
+        Equation { source, binders, guarded }
     })
 }
 
