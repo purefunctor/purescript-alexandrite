@@ -44,6 +44,9 @@ pub enum ErrorKind {
     CannotDeriveForType {
         type_id: TypeId,
     },
+    CannotGeneraliseRecursiveFunction {
+        type_id: TypeId,
+    },
     ContravariantOccurrence {
         type_id: TypeId,
     },

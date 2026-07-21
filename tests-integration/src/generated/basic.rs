@@ -289,8 +289,11 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         if class.superclasses.is_empty() {
             writeln!(out, "class {forall_prefix}{canonical}").unwrap();
         } else {
-            let superclasses =
-                class.superclasses.iter().map(|&superclass| pretty.render(superclass)).join(", ");
+            let superclasses = class
+                .superclasses
+                .iter()
+                .map(|superclass| pretty.render(superclass.constraint))
+                .join(", ");
             writeln!(out, "class {forall_prefix}{superclasses} <= {canonical}").unwrap();
         }
 

@@ -259,7 +259,7 @@ where
         if let CaseOfMode::Infer = mode {
             return Ok(context.intern_constrained(context.prim.partial, expected));
         } else {
-            state.push_wanted(context.prim.partial)
+            state.push_wanted(context.prim.partial);
         }
     }
 

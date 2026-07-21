@@ -72,6 +72,20 @@ where
     Ok(())
 }
 
+pub fn zonk_evidence<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let binders = state.checked.evidence.binders().map(|(id, binder)| (id, binder.constraint));
+    let binders = binders.collect::<Vec<_>>();
+    for (id, constraint) in binders {
+        let constraint = zonk(state, context, constraint)?;
+        state.checked.evidence.bind_binder(id, constraint);
+    }
+
+    Ok(())
+}
+
 pub fn zonk_holes<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
 where
     Q: ExternalQueries,
@@ -126,6 +140,10 @@ where
         ErrorKind::CannotDeriveForType { type_id } => {
             let type_id = zonk(state, context, type_id)?;
             ErrorKind::CannotDeriveForType { type_id }
+        }
+        ErrorKind::CannotGeneraliseRecursiveFunction { type_id } => {
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::CannotGeneraliseRecursiveFunction { type_id }
         }
         ErrorKind::ContravariantOccurrence { type_id } => {
             let type_id = zonk(state, context, type_id)?;

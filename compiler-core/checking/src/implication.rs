@@ -8,6 +8,7 @@ use smol_str::SmolStr;
 
 use crate::core::TypeId;
 use crate::error::ErrorCrumb;
+use crate::evidence::{EvidenceBinderId, EvidenceVarId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Patterns {
@@ -18,11 +19,23 @@ pub struct Patterns {
 /// A unique identifier for an implication scope.
 pub type ImplicationId = u32;
 
+#[derive(Clone, Copy)]
+pub struct GivenConstraint {
+    pub constraint: TypeId,
+    pub evidence: EvidenceBinderId,
+}
+
+#[derive(Clone, Copy)]
+pub struct WantedConstraint {
+    pub constraint: TypeId,
+    pub evidence: EvidenceVarId,
+}
+
 /// A node in the implication tree.
 #[derive(Default)]
 pub struct Implication {
-    pub given: Vec<TypeId>,
-    pub wanted: VecDeque<TypeId>,
+    pub given: Vec<GivenConstraint>,
+    pub wanted: VecDeque<WantedConstraint>,
     pub patterns: Vec<Patterns>,
     pub children: Vec<ImplicationId>,
     pub parent: Option<ImplicationId>,

@@ -75,7 +75,7 @@ pub fn match_compare<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     arguments: &[TypeId],
-    given: &[CanonicalConstraintId],
+    given: impl IntoIterator<Item = CanonicalConstraintId>,
 ) -> QueryResult<Option<MatchInstance>>
 where
     Q: ExternalQueries,
@@ -114,14 +114,14 @@ fn match_compare_transitive<Q>(
     left: TypeId,
     right: TypeId,
     ordering: TypeId,
-    given: &[CanonicalConstraintId],
+    given: impl IntoIterator<Item = CanonicalConstraintId>,
 ) -> QueryResult<Option<MatchInstance>>
 where
     Q: ExternalQueries,
 {
     let mut graph: DiGraphMap<TypeId, ()> = DiGraphMap::new();
 
-    for &constraint in given {
+    for constraint in given {
         let constraint = &state.canonicals[constraint];
         if constraint.file_id != context.prim_int.file_id
             || constraint.type_id != context.prim_int.compare

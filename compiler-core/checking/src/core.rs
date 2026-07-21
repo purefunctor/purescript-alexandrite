@@ -115,6 +115,14 @@ pub struct CheckedSynonym {
 /// ```
 ///
 /// [`CheckedModule::terms`]: crate::CheckedModule::terms
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CheckedSuperclass {
+    /// Stable source identity of this occurrence in the defining file.
+    pub source_id: lowering::TypeId,
+    /// Constraint expressed in terms of the class head's rigids.
+    pub constraint: TypeId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedClass {
     /// Post-generalisation kind variable binders.
@@ -123,8 +131,8 @@ pub struct CheckedClass {
     pub type_parameters: Vec<ForallBinderId>,
     /// Canonical class head, e.g. `Eq a` or `Foo @k a`.
     pub canonical: TypeId,
-    /// Superclass constraints expressed in terms of the class head's rigids.
-    pub superclasses: Vec<TypeId>,
+    /// Superclass occurrences from the class declaration.
+    pub superclasses: Vec<CheckedSuperclass>,
     /// Functional dependencies.
     pub functional_dependencies: Arc<[fd::Fd]>,
     /// Class member term item IDs.

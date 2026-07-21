@@ -20,7 +20,7 @@ use crate::{CheckedModule, ExternalQueries};
 
 pub type InstanceChainKey = (FileId, InstanceChainId);
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum InstanceCandidateOrigin {
     Instance(FileId, InstanceId),
     Derive(FileId, DeriveId),

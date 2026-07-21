@@ -1,5 +1,6 @@
 pub mod context;
 pub mod error;
+pub mod evidence;
 pub mod holes;
 pub mod implication;
 pub mod safety;
@@ -53,6 +54,7 @@ pub trait ExternalQueries:
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedModule {
+    pub evidence: evidence::Evidences,
     pub types: FxHashMap<TypeItemId, TypeId>,
     pub terms: FxHashMap<TermItemId, TypeId>,
     pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
@@ -204,8 +206,10 @@ fn check_source(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<
     source::check_type_items(&mut state, &context)?;
     source::check_term_items(&mut state, &context)?;
     core::zonk::zonk_nodes(&mut state, &context)?;
+    core::zonk::zonk_evidence(&mut state, &context)?;
     core::zonk::zonk_holes(&mut state, &context)?;
     core::zonk::zonk_errors(&mut state, &context)?;
+    state.checked.evidence.assert_finished();
 
     Ok(state.checked)
 }

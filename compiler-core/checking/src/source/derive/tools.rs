@@ -51,7 +51,7 @@ where
     }
 
     for superclass in superclasses {
-        let specialised = SubstituteName::many(state, context, &bindings, superclass)?;
+        let specialised = SubstituteName::many(state, context, &bindings, superclass.constraint)?;
         state.push_wanted(specialised);
     }
 
@@ -82,16 +82,18 @@ where
     Q: ExternalQueries,
 {
     for residual in state.solve_constraints(context)? {
-        let attached = state.canonical_errors.remove(&residual.wanted);
+        state.checked.evidence.mark_error(residual.evidence.wanted);
+        let attached = state.canonical_errors.remove(&residual.key.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
         let given = residual
+            .key
             .given
             .iter()
             .map(|given| state.canonicals.type_id(context, *given))
             .collect::<Arc<[_]>>();
 
-        let constraint = state.canonicals.type_id(context, residual.wanted);
+        let constraint = state.canonicals.type_id(context, residual.key.wanted);
         state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
     }
     Ok(())

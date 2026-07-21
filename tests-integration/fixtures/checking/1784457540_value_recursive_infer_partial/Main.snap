@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+partialValue :: Partial => Int
+test :: Partial => Int
+
+Types
+
+Diagnostics
+error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this recursive function.
+  --> 6:1..6:43
+  |
+6 | test = if true then test else partialValue
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: The inferred type was: Partial => Int
+  trivia: Try adding a type signature.

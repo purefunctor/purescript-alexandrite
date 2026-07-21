@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+useBottom :: forall (a :: Type). Bottom @Type (a :: Type) => (a :: Type) -> Int
+useMiddle :: forall (a :: Type). Middle @Type (a :: Type) => (a :: Type) -> Int
+useTop :: forall (a :: Type). Top @Type (a :: Type) => (a :: Type) -> Int
+test :: forall (t :: Type). Top @Type (t :: Type) => (t :: Type) -> Int
+
+Types
+Bottom :: forall (t :: Type). (t :: Type) -> Constraint
+Middle :: forall (t :: Type). (t :: Type) -> Constraint
+Top :: forall (t :: Type). (t :: Type) -> Constraint
+
+Classes
+class forall (t :: Type) (a :: (t :: Type)). Bottom @(t :: Type) (a :: (t :: Type))
+class forall (t :: Type) (a :: (t :: Type)). Bottom @(t :: Type) (a :: (t :: Type)) <= Middle @(t :: Type) (a :: (t :: Type))
+class forall (t :: Type) (a :: (t :: Type)). Middle @(t :: Type) (a :: (t :: Type)) <= Top @(t :: Type) (a :: (t :: Type))

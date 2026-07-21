@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+value :: forall (@a :: Type). Value (a :: Type) => (a :: Type)
+guardedFailure :: Fail (Text "failure was demanded") => Int
+useFailure :: Int
+guardedWarning :: Warn (Text "warning was demanded") => Int
+useWarning :: Int
+
+Types
+Value :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Value (a :: Type)
+  value :: forall (@a :: Type). Value (a :: Type) => (a :: Type)
+
+Instances
+instance Value Int
+
+Diagnostics
+error[CustomFailure]: failure was demanded
+  --> 14:1..14:18
+   |
+14 | useFailure :: Int
+   | ^~~~~~~~~~~~~~~~~
+warning[CustomWarning]: warning was demanded
+  --> 20:1..20:18
+   |
+20 | useWarning :: Int
+   | ^~~~~~~~~~~~~~~~~

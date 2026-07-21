@@ -185,7 +185,8 @@ where
             check_term_signature(state, context, item)?;
         }
 
-        if scc.is_recursive() {
+        let recursive = scc.is_recursive();
+        if recursive {
             prepare_binding_group(state, context, items);
         }
 
@@ -195,7 +196,7 @@ where
             check_term_equation(state, context, &mut term_scc, item)?;
         }
 
-        finalise_term_binding_group(state, context, &mut term_scc, items)?;
+        finalise_term_binding_group(state, context, &mut term_scc, items, recursive)?;
     }
 
     Ok(())
@@ -372,16 +373,18 @@ where
         };
 
         for residual in residuals {
-            let attached = state.canonical_errors.remove(&residual.wanted);
+            state.checked.evidence.mark_error(residual.evidence.wanted);
+            let attached = state.canonical_errors.remove(&residual.key.wanted);
             attached.into_iter().flatten().for_each(|error| state.insert_error(error));
 
             let given = residual
+                .key
                 .given
                 .iter()
                 .map(|given| state.canonicals.type_id(context, *given))
                 .collect::<Arc<[_]>>();
 
-            let constraint = state.canonicals.type_id(context, residual.wanted);
+            let constraint = state.canonicals.type_id(context, residual.key.wanted);
             state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
         }
 
@@ -743,6 +746,7 @@ fn finalise_term_binding_group<Q>(
     context: &CheckContext<Q>,
     scc: &mut TermSccState,
     items: &[TermItemId],
+    recursive: bool,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
@@ -751,6 +755,7 @@ where
         marker: TypeId,
         unsolved: Vec<u32>,
         errors: generalise::ConstraintErrors,
+        has_constraints: bool,
     }
 
     let mut pending = vec![];
@@ -765,32 +770,43 @@ where
 
         let mut errors = generalise::ConstraintErrors::default();
 
-        let marker = match group {
+        let (marker, has_constraints) = match group {
             Some(PendingValueGroup::Checked { residuals }) => {
                 errors.unsatisfied.extend(residuals);
-                marker
+                (marker, false)
             }
             Some(PendingValueGroup::Inferred { residuals }) => {
-                generalise::insert_inferred_residuals(
+                let constrained = generalise::constrain_using_residuals(
                     state,
                     context,
                     marker,
                     residuals,
                     &mut errors,
-                )?
+                )?;
+                (constrained.type_id, constrained.has_constraints)
             }
-            None => marker,
+            None => (marker, false),
         };
 
         let marker = zonk::zonk(state, context, marker)?;
         let unsolved = generalise::unsolved_unifications(state, context, marker)?;
 
-        pending.push((item_id, Pending { marker, unsolved, errors }));
+        let pending_group = Pending { marker, unsolved, errors, has_constraints };
+        pending.push((item_id, pending_group));
     }
 
-    for (item_id, Pending { marker, unsolved, errors }) in pending {
+    for (item_id, Pending { marker, unsolved, errors, has_constraints }) in pending {
         let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
         state.checked.terms.insert(item_id, marker);
+
+        if recursive && has_constraints {
+            // Keep constraint evidence consistent with the candidate type used for error recovery.
+            // The diagnostic prevents the invalid recursive dictionary abstraction from proceeding.
+            state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
+                let error = ErrorKind::CannotGeneraliseRecursiveFunction { type_id: marker };
+                state.insert_error(error);
+            });
+        }
 
         for error in errors.ambiguous {
             let constraint = state.canonicals.type_id(context, error);
@@ -799,18 +815,20 @@ where
             });
         }
         for error in errors.unsatisfied {
+            state.checked.evidence.mark_error(error.evidence.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
-                let attached = state.canonical_errors.remove(&error.wanted);
+                let attached = state.canonical_errors.remove(&error.key.wanted);
                 attached.into_iter().flatten().for_each(|error| state.insert_error(error));
             });
 
             let given = error
+                .key
                 .given
                 .iter()
                 .map(|given| state.canonicals.type_id(context, *given))
                 .collect::<Arc<[_]>>();
 
-            let constraint = state.canonicals.type_id(context, error.wanted);
+            let constraint = state.canonicals.type_id(context, error.key.wanted);
             state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
                 state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
             });

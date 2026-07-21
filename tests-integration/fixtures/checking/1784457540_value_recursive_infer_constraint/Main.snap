@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+test :: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+
+Types
+Semigroup :: Type -> Constraint
+
+Classes
+class forall (a :: Type). Semigroup (a :: Type)
+  append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+
+Diagnostics
+error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this recursive function.
+  --> 6:1..6:39
+  |
+6 | test value = append value (test value)
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: The inferred type was: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+  trivia: Try adding a type signature.
