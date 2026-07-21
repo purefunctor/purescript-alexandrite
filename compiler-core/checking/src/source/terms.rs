@@ -438,12 +438,12 @@ where
         lowering::ExpressionKind::RecordAccess { record, labels } => {
             let Some(record) = *record else { return Ok(unknown) };
             let Some(labels) = labels else { return Ok(unknown) };
-            collections::infer_record_access(state, context, record, labels)
+            collections::infer_record_access(state, context, expression, record, labels)
         }
 
         lowering::ExpressionKind::RecordUpdate { record, updates } => {
             let Some(record) = *record else { return Ok(unknown) };
-            collections::infer_record_update(state, context, record, updates)
+            collections::infer_record_update(state, context, expression, record, updates)
         }
     }
 }

@@ -101,6 +101,8 @@ pub enum CheckedExpressionKind {
     Literal { literal: CheckedLiteral },
     Array { elements: Arc<[CheckedExpressionId]> },
     Record { fields: Arc<[CheckedRecordField]> },
+    RecordAccess { record: CheckedExpressionId, labels: Arc<[SmolStr]> },
+    RecordUpdate { record: CheckedExpressionId, updates: Arc<[CheckedRecordUpdate]> },
     Error,
     Do { expression: CheckedDoExpression },
     Ado { expression: CheckedAdoExpression },
@@ -116,6 +118,12 @@ pub enum CheckedExpressionKind {
 pub struct CheckedRecordField {
     pub label: SmolStr,
     pub expression: CheckedExpressionId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedRecordUpdate {
+    Leaf { label: SmolStr, expression: CheckedExpressionId },
+    Branch { label: SmolStr, updates: Arc<[CheckedRecordUpdate]> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

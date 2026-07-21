@@ -6,7 +6,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, Type, TypeId, normalise, toolkit, unification};
-use crate::semantic::{CheckedExpressionKind, CheckedRecordField};
+use crate::semantic::{CheckedExpressionKind, CheckedRecordField, CheckedRecordUpdate};
 use crate::state::CheckState;
 
 fn infer_record_field_expression<Q>(
@@ -344,13 +344,15 @@ where
 pub fn infer_record_access<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::ExpressionId,
     record: lowering::ExpressionId,
     labels: &[SmolStr],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    let mut current_type = super::infer_expression(state, context, record)?;
+    let record_type = super::infer_expression(state, context, record)?;
+    let mut accessed_type = record_type;
 
     for label in labels.iter() {
         let label = SmolStr::clone(label);
@@ -358,26 +360,36 @@ where
         let field_type = state.fresh_unification(context.queries, context.prim.t);
         let tail_type = state.fresh_unification(context.queries, context.prim.row_type);
 
-        let row_type = context.intern_row([RowField { label, id: field_type }], Some(tail_type));
-        let record_type = context.intern_application(context.prim.record, row_type);
+        let field_row = context.intern_row([RowField { label, id: field_type }], Some(tail_type));
+        let field_record = context.intern_application(context.prim.record, field_row);
+        unification::subtype(state, context, accessed_type, field_record)?;
 
-        unification::subtype(state, context, current_type, record_type)?;
-        current_type = field_type;
+        accessed_type = field_type;
     }
 
-    Ok(current_type)
+    let record = state.checked.core.lookup_expression(record).unwrap_or_else(|| {
+        state.checked.core.allocate_expression(record_type, CheckedExpressionKind::Error)
+    });
+
+    let kind = CheckedExpressionKind::RecordAccess { record, labels: Arc::from(labels) };
+    let checked_expression = state.checked.core.allocate_expression(accessed_type, kind);
+    state.checked.core.record_expression(source, checked_expression);
+
+    Ok(accessed_type)
 }
 
 pub fn infer_record_update<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::ExpressionId,
     record: lowering::ExpressionId,
     updates: &[lowering::RecordUpdate],
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    let (input_fields, output_fields, tail) = infer_record_updates(state, context, updates)?;
+    let (input_fields, output_fields, tail, checked_updates) =
+        infer_record_updates(state, context, updates)?;
 
     let input_row = context.intern_row(input_fields, Some(tail));
     let input_record = context.intern_application(context.prim.record, input_row);
@@ -385,7 +397,15 @@ where
     let output_row = context.intern_row(output_fields, Some(tail));
     let output_record = context.intern_application(context.prim.record, output_row);
 
-    super::check_expression(state, context, record, input_record)?;
+    let record_type = super::check_expression(state, context, record, input_record)?;
+
+    let record = state.checked.core.lookup_expression(record).unwrap_or_else(|| {
+        state.checked.core.allocate_expression(record_type, CheckedExpressionKind::Error)
+    });
+
+    let kind = CheckedExpressionKind::RecordUpdate { record, updates: Arc::from(checked_updates) };
+    let checked_expression = state.checked.core.allocate_expression(output_record, kind);
+    state.checked.core.record_expression(source, checked_expression);
 
     Ok(output_record)
 }
@@ -394,18 +414,18 @@ pub fn infer_record_updates<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     updates: &[lowering::RecordUpdate],
-) -> QueryResult<(Vec<RowField>, Vec<RowField>, TypeId)>
+) -> QueryResult<(Vec<RowField>, Vec<RowField>, TypeId, Vec<CheckedRecordUpdate>)>
 where
     Q: ExternalQueries,
 {
     let mut input_fields = vec![];
     let mut output_fields = vec![];
+    let mut checked_updates = vec![];
 
     for update in updates {
         match update {
             lowering::RecordUpdate::Leaf { name, expression } => {
                 let Some(name) = name else { continue };
-                let label = SmolStr::clone(name);
 
                 let input_id = state.fresh_unification(context.queries, context.prim.t);
                 let output_id = if let Some(expression) = expression {
@@ -414,14 +434,26 @@ where
                     context.unknown("missing record update expression")
                 };
 
-                input_fields.push(RowField { label: label.clone(), id: input_id });
-                output_fields.push(RowField { label, id: output_id });
+                let expression = expression
+                    .and_then(|expression| state.checked.core.lookup_expression(expression))
+                    .unwrap_or_else(|| {
+                        state
+                            .checked
+                            .core
+                            .allocate_expression(output_id, CheckedExpressionKind::Error)
+                    });
+
+                checked_updates
+                    .push(CheckedRecordUpdate::Leaf { label: SmolStr::clone(name), expression });
+
+                input_fields.push(RowField { label: SmolStr::clone(name), id: input_id });
+                output_fields.push(RowField { label: SmolStr::clone(name), id: output_id });
             }
             lowering::RecordUpdate::Branch { name, updates } => {
                 let Some(name) = name else { continue };
-                let label = SmolStr::clone(name);
 
-                let (in_f, out_f, tail) = infer_record_updates(state, context, updates)?;
+                let (in_f, out_f, tail, nested_updates) =
+                    infer_record_updates(state, context, updates)?;
 
                 let in_row = context.intern_row(in_f, Some(tail));
                 let in_id = context.intern_application(context.prim.record, in_row);
@@ -429,13 +461,18 @@ where
                 let out_row = context.intern_row(out_f, Some(tail));
                 let out_id = context.intern_application(context.prim.record, out_row);
 
-                input_fields.push(RowField { label: label.clone(), id: in_id });
-                output_fields.push(RowField { label, id: out_id });
+                checked_updates.push(CheckedRecordUpdate::Branch {
+                    label: SmolStr::clone(name),
+                    updates: Arc::from(nested_updates),
+                });
+
+                input_fields.push(RowField { label: SmolStr::clone(name), id: in_id });
+                output_fields.push(RowField { label: SmolStr::clone(name), id: out_id });
             }
         }
     }
 
     let tail = state.fresh_unification(context.queries, context.prim.row_type);
 
-    Ok((input_fields, output_fields, tail))
+    Ok((input_fields, output_fields, tail, checked_updates))
 }

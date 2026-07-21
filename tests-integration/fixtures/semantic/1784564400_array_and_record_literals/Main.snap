@@ -28,3 +28,9 @@ punnedRecord = { punValue: punValue }
 
 emptyRecord :: {}
 emptyRecord = {}
+
+recordAccess :: Boolean
+recordAccess = inferredRecord.nested.value
+
+recordUpdate :: { array :: Array Int, nested :: { value :: Boolean } }
+recordUpdate = inferredRecord { array = [3], nested { value = false } }

@@ -17,7 +17,7 @@ use crate::semantic::{
     CheckedBinderKind, CheckedBlockStatement, CheckedCaseAlternative, CheckedDoExpression,
     CheckedDoStep, CheckedExpressionId, CheckedExpressionKind, CheckedGuardedExpression,
     CheckedLetBinding, CheckedLetStatement, CheckedLiteral, CheckedPatternGuard,
-    CheckedRecordField, CheckedUnaryApplication,
+    CheckedRecordField, CheckedRecordUpdate, CheckedUnaryApplication,
 };
 use crate::{CheckedModule, PrettyQueries, TypeId};
 
@@ -99,6 +99,7 @@ where
 enum Precedence {
     Abstraction,
     Application,
+    RecordUpdate,
     Atom,
 }
 
@@ -174,6 +175,20 @@ where
             CheckedExpressionKind::Record { fields } => {
                 (self.record_expression(&fields), Precedence::Atom)
             }
+            CheckedExpressionKind::RecordAccess { record, labels } => {
+                let record = self.expression(record, Precedence::Atom);
+                let labels = labels.iter();
+                let labels = labels.fold(record, |record, label| {
+                    record.append(self.arena.text(".")).append(self.arena.text(label.to_string()))
+                });
+                (labels, Precedence::Atom)
+            }
+            CheckedExpressionKind::RecordUpdate { record, updates } => {
+                let record = self.expression(record, Precedence::Atom);
+                let updates = self.record_updates(&updates);
+                let document = record.append(self.arena.text(" ")).append(updates);
+                (document, Precedence::RecordUpdate)
+            }
             CheckedExpressionKind::Error => (self.arena.text("<error>"), Precedence::Atom),
             CheckedExpressionKind::Do { expression } => {
                 (self.do_expression(&expression), Precedence::Abstraction)
@@ -194,7 +209,7 @@ where
             }
             CheckedExpressionKind::TermApplication { function, argument } => {
                 let function = self.expression(function, Precedence::Application);
-                let argument = self.expression(argument, Precedence::Atom);
+                let argument = self.expression(argument, Precedence::RecordUpdate);
                 let application = self.term_application(function, argument);
                 (application, Precedence::Application)
             }
@@ -252,6 +267,23 @@ where
         let fields = fields.collect_vec();
         let fields = self.separated_by_comma(fields).group();
         self.arena.text("{ ").append(fields).append(self.arena.text(" }")).group()
+    }
+
+    fn record_updates(&mut self, updates: &[CheckedRecordUpdate]) -> Doc<'arena> {
+        let updates = updates.iter().map(|update| match update {
+            CheckedRecordUpdate::Leaf { label, expression } => {
+                let expression = self.expression(*expression, Precedence::Abstraction);
+                self.arena.text(label.to_string()).append(self.arena.text(" = ")).append(expression)
+            }
+            CheckedRecordUpdate::Branch { label, updates } => self
+                .arena
+                .text(label.to_string())
+                .append(self.arena.text(" "))
+                .append(self.record_updates(updates)),
+        });
+        let updates = updates.collect_vec();
+        let updates = self.separated_by_comma(updates).group();
+        self.arena.text("{ ").append(updates).append(self.arena.text(" }")).group()
     }
 
     fn do_expression(&mut self, expression: &CheckedDoExpression) -> Doc<'arena> {

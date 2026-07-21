@@ -19,3 +19,7 @@ punValue = 42
 punnedRecord = { punValue }
 
 emptyRecord = {}
+
+recordAccess = inferredRecord.nested.value
+
+recordUpdate = inferredRecord { array = [3], nested { value = false } }
