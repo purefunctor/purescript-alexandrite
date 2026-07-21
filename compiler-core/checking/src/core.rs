@@ -95,7 +95,7 @@ pub enum KindOrType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedDataDeclaration {
-    pub type_parameters: Vec<ForallBinderId>,
+    pub type_parameters: Arc<[ForallBinderId]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

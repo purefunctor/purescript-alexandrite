@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId};
+use indexing::{TermItemId, TypeItemId, TypeItemKind};
 use itertools::Itertools;
 use lowering::{
     ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
@@ -19,7 +19,7 @@ use crate::core::{
 use crate::error::ErrorCrumb;
 use crate::source::types;
 use crate::state::CheckState;
-use crate::{ExternalQueries, safe_loop};
+use crate::{ExternalQueries, safe_loop, tree};
 
 struct PendingDataType {
     parameters: Vec<ForallBinder>,
@@ -546,7 +546,8 @@ where
             context.intern_forall_binder(binder)
         });
 
-        let type_parameters = type_parameters.collect_vec();
+        let type_parameters = type_parameters.collect::<Arc<[_]>>();
+        let mut semantic_constructors = vec![];
 
         for (constructor_id, checked_arguments) in constructors {
             let mut result = type_reference;
@@ -558,10 +559,15 @@ where
                 result = context.intern_application(result, rigid);
             }
 
-            // a -> Tagged @k t a
-            for argument in checked_arguments.into_iter().rev() {
+            let mut arguments = Vec::with_capacity(checked_arguments.len());
+            for argument in checked_arguments {
                 let argument = zonk::zonk(state, context, argument)?;
                 let argument = ApplyKinds::on(state, context, item_id, type_reference, argument)?;
+                arguments.push(argument);
+            }
+
+            // a -> Tagged @k t a
+            for &argument in arguments.iter().rev() {
                 result = context.intern_function(argument, result);
             }
 
@@ -578,9 +584,35 @@ where
             }
 
             state.checked.terms.insert(constructor_id, result);
+
+            let constructor = tree::DataConstructor { arguments: Arc::from(arguments) };
+            let declaration = tree::TermDeclaration {
+                type_id: result,
+                kind: tree::TermDeclarationKind::Constructor(constructor),
+            };
+
+            let declaration = state.checked.tree.insert_term(constructor_id, declaration);
+            semantic_constructors.push(declaration);
         }
 
-        state.checked.data_declarations.insert(item_id, CheckedDataDeclaration { type_parameters });
+        let checked_declaration =
+            CheckedDataDeclaration { type_parameters: Arc::clone(&type_parameters) };
+        state.checked.data_declarations.insert(item_id, checked_declaration);
+
+        let data = tree::DataDeclaration {
+            parameters: type_parameters,
+            constructors: Arc::from(semantic_constructors),
+        };
+
+        let declaration = match &context.indexed.items[item_id].kind {
+            TypeItemKind::Data { .. } => tree::TypeDeclarationKind::Data(data),
+            TypeItemKind::Newtype { .. } => tree::TypeDeclarationKind::Newtype(data),
+            _ => unreachable!("invariant violated: pending data type is not data or newtype"),
+        };
+
+        let roles = state.checked.lookup_roles(item_id).unwrap_or_default();
+        let declaration = tree::TypeDeclaration { kind: constructor_kind, roles, declaration };
+        state.checked.tree.insert_type_declaration(item_id, declaration);
     }
 
     Ok(())
