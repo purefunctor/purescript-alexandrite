@@ -844,7 +844,7 @@ fn lower_equation_chunk(
 pub(crate) fn lower_equation_like<T: AstNode>(
     state: &mut State,
     context: &Context,
-    source: Option<indexing::ValueEquationId>,
+    source: Option<indexing::EquationSourceId>,
     equation: T,
     binders: impl Fn(&T) -> Option<cst::FunctionBinders>,
     guarded: impl Fn(&T) -> Option<cst::GuardedExpression>,

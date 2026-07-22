@@ -4,7 +4,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, ValueEquationId};
+use indexing::{EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use smol_str::SmolStr;
 
@@ -76,7 +76,7 @@ pub struct DataDeclaration {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Equation {
-    pub source: ValueEquationId,
+    pub source: EquationSourceId,
     pub binders: Arc<[BinderId]>,
     pub guarded_expression: GuardedExpression,
 }

@@ -825,7 +825,9 @@ fn record_value_declaration<Q>(
 
     let complete = !sources.is_empty()
         && sources.len() == equations.len()
-        && std::iter::zip(sources, &equations).all(|(source, equation)| equation.source == *source);
+        && std::iter::zip(sources, &equations).all(|(source, equation)| {
+            equation.source == indexing::EquationSourceId::Value(*source)
+        });
     if !complete {
         return;
     }

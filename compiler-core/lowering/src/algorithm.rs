@@ -5,9 +5,10 @@ use std::sync::Arc;
 
 use files::FileId;
 use indexing::{
-    IndexedModule, TermItem, TermItemId, TermItemKind, TypeItem, TypeItemId, TypeItemKind,
-    TypeRoleId,
+    EquationSourceId, IndexedModule, TermItem, TermItemId, TermItemKind, TypeItem, TypeItemId,
+    TypeItemKind, TypeRoleId,
 };
+use indexmap::IndexMap;
 use itertools::Itertools;
 use petgraph::prelude::DiGraphMap;
 use resolving::ResolvedModule;
@@ -567,7 +568,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
                     Some(recursive::lower_equation_like(
                         state,
                         context,
-                        Some(*id),
+                        Some(EquationSourceId::Value(*id)),
                         cst,
                         cst::ValueEquation::function_binders,
                         cst::ValueEquation::guarded_expression,
@@ -847,7 +848,7 @@ fn lower_instance_statements(
         }),
     });
 
-    let mut in_scope = FxHashMap::default();
+    let mut in_scope: IndexMap<_, _, FxBuildHasher> = IndexMap::default();
     for (name, mut children) in children.into_iter() {
         let mut signature = None;
         let mut equations = vec![];
@@ -897,7 +898,7 @@ fn lower_instance_statements(
                         Some(recursive::lower_equation_like(
                             state,
                             context,
-                            None,
+                            Some(EquationSourceId::Instance(id)),
                             cst,
                             cst::InstanceEquationStatement::function_binders,
                             cst::InstanceEquationStatement::guarded_expression,

@@ -39,7 +39,7 @@ pub struct CheckedValueEquations {
 }
 
 pub struct ElaboratedEquation {
-    pub source: Option<indexing::ValueEquationId>,
+    pub source: Option<indexing::EquationSourceId>,
     pub binders: Arc<[tree::BinderId]>,
     pub guarded: tree::GuardedExpression,
 }

@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, ValueEquationId};
+use indexing::{EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
@@ -210,7 +210,7 @@ pub enum TypeKind {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Equation {
-    pub source: Option<ValueEquationId>,
+    pub source: Option<EquationSourceId>,
     pub binders: Arc<[BinderId]>,
     pub guarded: Option<GuardedExpression>,
 }
