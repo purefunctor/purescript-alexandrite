@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+applyInterleaved :: forall a b. First a => Second b => a -> b -> a
+applyInterleaved =
+  \{firstDict} ->
+    \{secondDict} -> \first -> \second -> interleaved @a {firstDict} first @b {secondDict} second

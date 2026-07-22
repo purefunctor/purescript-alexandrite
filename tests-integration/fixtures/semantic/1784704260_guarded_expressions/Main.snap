@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Maybe :: Type -> Type
+data Maybe @a
+  | Just :: a -> Maybe a
+  | Nothing :: Maybe a
+
+recover :: forall a. a -> Maybe a -> a
+recover =
+  \fallback ->
+    \input ->
+      | (Just value) <- input -> value
+      | <error> -> fallback

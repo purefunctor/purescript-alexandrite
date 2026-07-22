@@ -14,13 +14,12 @@ fn infer_record_field_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let id = super::infer_expression(state, context, expression)?;
+    let inferred = super::infer_expression(state, context, expression)?;
 
     if should_instantiate_record_field(context, expression) {
-        let id = toolkit::instantiate_unifications(state, context, id)?;
-        toolkit::collect_wanteds(state, context, id)
+        Ok(super::application::instantiate_expression(state, context, inferred)?.type_id)
     } else {
-        Ok(id)
+        Ok(inferred.type_id)
     }
 }
 
@@ -149,7 +148,7 @@ where
         match mode {
             ArrayMode::Infer => {
                 let inferred = super::infer_expression(state, context, *expression)?;
-                unification::subtype(state, context, inferred, element)?;
+                unification::subtype(state, context, inferred.type_id, element)?;
             }
             ArrayMode::Check { .. } => {
                 super::check_expression(state, context, *expression, element)?;
@@ -309,7 +308,7 @@ pub fn infer_record_access<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut current_type = super::infer_expression(state, context, record)?;
+    let mut current_type = super::infer_expression(state, context, record)?.type_id;
 
     for label in labels.iter() {
         let label = SmolStr::clone(label);

@@ -27,7 +27,7 @@ error[EmptyAdoBlock]: Empty ado block
 9 | test1 = ado
   |         ^~~
 error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 9:1..9:12
+  --> 9:9..9:12
   |
 9 | test1 = ado
-  | ^~~~~~~~~~~
+  |         ^~~

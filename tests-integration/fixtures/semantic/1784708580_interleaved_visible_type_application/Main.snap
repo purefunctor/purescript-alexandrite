@@ -1,0 +1,7 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+specialize :: forall a. Default a => a -> String -> a
+specialize = \{defaultDict} -> select @a {defaultDict} @String

@@ -85,7 +85,7 @@ impl PrettyNames {
         display
     }
 
-    fn allocate_display_name(&mut self, base: SmolStr) -> SmolStr {
+    pub fn allocate_display_name(&mut self, base: SmolStr) -> SmolStr {
         if !self.next_suffix.contains_key(&base) {
             self.next_suffix.insert(SmolStr::clone(&base), FIRST_SUFFIX);
             return base;

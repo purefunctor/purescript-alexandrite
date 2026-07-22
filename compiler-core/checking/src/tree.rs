@@ -6,10 +6,11 @@ use std::sync::Arc;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId, ValueEquationId};
 use la_arena::{Arena, ArenaMap, Idx};
+use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role};
-use crate::evidence::Evidence;
+use crate::evidence::{Evidence, EvidenceVarId};
 
 pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
@@ -18,17 +19,17 @@ pub type TypeDeclarationId = Idx<TypeDeclaration>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Module {
-    arena: ModuleArena,
+    pub(crate) arena: ModuleArena,
     terms: ArenaMap<TermItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-struct ModuleArena {
-    expressions: Arena<Expression>,
-    binders: Arena<Binder>,
-    terms: Arena<TermDeclaration>,
-    types: Arena<TypeDeclaration>,
+pub(crate) struct ModuleArena {
+    pub(crate) expressions: Arena<Expression>,
+    pub(crate) binders: Arena<Binder>,
+    pub(crate) terms: Arena<TermDeclaration>,
+    pub(crate) types: Arena<TypeDeclaration>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -118,8 +119,25 @@ pub struct Binder {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BinderKind {
+    Error,
+    Typed { binder: BinderId, annotation: TypeId },
+    Integer { value: i32 },
+    Number { negative: bool, value: SmolStr },
     Variable,
+    Named { name: SmolStr, binder: BinderId },
+    Wildcard,
+    String { value: SmolStr },
+    Char { value: char },
+    Boolean { value: bool },
+    Array { elements: Arc<[BinderId]> },
+    Record { fields: Arc<[RecordBinderField]> },
     Constructor { resolution: (FileId, TermItemId), arguments: Arc<[BinderId]> },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordBinderField {
+    Field { label: SmolStr, binder: BinderId },
+    Pun { label: SmolStr },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -130,7 +148,12 @@ pub struct Expression {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
+    Error,
+    Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
+    TermApplication { function: ExpressionId, argument: ExpressionId },
+    TypeApplication { function: ExpressionId, argument: TypeId },
+    EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
 }
 
 impl Module {

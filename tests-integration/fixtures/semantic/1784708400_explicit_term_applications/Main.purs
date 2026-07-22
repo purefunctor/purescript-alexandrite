@@ -1,0 +1,7 @@
+module Main where
+
+identity :: forall a. a -> a
+identity value = value
+
+applyIdentity :: forall a. a -> a
+applyIdentity value = identity (identity value)

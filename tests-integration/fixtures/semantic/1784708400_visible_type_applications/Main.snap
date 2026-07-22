@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall @a. a -> a
+identity = \value -> value
+
+const :: forall a @b. a -> b -> a
+const = \value -> \_ -> value
+
+testIdentity :: Int -> Int
+testIdentity = identity @Int
+
+testConst :: forall t. t -> String -> t
+testConst = const @t @String

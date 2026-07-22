@@ -167,7 +167,7 @@ where
         match statement {
             lowering::DoStatement::Bind { binder, expression } => {
                 let binder_type = if let Some(binder) = binder {
-                    binder::infer_binder(state, context, *binder)?
+                    binder::infer_binder(state, context, *binder)?.type_id
                 } else {
                     state.fresh_unification(context.queries, context.prim.t)
                 };
@@ -412,7 +412,7 @@ pub fn infer_do_bind_core<Q>(
 where
     Q: ExternalQueries,
 {
-    let expression_type = super::infer_expression(state, context, expression)?;
+    let expression_type = super::infer_expression(state, context, expression)?.type_id;
     let lambda_type = context.intern_function(binder_type, continuation_type);
 
     let Some(application::GenericApplication { argument, result }) =

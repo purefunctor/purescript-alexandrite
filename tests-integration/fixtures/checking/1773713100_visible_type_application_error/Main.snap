@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -16,7 +16,7 @@ error[NoVisibleTypeVariable]: No visible type variable for type application in: 
 6 | test = identity @Int
   |        ^~~~~~~~~~~~~
 error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 6:1..6:21
+  --> 6:8..6:21
   |
 6 | test = identity @Int
-  | ^~~~~~~~~~~~~~~~~~~~
+  |        ^~~~~~~~~~~~~

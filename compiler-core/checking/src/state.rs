@@ -17,7 +17,7 @@ use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
 use crate::evidence::{EvidenceBinderId, EvidenceVarId};
 use crate::implication::{GivenConstraint, Implications, Patterns, WantedConstraint};
-use crate::{CheckedModule, ExternalQueries};
+use crate::{CheckedModule, ExternalQueries, tree};
 
 /// Manages [`Name`] values for [`CheckState`].
 pub struct Names {
@@ -292,6 +292,37 @@ impl CheckState {
         let evidence = self.checked.evidence.fresh_binder(constraint);
         self.implications.current_mut().given.push(GivenConstraint { constraint, evidence });
         evidence
+    }
+
+    pub fn allocate_expression(
+        &mut self,
+        type_id: TypeId,
+        kind: tree::ExpressionKind,
+    ) -> tree::ExpressionId {
+        let expression = tree::Expression { type_id, kind };
+        self.checked.tree.allocate_expression(expression)
+    }
+
+    pub fn allocate_error_expression(&mut self, type_id: TypeId) -> tree::ExpressionId {
+        self.allocate_expression(type_id, tree::ExpressionKind::Error)
+    }
+
+    pub fn allocate_binder(
+        &mut self,
+        source: lowering::BinderId,
+        type_id: TypeId,
+        kind: tree::BinderKind,
+    ) -> tree::BinderId {
+        let binder = tree::Binder { source, type_id, kind };
+        self.checked.tree.allocate_binder(binder)
+    }
+
+    pub fn allocate_error_binder(
+        &mut self,
+        source: lowering::BinderId,
+        type_id: TypeId,
+    ) -> tree::BinderId {
+        self.allocate_binder(source, type_id, tree::BinderKind::Error)
     }
 
     pub fn with_implication<T>(&mut self, f: impl FnOnce(&mut CheckState) -> T) -> T {

@@ -2,9 +2,9 @@ use building_types::QueryResult;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::{Type, exhaustive, normalise, toolkit, unification};
+use crate::core::{Type, exhaustive, normalise, unification};
 use crate::error::ErrorCrumb;
-use crate::source::terms::{equations, guarded};
+use crate::source::terms::{ElaboratedExpression, application, equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
 
@@ -42,22 +42,26 @@ where
         return Ok(());
     };
 
-    let expression_type = guarded::infer_where_expression(state, context, where_expression)?;
+    let where_expression = guarded::infer_where_expression(state, context, where_expression)?;
 
-    let Some(binder) = *binder else {
+    let Some(binder_id) = *binder else {
         return Ok(());
     };
 
-    let expression_type = if binder::requires_instantiation(context, binder) {
-        toolkit::instantiate_constrained(state, context, expression_type)?
+    let expression = ElaboratedExpression {
+        type_id: where_expression.type_id,
+        expression: where_expression.where_expression.expression,
+    };
+    let expression = if binder::requires_instantiation(context, binder_id) {
+        application::instantiate_expression(state, context, expression)?
     } else {
-        toolkit::collect_wanteds(state, context, expression_type)?
+        application::collect_expression_wanteds(state, context, expression)?
     };
 
-    let binder_type = binder::check_binder(state, context, binder, expression_type)?;
+    let binder = binder::check_binder(state, context, binder_id, expression.type_id)?;
 
     let exhaustiveness =
-        exhaustive::check_lambda_patterns(state, context, &[binder_type], &[binder])?;
+        exhaustive::check_lambda_patterns(state, context, &[binder.type_id], &[binder_id])?;
 
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
@@ -158,7 +162,7 @@ where
             && equation.binders.is_empty()
             && let Some(guarded) = &equation.guarded
         {
-            let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?;
+            let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?.type_id;
             // Keep simple let bindings e.g. `appendLocal = append` polymorphic.
             let name_type = normalise::expand(state, context, name_type)?;
             if let Type::Unification(unification_id) = context.lookup_type(name_type) {
@@ -167,12 +171,12 @@ where
                 unification::subtype(state, context, inferred_type, name_type)?;
             }
         } else {
-            let equation_patterns =
+            let checked_equations =
                 equations::infer_value_equations(state, context, name_type, &name.equations)?;
             let exhaustiveness = exhaustive::check_equation_patterns(
                 state,
                 context,
-                &equation_patterns,
+                &checked_equations.patterns,
                 &name.equations,
             )?;
             state.report_exhaustiveness(exhaustiveness);

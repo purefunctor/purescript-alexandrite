@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+useDefault :: forall a. Default a => a
+useDefault = \{defaultDict} -> default @a {defaultDict}
+
+useInterleaved :: forall a b. First a => Second b => a -> b
+useInterleaved = \{firstDict} -> \{secondDict} -> interleaved @a {firstDict} @b {secondDict}

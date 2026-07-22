@@ -1,42 +1,44 @@
-use std::mem;
-use std::ops::ControlFlow;
-
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification};
+use crate::core::substitute::SubstituteName;
+use crate::core::{ForallBinder, Type, TypeId, normalise, unification};
 use crate::error::ErrorKind;
 use crate::source::types;
 use crate::state::CheckState;
-use crate::{ExternalQueries, safe_loop};
+use crate::{ExternalQueries, safe_loop, tree};
 
-pub struct ApplicationAnalysis {
-    pub constraints: Vec<TypeId>,
-    pub argument: TypeId,
-    pub result: TypeId,
-}
+use super::ElaboratedExpression;
 
 pub struct GenericApplication {
     pub argument: TypeId,
     pub result: TypeId,
 }
 
-fn analyse_function_application_step<Q>(
+enum ApplicationStep {
+    Applied(ElaboratedExpression),
+    Error(TypeId),
+}
+
+pub enum CallableAnalysis {
+    Forall { binder: ForallBinder, body: TypeId },
+    Constraint { constraint: TypeId, result: TypeId },
+    Function { argument: TypeId, result: TypeId },
+    NotCallable,
+}
+
+pub fn analyse_callable_head<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     function: TypeId,
-    constraints: &mut Vec<TypeId>,
-) -> QueryResult<ControlFlow<Option<ApplicationAnalysis>, TypeId>>
+) -> QueryResult<CallableAnalysis>
 where
     Q: ExternalQueries,
 {
+    let function = normalise::expand(state, context, function)?;
+
     match context.lookup_type(function) {
-        Type::Function(argument, result) => {
-            let analysis =
-                ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-            Ok(ControlFlow::Break(Some(analysis)))
-        }
+        Type::Function(argument, result) => Ok(CallableAnalysis::Function { argument, result }),
 
         Type::Unification(unification_id) => {
             let argument = state.fresh_unification(context.queries, context.prim.t);
@@ -45,24 +47,16 @@ where
 
             unification::solve(state, context, function, unification_id, function)?;
 
-            let analysis =
-                ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-
-            Ok(ControlFlow::Break(Some(analysis)))
+            Ok(CallableAnalysis::Function { argument, result })
         }
 
         Type::Forall(binder_id, inner) => {
             let binder = context.lookup_forall_binder(binder_id);
-            let binder_kind = normalise::expand(state, context, binder.kind)?;
-
-            let replacement = state.fresh_unification(context.queries, binder_kind);
-            let function = SubstituteName::one(state, context, binder.name, replacement, inner)?;
-            Ok(ControlFlow::Continue(function))
+            Ok(CallableAnalysis::Forall { binder, body: inner })
         }
 
-        Type::Constrained(constraint, constrained) => {
-            constraints.push(constraint);
-            Ok(ControlFlow::Continue(constrained))
+        Type::Constrained(constraint, result) => {
+            Ok(CallableAnalysis::Constraint { constraint, result })
         }
 
         Type::Application(function_argument, result) => {
@@ -70,14 +64,12 @@ where
 
             let Type::Application(constructor, argument) = context.lookup_type(function_argument)
             else {
-                return Ok(ControlFlow::Break(None));
+                return Ok(CallableAnalysis::NotCallable);
             };
 
             let constructor = normalise::expand(state, context, constructor)?;
             if constructor == context.prim.function {
-                let analysis =
-                    ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-                return Ok(ControlFlow::Break(Some(analysis)));
+                return Ok(CallableAnalysis::Function { argument, result });
             }
 
             if let Type::Unification(unification_id) = context.lookup_type(constructor) {
@@ -89,34 +81,86 @@ where
                     context.prim.function,
                 )?;
 
-                let analysis =
-                    ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-
-                return Ok(ControlFlow::Break(Some(analysis)));
+                return Ok(CallableAnalysis::Function { argument, result });
             }
 
-            Ok(ControlFlow::Break(None))
+            Ok(CallableAnalysis::NotCallable)
         }
 
-        _ => Ok(ControlFlow::Break(None)),
+        _ => Ok(CallableAnalysis::NotCallable),
     }
 }
 
-pub fn analyse_function_application<Q>(
+pub fn instantiate_callable_forall<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    mut function: TypeId,
-) -> QueryResult<Option<ApplicationAnalysis>>
+    binder: ForallBinder,
+    body: TypeId,
+) -> QueryResult<(TypeId, TypeId)>
 where
     Q: ExternalQueries,
 {
-    let mut constraints = vec![];
+    let binder_kind = normalise::expand(state, context, binder.kind)?;
+    let argument = state.fresh_unification(context.queries, binder_kind);
+    let result = SubstituteName::one(state, context, binder.name, argument, body)?;
+    Ok((argument, result))
+}
+
+pub fn instantiate_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut expression: ElaboratedExpression,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
     safe_loop! {
-        function = normalise::expand(state, context, function)?;
-        match analyse_function_application_step(state, context, function, &mut constraints)? {
-            ControlFlow::Continue(next) => function = next,
-            ControlFlow::Break(analysis) => return Ok(analysis),
+        let type_id = normalise::expand(state, context, expression.type_id)?;
+        match context.lookup_type(type_id) {
+            Type::Forall(binder_id, body) => {
+                let binder = context.lookup_forall_binder(binder_id);
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: expression.expression,
+                    argument,
+                };
+                expression = super::allocate_expression(state, result, kind);
+            }
+            Type::Constrained(constraint, result) => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: expression.expression,
+                    evidence,
+                };
+                expression = super::allocate_expression(state, result, kind);
+            }
+            _ => {
+                break Ok(expression);
+            }
+        }
+    }
+}
+
+pub fn collect_expression_wanteds<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut expression: ElaboratedExpression,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    safe_loop! {
+        let type_id = normalise::expand(state, context, expression.type_id)?;
+        let Type::Constrained(constraint, result) = context.lookup_type(type_id) else {
+            break Ok(expression);
         };
+        let evidence = state.push_wanted(constraint);
+        let kind = tree::ExpressionKind::EvidenceApplication {
+            function: expression.expression,
+            evidence,
+        };
+        expression = super::allocate_expression(state, result, kind);
     }
 }
 
@@ -128,40 +172,162 @@ pub fn check_generic_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(ApplicationAnalysis { constraints, argument, result }) =
-        analyse_function_application(state, context, function)?
-    else {
-        return Ok(None);
-    };
-
-    for constraint in constraints {
-        state.push_wanted(constraint);
+    let mut function = function;
+    let mut constraints = vec![];
+    safe_loop! {
+        match analyse_callable_head(state, context, function)? {
+            CallableAnalysis::Forall { binder, body } => {
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                function = result;
+            }
+            CallableAnalysis::Constraint { constraint, result } => {
+                constraints.push(constraint);
+                function = result;
+            }
+            CallableAnalysis::Function { argument, result } => {
+                for constraint in constraints {
+                    state.push_wanted(constraint);
+                }
+                break Ok(Some(GenericApplication { argument, result }));
+            }
+            CallableAnalysis::NotCallable => break Ok(None),
+        }
     }
-
-    Ok(Some(GenericApplication { argument, result }))
 }
 
-pub fn check_function_application<Q>(
+pub fn check_expression_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    function_type: TypeId,
-    argument: &lowering::ExpressionArgument,
-) -> QueryResult<TypeId>
+    mut function: ElaboratedExpression,
+    arguments: &[lowering::ExpressionArgument],
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    match argument {
-        lowering::ExpressionArgument::Type(type_argument) => {
-            let Some(type_argument) = type_argument else {
-                return Ok(context.unknown("missing type argument"));
-            };
-            check_function_type_application(state, context, function_type, *type_argument)
+    for argument in arguments {
+        let step = match argument {
+            lowering::ExpressionArgument::Type(Some(argument)) => {
+                check_expression_type_application(state, context, function, *argument)?
+            }
+            lowering::ExpressionArgument::Type(None) => {
+                ApplicationStep::Error(context.unknown("missing type argument"))
+            }
+            lowering::ExpressionArgument::Term(Some(argument)) => {
+                check_expression_term_application(state, context, function, *argument)?
+            }
+            lowering::ExpressionArgument::Term(None) => {
+                ApplicationStep::Error(context.unknown("missing term argument"))
+            }
+        };
+
+        match step {
+            ApplicationStep::Applied(expression) => {
+                function = expression;
+            }
+            ApplicationStep::Error(type_id) => {
+                return Ok(super::allocate_error_expression(state, type_id));
+            }
         }
-        lowering::ExpressionArgument::Term(term_argument) => {
-            let Some(term_argument) = term_argument else {
-                return Ok(context.unknown("missing term argument"));
-            };
-            check_function_term_application(state, context, function_type, *term_argument)
+    }
+
+    Ok(function)
+}
+
+fn check_expression_term_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut function: ElaboratedExpression,
+    expression_id: lowering::ExpressionId,
+) -> QueryResult<ApplicationStep>
+where
+    Q: ExternalQueries,
+{
+    safe_loop! {
+        match analyse_callable_head(state, context, function.type_id)? {
+            CallableAnalysis::Forall { binder, body } => {
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: function.expression,
+                    argument,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            CallableAnalysis::Constraint { constraint, result } => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: function.expression,
+                    evidence,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            CallableAnalysis::Function { argument, result } => {
+                let argument = super::check_expression(state, context, expression_id, argument)?;
+                let kind = tree::ExpressionKind::TermApplication {
+                    function: function.expression,
+                    argument: argument.expression,
+                };
+                let application = super::allocate_expression(state, result, kind);
+                break Ok(ApplicationStep::Applied(application));
+            }
+            CallableAnalysis::NotCallable => {
+                let type_id = context.unknown("invalid function application");
+                break Ok(ApplicationStep::Error(type_id));
+            }
+        }
+    }
+}
+
+fn check_expression_type_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut function: ElaboratedExpression,
+    argument: lowering::TypeId,
+) -> QueryResult<ApplicationStep>
+where
+    Q: ExternalQueries,
+{
+    let function_type = function.type_id;
+
+    safe_loop! {
+        let type_id = normalise::expand(state, context, function.type_id)?;
+        match context.lookup_type(type_id) {
+            Type::Forall(binder_id, body) => {
+                let binder = context.lookup_forall_binder(binder_id);
+                if binder.visible {
+                    let binder_kind = normalise::expand(state, context, binder.kind)?;
+                    let (argument, _) = types::check_kind(state, context, argument, binder_kind)?;
+                    let result =
+                        SubstituteName::one(state, context, binder.name, argument, body)?;
+                    let kind = tree::ExpressionKind::TypeApplication {
+                        function: function.expression,
+                        argument,
+                    };
+                    let application = super::allocate_expression(state, result, kind);
+                    break Ok(ApplicationStep::Applied(application));
+                }
+
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: function.expression,
+                    argument,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            Type::Constrained(constraint, result) => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: function.expression,
+                    evidence,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            _ => {
+                state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
+                let type_id = context.unknown("invalid visible type application");
+                break Ok(ApplicationStep::Error(type_id));
+            }
         }
     }
 }
@@ -184,55 +350,6 @@ where
     Ok(result)
 }
 
-pub fn check_function_type_application<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    function: TypeId,
-    argument: lowering::TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
-    let signature::DecomposedSignature { binders, constraints, arguments, result } =
-        signature::decompose_signature(
-            state,
-            context,
-            function,
-            signature::DecomposeSignatureMode::Full,
-        )?;
-
-    let Some(index) = binders.iter().position(|binder| binder.visible) else {
-        let function_type = function;
-        state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
-        return Ok(context.unknown("invalid visible type application"));
-    };
-
-    let mut substitution = NameToType::default();
-
-    for binder in binders.iter().take(index) {
-        let binder_kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let binder_kind = normalise::expand(state, context, binder_kind)?;
-        let replacement = state.fresh_unification(context.queries, binder_kind);
-        substitution.insert(binder.name, replacement);
-    }
-
-    let ForallBinder { name: visible_name, kind: visible_kind, .. } = binders[index];
-
-    let visible_kind = SubstituteName::many(state, context, &substitution, visible_kind)?;
-    let visible_kind = normalise::expand(state, context, visible_kind)?;
-
-    let (argument_type, _) = types::check_kind(state, context, argument, visible_kind)?;
-    substitution.insert(visible_name, argument_type);
-
-    let binders = binders.iter().skip(index + 1).copied();
-
-    let function = context.intern_function_list(&arguments, result);
-    let constrained = context.intern_constrained_list(&constraints, function);
-    let quantified = context.intern_forall_iter(binders, constrained);
-
-    SubstituteName::many(state, context, &substitution, quantified)
-}
-
 pub fn infer_infix_chain<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -242,13 +359,13 @@ pub fn infer_infix_chain<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut infix_type = super::infer_expression(state, context, head)?;
+    let mut infix_type = super::infer_expression(state, context, head)?.type_id;
 
     for lowering::InfixPair { tick, element } in tail.iter() {
         let Some(tick) = tick else { return Ok(context.unknown("missing infix tick")) };
         let Some(element) = element else { return Ok(context.unknown("missing infix element")) };
 
-        let tick_type = super::infer_expression(state, context, *tick)?;
+        let tick_type = super::infer_expression(state, context, *tick)?.type_id;
         let Some(GenericApplication { argument, result }) =
             check_generic_application(state, context, tick_type)?
         else {

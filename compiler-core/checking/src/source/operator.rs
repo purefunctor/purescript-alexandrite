@@ -292,8 +292,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         context: &CheckContext<Q>,
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let inferred_type = terms::infer_expression(state, context, id)?;
-        Ok(((), inferred_type))
+        let inferred = terms::infer_expression(state, context, id)?;
+        Ok(((), inferred.type_id))
     }
 
     fn check_surface(
@@ -302,8 +302,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         id: Self,
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let checked_type = terms::check_expression(state, context, id, expected)?;
-        Ok(((), checked_type))
+        let checked = terms::check_expression(state, context, id, expected)?;
+        Ok(((), checked.type_id))
     }
 
     fn build(
@@ -492,8 +492,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         context: &CheckContext<Q>,
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let inferred_type = binder::infer_binder(state, context, id)?;
-        Ok(((), inferred_type))
+        let inferred = binder::infer_binder(state, context, id)?;
+        Ok(((), inferred.type_id))
     }
 
     fn check_surface(
@@ -502,8 +502,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         id: Self,
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let checked_type = binder::check_binder(state, context, id, expected)?;
-        Ok(((), checked_type))
+        let checked = binder::check_binder(state, context, id, expected)?;
+        Ok(((), checked.type_id))
     }
 
     fn build(

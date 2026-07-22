@@ -5,18 +5,30 @@ use files::FileId;
 use indexing::{TermItem, TypeItem};
 use lowering::TermVariableResolution;
 use pretty::{Arena, DocAllocator, DocBuilder};
+use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, SmolStrBuilder};
 
 use crate::CheckedModule;
 use crate::core::Type;
-use crate::core::pretty::{Pretty as TypePretty, PrettyQueries};
-use crate::evidence::Evidence;
+use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
+use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, GuardedAlternative, GuardedExpression,
-    PatternGuard, TermDeclarationKind, TypeDeclarationKind,
+    PatternGuard, RecordBinderField, TermDeclarationKind, TypeDeclarationKind,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+
+struct EvidenceNames {
+    display_by_binder: FxHashMap<EvidenceBinderId, SmolStr>,
+    names: PrettyNames,
+}
+
+impl EvidenceNames {
+    fn new() -> EvidenceNames {
+        EvidenceNames { display_by_binder: FxHashMap::default(), names: PrettyNames::new() }
+    }
+}
 
 pub struct Pretty<'a, Q: ?Sized> {
     queries: &'a Q,
@@ -242,9 +254,17 @@ where
         let type_id = type_pretty.render(declaration.type_id);
         let signature = self.arena.text(format!("{name} :: {type_id}"));
 
+        let mut evidence_names = EvidenceNames::new();
+        for evidence in value.evidences.iter() {
+            if let Evidence::Given(binder) = evidence {
+                self.evidence_binder_name(&mut evidence_names, *binder)?;
+            }
+        }
+
         let mut equations = vec![];
         for equation in value.equations.iter() {
-            let mut expression = self.guarded_expression(&equation.guarded_expression)?;
+            let mut expression =
+                self.guarded_expression(&equation.guarded_expression, &mut evidence_names)?;
 
             for &binder in equation.binders.iter().rev() {
                 let binder = self.binder(binder)?;
@@ -257,13 +277,10 @@ where
                     .group();
             }
             for evidence in value.evidences.iter().rev() {
-                let binder = match evidence {
-                    Evidence::Trivial => "{trivial}",
-                    _ => return Ok(None),
-                };
+                let binder = self.evidence_name(&mut evidence_names, evidence)?;
                 expression = self
                     .arena
-                    .text(format!("\\{binder} ->"))
+                    .text(format!("\\{{{binder}}} ->"))
                     .append(self.arena.line().append(expression).nest(2))
                     .group();
             }
@@ -285,16 +302,20 @@ where
         Ok(Some(signature.append(self.arena.hardline()).append(equations)))
     }
 
-    fn guarded_expression(&self, guarded: &GuardedExpression) -> QueryResult<Doc<'arena>> {
+    fn guarded_expression(
+        &self,
+        guarded: &GuardedExpression,
+        evidence_names: &mut EvidenceNames,
+    ) -> QueryResult<Doc<'arena>> {
         if let [alternative] = guarded.alternatives.as_ref()
             && alternative.pattern_guards.is_empty()
         {
-            return self.expression(alternative.where_expression.expression);
+            return self.expression(alternative.where_expression.expression, evidence_names);
         }
 
         let mut alternatives = vec![];
         for alternative in guarded.alternatives.iter() {
-            alternatives.push(self.guarded_alternative(alternative)?);
+            alternatives.push(self.guarded_alternative(alternative, evidence_names)?);
         }
 
         let mut alternatives = alternatives.into_iter();
@@ -307,13 +328,18 @@ where
         Ok(alternatives)
     }
 
-    fn guarded_alternative(&self, alternative: &GuardedAlternative) -> QueryResult<Doc<'arena>> {
+    fn guarded_alternative(
+        &self,
+        alternative: &GuardedAlternative,
+        evidence_names: &mut EvidenceNames,
+    ) -> QueryResult<Doc<'arena>> {
         let mut pattern_guards = vec![];
         for pattern_guard in alternative.pattern_guards.iter() {
-            pattern_guards.push(self.pattern_guard(pattern_guard)?);
+            pattern_guards.push(self.pattern_guard(pattern_guard, evidence_names)?);
         }
 
-        let expression = self.expression(alternative.where_expression.expression)?;
+        let expression =
+            self.expression(alternative.where_expression.expression, evidence_names)?;
         let mut pattern_guards = pattern_guards.into_iter();
         let Some(first) = pattern_guards.next() else {
             return Ok(self.arena.text("| -> ").append(expression));
@@ -330,12 +356,16 @@ where
         Ok(alternative)
     }
 
-    fn pattern_guard(&self, pattern_guard: &PatternGuard) -> QueryResult<Doc<'arena>> {
+    fn pattern_guard(
+        &self,
+        pattern_guard: &PatternGuard,
+        evidence_names: &mut EvidenceNames,
+    ) -> QueryResult<Doc<'arena>> {
         match *pattern_guard {
-            PatternGuard::Boolean { expression } => self.expression(expression),
+            PatternGuard::Boolean { expression } => self.expression(expression, evidence_names),
             PatternGuard::Pattern { binder, expression } => {
                 let binder = self.binder(binder)?;
-                let expression = self.expression(expression)?;
+                let expression = self.expression(expression, evidence_names)?;
                 Ok(binder.append(self.arena.text(" <- ")).append(expression))
             }
         }
@@ -344,6 +374,28 @@ where
     fn binder(&self, binder_id: BinderId) -> QueryResult<Doc<'arena>> {
         let binder = &self.checked.tree[binder_id];
         match &binder.kind {
+            BinderKind::Error => Ok(self.arena.text("<error>")),
+            BinderKind::Typed { binder, annotation } => {
+                let binder = self.binder(*binder)?;
+                let mut type_pretty = TypePretty::new(self.queries, self.checked)
+                    .without_rigid_kinds()
+                    .width(self.width);
+                let annotation = type_pretty.render(*annotation);
+                Ok(self
+                    .arena
+                    .text("(")
+                    .append(binder)
+                    .append(self.arena.text(format!(" :: {annotation})"))))
+            }
+            BinderKind::Integer { value } => {
+                let value =
+                    if value.is_negative() { format!("({value})") } else { value.to_string() };
+                Ok(self.arena.text(value))
+            }
+            BinderKind::Number { negative, value } => {
+                let value = if *negative { format!("(-{value})") } else { value.to_string() };
+                Ok(self.arena.text(value))
+            }
             BinderKind::Variable => {
                 let kind = self
                     .lowered
@@ -354,6 +406,45 @@ where
                     unreachable!("invariant violated: semantic variable binder has invalid source");
                 };
                 Ok(self.arena.text(variable.to_string()))
+            }
+            BinderKind::Named { name, binder } => {
+                let binder = self.binder(*binder)?;
+                Ok(self.arena.text(format!("{name}@")).append(binder))
+            }
+            BinderKind::Wildcard => Ok(self.arena.text("_")),
+            BinderKind::String { value } => Ok(self.arena.text(format!("{:?}", value.as_str()))),
+            BinderKind::Char { value } => Ok(self.arena.text(format!("{value:?}"))),
+            BinderKind::Boolean { value } => {
+                Ok(self.arena.text(if *value { "true" } else { "false" }))
+            }
+            BinderKind::Array { elements } => {
+                let mut array = self.arena.text("[");
+                for (position, &element) in elements.iter().enumerate() {
+                    if position > 0 {
+                        array = array.append(self.arena.text(", "));
+                    }
+                    array = array.append(self.binder(element)?);
+                }
+                Ok(array.append(self.arena.text("]")))
+            }
+            BinderKind::Record { fields } => {
+                let mut record = self.arena.text("{ ");
+                for (position, field) in fields.iter().enumerate() {
+                    if position > 0 {
+                        record = record.append(self.arena.text(", "));
+                    }
+                    match field {
+                        RecordBinderField::Field { label, binder } => {
+                            let binder = self.binder(*binder)?;
+                            record =
+                                record.append(self.arena.text(format!("{label}: "))).append(binder);
+                        }
+                        RecordBinderField::Pun { label } => {
+                            record = record.append(self.arena.text(label.to_string()));
+                        }
+                    }
+                }
+                Ok(record.append(self.arena.text(" }")))
             }
             BinderKind::Constructor { resolution, arguments } => {
                 let name = self.term_name(resolution.0, resolution.1)?;
@@ -371,9 +462,18 @@ where
         }
     }
 
-    fn expression(&self, expression_id: ExpressionId) -> QueryResult<Doc<'arena>> {
+    fn expression(
+        &self,
+        expression_id: ExpressionId,
+        evidence_names: &mut EvidenceNames,
+    ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         match expression.kind {
+            ExpressionKind::Error => Ok(self.arena.text("<error>")),
+            ExpressionKind::Constructor { resolution } => {
+                let name = self.term_name(resolution.0, resolution.1)?;
+                Ok(self.arena.text(name.unwrap_or_else(|| "?".to_string())))
+            }
             ExpressionKind::Variable { resolution } => {
                 let name = match resolution {
                     TermVariableResolution::Binder(binder) => {
@@ -381,24 +481,131 @@ where
                             self.lowered.info.get_binder_kind(binder).expect(
                                 "invariant violated: variable expression binder is missing",
                             );
-                        let lowering::BinderKind::Variable { variable: Some(variable) } = kind
-                        else {
-                            unreachable!(
-                                "invariant violated: variable expression resolves to invalid binder"
-                            );
-                        };
-                        variable.to_string()
+                        match kind {
+                            lowering::BinderKind::Variable { variable: Some(variable) } => {
+                                variable.to_string()
+                            }
+                            lowering::BinderKind::Named { named: Some(named), .. } => {
+                                named.to_string()
+                            }
+                            _ => {
+                                let index = binder.into_raw().get();
+                                format!("<binder#{index}>")
+                            }
+                        }
                     }
                     TermVariableResolution::Reference(file_id, term_id) => {
                         self.term_name(file_id, term_id)?.unwrap_or_else(|| "?".to_string())
                     }
-                    TermVariableResolution::Let(_) | TermVariableResolution::RecordPun(_) => {
-                        unreachable!("invariant violated: unsupported semantic variable resolution")
+                    TermVariableResolution::Let(let_binding) => {
+                        let index = let_binding.into_raw().into_u32();
+                        format!("<let#{index}>")
+                    }
+                    TermVariableResolution::RecordPun(record_pun) => {
+                        self.record_pun_name(record_pun).unwrap_or_else(|| {
+                            let index = record_pun.into_raw().get();
+                            format!("<pun#{index}>")
+                        })
                     }
                 };
                 Ok(self.arena.text(name))
             }
+            ExpressionKind::TermApplication { function, argument } => {
+                let function = self.expression(function, evidence_names)?;
+                let argument_expression = &self.checked.tree[argument];
+                let argument = self.expression(argument, evidence_names)?;
+                let argument = match argument_expression.kind {
+                    ExpressionKind::TermApplication { .. }
+                    | ExpressionKind::TypeApplication { .. }
+                    | ExpressionKind::EvidenceApplication { .. } => {
+                        self.arena.text("(").append(argument).append(self.arena.text(")"))
+                    }
+                    _ => argument,
+                };
+                Ok(function.append(self.arena.space()).append(argument))
+            }
+            ExpressionKind::TypeApplication { function, argument } => {
+                let function = self.expression(function, evidence_names)?;
+                let mut type_pretty = TypePretty::new(self.queries, self.checked)
+                    .without_rigid_kinds()
+                    .width(self.width);
+                let argument = type_pretty.render(argument);
+                Ok(function.append(self.arena.text(format!(" @{argument}"))))
+            }
+            ExpressionKind::EvidenceApplication { function, evidence } => {
+                let function = self.expression(function, evidence_names)?;
+                let evidence = self.evidence_variable_name(evidence_names, evidence)?;
+                Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
         }
+    }
+
+    fn evidence_variable_name(
+        &self,
+        names: &mut EvidenceNames,
+        evidence: EvidenceVarId,
+    ) -> QueryResult<SmolStr> {
+        match self.checked.evidence[evidence].state {
+            EvidenceState::Solved(proof) => {
+                self.evidence_name(names, &self.checked.evidence[proof])
+            }
+            EvidenceState::Unsolved => Ok(SmolStr::new("unsolved")),
+            EvidenceState::Error => Ok(SmolStr::new("error")),
+        }
+    }
+
+    fn evidence_name(
+        &self,
+        names: &mut EvidenceNames,
+        evidence: &Evidence,
+    ) -> QueryResult<SmolStr> {
+        match evidence {
+            Evidence::Variable(evidence) => self.evidence_variable_name(names, *evidence),
+            Evidence::Given(binder) => self.evidence_binder_name(names, *binder),
+            Evidence::Instance { .. } => Ok(SmolStr::new("instance")),
+            Evidence::Superclass { .. } => Ok(SmolStr::new("superclass")),
+            Evidence::Trivial => Ok(SmolStr::new("trivial")),
+            Evidence::Synthesized(_) => Ok(SmolStr::new("synthesized")),
+        }
+    }
+
+    fn evidence_binder_name(
+        &self,
+        names: &mut EvidenceNames,
+        binder: EvidenceBinderId,
+    ) -> QueryResult<SmolStr> {
+        if let Some(display) = names.display_by_binder.get(&binder) {
+            return Ok(SmolStr::clone(display));
+        }
+
+        let constraint = self.checked.evidence[binder].constraint;
+        let base = self.evidence_base_name(constraint)?;
+        let display = names.names.allocate_display_name(base);
+        names.display_by_binder.insert(binder, SmolStr::clone(&display));
+        Ok(display)
+    }
+
+    fn evidence_base_name(&self, mut constraint: crate::TypeId) -> QueryResult<SmolStr> {
+        let class_name = loop {
+            match self.queries.lookup_type(constraint) {
+                Type::Application(function, _)
+                | Type::KindApplication(function, _)
+                | Type::Kinded(function, _) => constraint = function,
+                Type::Constructor(file_id, type_id) => {
+                    break self.type_name(file_id, type_id)?;
+                }
+                _ => break None,
+            }
+        };
+        let Some(class_name) = class_name else {
+            return Ok(SmolStr::new("evidenceDict"));
+        };
+        let mut characters = class_name.chars();
+        let Some(first) = characters.next() else {
+            return Ok(SmolStr::new("evidenceDict"));
+        };
+        let first = first.to_lowercase().collect::<String>();
+        Ok(SmolStr::new(format!("{first}{}Dict", characters.as_str())))
     }
 
     fn term_name(
@@ -412,5 +619,32 @@ where
 
         let indexed = self.queries.indexed(file_id)?;
         Ok(indexed.items[term_id].name.as_ref().map(ToString::to_string))
+    }
+
+    fn record_pun_name(&self, record_pun: lowering::RecordPunId) -> Option<String> {
+        self.lowered.info.iter_binder().find_map(|(_, kind)| {
+            let lowering::BinderKind::Record { record } = kind else {
+                return None;
+            };
+            record.iter().find_map(|item| {
+                let lowering::BinderRecordItem::RecordPun { id, name } = item else {
+                    return None;
+                };
+                if *id == record_pun { name.as_ref().map(ToString::to_string) } else { None }
+            })
+        })
+    }
+
+    fn type_name(
+        &self,
+        file_id: FileId,
+        type_id: indexing::TypeItemId,
+    ) -> QueryResult<Option<String>> {
+        if file_id == self.file_id {
+            return Ok(self.indexed.items[type_id].name.as_ref().map(ToString::to_string));
+        }
+
+        let indexed = self.queries.indexed(file_id)?;
+        Ok(indexed.items[type_id].name.as_ref().map(ToString::to_string))
     }
 }
