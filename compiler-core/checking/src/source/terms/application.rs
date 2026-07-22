@@ -1,8 +1,8 @@
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification};
+use crate::core::substitute::SubstituteName;
+use crate::core::{ForallBinder, Type, TypeId, normalise, unification};
 use crate::error::ErrorKind;
 use crate::source::types;
 use crate::state::CheckState;
@@ -13,6 +13,11 @@ use super::ElaboratedExpression;
 pub struct GenericApplication {
     pub argument: TypeId,
     pub result: TypeId,
+}
+
+enum ApplicationStep {
+    Applied(ElaboratedExpression),
+    Error(TypeId),
 }
 
 pub enum CallableAnalysis {
@@ -190,27 +195,139 @@ where
     }
 }
 
-pub fn check_function_application<Q>(
+pub fn check_expression_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    function_type: TypeId,
-    argument: &lowering::ExpressionArgument,
-) -> QueryResult<TypeId>
+    mut function: ElaboratedExpression,
+    arguments: &[lowering::ExpressionArgument],
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    match argument {
-        lowering::ExpressionArgument::Type(type_argument) => {
-            let Some(type_argument) = type_argument else {
-                return Ok(context.unknown("missing type argument"));
-            };
-            check_function_type_application(state, context, function_type, *type_argument)
+    for argument in arguments {
+        let step = match argument {
+            lowering::ExpressionArgument::Type(Some(argument)) => {
+                check_expression_type_application(state, context, function, *argument)?
+            }
+            lowering::ExpressionArgument::Type(None) => {
+                ApplicationStep::Error(context.unknown("missing type argument"))
+            }
+            lowering::ExpressionArgument::Term(Some(argument)) => {
+                check_expression_term_application(state, context, function, *argument)?
+            }
+            lowering::ExpressionArgument::Term(None) => {
+                ApplicationStep::Error(context.unknown("missing term argument"))
+            }
+        };
+
+        match step {
+            ApplicationStep::Applied(expression) => {
+                function = expression;
+            }
+            ApplicationStep::Error(type_id) => {
+                return Ok(super::allocate_error_expression(state, type_id));
+            }
         }
-        lowering::ExpressionArgument::Term(term_argument) => {
-            let Some(term_argument) = term_argument else {
-                return Ok(context.unknown("missing term argument"));
-            };
-            check_function_term_application(state, context, function_type, *term_argument)
+    }
+
+    Ok(function)
+}
+
+fn check_expression_term_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut function: ElaboratedExpression,
+    expression_id: lowering::ExpressionId,
+) -> QueryResult<ApplicationStep>
+where
+    Q: ExternalQueries,
+{
+    safe_loop! {
+        match analyse_callable_head(state, context, function.type_id)? {
+            CallableAnalysis::Forall { binder, body } => {
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: function.expression,
+                    argument,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            CallableAnalysis::Constraint { constraint, result } => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: function.expression,
+                    evidence,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            CallableAnalysis::Function { argument, result } => {
+                let argument = super::check_expression(state, context, expression_id, argument)?;
+                let kind = tree::ExpressionKind::TermApplication {
+                    function: function.expression,
+                    argument: argument.expression,
+                };
+                let application = super::allocate_expression(state, result, kind);
+                break Ok(ApplicationStep::Applied(application));
+            }
+            CallableAnalysis::NotCallable => {
+                let type_id = context.unknown("invalid function application");
+                break Ok(ApplicationStep::Error(type_id));
+            }
+        }
+    }
+}
+
+fn check_expression_type_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut function: ElaboratedExpression,
+    argument: lowering::TypeId,
+) -> QueryResult<ApplicationStep>
+where
+    Q: ExternalQueries,
+{
+    let function_type = function.type_id;
+
+    safe_loop! {
+        let type_id = normalise::expand(state, context, function.type_id)?;
+        match context.lookup_type(type_id) {
+            Type::Forall(binder_id, body) => {
+                let binder = context.lookup_forall_binder(binder_id);
+                if binder.visible {
+                    let binder_kind = normalise::expand(state, context, binder.kind)?;
+                    let (argument, _) = types::check_kind(state, context, argument, binder_kind)?;
+                    let result =
+                        SubstituteName::one(state, context, binder.name, argument, body)?;
+                    let kind = tree::ExpressionKind::TypeApplication {
+                        function: function.expression,
+                        argument,
+                    };
+                    let application = super::allocate_expression(state, result, kind);
+                    break Ok(ApplicationStep::Applied(application));
+                }
+
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: function.expression,
+                    argument,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            Type::Constrained(constraint, result) => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: function.expression,
+                    evidence,
+                };
+                function = super::allocate_expression(state, result, kind);
+            }
+            _ => {
+                state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
+                let type_id = context.unknown("invalid visible type application");
+                break Ok(ApplicationStep::Error(type_id));
+            }
         }
     }
 }
@@ -231,55 +348,6 @@ where
     };
     super::check_expression(state, context, expression_id, argument)?;
     Ok(result)
-}
-
-pub fn check_function_type_application<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    function: TypeId,
-    argument: lowering::TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
-    let signature::DecomposedSignature { binders, constraints, arguments, result } =
-        signature::decompose_signature(
-            state,
-            context,
-            function,
-            signature::DecomposeSignatureMode::Full,
-        )?;
-
-    let Some(index) = binders.iter().position(|binder| binder.visible) else {
-        let function_type = function;
-        state.insert_error(ErrorKind::NoVisibleTypeVariable { function_type });
-        return Ok(context.unknown("invalid visible type application"));
-    };
-
-    let mut substitution = NameToType::default();
-
-    for binder in binders.iter().take(index) {
-        let binder_kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let binder_kind = normalise::expand(state, context, binder_kind)?;
-        let replacement = state.fresh_unification(context.queries, binder_kind);
-        substitution.insert(binder.name, replacement);
-    }
-
-    let ForallBinder { name: visible_name, kind: visible_kind, .. } = binders[index];
-
-    let visible_kind = SubstituteName::many(state, context, &substitution, visible_kind)?;
-    let visible_kind = normalise::expand(state, context, visible_kind)?;
-
-    let (argument_type, _) = types::check_kind(state, context, argument, visible_kind)?;
-    substitution.insert(visible_name, argument_type);
-
-    let binders = binders.iter().skip(index + 1).copied();
-
-    let function = context.intern_function_list(&arguments, result);
-    let constrained = context.intern_constrained_list(&constraints, function);
-    let quantified = context.intern_forall_iter(binders, constrained);
-
-    SubstituteName::many(state, context, &substitution, quantified)
 }
 
 pub fn infer_infix_chain<Q>(

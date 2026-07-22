@@ -305,18 +305,7 @@ where
             };
 
             let function = infer_expression(state, context, *function)?;
-            let mut function_type = function.type_id;
-
-            for argument in arguments.iter() {
-                function_type = application::check_function_application(
-                    state,
-                    context,
-                    function_type,
-                    argument,
-                )?;
-            }
-
-            Ok(allocate_error_expression(state, function_type))
+            application::check_expression_application(state, context, function, arguments)
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {

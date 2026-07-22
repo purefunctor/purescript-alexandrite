@@ -510,6 +510,20 @@ where
                 };
                 Ok(self.arena.text(name))
             }
+            ExpressionKind::TermApplication { function, argument } => {
+                let function = self.expression(function, evidence_names)?;
+                let argument_expression = &self.checked.tree[argument];
+                let argument = self.expression(argument, evidence_names)?;
+                let argument = match argument_expression.kind {
+                    ExpressionKind::TermApplication { .. }
+                    | ExpressionKind::TypeApplication { .. }
+                    | ExpressionKind::EvidenceApplication { .. } => {
+                        self.arena.text("(").append(argument).append(self.arena.text(")"))
+                    }
+                    _ => argument,
+                };
+                Ok(function.append(self.arena.space()).append(argument))
+            }
             ExpressionKind::TypeApplication { function, argument } => {
                 let function = self.expression(function, evidence_names)?;
                 let mut type_pretty = TypePretty::new(self.queries, self.checked)
