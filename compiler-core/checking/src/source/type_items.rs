@@ -13,8 +13,8 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym, ForallBinder, Role,
-    Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
+    CheckedClass, CheckedClassMember, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym,
+    ForallBinder, Role, Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
 use crate::source::types;
@@ -933,46 +933,22 @@ where
             })
             .collect::<QueryResult<Vec<_>>>()?;
 
-        for (member_id, member_type) in members.iter() {
-            let member_type = zonk::zonk(state, context, *member_type)?;
-
-            let signature::DecomposedSignature {
-                binders: member_binders,
-                constraints: member_constraints,
-                arguments: member_arguments,
-                result: member_result,
-            } = signature::decompose_signature(
-                state,
-                context,
-                member_type,
-                signature::DecomposeSignatureMode::Full,
-            )?;
-
-            let mut result = context.intern_function_list(&member_arguments, member_result);
-
-            for constraint in member_constraints.into_iter().rev() {
-                result = context.intern_constrained(constraint, result);
-            }
-
-            result = context.intern_constrained(class_head, result);
-
-            for member_binder in member_binders.iter().copied().rev() {
-                let binder_id = context.intern_forall_binder(member_binder);
-                result = context.intern_forall(binder_id, result);
-            }
+        let mut checked_members = Vec::with_capacity(members.len());
+        for (member_id, member_type) in members {
+            let field_type = zonk::zonk(state, context, member_type)?;
+            let mut selector_type = context.intern_constrained(class_head, field_type);
 
             for type_parameter in type_parameters.iter().rev() {
-                result = context.intern_forall(*type_parameter, result);
+                selector_type = context.intern_forall(*type_parameter, selector_type);
             }
 
             for kind_binder in kind_binders.iter().rev() {
-                result = context.intern_forall(*kind_binder, result);
+                selector_type = context.intern_forall(*kind_binder, selector_type);
             }
 
-            state.checked.terms.insert(*member_id, result);
+            state.checked.terms.insert(member_id, selector_type);
+            checked_members.push(CheckedClassMember { item_id: member_id, field_type });
         }
-
-        let members = members.into_iter().map(|(item_id, _)| item_id).collect_vec();
 
         state.checked.classes.insert(
             item_id,
@@ -982,7 +958,7 @@ where
                 canonical,
                 superclasses,
                 functional_dependencies,
-                members,
+                members: checked_members,
             },
         );
     }

@@ -123,6 +123,14 @@ pub struct CheckedSuperclass {
     pub constraint: TypeId,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CheckedClassMember {
+    /// Stable identity of the generated class member selector.
+    pub item_id: TermItemId,
+    /// Declared member type before the class dictionary constraint is added.
+    pub field_type: TypeId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedClass {
     /// Post-generalisation kind variable binders.
@@ -135,8 +143,8 @@ pub struct CheckedClass {
     pub superclasses: Vec<CheckedSuperclass>,
     /// Functional dependencies.
     pub functional_dependencies: Arc<[fd::Fd]>,
-    /// Class member term item IDs.
-    pub members: Vec<TermItemId>,
+    /// Class members in declaration order.
+    pub members: Vec<CheckedClassMember>,
 }
 
 /// Represents a checked instance declaration head.

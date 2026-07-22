@@ -5,23 +5,25 @@ expression: report
 ---
 Terms
 lift ::
-  forall (@t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type).
+  forall (@t :: (Type -> Type) -> Type -> Type).
     Transform (t :: (Type -> Type) -> Type -> Type) =>
-    Functor (f :: Type -> Type) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type)
+    (forall (f :: Type -> Type) (a :: Type).
+      Functor (f :: Type -> Type) =>
+      (f :: Type -> Type) (a :: Type) ->
+      (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type))
 Wrap ::
   forall (@f :: Type -> Type) (@a :: Type).
     (f :: Type -> Type) (a :: Type) -> Wrap (f :: Type -> Type) (a :: Type)
 render :: forall (@a :: Type). Render (a :: Type) => (a :: Type) -> String
 renderer ::
-  forall (@t :: Type) (a :: Type).
-    Renderer (t :: Type) => Render (a :: Type) => (a :: Type) -> (t :: Type)
+  forall (@t :: Type).
+    Renderer (t :: Type) => (forall (a :: Type). Render (a :: Type) => (a :: Type) -> (t :: Type))
 liftPlain ::
-  forall (@t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type).
+  forall (@t :: (Type -> Type) -> Type -> Type).
     TransformPlain (t :: (Type -> Type) -> Type -> Type) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type)
+    (forall (f :: Type -> Type) (a :: Type).
+      (f :: Type -> Type) (a :: Type) ->
+      (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type))
 
 Types
 Transform :: ((Type -> Type) -> Type -> Type) -> Constraint
@@ -33,23 +35,25 @@ TransformPlain :: ((Type -> Type) -> Type -> Type) -> Constraint
 Classes
 class forall (t :: (Type -> Type) -> Type -> Type). Transform (t :: (Type -> Type) -> Type -> Type)
   lift ::
-  forall (@t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type).
+  forall (@t :: (Type -> Type) -> Type -> Type).
     Transform (t :: (Type -> Type) -> Type -> Type) =>
-    Functor (f :: Type -> Type) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type)
+    (forall (f :: Type -> Type) (a :: Type).
+      Functor (f :: Type -> Type) =>
+      (f :: Type -> Type) (a :: Type) ->
+      (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type))
 class forall (a :: Type). Render (a :: Type)
   render :: forall (@a :: Type). Render (a :: Type) => (a :: Type) -> String
 class forall (t :: Type). Renderer (t :: Type)
   renderer ::
-  forall (@t :: Type) (a :: Type).
-    Renderer (t :: Type) => Render (a :: Type) => (a :: Type) -> (t :: Type)
+  forall (@t :: Type).
+    Renderer (t :: Type) => (forall (a :: Type). Render (a :: Type) => (a :: Type) -> (t :: Type))
 class forall (t :: (Type -> Type) -> Type -> Type). TransformPlain (t :: (Type -> Type) -> Type -> Type)
   liftPlain ::
-  forall (@t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type).
+  forall (@t :: (Type -> Type) -> Type -> Type).
     TransformPlain (t :: (Type -> Type) -> Type -> Type) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type)
+    (forall (f :: Type -> Type) (a :: Type).
+      (f :: Type -> Type) (a :: Type) ->
+      (t :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (a :: Type))
 
 Instances
 instance Transform Wrap

@@ -5,9 +5,9 @@ expression: report
 ---
 Terms
 reflectKind' ::
-  forall (t :: Type) (@a :: (t :: Type)) (p :: (t :: Type) -> Type).
+  forall (t :: Type) (@a :: (t :: Type)).
     HasKind' @(t :: Type) (a :: (t :: Type)) =>
-    (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String
+    (forall (p :: (t :: Type) -> Type). (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String)
 
 Types
 HasKind' :: forall (t :: Type). (t :: Type) -> Constraint
@@ -15,6 +15,6 @@ HasKind' :: forall (t :: Type). (t :: Type) -> Constraint
 Classes
 class forall (t :: Type) (a :: (t :: Type)). HasKind' @(t :: Type) (a :: (t :: Type))
   reflectKind' ::
-  forall (t :: Type) (@a :: (t :: Type)) (p :: (t :: Type) -> Type).
+  forall (t :: Type) (@a :: (t :: Type)).
     HasKind' @(t :: Type) (a :: (t :: Type)) =>
-    (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String
+    (forall (p :: (t :: Type) -> Type). (p :: (t :: Type) -> Type) (a :: (t :: Type)) -> String)

@@ -5,12 +5,14 @@ expression: report
 ---
 Terms
 singleton ::
-  forall (@f :: Type -> Type) (a :: Type).
-    Build (f :: Type -> Type) => (a :: Type) -> (f :: Type -> Type) (a :: Type)
-produce ::
-  forall (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@f :: Type -> Type).
     Build (f :: Type -> Type) =>
-    ((b :: Type) -> (a :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a :: Type)
+    (forall (a :: Type). (a :: Type) -> (f :: Type -> Type) (a :: Type))
+produce ::
+  forall (@f :: Type -> Type).
+    Build (f :: Type -> Type) =>
+    (forall (a :: Type) (b :: Type).
+      ((b :: Type) -> (a :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a :: Type))
 identity :: forall (a :: Type). (a :: Type) -> (a :: Type)
 test ::
   forall (f :: Type -> Type).
@@ -22,9 +24,11 @@ Build :: (Type -> Type) -> Constraint
 Classes
 class forall (f :: Type -> Type). Build (f :: Type -> Type)
   singleton ::
-  forall (@f :: Type -> Type) (a :: Type).
-    Build (f :: Type -> Type) => (a :: Type) -> (f :: Type -> Type) (a :: Type)
-  produce ::
-  forall (@f :: Type -> Type) (a1 :: Type) (b :: Type).
+  forall (@f :: Type -> Type).
     Build (f :: Type -> Type) =>
-    ((b :: Type) -> (a1 :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a1 :: Type)
+    (forall (a :: Type). (a :: Type) -> (f :: Type -> Type) (a :: Type))
+  produce ::
+  forall (@f :: Type -> Type).
+    Build (f :: Type -> Type) =>
+    (forall (a1 :: Type) (b :: Type).
+      ((b :: Type) -> (a1 :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a1 :: Type))

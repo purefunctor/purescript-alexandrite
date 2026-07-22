@@ -5,9 +5,10 @@ expression: report
 ---
 Terms
 identity ::
-  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)).
+  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type).
     Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type) =>
-    (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type))
+    (forall (a :: (t :: Type)).
+      (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type)))
 
 Types
 Category :: forall (t :: Type). ((t :: Type) -> (t :: Type) -> Type) -> Constraint
@@ -15,9 +16,10 @@ Category :: forall (t :: Type). ((t :: Type) -> (t :: Type) -> Type) -> Constrai
 Classes
 class forall (t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type). Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type)
   identity ::
-  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)).
+  forall (t :: Type) (@f :: (t :: Type) -> (t :: Type) -> Type).
     Category @(t :: Type) (f :: (t :: Type) -> (t :: Type) -> Type) =>
-    (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type))
+    (forall (a :: (t :: Type)).
+      (f :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type)))
 
 Instances
 instance Category @Type Function

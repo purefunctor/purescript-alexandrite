@@ -9,11 +9,12 @@ Loop :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Step (a :: Type) (b :: 
 append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
 mempty :: forall (@a :: Type). Monoid (a :: Type) => (a :: Type)
 tailRecM ::
-  forall (@m :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@m :: Type -> Type).
     MonadRec (m :: Type -> Type) =>
-    ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
-    (a :: Type) ->
-    (m :: Type -> Type) (b :: Type)
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
+      (a :: Type) ->
+      (m :: Type -> Type) (b :: Type))
 ifM ::
   forall (m :: Type -> Type) (a :: Type).
     Bind (m :: Type -> Type) =>
@@ -82,11 +83,12 @@ class forall (a :: Type). Semigroup (a :: Type) <= Monoid (a :: Type)
   mempty :: forall (@a :: Type). Monoid (a :: Type) => (a :: Type)
 class forall (m :: Type -> Type). Applicative (m :: Type -> Type), Bind (m :: Type -> Type) <= MonadRec (m :: Type -> Type)
   tailRecM ::
-  forall (@m :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@m :: Type -> Type).
     MonadRec (m :: Type -> Type) =>
-    ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
-    (a :: Type) ->
-    (m :: Type -> Type) (b :: Type)
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
+      (a :: Type) ->
+      (m :: Type -> Type) (b :: Type))
 
 Roles
 Step = [Representational, Representational]

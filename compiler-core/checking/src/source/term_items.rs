@@ -10,8 +10,8 @@ use crate::context::CheckContext;
 use crate::core::constraint::ConstraintInScope;
 use crate::core::substitute::{NameToType, SubstituteName};
 use crate::core::{
-    CheckedInstance, ForallBinder, KindOrType, Type, TypeId, constraint, exhaustive, generalise,
-    normalise, signature, toolkit, unification, zonk,
+    CheckedInstance, KindOrType, Type, TypeId, constraint, exhaustive, generalise, normalise,
+    signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::evidence::Evidence;
@@ -304,17 +304,11 @@ where
             }
         }
 
-        let class_member_type = if let Some((member_file, member_id)) = member.resolution {
-            Some(toolkit::lookup_file_term(state, context, member_file, member_id)?)
-        } else {
-            None
-        };
-
-        let class_member_type = if let Some(class_member_type) = class_member_type {
+        let class_member_type = if let Some(member_resolution) = member.resolution {
             instantiate_class_member_type(
                 state,
                 context,
-                class_member_type,
+                member_resolution,
                 (class_file, class_id),
                 &instance_arguments,
             )?
@@ -441,7 +435,7 @@ where
 fn instantiate_class_member_type<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    class_member_type: TypeId,
+    (member_file, member_id): (FileId, TermItemId),
     (class_file, class_id): (FileId, TypeItemId),
     instance_arguments: &[KindOrType],
 ) -> QueryResult<Option<TypeId>>
@@ -452,33 +446,29 @@ where
         return Ok(None);
     };
 
-    let signature::DecomposedSignature { binders, constraints, arguments, result } =
-        signature::decompose_signature(
-            state,
-            context,
-            class_member_type,
-            signature::DecomposeSignatureMode::Full,
-        )?;
-
-    let class_binder_count = class_info.kind_binders.len() + class_info.type_parameters.len();
-    if binders.len() < class_binder_count {
+    if member_file != class_file {
         return Ok(None);
     }
-
-    let (class_binders, member_binders) = binders.split_at(class_binder_count);
+    let Some(member) = class_info.members.iter().find(|member| member.item_id == member_id) else {
+        return Ok(None);
+    };
 
     let mut bindings = NameToType::default();
     let mut instance_arguments = instance_arguments.iter().copied();
 
-    for binder in class_binders {
-        let Some(argument) = instance_arguments.next() else {
+    for &binder_id in &class_info.kind_binders {
+        let Some(KindOrType::Kind(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
+        let binder = context.lookup_forall_binder(binder_id);
+        bindings.insert(binder.name, argument);
+    }
 
-        let argument = match argument {
-            KindOrType::Kind(argument) | KindOrType::Type(argument) => argument,
+    for &binder_id in &class_info.type_parameters {
+        let Some(KindOrType::Type(argument)) = instance_arguments.next() else {
+            return Ok(None);
         };
-
+        let binder = context.lookup_forall_binder(binder_id);
         bindings.insert(binder.name, argument);
     }
 
@@ -486,66 +476,9 @@ where
         return Ok(None);
     }
 
-    let constraints = substitute_normalise_types(state, context, &bindings, &constraints)?;
-    let arguments = substitute_normalise_types(state, context, &bindings, &arguments)?;
-    let mut constrained = substitute_normalise_type(state, context, &bindings, result)?;
-
-    let mut constraints = constraints.into_iter();
-    let Some(constraint) = constraints.next() else {
-        return Ok(None);
-    };
-
-    let Some(constraint) = constraint::canonical::canonicalise(state, context, constraint)? else {
-        return Ok(None);
-    };
-
-    let constraint = state.canonicals[constraint].clone();
-
-    if (constraint.file_id, constraint.type_id) != (class_file, class_id) {
-        return Ok(None);
-    }
-
-    constrained = context.intern_function_list(&arguments, constrained);
-    for constraint in constraints.rev() {
-        constrained = context.intern_constrained(constraint, constrained);
-    }
-
-    for binder in member_binders.iter().rev() {
-        // member_binders refers to type variables from class_binders
-        let kind = substitute_normalise_type(state, context, &bindings, binder.kind)?;
-        let binder_id = context.intern_forall_binder(ForallBinder { kind, ..*binder });
-        constrained = context.intern_forall(binder_id, constrained);
-    }
-
-    Ok(Some(constrained))
-}
-
-fn substitute_normalise_type<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    bindings: &NameToType,
-    type_id: TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
-    let type_id = SubstituteName::many(state, context, bindings, type_id)?;
-    normalise::normalise(state, context, type_id)
-}
-
-fn substitute_normalise_types<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    bindings: &NameToType,
-    types: &[TypeId],
-) -> QueryResult<Vec<TypeId>>
-where
-    Q: ExternalQueries,
-{
-    types
-        .iter()
-        .map(|&type_id| substitute_normalise_type(state, context, bindings, type_id))
-        .collect()
+    let field_type = SubstituteName::many(state, context, &bindings, member.field_type)?;
+    let field_type = normalise::normalise(state, context, field_type)?;
+    Ok(Some(field_type))
 }
 
 fn substitute_kind_or_type<Q>(
