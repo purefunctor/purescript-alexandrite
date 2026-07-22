@@ -18,17 +18,17 @@ pub type TypeDeclarationId = Idx<TypeDeclaration>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Module {
-    arena: ModuleArena,
+    pub(crate) arena: ModuleArena,
     terms: ArenaMap<TermItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-struct ModuleArena {
-    expressions: Arena<Expression>,
-    binders: Arena<Binder>,
-    terms: Arena<TermDeclaration>,
-    types: Arena<TypeDeclaration>,
+pub(crate) struct ModuleArena {
+    pub(crate) expressions: Arena<Expression>,
+    pub(crate) binders: Arena<Binder>,
+    pub(crate) terms: Arena<TermDeclaration>,
+    pub(crate) types: Arena<TypeDeclaration>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

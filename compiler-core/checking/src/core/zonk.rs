@@ -10,6 +10,7 @@ use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
+use crate::tree::TermDeclarationKind;
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
@@ -68,6 +69,45 @@ where
     zonk_type_map!(implicit_bindings);
     zonk_operator_map!(term_operator);
     zonk_operator_map!(type_operator);
+
+    Ok(())
+}
+
+pub fn zonk_tree<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let mut expressions = mem::take(&mut state.checked.tree.arena.expressions);
+    for (_, expression) in expressions.iter_mut() {
+        expression.type_id = zonk(state, context, expression.type_id)?;
+    }
+    state.checked.tree.arena.expressions = expressions;
+
+    let mut binders = mem::take(&mut state.checked.tree.arena.binders);
+    for (_, binder) in binders.iter_mut() {
+        binder.type_id = zonk(state, context, binder.type_id)?;
+    }
+    state.checked.tree.arena.binders = binders;
+
+    let mut term_declarations = mem::take(&mut state.checked.tree.arena.terms);
+    for (_, declaration) in term_declarations.iter_mut() {
+        declaration.type_id = zonk(state, context, declaration.type_id)?;
+        match &mut declaration.kind {
+            TermDeclarationKind::Value(_) => {}
+            TermDeclarationKind::Constructor(constructor) => {
+                let arguments =
+                    constructor.arguments.iter().map(|&argument| zonk(state, context, argument));
+                constructor.arguments = arguments.collect::<QueryResult<Arc<[_]>>>()?;
+            }
+        }
+    }
+    state.checked.tree.arena.terms = term_declarations;
+
+    let mut type_declarations = mem::take(&mut state.checked.tree.arena.types);
+    for (_, declaration) in type_declarations.iter_mut() {
+        declaration.kind = zonk(state, context, declaration.kind)?;
+    }
+    state.checked.tree.arena.types = type_declarations;
 
     Ok(())
 }
