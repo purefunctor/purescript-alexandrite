@@ -10,7 +10,7 @@ use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role};
-use crate::evidence::{Evidence, EvidenceVarId};
+use crate::evidence::{Evidence, EvidenceVarId, SuperclassId};
 
 pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
@@ -66,12 +66,33 @@ pub struct TypeDeclaration {
 pub enum TypeDeclarationKind {
     Data(DataDeclaration),
     Newtype(DataDeclaration),
+    Class(ClassDeclaration),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DataDeclaration {
     pub parameters: Arc<[ForallBinderId]>,
     pub constructors: Arc<[TermDeclarationId]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ClassDeclaration {
+    pub kind_binders: Arc<[ForallBinderId]>,
+    pub type_parameters: Arc<[ForallBinderId]>,
+    pub superclasses: Arc<[ClassSuperclass]>,
+    pub members: Arc<[ClassMember]>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClassSuperclass {
+    pub id: SuperclassId,
+    pub constraint: TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClassMember {
+    pub source: TermItemId,
+    pub field_type: TypeId,
 }
 
 #[derive(Debug, PartialEq, Eq)]

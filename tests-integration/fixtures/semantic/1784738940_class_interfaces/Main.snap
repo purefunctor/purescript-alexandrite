@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Empty :: Type -> Constraint
+interface Empty a where
+
+interface Example :: forall (k :: Type). k -> Type -> Constraint
+interface Example value result where
+  identity :: result -> result
+  alternate :: forall (intermediate :: Type). intermediate -> result
+  constrained :: forall (intermediate :: Type). Empty intermediate => intermediate -> result

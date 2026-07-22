@@ -4,7 +4,6 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId, TypeItemKind};
-use itertools::Itertools;
 use lowering::{
     ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
     TypeItemIr, TypeVariableBinding,
@@ -17,6 +16,7 @@ use crate::core::{
     ForallBinder, Role, Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
+use crate::evidence::SuperclassId;
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop, tree};
@@ -891,7 +891,7 @@ where
             .iter()
             .copied()
             .map(|binder| context.intern_forall_binder(binder))
-            .collect_vec();
+            .collect::<Arc<[_]>>();
 
         let type_parameters = parameters
             .iter()
@@ -902,7 +902,7 @@ where
                 let binder = ForallBinder { kind, ..parameter };
                 context.intern_forall_binder(binder)
             })
-            .collect_vec();
+            .collect::<Arc<[_]>>();
 
         let mut class_head = context.queries.intern_type(Type::Constructor(context.id, item_id));
 
@@ -933,7 +933,18 @@ where
             })
             .collect::<QueryResult<Vec<_>>>()?;
 
+        let semantic_superclasses = superclasses.iter().map(|superclass| tree::ClassSuperclass {
+            id: SuperclassId {
+                file_id: context.id,
+                type_id: item_id,
+                source_id: superclass.source_id,
+            },
+            constraint: superclass.constraint,
+        });
+        let semantic_superclasses = semantic_superclasses.collect::<Arc<[_]>>();
+
         let mut checked_members = Vec::with_capacity(members.len());
+        let mut semantic_members = Vec::with_capacity(members.len());
         for (member_id, member_type) in members {
             let field_type = zonk::zonk(state, context, member_type)?;
             let mut selector_type = context.intern_constrained(class_head, field_type);
@@ -948,19 +959,33 @@ where
 
             state.checked.terms.insert(member_id, selector_type);
             checked_members.push(CheckedClassMember { item_id: member_id, field_type });
+            semantic_members.push(tree::ClassMember { source: member_id, field_type });
         }
 
         state.checked.classes.insert(
             item_id,
             CheckedClass {
-                kind_binders,
-                type_parameters,
+                kind_binders: Arc::clone(&kind_binders),
+                type_parameters: Arc::clone(&type_parameters),
                 canonical,
                 superclasses,
                 functional_dependencies,
                 members: checked_members,
             },
         );
+
+        let class = tree::ClassDeclaration {
+            kind_binders,
+            type_parameters,
+            superclasses: semantic_superclasses,
+            members: Arc::from(semantic_members),
+        };
+        let declaration = tree::TypeDeclaration {
+            kind: class_kind,
+            roles: Arc::default(),
+            declaration: tree::TypeDeclarationKind::Class(class),
+        };
+        state.checked.tree.insert_type_declaration(item_id, declaration);
     }
 
     Ok(())

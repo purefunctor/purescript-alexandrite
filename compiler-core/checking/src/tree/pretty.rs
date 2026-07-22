@@ -113,9 +113,10 @@ where
             };
 
             let declaration = &self.checked.tree[declaration_id];
-            let keyword = match &declaration.declaration {
-                TypeDeclarationKind::Data(_) => "data",
-                TypeDeclarationKind::Newtype(_) => "newtype",
+            let (keyword, is_class) = match &declaration.declaration {
+                TypeDeclarationKind::Data(_) => ("data", false),
+                TypeDeclarationKind::Newtype(_) => ("newtype", false),
+                TypeDeclarationKind::Class(_) => ("interface", true),
             };
             let kind = declaration.kind;
 
@@ -123,7 +124,11 @@ where
             let signature = self.type_pretty.render_kind_signature(name, kind);
             let signature = self.arena.text(format!("{keyword} {signature}"));
 
-            let declaration = self.data_declaration(type_id, keyword, name);
+            let declaration = if is_class {
+                self.class_declaration(type_id, name)?
+            } else {
+                self.data_declaration(type_id, keyword, name)
+            };
 
             declarations.push(signature.append(self.arena.hardline()).append(declaration));
         }
@@ -170,6 +175,9 @@ where
         let declaration = &self.checked.tree[declaration_id];
         let data = match &declaration.declaration {
             TypeDeclarationKind::Data(data) | TypeDeclarationKind::Newtype(data) => data,
+            TypeDeclarationKind::Class(_) => {
+                unreachable!("invariant violated: class is not a data declaration")
+            }
         };
 
         let mut parameter_names = vec![];
@@ -230,6 +238,66 @@ where
         }
 
         declaration
+    }
+
+    fn class_declaration(
+        &mut self,
+        type_id: indexing::TypeItemId,
+        name: &str,
+    ) -> QueryResult<Doc<'arena>> {
+        let declaration_id = self
+            .checked
+            .tree
+            .lookup_type_declaration(type_id)
+            .expect("invariant violated: missing checked type declaration");
+        let declaration = &self.checked.tree[declaration_id];
+        let TypeDeclarationKind::Class(class) = &declaration.declaration else {
+            unreachable!("invariant violated: type declaration is not a class");
+        };
+
+        for &parameter in class.kind_binders.iter() {
+            let parameter = self.queries.lookup_forall_binder(parameter);
+            self.type_pretty.display_name(parameter.name);
+        }
+
+        let mut head = self.arena.text(format!("interface {name}"));
+        for &parameter in class.type_parameters.iter() {
+            let parameter = self.queries.lookup_forall_binder(parameter);
+            let parameter = self.type_pretty.display_name(parameter.name);
+            head = head.append(self.arena.text(format!(" {parameter}")));
+        }
+        let mut declaration = head.append(self.arena.text(" where"));
+
+        let mut field_names = PrettyNames::new();
+        for member in class.members.iter() {
+            let TermItem { name: Some(name), .. } = &self.indexed.items[member.source] else {
+                continue;
+            };
+            field_names.allocate_display_name(SmolStr::clone(name));
+        }
+
+        for superclass in class.superclasses.iter() {
+            let base = self.evidence_base_name(superclass.constraint)?;
+            let field_name = field_names.allocate_display_name(base);
+            let mut type_pretty =
+                TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
+            let field_type = type_pretty.render(superclass.constraint);
+            let field = self.arena.text(format!("  superclass {field_name} :: {field_type}"));
+            declaration = declaration.append(self.arena.hardline()).append(field);
+        }
+
+        for member in class.members.iter() {
+            let TermItem { name: Some(name), .. } = &self.indexed.items[member.source] else {
+                continue;
+            };
+            let mut type_pretty =
+                TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
+            let field_type = type_pretty.render(member.field_type);
+            let field = self.arena.text(format!("  {name} :: {field_type}"));
+            declaration = declaration.append(self.arena.hardline()).append(field);
+        }
+
+        Ok(declaration)
     }
 
     fn value_declaration(

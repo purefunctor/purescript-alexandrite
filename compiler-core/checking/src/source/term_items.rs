@@ -456,7 +456,7 @@ where
     let mut bindings = NameToType::default();
     let mut instance_arguments = instance_arguments.iter().copied();
 
-    for &binder_id in &class_info.kind_binders {
+    for &binder_id in class_info.kind_binders.iter() {
         let Some(KindOrType::Kind(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
@@ -464,7 +464,7 @@ where
         bindings.insert(binder.name, argument);
     }
 
-    for &binder_id in &class_info.type_parameters {
+    for &binder_id in class_info.type_parameters.iter() {
         let Some(KindOrType::Type(argument)) = instance_arguments.next() else {
             return Ok(None);
         };

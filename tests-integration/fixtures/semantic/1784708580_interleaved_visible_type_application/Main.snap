@@ -3,5 +3,8 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
+interface Default :: Type -> Constraint
+interface Default a where
+
 specialize :: forall a. Default a => a -> String -> a
 specialize = \{defaultDict} -> select @a {defaultDict} @String

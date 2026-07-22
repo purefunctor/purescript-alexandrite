@@ -165,7 +165,7 @@ where
     let mut bindings = NameToType::default();
     let mut arguments = arguments.iter().copied();
 
-    for &binder_id in &class.kind_binders {
+    for &binder_id in class.kind_binders.iter() {
         let Some(KindOrType::Kind(argument)) = arguments.next() else {
             return Ok(None);
         };
@@ -173,7 +173,7 @@ where
         bindings.insert(binder.name, argument);
     }
 
-    for &binder_id in &class.type_parameters {
+    for &binder_id in class.type_parameters.iter() {
         let Some(KindOrType::Type(argument)) = arguments.next() else {
             return Ok(None);
         };

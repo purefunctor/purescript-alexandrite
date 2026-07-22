@@ -61,7 +61,7 @@ impl<'a> TypeEncoder<'a> {
         class: checking::core::CheckedClass,
     ) -> Result<(schema::TypeDeclaration, Vec<schema::Type>), Error> {
         self.names.reset();
-        let binders = self.encode_forall_binders(class.type_parameters)?;
+        let binders = self.encode_forall_binders(class.type_parameters.iter().copied())?;
 
         let superclasses = class
             .superclasses

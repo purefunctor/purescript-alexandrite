@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Ordering :: Type
+data Ordering
+  | LT :: Ordering
+  | EQ :: Ordering
+  | GT :: Ordering
+
+interface Eq :: Type -> Constraint
+interface Eq a where
+  eq :: a -> a -> Boolean
+
+interface Ord :: Type -> Constraint
+interface Ord a where
+  superclass eqDict :: Eq a
+  compare :: a -> a -> Ordering
+
+interface Child :: Type -> Constraint
+interface Child a where
+  superclass parentDict1 :: Parent a
+  superclass parentDict2 :: Parent a
+  parentDict :: a -> a

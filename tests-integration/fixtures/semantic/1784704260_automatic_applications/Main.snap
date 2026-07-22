@@ -3,6 +3,16 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
+interface Default :: Type -> Constraint
+interface Default a where
+  default :: a
+
+interface First :: Type -> Constraint
+interface First a where
+
+interface Second :: Type -> Constraint
+interface Second a where
+
 useDefault :: forall a. Default a => a
 useDefault = \{defaultDict} -> default @a {defaultDict}
 
