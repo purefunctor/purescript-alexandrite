@@ -17,13 +17,33 @@ use lowering::GraphNode;
 use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TermHole};
 use crate::source::{operator, types};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
+
+#[derive(Copy, Clone, Debug)]
+pub struct ElaboratedExpression {
+    pub type_id: TypeId,
+    pub expression: tree::ExpressionId,
+}
+
+pub(super) fn allocate_expression(
+    state: &mut CheckState,
+    type_id: TypeId,
+    kind: tree::ExpressionKind,
+) -> ElaboratedExpression {
+    let expression = state.allocate_expression(type_id, kind);
+    ElaboratedExpression { type_id, expression }
+}
+
+fn allocate_error_expression(state: &mut CheckState, type_id: TypeId) -> ElaboratedExpression {
+    let expression = state.allocate_error_expression(type_id);
+    ElaboratedExpression { type_id, expression }
+}
 
 /// Checks the type of an expression.
 pub fn check_expression<Q>(
@@ -31,14 +51,14 @@ pub fn check_expression<Q>(
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     state.with_error_crumb(ErrorCrumb::CheckingExpression(expression), |state| {
-        let expected = check_expression_quiet(state, context, expression, expected)?;
-        state.checked.nodes.expressions.insert(expression, expected);
-        Ok(expected)
+        let checked = check_expression_quiet(state, context, expression, expected)?;
+        state.checked.nodes.expressions.insert(expression, checked.type_id);
+        Ok(checked)
     })
 }
 
@@ -47,7 +67,7 @@ fn check_expression_quiet<Q>(
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -68,7 +88,7 @@ fn check_sectioned_expression<Q>(
     expression: lowering::ExpressionId,
     section_result: &sugar::SectionResult,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -95,13 +115,13 @@ where
         }
     }
 
-    let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = toolkit::instantiate_constrained(state, context, result_type)?;
+    let result = infer_expression_core(state, context, expression)?;
+    let result = application::instantiate_expression(state, context, result)?;
 
-    unification::subtype(state, context, result_type, current)?;
+    unification::subtype(state, context, result.type_id, current)?;
 
-    let function_type = context.intern_function_list(&parameters, result_type);
-    Ok(function_type)
+    let function_type = context.intern_function_list(&parameters, result.type_id);
+    Ok(allocate_error_expression(state, function_type))
 }
 
 fn check_expression_core<Q>(
@@ -109,48 +129,56 @@ fn check_expression_core<Q>(
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let unknown = context.unknown("missing expression");
 
     let Some(kind) = context.lowered.info.get_expression_kind(expression) else {
-        return Ok(unknown);
+        return Ok(allocate_error_expression(state, unknown));
     };
 
     match kind {
         lowering::ExpressionKind::Lambda { binders, expression } => {
-            forms::check_lambda(state, context, binders, *expression, expected)
+            let type_id = forms::check_lambda(state, context, binders, *expression, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            forms::check_if_then_else(state, context, *if_, *then, *else_, expected)
+            let type_id = forms::check_if_then_else(state, context, *if_, *then, *else_, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            forms::check_case_of(state, context, trunk, branches, expected)
+            let type_id = forms::check_case_of(state, context, trunk, branches, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::OperatorChain { .. } => {
             let (_, checked_type) =
                 operator::check_operator_chain(state, context, expression, expected)?;
-            Ok(checked_type)
+            Ok(allocate_error_expression(state, checked_type))
         }
         lowering::ExpressionKind::LetIn { bindings, expression } => {
-            forms::check_let_in(state, context, bindings, *expression, expected)
+            let type_id = forms::check_let_in(state, context, bindings, *expression, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::Parenthesized { parenthesized } => {
-            let Some(parenthesized) = parenthesized else { return Ok(unknown) };
+            let Some(parenthesized) = parenthesized else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
             check_expression(state, context, *parenthesized, expected)
         }
         lowering::ExpressionKind::Array { array } => {
-            collections::check_array(state, context, array, expected)
+            let type_id = collections::check_array(state, context, array, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::Record { record } => {
-            collections::check_record(state, context, record, expected)
+            let type_id = collections::check_record(state, context, record, expected)?;
+            Ok(allocate_error_expression(state, type_id))
         }
         _ => {
             let inferred = infer_expression_quiet(state, context, expression)?;
-            let inferred = toolkit::instantiate_constrained(state, context, inferred)?;
-            unification::subtype(state, context, inferred, expected)?;
+            let inferred = application::instantiate_expression(state, context, inferred)?;
+            unification::subtype(state, context, inferred.type_id, expected)?;
             Ok(inferred)
         }
     }
@@ -161,13 +189,13 @@ pub fn infer_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     state.with_error_crumb(ErrorCrumb::InferringExpression(expression), |state| {
         let inferred = infer_expression_quiet(state, context, expression)?;
-        state.checked.nodes.expressions.insert(expression, inferred);
+        state.checked.nodes.expressions.insert(expression, inferred.type_id);
         Ok(inferred)
     })
 }
@@ -176,7 +204,7 @@ fn infer_expression_quiet<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -192,7 +220,7 @@ fn infer_sectioned_expression<Q>(
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
     section_result: &sugar::SectionResult,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -204,116 +232,161 @@ where
 
     let parameter_types = parameter_types.collect_vec();
 
-    let result_type = infer_expression_core(state, context, expression)?;
-    let result_type = toolkit::instantiate_constrained(state, context, result_type)?;
+    let result = infer_expression_core(state, context, expression)?;
+    let result = application::instantiate_expression(state, context, result)?;
 
-    Ok(context.intern_function_list(&parameter_types, result_type))
+    let function_type = context.intern_function_list(&parameter_types, result.type_id);
+    Ok(allocate_error_expression(state, function_type))
 }
 
 fn infer_expression_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let unknown = context.unknown("missing expression");
 
     let Some(kind) = context.lowered.info.get_expression_kind(expression) else {
-        return Ok(unknown);
+        return Ok(allocate_error_expression(state, unknown));
     };
 
     match kind {
         lowering::ExpressionKind::Typed { expression, type_ } => {
-            let Some(e) = expression else { return Ok(unknown) };
-            let Some(t) = type_ else { return Ok(unknown) };
+            let Some(e) = expression else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let Some(t) = type_ else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
 
             let (t, _) = types::infer_kind(state, context, *t)?;
             check_expression(state, context, *e, t)?;
 
-            Ok(t)
+            Ok(allocate_error_expression(state, t))
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {
             let (_, inferred_type) = operator::infer_operator_chain(state, context, expression)?;
-            Ok(inferred_type)
+            Ok(allocate_error_expression(state, inferred_type))
         }
 
         lowering::ExpressionKind::InfixChain { head, tail } => {
-            let Some(head) = *head else { return Ok(unknown) };
-            application::infer_infix_chain(state, context, head, tail)
+            let Some(head) = *head else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = application::infer_infix_chain(state, context, head, tail)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Negate { negate, expression } => {
-            let Some(negate) = negate else { return Ok(unknown) };
-            let Some(expression) = expression else { return Ok(unknown) };
+            let Some(negate) = negate else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let Some(expression) = expression else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
 
             let negate_type = toolkit::lookup_term_variable(state, context, *negate)?;
-            application::check_function_term_application(state, context, negate_type, *expression)
+            let type_id = application::check_function_term_application(
+                state,
+                context,
+                negate_type,
+                *expression,
+            )?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Application { function, arguments } => {
-            let Some(function) = function else { return Ok(unknown) };
+            let Some(function) = function else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
 
-            let mut function_t = infer_expression(state, context, *function)?;
+            let function = infer_expression(state, context, *function)?;
+            let mut function_type = function.type_id;
 
             for argument in arguments.iter() {
-                function_t =
-                    application::check_function_application(state, context, function_t, argument)?;
+                function_type = application::check_function_application(
+                    state,
+                    context,
+                    function_type,
+                    argument,
+                )?;
             }
 
-            Ok(function_t)
+            Ok(allocate_error_expression(state, function_type))
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            forms::infer_if_then_else(state, context, *if_, *then, *else_)
+            let type_id = forms::infer_if_then_else(state, context, *if_, *then, *else_)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::LetIn { bindings, expression } => {
             form_let::check_let_chunks(state, context, bindings)?;
 
-            let Some(expression) = expression else { return Ok(unknown) };
+            let Some(expression) = expression else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
 
-            infer_expression(state, context, *expression)
+            let expression = infer_expression(state, context, *expression)?;
+            Ok(allocate_error_expression(state, expression.type_id))
         }
 
         lowering::ExpressionKind::Lambda { binders, expression } => {
-            forms::infer_lambda(state, context, binders, *expression)
+            let type_id = forms::infer_lambda(state, context, binders, *expression)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            forms::infer_case_of(state, context, trunk, branches)
+            let type_id = forms::infer_case_of(state, context, trunk, branches)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {
-            form_do::infer_do(state, context, *bind, *discard, statements)
+            let type_id = form_do::infer_do(state, context, *bind, *discard, statements)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Ado { map, apply, pure, statements, expression } => {
-            form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)
+            let type_id =
+                form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Constructor { resolution } => {
-            let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
-            toolkit::lookup_file_term(state, context, *file_id, *term_id)
+            let Some((file_id, term_id)) = resolution else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
+            let kind = tree::ExpressionKind::Constructor { resolution: (*file_id, *term_id) };
+            Ok(allocate_expression(state, type_id, kind))
         }
 
         lowering::ExpressionKind::Variable { resolution } => {
-            let Some(resolution) = *resolution else { return Ok(unknown) };
-            toolkit::lookup_term_variable(state, context, resolution)
+            let Some(resolution) = *resolution else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
+            let kind = tree::ExpressionKind::Variable { resolution };
+            Ok(allocate_expression(state, type_id, kind))
         }
 
         lowering::ExpressionKind::OperatorName { resolution } => {
-            let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
-            toolkit::lookup_file_term(state, context, *file_id, *term_id)
+            let Some((file_id, term_id)) = resolution else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Section => {
             if let Some(type_id) = state.checked.nodes.lookup_section(expression) {
-                Ok(type_id)
+                Ok(allocate_error_expression(state, type_id))
             } else {
-                Ok(unknown)
+                Ok(allocate_error_expression(state, unknown))
             }
         }
 
@@ -325,41 +398,63 @@ where
             state.checked.holes.terms.insert(expression, TermHole { type_id, bindings });
             state.insert_error(ErrorKind::TermHole { source_term: expression });
 
-            Ok(type_id)
+            Ok(allocate_error_expression(state, type_id))
         }
 
-        lowering::ExpressionKind::String { .. } => Ok(context.prim.string),
+        lowering::ExpressionKind::String { .. } => {
+            Ok(allocate_error_expression(state, context.prim.string))
+        }
 
-        lowering::ExpressionKind::Char { .. } => Ok(context.prim.char),
+        lowering::ExpressionKind::Char { .. } => {
+            Ok(allocate_error_expression(state, context.prim.char))
+        }
 
-        lowering::ExpressionKind::Boolean { .. } => Ok(context.prim.boolean),
+        lowering::ExpressionKind::Boolean { .. } => {
+            Ok(allocate_error_expression(state, context.prim.boolean))
+        }
 
-        lowering::ExpressionKind::Integer { .. } => Ok(context.prim.int),
+        lowering::ExpressionKind::Integer { .. } => {
+            Ok(allocate_error_expression(state, context.prim.int))
+        }
 
-        lowering::ExpressionKind::Number { .. } => Ok(context.prim.number),
+        lowering::ExpressionKind::Number { .. } => {
+            Ok(allocate_error_expression(state, context.prim.number))
+        }
 
         lowering::ExpressionKind::Array { array } => {
-            collections::infer_array(state, context, array)
+            let type_id = collections::infer_array(state, context, array)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Record { record } => {
-            collections::infer_record(state, context, record)
+            let type_id = collections::infer_record(state, context, record)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::Parenthesized { parenthesized } => {
-            let Some(parenthesized) = parenthesized else { return Ok(unknown) };
+            let Some(parenthesized) = parenthesized else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
             infer_expression(state, context, *parenthesized)
         }
 
         lowering::ExpressionKind::RecordAccess { record, labels } => {
-            let Some(record) = *record else { return Ok(unknown) };
-            let Some(labels) = labels else { return Ok(unknown) };
-            collections::infer_record_access(state, context, record, labels)
+            let Some(record) = *record else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let Some(labels) = labels else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = collections::infer_record_access(state, context, record, labels)?;
+            Ok(allocate_error_expression(state, type_id))
         }
 
         lowering::ExpressionKind::RecordUpdate { record, updates } => {
-            let Some(record) = *record else { return Ok(unknown) };
-            collections::infer_record_update(state, context, record, updates)
+            let Some(record) = *record else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let type_id = collections::infer_record_update(state, context, record, updates)?;
+            Ok(allocate_error_expression(state, type_id))
         }
     }
 }

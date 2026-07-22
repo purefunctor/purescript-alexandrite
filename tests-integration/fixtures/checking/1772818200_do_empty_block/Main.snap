@@ -26,7 +26,7 @@ error[EmptyDoBlock]: Empty do block
 9 | test = do
   |        ^~
 error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 9:1..9:10
+  --> 9:8..9:10
   |
 9 | test = do
-  | ^~~~~~~~~
+  |        ^~

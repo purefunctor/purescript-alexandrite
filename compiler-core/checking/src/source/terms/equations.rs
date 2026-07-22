@@ -2,9 +2,10 @@
 //!
 //! See [`check_value_equations`] and [`infer_value_equations`].
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, constraint, signature, toolkit, unification};
 use crate::error::ErrorKind;
@@ -12,6 +13,7 @@ use crate::evidence::Evidence;
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
 
 /// The syntactic origin of an equation's expected type.
 pub enum EquationTypeOrigin {
@@ -33,6 +35,20 @@ pub type ValueEquationPatterns = Vec<TypeId>;
 pub struct CheckedValueEquations {
     pub patterns: ValueEquationPatterns,
     pub evidences: Vec<Evidence>,
+    pub equations: Vec<ElaboratedEquation>,
+}
+
+pub struct ElaboratedEquation {
+    pub source: Option<indexing::ValueEquationId>,
+    pub binders: Arc<[tree::BinderId]>,
+    pub guarded: tree::GuardedExpression,
+}
+
+impl ElaboratedEquation {
+    pub fn into_tree(self) -> Option<tree::Equation> {
+        let source = self.source?;
+        Some(tree::Equation { source, binders: self.binders, guarded_expression: self.guarded })
+    }
 }
 
 /// Checks a group of [`lowering::Equation`].
@@ -68,11 +84,11 @@ where
     let mut arguments = ValueEquationPatterns::clone(&signature.arguments);
     instantiate_pattern_arguments(state, context, &mut arguments, equations)?;
 
-    state.with_implicit(context, &substitution, |state| {
+    let equations = state.with_implicit(context, &substitution, |state| {
         check_equations(state, context, origin, &signature, &arguments, equations)
     })?;
 
-    Ok(CheckedValueEquations { patterns: arguments, evidences })
+    Ok(CheckedValueEquations { patterns: arguments, evidences, equations })
 }
 
 /// Infers a group of [`lowering::Equation`].
@@ -87,36 +103,49 @@ pub fn infer_value_equations<Q>(
     context: &CheckContext<Q>,
     group_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<ValueEquationPatterns>
+) -> QueryResult<CheckedValueEquations>
 where
     Q: ExternalQueries,
 {
     let minimum_equation_arity =
         equations.iter().map(|equation| equation.binders.len()).min().unwrap_or(0);
+    let result_type = state.fresh_unification(context.queries, context.prim.t);
+    let mut elaborated_equations = vec![];
 
     for equation in equations {
         let mut inferred_argument_types = vec![];
+        let mut elaborated_binders = vec![];
         for &binder_id in equation.binders.iter() {
-            let argument_type = binder::infer_binder(state, context, binder_id)?;
-            inferred_argument_types.push(argument_type);
+            let binder = binder::infer_binder(state, context, binder_id)?;
+            inferred_argument_types.push(binder.type_id);
+            elaborated_binders.push(binder.binder);
         }
-
-        let result_type = state.fresh_unification(context.queries, context.prim.t);
 
         let inferred_argument_types = &inferred_argument_types[..minimum_equation_arity];
         let equation_type = context.intern_function_list(inferred_argument_types, result_type);
         unification::subtype(state, context, equation_type, group_type)?;
 
-        if let Some(guarded) = &equation.guarded {
-            let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?;
-            unification::subtype(state, context, inferred_type, result_type)?;
-        }
+        let guarded = if let Some(guarded) = &equation.guarded {
+            guarded::check_guarded_expression(state, context, guarded, result_type)?
+                .guarded_expression
+        } else {
+            missing_guarded_expression(state, result_type)
+        };
+        elaborated_equations.push(ElaboratedEquation {
+            source: equation.source,
+            binders: elaborated_binders.into(),
+            guarded,
+        });
     }
 
     let toolkit::InspectFunction { arguments, .. } =
         toolkit::inspect_function(state, context, group_type)?;
 
-    Ok(arguments)
+    Ok(CheckedValueEquations {
+        patterns: arguments,
+        evidences: vec![],
+        equations: elaborated_equations,
+    })
 }
 
 fn check_equations<Q>(
@@ -126,11 +155,12 @@ fn check_equations<Q>(
     signature: &ValueEquationSignature,
     arguments: &[TypeId],
     equations: &[lowering::Equation],
-) -> QueryResult<()>
+) -> QueryResult<Vec<ElaboratedEquation>>
 where
     Q: ExternalQueries,
 {
     let expected_arity = signature.arguments.len();
+    let mut elaborated_equations = vec![];
 
     for equation in equations {
         let equation_arity = equation.binders.len();
@@ -146,23 +176,37 @@ where
             });
         }
 
-        for (&binder_id, &argument_type) in equation.binders.iter().zip(arguments) {
-            binder::check_argument_binder(state, context, binder_id, argument_type)?;
-        }
-
-        if equation_arity > expected_arity {
-            for &binder_id in &equation.binders[expected_arity..] {
-                binder::infer_binder(state, context, binder_id)?;
-            }
+        let mut elaborated_binders = vec![];
+        for (position, &binder_id) in equation.binders.iter().enumerate() {
+            let binder = if let Some(&argument_type) = arguments.get(position) {
+                binder::check_argument_binder(state, context, binder_id, argument_type)?
+            } else {
+                binder::infer_binder(state, context, binder_id)?
+            };
+            elaborated_binders.push(binder.binder);
         }
 
         let expected_type = expected_guarded_type(context, signature, equation_arity);
-        if let Some(guarded) = &equation.guarded {
-            guarded::check_guarded_expression(state, context, guarded, expected_type)?;
-        }
+        let guarded = if let Some(guarded) = &equation.guarded {
+            guarded::check_guarded_expression(state, context, guarded, expected_type)?
+                .guarded_expression
+        } else {
+            missing_guarded_expression(state, expected_type)
+        };
+        elaborated_equations.push(ElaboratedEquation {
+            source: equation.source,
+            binders: elaborated_binders.into(),
+            guarded,
+        });
     }
 
-    Ok(())
+    Ok(elaborated_equations)
+}
+
+fn missing_guarded_expression(state: &mut CheckState, type_id: TypeId) -> tree::GuardedExpression {
+    let expression = state.allocate_error_expression(type_id);
+    let where_expression = tree::WhereExpression { expression };
+    tree::GuardedExpression::unconditional(where_expression)
 }
 
 fn instantiate_pattern_arguments<Q>(

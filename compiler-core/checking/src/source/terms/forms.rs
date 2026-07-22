@@ -3,7 +3,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
-use crate::source::terms::{form_let, guarded};
+use crate::source::terms::{application, form_let, guarded};
 use crate::source::{binder, terms};
 use crate::state::CheckState;
 
@@ -95,8 +95,8 @@ where
     }
 
     let result_type = if let Some(body) = expression {
-        let body_type = super::infer_expression(state, context, body)?;
-        toolkit::instantiate_constrained(state, context, body_type)?
+        let body = super::infer_expression(state, context, body)?;
+        application::instantiate_expression(state, context, body)?.type_id
     } else {
         state.fresh_unification(context.queries, context.prim.t)
     };
@@ -148,7 +148,7 @@ where
     }
 
     let result_type = if let Some(body) = expression {
-        super::check_expression(state, context, body, remaining)?
+        super::check_expression(state, context, body, remaining)?.type_id
     } else {
         state.fresh_unification(context.queries, context.prim.t)
     };
@@ -226,9 +226,9 @@ where
 
     let mut trunk_types = vec![];
     for trunk in trunk.iter() {
-        let trunk_type = super::infer_expression(state, context, *trunk)?;
-        let trunk_type = toolkit::instantiate_constrained(state, context, trunk_type)?;
-        trunk_types.push(trunk_type);
+        let trunk = super::infer_expression(state, context, *trunk)?;
+        let trunk = application::instantiate_expression(state, context, trunk)?;
+        trunk_types.push(trunk.type_id);
     }
 
     instantiate_trunk_types(state, context, &mut trunk_types, branches)?;
@@ -240,8 +240,8 @@ where
         if let Some(guarded) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
-                    let guarded_type = guarded::infer_guarded_expression(state, context, guarded)?;
-                    unification::subtype(state, context, guarded_type, expected)?;
+                    let guarded = guarded::infer_guarded_expression(state, context, guarded)?;
+                    unification::subtype(state, context, guarded.type_id, expected)?;
                 }
                 CaseOfMode::Check { .. } => {
                     guarded::check_guarded_expression(state, context, guarded, expected)?;
@@ -282,5 +282,5 @@ where
         return Ok(context.unknown("missing let expression"));
     };
 
-    terms::check_expression(state, context, expression, expected)
+    Ok(terms::check_expression(state, context, expression, expected)?.type_id)
 }

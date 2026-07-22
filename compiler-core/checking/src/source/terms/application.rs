@@ -6,7 +6,9 @@ use crate::core::{ForallBinder, Type, TypeId, normalise, signature, unification}
 use crate::error::ErrorKind;
 use crate::source::types;
 use crate::state::CheckState;
-use crate::{ExternalQueries, safe_loop};
+use crate::{ExternalQueries, safe_loop, tree};
+
+use super::ElaboratedExpression;
 
 pub struct GenericApplication {
     pub argument: TypeId,
@@ -97,6 +99,64 @@ where
     let argument = state.fresh_unification(context.queries, binder_kind);
     let result = SubstituteName::one(state, context, binder.name, argument, body)?;
     Ok((argument, result))
+}
+
+pub fn instantiate_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut expression: ElaboratedExpression,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    safe_loop! {
+        let type_id = normalise::expand(state, context, expression.type_id)?;
+        match context.lookup_type(type_id) {
+            Type::Forall(binder_id, body) => {
+                let binder = context.lookup_forall_binder(binder_id);
+                let (argument, result) =
+                    instantiate_callable_forall(state, context, binder, body)?;
+                let kind = tree::ExpressionKind::TypeApplication {
+                    function: expression.expression,
+                    argument,
+                };
+                expression = super::allocate_expression(state, result, kind);
+            }
+            Type::Constrained(constraint, result) => {
+                let evidence = state.push_wanted(constraint);
+                let kind = tree::ExpressionKind::EvidenceApplication {
+                    function: expression.expression,
+                    evidence,
+                };
+                expression = super::allocate_expression(state, result, kind);
+            }
+            _ => {
+                break Ok(expression);
+            }
+        }
+    }
+}
+
+pub fn collect_expression_wanteds<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut expression: ElaboratedExpression,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    safe_loop! {
+        let type_id = normalise::expand(state, context, expression.type_id)?;
+        let Type::Constrained(constraint, result) = context.lookup_type(type_id) else {
+            break Ok(expression);
+        };
+        let evidence = state.push_wanted(constraint);
+        let kind = tree::ExpressionKind::EvidenceApplication {
+            function: expression.expression,
+            evidence,
+        };
+        expression = super::allocate_expression(state, result, kind);
+    }
 }
 
 pub fn check_generic_application<Q>(
@@ -231,13 +291,13 @@ pub fn infer_infix_chain<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut infix_type = super::infer_expression(state, context, head)?;
+    let mut infix_type = super::infer_expression(state, context, head)?.type_id;
 
     for lowering::InfixPair { tick, element } in tail.iter() {
         let Some(tick) = tick else { return Ok(context.unknown("missing infix tick")) };
         let Some(element) = element else { return Ok(context.unknown("missing infix element")) };
 
-        let tick_type = super::infer_expression(state, context, *tick)?;
+        let tick_type = super::infer_expression(state, context, *tick)?.type_id;
         let Some(GenericApplication { argument, result }) =
             check_generic_application(state, context, tick_type)?
         else {

@@ -2,12 +2,22 @@
 
 use building_types::QueryResult;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::{TypeId, toolkit};
+use crate::core::TypeId;
 use crate::source::terms::form_let;
 use crate::source::{binder, terms};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
+
+pub struct ElaboratedGuardedExpression {
+    pub type_id: TypeId,
+    pub guarded_expression: tree::GuardedExpression,
+}
+
+pub struct ElaboratedWhereExpression {
+    pub type_id: TypeId,
+    pub where_expression: tree::WhereExpression,
+}
 
 #[derive(Copy, Clone, Debug)]
 enum GuardedExpressionMode {
@@ -25,7 +35,7 @@ pub fn infer_guarded_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     guarded: &lowering::GuardedExpression,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedGuardedExpression>
 where
     Q: ExternalQueries,
 {
@@ -37,12 +47,11 @@ pub fn check_guarded_expression<Q>(
     context: &CheckContext<Q>,
     guarded: &lowering::GuardedExpression,
     expected: TypeId,
-) -> QueryResult<()>
+) -> QueryResult<ElaboratedGuardedExpression>
 where
     Q: ExternalQueries,
 {
-    guarded_expression_core(state, context, guarded, GuardedExpressionMode::Check { expected })?;
-    Ok(())
+    guarded_expression_core(state, context, guarded, GuardedExpressionMode::Check { expected })
 }
 
 fn guarded_expression_core<Q>(
@@ -50,29 +59,35 @@ fn guarded_expression_core<Q>(
     context: &CheckContext<Q>,
     guarded: &lowering::GuardedExpression,
     mode: GuardedExpressionMode,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedGuardedExpression>
 where
     Q: ExternalQueries,
 {
     match guarded {
         lowering::GuardedExpression::Unconditional { where_expression } => {
             let Some(where_expression) = where_expression else {
-                return match mode {
-                    GuardedExpressionMode::Infer => {
-                        Ok(context.unknown("missing guarded expression"))
-                    }
-                    GuardedExpressionMode::Check { expected } => Ok(expected),
+                let type_id = match mode {
+                    GuardedExpressionMode::Infer => context.unknown("missing guarded expression"),
+                    GuardedExpressionMode::Check { expected } => expected,
                 };
+                let expression = state.allocate_error_expression(type_id);
+                let where_expression = tree::WhereExpression { expression };
+                let guarded_expression = tree::GuardedExpression::unconditional(where_expression);
+                return Ok(ElaboratedGuardedExpression { type_id, guarded_expression });
             };
 
-            match mode {
+            let where_expression = match mode {
                 GuardedExpressionMode::Infer => {
-                    infer_where_expression(state, context, where_expression)
+                    infer_where_expression(state, context, where_expression)?
                 }
                 GuardedExpressionMode::Check { expected } => {
-                    check_where_expression(state, context, where_expression, expected)
+                    check_where_expression(state, context, where_expression, expected)?
                 }
-            }
+            };
+            let type_id = where_expression.type_id;
+            let guarded_expression =
+                tree::GuardedExpression::unconditional(where_expression.where_expression);
+            Ok(ElaboratedGuardedExpression { type_id, guarded_expression })
         }
         lowering::GuardedExpression::Conditionals { pattern_guarded } => {
             let expected_type = match mode {
@@ -82,16 +97,29 @@ where
                 GuardedExpressionMode::Check { expected } => expected,
             };
 
+            let mut alternatives = vec![];
             for pattern_guarded in pattern_guarded.iter() {
+                let mut pattern_guards = vec![];
                 for pattern_guard in pattern_guarded.pattern_guards.iter() {
-                    check_pattern_guard(state, context, pattern_guard)?;
+                    let pattern_guard = check_pattern_guard(state, context, pattern_guard)?;
+                    pattern_guards.push(pattern_guard);
                 }
-                if let Some(where_expression) = &pattern_guarded.where_expression {
-                    check_where_expression(state, context, where_expression, expected_type)?;
-                }
+                let where_expression =
+                    if let Some(where_expression) = &pattern_guarded.where_expression {
+                        check_where_expression(state, context, where_expression, expected_type)?
+                            .where_expression
+                    } else {
+                        let expression = state.allocate_error_expression(expected_type);
+                        tree::WhereExpression { expression }
+                    };
+                alternatives.push(tree::GuardedAlternative {
+                    pattern_guards: pattern_guards.into(),
+                    where_expression,
+                });
             }
 
-            Ok(expected_type)
+            let guarded_expression = tree::GuardedExpression { alternatives: alternatives.into() };
+            Ok(ElaboratedGuardedExpression { type_id: expected_type, guarded_expression })
         }
     }
 }
@@ -100,31 +128,44 @@ fn check_pattern_guard<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     guard: &lowering::PatternGuard,
-) -> QueryResult<()>
+) -> QueryResult<tree::PatternGuard>
 where
     Q: ExternalQueries,
 {
-    let Some(expression) = guard.expression else {
-        return Ok(());
-    };
+    let expression = guard.expression;
 
-    if let Some(binder) = guard.binder {
-        let expression_type = terms::infer_expression(state, context, expression)?;
-        let expression_type = toolkit::instantiate_constrained(state, context, expression_type)?;
-
-        binder::check_binder(state, context, binder, expression_type)?;
+    if let Some(binder_id) = guard.binder {
+        if let Some(expression) = expression {
+            let expression = terms::infer_expression(state, context, expression)?;
+            let expression =
+                super::application::instantiate_expression(state, context, expression)?;
+            let binder = binder::check_binder(state, context, binder_id, expression.type_id)?;
+            Ok(tree::PatternGuard::Pattern {
+                binder: binder.binder,
+                expression: expression.expression,
+            })
+        } else {
+            let binder = binder::infer_binder(state, context, binder_id)?;
+            let expression = state.allocate_error_expression(binder.type_id);
+            Ok(tree::PatternGuard::Pattern { binder: binder.binder, expression })
+        }
     } else {
-        terms::check_expression(state, context, expression, context.prim.boolean)?;
+        let expression = if let Some(expression) = expression {
+            terms::check_expression(state, context, expression, context.prim.boolean)?
+        } else {
+            let type_id = context.prim.boolean;
+            let expression = state.allocate_error_expression(type_id);
+            terms::ElaboratedExpression { type_id, expression }
+        };
+        Ok(tree::PatternGuard::Boolean { expression: expression.expression })
     }
-
-    Ok(())
 }
 
 pub fn infer_where_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     where_expression: &lowering::WhereExpression,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedWhereExpression>
 where
     Q: ExternalQueries,
 {
@@ -136,7 +177,7 @@ fn check_where_expression<Q>(
     context: &CheckContext<Q>,
     where_expression: &lowering::WhereExpression,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedWhereExpression>
 where
     Q: ExternalQueries,
 {
@@ -148,20 +189,34 @@ fn where_expression_core<Q>(
     context: &CheckContext<Q>,
     where_expression: &lowering::WhereExpression,
     mode: WhereExpressionMode,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedWhereExpression>
 where
     Q: ExternalQueries,
 {
     form_let::check_let_chunks(state, context, &where_expression.bindings)?;
 
     let Some(expression) = where_expression.expression else {
-        return Ok(context.unknown("missing where expression"));
+        let type_id = match mode {
+            WhereExpressionMode::Infer => context.unknown("missing where expression"),
+            WhereExpressionMode::Check { expected } => expected,
+        };
+        let expression = state.allocate_error_expression(type_id);
+        let where_expression = tree::WhereExpression { expression };
+        return Ok(ElaboratedWhereExpression { type_id, where_expression });
     };
 
-    match mode {
-        WhereExpressionMode::Infer => terms::infer_expression(state, context, expression),
+    let expression = match mode {
+        WhereExpressionMode::Infer => terms::infer_expression(state, context, expression)?,
         WhereExpressionMode::Check { expected } => {
-            terms::check_expression(state, context, expression, expected)
+            terms::check_expression(state, context, expression, expected)?
         }
-    }
+    };
+    let type_id = expression.type_id;
+    let expression = if where_expression.bindings.is_empty() {
+        expression.expression
+    } else {
+        state.allocate_error_expression(type_id)
+    };
+    let where_expression = tree::WhereExpression { expression };
+    Ok(ElaboratedWhereExpression { type_id, where_expression })
 }

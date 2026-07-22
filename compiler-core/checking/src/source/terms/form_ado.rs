@@ -44,7 +44,7 @@ where
         match statement {
             lowering::DoStatement::Bind { binder, expression } => {
                 let binder_type = if let Some(binder) = binder {
-                    binder::infer_binder(state, context, *binder)?
+                    binder::infer_binder(state, context, *binder)?.type_id
                 } else {
                     state.fresh_unification(context.queries, context.prim.t)
                 };
@@ -214,7 +214,7 @@ pub fn infer_ado_map_core<Q>(
 where
     Q: ExternalQueries,
 {
-    let expression_type = super::infer_expression(state, context, expression)?;
+    let expression_type = super::infer_expression(state, context, expression)?.type_id;
 
     let Some(application::GenericApplication { argument, result }) =
         application::check_generic_application(state, context, map_type)?
@@ -243,7 +243,7 @@ pub fn infer_ado_apply_core<Q>(
 where
     Q: ExternalQueries,
 {
-    let expression_type = super::infer_expression(state, context, expression)?;
+    let expression_type = super::infer_expression(state, context, expression)?.type_id;
 
     let Some(application::GenericApplication { argument, result }) =
         application::check_generic_application(state, context, apply_type)?

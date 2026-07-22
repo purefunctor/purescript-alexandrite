@@ -9,7 +9,7 @@ use la_arena::{Arena, ArenaMap, Idx};
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role};
-use crate::evidence::Evidence;
+use crate::evidence::{Evidence, EvidenceVarId};
 
 pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
@@ -118,6 +118,7 @@ pub struct Binder {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BinderKind {
+    Error,
     Variable,
     Constructor { resolution: (FileId, TermItemId), arguments: Arc<[BinderId]> },
 }
@@ -130,7 +131,11 @@ pub struct Expression {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
+    Error,
+    Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
+    TypeApplication { function: ExpressionId, argument: TypeId },
+    EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
 }
 
 impl Module {

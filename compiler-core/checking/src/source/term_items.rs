@@ -26,8 +26,15 @@ struct TermSccState {
 }
 
 enum PendingValueGroup {
-    Checked { residuals: Vec<ConstraintInScope>, evidences: Vec<Evidence> },
-    Inferred { residuals: Vec<ConstraintInScope> },
+    Checked {
+        residuals: Vec<ConstraintInScope>,
+        evidences: Vec<Evidence>,
+        equations: Vec<equations::ElaboratedEquation>,
+    },
+    Inferred {
+        residuals: Vec<ConstraintInScope>,
+        equations: Vec<equations::ElaboratedEquation>,
+    },
 }
 
 pub fn check_term_items<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
@@ -690,12 +697,13 @@ where
     if let Some(signature_id) = signature
         && let Some(signature_type) = state.checked.lookup_term(item_id)
     {
-        let (residuals, evidences) =
+        let (residuals, evidences, equations) =
             check_value_group_core_check(state, context, signature_id, signature_type, equations)?;
-        Ok(Some(PendingValueGroup::Checked { residuals, evidences }))
+        Ok(Some(PendingValueGroup::Checked { residuals, evidences, equations }))
     } else {
-        let residuals = check_value_group_core_infer(state, context, item_id, equations)?;
-        Ok(Some(PendingValueGroup::Inferred { residuals }))
+        let (residuals, equations) =
+            check_value_group_core_infer(state, context, item_id, equations)?;
+        Ok(Some(PendingValueGroup::Inferred { residuals, equations }))
     }
 }
 
@@ -705,7 +713,7 @@ fn check_value_group_core_check<Q>(
     signature_id: lowering::TypeId,
     signature_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<(Vec<ConstraintInScope>, Vec<Evidence>)>
+) -> QueryResult<(Vec<ConstraintInScope>, Vec<Evidence>, Vec<equations::ElaboratedEquation>)>
 where
     Q: ExternalQueries,
 {
@@ -724,7 +732,7 @@ where
     )?;
     state.report_exhaustiveness(exhaustiveness);
     let residuals = state.solve_constraints(context)?;
-    Ok((residuals, checked_equations.evidences))
+    Ok((residuals, checked_equations.evidences, checked_equations.equations))
 }
 
 fn check_value_group_core_infer<Q>(
@@ -732,23 +740,28 @@ fn check_value_group_core_infer<Q>(
     context: &CheckContext<Q>,
     item_id: TermItemId,
     equations: &[lowering::Equation],
-) -> QueryResult<Vec<ConstraintInScope>>
+) -> QueryResult<(Vec<ConstraintInScope>, Vec<equations::ElaboratedEquation>)>
 where
     Q: ExternalQueries,
 {
     let group_type = state.fresh_unification(context.queries, context.prim.t);
     state.checked.terms.insert(item_id, group_type);
-    let equation_patterns =
+    let checked_equations =
         equations::infer_value_equations(state, context, group_type, equations)?;
-    let exhaustiveness =
-        exhaustive::check_equation_patterns(state, context, &equation_patterns, equations)?;
+    let exhaustiveness = exhaustive::check_equation_patterns(
+        state,
+        context,
+        &checked_equations.patterns,
+        equations,
+    )?;
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
     if has_missing {
         state.push_wanted(context.prim.partial);
     }
 
-    state.solve_constraints(context)
+    let residuals = state.solve_constraints(context)?;
+    Ok((residuals, checked_equations.equations))
 }
 
 fn finalise_term_binding_group<Q>(
@@ -766,6 +779,7 @@ where
         unsolved: Vec<u32>,
         errors: generalise::ConstraintErrors,
         evidences: Vec<Evidence>,
+        equations: Vec<equations::ElaboratedEquation>,
         inferred_constraints: bool,
     }
 
@@ -781,12 +795,12 @@ where
 
         let mut errors = generalise::ConstraintErrors::default();
 
-        let (marker, evidences, inferred_constraints) = match group {
-            Some(PendingValueGroup::Checked { residuals, evidences }) => {
+        let (marker, evidences, equations, inferred_constraints) = match group {
+            Some(PendingValueGroup::Checked { residuals, evidences, equations }) => {
                 errors.unsatisfied.extend(residuals);
-                (marker, evidences, false)
+                (marker, evidences, equations, false)
             }
-            Some(PendingValueGroup::Inferred { residuals }) => {
+            Some(PendingValueGroup::Inferred { residuals, equations }) => {
                 let constrained = generalise::constrain_using_residuals(
                     state,
                     context,
@@ -795,19 +809,23 @@ where
                     &mut errors,
                 )?;
                 let inferred_constraints = !constrained.evidences.is_empty();
-                (constrained.type_id, constrained.evidences, inferred_constraints)
+                (constrained.type_id, constrained.evidences, equations, inferred_constraints)
             }
-            None => (marker, vec![], false),
+            None => (marker, vec![], vec![], false),
         };
 
         let marker = zonk::zonk(state, context, marker)?;
         let unsolved = generalise::unsolved_unifications(state, context, marker)?;
 
-        let pending_group = Pending { marker, unsolved, errors, evidences, inferred_constraints };
+        let pending_group =
+            Pending { marker, unsolved, errors, evidences, equations, inferred_constraints };
         pending.push((item_id, pending_group));
     }
 
-    for (item_id, Pending { marker, unsolved, errors, evidences, inferred_constraints }) in pending
+    for (
+        item_id,
+        Pending { marker, unsolved, errors, evidences, equations, inferred_constraints },
+    ) in pending
     {
         let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
         state.checked.terms.insert(item_id, marker);
@@ -821,7 +839,7 @@ where
             });
         }
 
-        record_value_declaration(state, context, item_id, marker, evidences)?;
+        record_value_declaration(state, context, item_id, marker, evidences, equations);
 
         for error in errors.ambiguous {
             let constraint = state.canonicals.type_id(context, error);
@@ -859,209 +877,31 @@ fn record_value_declaration<Q>(
     item_id: TermItemId,
     type_id: TypeId,
     evidences: Vec<Evidence>,
-) -> QueryResult<()>
-where
+    equations: Vec<equations::ElaboratedEquation>,
+) where
     Q: ExternalQueries,
 {
     let TermItemKind::Value { equations: sources, .. } = &context.indexed.items[item_id].kind
     else {
-        return Ok(());
+        return;
     };
-    let Some(TermItemIr::ValueGroup { equations, .. }) =
-        context.lowered.info.get_term_item(item_id)
-    else {
-        return Ok(());
+    let equations = equations.into_iter().map(equations::ElaboratedEquation::into_tree);
+    let Some(equations) = equations.collect::<Option<Vec<_>>>() else {
+        return;
     };
 
     let complete = !sources.is_empty()
         && sources.len() == equations.len()
-        && std::iter::zip(sources, equations.iter())
-            .all(|(source, equation)| equation.source == Some(*source));
-    if !complete
-        || !equations.iter().all(|equation| supports_value_equation(state, context, equation))
-    {
-        return Ok(());
+        && std::iter::zip(sources, &equations).all(|(source, equation)| equation.source == *source);
+    if !complete {
+        return;
     }
 
-    let mut checked_equations = vec![];
-    for equation in equations.iter() {
-        let source =
-            equation.source.expect("invariant violated: checked value equation has no source");
-
-        let mut binders = vec![];
-        for &binder in equation.binders.iter() {
-            let binder = allocate_value_binder(state, context, binder)?;
-            binders.push(binder);
-        }
-
-        let Some(lowering::GuardedExpression::Unconditional { where_expression }) =
-            &equation.guarded
-        else {
-            unreachable!("invariant violated: unsupported guarded value equation");
-        };
-        let where_expression = where_expression
-            .as_ref()
-            .expect("invariant violated: checked value equation has no expression");
-        let expression = where_expression
-            .expression
-            .expect("invariant violated: checked where expression has no expression");
-        let expression = allocate_value_expression(state, context, expression)?;
-
-        let where_expression = tree::WhereExpression { expression };
-        let guarded_expression = tree::GuardedExpression::unconditional(where_expression);
-        let equation = tree::Equation { source, binders: Arc::from(binders), guarded_expression };
-        checked_equations.push(equation);
-    }
-
-    let declaration = tree::ValueDeclaration {
-        evidences: Arc::from(evidences),
-        equations: Arc::from(checked_equations),
-    };
+    let declaration =
+        tree::ValueDeclaration { evidences: Arc::from(evidences), equations: Arc::from(equations) };
     let declaration =
         tree::TermDeclaration { type_id, kind: tree::TermDeclarationKind::Value(declaration) };
     state.checked.tree.insert_term(item_id, declaration);
-
-    Ok(())
-}
-
-fn supports_value_equation<Q>(
-    state: &CheckState,
-    context: &CheckContext<Q>,
-    equation: &lowering::Equation,
-) -> bool
-where
-    Q: ExternalQueries,
-{
-    if equation.source.is_none()
-        || !equation.binders.iter().all(|&binder| supports_value_binder(state, context, binder))
-    {
-        return false;
-    }
-
-    let Some(lowering::GuardedExpression::Unconditional { where_expression }) = &equation.guarded
-    else {
-        return false;
-    };
-    let Some(where_expression) = where_expression else {
-        return false;
-    };
-    if !where_expression.bindings.is_empty() {
-        return false;
-    }
-    let Some(expression) = where_expression.expression else {
-        return false;
-    };
-
-    if state.checked.nodes.lookup_expression(expression).is_none() {
-        return false;
-    }
-    let Some(lowering::ExpressionKind::Variable { resolution: Some(resolution) }) =
-        context.lowered.info.get_expression_kind(expression)
-    else {
-        return false;
-    };
-    match resolution {
-        lowering::TermVariableResolution::Binder(binder) => matches!(
-            context.lowered.info.get_binder_kind(*binder),
-            Some(lowering::BinderKind::Variable { variable: Some(_) })
-        ),
-        lowering::TermVariableResolution::Let(_)
-        | lowering::TermVariableResolution::Reference(_, _)
-        | lowering::TermVariableResolution::RecordPun(_) => false,
-    }
-}
-
-fn supports_value_binder<Q>(
-    state: &CheckState,
-    context: &CheckContext<Q>,
-    binder: lowering::BinderId,
-) -> bool
-where
-    Q: ExternalQueries,
-{
-    match context.lowered.info.get_binder_kind(binder) {
-        Some(lowering::BinderKind::Variable { variable: Some(_) }) => {
-            state.checked.nodes.lookup_binder(binder).is_some()
-        }
-        Some(lowering::BinderKind::Constructor { resolution: Some(_), arguments }) => {
-            state.checked.nodes.lookup_binder(binder).is_some()
-                && arguments.iter().all(|&argument| supports_value_binder(state, context, argument))
-        }
-        Some(lowering::BinderKind::Parenthesized { parenthesized: Some(parenthesized) }) => {
-            supports_value_binder(state, context, *parenthesized)
-        }
-        _ => false,
-    }
-}
-
-fn allocate_value_binder<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    source: lowering::BinderId,
-) -> QueryResult<tree::BinderId>
-where
-    Q: ExternalQueries,
-{
-    let kind = context
-        .lowered
-        .info
-        .get_binder_kind(source)
-        .expect("invariant violated: checked value binder is missing");
-
-    if let lowering::BinderKind::Parenthesized { parenthesized: Some(parenthesized) } = kind {
-        return allocate_value_binder(state, context, *parenthesized);
-    }
-
-    let type_id = state
-        .checked
-        .nodes
-        .lookup_binder(source)
-        .expect("invariant violated: checked value binder has no type");
-    let type_id = zonk::zonk(state, context, type_id)?;
-
-    let kind = match kind {
-        lowering::BinderKind::Variable { .. } => tree::BinderKind::Variable,
-        lowering::BinderKind::Constructor { resolution: Some(resolution), arguments } => {
-            let mut checked_arguments = vec![];
-            for &argument in arguments.iter() {
-                let argument = allocate_value_binder(state, context, argument)?;
-                checked_arguments.push(argument);
-            }
-            tree::BinderKind::Constructor {
-                resolution: *resolution,
-                arguments: Arc::from(checked_arguments),
-            }
-        }
-        _ => unreachable!("invariant violated: unsupported checked value binder"),
-    };
-
-    let binder = tree::Binder { source, type_id, kind };
-    Ok(state.checked.tree.allocate_binder(binder))
-}
-
-fn allocate_value_expression<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    source: lowering::ExpressionId,
-) -> QueryResult<tree::ExpressionId>
-where
-    Q: ExternalQueries,
-{
-    let Some(lowering::ExpressionKind::Variable { resolution: Some(resolution) }) =
-        context.lowered.info.get_expression_kind(source)
-    else {
-        unreachable!("invariant violated: unsupported checked value expression");
-    };
-    let type_id = state
-        .checked
-        .nodes
-        .lookup_expression(source)
-        .expect("invariant violated: checked value expression has no type");
-    let type_id = zonk::zonk(state, context, type_id)?;
-
-    let kind = tree::ExpressionKind::Variable { resolution: *resolution };
-    let expression = tree::Expression { type_id, kind };
-    Ok(state.checked.tree.allocate_expression(expression))
 }
 
 fn check_term_operator<Q>(

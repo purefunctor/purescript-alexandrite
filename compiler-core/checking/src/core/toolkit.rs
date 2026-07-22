@@ -548,19 +548,6 @@ where
     }
 }
 
-/// Instantiates forall binders and collects wanted constraints.
-pub fn instantiate_constrained<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    id: TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
-    let id = instantiate_unifications(state, context, id)?;
-    collect_wanteds(state, context, id)
-}
-
 pub fn contains_unification<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,

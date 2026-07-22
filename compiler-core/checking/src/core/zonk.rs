@@ -10,7 +10,7 @@ use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
-use crate::tree::TermDeclarationKind;
+use crate::tree::{ExpressionKind, TermDeclarationKind};
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
@@ -80,6 +80,9 @@ where
     let mut expressions = mem::take(&mut state.checked.tree.arena.expressions);
     for (_, expression) in expressions.iter_mut() {
         expression.type_id = zonk(state, context, expression.type_id)?;
+        if let ExpressionKind::TypeApplication { argument, .. } = &mut expression.kind {
+            *argument = zonk(state, context, *argument)?;
+        }
     }
     state.checked.tree.arena.expressions = expressions;
 

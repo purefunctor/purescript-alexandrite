@@ -12,7 +12,13 @@ use crate::error::{ErrorCrumb, ErrorKind};
 use crate::source::terms::application;
 use crate::source::{operator, types};
 use crate::state::CheckState;
-use crate::{ExternalQueries, safe_loop};
+use crate::{ExternalQueries, safe_loop, tree};
+
+#[derive(Copy, Clone, Debug)]
+pub struct ElaboratedBinder {
+    pub type_id: TypeId,
+    pub binder: tree::BinderId,
+}
 
 #[derive(Copy, Clone, Debug)]
 enum BinderMode {
@@ -24,7 +30,7 @@ pub fn infer_binder<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     binder_id: lowering::BinderId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedBinder>
 where
     Q: ExternalQueries,
 {
@@ -38,7 +44,7 @@ pub fn check_binder<Q>(
     context: &CheckContext<Q>,
     binder_id: lowering::BinderId,
     expected_type: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedBinder>
 where
     Q: ExternalQueries,
 {
@@ -57,7 +63,7 @@ pub fn check_argument_binder<Q>(
     context: &CheckContext<Q>,
     binder_id: lowering::BinderId,
     expected_type: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedBinder>
 where
     Q: ExternalQueries,
 {
@@ -164,28 +170,42 @@ fn binder_core<Q>(
     context: &CheckContext<Q>,
     binder_id: lowering::BinderId,
     mode: BinderMode,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedBinder>
 where
     Q: ExternalQueries,
 {
     let unknown = context.unknown("missing binder");
 
     let Some(kind) = context.lowered.info.get_binder_kind(binder_id) else {
-        return Ok(unknown);
+        return Ok(allocate_checked_binder(state, binder_id, unknown, tree::BinderKind::Error));
     };
 
-    let binder_type = match kind {
+    let (binder_type, binder_kind) = match kind {
         lowering::BinderKind::Typed { binder, type_ } => {
-            let Some(binder_id) = binder else { return Ok(unknown) };
-            let Some(type_id) = type_ else { return Ok(unknown) };
+            let Some(nested_binder) = binder else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                ));
+            };
+            let Some(type_id) = type_ else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                ));
+            };
 
             let (type_id, _) = types::infer_kind(state, context, *type_id)?;
             match mode {
                 BinderMode::Check { elaborating: false, .. } => {
-                    check_argument_binder(state, context, *binder_id, type_id)?;
+                    check_argument_binder(state, context, *nested_binder, type_id)?;
                 }
                 _ => {
-                    check_binder(state, context, *binder_id, type_id)?;
+                    check_binder(state, context, *nested_binder, type_id)?;
                 }
             }
 
@@ -193,7 +213,7 @@ where
                 subtype_for_mode(state, context, type_id, expected_type, elaborating)?;
             }
 
-            type_id
+            (type_id, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::OperatorChain { .. } => {
@@ -203,7 +223,7 @@ where
                 subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Integer { .. } => {
@@ -213,7 +233,7 @@ where
                 unification::unify(state, context, inferred_type, expected_type)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Number { .. } => {
@@ -223,65 +243,96 @@ where
                 unification::unify(state, context, inferred_type, expected_type)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Constructor { resolution, arguments } => {
-            let Some((file_id, term_id)) = resolution else { return Ok(unknown) };
+            let Some((file_id, term_id)) = resolution else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                ));
+            };
 
             let mut constructor_t = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
+            let mut checked_arguments = vec![];
 
             let inferred_type = if arguments.is_empty() {
                 constructor_t = toolkit::instantiate_unifications(state, context, constructor_t)?;
                 toolkit::without_constraints(state, context, constructor_t)?
             } else {
                 for &argument in arguments.iter() {
-                    constructor_t = check_constructor_binder_application(
+                    let (result, checked_argument) = check_constructor_binder_application(
                         state,
                         context,
                         constructor_t,
                         argument,
                     )?;
+                    constructor_t = result;
+                    checked_arguments.push(checked_argument.binder);
                 }
                 constructor_t
             };
 
-            if let BinderMode::Check { expected_type, elaborating } = mode {
+            let binder_type = if let BinderMode::Check { expected_type, elaborating } = mode {
                 subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
                 expected_type
             } else {
                 inferred_type
-            }
+            };
+            let binder_kind = tree::BinderKind::Constructor {
+                resolution: (*file_id, *term_id),
+                arguments: Arc::from(checked_arguments),
+            };
+            (binder_type, binder_kind)
         }
 
-        lowering::BinderKind::Variable { .. } => match mode {
-            BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
-            BinderMode::Check { expected_type, .. } => expected_type,
-        },
+        lowering::BinderKind::Variable { variable } => {
+            let binder_type = match mode {
+                BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
+                BinderMode::Check { expected_type, .. } => expected_type,
+            };
+            let binder_kind = if variable.is_some() {
+                tree::BinderKind::Variable
+            } else {
+                tree::BinderKind::Error
+            };
+            (binder_type, binder_kind)
+        }
 
         lowering::BinderKind::Named { binder, .. } => {
-            let Some(binder) = binder else { return Ok(unknown) };
+            let Some(binder) = binder else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                ));
+            };
 
             let type_id = match mode {
-                BinderMode::Infer => infer_binder(state, context, *binder)?,
+                BinderMode::Infer => infer_binder(state, context, *binder)?.type_id,
                 BinderMode::Check { expected_type, elaborating } => {
                     if elaborating {
-                        check_binder(state, context, *binder, expected_type)?
+                        check_binder(state, context, *binder, expected_type)?.type_id
                     } else {
-                        check_argument_binder(state, context, *binder, expected_type)?
+                        check_argument_binder(state, context, *binder, expected_type)?.type_id
                     }
                 }
             };
 
-            state.checked.nodes.binders.insert(binder_id, type_id);
-
-            type_id
+            (type_id, tree::BinderKind::Error)
         }
 
-        lowering::BinderKind::Wildcard => match mode {
-            BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
-            BinderMode::Check { expected_type, .. } => expected_type,
-        },
+        lowering::BinderKind::Wildcard => {
+            let binder_type = match mode {
+                BinderMode::Infer => state.fresh_unification(context.queries, context.prim.t),
+                BinderMode::Check { expected_type, .. } => expected_type,
+            };
+            (binder_type, tree::BinderKind::Error)
+        }
 
         lowering::BinderKind::String { .. } => {
             let inferred_type = context.prim.string;
@@ -290,7 +341,7 @@ where
                 unification::unify(state, context, inferred_type, expected_type)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Char { .. } => {
@@ -300,7 +351,7 @@ where
                 unification::unify(state, context, inferred_type, expected_type)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Boolean { .. } => {
@@ -310,14 +361,14 @@ where
                 unification::unify(state, context, inferred_type, expected_type)?;
             }
 
-            inferred_type
+            (inferred_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Array { array } => {
             let element_type = state.fresh_unification(context.queries, context.prim.t);
 
             for binder in array.iter() {
-                let binder_type = infer_binder(state, context, *binder)?;
+                let binder_type = infer_binder(state, context, *binder)?.type_id;
                 unification::subtype_with::<unification::NonElaborating, Q>(
                     state,
                     context,
@@ -332,26 +383,48 @@ where
                 subtype_for_mode(state, context, array_type, expected_type, elaborating)?;
             }
 
-            array_type
+            (array_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Record { record } => {
-            if let BinderMode::Check { expected_type, elaborating } = mode {
+            let binder_type = if let BinderMode::Check { expected_type, elaborating } = mode {
                 check_record_binder(state, context, binder_id, record, expected_type, elaborating)?
             } else {
                 infer_record_binder(state, context, binder_id, record)?
-            }
+            };
+            (binder_type, tree::BinderKind::Error)
         }
 
         lowering::BinderKind::Parenthesized { parenthesized } => {
-            let Some(parenthesized) = parenthesized else { return Ok(unknown) };
-            binder_core(state, context, *parenthesized, mode)?
+            let Some(parenthesized) = parenthesized else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                ));
+            };
+            let elaborated = binder_core(state, context, *parenthesized, mode)?;
+            state.checked.nodes.binders.insert(binder_id, elaborated.type_id);
+            return Ok(elaborated);
         }
     };
 
-    state.checked.nodes.binders.insert(binder_id, binder_type);
+    Ok(allocate_checked_binder(state, binder_id, binder_type, binder_kind))
+}
 
-    Ok(binder_type)
+fn allocate_checked_binder(
+    state: &mut CheckState,
+    source: lowering::BinderId,
+    type_id: TypeId,
+    kind: tree::BinderKind,
+) -> ElaboratedBinder {
+    state.checked.nodes.binders.insert(source, type_id);
+    let binder = match kind {
+        tree::BinderKind::Error => state.allocate_error_binder(source, type_id),
+        kind => state.allocate_binder(source, type_id, kind),
+    };
+    ElaboratedBinder { type_id, binder }
 }
 
 fn subtype_for_mode<Q>(
@@ -376,7 +449,7 @@ fn check_constructor_binder_application<Q>(
     context: &CheckContext<Q>,
     mut constructor: TypeId,
     binder_id: lowering::BinderId,
-) -> QueryResult<TypeId>
+) -> QueryResult<(TypeId, ElaboratedBinder)>
 where
     Q: ExternalQueries,
 {
@@ -389,11 +462,18 @@ where
             }
             application::CallableAnalysis::Constraint { result, .. } => constructor = result,
             application::CallableAnalysis::Function { argument, result } => {
-                check_binder(state, context, binder_id, argument)?;
-                break Ok(result);
+                let binder = check_binder(state, context, binder_id, argument)?;
+                break Ok((result, binder));
             }
             application::CallableAnalysis::NotCallable => {
-                break Ok(context.unknown("invalid function application"));
+                let unknown = context.unknown("invalid function application");
+                let binder = allocate_checked_binder(
+                    state,
+                    binder_id,
+                    unknown,
+                    tree::BinderKind::Error,
+                );
+                break Ok((unknown, binder));
             }
         }
     }
@@ -468,7 +548,7 @@ where
                 let Some(value) = value else { continue };
 
                 let label = SmolStr::clone(name);
-                let id = infer_binder(state, context, *value)?;
+                let id = infer_binder(state, context, *value)?.type_id;
                 fields.push(RowField { label, id });
             }
             lowering::BinderRecordItem::RecordPun { id, name } => {
