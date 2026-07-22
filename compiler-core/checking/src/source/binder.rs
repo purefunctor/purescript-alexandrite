@@ -588,7 +588,7 @@ where
                 let Some(label) = name else { continue };
                 let Some(binder_id) = value else { continue };
                 let binder = infer_binder(state, context, *binder_id)?;
-                fields.push(RowField { label: SmolStr::clone(&label), id: binder.type_id });
+                fields.push(RowField { label: SmolStr::clone(label), id: binder.type_id });
                 checked_fields.push(tree::RecordBinderField::Field {
                     label: SmolStr::clone(label),
                     binder: binder.binder,
