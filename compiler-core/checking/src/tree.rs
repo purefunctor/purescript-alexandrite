@@ -6,6 +6,7 @@ use std::sync::Arc;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId, ValueEquationId};
 use la_arena::{Arena, ArenaMap, Idx};
+use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role};
@@ -119,8 +120,24 @@ pub struct Binder {
 #[derive(Debug, PartialEq, Eq)]
 pub enum BinderKind {
     Error,
+    Typed { binder: BinderId, annotation: TypeId },
+    Integer { value: i32 },
+    Number { negative: bool, value: SmolStr },
     Variable,
+    Named { name: SmolStr, binder: BinderId },
+    Wildcard,
+    String { value: SmolStr },
+    Char { value: char },
+    Boolean { value: bool },
+    Array { elements: Arc<[BinderId]> },
+    Record { fields: Arc<[RecordBinderField]> },
     Constructor { resolution: (FileId, TermItemId), arguments: Arc<[BinderId]> },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordBinderField {
+    Field { label: SmolStr, binder: BinderId },
+    Pun { label: SmolStr },
 }
 
 #[derive(Debug, PartialEq, Eq)]

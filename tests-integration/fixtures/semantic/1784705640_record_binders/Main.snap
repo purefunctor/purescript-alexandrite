@@ -1,0 +1,7 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+project :: forall a b. { first :: a, second :: b } -> a
+project = \{ first, second: _ } -> first

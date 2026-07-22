@@ -3,5 +3,5 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-literal :: forall t. t -> Int
-literal = \_ -> <error>
+ignore :: forall a b. a -> b -> b
+ignore = \_ -> \value -> value

@@ -14,7 +14,7 @@ use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
 use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, GuardedAlternative, GuardedExpression,
-    PatternGuard, TermDeclarationKind, TypeDeclarationKind,
+    PatternGuard, RecordBinderField, TermDeclarationKind, TypeDeclarationKind,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -375,6 +375,27 @@ where
         let binder = &self.checked.tree[binder_id];
         match &binder.kind {
             BinderKind::Error => Ok(self.arena.text("<error>")),
+            BinderKind::Typed { binder, annotation } => {
+                let binder = self.binder(*binder)?;
+                let mut type_pretty = TypePretty::new(self.queries, self.checked)
+                    .without_rigid_kinds()
+                    .width(self.width);
+                let annotation = type_pretty.render(*annotation);
+                Ok(self
+                    .arena
+                    .text("(")
+                    .append(binder)
+                    .append(self.arena.text(format!(" :: {annotation})"))))
+            }
+            BinderKind::Integer { value } => {
+                let value =
+                    if value.is_negative() { format!("({value})") } else { value.to_string() };
+                Ok(self.arena.text(value))
+            }
+            BinderKind::Number { negative, value } => {
+                let value = if *negative { format!("(-{value})") } else { value.to_string() };
+                Ok(self.arena.text(value))
+            }
             BinderKind::Variable => {
                 let kind = self
                     .lowered
@@ -385,6 +406,45 @@ where
                     unreachable!("invariant violated: semantic variable binder has invalid source");
                 };
                 Ok(self.arena.text(variable.to_string()))
+            }
+            BinderKind::Named { name, binder } => {
+                let binder = self.binder(*binder)?;
+                Ok(self.arena.text(format!("{name}@")).append(binder))
+            }
+            BinderKind::Wildcard => Ok(self.arena.text("_")),
+            BinderKind::String { value } => Ok(self.arena.text(format!("{:?}", value.as_str()))),
+            BinderKind::Char { value } => Ok(self.arena.text(format!("{value:?}"))),
+            BinderKind::Boolean { value } => {
+                Ok(self.arena.text(if *value { "true" } else { "false" }))
+            }
+            BinderKind::Array { elements } => {
+                let mut array = self.arena.text("[");
+                for (position, &element) in elements.iter().enumerate() {
+                    if position > 0 {
+                        array = array.append(self.arena.text(", "));
+                    }
+                    array = array.append(self.binder(element)?);
+                }
+                Ok(array.append(self.arena.text("]")))
+            }
+            BinderKind::Record { fields } => {
+                let mut record = self.arena.text("{ ");
+                for (position, field) in fields.iter().enumerate() {
+                    if position > 0 {
+                        record = record.append(self.arena.text(", "));
+                    }
+                    match field {
+                        RecordBinderField::Field { label, binder } => {
+                            let binder = self.binder(*binder)?;
+                            record =
+                                record.append(self.arena.text(format!("{label}: "))).append(binder);
+                        }
+                        RecordBinderField::Pun { label } => {
+                            record = record.append(self.arena.text(label.to_string()));
+                        }
+                    }
+                }
+                Ok(record.append(self.arena.text(" }")))
             }
             BinderKind::Constructor { resolution, arguments } => {
                 let name = self.term_name(resolution.0, resolution.1)?;
@@ -442,8 +502,10 @@ where
                         format!("<let#{index}>")
                     }
                     TermVariableResolution::RecordPun(record_pun) => {
-                        let index = record_pun.into_raw().get();
-                        format!("<pun#{index}>")
+                        self.record_pun_name(record_pun).unwrap_or_else(|| {
+                            let index = record_pun.into_raw().get();
+                            format!("<pun#{index}>")
+                        })
                     }
                 };
                 Ok(self.arena.text(name))
@@ -543,6 +605,20 @@ where
 
         let indexed = self.queries.indexed(file_id)?;
         Ok(indexed.items[term_id].name.as_ref().map(ToString::to_string))
+    }
+
+    fn record_pun_name(&self, record_pun: lowering::RecordPunId) -> Option<String> {
+        self.lowered.info.iter_binder().find_map(|(_, kind)| {
+            let lowering::BinderKind::Record { record } = kind else {
+                return None;
+            };
+            record.iter().find_map(|item| {
+                let lowering::BinderRecordItem::RecordPun { id, name } = item else {
+                    return None;
+                };
+                if *id == record_pun { name.as_ref().map(ToString::to_string) } else { None }
+            })
+        })
     }
 
     fn type_name(

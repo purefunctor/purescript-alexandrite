@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+headOr :: forall a. a -> Array a -> a
+headOr = \fallback -> \[first, _] -> first
+headOr = \fallback -> \_ -> fallback
