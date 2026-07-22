@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+interleaved ::
+  forall (a :: Type).
+    First @Type (a :: Type) =>
+    (forall (b :: Type). Second @Type (b :: Type) => (a :: Type) -> (b :: Type) -> String)
+test :: String
+
+Types
+First :: forall (t :: Type). (t :: Type) -> Constraint
+Second :: forall (t :: Type). (t :: Type) -> Constraint
+
+Classes
+class forall (t :: Type) (a :: (t :: Type)). First @(t :: Type) (a :: (t :: Type))
+class forall (t :: Type) (a :: (t :: Type)). Second @(t :: Type) (a :: (t :: Type))
+
+Instances
+instance First @Type Int
+instance Second @Type Boolean

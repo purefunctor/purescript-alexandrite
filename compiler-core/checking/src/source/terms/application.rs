@@ -1,6 +1,3 @@
-use std::mem;
-use std::ops::ControlFlow;
-
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
@@ -11,32 +8,30 @@ use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
-pub struct ApplicationAnalysis {
-    pub constraints: Vec<TypeId>,
-    pub argument: TypeId,
-    pub result: TypeId,
-}
-
 pub struct GenericApplication {
     pub argument: TypeId,
     pub result: TypeId,
 }
 
-fn analyse_function_application_step<Q>(
+pub enum CallableAnalysis {
+    Forall { binder: ForallBinder, body: TypeId },
+    Constraint { constraint: TypeId, result: TypeId },
+    Function { argument: TypeId, result: TypeId },
+    NotCallable,
+}
+
+pub fn analyse_callable_head<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     function: TypeId,
-    constraints: &mut Vec<TypeId>,
-) -> QueryResult<ControlFlow<Option<ApplicationAnalysis>, TypeId>>
+) -> QueryResult<CallableAnalysis>
 where
     Q: ExternalQueries,
 {
+    let function = normalise::expand(state, context, function)?;
+
     match context.lookup_type(function) {
-        Type::Function(argument, result) => {
-            let analysis =
-                ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-            Ok(ControlFlow::Break(Some(analysis)))
-        }
+        Type::Function(argument, result) => Ok(CallableAnalysis::Function { argument, result }),
 
         Type::Unification(unification_id) => {
             let argument = state.fresh_unification(context.queries, context.prim.t);
@@ -45,24 +40,16 @@ where
 
             unification::solve(state, context, function, unification_id, function)?;
 
-            let analysis =
-                ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-
-            Ok(ControlFlow::Break(Some(analysis)))
+            Ok(CallableAnalysis::Function { argument, result })
         }
 
         Type::Forall(binder_id, inner) => {
             let binder = context.lookup_forall_binder(binder_id);
-            let binder_kind = normalise::expand(state, context, binder.kind)?;
-
-            let replacement = state.fresh_unification(context.queries, binder_kind);
-            let function = SubstituteName::one(state, context, binder.name, replacement, inner)?;
-            Ok(ControlFlow::Continue(function))
+            Ok(CallableAnalysis::Forall { binder, body: inner })
         }
 
-        Type::Constrained(constraint, constrained) => {
-            constraints.push(constraint);
-            Ok(ControlFlow::Continue(constrained))
+        Type::Constrained(constraint, result) => {
+            Ok(CallableAnalysis::Constraint { constraint, result })
         }
 
         Type::Application(function_argument, result) => {
@@ -70,14 +57,12 @@ where
 
             let Type::Application(constructor, argument) = context.lookup_type(function_argument)
             else {
-                return Ok(ControlFlow::Break(None));
+                return Ok(CallableAnalysis::NotCallable);
             };
 
             let constructor = normalise::expand(state, context, constructor)?;
             if constructor == context.prim.function {
-                let analysis =
-                    ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-                return Ok(ControlFlow::Break(Some(analysis)));
+                return Ok(CallableAnalysis::Function { argument, result });
             }
 
             if let Type::Unification(unification_id) = context.lookup_type(constructor) {
@@ -89,35 +74,29 @@ where
                     context.prim.function,
                 )?;
 
-                let analysis =
-                    ApplicationAnalysis { constraints: mem::take(constraints), argument, result };
-
-                return Ok(ControlFlow::Break(Some(analysis)));
+                return Ok(CallableAnalysis::Function { argument, result });
             }
 
-            Ok(ControlFlow::Break(None))
+            Ok(CallableAnalysis::NotCallable)
         }
 
-        _ => Ok(ControlFlow::Break(None)),
+        _ => Ok(CallableAnalysis::NotCallable),
     }
 }
 
-pub fn analyse_function_application<Q>(
+pub fn instantiate_callable_forall<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    mut function: TypeId,
-) -> QueryResult<Option<ApplicationAnalysis>>
+    binder: ForallBinder,
+    body: TypeId,
+) -> QueryResult<(TypeId, TypeId)>
 where
     Q: ExternalQueries,
 {
-    let mut constraints = vec![];
-    safe_loop! {
-        function = normalise::expand(state, context, function)?;
-        match analyse_function_application_step(state, context, function, &mut constraints)? {
-            ControlFlow::Continue(next) => function = next,
-            ControlFlow::Break(analysis) => return Ok(analysis),
-        };
-    }
+    let binder_kind = normalise::expand(state, context, binder.kind)?;
+    let argument = state.fresh_unification(context.queries, binder_kind);
+    let result = SubstituteName::one(state, context, binder.name, argument, body)?;
+    Ok((argument, result))
 }
 
 pub fn check_generic_application<Q>(
@@ -128,17 +107,27 @@ pub fn check_generic_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(ApplicationAnalysis { constraints, argument, result }) =
-        analyse_function_application(state, context, function)?
-    else {
-        return Ok(None);
-    };
-
-    for constraint in constraints {
-        state.push_wanted(constraint);
+    let mut function = function;
+    let mut constraints = vec![];
+    safe_loop! {
+        match analyse_callable_head(state, context, function)? {
+            CallableAnalysis::Forall { binder, body } => {
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                function = result;
+            }
+            CallableAnalysis::Constraint { constraint, result } => {
+                constraints.push(constraint);
+                function = result;
+            }
+            CallableAnalysis::Function { argument, result } => {
+                for constraint in constraints {
+                    state.push_wanted(constraint);
+                }
+                break Ok(Some(GenericApplication { argument, result }));
+            }
+            CallableAnalysis::NotCallable => break Ok(None),
+        }
     }
-
-    Ok(Some(GenericApplication { argument, result }))
 }
 
 pub fn check_function_application<Q>(

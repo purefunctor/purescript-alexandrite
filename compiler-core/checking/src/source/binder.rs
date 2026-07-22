@@ -6,13 +6,13 @@ use building_types::QueryResult;
 use itertools::{EitherOrBoth, Itertools};
 use smol_str::SmolStr;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, RowType, Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::source::terms::application;
 use crate::source::{operator, types};
 use crate::state::CheckState;
+use crate::{ExternalQueries, safe_loop};
 
 #[derive(Copy, Clone, Debug)]
 enum BinderMode {
@@ -374,21 +374,29 @@ where
 fn check_constructor_binder_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    constructor: TypeId,
+    mut constructor: TypeId,
     binder_id: lowering::BinderId,
 ) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
-    let Some(application::ApplicationAnalysis { argument, result, .. }) =
-        application::analyse_function_application(state, context, constructor)?
-    else {
-        return Ok(context.unknown("invalid function application"));
-    };
-
-    check_binder(state, context, binder_id, argument)?;
-
-    Ok(result)
+    safe_loop! {
+        match application::analyse_callable_head(state, context, constructor)? {
+            application::CallableAnalysis::Forall { binder, body } => {
+                let (_, result) =
+                    application::instantiate_callable_forall(state, context, binder, body)?;
+                constructor = result;
+            }
+            application::CallableAnalysis::Constraint { result, .. } => constructor = result,
+            application::CallableAnalysis::Function { argument, result } => {
+                check_binder(state, context, binder_id, argument)?;
+                break Ok(result);
+            }
+            application::CallableAnalysis::NotCallable => {
+                break Ok(context.unknown("invalid function application"));
+            }
+        }
+    }
 }
 
 enum PatternItem {
