@@ -250,7 +250,7 @@ pub struct ConstraintErrors {
 
 pub struct ConstrainedByResiduals {
     pub type_id: TypeId,
-    pub has_constraints: bool,
+    pub evidences: Vec<Evidence>,
 }
 
 pub fn constrain_using_residuals<Q>(
@@ -264,7 +264,7 @@ where
     Q: ExternalQueries,
 {
     if residuals.is_empty() {
-        return Ok(ConstrainedByResiduals { type_id: unconstrained, has_constraints: false });
+        return Ok(ConstrainedByResiduals { type_id: unconstrained, evidences: vec![] });
     }
 
     for residual in residuals.iter_mut() {
@@ -278,14 +278,15 @@ where
     let residuals = partial.into_iter().chain(residuals);
     let generalised = residuals.sorted_by_key(|constraint| constraint.key.wanted).collect_vec();
     let generalised = finalise_generalised_constraints(state, context, generalised)?;
-    let has_constraints = !generalised.is_empty();
 
-    let constrained = generalised.into_iter().rfold(unconstrained, |inner, constraint| {
-        let constraint = state.canonicals.type_id(context, constraint);
+    let constrained = generalised.iter().rfold(unconstrained, |inner, generalised| {
+        let constraint = state.canonicals.type_id(context, generalised.constraint);
         context.intern_constrained(constraint, inner)
     });
+    let evidences = generalised.into_iter().map(|generalised| generalised.evidence);
+    let evidences = evidences.collect();
 
-    Ok(ConstrainedByResiduals { type_id: constrained, has_constraints })
+    Ok(ConstrainedByResiduals { type_id: constrained, evidences })
 }
 
 type PrunedPartial = (Vec<ConstraintInScope>, Option<ConstraintInScope>);
@@ -410,11 +411,16 @@ where
     Ok(constraints.into_values().collect())
 }
 
+struct GeneralisedConstraint {
+    constraint: CanonicalConstraintId,
+    evidence: Evidence,
+}
+
 fn finalise_generalised_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     constraints: Vec<ConstraintInScope>,
-) -> QueryResult<Vec<CanonicalConstraintId>>
+) -> QueryResult<Vec<GeneralisedConstraint>>
 where
     Q: ExternalQueries,
 {
@@ -432,14 +438,22 @@ where
         minimise_by_superclasses(state, context, generalisable)?;
 
     let mut evidences = vec![];
-    for ConstraintInScope { key, evidence } in &retained {
-        let canonical = state.canonicals.type_id(context, key.wanted);
-        let binder = state.checked.evidence.fresh_binder(canonical);
+    let mut declaration_evidences = vec![];
+    for constraint in &retained {
+        let ConstraintInScope { key, evidence } = constraint;
+        let declaration_evidence = if constraint.is_partial(state, context) {
+            Evidence::Trivial
+        } else {
+            let canonical = state.canonicals.type_id(context, key.wanted);
+            let binder = state.checked.evidence.fresh_binder(canonical);
+            Evidence::Given(binder)
+        };
 
-        let given = state.checked.evidence.allocate(Evidence::Given(binder));
-        state.checked.evidence.solve(evidence.wanted, given);
+        let proof = state.checked.evidence.allocate(declaration_evidence.clone());
+        state.checked.evidence.solve(evidence.wanted, proof);
 
-        evidences.push((key.wanted, given));
+        evidences.push((key.wanted, proof));
+        declaration_evidences.push(declaration_evidence);
     }
 
     let projections = elaborate::elaborate_superclasses_with_evidence(state, context, &evidences)?;
@@ -453,7 +467,12 @@ where
         }
     }
 
-    Ok(retained.into_iter().map(|constraint| constraint.key.wanted).collect())
+    let retained = retained.into_iter().zip(declaration_evidences);
+    let retained = retained.map(|(constraint, evidence)| GeneralisedConstraint {
+        constraint: constraint.key.wanted,
+        evidence,
+    });
+    Ok(retained.collect())
 }
 
 struct MinimisedBySuperclasses {

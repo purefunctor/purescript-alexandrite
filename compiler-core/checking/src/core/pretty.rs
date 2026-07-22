@@ -19,7 +19,9 @@ type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
 const FIRST_SUFFIX: NonZeroU32 = NonZeroU32::new(1).unwrap();
 
-pub trait PrettyQueries: QueryProxy<Indexed = Arc<indexing::IndexedModule>> {
+pub trait PrettyQueries:
+    QueryProxy<Indexed = Arc<indexing::IndexedModule>, Lowered = Arc<lowering::LoweredModule>>
+{
     fn lookup_type(&self, id: TypeId) -> Type;
 
     fn lookup_forall_binder(&self, id: ForallBinderId) -> ForallBinder;
@@ -121,6 +123,7 @@ pub struct Pretty<'a, Q: ?Sized> {
     checked: &'a CheckedModule,
     names: PrettyNames,
     show_rigid_kinds: bool,
+    show_forall_kinds: bool,
 }
 
 impl<'a, Q> Pretty<'a, Q>
@@ -128,7 +131,14 @@ where
     Q: PrettyQueries + ?Sized,
 {
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Self {
-        Pretty { queries, width: 100, checked, names: PrettyNames::new(), show_rigid_kinds: true }
+        Pretty {
+            queries,
+            width: 100,
+            checked,
+            names: PrettyNames::new(),
+            show_rigid_kinds: true,
+            show_forall_kinds: true,
+        }
     }
 
     pub fn width(mut self, width: usize) -> Self {
@@ -138,6 +148,11 @@ where
 
     pub fn without_rigid_kinds(mut self) -> Pretty<'a, Q> {
         self.show_rigid_kinds = false;
+        self
+    }
+
+    pub fn without_forall_kinds(mut self) -> Pretty<'a, Q> {
+        self.show_forall_kinds = false;
         self
     }
 
@@ -173,6 +188,7 @@ where
             &self.checked.names,
             &mut self.names,
             self.show_rigid_kinds,
+            self.show_forall_kinds,
         );
 
         let document = if let Some(name) = signature {
@@ -207,6 +223,7 @@ where
     names: &'context FxHashMap<Name, SmolStrId>,
     pretty_names: &'names mut PrettyNames,
     show_rigid_kinds: bool,
+    show_forall_kinds: bool,
 }
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
@@ -219,8 +236,9 @@ where
         names: &'context FxHashMap<Name, SmolStrId>,
         pretty_names: &'names mut PrettyNames,
         show_rigid_kinds: bool,
+        show_forall_kinds: bool,
     ) -> Printer<'arena, 'context, 'names, Q> {
-        Printer { arena, queries, names, pretty_names, show_rigid_kinds }
+        Printer { arena, queries, names, pretty_names, show_rigid_kinds, show_forall_kinds }
     }
 
     fn lookup_type(&self, id: TypeId) -> Type {
@@ -455,12 +473,16 @@ where
             .map(|binder| {
                 let name = self.pretty_names.display_name(self.queries, self.names, binder.name);
                 let text = if binder.visible { format!("@{name}") } else { name.to_string() };
-                let kind = self.traverse(Precedence::Top, binder.kind);
-                self.arena
-                    .text(format!("({} :: ", text))
-                    .append(kind)
-                    .append(self.arena.text(")"))
-                    .group()
+                if self.show_forall_kinds {
+                    let kind = self.traverse(Precedence::Top, binder.kind);
+                    self.arena
+                        .text(format!("({} :: ", text))
+                        .append(kind)
+                        .append(self.arena.text(")"))
+                        .group()
+                } else {
+                    self.arena.text(text)
+                }
             })
             .collect_vec();
 

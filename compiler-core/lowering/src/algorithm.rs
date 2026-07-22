@@ -567,6 +567,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
                     Some(recursive::lower_equation_like(
                         state,
                         context,
+                        Some(*id),
                         cst,
                         cst::ValueEquation::function_binders,
                         cst::ValueEquation::guarded_expression,
@@ -896,6 +897,7 @@ fn lower_instance_statements(
                         Some(recursive::lower_equation_like(
                             state,
                             context,
+                            None,
                             cst,
                             cst::InstanceEquationStatement::function_binders,
                             cst::InstanceEquationStatement::guarded_expression,

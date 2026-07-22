@@ -8,6 +8,7 @@ use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, constraint, signature, toolkit, unification};
 use crate::error::ErrorKind;
+use crate::evidence::Evidence;
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
@@ -29,6 +30,11 @@ struct ValueEquationSignature {
 /// See documentation for [`check_value_equations`].
 pub type ValueEquationPatterns = Vec<TypeId>;
 
+pub struct CheckedValueEquations {
+    pub patterns: ValueEquationPatterns,
+    pub evidences: Vec<Evidence>,
+}
+
 /// Checks a group of [`lowering::Equation`].
 ///
 /// This function returns the instantiated types of the equation's
@@ -39,7 +45,7 @@ pub fn check_value_equations<Q>(
     origin: EquationTypeOrigin,
     expected_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<ValueEquationPatterns>
+) -> QueryResult<CheckedValueEquations>
 where
     Q: ExternalQueries,
 {
@@ -48,9 +54,11 @@ where
     let signature::SkolemisedSignature { substitution, constraints, arguments, result } =
         signature::expect_term_signature(state, context, expected_type, required)?;
 
+    let mut evidences = vec![];
     for &constraint in &constraints {
         if !constraint::is_type_error(state, context, constraint)? {
-            state.push_given(constraint);
+            let evidence = state.push_given(constraint);
+            evidences.push(Evidence::Given(evidence));
         }
     }
 
@@ -64,7 +72,7 @@ where
         check_equations(state, context, origin, &signature, &arguments, equations)
     })?;
 
-    Ok(arguments)
+    Ok(CheckedValueEquations { patterns: arguments, evidences })
 }
 
 /// Infers a group of [`lowering::Equation`].

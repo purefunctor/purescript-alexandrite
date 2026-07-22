@@ -81,13 +81,32 @@ pub struct Equation {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum GuardedExpression {
-    Unconditional { where_expression: WhereExpression },
+pub struct GuardedExpression {
+    pub alternatives: Arc<[GuardedAlternative]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GuardedAlternative {
+    pub pattern_guards: Arc<[PatternGuard]>,
+    pub where_expression: WhereExpression,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PatternGuard {
+    Boolean { expression: ExpressionId },
+    Pattern { binder: BinderId, expression: ExpressionId },
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct WhereExpression {
     pub expression: ExpressionId,
+}
+
+impl GuardedExpression {
+    pub fn unconditional(where_expression: WhereExpression) -> GuardedExpression {
+        let alternative = GuardedAlternative { pattern_guards: Arc::from([]), where_expression };
+        GuardedExpression { alternatives: Arc::from([alternative]) }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
