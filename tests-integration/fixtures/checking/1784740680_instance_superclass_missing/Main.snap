@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Missing :: Missing
+
+Types
+Missing :: Type
+Parent :: Type -> Constraint
+Child :: Type -> Constraint
+
+Classes
+class forall (value :: Type). Parent (value :: Type)
+class forall (value :: Type). Parent (value :: Type) <= Child (value :: Type)
+
+Instances
+instance Child Missing
+
+Roles
+Missing = []
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Parent Missing
+  --> 11:1..11:23
+   |
+11 | instance Child Missing
+   | ^~~~~~~~~~~~~~~~~~~~~~

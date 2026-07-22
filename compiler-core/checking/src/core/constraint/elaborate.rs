@@ -154,7 +154,7 @@ where
     Ok(edges)
 }
 
-fn superclass_substitutions<Q>(
+pub(crate) fn superclass_substitutions<Q>(
     context: &CheckContext<Q>,
     class: &CheckedClass,
     arguments: &[KindOrType],

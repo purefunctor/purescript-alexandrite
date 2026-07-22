@@ -241,27 +241,25 @@ where
                 continue;
             };
 
-            for member in members.iter() {
-                check_instance_member_group(
-                    state,
-                    context,
-                    item_id,
-                    member,
-                    (class_file, class_id),
-                    &instance,
-                )?;
-            }
+            check_instance_member_groups(
+                state,
+                context,
+                item_id,
+                members,
+                (class_file, class_id),
+                &instance,
+            )?;
         }
     }
 
     Ok(())
 }
 
-fn check_instance_member_group<Q>(
+fn check_instance_member_groups<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     instance_item_id: TermItemId,
-    member: &lowering::InstanceMemberGroup,
+    members: &[lowering::InstanceMemberGroup],
     (class_file, class_id): (FileId, TypeItemId),
     instance: &toolkit::InstanceInfo,
 ) -> QueryResult<()>
@@ -270,128 +268,120 @@ where
 {
     state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
         state.with_implication(|state| {
-            check_instance_member_group_core(
-                state,
-                context,
-                member,
-                (class_file, class_id),
-                instance,
-            )
+            let FreshenedInstanceRigids {
+                constraints: instance_constraints,
+                arguments: instance_arguments,
+                substitution,
+            } = freshen_instance_rigids(state, context, instance)?;
+
+            state.with_implicit(context, &substitution, |state| {
+                for &constraint in &instance_constraints {
+                    if !constraint::is_type_error(state, context, constraint)? {
+                        state.push_given(constraint);
+                    }
+                }
+
+                emit_instance_superclass_constraints(
+                    state,
+                    context,
+                    class_file,
+                    class_id,
+                    &instance_arguments,
+                )?;
+
+                for member in members {
+                    state.with_implication(|state| {
+                        check_instance_member_group(
+                            state,
+                            context,
+                            member,
+                            (class_file, class_id),
+                            &instance_arguments,
+                        )
+                    })?;
+                }
+
+                derive::tools::solve_and_report_constraints(state, context)
+            })
         })
     })
 }
 
-fn check_instance_member_group_core<Q>(
+fn check_instance_member_group<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
-    instance: &toolkit::InstanceInfo,
+    instance_arguments: &[KindOrType],
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
 {
-    let FreshenedInstanceRigids {
-        constraints: instance_constraints,
-        arguments: instance_arguments,
-        substitution,
-    } = freshen_instance_rigids(state, context, instance)?;
+    let class_member_type = if let Some(member_resolution) = member.resolution {
+        instantiate_class_member_type(
+            state,
+            context,
+            member_resolution,
+            (class_file, class_id),
+            instance_arguments,
+        )?
+    } else {
+        None
+    };
 
-    state.with_implicit(context, &substitution, |state| {
-        for &constraint in &instance_constraints {
-            if !constraint::is_type_error(state, context, constraint)? {
-                state.push_given(constraint);
+    if let Some(signature_id) = member.signature {
+        let (signature_member_type, _) =
+            types::check_kind(state, context, signature_id, context.prim.t)?;
+
+        if let Some(class_member_type) = class_member_type {
+            let unified = state.with_implication(|state| {
+                let class_member_type = normalise::normalise(state, context, class_member_type)?;
+                let class_member_type =
+                    toolkit::skolemise_forall(state, context, class_member_type)?;
+                let class_member_type = toolkit::collect_givens(state, context, class_member_type)?;
+                unification::subtype(state, context, signature_member_type, class_member_type)
+            })?;
+            if !unified {
+                let expected = class_member_type;
+                let actual = signature_member_type;
+                state.insert_error(ErrorKind::InstanceMemberTypeMismatch { expected, actual });
             }
         }
 
-        let class_member_type = if let Some(member_resolution) = member.resolution {
-            instantiate_class_member_type(
-                state,
-                context,
-                member_resolution,
-                (class_file, class_id),
-                &instance_arguments,
-            )?
-        } else {
-            None
-        };
+        let checked_equations = equations::check_value_equations(
+            state,
+            context,
+            equations::EquationTypeOrigin::Explicit(signature_id),
+            signature_member_type,
+            &member.equations,
+        )?;
+        let exhaustiveness = exhaustive::check_equation_patterns(
+            state,
+            context,
+            &checked_equations.patterns,
+            &member.equations,
+        )?;
 
-        let residuals = if let Some(signature_id) = member.signature {
-            let (signature_member_type, _) =
-                types::check_kind(state, context, signature_id, context.prim.t)?;
+        state.report_exhaustiveness(exhaustiveness);
+    } else if let Some(expected_type) = class_member_type {
+        let checked_equations = equations::check_value_equations(
+            state,
+            context,
+            equations::EquationTypeOrigin::Implicit,
+            expected_type,
+            &member.equations,
+        )?;
+        let exhaustiveness = exhaustive::check_equation_patterns(
+            state,
+            context,
+            &checked_equations.patterns,
+            &member.equations,
+        )?;
 
-            if let Some(class_member_type) = class_member_type {
-                let unified = state.with_implication(|state| {
-                    let class_member_type =
-                        normalise::normalise(state, context, class_member_type)?;
-                    let class_member_type =
-                        toolkit::skolemise_forall(state, context, class_member_type)?;
-                    let class_member_type =
-                        toolkit::collect_givens(state, context, class_member_type)?;
-                    unification::subtype(state, context, signature_member_type, class_member_type)
-                })?;
-                if !unified {
-                    let expected = class_member_type;
-                    let actual = signature_member_type;
-                    state.insert_error(ErrorKind::InstanceMemberTypeMismatch { expected, actual });
-                }
-            }
+        state.report_exhaustiveness(exhaustiveness);
+    }
 
-            let checked_equations = equations::check_value_equations(
-                state,
-                context,
-                equations::EquationTypeOrigin::Explicit(signature_id),
-                signature_member_type,
-                &member.equations,
-            )?;
-            let exhaustiveness = exhaustive::check_equation_patterns(
-                state,
-                context,
-                &checked_equations.patterns,
-                &member.equations,
-            )?;
-
-            state.report_exhaustiveness(exhaustiveness);
-            state.solve_constraints(context)?
-        } else if let Some(expected_type) = class_member_type {
-            let checked_equations = equations::check_value_equations(
-                state,
-                context,
-                equations::EquationTypeOrigin::Implicit,
-                expected_type,
-                &member.equations,
-            )?;
-            let exhaustiveness = exhaustive::check_equation_patterns(
-                state,
-                context,
-                &checked_equations.patterns,
-                &member.equations,
-            )?;
-
-            state.report_exhaustiveness(exhaustiveness);
-            state.solve_constraints(context)?
-        } else {
-            vec![]
-        };
-
-        for residual in residuals {
-            state.checked.evidence.mark_error(residual.evidence.wanted);
-            let attached = state.canonical_errors.remove(&residual.key.wanted);
-            attached.into_iter().flatten().for_each(|error| state.insert_error(error));
-
-            let given = residual
-                .key
-                .given
-                .iter()
-                .map(|given| state.canonicals.type_id(context, *given))
-                .collect::<Arc<[_]>>();
-
-            let constraint = state.canonicals.type_id(context, residual.key.wanted);
-            state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
-        }
-
-        Ok(())
-    })
+    Ok(())
 }
 
 struct FreshenedInstanceRigids {
@@ -430,6 +420,34 @@ where
         .collect::<QueryResult<Vec<_>>>()?;
 
     Ok(FreshenedInstanceRigids { constraints, arguments, substitution })
+}
+
+fn emit_instance_superclass_constraints<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    class_file: FileId,
+    class_id: TypeItemId,
+    instance_arguments: &[KindOrType],
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let Some(class) = toolkit::lookup_file_class(state, context, class_file, class_id)? else {
+        return Ok(());
+    };
+    let Some(substitution) =
+        constraint::elaborate::superclass_substitutions(context, &class, instance_arguments)?
+    else {
+        return Ok(());
+    };
+
+    for superclass in &class.superclasses {
+        let constraint =
+            SubstituteName::many(state, context, &substitution, superclass.constraint)?;
+        state.push_wanted(constraint);
+    }
+
+    Ok(())
 }
 
 fn instantiate_class_member_type<Q>(
