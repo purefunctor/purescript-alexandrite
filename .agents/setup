@@ -17,4 +17,4 @@ if ! command -v cargo-binstall >/dev/null 2>&1; then
     | BINSTALL_VERSION=1.19.1 bash
 fi
 
-cargo binstall --no-confirm just cargo-nextest
+cargo binstall --no-confirm just cargo-nextest cargo-insta
