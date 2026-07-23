@@ -62,6 +62,28 @@ pub struct LocalDeclaration {
     pub value: ValueDeclaration,
 }
 
+impl LocalDeclaration {
+    pub fn new(
+        source: LetBindingNameGroupId,
+        type_id: TypeId,
+        evidences: Arc<[Evidence]>,
+        equations: Arc<[Equation]>,
+    ) -> LocalDeclaration {
+        let value = ValueDeclaration { evidences, equations };
+        LocalDeclaration { source, type_id, value }
+    }
+
+    pub fn nullary(
+        source: LetBindingNameGroupId,
+        type_id: TypeId,
+        equation_source: lowering::LetBindingEquationId,
+        guarded_expression: GuardedExpression,
+    ) -> LocalDeclaration {
+        let equation = Equation::local(equation_source, [].into(), guarded_expression);
+        LocalDeclaration::new(source, type_id, [].into(), [equation].into())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct DataConstructor {
     pub arguments: Arc<[TypeId]>,
@@ -148,6 +170,26 @@ pub struct Equation {
     pub source: EquationSource,
     pub binders: Arc<[BinderId]>,
     pub guarded_expression: GuardedExpression,
+}
+
+impl Equation {
+    pub fn item(
+        source: EquationSourceId,
+        binders: Arc<[BinderId]>,
+        guarded_expression: GuardedExpression,
+    ) -> Equation {
+        let source = EquationSource::Item(source);
+        Equation { source, binders, guarded_expression }
+    }
+
+    pub fn local(
+        source: lowering::LetBindingEquationId,
+        binders: Arc<[BinderId]>,
+        guarded_expression: GuardedExpression,
+    ) -> Equation {
+        let source = EquationSource::Local(source);
+        Equation { source, binders, guarded_expression }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

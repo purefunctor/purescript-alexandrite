@@ -1,12 +1,12 @@
 use building_types::QueryResult;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{Type, exhaustive, normalise, unification};
 use crate::error::ErrorCrumb;
 use crate::source::terms::{ElaboratedExpression, application, equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
 
 pub fn check_let_chunks<Q>(
     state: &mut CheckState,
@@ -98,11 +98,13 @@ where
     for item in scc {
         match item {
             lowering::Scc::Base(id) | lowering::Scc::Recursive(id) => {
-                check_let_name_binding(state, context, *id)?;
+                let declaration = check_let_name_binding(state, context, *id)?;
+                state.checked.tree.insert_let(declaration);
             }
             lowering::Scc::Mutual(mutual) => {
-                for id in mutual {
-                    check_let_name_binding(state, context, *id)?;
+                for &id in mutual {
+                    let declaration = check_let_name_binding(state, context, id)?;
+                    state.checked.tree.insert_let(declaration);
                 }
             }
         }
@@ -115,7 +117,7 @@ pub fn check_let_name_binding<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     id: lowering::LetBindingNameGroupId,
-) -> QueryResult<()>
+) -> QueryResult<tree::LocalDeclaration>
 where
     Q: ExternalQueries,
 {
@@ -130,58 +132,83 @@ pub fn check_let_name_binding_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     id: lowering::LetBindingNameGroupId,
-) -> QueryResult<()>
+) -> QueryResult<tree::LocalDeclaration>
 where
     Q: ExternalQueries,
 {
-    let Some(name) = context.lowered.info.get_let_binding(id) else {
-        return Ok(());
-    };
+    let group = context.lowered.info.get_let_binding_group(id);
+    let name = context
+        .lowered
+        .info
+        .get_let_binding(id)
+        .expect("invariant violated: let binding group has no lowered binding");
+    let name_type = state
+        .checked
+        .nodes
+        .lookup_let(id)
+        .expect("invariant violated: let binding has no preallocated type");
 
-    let Some(name_type) = state.checked.nodes.lookup_let(id) else {
-        return Ok(());
-    };
-
-    if let Some(signature_id) = name.signature {
-        let checked_equations = equations::check_value_equations(
+    let checked_equations = if let Some(signature_id) = name.signature {
+        equations::check_value_equations(
             state,
             context,
             equations::EquationTypeOrigin::Explicit(signature_id),
             name_type,
             &name.equations,
-        )?;
-        let exhaustiveness = exhaustive::check_equation_patterns(
-            state,
-            context,
-            &checked_equations.patterns,
-            &name.equations,
-        )?;
-        state.report_exhaustiveness(exhaustiveness);
+        )?
     } else {
         if let [equation] = name.equations.as_ref()
+            && let [equation_source] = group.equations.as_ref()
             && equation.binders.is_empty()
             && let Some(guarded) = &equation.guarded
         {
-            let inferred_type = guarded::infer_guarded_expression(state, context, guarded)?.type_id;
+            let inferred = guarded::infer_guarded_expression(state, context, guarded)?;
+            let inferred_type = inferred.type_id;
             // Keep simple let bindings e.g. `appendLocal = append` polymorphic.
-            let name_type = normalise::expand(state, context, name_type)?;
-            if let Type::Unification(unification_id) = context.lookup_type(name_type) {
-                unification::solve(state, context, name_type, unification_id, inferred_type)?;
+            let expanded_name_type = normalise::expand(state, context, name_type)?;
+            if let Type::Unification(unification_id) = context.lookup_type(expanded_name_type) {
+                unification::solve(
+                    state,
+                    context,
+                    expanded_name_type,
+                    unification_id,
+                    inferred_type,
+                )?;
             } else {
-                unification::subtype(state, context, inferred_type, name_type)?;
+                unification::subtype(state, context, inferred_type, expanded_name_type)?;
             }
-        } else {
-            let checked_equations =
-                equations::infer_value_equations(state, context, name_type, &name.equations)?;
-            let exhaustiveness = exhaustive::check_equation_patterns(
-                state,
-                context,
-                &checked_equations.patterns,
-                &name.equations,
-            )?;
-            state.report_exhaustiveness(exhaustiveness);
-        }
-    }
 
-    Ok(())
+            let declaration = tree::LocalDeclaration::nullary(
+                id,
+                name_type,
+                *equation_source,
+                inferred.guarded_expression,
+            );
+            return Ok(declaration);
+        } else {
+            equations::infer_value_equations(state, context, name_type, &name.equations)?
+        }
+    };
+
+    let exhaustiveness = exhaustive::check_equation_patterns(
+        state,
+        context,
+        &checked_equations.patterns,
+        &name.equations,
+    )?;
+    state.report_exhaustiveness(exhaustiveness);
+
+    assert_eq!(
+        group.equations.len(),
+        checked_equations.equations.len(),
+        "invariant violated: checked local equation count does not match lowering",
+    );
+
+    let equations = std::iter::zip(group.equations.iter().copied(), checked_equations.equations)
+        .map(|(source, equation)| equation.into_local_tree(source));
+
+    let equations = equations.collect();
+    let evidences = checked_equations.evidences.into();
+
+    Ok(tree::LocalDeclaration::new(id, name_type, evidences, equations))
 }
