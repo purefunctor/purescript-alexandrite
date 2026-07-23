@@ -13,10 +13,10 @@ use crate::core::Type;
 use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
 use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
-    BinderId, BinderKind, Equation, ExpressionId, ExpressionKind, GuardedAlternative,
-    GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings, LocalDeclarationId,
-    PatternGuard, RecordBinderField, RecordExpressionField, TermDeclarationKind,
-    TypeDeclarationKind, WhereExpression,
+    BinderId, BinderKind, CaseAlternative, Equation, ExpressionId, ExpressionKind,
+    GuardedAlternative, GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings,
+    LocalDeclarationId, PatternGuard, RecordBinderField, RecordExpressionField,
+    TermDeclarationKind, TypeDeclarationKind, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -620,7 +620,7 @@ where
         }
         for equation in equations.iter() {
             let has_abstraction = !equation.binders.is_empty() || !evidences.is_empty();
-            let (mut expression, where_bindings) = if let [alternative] =
+            let (mut expression, where_bindings, force_body_break) = if let [alternative] =
                 equation.guarded_expression.alternatives.as_ref()
                 && alternative.pattern_guards.is_empty()
             {
@@ -629,14 +629,16 @@ where
                     self.expression(where_expression.expression, evidence_names, &mut type_pretty)?;
                 let bindings = (!where_expression.bindings.chunks.is_empty())
                     .then_some(&where_expression.bindings);
-                (expression, bindings)
+                let force_body_break =
+                    self.expression_requires_body_break(where_expression.expression);
+                (expression, bindings, force_body_break)
             } else {
                 let expression = self.guarded_expression(
                     &equation.guarded_expression,
                     evidence_names,
                     &mut type_pretty,
                 )?;
-                (expression, None)
+                (expression, None, false)
             };
 
             let mut abstractions = vec![];
@@ -656,12 +658,20 @@ where
                 let abstractions = abstractions.fold(first, |document, abstraction| {
                     document.append(self.arena.softline().append(abstraction).nest(2))
                 });
-                let body = self.arena.line().append(expression).nest(2).group();
+                let body = if force_body_break {
+                    self.arena.hardline().append(expression).nest(2)
+                } else {
+                    self.arena.line().append(expression).nest(2).group()
+                };
                 expression = abstractions.append(body);
             }
 
             let mut equation = if has_abstraction {
                 self.arena.text(format!("{prefix}{name} = ")).append(expression)
+            } else if force_body_break {
+                self.arena
+                    .text(format!("{prefix}{name} ="))
+                    .append(self.arena.hardline().append(expression).nest(2))
             } else {
                 self.arena
                     .text(format!("{prefix}{name} ="))
@@ -838,21 +848,26 @@ where
             pattern_guards.push(self.pattern_guard(pattern_guard, evidence_names, type_pretty)?);
         }
 
-        let expression =
-            self.where_expression(&alternative.where_expression, evidence_names, type_pretty)?;
+        let where_expression = &alternative.where_expression;
+        let expression = self.where_expression(where_expression, evidence_names, type_pretty)?;
         let mut pattern_guards = pattern_guards.into_iter();
         let Some(first) = pattern_guards.next() else {
-            return Ok(self.arena.text("| -> ").append(expression));
+            let alternative = self.arena.text("| ->");
+            if self.expression_requires_body_break(where_expression.expression) {
+                return Ok(alternative.append(self.arena.hardline().append(expression).nest(2)));
+            }
+            return Ok(alternative.append(self.arena.space()).append(expression));
         };
         let pattern_guards = pattern_guards.fold(first, |document, pattern_guard| {
             document.append(self.arena.text(", ")).append(pattern_guard)
         });
-        let alternative = self
-            .arena
-            .text("| ")
-            .append(pattern_guards)
-            .append(self.arena.text(" -> "))
-            .append(expression);
+        let alternative =
+            self.arena.text("| ").append(pattern_guards).append(self.arena.text(" ->"));
+        let alternative = if self.expression_requires_body_break(where_expression.expression) {
+            alternative.append(self.arena.hardline().append(expression).nest(2))
+        } else {
+            alternative.append(self.arena.space()).append(expression)
+        };
         Ok(alternative)
     }
 
@@ -872,6 +887,97 @@ where
                 Ok(binder.append(self.arena.text(" <- ")).append(expression))
             }
         }
+    }
+
+    fn case_expression(
+        &self,
+        scrutinees: &[ExpressionId],
+        alternatives: &[CaseAlternative],
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let mut rendered_scrutinees = vec![];
+        for &scrutinee in scrutinees {
+            rendered_scrutinees.push(self.expression(scrutinee, evidence_names, type_pretty)?);
+        }
+
+        let mut rendered_scrutinees = rendered_scrutinees.into_iter();
+        let scrutinees = if let Some(first) = rendered_scrutinees.next() {
+            rendered_scrutinees.fold(first, |document, scrutinee| {
+                document.append(self.arena.text(", ")).append(scrutinee)
+            })
+        } else {
+            self.arena.text("<error>")
+        };
+        let header = self.arena.text("case ").append(scrutinees.group()).append(" of");
+
+        let mut rendered_alternatives = vec![];
+        for alternative in alternatives {
+            rendered_alternatives.push(self.case_alternative(
+                alternative,
+                evidence_names,
+                type_pretty,
+            )?);
+        }
+
+        let mut rendered_alternatives = rendered_alternatives.into_iter();
+        let alternatives = if let Some(first) = rendered_alternatives.next() {
+            rendered_alternatives.fold(first, |document, alternative| {
+                document.append(self.arena.hardline()).append(alternative)
+            })
+        } else {
+            self.arena.text("<error>")
+        };
+        Ok(header.append(self.arena.hardline().append(alternatives).nest(2)))
+    }
+
+    fn case_alternative(
+        &self,
+        alternative: &CaseAlternative,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let mut rendered_binders = vec![];
+        for &binder in alternative.binders.iter() {
+            rendered_binders.push(self.binder(binder)?);
+        }
+
+        let mut rendered_binders = rendered_binders.into_iter();
+        let binders = if let Some(first) = rendered_binders.next() {
+            rendered_binders.fold(first, |document, binder| {
+                document.append(self.arena.text(", ")).append(binder)
+            })
+        } else {
+            self.arena.text("<error>")
+        };
+        let binders = binders.group();
+
+        if let [guarded] = alternative.guarded_expression.alternatives.as_ref()
+            && guarded.pattern_guards.is_empty()
+        {
+            let expression =
+                self.where_expression(&guarded.where_expression, evidence_names, type_pretty)?;
+            let alternative = binders.append(self.arena.text(" ->"));
+            if self.expression_requires_body_break(guarded.where_expression.expression) {
+                return Ok(alternative.append(self.arena.hardline().append(expression).nest(2)));
+            }
+            return Ok(alternative.append(self.arena.space()).append(expression));
+        }
+
+        let guarded_expression =
+            self.guarded_expression(&alternative.guarded_expression, evidence_names, type_pretty)?;
+        Ok(binders.append(self.arena.hardline().append(guarded_expression).nest(2)))
+    }
+
+    fn expression_requires_body_break(&self, expression_id: ExpressionId) -> bool {
+        matches!(&self.checked.tree[expression_id].kind, ExpressionKind::Case { .. })
+    }
+
+    fn expression_is_block_argument(&self, expression_id: ExpressionId) -> bool {
+        matches!(
+            &self.checked.tree[expression_id].kind,
+            ExpressionKind::Case { .. } | ExpressionKind::Let { .. }
+        )
     }
 
     fn binder(&self, binder_id: BinderId) -> QueryResult<Doc<'arena>> {
@@ -995,7 +1101,9 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
-            ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
+            ExpressionKind::Case { .. } | ExpressionKind::Let { .. } => {
+                ExpressionPrecedence::Abstraction
+            }
             ExpressionKind::TermApplication { .. }
             | ExpressionKind::TypeApplication { .. }
             | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
@@ -1142,9 +1250,14 @@ where
                     evidence_names,
                     type_pretty,
                 )?;
+                let argument_precedence = if self.expression_is_block_argument(*argument) {
+                    ExpressionPrecedence::Abstraction
+                } else {
+                    ExpressionPrecedence::RecordUpdate
+                };
                 let argument = self.expression_at(
                     *argument,
-                    ExpressionPrecedence::RecordUpdate,
+                    argument_precedence,
                     evidence_names,
                     type_pretty,
                 )?;
@@ -1169,6 +1282,9 @@ where
                 )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
+            ExpressionKind::Case { scrutinees, alternatives } => {
+                self.case_expression(scrutinees, alternatives, evidence_names, type_pretty)
             }
             ExpressionKind::Let { bindings, expression } => {
                 let bindings = self.let_bindings(bindings, evidence_names, type_pretty)?;

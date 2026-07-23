@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Choice :: Type -> Type
+data Choice @a
+  | Empty :: Choice a
+  | One :: a -> Choice a
+  | Pair :: a -> a -> Choice a
+
+checked :: Choice Int -> Int
+checked = \choice ->
+  case choice of
+    Empty -> 0
+    (One value) -> value
+    (Pair left _) -> left
+
+inferred :: Choice Int -> Int
+inferred = \choice ->
+  case choice of
+    Empty -> 0
+    (One value) -> value
+    (Pair left _) -> left
+
+multiple :: Choice Int -> Choice Int -> Int
+multiple = \first -> \second ->
+  case first, second of
+    (One left), (One _) -> left
+    (Pair left _), _ -> left
+    _, (One right) -> right
+    _, _ -> 0
+
+partial :: forall t. Partial => Choice t -> t
+partial = \{trivial} -> \choice ->
+  case choice of
+    (One value) -> value
