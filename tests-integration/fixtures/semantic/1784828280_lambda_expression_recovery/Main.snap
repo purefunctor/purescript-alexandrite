@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+missingBinder :: Boolean
+missingBinder = \<error> -> true
+
+missingBody :: forall t t1. t -> t1
+missingBody = \value -> <error>
+
+missingBinderAndBody :: forall t. t
+missingBinderAndBody = \<error> -> <error>

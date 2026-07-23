@@ -976,7 +976,9 @@ where
     fn expression_is_block_argument(&self, expression_id: ExpressionId) -> bool {
         matches!(
             &self.checked.tree[expression_id].kind,
-            ExpressionKind::Case { .. } | ExpressionKind::Let { .. }
+            ExpressionKind::Lambda { .. }
+                | ExpressionKind::Case { .. }
+                | ExpressionKind::Let { .. }
         )
     }
 
@@ -1101,9 +1103,9 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
-            ExpressionKind::Case { .. } | ExpressionKind::Let { .. } => {
-                ExpressionPrecedence::Abstraction
-            }
+            ExpressionKind::Lambda { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
             ExpressionKind::TermApplication { .. }
             | ExpressionKind::TypeApplication { .. }
             | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
@@ -1282,6 +1284,27 @@ where
                 )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
+            ExpressionKind::Lambda { binders, expression } => {
+                let mut lambda = self.arena.text("\\");
+                if binders.is_empty() {
+                    lambda = lambda.append(self.arena.text("<error>"));
+                } else {
+                    for (position, &binder) in binders.iter().enumerate() {
+                        if position > 0 {
+                            lambda = lambda.append(self.arena.space());
+                        }
+                        lambda = lambda.append(self.binder(binder)?);
+                    }
+                }
+
+                let body = self.expression(*expression, evidence_names, type_pretty)?;
+                lambda = lambda.append(self.arena.text(" ->"));
+                if self.expression_requires_body_break(*expression) {
+                    Ok(lambda.append(self.arena.hardline().append(body).nest(2)))
+                } else {
+                    Ok(lambda.append(self.arena.space()).append(body))
+                }
             }
             ExpressionKind::Case { scrutinees, alternatives } => {
                 self.case_expression(scrutinees, alternatives, evidence_names, type_pretty)

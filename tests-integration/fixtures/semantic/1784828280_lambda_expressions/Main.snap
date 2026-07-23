@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+checked :: forall a. a -> a
+checked = \value -> value
+
+inferred :: forall t. t -> t
+inferred = \value -> value
+
+multiple :: forall t t1. t -> t1 -> t
+multiple = \first second -> first
