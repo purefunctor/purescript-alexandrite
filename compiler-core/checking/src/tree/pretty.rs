@@ -20,6 +20,14 @@ use crate::tree::{
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ExpressionPrecedence {
+    Abstraction,
+    Application,
+    RecordUpdate,
+    Atom,
+}
+
 fn character_literal(value: char) -> String {
     match value {
         '\n' => "'\\n'".to_string(),
@@ -837,6 +845,43 @@ where
         evidence_names: &mut EvidenceNames,
         type_pretty: &mut TypePretty<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
+        self.expression_at(
+            expression_id,
+            ExpressionPrecedence::Abstraction,
+            evidence_names,
+            type_pretty,
+        )
+    }
+
+    fn expression_at(
+        &self,
+        expression_id: ExpressionId,
+        required_precedence: ExpressionPrecedence,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let expression = &self.checked.tree[expression_id];
+        let precedence = match &expression.kind {
+            ExpressionKind::TermApplication { .. }
+            | ExpressionKind::TypeApplication { .. }
+            | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
+            _ => ExpressionPrecedence::Atom,
+        };
+        let expression =
+            self.expression_unparenthesized(expression_id, evidence_names, type_pretty)?;
+        if precedence < required_precedence {
+            Ok(self.arena.text("(").append(expression).append(self.arena.text(")")))
+        } else {
+            Ok(expression)
+        }
+    }
+
+    fn expression_unparenthesized(
+        &self,
+        expression_id: ExpressionId,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         match &expression.kind {
             ExpressionKind::Error => Ok(self.arena.text("<error>")),
@@ -954,26 +999,37 @@ where
                 Ok(self.arena.text(name))
             }
             ExpressionKind::TermApplication { function, argument } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
-                let argument_expression = &self.checked.tree[*argument];
-                let argument = self.expression(*argument, evidence_names, type_pretty)?;
-                let argument = match argument_expression.kind {
-                    ExpressionKind::TermApplication { .. }
-                    | ExpressionKind::TypeApplication { .. }
-                    | ExpressionKind::EvidenceApplication { .. } => {
-                        self.arena.text("(").append(argument).append(self.arena.text(")"))
-                    }
-                    _ => argument,
-                };
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
+                let argument = self.expression_at(
+                    *argument,
+                    ExpressionPrecedence::RecordUpdate,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 Ok(function.append(self.arena.space()).append(argument))
             }
             ExpressionKind::TypeApplication { function, argument } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 let argument = type_pretty.render_atom(*argument);
                 Ok(function.append(self.arena.text(format!(" @{argument}"))))
             }
             ExpressionKind::EvidenceApplication { function, evidence } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
             }
