@@ -11,18 +11,18 @@ use crate::{ExternalQueries, safe_loop, tree};
 
 use super::ElaboratedExpression;
 
-pub struct GenericApplication {
-    pub automatic: Vec<AutomaticApplication>,
+pub struct UnanchoredApplication {
+    pub implicit: Vec<ImplicitApplication>,
     pub argument: TypeId,
     pub result: TypeId,
 }
 
-pub enum AutomaticApplication {
+pub enum ImplicitApplication {
     Type { argument: TypeId, result: TypeId },
     Evidence { evidence: EvidenceVarId, result: TypeId },
 }
 
-enum PendingAutomaticApplication {
+enum PendingImplicitApplication {
     Type { argument: TypeId, result: TypeId },
     Constraint { constraint: TypeId, result: TypeId },
 }
@@ -176,63 +176,63 @@ where
     }
 }
 
-pub fn check_generic_application<Q>(
+pub fn check_unanchored_application<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     function: TypeId,
-) -> QueryResult<Option<GenericApplication>>
+) -> QueryResult<Option<UnanchoredApplication>>
 where
     Q: ExternalQueries,
 {
     let mut function = function;
-    let mut automatic = vec![];
+    let mut implicit = vec![];
     safe_loop! {
         match analyse_callable_head(state, context, function)? {
             CallableAnalysis::Forall { binder, body } => {
                 let (argument, result) =
                     instantiate_callable_forall(state, context, binder, body)?;
-                automatic.push(PendingAutomaticApplication::Type { argument, result });
+                implicit.push(PendingImplicitApplication::Type { argument, result });
                 function = result;
             }
             CallableAnalysis::Constraint { constraint, result } => {
-                automatic.push(PendingAutomaticApplication::Constraint { constraint, result });
+                implicit.push(PendingImplicitApplication::Constraint { constraint, result });
                 function = result;
             }
             CallableAnalysis::Function { argument, result } => {
-                let automatic = automatic.into_iter().map(|application| match application {
-                    PendingAutomaticApplication::Type { argument, result } => {
-                        AutomaticApplication::Type { argument, result }
+                let implicit = implicit.into_iter().map(|application| match application {
+                    PendingImplicitApplication::Type { argument, result } => {
+                        ImplicitApplication::Type { argument, result }
                     }
-                    PendingAutomaticApplication::Constraint { constraint, result } => {
+                    PendingImplicitApplication::Constraint { constraint, result } => {
                         let evidence = state.push_wanted(constraint);
-                        AutomaticApplication::Evidence { evidence, result }
+                        ImplicitApplication::Evidence { evidence, result }
                     }
                 });
-                let automatic = automatic.collect();
-                break Ok(Some(GenericApplication { automatic, argument, result }));
+                let implicit = implicit.collect();
+                break Ok(Some(UnanchoredApplication { implicit, argument, result }));
             }
             CallableAnalysis::NotCallable => break Ok(None),
         }
     }
 }
 
-pub fn materialize_generic_application(
+pub fn materialize_application(
     state: &mut CheckState,
     mut function: ElaboratedExpression,
-    automatic: Vec<AutomaticApplication>,
+    implicit: Vec<ImplicitApplication>,
     result: TypeId,
     argument: ElaboratedExpression,
 ) -> ElaboratedExpression {
-    for application in automatic {
+    for application in implicit {
         let (type_id, kind) = match application {
-            AutomaticApplication::Type { argument, result } => {
+            ImplicitApplication::Type { argument, result } => {
                 let kind = tree::ExpressionKind::TypeApplication {
                     function: function.expression,
                     argument,
                 };
                 (result, kind)
             }
-            AutomaticApplication::Evidence { evidence, result } => {
+            ImplicitApplication::Evidence { evidence, result } => {
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: function.expression,
                     evidence,
@@ -396,8 +396,8 @@ pub fn check_function_term_application<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(GenericApplication { argument, result, .. }) =
-        check_generic_application(state, context, function)?
+    let Some(UnanchoredApplication { argument, result, .. }) =
+        check_unanchored_application(state, context, function)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -427,23 +427,23 @@ where
         };
 
         let tick = super::infer_expression(state, context, *tick)?;
-        let Some(GenericApplication { automatic, argument, result }) =
-            check_generic_application(state, context, tick.type_id)?
+        let Some(UnanchoredApplication { implicit, argument, result }) =
+            check_unanchored_application(state, context, tick.type_id)?
         else {
             let unknown = context.unknown("invalid function application");
             return Ok(super::allocate_error_expression(state, unknown));
         };
         unification::subtype(state, context, infix.type_id, argument)?;
-        let applied_tick = materialize_generic_application(state, tick, automatic, result, infix);
+        let applied_tick = materialize_application(state, tick, implicit, result, infix);
 
-        let Some(GenericApplication { automatic, argument, result }) =
-            check_generic_application(state, context, applied_tick.type_id)?
+        let Some(UnanchoredApplication { implicit, argument, result }) =
+            check_unanchored_application(state, context, applied_tick.type_id)?
         else {
             let unknown = context.unknown("invalid function application");
             return Ok(super::allocate_error_expression(state, unknown));
         };
         let element = super::check_expression(state, context, *element, argument)?;
-        infix = materialize_generic_application(state, applied_tick, automatic, result, element);
+        infix = materialize_application(state, applied_tick, implicit, result, element);
     }
 
     Ok(infix)

@@ -33,5 +33,5 @@ foreign import interleaved :: forall a. First a => a -> (forall b. Second b => b
 
 infixr 3 interleaved as <*>
 
-automaticApplications :: forall a b. First a => Second b => a -> b -> a
-automaticApplications left right = left <*> right
+implicitApplications :: forall a b. First a => Second b => a -> b -> a
+implicitApplications left right = left <*> right

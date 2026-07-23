@@ -415,15 +415,15 @@ where
     let expression_type = super::infer_expression(state, context, expression)?.type_id;
     let lambda_type = context.intern_function(binder_type, continuation_type);
 
-    let Some(application::GenericApplication { argument, result, .. }) =
-        application::check_generic_application(state, context, bind_type)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, bind_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
     unification::subtype(state, context, expression_type, argument)?;
 
-    let Some(application::GenericApplication { argument, result, .. }) =
-        application::check_generic_application(state, context, result)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };

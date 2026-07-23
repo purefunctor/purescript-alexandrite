@@ -142,20 +142,20 @@ where
         OperatorKindMode::Check { expected_type } => (unknown_elaborated, expected_type),
     };
 
-    let Some(terms::application::GenericApplication {
-        automatic: left_automatic,
+    let Some(terms::application::UnanchoredApplication {
+        implicit: left_implicit,
         argument: left_type,
         result: right_function_type,
-    }) = terms::application::check_generic_application(state, context, operator_type)?
+    }) = terms::application::check_unanchored_application(state, context, operator_type)?
     else {
         return Ok(unknown);
     };
 
-    let Some(terms::application::GenericApplication {
-        automatic: right_automatic,
+    let Some(terms::application::UnanchoredApplication {
+        implicit: right_implicit,
         argument: right_type,
         result: result_type,
-    }) = terms::application::check_generic_application(state, context, right_function_type)?
+    }) = terms::application::check_unanchored_application(state, context, right_function_type)?
     else {
         return Ok(unknown);
     };
@@ -200,7 +200,7 @@ where
         context,
         operator,
         operator_type,
-        (left_automatic, right_automatic),
+        (left_implicit, right_implicit),
         (left, right),
         (left_type, right_type),
         (right_function_type, result_type),
@@ -257,8 +257,8 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         operator: (FileId, Self::ItemId),
         operator_type: TypeId,
         applications: (
-            Vec<terms::application::AutomaticApplication>,
-            Vec<terms::application::AutomaticApplication>,
+            Vec<terms::application::ImplicitApplication>,
+            Vec<terms::application::ImplicitApplication>,
         ),
         result_tree: (Self::Elaborated, Self::Elaborated),
         argument_types: (TypeId, TypeId),
@@ -329,9 +329,9 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         context: &CheckContext<Q>,
         (file_id, item_id): (FileId, Self::ItemId),
         operator_type: TypeId,
-        (left_automatic, right_automatic): (
-            Vec<terms::application::AutomaticApplication>,
-            Vec<terms::application::AutomaticApplication>,
+        (left_implicit, right_implicit): (
+            Vec<terms::application::ImplicitApplication>,
+            Vec<terms::application::ImplicitApplication>,
         ),
         (left, right): (Self::Elaborated, Self::Elaborated),
         (_, _): (TypeId, TypeId),
@@ -352,17 +352,17 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
             target_item_id,
             operator_type,
         )?;
-        let left = terms::application::materialize_generic_application(
+        let left = terms::application::materialize_application(
             state,
             operator,
-            left_automatic,
+            left_implicit,
             right_function_type,
             left,
         );
-        let expression = terms::application::materialize_generic_application(
+        let expression = terms::application::materialize_application(
             state,
             left,
-            right_automatic,
+            right_implicit,
             result_type,
             right,
         );
@@ -450,9 +450,9 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
         context: &CheckContext<Q>,
         (file_id, item_id): (FileId, Self::ItemId),
         _operator_type: TypeId,
-        (_left_automatic, _right_automatic): (
-            Vec<terms::application::AutomaticApplication>,
-            Vec<terms::application::AutomaticApplication>,
+        (_left_implicit, _right_implicit): (
+            Vec<terms::application::ImplicitApplication>,
+            Vec<terms::application::ImplicitApplication>,
         ),
         (left, right): (Self::Elaborated, Self::Elaborated),
         (left_kind, right_kind): (TypeId, TypeId),
@@ -568,9 +568,9 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         _context: &CheckContext<Q>,
         (_, _): (FileId, Self::ItemId),
         _operator_type: TypeId,
-        (_left_automatic, _right_automatic): (
-            Vec<terms::application::AutomaticApplication>,
-            Vec<terms::application::AutomaticApplication>,
+        (_left_implicit, _right_implicit): (
+            Vec<terms::application::ImplicitApplication>,
+            Vec<terms::application::ImplicitApplication>,
         ),
         (_, _): (Self::Elaborated, Self::Elaborated),
         (_, _): (TypeId, TypeId),

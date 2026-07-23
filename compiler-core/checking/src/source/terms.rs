@@ -354,15 +354,13 @@ where
             let negate_type = toolkit::lookup_term_variable(state, context, *negate)?;
             let kind = tree::ExpressionKind::Variable { resolution: *negate };
             let negate = allocate_expression(state, negate_type, kind);
-            let Some(application::GenericApplication { automatic, argument, result }) =
-                application::check_generic_application(state, context, negate_type)?
+            let Some(application::UnanchoredApplication { implicit, argument, result }) =
+                application::check_unanchored_application(state, context, negate_type)?
             else {
                 return Ok(allocate_error_expression(state, unknown));
             };
             let operand = check_expression(state, context, *expression, argument)?;
-            Ok(application::materialize_generic_application(
-                state, negate, automatic, result, operand,
-            ))
+            Ok(application::materialize_application(state, negate, implicit, result, operand))
         }
 
         lowering::ExpressionKind::Application { function, arguments } => {
