@@ -309,6 +309,7 @@ pub enum ExpressionKind {
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+    Lambda { binders: Arc<[BinderId]>, expression: ExpressionId },
     Case { scrutinees: Arc<[ExpressionId]>, alternatives: Arc<[CaseAlternative]> },
     Let { bindings: LetBindings, expression: ExpressionId },
 }
