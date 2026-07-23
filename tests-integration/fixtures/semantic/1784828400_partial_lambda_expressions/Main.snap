@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Maybe :: Type -> Type
+data Maybe @a
+  | Nothing :: Maybe a
+  | Just :: a -> Maybe a
+
+checked :: Partial => Maybe Int -> Int
+checked = \{partialDict} -> \(Just value) -> value
+
+inferred :: forall t. Partial => Maybe t -> t
+inferred = \{trivial} -> \(Just value) -> value
