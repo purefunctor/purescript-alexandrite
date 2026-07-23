@@ -13,4 +13,4 @@ recover =
   \fallback ->
     \input ->
       | (Just value) <- input -> value
-      | <error> -> fallback
+      | true -> fallback

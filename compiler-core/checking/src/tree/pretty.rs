@@ -20,6 +20,19 @@ use crate::tree::{
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
+fn character_literal(value: char) -> String {
+    match value {
+        '\n' => "'\\n'".to_string(),
+        '\r' => "'\\r'".to_string(),
+        '\t' => "'\\t'".to_string(),
+        '\\' => "'\\\\'".to_string(),
+        '\'' => "'\\\''".to_string(),
+        '\0' => "'\\0'".to_string(),
+        value if value.is_control() => format!("'\\x{:02x}'", value as u32),
+        value => format!("'{value}'"),
+    }
+}
+
 struct EvidenceNames {
     display_by_binder: FxHashMap<EvidenceBinderId, SmolStr>,
     names: PrettyNames,
@@ -761,10 +774,17 @@ where
                 Ok(self.arena.text(format!("{name}@")).append(binder))
             }
             BinderKind::Wildcard => Ok(self.arena.text("_")),
-            BinderKind::String { value } => Ok(self.arena.text(format!("{:?}", value.as_str()))),
-            BinderKind::Char { value } => Ok(self.arena.text(format!("{value:?}"))),
+            BinderKind::String { value } => {
+                let text = format!("{:?}", value.as_str());
+                Ok(self.arena.text(text))
+            }
+            BinderKind::Char { value } => {
+                let text = character_literal(*value);
+                Ok(self.arena.text(text))
+            }
             BinderKind::Boolean { value } => {
-                Ok(self.arena.text(if *value { "true" } else { "false" }))
+                let text = if *value { "true" } else { "false" };
+                Ok(self.arena.text(text))
             }
             BinderKind::Array { elements } => {
                 let mut array = self.arena.text("[");
@@ -818,14 +838,41 @@ where
         type_pretty: &mut TypePretty<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
-        match expression.kind {
+        match &expression.kind {
             ExpressionKind::Error => Ok(self.arena.text("<error>")),
+            ExpressionKind::String { kind, value } => match kind {
+                lowering::StringKind::String => {
+                    let text = format!("\"{value}\"");
+                    Ok(self.arena.text(text))
+                }
+                lowering::StringKind::RawString => {
+                    let text = format!("\"\"\"{value}\"\"\"");
+                    Ok(self.arena.text(text))
+                }
+            },
+            ExpressionKind::Char { value } => {
+                let text = character_literal(*value);
+                Ok(self.arena.text(text))
+            }
+            ExpressionKind::Boolean { value } => {
+                let text = if *value { "true" } else { "false" };
+                Ok(self.arena.text(text))
+            }
+            ExpressionKind::Integer { value } => {
+                let text = value.to_string();
+                Ok(self.arena.text(text))
+            }
+            ExpressionKind::Number { value } => {
+                let text = value.to_string();
+                Ok(self.arena.text(text))
+            }
             ExpressionKind::Constructor { resolution } => {
                 let name = self.term_name(resolution.0, resolution.1)?;
-                Ok(self.arena.text(name.unwrap_or_else(|| "?".to_string())))
+                let text = name.unwrap_or_else(|| "?".to_string());
+                Ok(self.arena.text(text))
             }
             ExpressionKind::Variable { resolution } => {
-                let name = match resolution {
+                let name = match *resolution {
                     TermVariableResolution::Binder(binder) => {
                         let kind =
                             self.lowered.info.get_binder_kind(binder).expect(
@@ -861,9 +908,9 @@ where
                 Ok(self.arena.text(name))
             }
             ExpressionKind::TermApplication { function, argument } => {
-                let function = self.expression(function, evidence_names, type_pretty)?;
-                let argument_expression = &self.checked.tree[argument];
-                let argument = self.expression(argument, evidence_names, type_pretty)?;
+                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let argument_expression = &self.checked.tree[*argument];
+                let argument = self.expression(*argument, evidence_names, type_pretty)?;
                 let argument = match argument_expression.kind {
                     ExpressionKind::TermApplication { .. }
                     | ExpressionKind::TypeApplication { .. }
@@ -875,13 +922,13 @@ where
                 Ok(function.append(self.arena.space()).append(argument))
             }
             ExpressionKind::TypeApplication { function, argument } => {
-                let function = self.expression(function, evidence_names, type_pretty)?;
-                let argument = type_pretty.render(argument);
+                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let argument = type_pretty.render(*argument);
                 Ok(function.append(self.arena.text(format!(" @{argument}"))))
             }
             ExpressionKind::EvidenceApplication { function, evidence } => {
-                let function = self.expression(function, evidence_names, type_pretty)?;
-                let evidence = self.evidence_variable_name(evidence_names, evidence)?;
+                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
             }
         }

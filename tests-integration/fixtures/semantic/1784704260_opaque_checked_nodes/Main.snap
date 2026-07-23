@@ -1,7 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 68
-expression: report
----
-literal :: forall t. t -> Int
-literal = \_ -> <error>

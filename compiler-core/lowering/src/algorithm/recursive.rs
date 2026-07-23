@@ -55,21 +55,23 @@ fn integer_literal(text: &str, negative: bool) -> Option<i32> {
 fn char_literal(text: &str) -> Option<char> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     if let Some(escaped) = inner.strip_prefix('\\') {
-        match escaped.chars().next()? {
-            'n' => Some('\n'),
-            'r' => Some('\r'),
-            't' => Some('\t'),
-            '\\' => Some('\\'),
-            '\'' => Some('\''),
-            '0' => Some('\0'),
-            'x' if escaped.len() >= 3 => {
-                let hex = &escaped[1..3];
-                u8::from_str_radix(hex, 16).ok().map(|b| b as char)
+        match escaped {
+            "n" => Some('\n'),
+            "r" => Some('\r'),
+            "t" => Some('\t'),
+            "\\" => Some('\\'),
+            "'" => Some('\''),
+            "0" => Some('\0'),
+            escaped => {
+                let hexadecimal = escaped.strip_prefix('x')?;
+                let value = u32::from_str_radix(hexadecimal, 16).ok()?;
+                char::from_u32(value)
             }
-            _ => None,
         }
     } else {
-        inner.chars().next()
+        let mut characters = inner.chars();
+        let character = characters.next()?;
+        characters.next().is_none().then_some(character)
     }
 }
 

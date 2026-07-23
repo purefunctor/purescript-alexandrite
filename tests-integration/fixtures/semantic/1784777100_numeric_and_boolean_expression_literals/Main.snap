@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+booleanTrue :: Boolean
+booleanTrue = true
+
+booleanFalse :: Boolean
+booleanFalse = false
+
+integer :: Int
+integer = 1
+
+integerHexadecimal :: Int
+integerHexadecimal = 42
+
+integerMaximum :: Int
+integerMaximum = 2147483647
+
+numberDecimal :: Number
+numberDecimal = 1.0
+
+numberExponent :: Number
+numberExponent = 6.02e23

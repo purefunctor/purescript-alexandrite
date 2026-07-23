@@ -390,24 +390,41 @@ where
             Ok(allocate_error_expression(state, type_id))
         }
 
-        lowering::ExpressionKind::String { .. } => {
-            Ok(allocate_error_expression(state, context.prim.string))
+        lowering::ExpressionKind::String { kind, value } => {
+            let Some(value) = value else {
+                return Ok(allocate_error_expression(state, context.prim.string));
+            };
+            let kind = tree::ExpressionKind::String { kind: *kind, value: SmolStr::clone(value) };
+            Ok(allocate_expression(state, context.prim.string, kind))
         }
 
-        lowering::ExpressionKind::Char { .. } => {
-            Ok(allocate_error_expression(state, context.prim.char))
+        lowering::ExpressionKind::Char { value } => {
+            let Some(value) = value else {
+                return Ok(allocate_error_expression(state, context.prim.char));
+            };
+            let kind = tree::ExpressionKind::Char { value: *value };
+            Ok(allocate_expression(state, context.prim.char, kind))
         }
 
-        lowering::ExpressionKind::Boolean { .. } => {
-            Ok(allocate_error_expression(state, context.prim.boolean))
+        lowering::ExpressionKind::Boolean { boolean } => {
+            let kind = tree::ExpressionKind::Boolean { value: *boolean };
+            Ok(allocate_expression(state, context.prim.boolean, kind))
         }
 
-        lowering::ExpressionKind::Integer { .. } => {
-            Ok(allocate_error_expression(state, context.prim.int))
+        lowering::ExpressionKind::Integer { value } => {
+            let Some(value) = value else {
+                return Ok(allocate_error_expression(state, context.prim.int));
+            };
+            let kind = tree::ExpressionKind::Integer { value: *value };
+            Ok(allocate_expression(state, context.prim.int, kind))
         }
 
-        lowering::ExpressionKind::Number { .. } => {
-            Ok(allocate_error_expression(state, context.prim.number))
+        lowering::ExpressionKind::Number { value } => {
+            let Some(value) = value else {
+                return Ok(allocate_error_expression(state, context.prim.number));
+            };
+            let kind = tree::ExpressionKind::Number { value: SmolStr::clone(value) };
+            Ok(allocate_expression(state, context.prim.number, kind))
         }
 
         lowering::ExpressionKind::Array { array } => {
