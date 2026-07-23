@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+missingScrutinee :: Boolean
+missingScrutinee =
+  case <error> of
+    <error> -> true
+
+mismatchedBinders :: forall t t1. t -> t1 -> Boolean
+mismatchedBinders = \first -> \second ->
+  case first, second of
+    _ -> true
+
+missingResult :: forall t t1. t -> t1
+missingResult = \value ->
+  case value of
+    _ -> <error>
+
+missingGuardResult :: forall t t1. t -> t1
+missingGuardResult = \value ->
+  case value of
+    _
+      | true -> <error>
+
+missingBranchBody :: forall t t1. t -> t1
+missingBranchBody = \value ->
+  case value of
+    _ -> <error>

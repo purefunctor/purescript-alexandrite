@@ -1,11 +1,11 @@
 use building_types::QueryResult;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
 use crate::source::binder;
-use crate::source::terms::{application, guarded};
+use crate::source::terms::{ElaboratedExpression, application, guarded};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
 
 #[derive(Copy, Clone, Debug)]
 enum IfThenElseMode {
@@ -189,7 +189,7 @@ pub fn infer_case_of<Q>(
     context: &CheckContext<Q>,
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -202,7 +202,7 @@ pub fn check_case_of<Q>(
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -215,7 +215,7 @@ fn case_of_core<Q>(
     trunk: &[lowering::ExpressionId],
     branches: &[lowering::CaseBranch],
     mode: CaseOfMode,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -224,30 +224,44 @@ where
         CaseOfMode::Check { expected } => expected,
     };
 
+    let mut scrutinees = vec![];
     let mut trunk_types = vec![];
-    for trunk in trunk.iter() {
-        let trunk = super::infer_expression(state, context, *trunk)?;
-        let trunk = application::instantiate_expression(state, context, trunk)?;
-        trunk_types.push(trunk.type_id);
+    for &scrutinee_id in trunk.iter() {
+        let scrutinee = super::infer_expression(state, context, scrutinee_id)?;
+        let scrutinee = application::instantiate_expression(state, context, scrutinee)?;
+        trunk_types.push(scrutinee.type_id);
+        scrutinees.push(scrutinee.expression);
     }
 
     instantiate_trunk_types(state, context, &mut trunk_types, branches)?;
 
+    let mut alternatives = vec![];
     for branch in branches.iter() {
-        for (binder, trunk) in branch.binders.iter().zip(&trunk_types) {
-            binder::check_binder(state, context, *binder, *trunk)?;
+        let mut binders = vec![];
+        for (&binder_id, &trunk_type) in branch.binders.iter().zip(&trunk_types) {
+            let checked_binder = binder::check_binder(state, context, binder_id, trunk_type)?;
+            binders.push(checked_binder.binder);
         }
-        if let Some(guarded) = &branch.guarded_expression {
+
+        let guarded_expression = if let Some(guarded_source) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
-                    let guarded = guarded::infer_guarded_expression(state, context, guarded)?;
-                    unification::subtype(state, context, guarded.type_id, expected)?;
+                    let checked_guarded =
+                        guarded::infer_guarded_expression(state, context, guarded_source)?;
+                    unification::subtype(state, context, checked_guarded.type_id, expected)?;
+                    checked_guarded.guarded_expression
                 }
                 CaseOfMode::Check { .. } => {
-                    guarded::check_guarded_expression(state, context, guarded, expected)?;
+                    guarded::check_guarded_expression(state, context, guarded_source, expected)?
+                        .guarded_expression
                 }
             }
-        }
+        } else {
+            let expression = state.allocate_error_expression(expected);
+            let where_expression = tree::WhereExpression::new(expression);
+            tree::GuardedExpression::unconditional(where_expression)
+        };
+        alternatives.push(tree::CaseAlternative { binders: binders.into(), guarded_expression });
     }
 
     let exhaustiveness = exhaustive::check_case_patterns(state, context, &trunk_types, branches)?;
@@ -255,13 +269,20 @@ where
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
 
+    let kind = tree::ExpressionKind::Case {
+        scrutinees: scrutinees.into(),
+        alternatives: alternatives.into(),
+    };
+
     if has_missing {
         if let CaseOfMode::Infer = mode {
-            return Ok(context.intern_constrained(context.prim.partial, expected));
+            let result_type = context.intern_constrained(context.prim.partial, expected);
+            Ok(super::allocate_expression(state, result_type, kind))
         } else {
             state.push_wanted(context.prim.partial);
+            Ok(super::allocate_expression(state, expected, kind))
         }
+    } else {
+        Ok(super::allocate_expression(state, expected, kind))
     }
-
-    Ok(expected)
 }

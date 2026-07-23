@@ -204,6 +204,12 @@ pub struct GuardedAlternative {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct CaseAlternative {
+    pub binders: Arc<[BinderId]>,
+    pub guarded_expression: GuardedExpression,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum PatternGuard {
     Boolean { expression: ExpressionId },
     Pattern { binder: BinderId, expression: ExpressionId },
@@ -303,6 +309,7 @@ pub enum ExpressionKind {
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+    Case { scrutinees: Arc<[ExpressionId]>, alternatives: Arc<[CaseAlternative]> },
     Let { bindings: LetBindings, expression: ExpressionId },
 }
 

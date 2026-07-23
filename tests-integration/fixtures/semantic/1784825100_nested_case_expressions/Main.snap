@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Choice :: Type -> Type
+data Choice @a
+  | Empty :: Choice a
+  | One :: a -> Choice a
+  | Pair :: a -> a -> Choice a
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+nested :: Choice (Choice Int) -> Int
+nested = \choice ->
+  case choice of
+    (One inner) ->
+      case inner of
+        (One value) -> value
+        (Pair left _) -> left
+        _ -> 0
+    _ -> 0
+
+applied :: Choice Int -> Int
+applied = \choice ->
+  identity @Int case choice of
+    (One value) -> value
+    _ -> 0

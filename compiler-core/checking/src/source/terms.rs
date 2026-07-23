@@ -215,8 +215,7 @@ where
             Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            let type_id = forms::check_case_of(state, context, trunk, branches, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::check_case_of(state, context, trunk, branches, expected)
         }
         lowering::ExpressionKind::OperatorChain { .. } => {
             let (checked, checked_type) =
@@ -386,8 +385,7 @@ where
         }
 
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
-            let type_id = forms::infer_case_of(state, context, trunk, branches)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::infer_case_of(state, context, trunk, branches)
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {
