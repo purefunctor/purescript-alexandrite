@@ -71,7 +71,7 @@ where
                     GuardedExpressionMode::Check { expected } => expected,
                 };
                 let expression = state.allocate_error_expression(type_id);
-                let where_expression = tree::WhereExpression { expression };
+                let where_expression = tree::WhereExpression::new(expression);
                 let guarded_expression = tree::GuardedExpression::unconditional(where_expression);
                 return Ok(ElaboratedGuardedExpression { type_id, guarded_expression });
             };
@@ -110,7 +110,7 @@ where
                             .where_expression
                     } else {
                         let expression = state.allocate_error_expression(expected_type);
-                        tree::WhereExpression { expression }
+                        tree::WhereExpression::new(expression)
                     };
                 alternatives.push(tree::GuardedAlternative {
                     pattern_guards: pattern_guards.into(),
@@ -201,7 +201,7 @@ where
             WhereExpressionMode::Check { expected } => expected,
         };
         let expression = state.allocate_error_expression(type_id);
-        let where_expression = tree::WhereExpression { expression };
+        let where_expression = tree::WhereExpression::new(expression);
         return Ok(ElaboratedWhereExpression { type_id, where_expression });
     };
 
@@ -217,6 +217,6 @@ where
     } else {
         state.allocate_error_expression(type_id)
     };
-    let where_expression = tree::WhereExpression { expression };
+    let where_expression = tree::WhereExpression::new(expression);
     Ok(ElaboratedWhereExpression { type_id, where_expression })
 }

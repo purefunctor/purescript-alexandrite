@@ -447,8 +447,9 @@ fn record_instance_member(
 
     let complete = !member.equations.is_empty()
         && member.equations.len() == equations.len()
-        && std::iter::zip(member.equations.iter(), &equations)
-            .all(|(source, equation)| source.source == Some(equation.source));
+        && std::iter::zip(member.equations.iter(), &equations).all(|(source, equation)| {
+            source.source.map(tree::EquationSource::Item) == Some(equation.source)
+        });
     if !complete {
         return None;
     }
@@ -931,7 +932,8 @@ fn record_value_declaration<Q>(
     let complete = !sources.is_empty()
         && sources.len() == equations.len()
         && std::iter::zip(sources, &equations).all(|(source, equation)| {
-            equation.source == indexing::EquationSourceId::Value(*source)
+            let source = indexing::EquationSourceId::Value(*source);
+            equation.source == tree::EquationSource::Item(source)
         });
     if !complete {
         return;

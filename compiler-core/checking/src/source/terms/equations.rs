@@ -47,6 +47,7 @@ pub struct ElaboratedEquation {
 impl ElaboratedEquation {
     pub fn into_tree(self) -> Option<tree::Equation> {
         let source = self.source?;
+        let source = tree::EquationSource::Item(source);
         Some(tree::Equation { source, binders: self.binders, guarded_expression: self.guarded })
     }
 }
@@ -203,7 +204,7 @@ where
 
 fn missing_guarded_expression(state: &mut CheckState, type_id: TypeId) -> tree::GuardedExpression {
     let expression = state.allocate_error_expression(type_id);
-    let where_expression = tree::WhereExpression { expression };
+    let where_expression = tree::WhereExpression::new(expression);
     tree::GuardedExpression::unconditional(where_expression)
 }
 

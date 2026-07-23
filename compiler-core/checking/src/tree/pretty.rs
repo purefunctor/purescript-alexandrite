@@ -862,6 +862,7 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
+            ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
             ExpressionKind::TermApplication { .. }
             | ExpressionKind::TypeApplication { .. }
             | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
@@ -1032,6 +1033,9 @@ where
                 )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
+            ExpressionKind::Let { expression, .. } => {
+                self.expression(*expression, evidence_names, type_pretty)
             }
         }
     }
