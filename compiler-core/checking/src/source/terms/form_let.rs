@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
@@ -12,21 +14,20 @@ pub fn check_let_chunks<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     chunks: &[lowering::LetBindingChunk],
-) -> QueryResult<()>
+) -> QueryResult<tree::LetBindings>
 where
     Q: ExternalQueries,
 {
-    for chunk in chunks {
-        match chunk {
-            lowering::LetBindingChunk::Pattern { source, binder, where_expression } => {
-                check_pattern_let_binding(state, context, *source, binder, where_expression)?;
-            }
-            lowering::LetBindingChunk::Names { bindings, scc } => {
-                check_names_chunk(state, context, bindings, scc)?;
-            }
+    let checked_chunks = chunks.iter().map(|chunk| match chunk {
+        lowering::LetBindingChunk::Pattern { source, binder, where_expression } => {
+            check_pattern_let_binding(state, context, *source, binder, where_expression)
         }
-    }
-    Ok(())
+        lowering::LetBindingChunk::Names { bindings, scc } => {
+            check_names_chunk(state, context, bindings, scc)
+        }
+    });
+    let chunks = checked_chunks.collect::<QueryResult<Arc<[_]>>>()?;
+    Ok(tree::LetBindings { chunks })
 }
 
 pub fn check_pattern_let_binding<Q>(
@@ -87,7 +88,7 @@ pub fn check_names_chunk<Q>(
     context: &CheckContext<Q>,
     bindings: &[lowering::LetBindingNameGroupId],
     scc: &[lowering::Scc<lowering::LetBindingNameGroupId>],
-) -> QueryResult<()>
+) -> QueryResult<tree::LetBindingChunk>
 where
     Q: ExternalQueries,
 {
@@ -119,7 +120,19 @@ where
         }
     }
 
-    Ok(())
+    let lookup = |source| {
+        state
+            .checked
+            .tree
+            .lookup_let(source)
+            .expect("invariant violated: checked local declaration is missing")
+    };
+
+    let declarations = bindings.iter().copied().map(lookup);
+    let declarations = declarations.collect();
+    let groups = Arc::from(scc);
+
+    Ok(tree::LetBindingChunk::Names { declarations, groups })
 }
 
 pub fn check_let_name_binding<Q>(
