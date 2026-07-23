@@ -20,6 +20,18 @@ enum OperatorKindMode {
     Check { expected_type: TypeId },
 }
 
+pub struct OperatorApplication<Elaborated> {
+    implicit: Vec<terms::application::ImplicitApplication>,
+    argument: (Elaborated, TypeId),
+    result_type: TypeId,
+}
+
+pub struct OperatorBranch<Item, Elaborated> {
+    operator: ((FileId, Item), TypeId),
+    left: OperatorApplication<Elaborated>,
+    right: OperatorApplication<Elaborated>,
+}
+
 pub fn infer_operator_chain<Q, E>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -195,16 +207,20 @@ where
         let _ = unification::subtype(state, context, result_type, expected_type)?;
     }
 
-    E::build(
-        state,
-        context,
-        operator,
-        operator_type,
-        (left_implicit, right_implicit),
-        (left, right),
-        (left_type, right_type),
-        (right_function_type, result_type),
-    )
+    let branch = OperatorBranch {
+        operator: (operator, operator_type),
+        left: OperatorApplication {
+            implicit: left_implicit,
+            argument: (left, left_type),
+            result_type: right_function_type,
+        },
+        right: OperatorApplication {
+            implicit: right_implicit,
+            argument: (right, right_type),
+            result_type,
+        },
+    };
+    E::build(state, context, branch)
 }
 
 pub trait IsOperator<Q: ExternalQueries>: IsElement {
@@ -254,15 +270,7 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        operator: (FileId, Self::ItemId),
-        operator_type: TypeId,
-        applications: (
-            Vec<terms::application::ImplicitApplication>,
-            Vec<terms::application::ImplicitApplication>,
-        ),
-        result_tree: (Self::Elaborated, Self::Elaborated),
-        argument_types: (TypeId, TypeId),
-        result_types: (TypeId, TypeId),
+        branch: OperatorBranch<Self::ItemId, Self::Elaborated>,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
 
     fn record_branch_types(
@@ -327,22 +335,22 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        (file_id, item_id): (FileId, Self::ItemId),
-        operator_type: TypeId,
-        (left_implicit, right_implicit): (
-            Vec<terms::application::ImplicitApplication>,
-            Vec<terms::application::ImplicitApplication>,
-        ),
-        (left, right): (Self::Elaborated, Self::Elaborated),
-        (_, _): (TypeId, TypeId),
-        (right_function_type, result_type): (TypeId, TypeId),
+        OperatorBranch { operator: (operator, operator_type), left, right }: OperatorBranch<
+            Self::ItemId,
+            Self::Elaborated,
+        >,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        let Some(left) = left else { return Ok((None, result_type)) };
-        let Some(right) = right else { return Ok((None, result_type)) };
+        let (file_id, item_id) = operator;
+        let (Some(left_argument), _) = left.argument else {
+            return Ok((None, right.result_type));
+        };
+        let (Some(right_argument), _) = right.argument else {
+            return Ok((None, right.result_type));
+        };
         let Some((target_file_id, target_item_id)) =
             toolkit::resolve_term_operator_target(context, file_id, item_id)?
         else {
-            return Ok((None, result_type));
+            return Ok((None, right.result_type));
         };
 
         let operator = terms::allocate_term_reference(
@@ -355,18 +363,18 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         let left = terms::application::materialize_application(
             state,
             operator,
-            left_implicit,
-            right_function_type,
-            left,
+            left.implicit,
+            left.result_type,
+            left_argument,
         );
         let expression = terms::application::materialize_application(
             state,
             left,
-            right_implicit,
-            result_type,
-            right,
+            right.implicit,
+            right.result_type,
+            right_argument,
         );
-        Ok((Some(expression), result_type))
+        Ok((Some(expression), right.result_type))
     }
 
     fn record_branch_types(
@@ -448,16 +456,14 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        (file_id, item_id): (FileId, Self::ItemId),
-        _operator_type: TypeId,
-        (_left_implicit, _right_implicit): (
-            Vec<terms::application::ImplicitApplication>,
-            Vec<terms::application::ImplicitApplication>,
-        ),
-        (left, right): (Self::Elaborated, Self::Elaborated),
-        (left_kind, right_kind): (TypeId, TypeId),
-        (_, result_kind): (TypeId, TypeId),
+        OperatorBranch { operator: (operator, _), left, right }: OperatorBranch<
+            Self::ItemId,
+            Self::Elaborated,
+        >,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        let (file_id, item_id) = operator;
+        let (left_argument, left_kind) = left.argument;
+        let (right_argument, right_kind) = right.argument;
         let Some((target_file_id, target_item_id)) =
             toolkit::resolve_type_operator_target(context, file_id, item_id)?
         else {
@@ -472,7 +478,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             context,
             (target_file_id, target_item_id),
             operator_kind,
-            &[(left, left_kind), (right, right_kind)],
+            &[(left_argument, left_kind), (right_argument, right_kind)],
         )? {
             let result_kind = normalise::normalise(state, context, result_kind)?;
             return Ok((elaborated_type, result_kind));
@@ -483,8 +489,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
 
         let function: application::FnTypeKind = (function_type, operator_kind);
         let arguments = [
-            application::Argument::Core(left, left_kind),
-            application::Argument::Core(right, right_kind),
+            application::Argument::Core(left_argument, left_kind),
+            application::Argument::Core(right_argument, right_kind),
         ];
 
         let ((elaborated_type, _), _) = application::infer_application_arguments(
@@ -496,7 +502,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             application::Records::Ignore,
         )?;
 
-        let result_kind = normalise::normalise(state, context, result_kind)?;
+        let result_kind = normalise::normalise(state, context, right.result_type)?;
         Ok((elaborated_type, result_kind))
     }
 
@@ -566,17 +572,9 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     fn build(
         _state: &mut CheckState,
         _context: &CheckContext<Q>,
-        (_, _): (FileId, Self::ItemId),
-        _operator_type: TypeId,
-        (_left_implicit, _right_implicit): (
-            Vec<terms::application::ImplicitApplication>,
-            Vec<terms::application::ImplicitApplication>,
-        ),
-        (_, _): (Self::Elaborated, Self::Elaborated),
-        (_, _): (TypeId, TypeId),
-        (_, result_type): (TypeId, TypeId),
+        OperatorBranch { right, .. }: OperatorBranch<Self::ItemId, Self::Elaborated>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), result_type))
+        Ok(((), right.result_type))
     }
 
     fn record_branch_types(
