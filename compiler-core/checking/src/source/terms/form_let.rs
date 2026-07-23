@@ -18,7 +18,7 @@ where
 {
     for chunk in chunks {
         match chunk {
-            lowering::LetBindingChunk::Pattern { binder, where_expression } => {
+            lowering::LetBindingChunk::Pattern { binder, where_expression, .. } => {
                 check_pattern_let_binding(state, context, binder, where_expression)?;
             }
             lowering::LetBindingChunk::Names { bindings, scc } => {
