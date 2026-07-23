@@ -18,8 +18,8 @@ where
 {
     for chunk in chunks {
         match chunk {
-            lowering::LetBindingChunk::Pattern { binder, where_expression, .. } => {
-                check_pattern_let_binding(state, context, binder, where_expression)?;
+            lowering::LetBindingChunk::Pattern { source, binder, where_expression } => {
+                check_pattern_let_binding(state, context, *source, binder, where_expression)?;
             }
             lowering::LetBindingChunk::Names { bindings, scc } => {
                 check_names_chunk(state, context, bindings, scc)?;
@@ -32,31 +32,40 @@ where
 pub fn check_pattern_let_binding<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::LetBindingId,
     binder: &Option<lowering::BinderId>,
     where_expression: &Option<lowering::WhereExpression>,
-) -> QueryResult<()>
+) -> QueryResult<tree::LetBindingChunk>
 where
     Q: ExternalQueries,
 {
     let Some(where_expression) = where_expression else {
-        return Ok(());
+        return Ok(tree::LetBindingChunk::PatternError {
+            source,
+            binder_source: *binder,
+            where_expression: None,
+        });
     };
 
-    let where_expression = guarded::infer_where_expression(state, context, where_expression)?;
+    let guarded::ElaboratedWhereExpression { type_id, where_expression } =
+        guarded::infer_where_expression(state, context, where_expression)?;
 
     let Some(binder_id) = *binder else {
-        return Ok(());
+        return Ok(tree::LetBindingChunk::PatternError {
+            source,
+            binder_source: None,
+            where_expression: Some(where_expression),
+        });
     };
 
-    let expression = ElaboratedExpression {
-        type_id: where_expression.type_id,
-        expression: where_expression.where_expression.expression,
-    };
+    let expression = ElaboratedExpression { type_id, expression: where_expression.expression };
     let expression = if binder::requires_instantiation(context, binder_id) {
         application::instantiate_expression(state, context, expression)?
     } else {
         application::collect_expression_wanteds(state, context, expression)?
     };
+    let where_expression =
+        tree::WhereExpression { expression: expression.expression, ..where_expression };
 
     let binder = binder::check_binder(state, context, binder_id, expression.type_id)?;
 
@@ -70,7 +79,7 @@ where
         state.push_wanted(context.prim.partial);
     }
 
-    Ok(())
+    Ok(tree::LetBindingChunk::Pattern { source, binder: binder.binder, where_expression })
 }
 
 pub fn check_names_chunk<Q>(
