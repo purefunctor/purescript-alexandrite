@@ -71,15 +71,53 @@ fn check_expression_quiet<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = normalise::normalise(state, context, expected)?;
-    let expected = toolkit::skolemise_forall(state, context, expected)?;
-    let expected = toolkit::collect_givens(state, context, expected)?;
+    let expected = prepare_expected_expression(state, context, expected)?;
 
     if let Some(section_result) = context.sectioned.expressions.get(&expression) {
         check_sectioned_expression(state, context, expression, section_result, expected)
     } else {
         check_expression_core(state, context, expression, expected)
     }
+}
+
+fn prepare_expected_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    expected: TypeId,
+) -> QueryResult<TypeId>
+where
+    Q: ExternalQueries,
+{
+    let expected = normalise::normalise(state, context, expected)?;
+    let expected = toolkit::skolemise_forall(state, context, expected)?;
+    toolkit::collect_givens(state, context, expected)
+}
+
+pub(super) fn check_elaborated_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    inferred: ElaboratedExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let expected = prepare_expected_expression(state, context, expected)?;
+    check_elaborated_expression_quiet(state, context, inferred, expected)
+}
+
+fn check_elaborated_expression_quiet<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    inferred: ElaboratedExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let inferred = application::instantiate_expression(state, context, inferred)?;
+    unification::subtype(state, context, inferred.type_id, expected)?;
+    Ok(inferred)
 }
 
 fn check_sectioned_expression<Q>(
@@ -168,18 +206,14 @@ where
             check_expression(state, context, *parenthesized, expected)
         }
         lowering::ExpressionKind::Array { array } => {
-            let type_id = collections::check_array(state, context, array, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::check_array(state, context, array, expected)
         }
         lowering::ExpressionKind::Record { record } => {
-            let type_id = collections::check_record(state, context, record, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::check_record(state, context, record, expected)
         }
         _ => {
             let inferred = infer_expression_quiet(state, context, expression)?;
-            let inferred = application::instantiate_expression(state, context, inferred)?;
-            unification::subtype(state, context, inferred.type_id, expected)?;
-            Ok(inferred)
+            check_elaborated_expression_quiet(state, context, inferred, expected)
         }
     }
 }
@@ -428,13 +462,11 @@ where
         }
 
         lowering::ExpressionKind::Array { array } => {
-            let type_id = collections::infer_array(state, context, array)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::infer_array(state, context, array)
         }
 
         lowering::ExpressionKind::Record { record } => {
-            let type_id = collections::infer_record(state, context, record)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::infer_record(state, context, record)
         }
 
         lowering::ExpressionKind::Parenthesized { parenthesized } => {

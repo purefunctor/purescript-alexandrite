@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall t. t -> t
+identity = \value -> value
+
+empty :: Array Int
+empty = []
+
+values :: Array Int
+values = [1, 2]
+
+nested :: Array (Array Int)
+nested = [[1], [2, 3]]
+
+inferredFunctions :: forall t. Array (t -> t)
+inferredFunctions = [identity]
+
+checkedFunctions :: Array (Int -> Int)
+checkedFunctions = [identity @Int]
+
+checkedIdentity :: Array Int -> Array Int
+checkedIdentity = identity @(Array Int)
+
+consume :: Array Int -> Array Int
+consume = \value -> value
+
+application :: Array Int
+application = consume [1, 2]

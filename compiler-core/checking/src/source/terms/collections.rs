@@ -1,26 +1,43 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use smol_str::SmolStr;
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{RowField, Type, TypeId, normalise, toolkit, unification};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
+
+use super::ElaboratedExpression;
+
+struct InferredRecordFieldExpression {
+    elaborated: ElaboratedExpression,
+    field_type: TypeId,
+}
 
 fn infer_record_field_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+) -> QueryResult<InferredRecordFieldExpression>
 where
     Q: ExternalQueries,
 {
     let inferred = super::infer_expression(state, context, expression)?;
 
-    if should_instantiate_record_field(context, expression) {
-        Ok(super::application::instantiate_expression(state, context, inferred)?.type_id)
+    let (elaborated, expand) = if should_instantiate_record_field(context, expression) {
+        let elaborated = super::application::instantiate_expression(state, context, inferred)?;
+        (elaborated, true)
     } else {
-        Ok(inferred.type_id)
-    }
+        (inferred, false)
+    };
+
+    let field_type = if expand {
+        normalise::expand(state, context, elaborated.type_id)?
+    } else {
+        elaborated.type_id
+    };
+    Ok(InferredRecordFieldExpression { elaborated, field_type })
 }
 
 fn should_instantiate_record_field<Q>(
@@ -58,23 +75,24 @@ where
     false
 }
 
-fn instantiate_variable<Q>(
+fn record_pun_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
+    source: lowering::RecordPunId,
     resolution: lowering::TermVariableResolution,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    let id = toolkit::lookup_term_variable(state, context, resolution)?;
-    let id = toolkit::instantiate_unifications(state, context, id)?;
-    toolkit::collect_wanteds(state, context, id)
+    let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
+    let kind = tree::ExpressionKind::RecordPun { source, resolution };
+    Ok(super::allocate_expression(state, type_id, kind))
 }
 
 #[derive(Copy, Clone, Debug)]
 enum ArrayMode {
     Infer,
-    Check { element: TypeId },
+    Check,
 }
 
 #[derive(Copy, Clone)]
@@ -87,11 +105,15 @@ pub fn infer_array<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     array: &[lowering::ExpressionId],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    array_core(state, context, array, ArrayMode::Infer)
+    let element = state.fresh_unification(context.queries, context.prim.t);
+    let elements = array_core(state, context, array, ArrayMode::Infer, element)?;
+    let type_id = context.intern_application(context.prim.array, element);
+    let kind = tree::ExpressionKind::Array { elements };
+    Ok(super::allocate_expression(state, type_id, kind))
 }
 
 pub fn check_array<Q>(
@@ -99,17 +121,18 @@ pub fn check_array<Q>(
     context: &CheckContext<Q>,
     array: &[lowering::ExpressionId],
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     if let Some(element) = expected_array_element(state, context, expected)? {
-        array_core(state, context, array, ArrayMode::Check { element })?;
-        return Ok(expected);
+        let elements = array_core(state, context, array, ArrayMode::Check, element)?;
+        let kind = tree::ExpressionKind::Array { elements };
+        return Ok(super::allocate_expression(state, expected, kind));
     }
 
-    let inferred = array_core(state, context, array, ArrayMode::Infer)?;
-    unification::subtype(state, context, inferred, expected)?;
+    let inferred = infer_array(state, context, array)?;
+    unification::subtype(state, context, inferred.type_id, expected)?;
     Ok(inferred)
 }
 
@@ -135,39 +158,43 @@ fn array_core<Q>(
     context: &CheckContext<Q>,
     array: &[lowering::ExpressionId],
     mode: ArrayMode,
-) -> QueryResult<TypeId>
+    element: TypeId,
+) -> QueryResult<Arc<[tree::ExpressionId]>>
 where
     Q: ExternalQueries,
 {
-    let element = match mode {
-        ArrayMode::Infer => state.fresh_unification(context.queries, context.prim.t),
-        ArrayMode::Check { element } => element,
-    };
+    let mut elements = vec![];
 
     for expression in array {
-        match mode {
+        let checked = match mode {
             ArrayMode::Infer => {
                 let inferred = super::infer_expression(state, context, *expression)?;
                 unification::subtype(state, context, inferred.type_id, element)?;
+                inferred
             }
-            ArrayMode::Check { .. } => {
-                super::check_expression(state, context, *expression, element)?;
-            }
-        }
+            ArrayMode::Check => super::check_expression(state, context, *expression, element)?,
+        };
+        elements.push(checked.expression);
     }
 
-    Ok(context.intern_application(context.prim.array, element))
+    Ok(elements.into())
 }
 
 pub fn infer_record<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     record: &[lowering::ExpressionRecordItem],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    record_core(state, context, record, RecordMode::Infer)
+    let (type_id, fields, complete) = record_core(state, context, record, RecordMode::Infer)?;
+    if complete {
+        let kind = tree::ExpressionKind::Record { fields };
+        Ok(super::allocate_expression(state, type_id, kind))
+    } else {
+        Ok(super::allocate_error_expression(state, type_id))
+    }
 }
 
 pub fn check_record<Q>(
@@ -175,7 +202,7 @@ pub fn check_record<Q>(
     context: &CheckContext<Q>,
     record: &[lowering::ExpressionRecordItem],
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -186,20 +213,25 @@ where
             let row_type = normalise::expand(state, context, row_type)?;
             if let Type::Row(row_id) = context.lookup_type(row_type) {
                 let expected_fields = context.lookup_row_type(row_id);
-                let record_type = record_core(
+                let (record_type, fields, complete) = record_core(
                     state,
                     context,
                     record,
                     RecordMode::Check { expected_fields: &expected_fields.fields },
                 )?;
                 unification::subtype(state, context, record_type, expected)?;
-                return Ok(record_type);
+                if complete {
+                    let kind = tree::ExpressionKind::Record { fields };
+                    return Ok(super::allocate_expression(state, record_type, kind));
+                } else {
+                    return Ok(super::allocate_error_expression(state, record_type));
+                }
             }
         }
     }
 
     let inferred = infer_record(state, context, record)?;
-    unification::subtype(state, context, inferred, expected)?;
+    unification::subtype(state, context, inferred.type_id, expected)?;
     Ok(inferred)
 }
 
@@ -214,57 +246,63 @@ fn expected_record_field(mode: RecordMode<'_>, label: &SmolStr) -> Option<TypeId
     }
 }
 
-fn record_field_type<Q>(
+struct ElaboratedRecordField {
+    row: RowField,
+    checked: tree::RecordExpressionField,
+}
+
+fn elaborate_record_field<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     name: &SmolStr,
     value: lowering::ExpressionId,
     mode: RecordMode<'_>,
-) -> QueryResult<RowField>
+) -> QueryResult<ElaboratedRecordField>
 where
     Q: ExternalQueries,
 {
     let label = SmolStr::clone(name);
 
-    let id = if let Some(expected_type) = expected_record_field(mode, &label) {
-        super::check_expression(state, context, value, expected_type)?;
-        expected_type
+    let (id, expression) = if let Some(expected_type) = expected_record_field(mode, &label) {
+        let checked = super::check_expression(state, context, value, expected_type)?;
+        (expected_type, checked.expression)
     } else {
-        infer_record_field_expression(state, context, value)?
+        let inferred = infer_record_field_expression(state, context, value)?;
+        (inferred.field_type, inferred.elaborated.expression)
     };
 
-    Ok(RowField { label, id })
+    let checked = tree::RecordExpressionField::Field { label: SmolStr::clone(&label), expression };
+    Ok(ElaboratedRecordField { row: RowField { label, id }, checked })
 }
 
-fn record_pun_type<Q>(
+fn elaborate_record_pun<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     pun: lowering::RecordPunId,
     name: &SmolStr,
     resolution: lowering::TermVariableResolution,
     mode: RecordMode<'_>,
-) -> QueryResult<RowField>
+) -> QueryResult<ElaboratedRecordField>
 where
     Q: ExternalQueries,
 {
     let label = SmolStr::clone(name);
+    let variable = record_pun_expression(state, context, pun, resolution)?;
 
-    let id = if let Some(expected_type) = expected_record_field(mode, &label) {
-        let id = toolkit::lookup_term_variable(state, context, resolution)?;
-
-        let checked_type = normalise::expand(state, context, expected_type)?;
-        let checked_type = toolkit::skolemise_forall(state, context, checked_type)?;
-        let checked_type = toolkit::collect_givens(state, context, checked_type)?;
-        unification::subtype(state, context, id, checked_type)?;
-
-        expected_type
+    let (id, expression) = if let Some(expected_type) = expected_record_field(mode, &label) {
+        let checked = super::check_elaborated_expression(state, context, variable, expected_type)?;
+        (expected_type, checked.expression)
     } else {
-        instantiate_variable(state, context, resolution)?
+        let inferred = super::application::instantiate_expression(state, context, variable)?;
+        let field_type = normalise::expand(state, context, inferred.type_id)?;
+        (field_type, inferred.expression)
     };
 
     state.checked.nodes.puns.insert(pun, id);
 
-    Ok(RowField { label, id })
+    let checked =
+        tree::RecordExpressionField::Pun { source: pun, label: SmolStr::clone(&label), expression };
+    Ok(ElaboratedRecordField { row: RowField { label, id }, checked })
 }
 
 fn record_core<Q>(
@@ -272,31 +310,39 @@ fn record_core<Q>(
     context: &CheckContext<Q>,
     record: &[lowering::ExpressionRecordItem],
     mode: RecordMode<'_>,
-) -> QueryResult<TypeId>
+) -> QueryResult<(TypeId, Arc<[tree::RecordExpressionField]>, bool)>
 where
     Q: ExternalQueries,
 {
     let mut fields = vec![];
+    let mut checked_fields = vec![];
+    let mut complete = true;
 
     for field in record.iter() {
         let field = match field {
             lowering::ExpressionRecordItem::RecordField { name, value } => {
-                let Some(name) = name else { continue };
-                let Some(value) = value else { continue };
-                record_field_type(state, context, name, *value, mode)?
+                let (Some(name), Some(value)) = (name, value) else {
+                    complete = false;
+                    continue;
+                };
+                elaborate_record_field(state, context, name, *value, mode)?
             }
             lowering::ExpressionRecordItem::RecordPun { id, name, resolution } => {
-                let Some(name) = name else { continue };
-                let Some(resolution) = resolution else { continue };
-                record_pun_type(state, context, *id, name, *resolution, mode)?
+                let (Some(name), Some(resolution)) = (name, resolution) else {
+                    complete = false;
+                    continue;
+                };
+                elaborate_record_pun(state, context, *id, name, *resolution, mode)?
             }
         };
 
-        fields.push(field);
+        fields.push(field.row);
+        checked_fields.push(field.checked);
     }
 
     let row_type = context.intern_row(fields, None);
-    Ok(context.intern_application(context.prim.record, row_type))
+    let type_id = context.intern_application(context.prim.record, row_type);
+    Ok((type_id, checked_fields.into(), complete))
 }
 
 pub fn infer_record_access<Q>(
@@ -367,7 +413,7 @@ where
 
                 let input_id = state.fresh_unification(context.queries, context.prim.t);
                 let output_id = if let Some(expression) = expression {
-                    infer_record_field_expression(state, context, *expression)?
+                    infer_record_field_expression(state, context, *expression)?.field_type
                 } else {
                     context.unknown("missing record update expression")
                 };

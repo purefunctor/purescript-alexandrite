@@ -206,11 +206,20 @@ pub enum ExpressionKind {
     Boolean { value: bool },
     Integer { value: i32 },
     Number { value: SmolStr },
+    Array { elements: Arc<[ExpressionId]> },
+    Record { fields: Arc<[RecordExpressionField]> },
     Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
+    RecordPun { source: lowering::RecordPunId, resolution: lowering::TermVariableResolution },
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordExpressionField {
+    Field { label: SmolStr, expression: ExpressionId },
+    Pun { source: lowering::RecordPunId, label: SmolStr, expression: ExpressionId },
 }
 
 impl Module {

@@ -178,20 +178,30 @@ where
 
     pub fn render(&mut self, id: TypeId) -> SmolStr {
         self.names.set_default_name("t");
-        self.render_with_signature(None, id)
+        self.render_with_signature(None, id, Precedence::Top)
+    }
+
+    pub(crate) fn render_atom(&mut self, id: TypeId) -> SmolStr {
+        self.names.set_default_name("t");
+        self.render_with_signature(None, id, Precedence::Atom)
     }
 
     pub fn render_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
         self.names.set_default_name("t");
-        self.render_with_signature(Some(name), id)
+        self.render_with_signature(Some(name), id, Precedence::Top)
     }
 
     pub fn render_kind_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
         self.names.set_default_name("k");
-        self.render_with_signature(Some(name), id)
+        self.render_with_signature(Some(name), id, Precedence::Top)
     }
 
-    fn render_with_signature(&mut self, signature: Option<&str>, id: TypeId) -> SmolStr {
+    fn render_with_signature(
+        &mut self,
+        signature: Option<&str>,
+        id: TypeId,
+        precedence: Precedence,
+    ) -> SmolStr {
         let arena = Arena::new();
         let mut printer = Printer::new(
             &arena,
@@ -205,7 +215,7 @@ where
         let document = if let Some(name) = signature {
             printer.signature(name, id)
         } else {
-            printer.traverse(Precedence::Top, id)
+            printer.traverse(precedence, id)
         };
 
         let mut output = SmolStrBuilder::new();
