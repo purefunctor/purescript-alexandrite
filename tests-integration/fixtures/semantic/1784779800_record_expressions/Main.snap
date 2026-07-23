@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+value :: Int
+value = 42
+
+empty :: {}
+empty = { }
+
+explicit :: { a :: String, z :: Int }
+explicit = { z: 1, a: "text" }
+
+punned :: { value :: Int }
+punned = { value }
+
+nested :: { array :: Array Int, record :: { boolean :: Boolean } }
+nested = { array: [1, 2], record: { boolean: true } }
+
+consume :: { value :: Int } -> Int
+consume = \{ value: inner } -> inner
+
+application :: Int
+application = consume { value: 1 }

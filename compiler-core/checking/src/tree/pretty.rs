@@ -14,8 +14,8 @@ use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
 use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
     BinderId, BinderKind, Equation, ExpressionId, ExpressionKind, GuardedAlternative,
-    GuardedExpression, InstanceDeclaration, PatternGuard, RecordBinderField, TermDeclarationKind,
-    TypeDeclarationKind,
+    GuardedExpression, InstanceDeclaration, PatternGuard, RecordBinderField, RecordExpressionField,
+    TermDeclarationKind, TypeDeclarationKind,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -866,12 +866,58 @@ where
                 let text = value.to_string();
                 Ok(self.arena.text(text))
             }
+            ExpressionKind::Array { elements } => {
+                let mut array = self.arena.text("[");
+                for (position, element) in elements.iter().enumerate() {
+                    if position > 0 {
+                        array = array.append(self.arena.text(", "));
+                    }
+                    let element = self.expression(*element, evidence_names, type_pretty)?;
+                    array = array.append(element);
+                }
+                Ok(array.append(self.arena.text("]")))
+            }
+            ExpressionKind::Record { fields } => {
+                if fields.is_empty() {
+                    return Ok(self.arena.text("{ }"));
+                }
+
+                let mut record = self.arena.text("{ ");
+                for (position, field) in fields.iter().enumerate() {
+                    if position > 0 {
+                        record = record.append(self.arena.text(", "));
+                    }
+
+                    let (label, expression, shorthand) = match field {
+                        RecordExpressionField::Field { label, expression } => {
+                            (label, expression, false)
+                        }
+                        RecordExpressionField::Pun { label, expression, .. } => {
+                            let expression_kind = &self.checked.tree[*expression].kind;
+                            let shorthand =
+                                matches!(expression_kind, ExpressionKind::RecordPun { .. });
+                            (label, expression, shorthand)
+                        }
+                    };
+
+                    if shorthand {
+                        record = record.append(self.arena.text(label.to_string()));
+                    } else {
+                        let expression =
+                            self.expression(*expression, evidence_names, type_pretty)?;
+                        let text = format!("{label}: ");
+                        record = record.append(self.arena.text(text)).append(expression);
+                    }
+                }
+                Ok(record.append(self.arena.text(" }")))
+            }
             ExpressionKind::Constructor { resolution } => {
                 let name = self.term_name(resolution.0, resolution.1)?;
                 let text = name.unwrap_or_else(|| "?".to_string());
                 Ok(self.arena.text(text))
             }
-            ExpressionKind::Variable { resolution } => {
+            ExpressionKind::Variable { resolution }
+            | ExpressionKind::RecordPun { resolution, .. } => {
                 let name = match *resolution {
                     TermVariableResolution::Binder(binder) => {
                         let kind =
@@ -923,7 +969,7 @@ where
             }
             ExpressionKind::TypeApplication { function, argument } => {
                 let function = self.expression(*function, evidence_names, type_pretty)?;
-                let argument = type_pretty.render(*argument);
+                let argument = type_pretty.render_atom(*argument);
                 Ok(function.append(self.arena.text(format!(" @{argument}"))))
             }
             ExpressionKind::EvidenceApplication { function, evidence } => {
