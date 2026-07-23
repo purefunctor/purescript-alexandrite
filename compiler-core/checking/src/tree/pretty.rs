@@ -619,36 +619,59 @@ where
             }
         }
         for equation in equations.iter() {
-            let mut expression = self.guarded_expression(
-                &equation.guarded_expression,
-                evidence_names,
-                &mut type_pretty,
-            )?;
+            let has_abstraction = !equation.binders.is_empty() || !evidences.is_empty();
+            let (mut expression, where_bindings) = if let [alternative] =
+                equation.guarded_expression.alternatives.as_ref()
+                && alternative.pattern_guards.is_empty()
+            {
+                let where_expression = &alternative.where_expression;
+                let expression =
+                    self.expression(where_expression.expression, evidence_names, &mut type_pretty)?;
+                let bindings = (!where_expression.bindings.chunks.is_empty())
+                    .then_some(&where_expression.bindings);
+                (expression, bindings)
+            } else {
+                let expression = self.guarded_expression(
+                    &equation.guarded_expression,
+                    evidence_names,
+                    &mut type_pretty,
+                )?;
+                (expression, None)
+            };
 
-            for &binder in equation.binders.iter().rev() {
-                let binder = self.binder(binder)?;
-                expression = self
-                    .arena
-                    .text("\\")
-                    .append(binder)
-                    .append(self.arena.text(" ->"))
-                    .append(self.arena.line().append(expression).nest(2))
-                    .group();
-            }
-            for evidence in evidences.iter().rev() {
+            let mut abstractions = vec![];
+            for evidence in evidences.iter() {
                 let binder = self.evidence_name(evidence_names, evidence)?;
-                expression = self
-                    .arena
-                    .text(format!("\\{{{binder}}} ->"))
-                    .append(self.arena.line().append(expression).nest(2))
-                    .group();
+                abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
+            }
+            for &binder in equation.binders.iter() {
+                let binder = self.binder(binder)?;
+                let abstraction =
+                    self.arena.text("\\").append(binder).append(self.arena.text(" ->"));
+                abstractions.push(abstraction);
             }
 
-            let equation = self
-                .arena
-                .text(format!("{prefix}{name} ="))
-                .append(self.arena.line().append(expression).nest(2))
-                .group();
+            let mut abstractions = abstractions.into_iter();
+            if let Some(first) = abstractions.next() {
+                let abstractions = abstractions.fold(first, |document, abstraction| {
+                    document.append(self.arena.softline().append(abstraction).nest(2))
+                });
+                let body = self.arena.line().append(expression).nest(2).group();
+                expression = abstractions.append(body);
+            }
+
+            let mut equation = if has_abstraction {
+                self.arena.text(format!("{prefix}{name} = ")).append(expression)
+            } else {
+                self.arena
+                    .text(format!("{prefix}{name} ="))
+                    .append(self.arena.line().append(expression).nest(2))
+                    .group()
+            };
+            if let Some(bindings) = where_bindings {
+                let where_clause = self.where_clause(bindings, evidence_names, &mut type_pretty)?;
+                equation = equation.append(self.arena.hardline().append(where_clause).nest(2));
+            }
             rendered_equations.push(equation);
         }
 
@@ -742,6 +765,16 @@ where
         Ok(bindings)
     }
 
+    fn where_clause(
+        &self,
+        bindings: &LetBindings,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let bindings = self.let_bindings(bindings, evidence_names, type_pretty)?;
+        Ok(self.arena.text("where").append(self.arena.hardline()).append(bindings))
+    }
+
     fn where_expression(
         &self,
         where_expression: &WhereExpression,
@@ -754,9 +787,8 @@ where
             return Ok(expression);
         }
 
-        let bindings =
-            self.let_bindings(&where_expression.bindings, evidence_names, type_pretty)?;
-        let where_clause = self.arena.text("where").append(self.arena.hardline()).append(bindings);
+        let where_clause =
+            self.where_clause(&where_expression.bindings, evidence_names, type_pretty)?;
         Ok(expression.append(self.arena.hardline().append(where_clause).nest(2)))
     }
 
