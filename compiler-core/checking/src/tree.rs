@@ -201,6 +201,11 @@ pub struct Expression {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
     Error,
+    String { kind: lowering::StringKind, value: SmolStr },
+    Char { value: char },
+    Boolean { value: bool },
+    Integer { value: i32 },
+    Number { value: SmolStr },
     Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
     TermApplication { function: ExpressionId, argument: ExpressionId },
