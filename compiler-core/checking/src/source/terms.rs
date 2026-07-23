@@ -45,6 +45,34 @@ fn allocate_error_expression(state: &mut CheckState, type_id: TypeId) -> Elabora
     ElaboratedExpression { type_id, expression }
 }
 
+pub(super) fn allocate_term_reference<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    term_id: TermItemId,
+    type_id: TypeId,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let is_constructor = if file_id == context.id {
+        let item = context.lowered.info.get_term_item(term_id);
+        matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
+    } else {
+        let lowered = context.queries.lowered(file_id)?;
+        let item = lowered.info.get_term_item(term_id);
+        matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
+    };
+
+    let kind = if is_constructor {
+        tree::ExpressionKind::Constructor { resolution: (file_id, term_id) }
+    } else {
+        let resolution = lowering::TermVariableResolution::Reference(file_id, term_id);
+        tree::ExpressionKind::Variable { resolution }
+    };
+    Ok(allocate_expression(state, type_id, kind))
+}
+
 /// Checks the type of an expression.
 pub fn check_expression<Q>(
     state: &mut CheckState,
@@ -191,9 +219,9 @@ where
             Ok(allocate_error_expression(state, type_id))
         }
         lowering::ExpressionKind::OperatorChain { .. } => {
-            let (_, checked_type) =
+            let (checked, checked_type) =
                 operator::check_operator_chain(state, context, expression, expected)?;
-            Ok(allocate_error_expression(state, checked_type))
+            Ok(checked.unwrap_or_else(|| allocate_error_expression(state, checked_type)))
         }
         lowering::ExpressionKind::LetIn { bindings, expression } => {
             let type_id = forms::check_let_in(state, context, bindings, *expression, expected)?;
@@ -303,16 +331,16 @@ where
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {
-            let (_, inferred_type) = operator::infer_operator_chain(state, context, expression)?;
-            Ok(allocate_error_expression(state, inferred_type))
+            let (inferred, inferred_type) =
+                operator::infer_operator_chain(state, context, expression)?;
+            Ok(inferred.unwrap_or_else(|| allocate_error_expression(state, inferred_type)))
         }
 
         lowering::ExpressionKind::InfixChain { head, tail } => {
             let Some(head) = *head else {
                 return Ok(allocate_error_expression(state, unknown));
             };
-            let type_id = application::infer_infix_chain(state, context, head, tail)?;
-            Ok(allocate_error_expression(state, type_id))
+            application::infer_infix_chain(state, context, head, tail)
         }
 
         lowering::ExpressionKind::Negate { negate, expression } => {
@@ -324,13 +352,17 @@ where
             };
 
             let negate_type = toolkit::lookup_term_variable(state, context, *negate)?;
-            let type_id = application::check_function_term_application(
-                state,
-                context,
-                negate_type,
-                *expression,
-            )?;
-            Ok(allocate_error_expression(state, type_id))
+            let kind = tree::ExpressionKind::Variable { resolution: *negate };
+            let negate = allocate_expression(state, negate_type, kind);
+            let Some(application::GenericApplication { automatic, argument, result }) =
+                application::check_generic_application(state, context, negate_type)?
+            else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let operand = check_expression(state, context, *expression, argument)?;
+            Ok(application::materialize_generic_application(
+                state, negate, automatic, result, operand,
+            ))
         }
 
         lowering::ExpressionKind::Application { function, arguments } => {
@@ -402,7 +434,12 @@ where
                 return Ok(allocate_error_expression(state, unknown));
             };
             let type_id = toolkit::lookup_file_term(state, context, *file_id, *term_id)?;
-            Ok(allocate_error_expression(state, type_id))
+            let Some((target_file_id, target_term_id)) =
+                toolkit::resolve_term_operator_target(context, *file_id, *term_id)?
+            else {
+                return Ok(allocate_error_expression(state, type_id));
+            };
+            allocate_term_reference(state, context, target_file_id, target_term_id, type_id)
         }
 
         lowering::ExpressionKind::Section => {

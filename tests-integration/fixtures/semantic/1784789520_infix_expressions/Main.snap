@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+choose :: forall a b. a -> b -> a
+choose = \left -> \right -> left
+
+singleInfix :: Int
+singleInfix = choose @Int @String 1 "text"
+
+multipleInfix :: Int
+multipleInfix = choose @Int @Boolean (choose @Int @String 1 "first") true
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+polymorphicHead :: forall t. t -> t
+polymorphicHead = choose @(t -> t) @Int identity 1
