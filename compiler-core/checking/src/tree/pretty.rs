@@ -756,9 +756,8 @@ where
 
         let bindings =
             self.let_bindings(&where_expression.bindings, evidence_names, type_pretty)?;
-        let where_clause =
-            self.arena.text("where").append(self.arena.hardline().append(bindings).nest(2));
-        Ok(expression.append(self.arena.hardline()).append(where_clause))
+        let where_clause = self.arena.text("where").append(self.arena.hardline()).append(bindings);
+        Ok(expression.append(self.arena.hardline().append(where_clause).nest(2)))
     }
 
     fn guarded_expression(
@@ -1147,8 +1146,8 @@ where
                     .text("let")
                     .append(self.arena.hardline().append(bindings).nest(2))
                     .append(self.arena.hardline())
-                    .append(self.arena.text("in "))
-                    .append(expression))
+                    .append(self.arena.text("in"))
+                    .append(self.arena.hardline().append(expression).nest(2)))
             }
         }
     }
