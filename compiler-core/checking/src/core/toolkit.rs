@@ -5,7 +5,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
-use lowering::TypeItemIr;
+use lowering::{TermItemIr, TypeItemIr};
 
 use rustc_hash::FxHashMap;
 
@@ -238,6 +238,29 @@ where
     let resolve = |lowered: &lowering::LoweredModule| {
         lowered.info.get_type_item(type_id).and_then(|item| match item {
             TypeItemIr::Operator { resolution, .. } => *resolution,
+            _ => None,
+        })
+    };
+
+    if file_id == context.id {
+        Ok(resolve(&context.lowered))
+    } else {
+        let lowered = context.queries.lowered(file_id)?;
+        Ok(resolve(&lowered))
+    }
+}
+
+pub fn resolve_term_operator_target<Q>(
+    context: &CheckContext<Q>,
+    file_id: FileId,
+    term_id: TermItemId,
+) -> QueryResult<Option<(FileId, TermItemId)>>
+where
+    Q: ExternalQueries,
+{
+    let resolve = |lowered: &lowering::LoweredModule| {
+        lowered.info.get_term_item(term_id).and_then(|item| match item {
+            TermItemIr::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };

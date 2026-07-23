@@ -20,6 +20,18 @@ enum OperatorKindMode {
     Check { expected_type: TypeId },
 }
 
+pub struct OperatorApplication<Elaborated> {
+    implicit: Vec<terms::application::ImplicitApplication>,
+    argument: (Elaborated, TypeId),
+    result_type: TypeId,
+}
+
+pub struct OperatorBranch<Item, Elaborated> {
+    operator: ((FileId, Item), TypeId),
+    left: OperatorApplication<Elaborated>,
+    right: OperatorApplication<Elaborated>,
+}
+
 pub fn infer_operator_chain<Q, E>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -142,14 +154,20 @@ where
         OperatorKindMode::Check { expected_type } => (unknown_elaborated, expected_type),
     };
 
-    let Some(terms::application::GenericApplication { argument: left_type, result: operator_type }) =
-        terms::application::check_generic_application(state, context, operator_type)?
+    let Some(terms::application::UnanchoredApplication {
+        implicit: left_implicit,
+        argument: left_type,
+        result: right_function_type,
+    }) = terms::application::check_unanchored_application(state, context, operator_type)?
     else {
         return Ok(unknown);
     };
 
-    let Some(terms::application::GenericApplication { argument: right_type, result: result_type }) =
-        terms::application::check_generic_application(state, context, operator_type)?
+    let Some(terms::application::UnanchoredApplication {
+        implicit: right_implicit,
+        argument: right_type,
+        result: result_type,
+    }) = terms::application::check_unanchored_application(state, context, right_function_type)?
     else {
         return Ok(unknown);
     };
@@ -189,7 +207,20 @@ where
         let _ = unification::subtype(state, context, result_type, expected_type)?;
     }
 
-    E::build(state, context, operator, (left, right), (left_type, right_type), result_type)
+    let branch = OperatorBranch {
+        operator: (operator, operator_type),
+        left: OperatorApplication {
+            implicit: left_implicit,
+            argument: (left, left_type),
+            result_type: right_function_type,
+        },
+        right: OperatorApplication {
+            implicit: right_implicit,
+            argument: (right, right_type),
+            result_type,
+        },
+    };
+    E::build(state, context, branch)
 }
 
 pub trait IsOperator<Q: ExternalQueries>: IsElement {
@@ -239,10 +270,7 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        operator: (FileId, Self::ItemId),
-        result_tree: (Self::Elaborated, Self::Elaborated),
-        argument_types: (TypeId, TypeId),
-        result_type: TypeId,
+        branch: OperatorBranch<Self::ItemId, Self::Elaborated>,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
 
     fn record_branch_types(
@@ -256,9 +284,11 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
 
 impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     type ItemId = TermItemId;
-    type Elaborated = ();
+    type Elaborated = Option<terms::ElaboratedExpression>;
 
-    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {}
+    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {
+        None
+    }
 
     fn lookup_tree<'q>(
         context: &'q CheckContext<Q>,
@@ -289,7 +319,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let inferred = terms::infer_expression(state, context, id)?;
-        Ok(((), inferred.type_id))
+        Ok((Some(inferred), inferred.type_id))
     }
 
     fn check_surface(
@@ -299,18 +329,52 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked = terms::check_expression(state, context, id, expected)?;
-        Ok(((), checked.type_id))
+        Ok((Some(checked), checked.type_id))
     }
 
     fn build(
-        _state: &mut CheckState,
-        _context: &CheckContext<Q>,
-        (_, _): (FileId, Self::ItemId),
-        (_, _): (Self::Elaborated, Self::Elaborated),
-        (_, _): (TypeId, TypeId),
-        result_type: TypeId,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        OperatorBranch { operator: (operator, operator_type), left, right }: OperatorBranch<
+            Self::ItemId,
+            Self::Elaborated,
+        >,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), result_type))
+        let (file_id, item_id) = operator;
+        let (Some(left_argument), _) = left.argument else {
+            return Ok((None, right.result_type));
+        };
+        let (Some(right_argument), _) = right.argument else {
+            return Ok((None, right.result_type));
+        };
+        let Some((target_file_id, target_item_id)) =
+            toolkit::resolve_term_operator_target(context, file_id, item_id)?
+        else {
+            return Ok((None, right.result_type));
+        };
+
+        let operator = terms::allocate_term_reference(
+            state,
+            context,
+            target_file_id,
+            target_item_id,
+            operator_type,
+        )?;
+        let left = terms::application::materialize_application(
+            state,
+            operator,
+            left.implicit,
+            left.result_type,
+            left_argument,
+        );
+        let expression = terms::application::materialize_application(
+            state,
+            left,
+            right.implicit,
+            right.result_type,
+            right_argument,
+        );
+        Ok((Some(expression), right.result_type))
     }
 
     fn record_branch_types(
@@ -392,11 +456,14 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        (file_id, item_id): (FileId, Self::ItemId),
-        (left, right): (Self::Elaborated, Self::Elaborated),
-        (left_kind, right_kind): (TypeId, TypeId),
-        result_kind: TypeId,
+        OperatorBranch { operator: (operator, _), left, right }: OperatorBranch<
+            Self::ItemId,
+            Self::Elaborated,
+        >,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        let (file_id, item_id) = operator;
+        let (left_argument, left_kind) = left.argument;
+        let (right_argument, right_kind) = right.argument;
         let Some((target_file_id, target_item_id)) =
             toolkit::resolve_type_operator_target(context, file_id, item_id)?
         else {
@@ -411,7 +478,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             context,
             (target_file_id, target_item_id),
             operator_kind,
-            &[(left, left_kind), (right, right_kind)],
+            &[(left_argument, left_kind), (right_argument, right_kind)],
         )? {
             let result_kind = normalise::normalise(state, context, result_kind)?;
             return Ok((elaborated_type, result_kind));
@@ -422,8 +489,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
 
         let function: application::FnTypeKind = (function_type, operator_kind);
         let arguments = [
-            application::Argument::Core(left, left_kind),
-            application::Argument::Core(right, right_kind),
+            application::Argument::Core(left_argument, left_kind),
+            application::Argument::Core(right_argument, right_kind),
         ];
 
         let ((elaborated_type, _), _) = application::infer_application_arguments(
@@ -435,7 +502,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             application::Records::Ignore,
         )?;
 
-        let result_kind = normalise::normalise(state, context, result_kind)?;
+        let result_kind = normalise::normalise(state, context, right.result_type)?;
         Ok((elaborated_type, result_kind))
     }
 
@@ -505,12 +572,9 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     fn build(
         _state: &mut CheckState,
         _context: &CheckContext<Q>,
-        (_, _): (FileId, Self::ItemId),
-        (_, _): (Self::Elaborated, Self::Elaborated),
-        (_, _): (TypeId, TypeId),
-        result_type: TypeId,
+        OperatorBranch { right, .. }: OperatorBranch<Self::ItemId, Self::Elaborated>,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), result_type))
+        Ok(((), right.result_type))
     }
 
     fn record_branch_types(

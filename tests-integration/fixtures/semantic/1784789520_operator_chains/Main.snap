@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface First :: Type -> Constraint
+interface First a where
+
+interface Second :: Type -> Constraint
+interface Second a where
+
+add :: Int -> Int -> Int
+add = \left -> \right -> left
+
+multiply :: Int -> Int -> Int
+multiply = \left -> \right -> right
+
+precedence :: Int
+precedence = add 1 (multiply 2 3)
+
+leftAssociative :: Int
+leftAssociative = add (add 1 2) 3
+
+append :: Int -> Int -> Int
+append = \left -> \right -> left
+
+rightAssociative :: Int
+rightAssociative = append 1 (append 2 3)
+
+implicitApplications :: forall a b. First a => Second b => a -> b -> a
+implicitApplications =
+  \{firstDict} ->
+    \{secondDict} -> \left -> \right -> interleaved @a {firstDict} left @b {secondDict} right

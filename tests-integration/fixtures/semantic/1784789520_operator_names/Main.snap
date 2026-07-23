@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Combine :: Type -> Constraint
+interface Combine a where
+  combine :: a -> a -> a
+
+data List :: Type -> Type
+data List @a
+  | Cons :: a -> List a -> List a
+  | Nil :: List a
+
+operatorName :: forall a. Combine a => a -> a -> a
+operatorName = \{combineDict} -> combine @a {combineDict}
+
+operatorApplication :: forall a. Combine a => a -> a -> a
+operatorApplication = \{combineDict} -> \left -> \right -> combine @a {combineDict} left right
+
+constructorOperator :: forall t. t -> List t -> List t
+constructorOperator = Cons @t

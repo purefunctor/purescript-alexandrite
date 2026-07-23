@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+add :: Int -> Int -> Int
+add = \left -> \right -> left
+
+missingRightOperand :: Int
+missingRightOperand = <error>

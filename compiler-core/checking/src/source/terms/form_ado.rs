@@ -216,15 +216,15 @@ where
 {
     let expression_type = super::infer_expression(state, context, expression)?.type_id;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, map_type)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, map_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
     unification::subtype(state, context, lambda_type, argument)?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, result)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
@@ -245,15 +245,15 @@ where
 {
     let expression_type = super::infer_expression(state, context, expression)?.type_id;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, apply_type)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, apply_type)?
     else {
         return Ok(context.unknown("invalid function application"));
     };
     unification::subtype(state, context, continuation_type, argument)?;
 
-    let Some(application::GenericApplication { argument, result }) =
-        application::check_generic_application(state, context, result)?
+    let Some(application::UnanchoredApplication { argument, result, .. }) =
+        application::check_unanchored_application(state, context, result)?
     else {
         return Ok(context.unknown("invalid function application"));
     };

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Negative :: Type -> Constraint
+interface Negative a where
+
+negative :: forall a. Negative a => a -> a
+negative = \{negativeDict} -> \value -> negate @a {negativeDict} value
+
+shadowedNegate :: (Int -> Int) -> Int -> Int
+shadowedNegate = \negate -> \value -> negate value
