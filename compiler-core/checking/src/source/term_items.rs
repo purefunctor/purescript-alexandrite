@@ -14,7 +14,7 @@ use crate::core::{
     signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
-use crate::evidence::Evidence;
+use crate::evidence::{Evidence, SuperclassId};
 use crate::source::terms::equations;
 use crate::source::{derive, types};
 use crate::state::CheckState;
@@ -231,12 +231,16 @@ where
                 continue;
             };
 
-            let Some(instance) = state.checked.lookup_instance(instance_id) else {
+            let Some(checked_instance) = state.checked.lookup_instance(instance_id) else {
                 continue;
             };
 
-            let Some(instance) =
-                toolkit::instance_info(state, context, instance.signature, instance.resolution)?
+            let Some(instance) = toolkit::instance_info(
+                state,
+                context,
+                checked_instance.signature,
+                checked_instance.resolution,
+            )?
             else {
                 continue;
             };
@@ -247,6 +251,7 @@ where
                 item_id,
                 members,
                 (class_file, class_id),
+                checked_instance.signature,
                 &instance,
             )?;
         }
@@ -261,6 +266,7 @@ fn check_instance_member_groups<Q>(
     instance_item_id: TermItemId,
     members: &[lowering::InstanceMemberGroup],
     (class_file, class_id): (FileId, TypeItemId),
+    instance_signature: TypeId,
     instance: &toolkit::InstanceInfo,
 ) -> QueryResult<()>
 where
@@ -272,16 +278,24 @@ where
                 constraints: instance_constraints,
                 arguments: instance_arguments,
                 substitution,
+                rigids,
             } = freshen_instance_rigids(state, context, instance)?;
 
             state.with_implicit(context, &substitution, |state| {
-                for &constraint in &instance_constraints {
-                    if !constraint::is_type_error(state, context, constraint)? {
-                        state.push_given(constraint);
-                    }
+                debug_assert_eq!(instance_constraints.len(), instance.constraints.len());
+                let mut instance_evidences = vec![];
+                for (&constraint, &signature_constraint) in
+                    std::iter::zip(&instance_constraints, &instance.constraints)
+                {
+                    let evidence = state.push_given(constraint);
+                    let evidence = Evidence::Given(evidence);
+                    instance_evidences.push(tree::InstanceEvidence {
+                        constraint: signature_constraint,
+                        evidence,
+                    });
                 }
 
-                emit_instance_superclass_constraints(
+                let superclasses = emit_instance_superclass_constraints(
                     state,
                     context,
                     class_file,
@@ -289,8 +303,9 @@ where
                     &instance_arguments,
                 )?;
 
+                let mut checked_members = vec![];
                 for member in members {
-                    state.with_implication(|state| {
+                    let checked_member = state.with_implication(|state| {
                         check_instance_member_group(
                             state,
                             context,
@@ -299,9 +314,44 @@ where
                             &instance_arguments,
                         )
                     })?;
+                    if let Some(checked_member) = checked_member {
+                        checked_members.push(checked_member);
+                    }
                 }
 
-                derive::tools::solve_and_report_constraints(state, context)
+                if let Some(class) =
+                    toolkit::lookup_file_class(state, context, class_file, class_id)?
+                {
+                    let positions = class
+                        .members
+                        .iter()
+                        .enumerate()
+                        .map(|(position, member)| (member.item_id, position));
+                    let positions = positions.collect::<FxHashMap<_, _>>();
+                    checked_members.sort_by_key(|member| {
+                        if member.resolution.0 == class_file {
+                            positions.get(&member.resolution.1).copied().unwrap_or(usize::MAX)
+                        } else {
+                            usize::MAX
+                        }
+                    });
+                }
+
+                derive::tools::solve_and_report_constraints(state, context)?;
+
+                let instance = tree::InstanceDeclaration {
+                    class: (class_file, class_id),
+                    rigid_parameters: Arc::from(rigids),
+                    evidences: Arc::from(instance_evidences),
+                    superclasses: Arc::from(superclasses),
+                    members: Arc::from(checked_members),
+                };
+                let declaration = tree::TermDeclaration {
+                    type_id: instance_signature,
+                    kind: tree::TermDeclarationKind::Instance(instance),
+                };
+                state.checked.tree.insert_term(instance_item_id, declaration);
+                Ok(())
             })
         })
     })
@@ -313,7 +363,7 @@ fn check_instance_member_group<Q>(
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
     instance_arguments: &[KindOrType],
-) -> QueryResult<()>
+) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
 {
@@ -363,6 +413,7 @@ where
         )?;
 
         state.report_exhaustiveness(exhaustiveness);
+        Ok(record_instance_member(member, signature_member_type, checked_equations))
     } else if let Some(expected_type) = class_member_type {
         let checked_equations = equations::check_value_equations(
             state,
@@ -379,15 +430,42 @@ where
         )?;
 
         state.report_exhaustiveness(exhaustiveness);
+        Ok(record_instance_member(member, expected_type, checked_equations))
+    } else {
+        Ok(None)
+    }
+}
+
+fn record_instance_member(
+    member: &lowering::InstanceMemberGroup,
+    implementation_type: TypeId,
+    checked: equations::CheckedValueEquations,
+) -> Option<tree::InstanceMember> {
+    let resolution = member.resolution?;
+    let equations = checked.equations.into_iter().map(equations::ElaboratedEquation::into_tree);
+    let equations = equations.collect::<Option<Vec<_>>>()?;
+
+    let complete = !member.equations.is_empty()
+        && member.equations.len() == equations.len()
+        && std::iter::zip(member.equations.iter(), &equations)
+            .all(|(source, equation)| source.source == Some(equation.source));
+    if !complete {
+        return None;
     }
 
-    Ok(())
+    Some(tree::InstanceMember {
+        resolution,
+        implementation_type,
+        evidences: Arc::from(checked.evidences),
+        equations: Arc::from(equations),
+    })
 }
 
 struct FreshenedInstanceRigids {
     constraints: Vec<TypeId>,
     arguments: Vec<KindOrType>,
     substitution: NameToType,
+    rigids: Vec<TypeId>,
 }
 
 fn freshen_instance_rigids<Q>(
@@ -399,12 +477,14 @@ where
     Q: ExternalQueries,
 {
     let mut substitution = NameToType::default();
+    let mut rigids = Vec::with_capacity(instance.binders.len());
 
     for binder in &instance.binders {
         let kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
         let text = state.checked.lookup_name(binder.name);
         let rigid = state.fresh_rigid_named(context.queries, kind, text);
         substitution.insert(binder.name, rigid);
+        rigids.push(rigid);
     }
 
     let constraints = instance
@@ -419,7 +499,7 @@ where
         .map(|&argument| substitute_kind_or_type(state, context, &substitution, argument))
         .collect::<QueryResult<Vec<_>>>()?;
 
-    Ok(FreshenedInstanceRigids { constraints, arguments, substitution })
+    Ok(FreshenedInstanceRigids { constraints, arguments, substitution, rigids })
 }
 
 fn emit_instance_superclass_constraints<Q>(
@@ -428,26 +508,33 @@ fn emit_instance_superclass_constraints<Q>(
     class_file: FileId,
     class_id: TypeItemId,
     instance_arguments: &[KindOrType],
-) -> QueryResult<()>
+) -> QueryResult<Vec<tree::InstanceSuperclass>>
 where
     Q: ExternalQueries,
 {
     let Some(class) = toolkit::lookup_file_class(state, context, class_file, class_id)? else {
-        return Ok(());
+        return Ok(vec![]);
     };
     let Some(substitution) =
         constraint::elaborate::superclass_substitutions(context, &class, instance_arguments)?
     else {
-        return Ok(());
+        return Ok(vec![]);
     };
 
+    let mut checked_superclasses = Vec::with_capacity(class.superclasses.len());
     for superclass in &class.superclasses {
         let constraint =
             SubstituteName::many(state, context, &substitution, superclass.constraint)?;
-        state.push_wanted(constraint);
+        let evidence = state.push_wanted(constraint);
+        let id = SuperclassId {
+            file_id: class_file,
+            type_id: class_id,
+            source_id: superclass.source_id,
+        };
+        checked_superclasses.push(tree::InstanceSuperclass { id, constraint, evidence });
     }
 
-    Ok(())
+    Ok(checked_superclasses)
 }
 
 fn instantiate_class_member_type<Q>(

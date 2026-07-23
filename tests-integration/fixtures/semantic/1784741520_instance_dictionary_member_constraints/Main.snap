@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Required :: Type -> Constraint
+interface Required value where
+
+interface Example :: Type -> Constraint
+interface Example a where
+  apply :: forall (b :: Type). Required b => a -> b -> Boolean
+
+implementation :: forall a b. Required b => a -> b -> Boolean
+implementation = \{requiredDict} -> \_ -> \_ -> boolean
+
+dictionary exampleInt :: Example Int
+where
+  apply = \{requiredDict} -> implementation @Int @b {requiredDict}

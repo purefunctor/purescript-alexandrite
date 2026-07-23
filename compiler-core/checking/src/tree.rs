@@ -42,6 +42,7 @@ pub struct TermDeclaration {
 pub enum TermDeclarationKind {
     Value(ValueDeclaration),
     Constructor(DataConstructor),
+    Instance(InstanceDeclaration),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -53,6 +54,36 @@ pub struct ValueDeclaration {
 #[derive(Debug, PartialEq, Eq)]
 pub struct DataConstructor {
     pub arguments: Arc<[TypeId]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct InstanceDeclaration {
+    pub class: (FileId, TypeItemId),
+    pub rigid_parameters: Arc<[TypeId]>,
+    pub evidences: Arc<[InstanceEvidence]>,
+    pub superclasses: Arc<[InstanceSuperclass]>,
+    pub members: Arc<[InstanceMember]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstanceEvidence {
+    pub constraint: TypeId,
+    pub evidence: Evidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InstanceSuperclass {
+    pub id: SuperclassId,
+    pub constraint: TypeId,
+    pub evidence: EvidenceVarId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstanceMember {
+    pub resolution: (FileId, TermItemId),
+    pub implementation_type: TypeId,
+    pub evidences: Arc<[Evidence]>,
+    pub equations: Arc<[Equation]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
