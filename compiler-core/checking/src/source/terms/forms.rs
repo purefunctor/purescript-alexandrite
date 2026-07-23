@@ -3,8 +3,8 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, exhaustive, toolkit, unification};
-use crate::source::terms::{application, form_let, guarded};
-use crate::source::{binder, terms};
+use crate::source::binder;
+use crate::source::terms::{application, guarded};
 use crate::state::CheckState;
 
 #[derive(Copy, Clone, Debug)]
@@ -264,23 +264,4 @@ where
     }
 
     Ok(expected)
-}
-
-pub fn check_let_in<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    bindings: &[lowering::LetBindingChunk],
-    expression: Option<lowering::ExpressionId>,
-    expected: TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
-    form_let::check_let_chunks(state, context, bindings)?;
-
-    let Some(expression) = expression else {
-        return Ok(context.unknown("missing let expression"));
-    };
-
-    Ok(terms::check_expression(state, context, expression, expected)?.type_id)
 }

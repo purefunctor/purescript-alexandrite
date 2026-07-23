@@ -3,12 +3,72 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{Type, exhaustive, normalise, unification};
+use crate::core::{Type, TypeId, exhaustive, normalise, unification};
 use crate::error::ErrorCrumb;
 use crate::source::terms::{ElaboratedExpression, application, equations, guarded};
 use crate::source::{binder, types};
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
+
+#[derive(Copy, Clone, Debug)]
+enum LetInMode {
+    Infer,
+    Check { expected: TypeId },
+}
+
+pub fn infer_let_in<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    bindings: &[lowering::LetBindingChunk],
+    expression: Option<lowering::ExpressionId>,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let_in_core(state, context, bindings, expression, LetInMode::Infer)
+}
+
+pub fn check_let_in<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    bindings: &[lowering::LetBindingChunk],
+    expression: Option<lowering::ExpressionId>,
+    expected: TypeId,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let_in_core(state, context, bindings, expression, LetInMode::Check { expected })
+}
+
+fn let_in_core<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    bindings: &[lowering::LetBindingChunk],
+    expression: Option<lowering::ExpressionId>,
+    mode: LetInMode,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let bindings = check_let_chunks(state, context, bindings)?;
+
+    let ElaboratedExpression { type_id, expression } = if let Some(expression) = expression {
+        match mode {
+            LetInMode::Infer => super::infer_expression(state, context, expression)?,
+            LetInMode::Check { expected } => {
+                super::check_expression(state, context, expression, expected)?
+            }
+        }
+    } else {
+        let type_id = context.unknown("missing let expression");
+        let expression = state.allocate_error_expression(type_id);
+        ElaboratedExpression { type_id, expression }
+    };
+
+    let kind = tree::ExpressionKind::Let { bindings, expression };
+    Ok(super::allocate_expression(state, type_id, kind))
+}
 
 pub fn check_let_chunks<Q>(
     state: &mut CheckState,
