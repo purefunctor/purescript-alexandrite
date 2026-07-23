@@ -6,6 +6,7 @@ use std::sync::Arc;
 use files::FileId;
 use indexing::{EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
+use lowering::LetBindingNameGroupId;
 use smol_str::SmolStr;
 
 use crate::TypeId;
@@ -16,12 +17,14 @@ pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
 pub type TermDeclarationId = Idx<TermDeclaration>;
 pub type TypeDeclarationId = Idx<TypeDeclaration>;
+pub type LocalDeclarationId = Idx<LocalDeclaration>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Module {
     pub(crate) arena: ModuleArena,
     terms: ArenaMap<TermItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
+    lets: ArenaMap<LetBindingNameGroupId, LocalDeclarationId>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -30,6 +33,7 @@ pub(crate) struct ModuleArena {
     pub(crate) binders: Arena<Binder>,
     pub(crate) terms: Arena<TermDeclaration>,
     pub(crate) types: Arena<TypeDeclaration>,
+    pub(crate) lets: Arena<LocalDeclaration>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -49,6 +53,35 @@ pub enum TermDeclarationKind {
 pub struct ValueDeclaration {
     pub evidences: Arc<[Evidence]>,
     pub equations: Arc<[Equation]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct LocalDeclaration {
+    pub source: LetBindingNameGroupId,
+    pub type_id: TypeId,
+    pub value: ValueDeclaration,
+}
+
+impl LocalDeclaration {
+    pub fn new(
+        source: LetBindingNameGroupId,
+        type_id: TypeId,
+        evidences: Arc<[Evidence]>,
+        equations: Arc<[Equation]>,
+    ) -> LocalDeclaration {
+        let value = ValueDeclaration { evidences, equations };
+        LocalDeclaration { source, type_id, value }
+    }
+
+    pub fn nullary(
+        source: LetBindingNameGroupId,
+        type_id: TypeId,
+        equation_source: lowering::LetBindingEquationId,
+        guarded_expression: GuardedExpression,
+    ) -> LocalDeclaration {
+        let equation = Equation::local(equation_source, [].into(), guarded_expression);
+        LocalDeclaration::new(source, type_id, [].into(), [equation].into())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -126,11 +159,37 @@ pub struct ClassMember {
     pub field_type: TypeId,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EquationSource {
+    Item(EquationSourceId),
+    Local(lowering::LetBindingEquationId),
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Equation {
-    pub source: EquationSourceId,
+    pub source: EquationSource,
     pub binders: Arc<[BinderId]>,
     pub guarded_expression: GuardedExpression,
+}
+
+impl Equation {
+    pub fn item(
+        source: EquationSourceId,
+        binders: Arc<[BinderId]>,
+        guarded_expression: GuardedExpression,
+    ) -> Equation {
+        let source = EquationSource::Item(source);
+        Equation { source, binders, guarded_expression }
+    }
+
+    pub fn local(
+        source: lowering::LetBindingEquationId,
+        binders: Arc<[BinderId]>,
+        guarded_expression: GuardedExpression,
+    ) -> Equation {
+        let source = EquationSource::Local(source);
+        Equation { source, binders, guarded_expression }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -152,7 +211,37 @@ pub enum PatternGuard {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct WhereExpression {
+    pub bindings: LetBindings,
     pub expression: ExpressionId,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct LetBindings {
+    pub chunks: Arc<[LetBindingChunk]>,
+}
+
+impl WhereExpression {
+    pub fn new(expression: ExpressionId) -> WhereExpression {
+        WhereExpression { bindings: LetBindings::default(), expression }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum LetBindingChunk {
+    Pattern {
+        source: lowering::LetBindingId,
+        binder: BinderId,
+        where_expression: WhereExpression,
+    },
+    PatternError {
+        source: lowering::LetBindingId,
+        binder_source: Option<lowering::BinderId>,
+        where_expression: Option<WhereExpression>,
+    },
+    Names {
+        declarations: Arc<[LocalDeclarationId]>,
+        groups: Arc<[lowering::Scc<LetBindingNameGroupId>]>,
+    },
 }
 
 impl GuardedExpression {
@@ -214,6 +303,7 @@ pub enum ExpressionKind {
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+    Let { bindings: LetBindings, expression: ExpressionId },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -239,6 +329,18 @@ impl Module {
 
     pub fn lookup_term(&self, source: TermItemId) -> Option<TermDeclarationId> {
         self.terms.get(source).copied()
+    }
+
+    pub fn insert_let(&mut self, declaration: LocalDeclaration) -> LocalDeclarationId {
+        let source = declaration.source;
+        let declaration = self.arena.lets.alloc(declaration);
+        let previous = self.lets.insert(source, declaration);
+        assert!(previous.is_none(), "invariant violated: local declaration inserted twice");
+        declaration
+    }
+
+    pub fn lookup_let(&self, source: LetBindingNameGroupId) -> Option<LocalDeclarationId> {
+        self.lets.get(source).copied()
     }
 
     pub fn insert_type_declaration(
@@ -285,5 +387,13 @@ impl Index<TypeDeclarationId> for Module {
 
     fn index(&self, index: TypeDeclarationId) -> &TypeDeclaration {
         &self.arena.types[index]
+    }
+}
+
+impl Index<LocalDeclarationId> for Module {
+    type Output = LocalDeclaration;
+
+    fn index(&self, index: LocalDeclarationId) -> &LocalDeclaration {
+        &self.arena.lets[index]
     }
 }

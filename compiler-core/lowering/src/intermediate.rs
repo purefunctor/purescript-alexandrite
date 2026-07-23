@@ -233,6 +233,7 @@ pub struct WhereExpression {
 /// value declarations, where the declaration group is assigned a stable ID.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LetBindingNameGroup {
+    pub name: Option<SmolStr>,
     pub signature: Option<LetBindingSignatureId>,
     pub equations: Arc<[LetBindingEquationId]>,
 }
@@ -256,7 +257,11 @@ pub struct LetBindingName {
 #[derive(Debug, PartialEq, Eq)]
 pub enum LetBindingChunk {
     /// Pattern binding (acts as boundary between name binding groups)
-    Pattern { binder: Option<BinderId>, where_expression: Option<WhereExpression> },
+    Pattern {
+        source: LetBindingId,
+        binder: Option<BinderId>,
+        where_expression: Option<WhereExpression>,
+    },
     /// Group of name bindings with SCC ordering for type checking
     Names { bindings: Arc<[LetBindingNameGroupId]>, scc: Vec<Scc<LetBindingNameGroupId>> },
 }

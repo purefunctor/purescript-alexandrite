@@ -14,11 +14,20 @@ use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
 use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
     BinderId, BinderKind, Equation, ExpressionId, ExpressionKind, GuardedAlternative,
-    GuardedExpression, InstanceDeclaration, PatternGuard, RecordBinderField, RecordExpressionField,
-    TermDeclarationKind, TypeDeclarationKind,
+    GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings, LocalDeclarationId,
+    PatternGuard, RecordBinderField, RecordExpressionField, TermDeclarationKind,
+    TypeDeclarationKind, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ExpressionPrecedence {
+    Abstraction,
+    Application,
+    RecordUpdate,
+    Atom,
+}
 
 fn character_literal(value: char) -> String {
     match value {
@@ -610,36 +619,59 @@ where
             }
         }
         for equation in equations.iter() {
-            let mut expression = self.guarded_expression(
-                &equation.guarded_expression,
-                evidence_names,
-                &mut type_pretty,
-            )?;
+            let has_abstraction = !equation.binders.is_empty() || !evidences.is_empty();
+            let (mut expression, where_bindings) = if let [alternative] =
+                equation.guarded_expression.alternatives.as_ref()
+                && alternative.pattern_guards.is_empty()
+            {
+                let where_expression = &alternative.where_expression;
+                let expression =
+                    self.expression(where_expression.expression, evidence_names, &mut type_pretty)?;
+                let bindings = (!where_expression.bindings.chunks.is_empty())
+                    .then_some(&where_expression.bindings);
+                (expression, bindings)
+            } else {
+                let expression = self.guarded_expression(
+                    &equation.guarded_expression,
+                    evidence_names,
+                    &mut type_pretty,
+                )?;
+                (expression, None)
+            };
 
-            for &binder in equation.binders.iter().rev() {
-                let binder = self.binder(binder)?;
-                expression = self
-                    .arena
-                    .text("\\")
-                    .append(binder)
-                    .append(self.arena.text(" ->"))
-                    .append(self.arena.line().append(expression).nest(2))
-                    .group();
-            }
-            for evidence in evidences.iter().rev() {
+            let mut abstractions = vec![];
+            for evidence in evidences.iter() {
                 let binder = self.evidence_name(evidence_names, evidence)?;
-                expression = self
-                    .arena
-                    .text(format!("\\{{{binder}}} ->"))
-                    .append(self.arena.line().append(expression).nest(2))
-                    .group();
+                abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
+            }
+            for &binder in equation.binders.iter() {
+                let binder = self.binder(binder)?;
+                let abstraction =
+                    self.arena.text("\\").append(binder).append(self.arena.text(" ->"));
+                abstractions.push(abstraction);
             }
 
-            let equation = self
-                .arena
-                .text(format!("{prefix}{name} ="))
-                .append(self.arena.line().append(expression).nest(2))
-                .group();
+            let mut abstractions = abstractions.into_iter();
+            if let Some(first) = abstractions.next() {
+                let abstractions = abstractions.fold(first, |document, abstraction| {
+                    document.append(self.arena.softline().append(abstraction).nest(2))
+                });
+                let body = self.arena.line().append(expression).nest(2).group();
+                expression = abstractions.append(body);
+            }
+
+            let mut equation = if has_abstraction {
+                self.arena.text(format!("{prefix}{name} = ")).append(expression)
+            } else {
+                self.arena
+                    .text(format!("{prefix}{name} ="))
+                    .append(self.arena.line().append(expression).nest(2))
+                    .group()
+            };
+            if let Some(bindings) = where_bindings {
+                let where_clause = self.where_clause(bindings, evidence_names, &mut type_pretty)?;
+                equation = equation.append(self.arena.hardline().append(where_clause).nest(2));
+            }
             rendered_equations.push(equation);
         }
 
@@ -651,6 +683,115 @@ where
         Ok(Some(equations))
     }
 
+    fn local_declaration(
+        &self,
+        declaration_id: LocalDeclarationId,
+        evidence_names: &mut EvidenceNames,
+    ) -> QueryResult<Doc<'arena>> {
+        let declaration = &self.checked.tree[declaration_id];
+        let name = self.local_declaration_name(declaration.source);
+        let mut type_pretty = TypePretty::new(self.queries, self.checked)
+            .without_rigid_kinds()
+            .without_forall_kinds()
+            .width(self.width);
+        let type_id = type_pretty.render(declaration.type_id);
+        let signature = self.arena.text(format!("{name} :: {type_id}"));
+
+        for evidence in declaration.value.evidences.iter() {
+            if let Evidence::Given(binder) = evidence {
+                self.evidence_binder_name(evidence_names, *binder)?;
+            }
+        }
+
+        let equations = self.equation_declarations(
+            &name,
+            "",
+            &declaration.value.evidences,
+            &declaration.value.equations,
+            evidence_names,
+            &[],
+        )?;
+        let equations = equations.unwrap_or_else(|| self.arena.text(format!("{name} = <error>")));
+        Ok(signature.append(self.arena.hardline()).append(equations))
+    }
+
+    fn let_bindings(
+        &self,
+        bindings: &LetBindings,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let mut rendered = vec![];
+        for chunk in bindings.chunks.iter() {
+            match chunk {
+                LetBindingChunk::Pattern { binder, where_expression, .. } => {
+                    let binder = self.binder(*binder)?;
+                    let expression =
+                        self.where_expression(where_expression, evidence_names, type_pretty)?;
+                    rendered.push(
+                        binder
+                            .append(self.arena.text(" ="))
+                            .append(self.arena.line().append(expression).nest(2))
+                            .group(),
+                    );
+                }
+                LetBindingChunk::PatternError { where_expression, .. } => {
+                    if let Some(where_expression) = where_expression {
+                        let expression =
+                            self.where_expression(where_expression, evidence_names, type_pretty)?;
+                        rendered.push(
+                            self.arena
+                                .text("<error> =")
+                                .append(self.arena.line().append(expression).nest(2))
+                                .group(),
+                        );
+                    } else {
+                        rendered.push(self.arena.text("<error-binding>"));
+                    }
+                }
+                LetBindingChunk::Names { declarations, .. } => {
+                    for &declaration in declarations.iter() {
+                        rendered.push(self.local_declaration(declaration, evidence_names)?);
+                    }
+                }
+            }
+        }
+
+        let mut rendered = rendered.into_iter();
+        let Some(first) = rendered.next() else { return Ok(self.arena.text("<error-binding>")) };
+        let bindings = rendered.fold(first, |document, binding| {
+            document.append(self.arena.hardline()).append(binding)
+        });
+        Ok(bindings)
+    }
+
+    fn where_clause(
+        &self,
+        bindings: &LetBindings,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let bindings = self.let_bindings(bindings, evidence_names, type_pretty)?;
+        Ok(self.arena.text("where").append(self.arena.hardline()).append(bindings))
+    }
+
+    fn where_expression(
+        &self,
+        where_expression: &WhereExpression,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let expression =
+            self.expression(where_expression.expression, evidence_names, type_pretty)?;
+        if where_expression.bindings.chunks.is_empty() {
+            return Ok(expression);
+        }
+
+        let where_clause =
+            self.where_clause(&where_expression.bindings, evidence_names, type_pretty)?;
+        Ok(expression.append(self.arena.hardline().append(where_clause).nest(2)))
+    }
+
     fn guarded_expression(
         &self,
         guarded: &GuardedExpression,
@@ -660,8 +801,8 @@ where
         if let [alternative] = guarded.alternatives.as_ref()
             && alternative.pattern_guards.is_empty()
         {
-            return self.expression(
-                alternative.where_expression.expression,
+            return self.where_expression(
+                &alternative.where_expression,
                 evidence_names,
                 type_pretty,
             );
@@ -698,7 +839,7 @@ where
         }
 
         let expression =
-            self.expression(alternative.where_expression.expression, evidence_names, type_pretty)?;
+            self.where_expression(&alternative.where_expression, evidence_names, type_pretty)?;
         let mut pattern_guards = pattern_guards.into_iter();
         let Some(first) = pattern_guards.next() else {
             return Ok(self.arena.text("| -> ").append(expression));
@@ -837,6 +978,44 @@ where
         evidence_names: &mut EvidenceNames,
         type_pretty: &mut TypePretty<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
+        self.expression_at(
+            expression_id,
+            ExpressionPrecedence::Abstraction,
+            evidence_names,
+            type_pretty,
+        )
+    }
+
+    fn expression_at(
+        &self,
+        expression_id: ExpressionId,
+        required_precedence: ExpressionPrecedence,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        let expression = &self.checked.tree[expression_id];
+        let precedence = match &expression.kind {
+            ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
+            ExpressionKind::TermApplication { .. }
+            | ExpressionKind::TypeApplication { .. }
+            | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
+            _ => ExpressionPrecedence::Atom,
+        };
+        let expression =
+            self.expression_unparenthesized(expression_id, evidence_names, type_pretty)?;
+        if precedence < required_precedence {
+            Ok(self.arena.text("(").append(expression).append(self.arena.text(")")))
+        } else {
+            Ok(expression)
+        }
+    }
+
+    fn expression_unparenthesized(
+        &self,
+        expression_id: ExpressionId,
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         match &expression.kind {
             ExpressionKind::Error => Ok(self.arena.text("<error>")),
@@ -918,64 +1097,89 @@ where
             }
             ExpressionKind::Variable { resolution }
             | ExpressionKind::RecordPun { resolution, .. } => {
-                let name = match *resolution {
-                    TermVariableResolution::Binder(binder) => {
-                        let kind =
-                            self.lowered.info.get_binder_kind(binder).expect(
+                let name =
+                    match *resolution {
+                        TermVariableResolution::Binder(binder) => {
+                            let kind = self.lowered.info.get_binder_kind(binder).expect(
                                 "invariant violated: variable expression binder is missing",
                             );
-                        match kind {
-                            lowering::BinderKind::Variable { variable: Some(variable) } => {
-                                variable.to_string()
-                            }
-                            lowering::BinderKind::Named { named: Some(named), .. } => {
-                                named.to_string()
-                            }
-                            _ => {
-                                let index = binder.into_raw().get();
-                                format!("<binder#{index}>")
+                            match kind {
+                                lowering::BinderKind::Variable { variable: Some(variable) } => {
+                                    variable.to_string()
+                                }
+                                lowering::BinderKind::Named { named: Some(named), .. } => {
+                                    named.to_string()
+                                }
+                                _ => {
+                                    let index = binder.into_raw().get();
+                                    format!("<binder#{index}>")
+                                }
                             }
                         }
-                    }
-                    TermVariableResolution::Reference(file_id, term_id) => {
-                        self.term_name(file_id, term_id)?.unwrap_or_else(|| "?".to_string())
-                    }
-                    TermVariableResolution::Let(let_binding) => {
-                        let index = let_binding.into_raw().into_u32();
-                        format!("<let#{index}>")
-                    }
-                    TermVariableResolution::RecordPun(record_pun) => {
-                        self.record_pun_name(record_pun).unwrap_or_else(|| {
-                            let index = record_pun.into_raw().get();
-                            format!("<pun#{index}>")
-                        })
-                    }
-                };
+                        TermVariableResolution::Reference(file_id, term_id) => {
+                            self.term_name(file_id, term_id)?.unwrap_or_else(|| "?".to_string())
+                        }
+                        TermVariableResolution::Let(let_binding) => {
+                            let declaration = self.checked.tree.lookup_let(let_binding).expect(
+                                "invariant violated: local variable declaration is missing",
+                            );
+                            let declaration = &self.checked.tree[declaration];
+                            self.local_declaration_name(declaration.source)
+                        }
+                        TermVariableResolution::RecordPun(record_pun) => {
+                            self.record_pun_name(record_pun).unwrap_or_else(|| {
+                                let index = record_pun.into_raw().get();
+                                format!("<pun#{index}>")
+                            })
+                        }
+                    };
                 Ok(self.arena.text(name))
             }
             ExpressionKind::TermApplication { function, argument } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
-                let argument_expression = &self.checked.tree[*argument];
-                let argument = self.expression(*argument, evidence_names, type_pretty)?;
-                let argument = match argument_expression.kind {
-                    ExpressionKind::TermApplication { .. }
-                    | ExpressionKind::TypeApplication { .. }
-                    | ExpressionKind::EvidenceApplication { .. } => {
-                        self.arena.text("(").append(argument).append(self.arena.text(")"))
-                    }
-                    _ => argument,
-                };
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
+                let argument = self.expression_at(
+                    *argument,
+                    ExpressionPrecedence::RecordUpdate,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 Ok(function.append(self.arena.space()).append(argument))
             }
             ExpressionKind::TypeApplication { function, argument } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 let argument = type_pretty.render_atom(*argument);
                 Ok(function.append(self.arena.text(format!(" @{argument}"))))
             }
             ExpressionKind::EvidenceApplication { function, evidence } => {
-                let function = self.expression(*function, evidence_names, type_pretty)?;
+                let function = self.expression_at(
+                    *function,
+                    ExpressionPrecedence::Application,
+                    evidence_names,
+                    type_pretty,
+                )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
+            ExpressionKind::Let { bindings, expression } => {
+                let bindings = self.let_bindings(bindings, evidence_names, type_pretty)?;
+                let expression = self.expression(*expression, evidence_names, type_pretty)?;
+                Ok(self
+                    .arena
+                    .text("let")
+                    .append(self.arena.hardline().append(bindings).nest(2))
+                    .append(self.arena.hardline())
+                    .append(self.arena.text("in"))
+                    .append(self.arena.hardline().append(expression).nest(2)))
             }
         }
     }
@@ -1072,6 +1276,14 @@ where
                 };
                 if *id == record_pun { name.as_ref().map(ToString::to_string) } else { None }
             })
+        })
+    }
+
+    fn local_declaration_name(&self, source: lowering::LetBindingNameGroupId) -> String {
+        let group = self.lowered.info.get_let_binding_group(source);
+        group.name.as_ref().map(ToString::to_string).unwrap_or_else(|| {
+            let index = source.into_raw().into_u32();
+            format!("<let#{index}>")
         })
     }
 

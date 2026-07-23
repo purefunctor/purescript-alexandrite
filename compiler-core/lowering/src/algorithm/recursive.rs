@@ -694,11 +694,12 @@ fn lower_pattern_chunk(
     let cst::LetBinding::LetBindingPattern(pattern) = &pattern else {
         unreachable!("invariant violated: expected LetBindingPattern");
     };
+    let source = context.stabilized.lookup_cst(pattern).expect_id();
     let where_expression =
         pattern.where_expression().map(|cst| lower_where_expression(state, context, &cst));
     state.push_binder_scope();
     let binder = pattern.binder().map(|cst| lower_binder(state, context, &cst));
-    LetBindingChunk::Pattern { binder, where_expression }
+    LetBindingChunk::Pattern { source, binder, where_expression }
 }
 
 struct PendingLetBinding {
@@ -767,12 +768,12 @@ fn lower_equation_chunk(
     let mut groups = vec![];
 
     for PendingLetBinding { name, signature, equations } in pending {
-        let group = LetBindingNameGroup { signature, equations };
+        let group = LetBindingNameGroup { name: name.clone(), signature, equations };
 
         let id = state.alloc_let_binding(group);
 
-        if let Some(ref name) = name {
-            let_bound.insert(name.clone(), id);
+        if let Some(name) = name {
+            let_bound.insert(name, id);
         }
 
         groups.push(id);

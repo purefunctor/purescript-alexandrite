@@ -1,0 +1,8 @@
+module Main where
+
+identity :: forall a. a -> a
+identity value = value
+
+wrap :: forall a. a -> a -> a -> a -> a -> a -> a
+wrap firstArgument secondArgument thirdArgument fourthArgument fifthArgument sixthArgument =
+  firstArgument

@@ -224,8 +224,7 @@ where
             Ok(checked.unwrap_or_else(|| allocate_error_expression(state, checked_type)))
         }
         lowering::ExpressionKind::LetIn { bindings, expression } => {
-            let type_id = forms::check_let_in(state, context, bindings, *expression, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            form_let::check_let_in(state, context, bindings, *expression, expected)
         }
         lowering::ExpressionKind::Parenthesized { parenthesized } => {
             let Some(parenthesized) = parenthesized else {
@@ -378,14 +377,7 @@ where
         }
 
         lowering::ExpressionKind::LetIn { bindings, expression } => {
-            form_let::check_let_chunks(state, context, bindings)?;
-
-            let Some(expression) = expression else {
-                return Ok(allocate_error_expression(state, unknown));
-            };
-
-            let expression = infer_expression(state, context, *expression)?;
-            Ok(allocate_error_expression(state, expression.type_id))
+            form_let::infer_let_in(state, context, bindings, *expression)
         }
 
         lowering::ExpressionKind::Lambda { binders, expression } => {

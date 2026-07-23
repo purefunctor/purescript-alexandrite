@@ -28,6 +28,5 @@ rightAssociative :: Int
 rightAssociative = append 1 (append 2 3)
 
 implicitApplications :: forall a b. First a => Second b => a -> b -> a
-implicitApplications =
-  \{firstDict} ->
-    \{secondDict} -> \left -> \right -> interleaved @a {firstDict} left @b {secondDict} right
+implicitApplications = \{firstDict} -> \{secondDict} -> \left -> \right ->
+  interleaved @a {firstDict} left @b {secondDict} right

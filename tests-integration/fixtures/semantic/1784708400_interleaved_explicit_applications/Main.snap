@@ -10,6 +10,5 @@ interface Second :: Type -> Constraint
 interface Second a where
 
 applyInterleaved :: forall a b. First a => Second b => a -> b -> a
-applyInterleaved =
-  \{firstDict} ->
-    \{secondDict} -> \first -> \second -> interleaved @a {firstDict} first @b {secondDict} second
+applyInterleaved = \{firstDict} -> \{secondDict} -> \first -> \second ->
+  interleaved @a {firstDict} first @b {secondDict} second

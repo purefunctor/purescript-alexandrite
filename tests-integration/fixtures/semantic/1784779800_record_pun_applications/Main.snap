@@ -13,12 +13,12 @@ interface Capability :: (Type -> Type) -> Constraint
 interface Capability m where
 
 inferredPun :: forall t t1. First t => Second t1 => { interleaved :: t -> t1 }
-inferredPun =
-  \{firstDict} -> \{secondDict} -> { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
+inferredPun = \{firstDict} -> \{secondDict} ->
+  { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
 
 inferredExplicit :: forall t t1. First t => Second t1 => { interleaved :: t -> t1 }
-inferredExplicit =
-  \{firstDict} -> \{secondDict} -> { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
+inferredExplicit = \{firstDict} -> \{secondDict} ->
+  { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
 
 aliased :: Alias
 aliased = 1

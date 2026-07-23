@@ -47,7 +47,12 @@ pub struct ElaboratedEquation {
 impl ElaboratedEquation {
     pub fn into_tree(self) -> Option<tree::Equation> {
         let source = self.source?;
-        Some(tree::Equation { source, binders: self.binders, guarded_expression: self.guarded })
+        Some(tree::Equation::item(source, self.binders, self.guarded))
+    }
+
+    pub fn into_local_tree(self, source: lowering::LetBindingEquationId) -> tree::Equation {
+        assert!(self.source.is_none(), "invariant violated: local equation has an item source");
+        tree::Equation::local(source, self.binders, self.guarded)
     }
 }
 
@@ -203,7 +208,7 @@ where
 
 fn missing_guarded_expression(state: &mut CheckState, type_id: TypeId) -> tree::GuardedExpression {
     let expression = state.allocate_error_expression(type_id);
-    let where_expression = tree::WhereExpression { expression };
+    let where_expression = tree::WhereExpression::new(expression);
     tree::GuardedExpression::unconditional(where_expression)
 }
 

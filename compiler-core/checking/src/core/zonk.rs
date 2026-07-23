@@ -95,6 +95,12 @@ where
     }
     state.checked.tree.arena.binders = binders;
 
+    let mut local_declarations = mem::take(&mut state.checked.tree.arena.lets);
+    for (_, declaration) in local_declarations.iter_mut() {
+        declaration.type_id = zonk(state, context, declaration.type_id)?;
+    }
+    state.checked.tree.arena.lets = local_declarations;
+
     let mut term_declarations = mem::take(&mut state.checked.tree.arena.terms);
     for (_, declaration) in term_declarations.iter_mut() {
         declaration.type_id = zonk(state, context, declaration.type_id)?;

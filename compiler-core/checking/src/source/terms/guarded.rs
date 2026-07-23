@@ -71,7 +71,7 @@ where
                     GuardedExpressionMode::Check { expected } => expected,
                 };
                 let expression = state.allocate_error_expression(type_id);
-                let where_expression = tree::WhereExpression { expression };
+                let where_expression = tree::WhereExpression::new(expression);
                 let guarded_expression = tree::GuardedExpression::unconditional(where_expression);
                 return Ok(ElaboratedGuardedExpression { type_id, guarded_expression });
             };
@@ -110,7 +110,7 @@ where
                             .where_expression
                     } else {
                         let expression = state.allocate_error_expression(expected_type);
-                        tree::WhereExpression { expression }
+                        tree::WhereExpression::new(expression)
                     };
                 alternatives.push(tree::GuardedAlternative {
                     pattern_guards: pattern_guards.into(),
@@ -193,7 +193,7 @@ fn where_expression_core<Q>(
 where
     Q: ExternalQueries,
 {
-    form_let::check_let_chunks(state, context, &where_expression.bindings)?;
+    let bindings = form_let::check_let_chunks(state, context, &where_expression.bindings)?;
 
     let Some(expression) = where_expression.expression else {
         let type_id = match mode {
@@ -201,22 +201,16 @@ where
             WhereExpressionMode::Check { expected } => expected,
         };
         let expression = state.allocate_error_expression(type_id);
-        let where_expression = tree::WhereExpression { expression };
+        let where_expression = tree::WhereExpression { bindings, expression };
         return Ok(ElaboratedWhereExpression { type_id, where_expression });
     };
 
-    let expression = match mode {
+    let terms::ElaboratedExpression { type_id, expression } = match mode {
         WhereExpressionMode::Infer => terms::infer_expression(state, context, expression)?,
         WhereExpressionMode::Check { expected } => {
             terms::check_expression(state, context, expression, expected)?
         }
     };
-    let type_id = expression.type_id;
-    let expression = if where_expression.bindings.is_empty() {
-        expression.expression
-    } else {
-        state.allocate_error_expression(type_id)
-    };
-    let where_expression = tree::WhereExpression { expression };
+    let where_expression = tree::WhereExpression { bindings, expression };
     Ok(ElaboratedWhereExpression { type_id, where_expression })
 }
