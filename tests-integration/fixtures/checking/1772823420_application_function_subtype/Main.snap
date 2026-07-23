@@ -1,13 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 identity ::
-  forall (k :: Type) (@a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)).
+  forall (k :: Type) (@a :: (k :: Type) -> (k :: Type) -> Type).
     Category @(k :: Type) (a :: (k :: Type) -> (k :: Type) -> Type) =>
-    (a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)) (t :: (k :: Type))
+    (forall (t :: (k :: Type)).
+      (a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)) (t :: (k :: Type)))
 test :: Function Int Int
 test' :: Int -> Int
 
@@ -17,9 +18,10 @@ Category :: forall (k :: Type). ((k :: Type) -> (k :: Type) -> Type) -> Constrai
 Classes
 class forall (k :: Type) (a :: (k :: Type) -> (k :: Type) -> Type). Category @(k :: Type) (a :: (k :: Type) -> (k :: Type) -> Type)
   identity ::
-  forall (k :: Type) (@a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)).
+  forall (k :: Type) (@a :: (k :: Type) -> (k :: Type) -> Type).
     Category @(k :: Type) (a :: (k :: Type) -> (k :: Type) -> Type) =>
-    (a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)) (t :: (k :: Type))
+    (forall (t :: (k :: Type)).
+      (a :: (k :: Type) -> (k :: Type) -> Type) (t :: (k :: Type)) (t :: (k :: Type)))
 
 Instances
 instance Category @Type Function

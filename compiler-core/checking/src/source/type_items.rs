@@ -4,7 +4,6 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId, TypeItemKind};
-use itertools::Itertools;
 use lowering::{
     ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
     TypeItemIr, TypeVariableBinding,
@@ -13,10 +12,11 @@ use smol_str::SmolStr;
 
 use crate::context::CheckContext;
 use crate::core::{
-    CheckedClass, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym, ForallBinder, Role,
-    Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
+    CheckedClass, CheckedClassMember, CheckedDataDeclaration, CheckedSuperclass, CheckedSynonym,
+    ForallBinder, Role, Type, TypeId, fd, fold, generalise, signature, toolkit, unification, zonk,
 };
 use crate::error::ErrorCrumb;
+use crate::evidence::SuperclassId;
 use crate::source::types;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop, tree};
@@ -891,7 +891,7 @@ where
             .iter()
             .copied()
             .map(|binder| context.intern_forall_binder(binder))
-            .collect_vec();
+            .collect::<Arc<[_]>>();
 
         let type_parameters = parameters
             .iter()
@@ -902,7 +902,7 @@ where
                 let binder = ForallBinder { kind, ..parameter };
                 context.intern_forall_binder(binder)
             })
-            .collect_vec();
+            .collect::<Arc<[_]>>();
 
         let mut class_head = context.queries.intern_type(Type::Constructor(context.id, item_id));
 
@@ -933,58 +933,59 @@ where
             })
             .collect::<QueryResult<Vec<_>>>()?;
 
-        for (member_id, member_type) in members.iter() {
-            let member_type = zonk::zonk(state, context, *member_type)?;
+        let semantic_superclasses = superclasses.iter().map(|superclass| tree::ClassSuperclass {
+            id: SuperclassId {
+                file_id: context.id,
+                type_id: item_id,
+                source_id: superclass.source_id,
+            },
+            constraint: superclass.constraint,
+        });
+        let semantic_superclasses = semantic_superclasses.collect::<Arc<[_]>>();
 
-            let signature::DecomposedSignature {
-                binders: member_binders,
-                constraints: member_constraints,
-                arguments: member_arguments,
-                result: member_result,
-            } = signature::decompose_signature(
-                state,
-                context,
-                member_type,
-                signature::DecomposeSignatureMode::Full,
-            )?;
-
-            let mut result = context.intern_function_list(&member_arguments, member_result);
-
-            for constraint in member_constraints.into_iter().rev() {
-                result = context.intern_constrained(constraint, result);
-            }
-
-            result = context.intern_constrained(class_head, result);
-
-            for member_binder in member_binders.iter().copied().rev() {
-                let binder_id = context.intern_forall_binder(member_binder);
-                result = context.intern_forall(binder_id, result);
-            }
+        let mut checked_members = Vec::with_capacity(members.len());
+        let mut semantic_members = Vec::with_capacity(members.len());
+        for (member_id, member_type) in members {
+            let field_type = zonk::zonk(state, context, member_type)?;
+            let mut selector_type = context.intern_constrained(class_head, field_type);
 
             for type_parameter in type_parameters.iter().rev() {
-                result = context.intern_forall(*type_parameter, result);
+                selector_type = context.intern_forall(*type_parameter, selector_type);
             }
 
             for kind_binder in kind_binders.iter().rev() {
-                result = context.intern_forall(*kind_binder, result);
+                selector_type = context.intern_forall(*kind_binder, selector_type);
             }
 
-            state.checked.terms.insert(*member_id, result);
+            state.checked.terms.insert(member_id, selector_type);
+            checked_members.push(CheckedClassMember { item_id: member_id, field_type });
+            semantic_members.push(tree::ClassMember { source: member_id, field_type });
         }
-
-        let members = members.into_iter().map(|(item_id, _)| item_id).collect_vec();
 
         state.checked.classes.insert(
             item_id,
             CheckedClass {
-                kind_binders,
-                type_parameters,
+                kind_binders: Arc::clone(&kind_binders),
+                type_parameters: Arc::clone(&type_parameters),
                 canonical,
                 superclasses,
                 functional_dependencies,
-                members,
+                members: checked_members,
             },
         );
+
+        let class = tree::ClassDeclaration {
+            kind_binders,
+            type_parameters,
+            superclasses: semantic_superclasses,
+            members: Arc::from(semantic_members),
+        };
+        let declaration = tree::TypeDeclaration {
+            kind: class_kind,
+            roles: Arc::default(),
+            declaration: tree::TypeDeclarationKind::Class(class),
+        };
+        state.checked.tree.insert_type_declaration(item_id, declaration);
     }
 
     Ok(())

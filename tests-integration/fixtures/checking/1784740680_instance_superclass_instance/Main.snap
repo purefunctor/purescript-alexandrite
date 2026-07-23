@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+
+Types
+Parent :: Type -> Constraint
+Child :: Type -> Constraint
+
+Classes
+class forall (value :: Type). Parent (value :: Type)
+class forall (value :: Type). Parent (value :: Type) <= Child (value :: Type)
+
+Instances
+instance Parent Int
+instance Child Int

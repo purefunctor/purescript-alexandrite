@@ -5,12 +5,12 @@ expression: report
 ---
 Terms
 compose ::
-  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type))
-    (b :: (k :: Type)) (c :: (k :: Type)).
+  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type).
     Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type) =>
-    (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
-    (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
-    (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type))
+    (forall (a :: (k :: Type)) (b :: (k :: Type)) (c :: (k :: Type)).
+      (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
+      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
+      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type)))
 Tagged :: forall (@n :: Int) (@a :: Type). (a :: Type) -> Tagged (n :: Int) (a :: Type)
 make :: forall (a :: Type). (a :: Type) -> HiddenTagged (a :: Type)
 ConcreteNewtype :: forall (@a :: Type). ConcreteTagged (a :: Type) -> ConcreteNewtype (a :: Type)
@@ -30,12 +30,12 @@ type HiddenTagged a = forall (n :: Int). Tagged (n :: Int) (a :: Type)
 Classes
 class forall (k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type). Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type)
   compose ::
-  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type))
-    (b :: (k :: Type)) (c :: (k :: Type)).
+  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type).
     Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type) =>
-    (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
-    (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
-    (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type))
+    (forall (a :: (k :: Type)) (b :: (k :: Type)) (c :: (k :: Type)).
+      (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
+      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
+      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type)))
 
 Instances
 instance Semigroupoid @Type Function

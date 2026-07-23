@@ -5,11 +5,12 @@ expression: report
 ---
 Terms
 map ::
-  forall (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@f :: Type -> Type).
     Functor (f :: Type -> Type) =>
-    ((a :: Type) -> (b :: Type)) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (f :: Type -> Type) (b :: Type)
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
 testMap ::
   forall (t :: Type) (t1 :: Type).
     ((t :: Type) -> (t1 :: Type)) -> Array (t :: Type) -> Array (t1 :: Type)
@@ -20,11 +21,12 @@ Functor :: (Type -> Type) -> Constraint
 Classes
 class forall (f :: Type -> Type). Functor (f :: Type -> Type)
   map ::
-  forall (@f :: Type -> Type) (a :: Type) (b :: Type).
+  forall (@f :: Type -> Type).
     Functor (f :: Type -> Type) =>
-    ((a :: Type) -> (b :: Type)) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (f :: Type -> Type) (b :: Type)
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
 
 Instances
 instance Functor Array

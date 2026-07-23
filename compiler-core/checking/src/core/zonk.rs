@@ -10,7 +10,7 @@ use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
-use crate::tree::{BinderKind, ExpressionKind, TermDeclarationKind};
+use crate::tree::{BinderKind, ExpressionKind, TermDeclarationKind, TypeDeclarationKind};
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
@@ -105,6 +105,20 @@ where
                     constructor.arguments.iter().map(|&argument| zonk(state, context, argument));
                 constructor.arguments = arguments.collect::<QueryResult<Arc<[_]>>>()?;
             }
+            TermDeclarationKind::Instance(instance) => {
+                for parameter in Arc::make_mut(&mut instance.rigid_parameters) {
+                    *parameter = zonk(state, context, *parameter)?;
+                }
+                for evidence in Arc::make_mut(&mut instance.evidences) {
+                    evidence.constraint = zonk(state, context, evidence.constraint)?;
+                }
+                for superclass in Arc::make_mut(&mut instance.superclasses) {
+                    superclass.constraint = zonk(state, context, superclass.constraint)?;
+                }
+                for member in Arc::make_mut(&mut instance.members) {
+                    member.implementation_type = zonk(state, context, member.implementation_type)?;
+                }
+            }
         }
     }
     state.checked.tree.arena.terms = term_declarations;
@@ -112,6 +126,18 @@ where
     let mut type_declarations = mem::take(&mut state.checked.tree.arena.types);
     for (_, declaration) in type_declarations.iter_mut() {
         declaration.kind = zonk(state, context, declaration.kind)?;
+        match &mut declaration.declaration {
+            TypeDeclarationKind::Data(_) | TypeDeclarationKind::Newtype(_) => {}
+            TypeDeclarationKind::Class(class) => {
+                for superclass in Arc::make_mut(&mut class.superclasses) {
+                    superclass.constraint = zonk(state, context, superclass.constraint)?;
+                }
+
+                for member in Arc::make_mut(&mut class.members) {
+                    member.field_type = zonk(state, context, member.field_type)?;
+                }
+            }
+        }
     }
     state.checked.tree.arena.types = type_declarations;
 

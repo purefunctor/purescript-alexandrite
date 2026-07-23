@@ -142,18 +142,14 @@ where
         OperatorKindMode::Check { expected_type } => (unknown_elaborated, expected_type),
     };
 
-    let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-    let operator_type = toolkit::collect_wanteds(state, context, operator_type)?;
-
-    let Some((left_type, operator_type)) =
-        toolkit::decompose_function(state, context, operator_type)?
+    let Some(terms::application::GenericApplication { argument: left_type, result: operator_type }) =
+        terms::application::check_generic_application(state, context, operator_type)?
     else {
         return Ok(unknown);
     };
 
-    let operator_type = toolkit::instantiate_unifications(state, context, operator_type)?;
-    let Some((right_type, result_type)) =
-        toolkit::decompose_function(state, context, operator_type)?
+    let Some(terms::application::GenericApplication { argument: right_type, result: result_type }) =
+        terms::application::check_generic_application(state, context, operator_type)?
     else {
         return Ok(unknown);
     };

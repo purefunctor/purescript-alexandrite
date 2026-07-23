@@ -4,13 +4,13 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, ValueEquationId};
+use indexing::{EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role};
-use crate::evidence::{Evidence, EvidenceVarId};
+use crate::evidence::{Evidence, EvidenceVarId, SuperclassId};
 
 pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
@@ -42,6 +42,7 @@ pub struct TermDeclaration {
 pub enum TermDeclarationKind {
     Value(ValueDeclaration),
     Constructor(DataConstructor),
+    Instance(InstanceDeclaration),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -56,6 +57,36 @@ pub struct DataConstructor {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct InstanceDeclaration {
+    pub class: (FileId, TypeItemId),
+    pub rigid_parameters: Arc<[TypeId]>,
+    pub evidences: Arc<[InstanceEvidence]>,
+    pub superclasses: Arc<[InstanceSuperclass]>,
+    pub members: Arc<[InstanceMember]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstanceEvidence {
+    pub constraint: TypeId,
+    pub evidence: Evidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InstanceSuperclass {
+    pub id: SuperclassId,
+    pub constraint: TypeId,
+    pub evidence: EvidenceVarId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstanceMember {
+    pub resolution: (FileId, TermItemId),
+    pub implementation_type: TypeId,
+    pub evidences: Arc<[Evidence]>,
+    pub equations: Arc<[Equation]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct TypeDeclaration {
     pub kind: TypeId,
     pub roles: Arc<[Role]>,
@@ -66,6 +97,7 @@ pub struct TypeDeclaration {
 pub enum TypeDeclarationKind {
     Data(DataDeclaration),
     Newtype(DataDeclaration),
+    Class(ClassDeclaration),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -75,8 +107,28 @@ pub struct DataDeclaration {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct ClassDeclaration {
+    pub kind_binders: Arc<[ForallBinderId]>,
+    pub type_parameters: Arc<[ForallBinderId]>,
+    pub superclasses: Arc<[ClassSuperclass]>,
+    pub members: Arc<[ClassMember]>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClassSuperclass {
+    pub id: SuperclassId,
+    pub constraint: TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClassMember {
+    pub source: TermItemId,
+    pub field_type: TypeId,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Equation {
-    pub source: ValueEquationId,
+    pub source: EquationSourceId,
     pub binders: Arc<[BinderId]>,
     pub guarded_expression: GuardedExpression,
 }

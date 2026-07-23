@@ -297,9 +297,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
             writeln!(out, "class {forall_prefix}{superclasses} <= {canonical}").unwrap();
         }
 
-        for &mid in &class.members {
-            let Some(member_name) = indexed.items[mid].name.as_deref() else { continue };
-            let Some(member_type) = checked.lookup_term(mid) else { continue };
+        for member in &class.members {
+            let member_id = member.item_id;
+            let Some(member_name) = indexed.items[member_id].name.as_deref() else { continue };
+            let Some(member_type) = checked.lookup_term(member_id) else { continue };
             let signature = pretty.render_signature(member_name, member_type);
             writeln!(out, "  {signature}").unwrap();
         }

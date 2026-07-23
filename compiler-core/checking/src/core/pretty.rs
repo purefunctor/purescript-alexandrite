@@ -111,6 +111,13 @@ impl PrettyNames {
             suffix = try_next_suffix(suffix).expect("critical failure: exhausted suffixes");
         }
     }
+
+    pub(crate) fn assign_display_name(&mut self, name: Name, display: SmolStr) {
+        if !self.next_suffix.contains_key(&display) {
+            self.next_suffix.insert(SmolStr::clone(&display), FIRST_SUFFIX);
+        }
+        self.display_by_name.insert(name, display);
+    }
 }
 
 fn try_next_suffix(suffix: NonZeroU32) -> Option<NonZeroU32> {
@@ -163,6 +170,10 @@ where
     pub fn display_name(&mut self, name: Name) -> SmolStr {
         self.names.set_default_name("t");
         self.names.display_name(self.queries, &self.checked.names, name)
+    }
+
+    pub(crate) fn assign_display_name(&mut self, name: Name, display: SmolStr) {
+        self.names.assign_display_name(name, display);
     }
 
     pub fn render(&mut self, id: TypeId) -> SmolStr {

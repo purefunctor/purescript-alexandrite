@@ -7,7 +7,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{TypeId, constraint, signature, toolkit, unification};
+use crate::core::{TypeId, signature, toolkit, unification};
 use crate::error::ErrorKind;
 use crate::evidence::Evidence;
 use crate::source::binder;
@@ -39,7 +39,7 @@ pub struct CheckedValueEquations {
 }
 
 pub struct ElaboratedEquation {
-    pub source: Option<indexing::ValueEquationId>,
+    pub source: Option<indexing::EquationSourceId>,
     pub binders: Arc<[tree::BinderId]>,
     pub guarded: tree::GuardedExpression,
 }
@@ -72,10 +72,8 @@ where
 
     let mut evidences = vec![];
     for &constraint in &constraints {
-        if !constraint::is_type_error(state, context, constraint)? {
-            let evidence = state.push_given(constraint);
-            evidences.push(Evidence::Given(evidence));
-        }
+        let evidence = state.push_given(constraint);
+        evidences.push(Evidence::Given(evidence));
     }
 
     let signature = context.intern_function_list(&arguments, result);

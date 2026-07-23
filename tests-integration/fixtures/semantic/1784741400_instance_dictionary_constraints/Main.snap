@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface First :: Type -> Constraint
+interface First a where
+
+interface Second :: Type -> Constraint
+interface Second b where
+
+interface Example :: Type -> Type -> Constraint
+interface Example a b where
+  example :: a -> b -> Boolean
+
+implementation :: forall b a. Second b => a -> b -> Boolean
+implementation = \{secondDict} -> \_ -> \_ -> boolean
+
+dictionary exampleAB ::
+  forall t t1.
+  { firstDict :: First t
+  , secondDict :: Second t1
+  } =>
+  Example t t1
+where
+  example = implementation @t1 @t {secondDict}

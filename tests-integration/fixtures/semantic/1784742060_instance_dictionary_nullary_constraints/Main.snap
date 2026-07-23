@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Required :: Type -> Constraint
+interface Required value where
+
+interface Example :: Type -> Constraint
+interface Example a where
+  example :: Boolean
+
+implementation :: Fail (Text "first deferred error") => Required Int => Fail (Text "second deferred error") => Boolean
+implementation = \{failDict} -> \{requiredDict} -> \{failDict1} -> boolean
+
+dictionary exampleInt ::
+  { failDict :: Fail (Text "first deferred error")
+  , requiredDict :: Required Int
+  , failDict1 :: Fail (Text "second deferred error")
+  } =>
+  Example Int
+where
+  example = implementation {failDict} {requiredDict} {failDict1}
