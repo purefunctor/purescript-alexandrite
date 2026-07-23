@@ -1,0 +1,7 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+deferred :: Fail (Text "first deferred error") => Fail (Text "second deferred error") => Boolean
+deferred = \{failDict} -> \{failDict1} -> boolean
