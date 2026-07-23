@@ -82,26 +82,30 @@ pub fn infer_lambda<Q>(
     context: &CheckContext<Q>,
     binders: &[lowering::BinderId],
     expression: Option<lowering::ExpressionId>,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let mut argument_types = vec![];
+    let mut checked_binders = vec![];
 
     for &binder_id in binders.iter() {
         let argument_type = state.fresh_unification(context.queries, context.prim.t);
-        binder::check_binder(state, context, binder_id, argument_type)?;
+        let checked_binder = binder::check_binder(state, context, binder_id, argument_type)?;
         argument_types.push(argument_type);
+        checked_binders.push(checked_binder.binder);
     }
 
-    let result_type = if let Some(body) = expression {
+    let body = if let Some(body) = expression {
         let body = super::infer_expression(state, context, body)?;
-        application::instantiate_expression(state, context, body)?.type_id
+        application::instantiate_expression(state, context, body)?
     } else {
-        state.fresh_unification(context.queries, context.prim.t)
+        let type_id = state.fresh_unification(context.queries, context.prim.t);
+        let expression = state.allocate_error_expression(type_id);
+        ElaboratedExpression { type_id, expression }
     };
 
-    let function_type = context.intern_function_list(&argument_types, result_type);
+    let function_type = context.intern_function_list(&argument_types, body.type_id);
 
     let exhaustiveness =
         exhaustive::check_lambda_patterns(state, context, &argument_types, binders)?;
@@ -109,10 +113,16 @@ where
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
 
+    let kind = tree::ExpressionKind::Lambda {
+        binders: checked_binders.into(),
+        expression: body.expression,
+    };
+
     if has_missing {
-        Ok(context.intern_constrained(context.prim.partial, function_type))
+        let type_id = context.intern_constrained(context.prim.partial, function_type);
+        Ok(super::allocate_expression(state, type_id, kind))
     } else {
-        Ok(function_type)
+        Ok(super::allocate_expression(state, function_type, kind))
     }
 }
 
@@ -122,49 +132,58 @@ pub fn check_lambda<Q>(
     binders: &[lowering::BinderId],
     expression: Option<lowering::ExpressionId>,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let mut arguments = vec![];
+    let mut checked_binders = vec![];
     let mut remaining = expected;
 
     for &binder_id in binders.iter() {
         let decomposed = toolkit::decompose_function(state, context, remaining)?;
-        if let Some((argument, result)) = decomposed {
+        let argument = if let Some((argument, result)) = decomposed {
             let argument = if binder::requires_instantiation(context, binder_id) {
                 toolkit::instantiate_unifications(state, context, argument)?
             } else {
                 argument
             };
-            binder::check_binder(state, context, binder_id, argument)?;
-            arguments.push(argument);
             remaining = result;
+            argument
         } else {
-            let argument_type = state.fresh_unification(context.queries, context.prim.t);
-            binder::check_binder(state, context, binder_id, argument_type)?;
-            arguments.push(argument_type);
-        }
+            state.fresh_unification(context.queries, context.prim.t)
+        };
+        let checked_binder = binder::check_binder(state, context, binder_id, argument)?;
+        arguments.push(argument);
+        checked_binders.push(checked_binder.binder);
     }
 
-    let result_type = if let Some(body) = expression {
-        super::check_expression(state, context, body, remaining)?.type_id
+    let body = if let Some(body) = expression {
+        super::check_expression(state, context, body, remaining)?
     } else {
-        state.fresh_unification(context.queries, context.prim.t)
+        let type_id = state.fresh_unification(context.queries, context.prim.t);
+        let expression = state.allocate_error_expression(type_id);
+        ElaboratedExpression { type_id, expression }
     };
 
-    let function_type = context.intern_function_list(&arguments, result_type);
+    let function_type = context.intern_function_list(&arguments, body.type_id);
 
     let exhaustiveness = exhaustive::check_lambda_patterns(state, context, &arguments, binders)?;
 
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
 
+    let kind = tree::ExpressionKind::Lambda {
+        binders: checked_binders.into(),
+        expression: body.expression,
+    };
+
     if has_missing {
         state.push_wanted(context.prim.partial);
+        Ok(super::allocate_expression(state, function_type, kind))
+    } else {
+        Ok(super::allocate_expression(state, function_type, kind))
     }
-
-    Ok(function_type)
 }
 
 pub fn instantiate_trunk_types<Q>(

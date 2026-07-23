@@ -207,8 +207,7 @@ where
 
     match kind {
         lowering::ExpressionKind::Lambda { binders, expression } => {
-            let type_id = forms::check_lambda(state, context, binders, *expression, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::check_lambda(state, context, binders, *expression, expected)
         }
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
             let type_id = forms::check_if_then_else(state, context, *if_, *then, *else_, expected)?;
@@ -380,8 +379,7 @@ where
         }
 
         lowering::ExpressionKind::Lambda { binders, expression } => {
-            let type_id = forms::infer_lambda(state, context, binders, *expression)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::infer_lambda(state, context, binders, *expression)
         }
 
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
