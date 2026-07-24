@@ -1,17 +1,22 @@
 //! Implements the pretty printer for the checked semantic tree.
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItem, TypeItem};
+use indexing::{TermItem, TermItemKind, TypeItem};
 use lowering::TermVariableResolution;
 use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
-use smol_str::{SmolStr, SmolStrBuilder};
+use smol_str::{SmolStr, SmolStrBuilder, format_smolstr};
 
 use crate::CheckedModule;
 use crate::core::Type;
 use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
-use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
+use crate::evidence::{
+    Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
+    ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
+};
 use crate::tree::{
     BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
     GuardedAlternative, GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings,
@@ -20,6 +25,13 @@ use crate::tree::{
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+
+const UNKNOWN_INSTANCE_EVIDENCE: SmolStr = SmolStr::new_static("<instance>");
+const UNKNOWN_SUPERCLASS_EVIDENCE: SmolStr = SmolStr::new_static("<superclass>");
+const EVIDENCE_DICTIONARY_NAME: SmolStr = SmolStr::new_static("evidenceDict");
+const REFLECTABLE_LESS_EVIDENCE: SmolStr = SmolStr::new_static("reflectable(LT)");
+const REFLECTABLE_EQUAL_EVIDENCE: SmolStr = SmolStr::new_static("reflectable(EQ)");
+const REFLECTABLE_GREATER_EVIDENCE: SmolStr = SmolStr::new_static("reflectable(GT)");
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ExpressionPrecedence {
@@ -61,7 +73,7 @@ pub struct Pretty<'a, Q: ?Sized> {
 
 impl<'a, Q> Pretty<'a, Q>
 where
-    Q: PrettyQueries + ?Sized,
+    Q: PrettyQueries<Checked = Arc<CheckedModule>> + ?Sized,
 {
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Pretty<'a, Q> {
         Pretty { queries, width: 100, checked }
@@ -97,7 +109,7 @@ where
 
 struct Printer<'arena, 'context, 'module, Q>
 where
-    Q: PrettyQueries + ?Sized,
+    Q: PrettyQueries<Checked = Arc<CheckedModule>> + ?Sized,
 {
     arena: &'arena Arena<'arena>,
     queries: &'context Q,
@@ -111,7 +123,7 @@ where
 
 impl<'arena, 'context, 'module, Q> Printer<'arena, 'context, 'module, Q>
 where
-    Q: PrettyQueries + ?Sized,
+    Q: PrettyQueries<Checked = Arc<CheckedModule>> + ?Sized,
 {
     fn new(
         arena: &'arena Arena<'arena>,
@@ -1355,11 +1367,122 @@ where
         match evidence {
             Evidence::Variable(evidence) => self.evidence_variable_name(names, *evidence),
             Evidence::Given(binder) => self.evidence_binder_name(names, *binder),
-            Evidence::Instance { .. } => Ok(SmolStr::new("instance")),
-            Evidence::Superclass { .. } => Ok(SmolStr::new("superclass")),
+            Evidence::Instance { origin, subgoals } => {
+                let mut instance = self.instance_dictionary_name(*origin)?;
+                for subgoal in subgoals {
+                    let subgoal = self.evidence_variable_name(names, *subgoal)?;
+                    instance = format_smolstr!("{instance} {{{subgoal}}}");
+                }
+                Ok(instance)
+            }
+            Evidence::Superclass { parent, superclass } => {
+                let parent_evidence = &self.checked.evidence[*parent];
+                let parent = self.evidence_name(names, parent_evidence)?;
+                let field = self.superclass_field_name(*superclass)?;
+                if parent.contains(' ') {
+                    Ok(format_smolstr!("({parent}).{field}"))
+                } else {
+                    Ok(format_smolstr!("{parent}.{field}"))
+                }
+            }
             Evidence::Trivial => Ok(SmolStr::new("trivial")),
-            Evidence::Synthesized(_) => Ok(SmolStr::new("synthesized")),
+            Evidence::Synthesized(evidence) => Ok(synthesized_evidence_name(evidence)),
         }
+    }
+
+    fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {
+        let file_id = match origin {
+            InstanceCandidateOrigin::Instance(file_id, _)
+            | InstanceCandidateOrigin::Derive(file_id, _) => file_id,
+        };
+        let indexed =
+            if file_id == self.file_id { None } else { Some(self.queries.indexed(file_id)?) };
+        let indexed = indexed.as_deref().unwrap_or(self.indexed);
+        let mut term_items = indexed.items.iter_terms();
+        let term_id = term_items.find_map(|(term_id, item)| {
+            let matches = match (&item.kind, origin) {
+                (
+                    TermItemKind::Instance { id },
+                    InstanceCandidateOrigin::Instance(_, origin_id),
+                ) => *id == origin_id,
+                (TermItemKind::Derive { id }, InstanceCandidateOrigin::Derive(_, origin_id)) => {
+                    *id == origin_id
+                }
+                (_, _) => false,
+            };
+            matches.then_some(term_id)
+        });
+        let Some(term_id) = term_id else {
+            return Ok(UNKNOWN_INSTANCE_EVIDENCE);
+        };
+        if let Some(name) = &indexed.items[term_id].name {
+            return Ok(SmolStr::clone(name));
+        }
+
+        let checked =
+            if file_id == self.file_id { None } else { Some(self.queries.checked(file_id)?) };
+        let checked = checked.as_deref().unwrap_or(self.checked);
+        let mut names = PrettyNames::new();
+        for (_, item) in indexed.items.iter_terms() {
+            if let Some(name) = &item.name {
+                names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+        for (candidate_id, candidate) in indexed.items.iter_terms() {
+            if candidate.name.is_some() {
+                continue;
+            }
+            let Some(declaration_id) = checked.tree.lookup_term(candidate_id) else {
+                continue;
+            };
+            let declaration = &checked.tree[declaration_id];
+            let TermDeclarationKind::Instance(instance) = &declaration.kind else {
+                continue;
+            };
+            let base = self.dictionary_base_name(declaration.type_id, instance)?;
+            let name = names.allocate_display_name(base);
+            if candidate_id == term_id {
+                return Ok(name);
+            }
+        }
+        Ok(UNKNOWN_INSTANCE_EVIDENCE)
+    }
+
+    fn superclass_field_name(&self, superclass: SuperclassId) -> QueryResult<SmolStr> {
+        let indexed = if superclass.file_id == self.file_id {
+            None
+        } else {
+            Some(self.queries.indexed(superclass.file_id)?)
+        };
+        let indexed = indexed.as_deref().unwrap_or(self.indexed);
+        let checked = if superclass.file_id == self.file_id {
+            None
+        } else {
+            Some(self.queries.checked(superclass.file_id)?)
+        };
+        let checked = checked.as_deref().unwrap_or(self.checked);
+        let Some(declaration_id) = checked.tree.lookup_type_declaration(superclass.type_id) else {
+            return Ok(UNKNOWN_SUPERCLASS_EVIDENCE);
+        };
+        let declaration = &checked.tree[declaration_id];
+        let TypeDeclarationKind::Class(class) = &declaration.declaration else {
+            return Ok(UNKNOWN_SUPERCLASS_EVIDENCE);
+        };
+
+        let mut names = PrettyNames::new();
+        for member_id in indexed.class_members(superclass.type_id) {
+            if let Some(name) = &indexed.items[member_id].name {
+                names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+        for candidate in class.superclasses.iter() {
+            let base = self.evidence_base_name(candidate.constraint)?;
+            let name = names.allocate_display_name(base);
+            if candidate.id == superclass {
+                return Ok(name);
+            }
+        }
+        Ok(UNKNOWN_SUPERCLASS_EVIDENCE)
     }
 
     fn evidence_binder_name(
@@ -1391,14 +1514,14 @@ where
             }
         };
         let Some(class_name) = class_name else {
-            return Ok(SmolStr::new("evidenceDict"));
+            return Ok(EVIDENCE_DICTIONARY_NAME);
         };
         let mut characters = class_name.chars();
         let Some(first) = characters.next() else {
-            return Ok(SmolStr::new("evidenceDict"));
+            return Ok(EVIDENCE_DICTIONARY_NAME);
         };
         let first = first.to_lowercase().collect::<String>();
-        Ok(SmolStr::new(format!("{first}{}Dict", characters.as_str())))
+        Ok(format_smolstr!("{first}{}Dict", characters.as_str()))
     }
 
     fn term_name(
@@ -1447,5 +1570,29 @@ where
 
         let indexed = self.queries.indexed(file_id)?;
         Ok(indexed.items[type_id].name.as_ref().map(ToString::to_string))
+    }
+}
+
+fn synthesized_evidence_name(evidence: &SynthesizedEvidence) -> SmolStr {
+    match evidence {
+        SynthesizedEvidence::IsSymbol(symbol) => format_smolstr!("isSymbol({symbol:?})"),
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::Integer(value)) => {
+            format_smolstr!("reflectable({value})")
+        }
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::String(value)) => {
+            format_smolstr!("reflectable({value:?})")
+        }
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::Boolean(value)) => {
+            format_smolstr!("reflectable({value})")
+        }
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::Ordering(
+            ReflectableOrdering::Less,
+        )) => REFLECTABLE_LESS_EVIDENCE,
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::Ordering(
+            ReflectableOrdering::Equal,
+        )) => REFLECTABLE_EQUAL_EVIDENCE,
+        SynthesizedEvidence::Reflectable(ReflectableEvidence::Ordering(
+            ReflectableOrdering::Greater,
+        )) => REFLECTABLE_GREATER_EVIDENCE,
     }
 }
