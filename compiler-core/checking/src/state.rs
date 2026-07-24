@@ -313,6 +313,18 @@ impl CheckState {
         type_id: TypeId,
         kind: tree::BinderKind,
     ) -> tree::BinderId {
+        let source = tree::BinderSource::Binder(source);
+        let binder = tree::Binder { source, type_id, kind };
+        self.checked.tree.allocate_binder(binder)
+    }
+
+    pub fn allocate_generated_binder(
+        &mut self,
+        source: lowering::DoStatementId,
+        type_id: TypeId,
+        kind: tree::BinderKind,
+    ) -> tree::BinderId {
+        let source = tree::BinderSource::DoStatement(source);
         let binder = tree::Binder { source, type_id, kind };
         self.checked.tree.allocate_binder(binder)
     }
