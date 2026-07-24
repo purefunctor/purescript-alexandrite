@@ -6,6 +6,8 @@ expression: report
 interface Negative :: Type -> Constraint
 interface Negative a where
 
+foreign import negate :: forall a. Negative a => a -> a
+
 negative :: forall a. Negative a => a -> a
 negative = \{negativeDict} -> \value -> negate @a {negativeDict} value
 

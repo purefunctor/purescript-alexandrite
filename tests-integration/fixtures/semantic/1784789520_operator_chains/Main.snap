@@ -27,6 +27,8 @@ append = \left -> \right -> left
 rightAssociative :: Int
 rightAssociative = append 1 (append 2 3)
 
+foreign import interleaved :: forall a. First a => a -> (forall b. Second b => b -> a)
+
 implicitApplications :: forall a b. First a => Second b => a -> b -> a
 implicitApplications = \{firstDict} -> \{secondDict} -> \left -> \right ->
   interleaved @a {firstDict} left @b {secondDict} right

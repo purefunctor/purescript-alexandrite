@@ -16,5 +16,7 @@ interface Second a where
 useDefault :: forall a. Default a => a
 useDefault = \{defaultDict} -> default @a {defaultDict}
 
+foreign import interleaved :: forall a. First a => (forall b. Second b => a -> b)
+
 useInterleaved :: forall a b. First a => Second b => a -> b
 useInterleaved = \{firstDict} -> \{secondDict} -> interleaved @a {firstDict} @b {secondDict}

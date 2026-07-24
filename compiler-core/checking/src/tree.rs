@@ -47,6 +47,7 @@ pub struct TermDeclaration {
 #[derive(Debug, PartialEq, Eq)]
 pub enum TermDeclarationKind {
     Value(ValueDeclaration),
+    Foreign,
     Constructor(DataConstructor),
     Instance(InstanceDeclaration),
 }

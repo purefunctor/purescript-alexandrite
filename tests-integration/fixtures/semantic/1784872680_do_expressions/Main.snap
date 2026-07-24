@@ -3,6 +3,12 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
+foreign import pure :: forall value. value -> Effect value
+
+foreign import bind :: forall value result. Effect value -> (value -> Effect result) -> Effect result
+
+foreign import discard :: forall value result. Effect value -> (value -> Effect result) -> Effect result
+
 bound :: Effect Int
 bound = bind @Int @Int (pure @Int 1) \value -> pure @Int value
 

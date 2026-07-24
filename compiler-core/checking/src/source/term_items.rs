@@ -651,7 +651,10 @@ where
     match item {
         TermItemIr::Foreign { signature } => {
             let Some(signature) = signature else { return Ok(()) };
-            check_signature_type(state, context, item_id, *signature)?;
+            let type_id = check_signature_type(state, context, item_id, *signature)?;
+            let declaration =
+                tree::TermDeclaration { type_id, kind: tree::TermDeclarationKind::Foreign };
+            state.checked.tree.insert_term(item_id, declaration);
         }
         TermItemIr::ValueGroup { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
@@ -668,13 +671,13 @@ fn check_signature_type<Q>(
     context: &CheckContext<Q>,
     item_id: TermItemId,
     signature: lowering::TypeId,
-) -> QueryResult<()>
+) -> QueryResult<TypeId>
 where
     Q: ExternalQueries,
 {
     let (checked_kind, _) = types::check_kind(state, context, signature, context.prim.t)?;
     state.checked.terms.insert(item_id, checked_kind);
-    Ok(())
+    Ok(checked_kind)
 }
 
 fn check_term_equation<Q>(

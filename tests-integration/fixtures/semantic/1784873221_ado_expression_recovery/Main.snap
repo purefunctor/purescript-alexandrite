@@ -3,6 +3,12 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
+foreign import pure :: forall value. value -> Effect value
+
+foreign import map :: forall value result. (value -> result) -> Effect value -> Effect result
+
+foreign import apply :: forall value result. Effect (value -> result) -> Effect value -> Effect result
+
 emptyAdo :: ?[empty ado block]
 emptyAdo = <error>
 

@@ -15,6 +15,10 @@ dictionary parentInt :: Parent Int
 dictionary childInt :: { parentDict :: Parent Int } => Child Int where
   superclass parentDict = parentDict
 
+foreign import useParent :: forall value. Parent value => value -> value
+
+foreign import useChild :: forall value. Child value => value -> value
+
 instanceEvidence :: Int
 instanceEvidence = useChild @Int {childInt {parentInt}} 1
 

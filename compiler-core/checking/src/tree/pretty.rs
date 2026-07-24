@@ -192,6 +192,17 @@ where
                     };
                     declarations.push(declaration);
                 }
+                TermDeclarationKind::Foreign => {
+                    let Some(name) = name else { continue };
+                    let mut type_pretty = TypePretty::new(self.queries, self.checked)
+                        .without_rigid_kinds()
+                        .without_forall_kinds()
+                        .width(self.width);
+                    let type_id = type_pretty.render(declaration.type_id);
+                    let declaration =
+                        self.arena.text(format!("foreign import {name} :: {type_id}"));
+                    declarations.push(declaration);
+                }
                 TermDeclarationKind::Constructor(_) => {}
                 TermDeclarationKind::Instance(instance) => {
                     let name = if let Some(name) = name {

@@ -12,6 +12,24 @@ dictionary onTwo :: OnStep 2
 
 dictionary onDefault :: forall t. OnStep t
 
+foreign import map :: forall step.
+  OnStep step => (forall value result. (value -> result) -> Action step value -> Action step result)
+
+foreign import apply :: forall step.
+  OnStep step =>
+  (forall previous value result.
+    Action previous (value -> result) -> Action step value -> Action step result)
+
+foreign import pure :: forall step. OnStep step => (forall value. value -> Action step value)
+
+foreign import stepZero :: Action 0 Int
+
+foreign import stepOne :: Action 1 String
+
+foreign import stepTwo :: Action 2 Boolean
+
+foreign import stepThree :: Action 3 String
+
 indexedApply :: Action 3 String
 indexedApply =
   apply @3 {onDefault} @2 @String @String

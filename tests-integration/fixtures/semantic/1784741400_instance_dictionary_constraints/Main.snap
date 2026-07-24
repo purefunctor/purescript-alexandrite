@@ -16,6 +16,8 @@ interface Example a b where
 implementation :: forall b a. Second b => a -> b -> Boolean
 implementation = \{secondDict} -> \_ -> \_ -> boolean
 
+foreign import boolean :: Boolean
+
 dictionary exampleAB ::
   forall t t1.
   { firstDict :: First t } =>

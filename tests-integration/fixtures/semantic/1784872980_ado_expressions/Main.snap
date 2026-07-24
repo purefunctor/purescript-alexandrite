@@ -7,6 +7,12 @@ data Tuple :: Type -> Type -> Type
 data Tuple @first @second
   | Tuple :: first -> second -> Tuple first second
 
+foreign import pure :: forall value. value -> Effect value
+
+foreign import map :: forall value result. (value -> result) -> Effect value -> Effect result
+
+foreign import apply :: forall value result. Effect (value -> result) -> Effect value -> Effect result
+
 zero :: Effect Int
 zero = pure @Int 1
 

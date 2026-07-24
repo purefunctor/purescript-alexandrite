@@ -12,6 +12,26 @@ dictionary onTwo :: OnStep 2
 
 dictionary onDefault :: forall t. OnStep t
 
+foreign import bind :: forall step.
+  OnStep step =>
+  (forall next value result.
+    Action step value -> (value -> Action next result) -> Action step result)
+
+foreign import discard :: forall step.
+  OnStep step =>
+  (forall next value result.
+    Action step value -> (value -> Action next result) -> Action step result)
+
+foreign import stepZero :: Action 0 Int
+
+foreign import stepOne :: Action 1 String
+
+foreign import stepTwo :: Action 2 Boolean
+
+foreign import stepThree :: Action 3 String
+
+foreign import stepFour :: Action 4 Number
+
 indexedBind :: Action 0 Number
 indexedBind =
   bind @0 {onZero} @1 @Int @Number stepZero \zero ->

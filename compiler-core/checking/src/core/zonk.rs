@@ -105,7 +105,7 @@ where
     for (_, declaration) in term_declarations.iter_mut() {
         declaration.type_id = zonk(state, context, declaration.type_id)?;
         match &mut declaration.kind {
-            TermDeclarationKind::Value(_) => {}
+            TermDeclarationKind::Value(_) | TermDeclarationKind::Foreign => {}
             TermDeclarationKind::Constructor(constructor) => {
                 let arguments =
                     constructor.arguments.iter().map(|&argument| zonk(state, context, argument));
