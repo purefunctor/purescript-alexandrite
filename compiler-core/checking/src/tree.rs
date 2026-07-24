@@ -7,6 +7,7 @@ use files::FileId;
 use indexing::{EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use lowering::LetBindingNameGroupId;
+use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 use crate::TypeId;
@@ -25,6 +26,7 @@ pub struct Module {
     terms: ArenaMap<TermItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
     lets: ArenaMap<LetBindingNameGroupId, LocalDeclarationId>,
+    sections: FxHashMap<lowering::ExpressionId, BinderId>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -268,6 +270,7 @@ pub struct Binder {
 pub enum BinderSource {
     Binder(lowering::BinderId),
     DoStatement(lowering::DoStatementId),
+    Section(lowering::ExpressionId),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -314,6 +317,7 @@ pub enum ExpressionKind {
     Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
     RecordPun { source: lowering::RecordPunId, resolution: lowering::TermVariableResolution },
+    Section { binder: BinderId },
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
@@ -343,6 +347,23 @@ impl Module {
 
     pub fn allocate_binder(&mut self, binder: Binder) -> BinderId {
         self.arena.binders.alloc(binder)
+    }
+
+    pub fn allocate_section_binder(
+        &mut self,
+        source: lowering::ExpressionId,
+        type_id: TypeId,
+    ) -> BinderId {
+        let binder =
+            Binder { source: BinderSource::Section(source), type_id, kind: BinderKind::Variable };
+        let binder = self.arena.binders.alloc(binder);
+        let previous = self.sections.insert(source, binder);
+        assert!(previous.is_none(), "invariant violated: section binder allocated twice");
+        binder
+    }
+
+    pub fn lookup_section_binder(&self, source: lowering::ExpressionId) -> Option<BinderId> {
+        self.sections.get(&source).copied()
     }
 
     pub fn insert_term(&mut self, source: TermItemId, term: TermDeclaration) -> TermDeclarationId {

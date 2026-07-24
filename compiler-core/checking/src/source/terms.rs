@@ -160,34 +160,40 @@ where
 {
     let mut current = expected;
     let mut parameters = vec![];
+    let mut binders = vec![];
 
     for &section_id in section_result.iter() {
         let decomposed = toolkit::decompose_function(state, context, current)?;
-        if let Some((argument_type, result_type)) = decomposed {
-            state.checked.nodes.sections.insert(section_id, argument_type);
-            parameters.push(argument_type);
+        let parameter = if let Some((argument_type, result_type)) = decomposed {
             current = result_type;
+            argument_type
         } else {
             let parameter = state.fresh_unification(context.queries, context.prim.t);
             let result = state.fresh_unification(context.queries, context.prim.t);
 
             let function = context.intern_function(parameter, result);
-            unification::subtype(state, context, function, current)?;
+            if unification::subtype(state, context, function, current)? {
+                current = result;
+            } else {
+                unification::unify(state, context, result, current)?;
+            }
 
-            parameters.push(parameter);
-            current = result;
-
-            state.checked.nodes.sections.insert(section_id, parameter);
-        }
+            parameter
+        };
+        let binder = state.allocate_section_binder(section_id, parameter);
+        parameters.push(parameter);
+        binders.push(binder);
     }
 
     let result = infer_expression_core(state, context, expression)?;
-    let result = application::instantiate_expression(state, context, result)?;
+    let ElaboratedExpression { type_id, expression } =
+        application::instantiate_expression(state, context, result)?;
 
-    unification::subtype(state, context, result.type_id, current)?;
+    unification::subtype(state, context, type_id, current)?;
 
-    let function_type = context.intern_function_list(&parameters, result.type_id);
-    Ok(allocate_error_expression(state, function_type))
+    let function_type = context.intern_function_list(&parameters, type_id);
+    let kind = tree::ExpressionKind::Lambda { binders: Arc::from(binders), expression };
+    Ok(allocate_expression(state, function_type, kind))
 }
 
 fn check_expression_core<Q>(
@@ -282,19 +288,21 @@ fn infer_sectioned_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let parameter_types = section_result.iter().map(|&section_id| {
-        let parameter_type = state.fresh_unification(context.queries, context.prim.t);
-        state.checked.nodes.sections.insert(section_id, parameter_type);
-        parameter_type
+    let parameters = section_result.iter().map(|&section_id| {
+        let parameter = state.fresh_unification(context.queries, context.prim.t);
+        let binder = state.allocate_section_binder(section_id, parameter);
+        (parameter, binder)
     });
 
-    let parameter_types = parameter_types.collect_vec();
+    let (parameters, binders): (Vec<_>, Vec<_>) = parameters.unzip();
 
     let result = infer_expression_core(state, context, expression)?;
-    let result = application::instantiate_expression(state, context, result)?;
+    let ElaboratedExpression { type_id, expression } =
+        application::instantiate_expression(state, context, result)?;
 
-    let function_type = context.intern_function_list(&parameter_types, result.type_id);
-    Ok(allocate_error_expression(state, function_type))
+    let function_type = context.intern_function_list(&parameters, type_id);
+    let kind = tree::ExpressionKind::Lambda { binders: Arc::from(binders), expression };
+    Ok(allocate_expression(state, function_type, kind))
 }
 
 fn infer_expression_core<Q>(
@@ -422,10 +430,17 @@ where
         }
 
         lowering::ExpressionKind::Section => {
-            if let Some(type_id) = state.checked.nodes.lookup_section(expression) {
-                Ok(allocate_error_expression(state, type_id))
-            } else {
-                Ok(allocate_error_expression(state, unknown))
+            let type_id = state.checked.nodes.lookup_section(expression);
+            let binder = state.checked.tree.lookup_section_binder(expression);
+            match (type_id, binder) {
+                (Some(type_id), Some(binder)) => {
+                    let kind = tree::ExpressionKind::Section { binder };
+                    Ok(allocate_expression(state, type_id, kind))
+                }
+                (None, None) => Ok(allocate_error_expression(state, unknown)),
+                _ => {
+                    unreachable!("invariant violated: incomplete checked section provenance")
+                }
             }
         }
 

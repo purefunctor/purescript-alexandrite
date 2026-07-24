@@ -54,6 +54,10 @@ fn character_literal(value: char) -> String {
     }
 }
 
+fn section_name(source: lowering::ExpressionId) -> String {
+    format!("v{}", source.into_raw().get())
+}
+
 struct EvidenceNames {
     display_by_binder: FxHashMap<EvidenceBinderId, SmolStr>,
     names: PrettyNames,
@@ -1018,20 +1022,25 @@ where
                 let value = if *negative { format!("(-{value})") } else { value.to_string() };
                 Ok(self.arena.text(value))
             }
-            BinderKind::Variable => {
-                let BinderSource::Binder(source) = binder.source else {
+            BinderKind::Variable => match binder.source {
+                BinderSource::Binder(source) => {
+                    let kind = self
+                        .lowered
+                        .info
+                        .get_binder_kind(source)
+                        .expect("invariant violated: semantic variable binder has no source");
+                    let lowering::BinderKind::Variable { variable: Some(variable) } = kind else {
+                        unreachable!(
+                            "invariant violated: semantic variable binder has invalid source"
+                        );
+                    };
+                    Ok(self.arena.text(variable.to_string()))
+                }
+                BinderSource::Section(source) => Ok(self.arena.text(section_name(source))),
+                BinderSource::DoStatement(_) => {
                     unreachable!("invariant violated: generated semantic variable binder")
-                };
-                let kind = self
-                    .lowered
-                    .info
-                    .get_binder_kind(source)
-                    .expect("invariant violated: semantic variable binder has no source");
-                let lowering::BinderKind::Variable { variable: Some(variable) } = kind else {
-                    unreachable!("invariant violated: semantic variable binder has invalid source");
-                };
-                Ok(self.arena.text(variable.to_string()))
-            }
+                }
+            },
             BinderKind::Named { name, binder } => {
                 let binder = self.binder(*binder)?;
                 Ok(self.arena.text(format!("{name}@")).append(binder))
@@ -1290,6 +1299,13 @@ where
                         }
                     };
                 Ok(self.arena.text(name))
+            }
+            ExpressionKind::Section { binder } => {
+                let binder = &self.checked.tree[*binder];
+                let BinderSource::Section(source) = binder.source else {
+                    unreachable!("invariant violated: semantic section has invalid binder")
+                };
+                Ok(self.arena.text(section_name(source)))
             }
             ExpressionKind::TermApplication { function, argument } => {
                 let function = self.expression_at(
