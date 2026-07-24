@@ -1114,8 +1114,13 @@ where
             | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
             _ => ExpressionPrecedence::Atom,
         };
-        let expression =
-            self.expression_unparenthesized(expression_id, evidence_names, type_pretty)?;
+        let allow_block_argument = required_precedence != ExpressionPrecedence::Application;
+        let expression = self.expression_unparenthesized(
+            expression_id,
+            allow_block_argument,
+            evidence_names,
+            type_pretty,
+        )?;
         if precedence < required_precedence {
             Ok(self.arena.text("(").append(expression).append(self.arena.text(")")))
         } else {
@@ -1126,6 +1131,7 @@ where
     fn expression_unparenthesized(
         &self,
         expression_id: ExpressionId,
+        allow_block_argument: bool,
         evidence_names: &mut EvidenceNames,
         type_pretty: &mut TypePretty<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
@@ -1255,11 +1261,12 @@ where
                     evidence_names,
                     type_pretty,
                 )?;
-                let argument_precedence = if self.expression_is_block_argument(*argument) {
-                    ExpressionPrecedence::Abstraction
-                } else {
-                    ExpressionPrecedence::RecordUpdate
-                };
+                let argument_precedence =
+                    if allow_block_argument && self.expression_is_block_argument(*argument) {
+                        ExpressionPrecedence::Abstraction
+                    } else {
+                        ExpressionPrecedence::RecordUpdate
+                    };
                 let argument = self.expression_at(
                     *argument,
                     argument_precedence,

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+unresolvedMap :: forall t t1. t t1
+unresolvedMap = <error> (\value -> value) 1
+
+unresolvedApply :: forall t t1. t t1
+unresolvedApply = <error> (<error> (\first second -> first) 1) 2
+
+unresolvedPure :: forall t. t Int
+unresolvedPure = <error> 1
