@@ -270,6 +270,7 @@ pub struct Binder {
 pub enum BinderSource {
     Binder(lowering::BinderId),
     DoStatement(lowering::DoStatementId),
+    Operator(lowering::TermOperatorId),
     Section(lowering::ExpressionId),
 }
 

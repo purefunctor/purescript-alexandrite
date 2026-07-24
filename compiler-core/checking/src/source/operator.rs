@@ -1,5 +1,7 @@
 //! Implements surface-generic operator chain inference.
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use files::FileId;
 use indexing::TermItemId;
@@ -12,7 +14,7 @@ use crate::core::{Type, TypeId, normalise, toolkit, unification};
 use crate::source::types::application;
 use crate::source::{binder, synonym, terms, types};
 use crate::state::CheckState;
-use crate::{ExternalQueries, OperatorBranchTypes};
+use crate::{ExternalQueries, OperatorBranchTypes, tree};
 
 #[derive(Copy, Clone, Debug)]
 enum OperatorKindMode {
@@ -26,7 +28,8 @@ pub struct OperatorApplication<Elaborated> {
     result_type: TypeId,
 }
 
-pub struct OperatorBranch<Item, Elaborated> {
+pub struct OperatorBranch<OperatorId, Item, Elaborated> {
+    operator_id: OperatorId,
     operator: ((FileId, Item), TypeId),
     left: OperatorApplication<Elaborated>,
     right: OperatorApplication<Elaborated>,
@@ -208,6 +211,7 @@ where
     }
 
     let branch = OperatorBranch {
+        operator_id,
         operator: (operator, operator_type),
         left: OperatorApplication {
             implicit: left_implicit,
@@ -270,7 +274,7 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        branch: OperatorBranch<Self::ItemId, Self::Elaborated>,
+        branch: OperatorBranch<Self::OperatorId, Self::ItemId, Self::Elaborated>,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
 
     fn record_branch_types(
@@ -335,7 +339,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        OperatorBranch { operator: (operator, operator_type), left, right }: OperatorBranch<
+        OperatorBranch { operator: (operator, operator_type), left, right, .. }: OperatorBranch<
+            Self::OperatorId,
             Self::ItemId,
             Self::Elaborated,
         >,
@@ -456,7 +461,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
     fn build(
         state: &mut CheckState,
         context: &CheckContext<Q>,
-        OperatorBranch { operator: (operator, _), left, right }: OperatorBranch<
+        OperatorBranch { operator: (operator, _), left, right, .. }: OperatorBranch<
+            Self::OperatorId,
             Self::ItemId,
             Self::Elaborated,
         >,
@@ -523,9 +529,11 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
 
 impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     type ItemId = TermItemId;
-    type Elaborated = ();
+    type Elaborated = Option<binder::ElaboratedBinder>;
 
-    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {}
+    fn unknown_elaborated(_context: &CheckContext<Q>) -> Self::Elaborated {
+        None
+    }
 
     fn lookup_tree<'q>(
         context: &'q CheckContext<Q>,
@@ -556,7 +564,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         id: Self,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let inferred = binder::infer_binder(state, context, id)?;
-        Ok(((), inferred.type_id))
+        Ok((Some(inferred), inferred.type_id))
     }
 
     fn check_surface(
@@ -566,15 +574,35 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked = binder::check_binder(state, context, id, expected)?;
-        Ok(((), checked.type_id))
+        Ok((Some(checked), checked.type_id))
     }
 
     fn build(
-        _state: &mut CheckState,
-        _context: &CheckContext<Q>,
-        OperatorBranch { right, .. }: OperatorBranch<Self::ItemId, Self::Elaborated>,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        OperatorBranch { operator_id, operator: (operator, _), left, right }: OperatorBranch<
+            Self::OperatorId,
+            Self::ItemId,
+            Self::Elaborated,
+        >,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
-        Ok(((), right.result_type))
+        let (file_id, item_id) = operator;
+        let (Some(left), _) = left.argument else {
+            return Ok((None, right.result_type));
+        };
+        let (Some(right_argument), _) = right.argument else {
+            return Ok((None, right.result_type));
+        };
+        let Some(resolution) = toolkit::resolve_term_operator_target(context, file_id, item_id)?
+        else {
+            return Ok((None, right.result_type));
+        };
+
+        let arguments = [left.binder, right_argument.binder];
+        let kind = tree::BinderKind::Constructor { resolution, arguments: Arc::from(arguments) };
+        let binder = state.allocate_operator_binder(operator_id, right.result_type, kind);
+        let elaborated = binder::ElaboratedBinder { type_id: right.result_type, binder };
+        Ok((Some(elaborated), right.result_type))
     }
 
     fn record_branch_types(

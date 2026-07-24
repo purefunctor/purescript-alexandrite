@@ -1037,7 +1037,7 @@ where
                     Ok(self.arena.text(variable.to_string()))
                 }
                 BinderSource::Section(source) => Ok(self.arena.text(section_name(source))),
-                BinderSource::DoStatement(_) => {
+                BinderSource::DoStatement(_) | BinderSource::Operator(_) => {
                     unreachable!("invariant violated: generated semantic variable binder")
                 }
             },

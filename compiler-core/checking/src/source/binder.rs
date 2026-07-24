@@ -217,13 +217,23 @@ where
         }
 
         lowering::BinderKind::OperatorChain { .. } => {
-            let (_, inferred_type) = operator::infer_operator_chain(state, context, binder_id)?;
+            let (elaborated, inferred_type) =
+                operator::infer_operator_chain(state, context, binder_id)?;
 
             if let BinderMode::Check { expected_type, elaborating } = mode {
                 subtype_for_mode(state, context, inferred_type, expected_type, elaborating)?;
             }
 
-            (inferred_type, tree::BinderKind::Error)
+            let Some(elaborated) = elaborated else {
+                return Ok(allocate_checked_binder(
+                    state,
+                    binder_id,
+                    inferred_type,
+                    tree::BinderKind::Error,
+                ));
+            };
+            state.checked.nodes.binders.insert(binder_id, inferred_type);
+            return Ok(elaborated);
         }
 
         lowering::BinderKind::Integer { value } => {

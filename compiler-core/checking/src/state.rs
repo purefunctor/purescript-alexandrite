@@ -329,6 +329,17 @@ impl CheckState {
         self.checked.tree.allocate_binder(binder)
     }
 
+    pub fn allocate_operator_binder(
+        &mut self,
+        source: lowering::TermOperatorId,
+        type_id: TypeId,
+        kind: tree::BinderKind,
+    ) -> tree::BinderId {
+        let source = tree::BinderSource::Operator(source);
+        let binder = tree::Binder { source, type_id, kind };
+        self.checked.tree.allocate_binder(binder)
+    }
+
     pub fn allocate_section_binder(
         &mut self,
         source: lowering::ExpressionId,
