@@ -11,11 +11,12 @@ discarded = discard @Int @String (pure @Int 1) \_ -> pure @String "done"
 
 withLet :: Effect Int
 withLet =
-  bind @Int @Int (pure @Int 1) \value -> let
-    next :: Int
-    next = value
-  in
-    pure @Int next
+  bind @Int @Int (pure @Int 1) \value ->
+    let
+      next :: Int
+      next = value
+    in
+      pure @Int next
 
 nested :: Effect Int
 nested =

@@ -15,7 +15,11 @@ interface Operations effect where
 
 usingMapApply :: forall effect. Operations effect => effect (Tuple Int String)
 usingMapApply = \{operationsDict} ->
-  apply @effect {operationsDict} @String @(Tuple Int String) (map @effect {operationsDict} @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second) (pure @effect {operationsDict} @Int 1)) (pure @effect {operationsDict} @String "two")
+  apply @effect {operationsDict} @String @(Tuple Int String)
+    (map @effect {operationsDict} @Int @(String -> Tuple Int String)
+      (\first second -> Tuple @Int @String first second)
+      (pure @effect {operationsDict} @Int 1))
+    (pure @effect {operationsDict} @String "two")
 
 usingPure :: forall effect. Operations effect => effect Int
 usingPure = \{operationsDict} -> pure @effect {operationsDict} @Int 1

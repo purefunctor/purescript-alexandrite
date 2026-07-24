@@ -11,8 +11,10 @@ interface Operations effect where
 
 usingBind :: forall effect. Operations effect => effect Int
 usingBind = \{operationsDict} ->
-  bind @effect {operationsDict} @Int @Int (pure @effect {operationsDict} @Int 1) \value -> pure @effect {operationsDict} @Int value
+  bind @effect {operationsDict} @Int @Int (pure @effect {operationsDict} @Int 1) \value ->
+    pure @effect {operationsDict} @Int value
 
 usingDiscard :: forall effect. Operations effect => effect Int
 usingDiscard = \{operationsDict} ->
-  discard @effect {operationsDict} @String @Int (pure @effect {operationsDict} @String "ignored") \_ -> pure @effect {operationsDict} @Int 1
+  discard @effect {operationsDict} @String @Int
+    (pure @effect {operationsDict} @String "ignored") \_ -> pure @effect {operationsDict} @Int 1

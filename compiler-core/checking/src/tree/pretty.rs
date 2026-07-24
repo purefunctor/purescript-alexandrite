@@ -1273,19 +1273,25 @@ where
                     evidence_names,
                     type_pretty,
                 )?;
-                let argument_precedence =
-                    if allow_block_argument && self.expression_is_block_argument(*argument) {
-                        ExpressionPrecedence::Abstraction
-                    } else {
-                        ExpressionPrecedence::RecordUpdate
-                    };
+                let is_block_argument =
+                    allow_block_argument && self.expression_is_block_argument(*argument);
+                let argument_precedence = if is_block_argument {
+                    ExpressionPrecedence::Abstraction
+                } else {
+                    ExpressionPrecedence::RecordUpdate
+                };
                 let argument = self.expression_at(
                     *argument,
                     argument_precedence,
                     evidence_names,
                     type_pretty,
                 )?;
-                Ok(function.append(self.arena.space()).append(argument))
+                if is_block_argument {
+                    Ok(function.append(self.arena.space()).append(argument))
+                } else {
+                    let argument = self.arena.line().append(argument);
+                    Ok(function.append(argument.nest(2)).group())
+                }
             }
             ExpressionKind::TypeApplication { function, argument } => {
                 let function = self.expression_at(
@@ -1325,7 +1331,7 @@ where
                 if self.expression_requires_body_break(*expression) {
                     Ok(lambda.append(self.arena.hardline().append(body).nest(2)))
                 } else {
-                    Ok(lambda.append(self.arena.space()).append(body))
+                    Ok(lambda.append(self.arena.line().append(body).nest(2)).group())
                 }
             }
             ExpressionKind::Case { scrutinees, alternatives } => {
