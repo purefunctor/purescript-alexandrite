@@ -329,6 +329,17 @@ impl CheckState {
         self.checked.tree.allocate_binder(binder)
     }
 
+    pub fn allocate_section_binder(
+        &mut self,
+        source: lowering::ExpressionId,
+        type_id: TypeId,
+    ) -> tree::BinderId {
+        let binder = self.checked.tree.allocate_section_binder(source, type_id);
+        let previous = self.checked.nodes.sections.insert(source, type_id);
+        assert!(previous.is_none(), "invariant violated: section type inserted twice");
+        binder
+    }
+
     pub fn allocate_error_binder(
         &mut self,
         source: lowering::BinderId,
