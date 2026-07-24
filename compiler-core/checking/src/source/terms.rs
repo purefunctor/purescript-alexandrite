@@ -321,9 +321,7 @@ where
             };
 
             let (t, _) = types::infer_kind(state, context, *t)?;
-            check_expression(state, context, *e, t)?;
-
-            Ok(allocate_error_expression(state, t))
+            check_expression(state, context, *e, t)
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {
