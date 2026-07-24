@@ -13,7 +13,7 @@ use crate::core::Type;
 use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
 use crate::evidence::{Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId};
 use crate::tree::{
-    BinderId, BinderKind, CaseAlternative, Equation, ExpressionId, ExpressionKind,
+    BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
     GuardedAlternative, GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings,
     LocalDeclarationId, PatternGuard, RecordBinderField, RecordExpressionField,
     TermDeclarationKind, TypeDeclarationKind, WhereExpression,
@@ -1008,10 +1008,13 @@ where
                 Ok(self.arena.text(value))
             }
             BinderKind::Variable => {
+                let BinderSource::Binder(source) = binder.source else {
+                    unreachable!("invariant violated: generated semantic variable binder")
+                };
                 let kind = self
                     .lowered
                     .info
-                    .get_binder_kind(binder.source)
+                    .get_binder_kind(source)
                     .expect("invariant violated: semantic variable binder has no source");
                 let lowering::BinderKind::Variable { variable: Some(variable) } = kind else {
                     unreachable!("invariant violated: semantic variable binder has invalid source");
