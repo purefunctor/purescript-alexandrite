@@ -210,8 +210,7 @@ where
             forms::check_lambda(state, context, binders, *expression, expected)
         }
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            let type_id = forms::check_if_then_else(state, context, *if_, *then, *else_, expected)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::check_if_then_else(state, context, *if_, *then, *else_, expected)
         }
         lowering::ExpressionKind::CaseOf { trunk, branches } => {
             forms::check_case_of(state, context, trunk, branches, expected)
@@ -370,8 +369,7 @@ where
         }
 
         lowering::ExpressionKind::IfThenElse { if_, then, else_ } => {
-            let type_id = forms::infer_if_then_else(state, context, *if_, *then, *else_)?;
-            Ok(allocate_error_expression(state, type_id))
+            forms::infer_if_then_else(state, context, *if_, *then, *else_)
         }
 
         lowering::ExpressionKind::LetIn { bindings, expression } => {
