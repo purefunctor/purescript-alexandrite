@@ -55,7 +55,7 @@ fn character_literal(value: char) -> String {
 }
 
 fn section_name(source: lowering::ExpressionId) -> String {
-    format!("section{}", source.into_raw().get())
+    format!("v{}", source.into_raw().get())
 }
 
 struct EvidenceNames {
