@@ -12,7 +12,10 @@ use smol_str::{SmolStr, SmolStrBuilder, format_smolstr};
 
 use crate::CheckedModule;
 use crate::core::Type;
-use crate::core::pretty::{Pretty as TypePretty, PrettyNames, PrettyQueries};
+use crate::core::pretty::{
+    Pretty as TypePretty, PrettyConfig as TypePrettyConfig, PrettyNames, PrettyQueries,
+    PrettyState as TypePrettyState, breakable_continuation,
+};
 use crate::evidence::{
     Evidence, EvidenceBinderId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
     ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
@@ -25,6 +28,8 @@ use crate::tree::{
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+
+const DEFAULT_WIDTH: usize = 100;
 
 const UNKNOWN_INSTANCE_EVIDENCE: SmolStr = SmolStr::new_static("<instance>");
 const UNKNOWN_SUPERCLASS_EVIDENCE: SmolStr = SmolStr::new_static("<superclass>");
@@ -69,10 +74,33 @@ impl EvidenceNames {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PrettyConfig {
+    width: usize,
+}
+
+impl PrettyConfig {
+    pub const fn new() -> PrettyConfig {
+        PrettyConfig { width: DEFAULT_WIDTH }
+    }
+
+    #[must_use]
+    pub const fn width(mut self, width: usize) -> PrettyConfig {
+        self.width = width;
+        self
+    }
+}
+
+impl Default for PrettyConfig {
+    fn default() -> PrettyConfig {
+        PrettyConfig::new()
+    }
+}
+
 pub struct Pretty<'a, Q: ?Sized> {
     queries: &'a Q,
-    width: usize,
     checked: &'a CheckedModule,
+    config: PrettyConfig,
 }
 
 impl<'a, Q> Pretty<'a, Q>
@@ -80,12 +108,15 @@ where
     Q: PrettyQueries<Checked = Arc<CheckedModule>> + ?Sized,
 {
     pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Pretty<'a, Q> {
-        Pretty { queries, width: 100, checked }
+        Pretty::with_config(queries, checked, PrettyConfig::default())
     }
 
-    pub fn width(mut self, width: usize) -> Pretty<'a, Q> {
-        self.width = width;
-        self
+    pub fn with_config(
+        queries: &'a Q,
+        checked: &'a CheckedModule,
+        config: PrettyConfig,
+    ) -> Pretty<'a, Q> {
+        Pretty { queries, checked, config }
     }
 
     pub fn render(&self, file_id: FileId) -> QueryResult<SmolStr> {
@@ -99,13 +130,13 @@ where
             &indexed,
             &lowered,
             self.checked,
-            self.width,
+            self.config,
         );
         let document = printer.module()?;
 
         let mut output = SmolStrBuilder::new();
         document
-            .render_fmt(self.width, &mut output)
+            .render_fmt(self.config.width, &mut output)
             .expect("critical failure: failed to render checked semantic tree");
         Ok(output.finish())
     }
@@ -122,7 +153,7 @@ where
     lowered: &'module lowering::LoweredModule,
     checked: &'context CheckedModule,
     type_pretty: TypePretty<'context, Q>,
-    width: usize,
+    signature_type_pretty: TypePretty<'context, Q>,
 }
 
 impl<'arena, 'context, 'module, Q> Printer<'arena, 'context, 'module, Q>
@@ -136,10 +167,23 @@ where
         indexed: &'module indexing::IndexedModule,
         lowered: &'module lowering::LoweredModule,
         checked: &'context CheckedModule,
-        width: usize,
+        config: PrettyConfig,
     ) -> Printer<'arena, 'context, 'module, Q> {
-        let type_pretty = TypePretty::new(queries, checked).without_rigid_kinds().width(width);
-        Printer { arena, queries, file_id, indexed, lowered, checked, type_pretty, width }
+        let type_config = TypePrettyConfig::new().without_rigid_kinds().width(config.width);
+        let signature_type_config = type_config.without_forall_kinds();
+        let type_pretty = TypePretty::with_config(queries, checked, type_config);
+        let signature_type_pretty =
+            TypePretty::with_config(queries, checked, signature_type_config);
+        Printer {
+            arena,
+            queries,
+            file_id,
+            indexed,
+            lowered,
+            checked,
+            type_pretty,
+            signature_type_pretty,
+        }
     }
 
     fn module(&mut self) -> QueryResult<Doc<'arena>> {
@@ -159,14 +203,14 @@ where
             };
             let kind = declaration.kind;
 
-            self.type_pretty.reset();
-            let signature = self.type_pretty.render_kind_signature(name, kind);
+            let mut type_pretty = self.type_pretty.state();
+            let signature = type_pretty.render_kind_signature(name, kind);
             let signature = self.arena.text(format!("{keyword} {signature}"));
 
             let declaration = if is_class {
-                self.class_declaration(type_id, name)?
+                self.class_declaration(type_id, name, &mut type_pretty)?
             } else {
-                self.data_declaration(type_id, keyword, name)
+                self.data_declaration(type_id, keyword, name, &mut type_pretty)
             };
 
             declarations.push(signature.append(self.arena.hardline()).append(declaration));
@@ -194,11 +238,7 @@ where
                 }
                 TermDeclarationKind::Foreign => {
                     let Some(name) = name else { continue };
-                    let mut type_pretty = TypePretty::new(self.queries, self.checked)
-                        .without_rigid_kinds()
-                        .without_forall_kinds()
-                        .width(self.width);
-                    let type_id = type_pretty.render(declaration.type_id);
+                    let type_id = self.signature_type_pretty.render(declaration.type_id);
                     let declaration =
                         self.arena.text(format!("foreign import {name} :: {type_id}"));
                     declarations.push(declaration);
@@ -235,6 +275,7 @@ where
         type_id: indexing::TypeItemId,
         keyword: &str,
         name: &str,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> Doc<'arena> {
         let declaration_id = self
             .checked
@@ -252,7 +293,7 @@ where
         let mut parameter_names = vec![];
         for &parameter in data.parameters.iter() {
             let parameter = self.queries.lookup_forall_binder(parameter);
-            let name = self.type_pretty.display_name(parameter.name);
+            let name = type_pretty.display_name(parameter.name);
             parameter_names.push((name.to_string(), parameter.visible));
         }
 
@@ -279,7 +320,7 @@ where
 
             let mut constructor_type = result;
             for &argument_id in constructor.arguments.iter().rev() {
-                let argument = self.type_pretty.render(argument_id);
+                let argument = type_pretty.render(argument_id);
                 let argument = match self.queries.lookup_type(argument_id) {
                     Type::Forall(..)
                     | Type::Constrained(..)
@@ -313,6 +354,7 @@ where
         &mut self,
         type_id: indexing::TypeItemId,
         name: &str,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let declaration_id = self
             .checked
@@ -326,13 +368,13 @@ where
 
         for &parameter in class.kind_binders.iter() {
             let parameter = self.queries.lookup_forall_binder(parameter);
-            self.type_pretty.display_name(parameter.name);
+            type_pretty.display_name(parameter.name);
         }
 
         let mut head = self.arena.text(format!("interface {name}"));
         for &parameter in class.type_parameters.iter() {
             let parameter = self.queries.lookup_forall_binder(parameter);
-            let parameter = self.type_pretty.display_name(parameter.name);
+            let parameter = type_pretty.display_name(parameter.name);
             head = head.append(self.arena.text(format!(" {parameter}")));
         }
         let mut declaration = head.append(self.arena.text(" where"));
@@ -348,9 +390,7 @@ where
         for superclass in class.superclasses.iter() {
             let base = self.evidence_base_name(superclass.constraint)?;
             let field_name = field_names.allocate_display_name(base);
-            let mut type_pretty =
-                TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
-            let field_type = type_pretty.render(superclass.constraint);
+            let field_type = self.type_pretty.render(superclass.constraint);
             let field = self.arena.text(format!("  superclass {field_name} :: {field_type}"));
             declaration = declaration.append(self.arena.hardline()).append(field);
         }
@@ -359,9 +399,7 @@ where
             let TermItem { name: Some(name), .. } = &self.indexed.items[member.source] else {
                 continue;
             };
-            let mut type_pretty =
-                TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
-            let field_type = type_pretty.render(member.field_type);
+            let field_type = self.type_pretty.render(member.field_type);
             let field = self.arena.text(format!("  {name} :: {field_type}"));
             declaration = declaration.append(self.arena.hardline()).append(field);
         }
@@ -384,11 +422,7 @@ where
             unreachable!("invariant violated: term declaration is not a value");
         };
 
-        let mut type_pretty = TypePretty::new(self.queries, self.checked)
-            .without_rigid_kinds()
-            .without_forall_kinds()
-            .width(self.width);
-        let type_id = type_pretty.render(declaration.type_id);
+        let type_id = self.signature_type_pretty.render(declaration.type_id);
         let signature = self.arena.text(format!("{name} :: {type_id}"));
 
         let mut evidence_names = EvidenceNames::new();
@@ -507,8 +541,7 @@ where
             current = inner;
         }
 
-        let mut type_pretty =
-            TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
+        let mut type_pretty = self.type_pretty.state();
         let binder_names = binders.iter().map(|&binder| {
             let binder = self.queries.lookup_forall_binder(binder);
             type_pretty.display_name(binder.name)
@@ -536,11 +569,8 @@ where
         let lines = lines.fold(self.arena.text(first), |document, line| {
             document.append(self.arena.line()).append(self.arena.text(line))
         });
-        let signature = self
-            .arena
-            .text(format!("dictionary {name} ::"))
-            .append(self.arena.line().append(lines).nest(2))
-            .group();
+        let signature = self.arena.text(format!("dictionary {name} ::"));
+        let signature = breakable_continuation(self.arena, signature, lines);
         Ok((signature, rigid_names))
     }
 
@@ -633,8 +663,7 @@ where
         rigid_names: &[(crate::TypeId, SmolStr)],
     ) -> QueryResult<Option<Doc<'arena>>> {
         let mut rendered_equations = vec![];
-        let mut type_pretty =
-            TypePretty::new(self.queries, self.checked).without_rigid_kinds().width(self.width);
+        let mut type_pretty = self.type_pretty.state();
         for (rigid, display) in rigid_names {
             if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
                 type_pretty.assign_display_name(name, SmolStr::clone(display));
@@ -722,11 +751,7 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let declaration = &self.checked.tree[declaration_id];
         let name = self.local_declaration_name(declaration.source);
-        let mut type_pretty = TypePretty::new(self.queries, self.checked)
-            .without_rigid_kinds()
-            .without_forall_kinds()
-            .width(self.width);
-        let type_id = type_pretty.render(declaration.type_id);
+        let type_id = self.signature_type_pretty.render(declaration.type_id);
         let signature = self.arena.text(format!("{name} :: {type_id}"));
 
         for evidence in declaration.value.evidences.iter() {
@@ -751,7 +776,7 @@ where
         &self,
         bindings: &LetBindings,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let mut rendered = vec![];
         for chunk in bindings.chunks.iter() {
@@ -801,7 +826,7 @@ where
         &self,
         bindings: &LetBindings,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let bindings = self.let_bindings(bindings, evidence_names, type_pretty)?;
         Ok(self.arena.text("where").append(self.arena.hardline()).append(bindings))
@@ -811,7 +836,7 @@ where
         &self,
         where_expression: &WhereExpression,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let expression =
             self.expression(where_expression.expression, evidence_names, type_pretty)?;
@@ -828,7 +853,7 @@ where
         &self,
         guarded: &GuardedExpression,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         if let [alternative] = guarded.alternatives.as_ref()
             && alternative.pattern_guards.is_empty()
@@ -863,7 +888,7 @@ where
         &self,
         alternative: &GuardedAlternative,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let mut pattern_guards = vec![];
         for pattern_guard in alternative.pattern_guards.iter() {
@@ -897,7 +922,7 @@ where
         &self,
         pattern_guard: &PatternGuard,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         match *pattern_guard {
             PatternGuard::Boolean { expression } => {
@@ -916,7 +941,7 @@ where
         scrutinees: &[ExpressionId],
         alternatives: &[CaseAlternative],
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let mut rendered_scrutinees = vec![];
         for &scrutinee in scrutinees {
@@ -957,7 +982,7 @@ where
         &self,
         alternative: &CaseAlternative,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let mut rendered_binders = vec![];
         for &binder in alternative.binders.iter() {
@@ -1014,10 +1039,7 @@ where
             BinderKind::Error => Ok(self.arena.text("<error>")),
             BinderKind::Typed { binder, annotation } => {
                 let binder = self.binder(*binder)?;
-                let mut type_pretty = TypePretty::new(self.queries, self.checked)
-                    .without_rigid_kinds()
-                    .width(self.width);
-                let annotation = type_pretty.render(*annotation);
+                let annotation = self.type_pretty.render(*annotation);
                 Ok(self
                     .arena
                     .text("(")
@@ -1118,7 +1140,7 @@ where
         &self,
         expression_id: ExpressionId,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         self.expression_at(
             expression_id,
@@ -1133,7 +1155,7 @@ where
         expression_id: ExpressionId,
         required_precedence: ExpressionPrecedence,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
@@ -1166,7 +1188,7 @@ where
         expression_id: ExpressionId,
         allow_block_argument: bool,
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         match &expression.kind {
@@ -1341,8 +1363,7 @@ where
                 if is_block_argument {
                     Ok(function.append(self.arena.space()).append(argument))
                 } else {
-                    let argument = self.arena.line().append(argument);
-                    Ok(function.append(argument.nest(2)).group())
+                    Ok(breakable_continuation(self.arena, function, argument))
                 }
             }
             ExpressionKind::TypeApplication { function, argument } => {
@@ -1383,7 +1404,7 @@ where
                 if self.expression_requires_body_break(*expression) {
                     Ok(lambda.append(self.arena.hardline().append(body).nest(2)))
                 } else {
-                    Ok(lambda.append(self.arena.line().append(body).nest(2)).group())
+                    Ok(breakable_continuation(self.arena, lambda, body))
                 }
             }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
@@ -1422,7 +1443,7 @@ where
         &self,
         updates: &[RecordExpressionUpdate],
         evidence_names: &mut EvidenceNames,
-        type_pretty: &mut TypePretty<'context, Q>,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         if updates.is_empty() {
             return Ok(self.arena.text("{ }"));

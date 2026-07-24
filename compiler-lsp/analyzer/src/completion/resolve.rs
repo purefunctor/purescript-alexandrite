@@ -2,7 +2,7 @@ use std::mem;
 
 use async_lsp::lsp_types::*;
 use building::QueryEngine;
-use checking::core::pretty::Pretty;
+use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
 use lowering::{
@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::AnalyzerError;
 use crate::extract::{AnnotationSyntaxRange, extract_annotation, extract_syntax};
+
+const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
 
 #[allow(clippy::result_large_err)]
 pub fn implementation(
@@ -114,7 +116,7 @@ fn render_term_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_term(term_id)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
 }
 
@@ -154,7 +156,7 @@ fn render_type_signature(
     let name = name.as_deref()?;
     let signature = checked.lookup_type(type_id)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
 }
 
@@ -243,7 +245,7 @@ fn render_local_signature(
     let checked = engine.checked(file_id).ok()?;
     let signature = lookup(&checked)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
 }
 

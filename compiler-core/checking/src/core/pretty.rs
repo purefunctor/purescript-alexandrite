@@ -15,9 +15,18 @@ use crate::core::{
     ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, SmolStrId, Type, TypeId,
 };
 
-type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
+pub(crate) type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
 const FIRST_SUFFIX: NonZeroU32 = NonZeroU32::new(1).unwrap();
+const DEFAULT_WIDTH: usize = 100;
+
+pub(crate) fn breakable_continuation<'arena>(
+    arena: &'arena Arena<'arena>,
+    head: Doc<'arena>,
+    continuation: Doc<'arena>,
+) -> Doc<'arena> {
+    head.append(arena.line().append(continuation).nest(2)).group()
+}
 
 pub trait PrettyQueries:
     QueryProxy<Indexed = Arc<indexing::IndexedModule>, Lowered = Arc<lowering::LoweredModule>>
@@ -124,49 +133,98 @@ fn try_next_suffix(suffix: NonZeroU32) -> Option<NonZeroU32> {
     suffix.get().checked_add(1).and_then(NonZeroU32::new)
 }
 
-pub struct Pretty<'a, Q: ?Sized> {
-    queries: &'a Q,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PrettyConfig {
     width: usize,
-    checked: &'a CheckedModule,
-    names: PrettyNames,
     show_rigid_kinds: bool,
     show_forall_kinds: bool,
+}
+
+impl PrettyConfig {
+    pub const fn new() -> PrettyConfig {
+        PrettyConfig { width: DEFAULT_WIDTH, show_rigid_kinds: true, show_forall_kinds: true }
+    }
+
+    #[must_use]
+    pub const fn width(mut self, width: usize) -> PrettyConfig {
+        self.width = width;
+        self
+    }
+
+    #[must_use]
+    pub const fn without_rigid_kinds(mut self) -> PrettyConfig {
+        self.show_rigid_kinds = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn without_forall_kinds(mut self) -> PrettyConfig {
+        self.show_forall_kinds = false;
+        self
+    }
+}
+
+impl Default for PrettyConfig {
+    fn default() -> PrettyConfig {
+        PrettyConfig::new()
+    }
+}
+
+pub struct Pretty<'a, Q: ?Sized> {
+    queries: &'a Q,
+    checked: &'a CheckedModule,
+    config: PrettyConfig,
 }
 
 impl<'a, Q> Pretty<'a, Q>
 where
     Q: PrettyQueries + ?Sized,
 {
-    pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Self {
-        Pretty {
-            queries,
-            width: 100,
-            checked,
+    pub fn new(queries: &'a Q, checked: &'a CheckedModule) -> Pretty<'a, Q> {
+        Pretty::with_config(queries, checked, PrettyConfig::default())
+    }
+
+    pub fn with_config(
+        queries: &'a Q,
+        checked: &'a CheckedModule,
+        config: PrettyConfig,
+    ) -> Pretty<'a, Q> {
+        Pretty { queries, checked, config }
+    }
+
+    pub fn state(&self) -> PrettyState<'a, Q> {
+        PrettyState {
+            queries: self.queries,
+            checked: self.checked,
+            config: self.config,
             names: PrettyNames::new(),
-            show_rigid_kinds: true,
-            show_forall_kinds: true,
         }
     }
 
-    pub fn width(mut self, width: usize) -> Self {
-        self.width = width;
-        self
+    pub fn render(&self, id: TypeId) -> SmolStr {
+        self.state().render(id)
     }
 
-    pub fn without_rigid_kinds(mut self) -> Pretty<'a, Q> {
-        self.show_rigid_kinds = false;
-        self
+    pub fn render_signature(&self, name: &str, id: TypeId) -> SmolStr {
+        self.state().render_signature(name, id)
     }
 
-    pub fn without_forall_kinds(mut self) -> Pretty<'a, Q> {
-        self.show_forall_kinds = false;
-        self
+    pub fn render_kind_signature(&self, name: &str, id: TypeId) -> SmolStr {
+        self.state().render_kind_signature(name, id)
     }
+}
 
-    pub fn reset(&mut self) {
-        self.names.reset();
-    }
+pub struct PrettyState<'a, Q: ?Sized> {
+    queries: &'a Q,
+    checked: &'a CheckedModule,
+    config: PrettyConfig,
+    names: PrettyNames,
+}
 
+impl<'a, Q> PrettyState<'a, Q>
+where
+    Q: PrettyQueries + ?Sized,
+{
     pub fn display_name(&mut self, name: Name) -> SmolStr {
         self.names.set_default_name("t");
         self.names.display_name(self.queries, &self.checked.names, name)
@@ -208,8 +266,8 @@ where
             self.queries,
             &self.checked.names,
             &mut self.names,
-            self.show_rigid_kinds,
-            self.show_forall_kinds,
+            self.config.show_rigid_kinds,
+            self.config.show_forall_kinds,
         );
 
         let document = if let Some(name) = signature {
@@ -220,7 +278,7 @@ where
 
         let mut output = SmolStrBuilder::new();
         document
-            .render_fmt(self.width, &mut output)
+            .render_fmt(self.config.width, &mut output)
             .expect("critical failure: failed to render type");
         output.finish()
     }
@@ -303,8 +361,8 @@ where
 
     fn signature(&mut self, name: &str, id: TypeId) -> Doc<'arena> {
         let signature = self.traverse(Precedence::Top, id);
-        let signature = self.arena.line().append(signature).nest(2);
-        self.arena.text(format!("{name} ::")).append(signature).group()
+        let head = self.arena.text(format!("{name} ::"));
+        breakable_continuation(self.arena, head, signature)
     }
 
     fn traverse(&mut self, precedence: Precedence, id: TypeId) -> Doc<'arena> {
@@ -420,11 +478,8 @@ where
             .map(|&argument| self.traverse(Precedence::Atom, argument))
             .collect_vec();
 
-        let arguments = arguments.into_iter().fold(self.arena.nil(), |builder, argument| {
-            builder.append(self.arena.line()).append(argument)
-        });
-
-        let application = function.append(arguments.nest(2)).group();
+        let arguments = self.arena.intersperse(arguments, self.arena.line());
+        let application = breakable_continuation(self.arena, function, arguments);
         self.parens_if(precedence > Precedence::Application, application)
     }
 
@@ -462,11 +517,9 @@ where
             .map(|&argument| self.traverse(Precedence::Atom, argument))
             .collect_vec();
 
-        let arguments = arguments.into_iter().fold(self.arena.nil(), |builder, argument| {
-            builder.append(self.arena.line()).append(self.arena.text("@")).append(argument)
-        });
-
-        let application = function.append(arguments.nest(2)).group();
+        let arguments = arguments.into_iter().map(|argument| self.arena.text("@").append(argument));
+        let arguments = self.arena.intersperse(arguments, self.arena.line());
+        let application = breakable_continuation(self.arena, function, arguments);
         self.parens_if(precedence > Precedence::Application, application)
     }
 }
@@ -518,8 +571,7 @@ where
 
         let header = self.arena.text("forall ").append(binders).append(self.arena.text("."));
         let inner = self.traverse(Precedence::Top, inner);
-        let inner = self.arena.line().append(inner).nest(2);
-        let forall = header.append(inner).group();
+        let forall = breakable_continuation(self.arena, header, inner);
 
         self.parens_if(precedence > Precedence::Top, forall)
     }

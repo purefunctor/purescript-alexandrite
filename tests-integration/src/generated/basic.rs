@@ -218,7 +218,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let indexed = engine.indexed(id).unwrap();
     let checked = engine.checked(id).unwrap();
-    let mut pretty = pretty::Pretty::new(engine, &checked);
+    let pretty = pretty::Pretty::new(engine, &checked);
 
     let mut out = String::default();
 
@@ -226,8 +226,8 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     for (id, TermItem { name, .. }) in indexed.items.iter_terms() {
         let Some(name) = name else { continue };
         let Some(kind) = checked.lookup_term(id) else { continue };
-        pretty.reset();
-        let signature = pretty.render_signature(name, kind);
+        let mut state = pretty.state();
+        let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
     }
 
@@ -235,8 +235,8 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
         let Some(kind) = checked.lookup_type(id) else { continue };
-        pretty.reset();
-        let signature = pretty.render_signature(name, kind);
+        let mut state = pretty.state();
+        let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
     }
 
@@ -246,10 +246,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
         let Some(definition) = checked.lookup_synonym(id) else { continue };
-        pretty.reset();
-        let replacement = pretty.render(definition.synonym);
+        let mut state = pretty.state();
+        let replacement = state.render(definition.synonym);
         let binders =
-            definition.parameters.iter().map(|b| pretty.display_name(b.name)).collect_vec();
+            definition.parameters.iter().map(|b| state.display_name(b.name)).collect_vec();
         let binders_formatted =
             if binders.is_empty() { String::new() } else { format!(" {}", binders.join(" ")) };
         writeln!(out, "type {name}{binders_formatted} = {replacement}").unwrap();
@@ -260,7 +260,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     }
     for (id, TypeItem { .. }) in indexed.items.iter_types() {
         let Some(class) = checked.lookup_class(id) else { continue };
-        pretty.reset();
+        let mut state = pretty.state();
 
         let class_binders =
             class.kind_binders.iter().chain(class.type_parameters.iter()).copied().collect_vec();
@@ -270,7 +270,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
             class_head = inner;
         }
 
-        let canonical = pretty.render(class_head);
+        let canonical = state.render(class_head);
         let forall_prefix = if class_binders.is_empty() {
             String::new()
         } else {
@@ -278,8 +278,8 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
                 .iter()
                 .map(|&binder_id| {
                     let binder = engine.lookup_forall_binder(binder_id);
-                    let text = pretty.display_name(binder.name);
-                    let kind = pretty.render(binder.kind);
+                    let text = state.display_name(binder.name);
+                    let kind = state.render(binder.kind);
                     format!("({text} :: {kind})")
                 })
                 .join(" ");
@@ -292,7 +292,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
             let superclasses = class
                 .superclasses
                 .iter()
-                .map(|superclass| pretty.render(superclass.constraint))
+                .map(|superclass| state.render(superclass.constraint))
                 .join(", ");
             writeln!(out, "class {forall_prefix}{superclasses} <= {canonical}").unwrap();
         }
@@ -301,7 +301,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
             let member_id = member.item_id;
             let Some(member_name) = indexed.items[member_id].name.as_deref() else { continue };
             let Some(member_type) = checked.lookup_term(member_id) else { continue };
-            let signature = pretty.render_signature(member_name, member_type);
+            let signature = state.render_signature(member_name, member_type);
             writeln!(out, "  {signature}").unwrap();
         }
     }
@@ -312,8 +312,8 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let mut instance_entries: Vec<_> = checked.instances.iter().collect();
     instance_entries.sort_by_key(|(id, _)| *id);
     for (_instance_id, instance) in instance_entries {
-        pretty.reset();
-        let canonical = pretty.render(instance.signature);
+        let mut state = pretty.state();
+        let canonical = state.render(instance.signature);
         writeln!(out, "instance {canonical}").unwrap();
     }
 
@@ -323,8 +323,8 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let mut derived_entries: Vec<_> = checked.derived.iter().collect();
     derived_entries.sort_by_key(|(id, _)| *id);
     for (_derive_id, instance) in derived_entries {
-        pretty.reset();
-        let canonical = pretty.render(instance.signature);
+        let mut state = pretty.state();
+        let canonical = state.render(instance.signature);
         writeln!(out, "derive {canonical}").unwrap();
     }
 

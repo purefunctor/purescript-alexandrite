@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use checking::CheckedModule;
 use checking::core::TypeId;
-use checking::core::pretty::Pretty;
+use checking::core::pretty::{Pretty, PrettyState};
 use checking::error::ErrorCrumb;
 use indexing::IndexedModule;
 use lowering::LoweredModule;
@@ -104,7 +104,7 @@ where
     pub indexed: &'a IndexedModule,
     pub lowered: &'a LoweredModule,
     pub checked: &'a CheckedModule,
-    pretty: RefCell<Pretty<'a, Q>>,
+    pretty_state: RefCell<PrettyState<'a, Q>>,
 }
 
 impl<'a, Q> DiagnosticsContext<'a, Q>
@@ -128,12 +128,12 @@ where
             indexed,
             lowered,
             checked,
-            pretty: RefCell::new(Pretty::new(queries, checked)),
+            pretty_state: RefCell::new(Pretty::new(queries, checked).state()),
         }
     }
 
     pub fn render_type(&self, id: TypeId) -> smol_str::SmolStr {
-        self.pretty.borrow_mut().render(id)
+        self.pretty_state.borrow_mut().render(id)
     }
 
     pub fn span_from_syntax_ptr(&self, ptr: &SyntaxNodePtr) -> Option<Span> {

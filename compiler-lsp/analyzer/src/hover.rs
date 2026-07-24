@@ -1,6 +1,6 @@
 use async_lsp::lsp_types::*;
 use building::QueryEngine;
-use checking::core::pretty::Pretty;
+use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
@@ -11,6 +11,8 @@ use syntax::{TextRange, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::{AnalyzerError, LanguageContext, extract, locate, position};
+
+const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
 
 pub fn implementation(
     context: &LanguageContext,
@@ -283,7 +285,7 @@ fn hover_checked_type(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render(type_id).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
@@ -308,7 +310,7 @@ fn hover_file_term(
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
@@ -337,7 +339,7 @@ fn hover_file_type(
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
     let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
 
-    let mut pretty = Pretty::new(engine, &checked).width(80);
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
