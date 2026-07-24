@@ -387,14 +387,11 @@ where
         }
 
         lowering::ExpressionKind::Do { bind, discard, statements } => {
-            let type_id = form_do::infer_do(state, context, *bind, *discard, statements)?;
-            Ok(allocate_error_expression(state, type_id))
+            form_do::infer_do(state, context, *bind, *discard, statements)
         }
 
         lowering::ExpressionKind::Ado { map, apply, pure, statements, expression } => {
-            let type_id =
-                form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)?;
-            Ok(allocate_error_expression(state, type_id))
+            form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)
         }
 
         lowering::ExpressionKind::Constructor { resolution } => {

@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Operations :: (Type -> Type) -> Constraint
+interface Operations effect where
+  pure :: forall (value :: Type). value -> effect value
+  bind :: forall (value :: Type) (result :: Type). effect value -> (value -> effect result) -> effect result
+  discard :: forall (value :: Type) (result :: Type). effect value -> (value -> effect result) -> effect result
+
+usingBind :: forall effect. Operations effect => effect Int
+usingBind = \{operationsDict} ->
+  bind @effect {operationsDict} @Int @Int (pure @effect {operationsDict} @Int 1) \value ->
+    pure @effect {operationsDict} @Int value
+
+usingDiscard :: forall effect. Operations effect => effect Int
+usingDiscard = \{operationsDict} ->
+  discard @effect {operationsDict} @String @Int
+    (pure @effect {operationsDict} @String "ignored") \_ -> pure @effect {operationsDict} @Int 1

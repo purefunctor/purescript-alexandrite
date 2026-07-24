@@ -14,10 +14,9 @@ implementation :: Fail (Text "first deferred error") => Required Int => Fail (Te
 implementation = \{failDict} -> \{requiredDict} -> \{failDict1} -> boolean
 
 dictionary exampleInt ::
-  { failDict :: Fail (Text "first deferred error")
-  , requiredDict :: Required Int
-  , failDict1 :: Fail (Text "second deferred error")
-  } =>
+  { failDict :: Fail (Text "first deferred error") } =>
+  { requiredDict :: Required Int } =>
+  { failDict1 :: Fail (Text "second deferred error") } =>
   Example Int
-where
+  where
   example = implementation {failDict} {requiredDict} {failDict1}

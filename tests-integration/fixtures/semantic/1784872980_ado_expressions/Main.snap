@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Tuple :: Type -> Type -> Type
+data Tuple @first @second
+  | Tuple :: first -> second -> Tuple first second
+
+zero :: Effect Int
+zero = pure @Int 1
+
+zeroWithLet :: Effect Int
+zeroWithLet =
+  let
+    value :: Int
+    value = 1
+  in
+    pure @Int value
+
+one :: Effect Int
+one = map @Int @Int (\value -> value) (pure @Int 1)
+
+multiple :: Effect (Tuple Int String)
+multiple =
+  apply @String @(Tuple Int String)
+    (map @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second)
+      (pure @Int 1))
+    (pure @String "two")
+
+discarded :: Effect String
+discarded =
+  apply @String @String (map @Int @(String -> String) (\_ value -> value) (pure @Int 1))
+    (pure @String "kept")
+
+withLet :: Effect (Tuple Int Int)
+withLet =
+  apply @Int @(Tuple Int Int)
+    (map @Int @(Int -> Tuple Int Int)
+      (\first second ->
+        let
+          next :: Int
+          next = first
+        in
+          Tuple @Int @Int next second)
+      (pure @Int 1))
+    (pure @Int 2)
+
+nested :: Effect Int
+nested = map @Int @Int (\value -> value) (map @Int @Int (\inner -> inner) (pure @Int 1))

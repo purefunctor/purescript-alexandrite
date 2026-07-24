@@ -13,7 +13,6 @@ interface Example a where
   first :: a
   second :: a
 
-dictionary exampleToken :: Example Token
-where
+dictionary exampleToken :: Example Token where
   first = FirstToken
   second = SecondToken

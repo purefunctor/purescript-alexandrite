@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+polymorphic :: forall (value :: Type). Box (value :: Type)
+bind ::
+  forall (result :: Type).
+    (forall (value :: Type). Box (value :: Type)) ->
+    ((forall (value1 :: Type). Box (value1 :: Type)) -> (result :: Type)) ->
+    (result :: Type)
+test :: Int
+test' :: Int
+
+Types
+Box :: Type -> Type
+
+Roles
+Box = [Nominal]

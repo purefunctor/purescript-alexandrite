@@ -13,6 +13,5 @@ interface Example a where
 implementation :: forall a b. Required b => a -> b -> Boolean
 implementation = \{requiredDict} -> \_ -> \_ -> boolean
 
-dictionary exampleInt :: Example Int
-where
+dictionary exampleInt :: Example Int where
   apply = \{requiredDict} -> implementation @Int @b {requiredDict}
