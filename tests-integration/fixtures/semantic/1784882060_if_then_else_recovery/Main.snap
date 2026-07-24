@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+missingCondition :: Int
+missingCondition =
+  if <error> then 1 else 2
+
+missingThen :: Int
+missingThen =
+  if true then <error> else 2
+
+missingElse :: Int
+missingElse =
+  if true then 1 else <error>

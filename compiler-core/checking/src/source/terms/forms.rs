@@ -25,7 +25,7 @@ pub fn infer_if_then_else<Q>(
     if_: Option<lowering::ExpressionId>,
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -39,7 +39,7 @@ pub fn check_if_then_else<Q>(
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
     expected: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -53,28 +53,35 @@ fn if_then_else_core<Q>(
     then: Option<lowering::ExpressionId>,
     else_: Option<lowering::ExpressionId>,
     mode: IfThenElseMode,
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    if let Some(if_) = if_ {
-        super::check_expression(state, context, if_, context.prim.boolean)?;
-    }
+    let condition = if let Some(condition) = if_ {
+        super::check_expression(state, context, condition, context.prim.boolean)?.expression
+    } else {
+        state.allocate_error_expression(context.prim.boolean)
+    };
 
     let result_type = match mode {
         IfThenElseMode::Infer => state.fresh_unification(context.queries, context.prim.t),
         IfThenElseMode::Check { expected } => expected,
     };
 
-    if let Some(then) = then {
-        super::check_expression(state, context, then, result_type)?;
-    }
+    let then = if let Some(then) = then {
+        super::check_expression(state, context, then, result_type)?.expression
+    } else {
+        state.allocate_error_expression(result_type)
+    };
 
-    if let Some(else_) = else_ {
-        super::check_expression(state, context, else_, result_type)?;
-    }
+    let else_ = if let Some(else_) = else_ {
+        super::check_expression(state, context, else_, result_type)?.expression
+    } else {
+        state.allocate_error_expression(result_type)
+    };
 
-    Ok(result_type)
+    let kind = tree::ExpressionKind::IfThenElse { condition, then, else_ };
+    Ok(super::allocate_expression(state, result_type, kind))
 }
 
 pub fn infer_lambda<Q>(
