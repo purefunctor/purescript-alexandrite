@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface OnStep :: Int -> Constraint
+interface OnStep step where
+
+dictionary onZero :: OnStep 0
+where
+
+dictionary onTwo :: OnStep 2
+where
+
+dictionary onDefault ::
+  forall t.
+  OnStep t
+where
+
+indexedApply :: Action 3 String
+indexedApply =
+  apply @3 {onDefault} @2 @String @String
+    (apply @2 {onTwo} @1 @Boolean @(String -> String)
+      (apply @1 {onDefault} @0 @String @(Boolean -> String -> String)
+        (map @0 {onZero} @Int @(String -> Boolean -> String -> String)
+          (\zero one two three -> three)
+          stepZero)
+        stepOne)
+      stepTwo)
+    stepThree
+
+indexedPure :: Action 2 Int
+indexedPure = pure @2 {onTwo} @Int 1
