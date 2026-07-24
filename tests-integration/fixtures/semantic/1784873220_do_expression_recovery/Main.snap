@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+emptyDo :: ?[empty do block]
+emptyDo = <error>
+
+finalBind :: Effect Int
+finalBind = pure @Int 1
+
+finalLet :: forall t. t
+finalLet =
+  let
+    value :: Int
+    value = 1
+  in
+    <error>
+
+missingDoAction :: forall t. t
+missingDoAction = <error> \value -> pure @?21 value

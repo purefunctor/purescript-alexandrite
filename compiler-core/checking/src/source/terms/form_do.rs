@@ -3,18 +3,39 @@ use std::iter;
 use building_types::QueryResult;
 use itertools::{Itertools, Position};
 
-use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::source::binder;
-use crate::source::terms::{application, form_let};
+use crate::source::terms::{ElaboratedExpression, application, form_let};
 use crate::state::CheckState;
+use crate::{ExternalQueries, tree};
+
+pub struct DesugaredFunction {
+    resolution: Option<lowering::TermVariableResolution>,
+    type_id: TypeId,
+}
+
+impl DesugaredFunction {
+    pub fn type_id(&self) -> TypeId {
+        self.type_id
+    }
+
+    pub fn allocate_expression(&self, state: &mut CheckState) -> ElaboratedExpression {
+        if let Some(resolution) = self.resolution {
+            let kind = tree::ExpressionKind::Variable { resolution };
+            super::allocate_expression(state, self.type_id, kind)
+        } else {
+            super::allocate_error_expression(state, self.type_id)
+        }
+    }
+}
 
 enum DoStep<'a> {
     Bind {
         statement: lowering::DoStatementId,
         binder_type: TypeId,
+        binder: tree::BinderId,
         expression: Option<lowering::ExpressionId>,
     },
     Discard {
@@ -31,6 +52,19 @@ impl DoStep<'_> {
     fn is_action(&self) -> bool {
         matches!(self, Self::Bind { .. } | Self::Discard { .. })
     }
+}
+
+struct CheckedDoApplication {
+    function: ElaboratedExpression,
+    implicit: Vec<application::ImplicitApplication>,
+    result: TypeId,
+    lambda_type: TypeId,
+}
+
+enum CheckedDoStep {
+    Application { application: CheckedDoApplication, binder: tree::BinderId },
+    MissingApplication { binder: tree::BinderId, lambda_type: TypeId, result: TypeId },
+    Let { bindings: tree::LetBindings },
 }
 
 enum DoBlockFinalStep {
@@ -51,11 +85,11 @@ pub fn lookup_or_synthesise_bind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: Option<lowering::TermVariableResolution>,
-) -> QueryResult<TypeId>
+) -> QueryResult<DesugaredFunction>
 where
     Q: ExternalQueries,
 {
-    if let Some(resolution) = resolution {
+    let type_id = if let Some(resolution) = resolution {
         toolkit::lookup_term_variable(state, context, resolution)
     } else {
         let m = state.fresh_unification(context.queries, context.prim.type_to_type);
@@ -65,7 +99,8 @@ where
         let m_b = context.intern_application(m, b);
         let a_to_m_b = context.intern_function(a, m_b);
         Ok(context.intern_function_list(&[m_a, a_to_m_b], m_b))
-    }
+    }?;
+    Ok(DesugaredFunction { resolution, type_id })
 }
 
 /// Lookup `discard` from resolution, or synthesize `?m ?a -> (?a -> ?m ?b) -> ?m ?b`.
@@ -73,7 +108,7 @@ pub fn lookup_or_synthesise_discard<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: Option<lowering::TermVariableResolution>,
-) -> QueryResult<TypeId>
+) -> QueryResult<DesugaredFunction>
 where
     Q: ExternalQueries,
 {
@@ -86,11 +121,11 @@ pub fn lookup_or_synthesise_map<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: Option<lowering::TermVariableResolution>,
-) -> QueryResult<TypeId>
+) -> QueryResult<DesugaredFunction>
 where
     Q: ExternalQueries,
 {
-    if let Some(resolution) = resolution {
+    let type_id = if let Some(resolution) = resolution {
         toolkit::lookup_term_variable(state, context, resolution)
     } else {
         let f = state.fresh_unification(context.queries, context.prim.type_to_type);
@@ -100,7 +135,8 @@ where
         let f_b = context.intern_application(f, b);
         let a_to_b = context.intern_function(a, b);
         Ok(context.intern_function_list(&[a_to_b, f_a], f_b))
-    }
+    }?;
+    Ok(DesugaredFunction { resolution, type_id })
 }
 
 /// Lookup `apply` from resolution, or synthesize `?f (?a -> ?b) -> ?f ?a -> ?f ?b`.
@@ -108,11 +144,11 @@ pub fn lookup_or_synthesise_apply<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: Option<lowering::TermVariableResolution>,
-) -> QueryResult<TypeId>
+) -> QueryResult<DesugaredFunction>
 where
     Q: ExternalQueries,
 {
-    if let Some(resolution) = resolution {
+    let type_id = if let Some(resolution) = resolution {
         toolkit::lookup_term_variable(state, context, resolution)
     } else {
         let f = state.fresh_unification(context.queries, context.prim.type_to_type);
@@ -123,7 +159,8 @@ where
         let f_a = context.intern_application(f, a);
         let f_b = context.intern_application(f, b);
         Ok(context.intern_function_list(&[f_a_to_b, f_a], f_b))
-    }
+    }?;
+    Ok(DesugaredFunction { resolution, type_id })
 }
 
 /// Lookup `pure` from resolution, or synthesize `?a -> ?f ?a`.
@@ -131,18 +168,19 @@ pub fn lookup_or_synthesise_pure<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     resolution: Option<lowering::TermVariableResolution>,
-) -> QueryResult<TypeId>
+) -> QueryResult<DesugaredFunction>
 where
     Q: ExternalQueries,
 {
-    if let Some(resolution) = resolution {
+    let type_id = if let Some(resolution) = resolution {
         toolkit::lookup_term_variable(state, context, resolution)
     } else {
         let f = state.fresh_unification(context.queries, context.prim.type_to_type);
         let a = state.fresh_unification(context.queries, context.prim.t);
         let f_a = context.intern_application(f, a);
         Ok(context.intern_function(a, f_a))
-    }
+    }?;
+    Ok(DesugaredFunction { resolution, type_id })
 }
 
 pub fn infer_do<Q>(
@@ -151,7 +189,7 @@ pub fn infer_do<Q>(
     bind: Option<lowering::TermVariableResolution>,
     discard: Option<lowering::TermVariableResolution>,
     statement_id: &[lowering::DoStatementId],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
@@ -166,14 +204,22 @@ where
         };
         match statement {
             lowering::DoStatement::Bind { binder, expression } => {
-                let binder_type = if let Some(binder) = binder {
-                    binder::infer_binder(state, context, *binder)?.type_id
+                let (binder_type, binder) = if let Some(binder) = binder {
+                    let binder = binder::infer_binder(state, context, *binder)?;
+                    (binder.type_id, binder.binder)
                 } else {
-                    state.fresh_unification(context.queries, context.prim.t)
+                    let binder_type = state.fresh_unification(context.queries, context.prim.t);
+                    let binder = state.allocate_generated_binder(
+                        statement_id,
+                        binder_type,
+                        tree::BinderKind::Error,
+                    );
+                    (binder_type, binder)
                 };
                 steps.push(DoStep::Bind {
                     statement: statement_id,
                     binder_type,
+                    binder,
                     expression: *expression,
                 });
             }
@@ -213,22 +259,20 @@ where
         (has_bind, has_discard)
     };
 
-    let bind_type = if has_bind_step {
-        lookup_or_synthesise_bind(state, context, bind)?
-    } else {
-        context.unknown("unused bind")
-    };
+    let bind_function =
+        if has_bind_step { Some(lookup_or_synthesise_bind(state, context, bind)?) } else { None };
 
-    let discard_type = if has_discard_step {
-        lookup_or_synthesise_discard(state, context, discard)?
+    let discard_function = if has_discard_step {
+        Some(lookup_or_synthesise_discard(state, context, discard)?)
     } else {
-        context.unknown("unused discard")
+        None
     };
 
     let final_expression = match final_step {
         DoBlockFinalStep::Empty => {
             state.insert_error(ErrorKind::EmptyDoBlock);
-            return Ok(context.unknown("empty do block"));
+            let type_id = context.unknown("empty do block");
+            return Ok(super::allocate_error_expression(state, type_id));
         }
         // Technically valid, syntactically disallowed. This allows
         // partially-written do expressions to infer, with a friendly
@@ -239,14 +283,16 @@ where
             });
             let Some(expression) = expression else {
                 state.insert_error(ErrorKind::EmptyDoBlock);
-                return Ok(context.unknown("empty do block"));
+                let type_id = context.unknown("empty do block");
+                return Ok(super::allocate_error_expression(state, type_id));
             };
             Some(expression)
         }
         DoBlockFinalStep::Discard { expression } => {
             let Some(expression) = expression else {
                 state.insert_error(ErrorKind::EmptyDoBlock);
-                return Ok(context.unknown("empty do block"));
+                let type_id = context.unknown("empty do block");
+                return Ok(super::allocate_error_expression(state, type_id));
             };
             Some(expression)
         }
@@ -339,47 +385,83 @@ where
     // to the previous approach that emulated desugared checking.
 
     let mut continuations = continuation_types.iter().tuple_windows::<(_, _)>();
+    let mut checked_steps = vec![];
 
     for step in &steps {
         match step {
             DoStep::Let { statement, statements } => {
-                state.with_error_crumb(ErrorCrumb::CheckingDoLet(*statement), |state| {
-                    form_let::check_let_chunks(state, context, statements)
-                })?;
+                let bindings = state
+                    .with_error_crumb(ErrorCrumb::CheckingDoLet(*statement), |state| {
+                        form_let::check_let_chunks(state, context, statements)
+                    })?;
+                checked_steps.push(CheckedDoStep::Let { bindings });
             }
-            DoStep::Bind { statement, binder_type, expression } => {
+            DoStep::Bind { statement, binder_type, binder, expression } => {
                 let Some((&now_type, &next_type)) = continuations.next() else {
                     continue;
                 };
                 let Some(expression) = *expression else {
+                    let lambda_type = context.intern_function(*binder_type, next_type);
+                    checked_steps.push(CheckedDoStep::MissingApplication {
+                        binder: *binder,
+                        lambda_type,
+                        result: now_type,
+                    });
                     continue;
                 };
-                state.with_error_crumb(ErrorCrumb::InferringDoBind(*statement), |state| {
-                    let statement_type = infer_do_bind_core(
-                        state,
-                        context,
-                        bind_type,
-                        next_type,
-                        expression,
-                        *binder_type,
-                    )?;
-                    unification::subtype(state, context, statement_type, now_type)?;
-                    Ok(())
-                })?;
+                let function = bind_function
+                    .as_ref()
+                    .expect("invariant violated: desugared bind function was not initialised");
+                let mut application =
+                    state.with_error_crumb(ErrorCrumb::InferringDoBind(*statement), |state| {
+                        let application = infer_do_bind_core(
+                            state,
+                            context,
+                            function,
+                            next_type,
+                            expression,
+                            *binder_type,
+                        )?;
+                        unification::subtype(state, context, application.result, now_type)?;
+                        Ok(application)
+                    })?;
+                application.result = now_type;
+                checked_steps.push(CheckedDoStep::Application { application, binder: *binder });
             }
             DoStep::Discard { statement, expression } => {
                 let Some((&now_type, &next_type)) = continuations.next() else {
                     continue;
                 };
                 let Some(expression) = *expression else {
+                    let binder_type = context.unknown("missing do discard binder");
+                    let binder = state.allocate_generated_binder(
+                        *statement,
+                        binder_type,
+                        tree::BinderKind::Wildcard,
+                    );
+                    let lambda_type = context.intern_function(binder_type, next_type);
+                    checked_steps.push(CheckedDoStep::MissingApplication {
+                        binder,
+                        lambda_type,
+                        result: now_type,
+                    });
                     continue;
                 };
-                state.with_error_crumb(ErrorCrumb::InferringDoDiscard(*statement), |state| {
-                    let statement_type =
-                        infer_do_discard_core(state, context, discard_type, next_type, expression)?;
-                    unification::subtype(state, context, statement_type, now_type)?;
-                    Ok(())
-                })?;
+                let function = discard_function
+                    .as_ref()
+                    .expect("invariant violated: desugared discard function was not initialised");
+                let (binder, mut application) = state.with_error_crumb(
+                    ErrorCrumb::InferringDoDiscard(*statement),
+                    |state| {
+                        let (binder, application) = infer_do_discard_core(
+                            state, context, function, next_type, expression, *statement,
+                        )?;
+                        unification::subtype(state, context, application.result, now_type)?;
+                        Ok((binder, application))
+                    },
+                )?;
+                application.result = now_type;
+                checked_steps.push(CheckedDoStep::Application { application, binder });
             }
         }
     }
@@ -394,54 +476,111 @@ where
     let final_continuation =
         *continuation_types.last().expect("invariant violated: empty continuation_types");
 
-    if let Some(final_expression) = final_expression {
-        super::check_expression(state, context, final_expression, final_continuation)?;
+    let final_expression = if let Some(final_expression) = final_expression {
+        super::check_expression(state, context, final_expression, final_continuation)?
+    } else {
+        super::allocate_error_expression(state, final_continuation)
+    };
+    let mut continuation = ElaboratedExpression { type_id: final_continuation, ..final_expression };
+
+    for step in checked_steps.into_iter().rev() {
+        match step {
+            CheckedDoStep::Application { application, binder } => {
+                let kind = tree::ExpressionKind::Lambda {
+                    binders: vec![binder].into(),
+                    expression: continuation.expression,
+                };
+                let lambda = super::allocate_expression(state, application.lambda_type, kind);
+                continuation = application::materialize_application(
+                    state,
+                    application.function,
+                    application.implicit,
+                    application.result,
+                    lambda,
+                );
+            }
+            CheckedDoStep::MissingApplication { binder, lambda_type, result } => {
+                let kind = tree::ExpressionKind::Lambda {
+                    binders: vec![binder].into(),
+                    expression: continuation.expression,
+                };
+                let lambda = super::allocate_expression(state, lambda_type, kind);
+                let function_type = context.intern_function(lambda_type, result);
+                let function = super::allocate_error_expression(state, function_type);
+                continuation =
+                    application::materialize_application(state, function, vec![], result, lambda);
+            }
+            CheckedDoStep::Let { bindings } => {
+                let kind =
+                    tree::ExpressionKind::Let { bindings, expression: continuation.expression };
+                continuation = super::allocate_expression(state, continuation.type_id, kind);
+            }
+        }
     }
 
-    Ok(first_continuation)
+    Ok(ElaboratedExpression { type_id: first_continuation, ..continuation })
 }
 
-pub fn infer_do_bind_core<Q>(
+fn infer_do_bind_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    bind_type: TypeId,
+    function: &DesugaredFunction,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
     binder_type: TypeId,
-) -> QueryResult<TypeId>
+) -> QueryResult<CheckedDoApplication>
 where
     Q: ExternalQueries,
 {
-    let expression_type = super::infer_expression(state, context, expression)?.type_id;
+    let expression = super::infer_expression(state, context, expression)?;
     let lambda_type = context.intern_function(binder_type, continuation_type);
 
-    let Some(application::UnanchoredApplication { argument, result, .. }) =
-        application::check_unanchored_application(state, context, bind_type)?
+    let Some(application::UnanchoredApplication { implicit, argument, result }) =
+        application::check_unanchored_application(state, context, function.type_id())?
     else {
-        return Ok(context.unknown("invalid function application"));
+        return Ok(invalid_do_application(state, context, lambda_type));
     };
-    unification::subtype(state, context, expression_type, argument)?;
+    let expression = application::subtype_expression(state, context, expression, argument)?;
+    let function = function.allocate_expression(state);
+    let function =
+        application::materialize_application(state, function, implicit, result, expression);
 
-    let Some(application::UnanchoredApplication { argument, result, .. }) =
-        application::check_unanchored_application(state, context, result)?
+    let Some(application::UnanchoredApplication { implicit, argument, result }) =
+        application::check_unanchored_application(state, context, function.type_id)?
     else {
-        return Ok(context.unknown("invalid function application"));
+        return Ok(invalid_do_application(state, context, lambda_type));
     };
     unification::subtype(state, context, lambda_type, argument)?;
 
-    Ok(result)
+    Ok(CheckedDoApplication { function, implicit, result, lambda_type })
 }
 
-pub fn infer_do_discard_core<Q>(
+fn infer_do_discard_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    discard_type: TypeId,
+    function: &DesugaredFunction,
     continuation_type: TypeId,
     expression: lowering::ExpressionId,
-) -> QueryResult<TypeId>
+    statement: lowering::DoStatementId,
+) -> QueryResult<(tree::BinderId, CheckedDoApplication)>
 where
     Q: ExternalQueries,
 {
     let binder_type = state.fresh_unification(context.queries, context.prim.t);
-    infer_do_bind_core(state, context, discard_type, continuation_type, expression, binder_type)
+    let binder =
+        state.allocate_generated_binder(statement, binder_type, tree::BinderKind::Wildcard);
+    let application =
+        infer_do_bind_core(state, context, function, continuation_type, expression, binder_type)?;
+    Ok((binder, application))
+}
+
+fn invalid_do_application(
+    state: &mut CheckState,
+    context: &CheckContext<impl ExternalQueries>,
+    lambda_type: TypeId,
+) -> CheckedDoApplication {
+    let result = context.unknown("invalid function application");
+    let function_type = context.intern_function(lambda_type, result);
+    let function = super::allocate_error_expression(state, function_type);
+    CheckedDoApplication { function, implicit: vec![], result, lambda_type }
 }

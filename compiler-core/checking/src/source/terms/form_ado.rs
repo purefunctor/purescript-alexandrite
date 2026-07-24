@@ -84,7 +84,7 @@ where
             }
         }
         return if let Some(expression) = expression {
-            let pure_type = form_do::lookup_or_synthesise_pure(state, context, pure)?;
+            let pure_type = form_do::lookup_or_synthesise_pure(state, context, pure)?.type_id();
             application::check_function_term_application(state, context, pure_type, expression)
         } else {
             state.insert_error(ErrorKind::EmptyAdoBlock);
@@ -134,10 +134,10 @@ where
     // - 2+ actions: map and apply are needed
     let action_count = binder_types.len();
 
-    let map_type = form_do::lookup_or_synthesise_map(state, context, map)?;
+    let map_type = form_do::lookup_or_synthesise_map(state, context, map)?.type_id();
 
     let apply_type = if action_count > 1 {
-        form_do::lookup_or_synthesise_apply(state, context, apply)?
+        form_do::lookup_or_synthesise_apply(state, context, apply)?.type_id()
     } else {
         context.unknown("unused apply")
     };
