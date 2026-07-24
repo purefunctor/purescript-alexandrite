@@ -216,33 +216,65 @@ where
     }
 }
 
-pub fn materialize_application(
+/// Checks an expression against an expected type while retaining implicit
+/// applications introduced on the inferred side.
+pub fn subtype_expression<Q>(
     state: &mut CheckState,
-    mut function: ElaboratedExpression,
-    implicit: Vec<ImplicitApplication>,
-    result: TypeId,
-    argument: ElaboratedExpression,
+    context: &CheckContext<Q>,
+    expression: ElaboratedExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+{
+    let applications =
+        unification::subtype_with_applications(state, context, expression.type_id, expected)?;
+    let applications = applications.into_iter().map(|application| match application {
+        unification::SubtypeApplication::Type { argument, result } => {
+            ImplicitApplication::Type { argument, result }
+        }
+        unification::SubtypeApplication::Evidence { evidence, result } => {
+            ImplicitApplication::Evidence { evidence, result }
+        }
+    });
+    Ok(materialize_implicit_applications(state, expression, applications))
+}
+
+fn materialize_implicit_applications(
+    state: &mut CheckState,
+    mut expression: ElaboratedExpression,
+    implicit: impl IntoIterator<Item = ImplicitApplication>,
 ) -> ElaboratedExpression {
     for application in implicit {
         let (type_id, kind) = match application {
             ImplicitApplication::Type { argument, result } => {
                 let kind = tree::ExpressionKind::TypeApplication {
-                    function: function.expression,
+                    function: expression.expression,
                     argument,
                 };
                 (result, kind)
             }
             ImplicitApplication::Evidence { evidence, result } => {
                 let kind = tree::ExpressionKind::EvidenceApplication {
-                    function: function.expression,
+                    function: expression.expression,
                     evidence,
                 };
                 (result, kind)
             }
         };
-        function = super::allocate_expression(state, type_id, kind);
+        expression = super::allocate_expression(state, type_id, kind);
     }
+    expression
+}
 
+pub fn materialize_application(
+    state: &mut CheckState,
+    function: ElaboratedExpression,
+    implicit: Vec<ImplicitApplication>,
+    result: TypeId,
+    argument: ElaboratedExpression,
+) -> ElaboratedExpression {
+    let function = materialize_implicit_applications(state, function, implicit);
     let kind = tree::ExpressionKind::TermApplication {
         function: function.expression,
         argument: argument.expression,

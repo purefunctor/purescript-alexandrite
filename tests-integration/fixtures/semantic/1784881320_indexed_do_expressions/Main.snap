@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface OnStep :: Int -> Constraint
+interface OnStep step where
+
+dictionary onZero :: OnStep 0
+
+dictionary onTwo :: OnStep 2
+
+dictionary onDefault :: forall t. OnStep t
+
+indexedBind :: Action 0 Number
+indexedBind =
+  bind @0 {onZero} @1 @Int @Number stepZero \zero ->
+    bind @1 {onDefault} @2 @String @Number stepOne \one ->
+      bind @2 {onTwo} @3 @Boolean @Number stepTwo \two ->
+        bind @3 {onDefault} @4 @String @Number stepThree \three -> stepFour
+
+indexedDiscard :: Action 4 Boolean
+indexedDiscard = discard @4 {onDefault} @2 @Number @Boolean stepFour \_ -> stepTwo

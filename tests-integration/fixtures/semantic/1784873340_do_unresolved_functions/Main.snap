@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+unresolvedBind :: forall t t1. t t1
+unresolvedBind = <error> 1 \value -> value
+
+unresolvedDiscard :: forall t t1. t t1
+unresolvedDiscard = <error> 1 \_ -> 2

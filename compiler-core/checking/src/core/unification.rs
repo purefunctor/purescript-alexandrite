@@ -11,6 +11,7 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::{Depth, Name, RowField, RowType, RowTypeId, Type, TypeId, normalise, toolkit};
 use crate::error::ErrorKind;
+use crate::evidence::EvidenceVarId;
 use crate::source::types;
 use crate::state::{CheckState, UnificationEntry};
 
@@ -25,6 +26,12 @@ impl CanUnify {
     pub fn and_then(self, f: impl FnOnce() -> QueryResult<CanUnify>) -> QueryResult<CanUnify> {
         if let CanUnify::Equal = self { f() } else { Ok(self) }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubtypeApplication {
+    Type { argument: TypeId, result: TypeId },
+    Evidence { evidence: EvidenceVarId, result: TypeId },
 }
 
 /// Strategy for handling constrained types during [`subtype_with`].
@@ -98,6 +105,62 @@ where
     Q: ExternalQueries,
 {
     subtype_with::<Elaborating, Q>(state, context, t1, t2)
+}
+
+/// Checks subtyping and returns implicit applications introduced by outer
+/// `forall` and constrained types on the inferred side.
+///
+/// Applications introduced while checking an expected `forall` are omitted,
+/// because the inferred expression remains polymorphic at that boundary.
+pub fn subtype_with_applications<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    t1: TypeId,
+    t2: TypeId,
+) -> QueryResult<Vec<SubtypeApplication>>
+where
+    Q: ExternalQueries,
+{
+    let mut applications = vec![];
+    subtype_with_applications_core(state, context, t1, t2, &mut applications)?;
+    Ok(applications)
+}
+
+fn subtype_with_applications_core<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    t1: TypeId,
+    t2: TypeId,
+    applications: &mut Vec<SubtypeApplication>,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    let t1 = normalise::expand(state, context, t1)?;
+    let t2 = normalise::expand(state, context, t2)?;
+
+    if t1 == t2 {
+        return Ok(true);
+    }
+
+    match (context.lookup_type(t1), context.lookup_type(t2)) {
+        // The inferred expression remains polymorphic at this boundary, so
+        // ordinary subtyping handles it without collecting applications.
+        (_, Type::Forall(_, _)) => subtype(state, context, t1, t2),
+        (Type::Forall(binder_id, inner), _) => {
+            let binder = context.lookup_forall_binder(binder_id);
+            let argument = state.fresh_unification(context.queries, binder.kind);
+            let result = SubstituteName::one(state, context, binder.name, argument, inner)?;
+            applications.push(SubtypeApplication::Type { argument, result });
+            subtype_with_applications_core(state, context, result, t2, applications)
+        }
+        (Type::Constrained(constraint, result), _) => {
+            let evidence = state.push_wanted(constraint);
+            applications.push(SubtypeApplication::Evidence { evidence, result });
+            subtype_with_applications_core(state, context, result, t2, applications)
+        }
+        (_, _) => subtype(state, context, t1, t2),
+    }
 }
 
 pub fn subtype_with<P, Q>(

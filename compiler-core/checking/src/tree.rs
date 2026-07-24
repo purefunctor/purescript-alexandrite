@@ -259,9 +259,15 @@ impl GuardedExpression {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Binder {
-    pub source: lowering::BinderId,
+    pub source: BinderSource,
     pub type_id: TypeId,
     pub kind: BinderKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinderSource {
+    Binder(lowering::BinderId),
+    DoStatement(lowering::DoStatementId),
 }
 
 #[derive(Debug, PartialEq, Eq)]

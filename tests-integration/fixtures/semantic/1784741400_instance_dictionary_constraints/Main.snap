@@ -18,9 +18,8 @@ implementation = \{secondDict} -> \_ -> \_ -> boolean
 
 dictionary exampleAB ::
   forall t t1.
-  { firstDict :: First t
-  , secondDict :: Second t1
-  } =>
+  { firstDict :: First t } =>
+  { secondDict :: Second t1 } =>
   Example t t1
-where
+  where
   example = implementation @t1 @t {secondDict}

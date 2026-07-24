@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+emptyAdo :: ?[empty ado block]
+emptyAdo = <error>
+
+missingAdoAction :: forall t t1. t t1
+missingAdoAction = <error> <error>
+
+missingAdoResult :: forall t. Effect t
+missingAdoResult = map @Int @t (\value -> <error>) (pure @Int 1)

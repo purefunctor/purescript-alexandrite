@@ -11,9 +11,6 @@ interface Ord a where
   superclass eqDict :: Eq a
   compare :: a -> a -> Int
 
-dictionary ordInt ::
-  { eqDict :: Eq Int } =>
-  Ord Int
-where
+dictionary ordInt :: { eqDict :: Eq Int } => Ord Int where
   superclass eqDict = eqDict
   compare = compareImpl

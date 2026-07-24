@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Parent :: Type -> Constraint
+interface Parent value where
+
+interface Child :: Type -> Constraint
+interface Child value where
+  superclass parentDict :: Parent value
+
+dictionary parentInt :: Parent Int
+
+dictionary childInt :: { parentDict :: Parent Int } => Child Int where
+  superclass parentDict = parentDict
+
+instanceEvidence :: Int
+instanceEvidence = useChild @Int {childInt {parentInt}} 1
+
+superclassEvidence :: forall value. Child value => value -> value
+superclassEvidence = \{childDict} -> useParent @value {childDict.parentDict}

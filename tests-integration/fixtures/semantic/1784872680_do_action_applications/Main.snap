@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Select :: forall (k :: Type). k -> Constraint
+interface Select value where
+
+selected :: Select @Type Int => Effect Int
+selected = \{selectDict} -> bind @Int @Int (constrained @Int {selectDict}) \value -> pure @Int value
