@@ -391,9 +391,7 @@ where
         }
 
         lowering::ExpressionKind::Ado { map, apply, pure, statements, expression } => {
-            let type_id =
-                form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)?;
-            Ok(allocate_error_expression(state, type_id))
+            form_ado::infer_ado(state, context, *map, *apply, *pure, statements, *expression)
         }
 
         lowering::ExpressionKind::Constructor { resolution } => {

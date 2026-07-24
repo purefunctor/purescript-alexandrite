@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Tuple :: Type -> Type -> Type
+data Tuple @first @second
+  | Tuple :: first -> second -> Tuple first second
+
+interface Operations :: (Type -> Type) -> Constraint
+interface Operations effect where
+  pure :: forall (value :: Type). value -> effect value
+  map :: forall (value :: Type) (result :: Type). (value -> result) -> effect value -> effect result
+  apply :: forall (value :: Type) (result :: Type). effect (value -> result) -> effect value -> effect result
+
+usingMapApply :: forall effect. Operations effect => effect (Tuple Int String)
+usingMapApply = \{operationsDict} ->
+  apply @effect {operationsDict} @String @(Tuple Int String) (map @effect {operationsDict} @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second) (pure @effect {operationsDict} @Int 1)) (pure @effect {operationsDict} @String "two")
+
+usingPure :: forall effect. Operations effect => effect Int
+usingPure = \{operationsDict} -> pure @effect {operationsDict} @Int 1
