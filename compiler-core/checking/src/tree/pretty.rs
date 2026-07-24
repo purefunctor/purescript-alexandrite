@@ -977,13 +977,17 @@ where
     }
 
     fn expression_requires_body_break(&self, expression_id: ExpressionId) -> bool {
-        matches!(&self.checked.tree[expression_id].kind, ExpressionKind::Case { .. })
+        matches!(
+            &self.checked.tree[expression_id].kind,
+            ExpressionKind::IfThenElse { .. } | ExpressionKind::Case { .. }
+        )
     }
 
     fn expression_is_block_argument(&self, expression_id: ExpressionId) -> bool {
         matches!(
             &self.checked.tree[expression_id].kind,
             ExpressionKind::Lambda { .. }
+                | ExpressionKind::IfThenElse { .. }
                 | ExpressionKind::Case { .. }
                 | ExpressionKind::Let { .. }
         )
@@ -1114,6 +1118,7 @@ where
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
             ExpressionKind::Lambda { .. }
+            | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
             ExpressionKind::TermApplication { .. }
@@ -1328,6 +1333,21 @@ where
                 } else {
                     Ok(lambda.append(self.arena.line().append(body).nest(2)).group())
                 }
+            }
+            ExpressionKind::IfThenElse { condition, then, else_ } => {
+                let condition = self.expression(*condition, evidence_names, type_pretty)?;
+                let then = self.expression(*then, evidence_names, type_pretty)?;
+                let else_ = self.expression(*else_, evidence_names, type_pretty)?;
+                Ok(self
+                    .arena
+                    .text("if ")
+                    .append(condition)
+                    .append(self.arena.text(" then"))
+                    .append(self.arena.line().append(then).nest(2))
+                    .append(self.arena.line())
+                    .append(self.arena.text("else"))
+                    .append(self.arena.line().append(else_).nest(2))
+                    .group())
             }
             ExpressionKind::Case { scrutinees, alternatives } => {
                 self.case_expression(scrutinees, alternatives, evidence_names, type_pretty)
