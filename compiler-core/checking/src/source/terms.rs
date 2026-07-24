@@ -499,16 +499,14 @@ where
             let Some(labels) = labels else {
                 return Ok(allocate_error_expression(state, unknown));
             };
-            let type_id = collections::infer_record_access(state, context, record, labels)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::infer_record_access(state, context, record, labels)
         }
 
         lowering::ExpressionKind::RecordUpdate { record, updates } => {
             let Some(record) = *record else {
                 return Ok(allocate_error_expression(state, unknown));
             };
-            let type_id = collections::infer_record_update(state, context, record, updates)?;
-            Ok(allocate_error_expression(state, type_id))
+            collections::infer_record_update(state, context, record, updates)
         }
     }
 }

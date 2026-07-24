@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+record :: { function :: Int -> Int, nested :: { value :: Int } }
+record = { function: identity @Int, nested: { value: 42 } }
+
+direct :: { value :: Int }
+direct = record.nested
+
+chained :: Int
+chained = record.nested.value
+
+functionPosition :: Int
+functionPosition = record.function 1
+
+argument :: { value :: Int }
+argument = identity @{ value :: Int } record.nested
+
+applicationBase :: Int
+applicationBase =
+  (identity @{ function :: Int -> Int, nested :: { value :: Int } } record).nested.value
