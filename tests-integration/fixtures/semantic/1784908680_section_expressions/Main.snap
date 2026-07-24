@@ -32,3 +32,24 @@ conditional :: forall t. Boolean -> t -> t -> t
 conditional =
   \v98 v100 v102 ->
     if v98 then v100 else v102
+
+caseScrutinee :: Boolean -> Int
+caseScrutinee =
+  \v108 ->
+    case v108 of
+      true -> 1
+      false -> 0
+
+caseScrutinees :: Boolean -> Int -> Int
+caseScrutinees =
+  \v127 v128 ->
+    case v127, v128 of
+      true, value -> value
+      false, _ -> 0
+
+caseAlternatives :: forall t t1. Boolean -> { value :: t | t1 } -> t
+caseAlternatives =
+  \v149 ->
+    case v149 of
+      true -> \v157 -> v157.value
+      false -> \v164 -> v164.value
