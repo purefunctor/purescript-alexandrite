@@ -7,15 +7,10 @@ interface OnStep :: Int -> Constraint
 interface OnStep step where
 
 dictionary onZero :: OnStep 0
-where
 
 dictionary onTwo :: OnStep 2
-where
 
-dictionary onDefault ::
-  forall t.
-  OnStep t
-where
+dictionary onDefault :: forall t. OnStep t
 
 indexedApply :: Action 3 String
 indexedApply =

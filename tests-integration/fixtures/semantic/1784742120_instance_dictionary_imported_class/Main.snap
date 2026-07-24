@@ -7,9 +7,6 @@ data Token :: Type
 data Token
   | Token :: Token
 
-dictionary childToken ::
-  { parentDict :: Parent Token } =>
-  Child Token
-where
+dictionary childToken :: { parentDict :: Parent Token } => Child Token where
   superclass parentDict = parentDict
   child = Token
