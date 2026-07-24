@@ -23,19 +23,28 @@ one = map @Int @Int (\value -> value) (pure @Int 1)
 
 multiple :: Effect (Tuple Int String)
 multiple =
-  apply @String @(Tuple Int String) (map @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second) (pure @Int 1)) (pure @String "two")
+  apply @String @(Tuple Int String)
+    (map @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second)
+      (pure @Int 1))
+    (pure @String "two")
 
 discarded :: Effect String
 discarded =
-  apply @String @String (map @Int @(String -> String) (\_ value -> value) (pure @Int 1)) (pure @String "kept")
+  apply @String @String (map @Int @(String -> String) (\_ value -> value) (pure @Int 1))
+    (pure @String "kept")
 
 withLet :: Effect (Tuple Int Int)
 withLet =
-  apply @Int @(Tuple Int Int) (map @Int @(Int -> Tuple Int Int) (\first second -> let
-    next :: Int
-    next = first
-  in
-    Tuple @Int @Int next second) (pure @Int 1)) (pure @Int 2)
+  apply @Int @(Tuple Int Int)
+    (map @Int @(Int -> Tuple Int Int)
+      (\first second ->
+        let
+          next :: Int
+          next = first
+        in
+          Tuple @Int @Int next second)
+      (pure @Int 1))
+    (pure @Int 2)
 
 nested :: Effect Int
 nested = map @Int @Int (\value -> value) (map @Int @Int (\inner -> inner) (pure @Int 1))
