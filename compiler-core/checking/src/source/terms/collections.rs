@@ -350,11 +350,12 @@ pub fn infer_record_access<Q>(
     context: &CheckContext<Q>,
     record: lowering::ExpressionId,
     labels: &[SmolStr],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    let mut current_type = super::infer_expression(state, context, record)?.type_id;
+    let record = super::infer_expression(state, context, record)?;
+    let mut current_type = record.type_id;
 
     for label in labels.iter() {
         let label = SmolStr::clone(label);
@@ -369,7 +370,9 @@ where
         current_type = field_type;
     }
 
-    Ok(current_type)
+    let kind =
+        tree::ExpressionKind::RecordAccess { record: record.expression, labels: Arc::from(labels) };
+    Ok(super::allocate_expression(state, current_type, kind))
 }
 
 pub fn infer_record_update<Q>(
@@ -377,11 +380,12 @@ pub fn infer_record_update<Q>(
     context: &CheckContext<Q>,
     record: lowering::ExpressionId,
     updates: &[lowering::RecordUpdate],
-) -> QueryResult<TypeId>
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
-    let (input_fields, output_fields, tail) = infer_record_updates(state, context, updates)?;
+    let updates = infer_record_updates(state, context, updates)?;
+    let ElaboratedRecordUpdates { input_fields, output_fields, tail, updates } = updates;
 
     let input_row = context.intern_row(input_fields, Some(tail));
     let input_record = context.intern_application(context.prim.record, input_row);
@@ -389,57 +393,91 @@ where
     let output_row = context.intern_row(output_fields, Some(tail));
     let output_record = context.intern_application(context.prim.record, output_row);
 
-    super::check_expression(state, context, record, input_record)?;
+    let record = super::check_expression(state, context, record, input_record)?;
 
-    Ok(output_record)
+    let kind = tree::ExpressionKind::RecordUpdate { record: record.expression, updates };
+    Ok(super::allocate_expression(state, output_record, kind))
 }
 
-pub fn infer_record_updates<Q>(
+struct ElaboratedRecordUpdates {
+    input_fields: Vec<RowField>,
+    output_fields: Vec<RowField>,
+    tail: TypeId,
+    updates: Arc<[tree::RecordExpressionUpdate]>,
+}
+
+fn infer_record_updates<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     updates: &[lowering::RecordUpdate],
-) -> QueryResult<(Vec<RowField>, Vec<RowField>, TypeId)>
+) -> QueryResult<ElaboratedRecordUpdates>
 where
     Q: ExternalQueries,
 {
     let mut input_fields = vec![];
     let mut output_fields = vec![];
+    let mut checked_updates = vec![];
 
     for update in updates {
         match update {
             lowering::RecordUpdate::Leaf { name, expression } => {
-                let Some(name) = name else { continue };
+                let Some(name) = name else {
+                    checked_updates.push(tree::RecordExpressionUpdate::Error);
+                    continue;
+                };
                 let label = SmolStr::clone(name);
 
                 let input_id = state.fresh_unification(context.queries, context.prim.t);
-                let output_id = if let Some(expression) = expression {
-                    infer_record_field_expression(state, context, *expression)?.field_type
+                let (output_id, expression) = if let Some(expression) = expression {
+                    let inferred = infer_record_field_expression(state, context, *expression)?;
+                    (inferred.field_type, inferred.elaborated.expression)
                 } else {
-                    context.unknown("missing record update expression")
+                    let output_id = context.unknown("missing record update expression");
+                    let expression = super::allocate_error_expression(state, output_id);
+                    (output_id, expression.expression)
                 };
+
+                let update = tree::RecordExpressionUpdate::Leaf {
+                    label: SmolStr::clone(&label),
+                    expression,
+                };
+                checked_updates.push(update);
 
                 input_fields.push(RowField { label: label.clone(), id: input_id });
                 output_fields.push(RowField { label, id: output_id });
             }
             lowering::RecordUpdate::Branch { name, updates } => {
-                let Some(name) = name else { continue };
+                let Some(name) = name else {
+                    checked_updates.push(tree::RecordExpressionUpdate::Error);
+                    continue;
+                };
                 let label = SmolStr::clone(name);
 
-                let (in_f, out_f, tail) = infer_record_updates(state, context, updates)?;
+                let updates = infer_record_updates(state, context, updates)?;
+                let ElaboratedRecordUpdates {
+                    input_fields: branch_input_fields,
+                    output_fields: branch_output_fields,
+                    tail,
+                    updates,
+                } = updates;
 
-                let in_row = context.intern_row(in_f, Some(tail));
+                let in_row = context.intern_row(branch_input_fields, Some(tail));
                 let in_id = context.intern_application(context.prim.record, in_row);
 
-                let out_row = context.intern_row(out_f, Some(tail));
+                let out_row = context.intern_row(branch_output_fields, Some(tail));
                 let out_id = context.intern_application(context.prim.record, out_row);
 
                 input_fields.push(RowField { label: label.clone(), id: in_id });
-                output_fields.push(RowField { label, id: out_id });
+                output_fields.push(RowField { label: label.clone(), id: out_id });
+
+                let update = tree::RecordExpressionUpdate::Branch { label, updates };
+                checked_updates.push(update);
             }
         }
     }
 
     let tail = state.fresh_unification(context.queries, context.prim.row_type);
 
-    Ok((input_fields, output_fields, tail))
+    let updates = checked_updates.into();
+    Ok(ElaboratedRecordUpdates { input_fields, output_fields, tail, updates })
 }

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+record :: { nested :: { value :: Int }, value :: Int }
+record = { nested: { value: 1 }, value: 2 }
+
+missingValue :: { nested :: { value :: Int }, value :: ?[missing record update expression] }
+missingValue = record { value = <error> }
+
+nestedMissingValue :: { nested :: { value :: ?[missing record update expression] }, value :: Int }
+nestedMissingValue = record { nested { value = <error> } }
+
+validSibling :: { nested :: { value :: ?[missing record update expression] }, value :: Int }
+validSibling = record { nested { value = <error> }, value = 3 }

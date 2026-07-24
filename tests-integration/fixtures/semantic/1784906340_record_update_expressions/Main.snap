@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+record :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+record = { first: 1, nested: { value: 2 }, transform: identity @Int }
+
+leaf :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+leaf = record { first = 2 }
+
+typeChanging :: { first :: String, nested :: { value :: Int }, transform :: Int -> Int }
+typeChanging = record { first = "two" }
+
+multiple :: forall t. { first :: Int, nested :: { value :: Int }, transform :: t -> t }
+multiple = record { first = 2, transform = identity @t }
+
+nested :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+nested = record { nested { value = 3 } }
+
+accessValue :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+accessValue = record { first = record.nested.value }
+
+applicationBase :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+applicationBase =
+  (identity @{ first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+    record) { first = 2 }
+
+argument :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+argument =
+  identity @{ first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+    record { first = 2 }
