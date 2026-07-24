@@ -11,12 +11,8 @@ interface Child value where
   superclass parentDict :: Parent value
 
 dictionary parentInt :: Parent Int
-where
 
-dictionary childInt ::
-  { parentDict :: Parent Int } =>
-  Child Int
-where
+dictionary childInt :: { parentDict :: Parent Int } => Child Int where
   superclass parentDict = parentDict
 
 instanceEvidence :: Int

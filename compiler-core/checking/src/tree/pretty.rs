@@ -426,15 +426,14 @@ where
             instance,
             &mut outer_evidence_names,
         )?;
-        let mut declaration =
-            signature.append(self.arena.hardline()).append(self.arena.text("where"));
+        let mut fields = vec![];
 
         let superclass_names = self.instance_superclass_field_names(instance)?;
         for (superclass, field_name) in instance.superclasses.iter().zip(superclass_names) {
             let evidence =
                 self.evidence_variable_name(&mut outer_evidence_names, superclass.evidence)?;
             let field = self.arena.text(format!("  superclass {field_name} = {evidence}"));
-            declaration = declaration.append(self.arena.hardline()).append(field);
+            fields.push(field);
         }
 
         for member in instance.members.iter() {
@@ -462,10 +461,16 @@ where
             else {
                 continue;
             };
-            declaration = declaration.append(self.arena.hardline()).append(equations);
+            fields.push(equations);
         }
 
-        Ok(declaration)
+        let mut fields = fields.into_iter();
+        let Some(first) = fields.next() else { return Ok(signature) };
+        let fields = fields
+            .fold(first, |document, field| document.append(self.arena.hardline()).append(field));
+        let where_clause = self.arena.line().append(self.arena.text("where")).nest(2);
+        let header = signature.append(where_clause).group();
+        Ok(header.append(self.arena.hardline()).append(fields))
     }
 
     fn dictionary_signature(
@@ -503,34 +508,24 @@ where
             lines.push(format!("forall {}.", binder_names.join(" ")));
         }
 
-        let mut fields = vec![];
         for evidence in instance.evidences.iter() {
             let field_name = self.evidence_name(evidence_names, &evidence.evidence)?;
             let constraint = type_pretty.render(evidence.constraint);
-            fields.push((field_name, constraint));
-        }
-        if let [(field_name, constraint)] = fields.as_slice() {
             lines.push(format!("{{ {field_name} :: {constraint} }} =>"));
-        } else if let Some((first_name, first_constraint)) = fields.first() {
-            lines.push(format!("{{ {first_name} :: {first_constraint}"));
-            for (field_name, constraint) in fields.iter().skip(1) {
-                lines.push(format!(", {field_name} :: {constraint}"));
-            }
-            lines.push("} =>".to_string());
         }
 
         lines.push(type_pretty.render(current).to_string());
 
-        let mut signature = self.arena.text(format!("dictionary {name} ::"));
-        if lines.len() == 1 {
-            signature = signature.append(self.arena.text(format!(" {}", lines[0])));
-        } else {
-            for line in lines {
-                signature = signature
-                    .append(self.arena.hardline())
-                    .append(self.arena.text(format!("  {line}")));
-            }
-        }
+        let mut lines = lines.into_iter();
+        let first = lines.next().expect("invariant violated: dictionary signature is empty");
+        let lines = lines.fold(self.arena.text(first), |document, line| {
+            document.append(self.arena.line()).append(self.arena.text(line))
+        });
+        let signature = self
+            .arena
+            .text(format!("dictionary {name} ::"))
+            .append(self.arena.line().append(lines).nest(2))
+            .group();
         Ok((signature, rigid_names))
     }
 
