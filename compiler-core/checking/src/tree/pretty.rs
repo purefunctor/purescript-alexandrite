@@ -21,7 +21,7 @@ use crate::tree::{
     BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
     GuardedAlternative, GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings,
     LocalDeclarationId, PatternGuard, RecordBinderField, RecordExpressionField,
-    TermDeclarationKind, TypeDeclarationKind, WhereExpression,
+    RecordExpressionUpdate, TermDeclarationKind, TypeDeclarationKind, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -1124,6 +1124,7 @@ where
             ExpressionKind::TermApplication { .. }
             | ExpressionKind::TypeApplication { .. }
             | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
+            ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
             _ => ExpressionPrecedence::Atom,
         };
         let allow_block_argument = required_precedence != ExpressionPrecedence::Application;
@@ -1220,6 +1221,30 @@ where
                     }
                 }
                 Ok(record.append(self.arena.text(" }")))
+            }
+            ExpressionKind::RecordAccess { record, labels } => {
+                let mut record = self.expression_at(
+                    *record,
+                    ExpressionPrecedence::Atom,
+                    evidence_names,
+                    type_pretty,
+                )?;
+                for label in labels.iter() {
+                    let label = format!(".{label}");
+                    record = record.append(self.arena.text(label));
+                }
+                Ok(record)
+            }
+            ExpressionKind::RecordUpdate { record, updates } => {
+                let record = self.expression_at(
+                    *record,
+                    ExpressionPrecedence::Atom,
+                    evidence_names,
+                    type_pretty,
+                )?;
+                let updates =
+                    self.record_expression_updates(updates, evidence_names, type_pretty)?;
+                Ok(record.append(self.arena.space()).append(updates))
             }
             ExpressionKind::Constructor { resolution } => {
                 let name = self.term_name(resolution.0, resolution.1)?;
@@ -1364,6 +1389,42 @@ where
                     .append(self.arena.hardline().append(expression).nest(2)))
             }
         }
+    }
+
+    fn record_expression_updates(
+        &self,
+        updates: &[RecordExpressionUpdate],
+        evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePretty<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
+        if updates.is_empty() {
+            return Ok(self.arena.text("{ }"));
+        }
+
+        let mut rendered = self.arena.text("{ ");
+        for (position, update) in updates.iter().enumerate() {
+            if position > 0 {
+                rendered = rendered.append(self.arena.text(", "));
+            }
+
+            match update {
+                RecordExpressionUpdate::Error => {
+                    rendered = rendered.append(self.arena.text("<error>"));
+                }
+                RecordExpressionUpdate::Leaf { label, expression } => {
+                    let expression = self.expression(*expression, evidence_names, type_pretty)?;
+                    let label = format!("{label} = ");
+                    rendered = rendered.append(self.arena.text(label)).append(expression);
+                }
+                RecordExpressionUpdate::Branch { label, updates } => {
+                    let updates =
+                        self.record_expression_updates(updates, evidence_names, type_pretty)?;
+                    let label = format!("{label} ");
+                    rendered = rendered.append(self.arena.text(label)).append(updates);
+                }
+            }
+        }
+        Ok(rendered.append(self.arena.text(" }")))
     }
 
     fn evidence_variable_name(

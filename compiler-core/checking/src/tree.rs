@@ -309,6 +309,8 @@ pub enum ExpressionKind {
     Number { value: SmolStr },
     Array { elements: Arc<[ExpressionId]> },
     Record { fields: Arc<[RecordExpressionField]> },
+    RecordAccess { record: ExpressionId, labels: Arc<[SmolStr]> },
+    RecordUpdate { record: ExpressionId, updates: Arc<[RecordExpressionUpdate]> },
     Constructor { resolution: (FileId, TermItemId) },
     Variable { resolution: lowering::TermVariableResolution },
     RecordPun { source: lowering::RecordPunId, resolution: lowering::TermVariableResolution },
@@ -325,6 +327,13 @@ pub enum ExpressionKind {
 pub enum RecordExpressionField {
     Field { label: SmolStr, expression: ExpressionId },
     Pun { source: lowering::RecordPunId, label: SmolStr, expression: ExpressionId },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordExpressionUpdate {
+    Error,
+    Leaf { label: SmolStr, expression: ExpressionId },
+    Branch { label: SmolStr, updates: Arc<[RecordExpressionUpdate]> },
 }
 
 impl Module {
