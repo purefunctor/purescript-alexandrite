@@ -275,14 +275,13 @@ pub fn check(source: &str) -> JsValue {
             }
         };
         let check_time = performance.now() - start;
-        let mut pretty = pretty::Pretty::new(engine, &checked);
+        let pretty = pretty::Pretty::new(engine, &checked);
 
         // Extract results
         let mut terms = Vec::new();
         for (term_id, TermItem { name, .. }) in indexed.items.iter_terms() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_term(term_id) else { continue };
-            pretty.reset();
             terms.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
@@ -290,7 +289,6 @@ pub fn check(source: &str) -> JsValue {
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_type(type_id) else { continue };
-            pretty.reset();
             types.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
@@ -298,7 +296,7 @@ pub fn check(source: &str) -> JsValue {
         for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(group) = checked.lookup_synonym(type_id) else { continue };
-            pretty.reset();
+            let mut pretty = pretty.state();
             let expansion = pretty.render(group.synonym);
             let parameters = group
                 .parameters
