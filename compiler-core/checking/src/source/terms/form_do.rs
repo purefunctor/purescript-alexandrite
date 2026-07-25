@@ -23,6 +23,7 @@ impl DesugaredFunction {
 
     pub fn allocate_expression(&self, state: &mut CheckState) -> ElaboratedExpression {
         if let Some(resolution) = self.resolution {
+            let resolution = tree::VariableResolution::Source(resolution);
             let kind = tree::ExpressionKind::Variable { resolution };
             super::allocate_expression(state, self.type_id, kind)
         } else {

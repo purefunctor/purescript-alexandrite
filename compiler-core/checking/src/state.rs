@@ -329,6 +329,18 @@ impl CheckState {
         self.checked.tree.allocate_binder(binder)
     }
 
+    pub fn allocate_derived_binder(
+        &mut self,
+        derive: indexing::DeriveId,
+        name: SmolStrId,
+        type_id: TypeId,
+        kind: tree::BinderKind,
+    ) -> tree::BinderId {
+        let source = tree::BinderSource::Generated { derive, name };
+        let binder = tree::Binder { source, type_id, kind };
+        self.checked.tree.allocate_binder(binder)
+    }
+
     pub fn allocate_operator_binder(
         &mut self,
         source: lowering::TermOperatorId,

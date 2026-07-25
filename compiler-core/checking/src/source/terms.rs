@@ -68,6 +68,7 @@ where
         tree::ExpressionKind::Constructor { resolution: (file_id, term_id) }
     } else {
         let resolution = lowering::TermVariableResolution::Reference(file_id, term_id);
+        let resolution = tree::VariableResolution::Source(resolution);
         tree::ExpressionKind::Variable { resolution }
     };
     Ok(allocate_expression(state, type_id, kind))
@@ -354,7 +355,8 @@ where
             };
 
             let negate_type = toolkit::lookup_term_variable(state, context, *negate)?;
-            let kind = tree::ExpressionKind::Variable { resolution: *negate };
+            let resolution = tree::VariableResolution::Source(*negate);
+            let kind = tree::ExpressionKind::Variable { resolution };
             let negate = allocate_expression(state, negate_type, kind);
             let Some(application::UnanchoredApplication { implicit, argument, result }) =
                 application::check_unanchored_application(state, context, negate_type)?
@@ -412,6 +414,7 @@ where
                 return Ok(allocate_error_expression(state, unknown));
             };
             let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
+            let resolution = tree::VariableResolution::Source(resolution);
             let kind = tree::ExpressionKind::Variable { resolution };
             Ok(allocate_expression(state, type_id, kind))
         }

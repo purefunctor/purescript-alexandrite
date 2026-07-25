@@ -10,7 +10,9 @@ use crate::core::{Type, TypeId};
 use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
-use crate::tree::{BinderKind, ExpressionKind, TermDeclarationKind, TypeDeclarationKind};
+use crate::tree::{
+    BinderKind, ExpressionKind, InstanceImplementation, TermDeclarationKind, TypeDeclarationKind,
+};
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
 struct Zonk;
@@ -121,8 +123,16 @@ where
                 for superclass in Arc::make_mut(&mut instance.superclasses) {
                     superclass.constraint = zonk(state, context, superclass.constraint)?;
                 }
-                for member in Arc::make_mut(&mut instance.members) {
-                    member.implementation_type = zonk(state, context, member.implementation_type)?;
+                match &mut instance.implementation {
+                    InstanceImplementation::Members(members) => {
+                        for member in Arc::make_mut(members) {
+                            member.implementation_type =
+                                zonk(state, context, member.implementation_type)?;
+                        }
+                    }
+                    InstanceImplementation::Delegate { constraint, .. } => {
+                        *constraint = zonk(state, context, *constraint)?;
+                    }
                 }
             }
         }
