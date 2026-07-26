@@ -30,6 +30,10 @@ where
         self.allocate_binder(name, type_id, tree::BinderKind::Variable)
     }
 
+    pub fn wildcard_pattern(&mut self, name: &str, type_id: TypeId) -> tree::BinderId {
+        self.allocate_binder(name, type_id, tree::BinderKind::Wildcard)
+    }
+
     pub fn constructor_pattern(
         &mut self,
         name: &str,
@@ -65,6 +69,46 @@ where
         expected: TypeId,
     ) -> QueryResult<ElaboratedExpression> {
         application::subtype_expression(self.state, self.context, expression, expected)
+    }
+
+    pub fn apply(
+        &mut self,
+        function: ElaboratedExpression,
+        argument: ElaboratedExpression,
+    ) -> QueryResult<Option<ElaboratedExpression>> {
+        let Some(application) =
+            application::check_unanchored_application(self.state, self.context, function.type_id)?
+        else {
+            return Ok(None);
+        };
+        let argument = application::subtype_expression(
+            self.state,
+            self.context,
+            argument,
+            application.argument,
+        )?;
+        Ok(Some(application::materialize_application(
+            self.state,
+            function,
+            application.implicit,
+            application.result,
+            argument,
+        )))
+    }
+
+    pub fn if_then_else(
+        &mut self,
+        result_type: TypeId,
+        condition: ElaboratedExpression,
+        then_expression: ElaboratedExpression,
+        else_expression: ElaboratedExpression,
+    ) -> ElaboratedExpression {
+        let kind = tree::ExpressionKind::IfThenElse {
+            condition: condition.expression,
+            then: then_expression.expression,
+            else_: else_expression.expression,
+        };
+        self.allocate_expression(result_type, kind)
     }
 
     pub fn alternative(

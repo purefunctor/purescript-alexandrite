@@ -43,7 +43,7 @@ where
     Ok(())
 }
 
-fn instantiate_constructor_fields<Q>(
+pub fn instantiate_constructor_fields<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     constructor_t: TypeId,
@@ -133,4 +133,19 @@ where
     };
 
     Ok(normalise::expand(state, context, kind)? == context.prim.type_to_type)
+}
+
+pub fn requires_lifted_comparison<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    type_id: TypeId,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    let type_id = normalise::expand(state, context, type_id)?;
+    let Type::Application(function, _) = context.lookup_type(type_id) else {
+        return Ok(false);
+    };
+    is_type_to_type_variable(state, context, function)
 }
