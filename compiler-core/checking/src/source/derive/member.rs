@@ -6,7 +6,7 @@ use crate::core::Type;
 use crate::error::ErrorCrumb;
 use crate::state::CheckState;
 
-use super::{DeriveHeadResult, DeriveStrategy, field, tools, variance};
+use super::{DeriveHeadResult, DeriveStrategy, field, generate, tools, variance};
 
 pub fn check_derive_members<Q>(
     state: &mut CheckState,
@@ -53,7 +53,6 @@ where
                 derived_type,
                 class,
             )?;
-            tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::DelegateConstraint { derived_type, class } => {
             tools::emit_superclass_constraints(
@@ -64,11 +63,9 @@ where
                 &result.arguments,
             )?;
             generate_delegate_constraint(state, context, derived_type, class);
-            tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::NewtypeDeriveConstraint { delegate_constraint } => {
             state.push_wanted(delegate_constraint);
-            tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::HeadOnly => {
             tools::emit_superclass_constraints(
@@ -78,7 +75,6 @@ where
                 result.class_id,
                 &result.arguments,
             )?;
-            tools::solve_and_report_constraints(state, context)?;
         }
         DeriveStrategy::VarianceConstraints { data_file, data_id, derived_type, config } => {
             tools::emit_superclass_constraints(
@@ -96,9 +92,14 @@ where
                 derived_type,
                 config,
             )?;
-            tools::solve_and_report_constraints(state, context)?;
         }
     }
+
+    if let tools::ConstraintReport::Solved = tools::solve_and_report_constraints(state, context)? {
+        generate::generate_instance(state, context, result)?;
+        tools::solve_and_report_constraints(state, context)?;
+    }
+
     Ok(())
 }
 

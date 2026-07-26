@@ -74,14 +74,22 @@ where
     }
 }
 
+pub enum ConstraintReport {
+    Solved,
+    Unsolved,
+}
+
 pub fn solve_and_report_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-) -> QueryResult<()>
+) -> QueryResult<ConstraintReport>
 where
     Q: ExternalQueries,
 {
-    for residual in state.solve_constraints(context)? {
+    let residuals = state.solve_constraints(context)?;
+    let report =
+        if residuals.is_empty() { ConstraintReport::Solved } else { ConstraintReport::Unsolved };
+    for residual in residuals {
         state.checked.evidence.mark_error(residual.evidence.wanted);
         let attached = state.canonical_errors.remove(&residual.key.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
@@ -96,5 +104,5 @@ where
         let constraint = state.canonicals.type_id(context, residual.key.wanted);
         state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
     }
-    Ok(())
+    Ok(report)
 }

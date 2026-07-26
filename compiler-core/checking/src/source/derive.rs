@@ -1,12 +1,14 @@
 pub mod head;
 pub mod member;
 
+pub mod builder;
 pub mod contravariant;
 pub mod eq1_ord1;
 pub mod eq_ord;
 pub mod field;
 pub mod foldable;
 pub mod functor;
+pub mod generate;
 pub mod generic;
 pub mod newtype;
 pub mod tools;
@@ -67,7 +69,9 @@ pub(super) enum DeriveStrategy {
 }
 
 pub struct DeriveHeadResult {
+    derive_id: indexing::DeriveId,
     item_id: TermItemId,
+    signature: TypeId,
     constraints: Vec<TypeId>,
     class_file: FileId,
     class_id: TypeItemId,
