@@ -3,7 +3,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{KindOrType, toolkit};
+use crate::core::{KindOrType, TypeId, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::tools;
@@ -24,16 +24,20 @@ pub(crate) fn generate_instance<Q>(
 where
     Q: ExternalQueries,
 {
-    match derive_dispatch(context, result.class_file, result.class_id) {
-        DeriveDispatch::Eq => generate_eq_instance(state, context, result),
+    let dispatch = derive_dispatch(context, result.class_file, result.class_id);
+    match dispatch {
+        DeriveDispatch::Eq | DeriveDispatch::Ord => {
+            generate_known_instance(state, context, result, dispatch)
+        }
         _ => Ok(()),
     }
 }
 
-fn generate_eq_instance<Q>(
+fn generate_known_instance<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
+    dispatch: DeriveDispatch,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
@@ -66,9 +70,16 @@ where
             &freshened.arguments,
         )?;
 
-        let Some(member) =
-            generate_nullary_eq_member(state, context, result, &freshened.arguments)?
-        else {
+        let member = match dispatch {
+            DeriveDispatch::Eq => {
+                generate_nullary_eq_member(state, context, result, &freshened.arguments)?
+            }
+            DeriveDispatch::Ord => {
+                generate_nullary_ord_member(state, context, result, &freshened.arguments)?
+            }
+            _ => None,
+        };
+        let Some(member) = member else {
             return Ok(());
         };
 
@@ -89,12 +100,18 @@ where
     })
 }
 
-fn generate_nullary_eq_member<Q>(
+struct NullaryMember {
+    resolution: (files::FileId, indexing::TermItemId),
+    implementation_type: TypeId,
+    constructor: (files::FileId, indexing::TermItemId),
+}
+
+fn resolve_nullary_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
     instance_arguments: &[KindOrType],
-) -> QueryResult<Option<tree::InstanceMember>>
+) -> QueryResult<Option<NullaryMember>>
 where
     Q: ExternalQueries,
 {
@@ -135,23 +152,84 @@ where
         return Ok(None);
     };
 
-    let body = generate_nullary_eq_body(
+    Ok(Some(NullaryMember {
+        resolution,
+        implementation_type,
+        constructor: (data_file, *constructor_id),
+    }))
+}
+
+fn generate_nullary_eq_member<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    instance_arguments: &[KindOrType],
+) -> QueryResult<Option<tree::InstanceMember>>
+where
+    Q: ExternalQueries,
+{
+    let Some(member) = resolve_nullary_member(state, context, result, instance_arguments)? else {
+        return Ok(None);
+    };
+
+    let body = generate_nullary_body(
         state,
         context,
-        result,
-        implementation_type,
-        (data_file, *constructor_id),
+        result.derive_id,
+        member.implementation_type,
+        member.constructor,
+        NullaryResult::Boolean(true),
     )?;
 
-    let member =
-        generated_member(result.derive_id, resolution, implementation_type, Vec::new(), body);
+    let member = generated_member(
+        result.derive_id,
+        member.resolution,
+        member.implementation_type,
+        vec![],
+        body,
+    );
+    Ok(Some(member))
+}
+
+fn generate_nullary_ord_member<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    instance_arguments: &[KindOrType],
+) -> QueryResult<Option<tree::InstanceMember>>
+where
+    Q: ExternalQueries,
+{
+    let Some(member) = resolve_nullary_member(state, context, result, instance_arguments)? else {
+        return Ok(None);
+    };
+    let Some(equal) = context.known_terms.ordering_eq else {
+        return Ok(None);
+    };
+
+    let body = generate_nullary_body(
+        state,
+        context,
+        result.derive_id,
+        member.implementation_type,
+        member.constructor,
+        NullaryResult::Reference(equal),
+    )?;
+
+    let member = generated_member(
+        result.derive_id,
+        member.resolution,
+        member.implementation_type,
+        vec![],
+        body,
+    );
     Ok(Some(member))
 }
 
 fn generated_member(
     derive_id: indexing::DeriveId,
     resolution: (files::FileId, indexing::TermItemId),
-    implementation_type: crate::core::TypeId,
+    implementation_type: TypeId,
     evidences: Vec<Evidence>,
     body: ElaboratedExpression,
 ) -> tree::InstanceMember {
@@ -167,12 +245,18 @@ fn generated_member(
     }
 }
 
-fn generate_nullary_eq_body<Q>(
+enum NullaryResult {
+    Boolean(bool),
+    Reference((files::FileId, indexing::TermItemId)),
+}
+
+fn generate_nullary_body<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    result: &DeriveHeadResult,
-    implementation_type: crate::core::TypeId,
+    derive_id: indexing::DeriveId,
+    implementation_type: TypeId,
     constructor: (files::FileId, indexing::TermItemId),
+    nullary_result: NullaryResult,
 ) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
@@ -180,22 +264,27 @@ where
     let toolkit::InspectFunction { arguments, result: result_type } =
         toolkit::inspect_function(state, context, implementation_type)?;
     let [left_type, right_type] = arguments.as_slice() else {
-        panic!("Eq member must have exactly two value arguments")
+        panic!("comparison member must have exactly two value arguments")
     };
 
-    let mut builder = DerivedTreeBuilder::new(state, context, result.derive_id);
+    let mut builder = DerivedTreeBuilder::new(state, context, derive_id);
     let left = builder.variable_binder("left", *left_type);
     let right = builder.variable_binder("right", *right_type);
 
     let left_expression = builder.variable(left);
     let right_expression = builder.variable(right);
 
-    let left_pattern =
-        builder.constructor_pattern("constructor", *left_type, constructor, Vec::new());
+    let left_pattern = builder.constructor_pattern("constructor", *left_type, constructor, vec![]);
     let right_pattern =
-        builder.constructor_pattern("constructor", *right_type, constructor, Vec::new());
+        builder.constructor_pattern("constructor", *right_type, constructor, vec![]);
 
-    let equal = builder.boolean(result_type, true);
+    let equal = match nullary_result {
+        NullaryResult::Boolean(value) => builder.boolean(result_type, value),
+        NullaryResult::Reference(resolution) => {
+            let reference = builder.term_reference(resolution)?;
+            builder.subtype(reference, result_type)?
+        }
+    };
     let alternative = builder.alternative(vec![left_pattern, right_pattern], equal);
     let case =
         builder.case(result_type, vec![left_expression, right_expression], vec![alternative]);

@@ -778,11 +778,13 @@ impl KnownGeneric {
 
 pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
+    pub ordering_eq: Option<(FileId, TermItemId)>,
 }
 
 impl KnownTermsCore {
     fn collect(queries: &impl ExternalQueries) -> QueryResult<KnownTermsCore> {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
-        Ok(KnownTermsCore { otherwise })
+        let ordering_eq = fetch_known_term(queries, "Data.Ordering", "EQ")?;
+        Ok(KnownTermsCore { otherwise, ordering_eq })
     }
 }

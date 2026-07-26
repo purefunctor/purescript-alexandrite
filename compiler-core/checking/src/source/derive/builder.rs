@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+use building_types::QueryResult;
+
 use crate::context::CheckContext;
-use crate::core::TypeId;
-use crate::source::terms::ElaboratedExpression;
+use crate::core::{TypeId, toolkit};
+use crate::source::terms::{self, ElaboratedExpression, application};
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
@@ -47,6 +49,22 @@ where
 
     pub fn boolean(&mut self, type_id: TypeId, value: bool) -> ElaboratedExpression {
         self.allocate_expression(type_id, tree::ExpressionKind::Boolean { value })
+    }
+
+    pub fn term_reference(
+        &mut self,
+        (file_id, term_id): (files::FileId, indexing::TermItemId),
+    ) -> QueryResult<ElaboratedExpression> {
+        let type_id = toolkit::lookup_file_term(self.state, self.context, file_id, term_id)?;
+        terms::allocate_term_reference(self.state, self.context, file_id, term_id, type_id)
+    }
+
+    pub fn subtype(
+        &mut self,
+        expression: ElaboratedExpression,
+        expected: TypeId,
+    ) -> QueryResult<ElaboratedExpression> {
+        application::subtype_expression(self.state, self.context, expression, expected)
     }
 
     pub fn alternative(

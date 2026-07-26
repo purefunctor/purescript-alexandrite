@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Unit :: Type
+data Unit
+  | Unit :: Unit
+
+dictionary eqUnit :: Eq Unit where
+  eq :: Unit -> Unit -> Boolean
+  eq = \left right ->
+  case left, right of
+    Unit, Unit -> true
+
+dictionary ordUnit :: Ord Unit where
+  superclass eqDict = eqUnit
+  compare :: Unit -> Unit -> Ordering
+  compare = \left right ->
+  case left, right of
+    Unit, Unit -> EQ
