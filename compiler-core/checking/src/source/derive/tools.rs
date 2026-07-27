@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId};
+use indexing::{TermItemId, TypeItemId, TypeItemKind};
 use rustc_hash::FxHashMap;
 
 use crate::ExternalQueries;
@@ -72,6 +72,33 @@ where
         let indexed = context.queries.indexed(data_file)?;
         Ok(indexed.data_constructors(data_id).collect())
     }
+}
+
+pub enum DataDeclarationKind {
+    Algebraic,
+    Unsupported,
+}
+
+pub fn classify_data_declaration<Q>(
+    context: &CheckContext<Q>,
+    data_file: FileId,
+    data_id: TypeItemId,
+) -> QueryResult<DataDeclarationKind>
+where
+    Q: ExternalQueries,
+{
+    let indexed = if data_file == context.id {
+        &context.indexed
+    } else {
+        &context.queries.indexed(data_file)?
+    };
+
+    let kind = &indexed.items[data_id].kind;
+    let declaration = match kind {
+        TypeItemKind::Data { .. } | TypeItemKind::Newtype { .. } => DataDeclarationKind::Algebraic,
+        _ => DataDeclarationKind::Unsupported,
+    };
+    Ok(declaration)
 }
 
 pub enum ConstraintReport {
