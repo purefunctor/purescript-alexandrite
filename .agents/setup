@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+node_version=22.17.1
+pnpm_version=10.12.1
+
 if ! command -v rustup >/dev/null 2>&1; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 fi
@@ -17,4 +20,22 @@ if ! command -v cargo-binstall >/dev/null 2>&1; then
     | BINSTALL_VERSION=1.19.1 bash
 fi
 
-cargo binstall --no-confirm just cargo-nextest cargo-insta
+cargo binstall --no-confirm \
+  cargo-insta@1.48.0 \
+  cargo-nextest@0.9.140 \
+  fnm@1.38.1 \
+  just@1.57.0 \
+  wasm-pack@0.15.0
+
+eval "$(fnm env --shell bash)"
+fnm install "$node_version"
+fnm default "$node_version"
+fnm use "$node_version"
+
+corepack enable pnpm
+corepack install --global "pnpm@$pnpm_version"
+
+(
+  cd docs
+  pnpm install --frozen-lockfile
+)
