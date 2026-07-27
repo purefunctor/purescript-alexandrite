@@ -33,22 +33,26 @@ try {
     Write-Host "Downloading purescript-alexandrite $Version for $Target"
     Invoke-WebRequest -Uri $ArchiveUrl -OutFile $Archive
 
-    $GitHubAttestationsAvailable = if (Get-Command gh -ErrorAction SilentlyContinue) {
-        & gh attestation verify --help 2>$null | Out-Null
-        $LASTEXITCODE -eq 0
+    if ($Version -match '^v0\.0\.([0-9]|1[0-3])$') {
+        Write-Warning "$Version predates release attestations and cannot be verified."
     } else {
-        $false
-    }
-
-    if ($GitHubAttestationsAvailable) {
-        Write-Host "Verifying GitHub release attestation"
-        & gh attestation verify $Archive --repo $Repository | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "GitHub release attestation verification failed"
+        $GitHubAttestationsAvailable = if (Get-Command gh -ErrorAction SilentlyContinue) {
+            & gh attestation verify --help 2>$null | Out-Null
+            $LASTEXITCODE -eq 0
+        } else {
+            $false
         }
-    } else {
-        Write-Warning "A GitHub CLI with attestation support is not installed; release provenance was not verified."
-        Write-Warning "Install or update gh from https://cli.github.com/ to verify future installations."
+
+        if ($GitHubAttestationsAvailable) {
+            Write-Host "Verifying GitHub release attestation"
+            & gh attestation verify $Archive --repo $Repository | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                throw "GitHub release attestation verification failed"
+            }
+        } else {
+            Write-Warning "A GitHub CLI with attestation support is not installed; release provenance was not verified."
+            Write-Warning "Install or update gh from https://cli.github.com/ to verify future installations."
+        }
     }
 
     Expand-Archive -LiteralPath $Archive -DestinationPath $TemporaryDirectory

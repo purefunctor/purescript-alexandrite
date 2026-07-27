@@ -47,15 +47,22 @@ archive="$temporary_directory/$archive_name"
 printf 'Downloading %s %s for %s\n' "$binary" "$version" "$target"
 curl --proto '=https' --tlsv1.2 -LsSf --retry 3 --output "$archive" "$archive_url"
 
-if command -v gh >/dev/null 2>&1 && gh attestation verify --help >/dev/null 2>&1; then
-    printf 'Verifying GitHub release attestation\n'
-    gh attestation verify "$archive" --repo "$repository" >/dev/null || \
-        fail "GitHub release attestation verification failed"
-else
-    printf '%s\n' \
-        'warning: A GitHub CLI with attestation support is not installed; release provenance was not verified.' \
-        'warning: Install or update gh from https://cli.github.com/ to verify future installations.' >&2
-fi
+case "$version" in
+    v0.0.[0-9] | v0.0.1[0-3])
+        printf 'warning: %s predates release attestations and cannot be verified.\n' "$version" >&2
+        ;;
+    *)
+        if command -v gh >/dev/null 2>&1 && gh attestation verify --help >/dev/null 2>&1; then
+            printf 'Verifying GitHub release attestation\n'
+            gh attestation verify "$archive" --repo "$repository" >/dev/null || \
+                fail "GitHub release attestation verification failed"
+        else
+            printf '%s\n' \
+                'warning: A GitHub CLI with attestation support is not installed; release provenance was not verified.' \
+                'warning: Install or update gh from https://cli.github.com/ to verify future installations.' >&2
+        fi
+        ;;
+esac
 
 archive_directory="$binary-$target"
 archive_binary="$archive_directory/$binary"

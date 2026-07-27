@@ -34,5 +34,6 @@ irm https://raw.githubusercontent.com/purefunctor/purescript-alexandrite/main/in
 
 The installers verify the release's GitHub build-provenance attestation when
 [GitHub CLI](https://cli.github.com/) is available. They display a warning and continue when it is not
-installed. Set `ALEXANDRITE_VERSION` to a release tag or `ALEXANDRITE_INSTALL_DIR` to an installation
-directory to override the defaults.
+installed. Releases through v0.0.13 predate attestations, so the installers warn and continue without
+verification for those versions. Set `ALEXANDRITE_VERSION` to a release tag or
+`ALEXANDRITE_INSTALL_DIR` to an installation directory to override the defaults.
