@@ -4,14 +4,14 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{EquationSourceId, TermItemId, TypeItemId};
+use indexing::{DeriveId, EquationSourceId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use lowering::LetBindingNameGroupId;
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 use crate::TypeId;
-use crate::core::{ForallBinderId, Role};
+use crate::core::{ForallBinderId, Role, SmolStrId};
 use crate::evidence::{Evidence, EvidenceVarId, SuperclassId};
 
 pub type ExpressionId = Idx<Expression>;
@@ -98,7 +98,13 @@ pub struct InstanceDeclaration {
     pub rigid_parameters: Arc<[TypeId]>,
     pub evidences: Arc<[InstanceEvidence]>,
     pub superclasses: Arc<[InstanceSuperclass]>,
-    pub members: Arc<[InstanceMember]>,
+    pub implementation: InstanceImplementation,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum InstanceImplementation {
+    Members(Arc<[InstanceMember]>),
+    Delegate { constraint: TypeId, evidence: EvidenceVarId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,6 +172,7 @@ pub struct ClassMember {
 pub enum EquationSource {
     Item(EquationSourceId),
     Local(lowering::LetBindingEquationId),
+    Generated { derive: DeriveId, member: TermItemId },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -191,6 +198,16 @@ impl Equation {
         guarded_expression: GuardedExpression,
     ) -> Equation {
         let source = EquationSource::Local(source);
+        Equation { source, binders, guarded_expression }
+    }
+
+    pub fn generated(
+        derive: DeriveId,
+        member: TermItemId,
+        binders: Arc<[BinderId]>,
+        guarded_expression: GuardedExpression,
+    ) -> Equation {
+        let source = EquationSource::Generated { derive, member };
         Equation { source, binders, guarded_expression }
     }
 }
@@ -273,6 +290,7 @@ pub enum BinderSource {
     DoStatement(lowering::DoStatementId),
     Operator(lowering::TermOperatorId),
     Section(lowering::ExpressionId),
+    Generated { derive: DeriveId, name: SmolStrId },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -304,6 +322,12 @@ pub struct Expression {
     pub kind: ExpressionKind,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VariableResolution {
+    Source(lowering::TermVariableResolution),
+    Generated(BinderId),
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
     Error,
@@ -317,8 +341,8 @@ pub enum ExpressionKind {
     RecordAccess { record: ExpressionId, labels: Arc<[SmolStr]> },
     RecordUpdate { record: ExpressionId, updates: Arc<[RecordExpressionUpdate]> },
     Constructor { resolution: (FileId, TermItemId) },
-    Variable { resolution: lowering::TermVariableResolution },
-    RecordPun { source: lowering::RecordPunId, resolution: lowering::TermVariableResolution },
+    Variable { resolution: VariableResolution },
+    RecordPun { source: lowering::RecordPunId, resolution: VariableResolution },
     Section { binder: BinderId },
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },

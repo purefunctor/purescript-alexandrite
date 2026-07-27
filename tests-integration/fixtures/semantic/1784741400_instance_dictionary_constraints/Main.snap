@@ -24,4 +24,5 @@ dictionary exampleAB ::
   { secondDict :: Second t1 } =>
   Example t t1
   where
+  example :: t -> t1 -> Boolean
   example = implementation @t1 @t {secondDict}

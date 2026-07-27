@@ -85,6 +85,7 @@ where
     Q: ExternalQueries,
 {
     let type_id = toolkit::lookup_term_variable(state, context, resolution)?;
+    let resolution = tree::VariableResolution::Source(resolution);
     let kind = tree::ExpressionKind::RecordPun { source, resolution };
     Ok(super::allocate_expression(state, type_id, kind))
 }

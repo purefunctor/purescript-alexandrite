@@ -344,7 +344,9 @@ where
                     rigid_parameters: Arc::from(rigids),
                     evidences: Arc::from(instance_evidences),
                     superclasses: Arc::from(superclasses),
-                    members: Arc::from(checked_members),
+                    implementation: tree::InstanceImplementation::Members(Arc::from(
+                        checked_members,
+                    )),
                 };
                 let declaration = tree::TermDeclaration {
                     type_id: instance_signature,
@@ -462,14 +464,14 @@ fn record_instance_member(
     })
 }
 
-struct FreshenedInstanceRigids {
-    constraints: Vec<TypeId>,
-    arguments: Vec<KindOrType>,
-    substitution: NameToType,
-    rigids: Vec<TypeId>,
+pub(crate) struct FreshenedInstanceRigids {
+    pub(crate) constraints: Vec<TypeId>,
+    pub(crate) arguments: Vec<KindOrType>,
+    pub(crate) substitution: NameToType,
+    pub(crate) rigids: Vec<TypeId>,
 }
 
-fn freshen_instance_rigids<Q>(
+pub(crate) fn freshen_instance_rigids<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     instance: &toolkit::InstanceInfo,
@@ -503,7 +505,7 @@ where
     Ok(FreshenedInstanceRigids { constraints, arguments, substitution, rigids })
 }
 
-fn emit_instance_superclass_constraints<Q>(
+pub(crate) fn emit_instance_superclass_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     class_file: FileId,
@@ -538,7 +540,7 @@ where
     Ok(checked_superclasses)
 }
 
-fn instantiate_class_member_type<Q>(
+pub(crate) fn instantiate_class_member_type<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     (member_file, member_id): (FileId, TermItemId),

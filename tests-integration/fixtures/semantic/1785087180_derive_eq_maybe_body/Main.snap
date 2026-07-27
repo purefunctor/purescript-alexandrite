@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Maybe :: Type -> Type
+data Maybe @a
+  | Nothing :: Maybe a
+  | Just :: a -> Maybe a
+
+dictionary eqMaybe :: forall t. { eqDict :: Eq t } => Eq (Maybe t) where
+  eq :: Maybe t -> Maybe t -> Boolean
+  eq = \left right ->
+  case left, right of
+    Nothing, Nothing -> true
+    (Just left0), (Just right0) ->
+      if eq @t {eqDict} left0 right0 then true else false
+    _, _ -> false

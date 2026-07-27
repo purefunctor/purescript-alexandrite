@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId};
+use indexing::{TermItemId, TypeItemId, TypeItemKind};
 use rustc_hash::FxHashMap;
 
 use crate::ExternalQueries;
@@ -74,14 +74,46 @@ where
     }
 }
 
-pub fn solve_and_report_constraints<Q>(
+pub fn extract_local_algebraic_data<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-) -> QueryResult<()>
+    derived_type: TypeId,
+) -> QueryResult<Option<(FileId, TypeItemId)>>
 where
     Q: ExternalQueries,
 {
-    for residual in state.solve_constraints(context)? {
+    let Some((data_file, data_id)) =
+        toolkit::extract_type_constructor(state, context, derived_type)?
+    else {
+        return Ok(None);
+    };
+    if data_file != context.id {
+        return Ok(None);
+    }
+
+    let kind = &context.indexed.items[data_id].kind;
+    match kind {
+        TypeItemKind::Data { .. } | TypeItemKind::Newtype { .. } => Ok(Some((data_file, data_id))),
+        _ => Ok(None),
+    }
+}
+
+pub enum ConstraintReport {
+    Solved,
+    Unsolved,
+}
+
+pub fn solve_and_report_constraints<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+) -> QueryResult<ConstraintReport>
+where
+    Q: ExternalQueries,
+{
+    let residuals = state.solve_constraints(context)?;
+    let report =
+        if residuals.is_empty() { ConstraintReport::Solved } else { ConstraintReport::Unsolved };
+    for residual in residuals {
         state.checked.evidence.mark_error(residual.evidence.wanted);
         let attached = state.canonical_errors.remove(&residual.key.wanted);
         attached.into_iter().flatten().for_each(|error| state.insert_error(error));
@@ -96,5 +128,5 @@ where
         let constraint = state.canonicals.type_id(context, residual.key.wanted);
         state.insert_error(ErrorKind::NoInstanceFound { given, constraint });
     }
-    Ok(())
+    Ok(report)
 }

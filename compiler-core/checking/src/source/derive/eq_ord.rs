@@ -4,11 +4,10 @@ use indexing::TypeItemId;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::toolkit;
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 
-use super::DeriveStrategy;
+use super::{DeriveStrategy, tools};
 
 pub fn check_derive_eq<Q>(
     state: &mut CheckState,
@@ -57,7 +56,7 @@ where
     };
 
     let Some((data_file, data_id)) =
-        toolkit::extract_type_constructor(state, context, *derived_type)?
+        tools::extract_local_algebraic_data(state, context, *derived_type)?
     else {
         state.insert_error(ErrorKind::CannotDeriveForType { type_id: *derived_type });
         return Ok(None);

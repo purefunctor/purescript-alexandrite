@@ -49,12 +49,10 @@ test12 :: forall t t1. ({ bar :: t | t1 } -> t) -> Array ({ bar :: t | t1 } -> t
 test12 = \v166 -> [v166, \v168 -> v168.bar]
 
 test13 :: forall t t1 t2. t -> { prop :: t1 | t2 } -> t1
-test13 =
-  \v174 ->
-    case v174 of
-      _ -> \v182 -> v182.prop
+test13 = \v174 ->
+  case v174 of
+    _ -> \v182 -> v182.prop
 
 test14 :: forall t t1. Boolean -> { a :: t, b :: t | t1 } -> t
-test14 =
-  \v188 ->
-    if v188 then \v191 -> v191.a else \v194 -> v194.b
+test14 = \v188 ->
+  if v188 then \v191 -> v191.a else \v194 -> v194.b

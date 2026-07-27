@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+newtype Mu :: (Type -> Type) -> Type
+newtype Mu @f
+  | In :: f (Mu f) -> Mu f
+
+dictionary eqMu :: forall t. { eq1Dict :: Eq1 t } => Eq (Mu t) where
+  eq :: Mu t -> Mu t -> Boolean
+  eq = \left right ->
+  case left, right of
+    (In left0), (In right0) ->
+      if eq1 @t {eq1Dict} @(Mu t) {eqMu {eq1Dict}} left0 right0 then true else false
+
+dictionary ordMu :: forall t. { ord1Dict :: Ord1 t } => Ord (Mu t) where
+  superclass eqDict = eqMu {ord1Dict.eq1Dict}
+  compare :: Mu t -> Mu t -> Ordering
+  compare = \left right ->
+  case left, right of
+    (In left0), (In right0) ->
+      case compare1 @t {ord1Dict} @(Mu t) {ordMu {ord1Dict}} left0 right0 of
+        EQ -> EQ
+        ordering -> ordering

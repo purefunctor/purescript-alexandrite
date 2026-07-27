@@ -286,7 +286,9 @@ where
     state.checked.derived.insert(derive_id, checked);
 
     Ok(strategy.map(|strategy| DeriveHeadResult {
+        derive_id,
         item_id,
+        signature,
         constraints: checked_constraints,
         class_file,
         class_id,

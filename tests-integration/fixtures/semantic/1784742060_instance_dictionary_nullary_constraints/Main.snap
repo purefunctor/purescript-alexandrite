@@ -21,4 +21,5 @@ dictionary exampleInt ::
   { failDict1 :: Fail (Text "second deferred error") } =>
   Example Int
   where
+  example :: Boolean
   example = implementation {failDict} {requiredDict} {failDict1}

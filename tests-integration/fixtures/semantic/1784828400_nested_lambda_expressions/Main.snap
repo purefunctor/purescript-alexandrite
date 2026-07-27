@@ -12,8 +12,7 @@ nested :: forall t t1. t -> t1 -> t
 nested = \first -> \second -> first
 
 caseBody :: Maybe Int -> Int
-caseBody =
-  \maybe ->
-    case maybe of
-      Nothing -> 0
-      (Just value) -> value
+caseBody = \maybe ->
+  case maybe of
+    Nothing -> 0
+    (Just value) -> value

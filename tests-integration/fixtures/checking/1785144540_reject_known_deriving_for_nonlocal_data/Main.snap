@@ -1,0 +1,52 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+
+Types
+Opaque1 :: Type -> Type
+
+Derived
+derive Eq1 Opaque1
+derive Ord1 Opaque1
+derive forall (t :: Type). Eq (t :: Type) => Eq (Imported (t :: Type))
+derive Eq1 Imported
+derive forall (t :: Type). Ord (t :: Type) => Ord (Imported (t :: Type))
+derive Ord1 Imported
+
+Roles
+Opaque1 = [Nominal]
+
+Diagnostics
+error[CannotDeriveForType]: Cannot derive for type: Opaque1
+  --> 9:1..9:28
+  |
+9 | derive instance Eq1 Opaque1
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Opaque1
+  --> 10:1..10:29
+   |
+10 | derive instance Ord1 Opaque1
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Imported (t :: Type)
+  --> 12:1..12:40
+   |
+12 | derive instance Eq a => Eq (Imported a)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Imported
+  --> 13:1..13:29
+   |
+13 | derive instance Eq1 Imported
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Imported (t1 :: Type)
+  --> 14:1..14:42
+   |
+14 | derive instance Ord a => Ord (Imported a)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Imported
+  --> 15:1..15:30
+   |
+15 | derive instance Ord1 Imported
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~

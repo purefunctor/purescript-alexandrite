@@ -22,9 +22,10 @@ use crate::evidence::{
 };
 use crate::tree::{
     BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
-    GuardedAlternative, GuardedExpression, InstanceDeclaration, LetBindingChunk, LetBindings,
-    LocalDeclarationId, PatternGuard, RecordBinderField, RecordExpressionField,
-    RecordExpressionUpdate, TermDeclarationKind, TypeDeclarationKind, WhereExpression,
+    GuardedAlternative, GuardedExpression, InstanceDeclaration, InstanceImplementation,
+    LetBindingChunk, LetBindings, LocalDeclarationId, PatternGuard, RecordBinderField,
+    RecordExpressionField, RecordExpressionUpdate, TermDeclarationKind, TypeDeclarationKind,
+    VariableResolution, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -485,32 +486,48 @@ where
             fields.push(field);
         }
 
-        for member in instance.members.iter() {
-            let Some(member_name) = self.term_name(member.resolution.0, member.resolution.1)?
-            else {
-                continue;
-            };
+        match &instance.implementation {
+            InstanceImplementation::Members(members) => {
+                for member in members.iter() {
+                    let Some(member_name) =
+                        self.term_name(member.resolution.0, member.resolution.1)?
+                    else {
+                        continue;
+                    };
 
-            let mut evidence_names = EvidenceNames::new();
-            let instance_evidences = instance.evidences.iter().map(|evidence| &evidence.evidence);
-            for evidence in instance_evidences.chain(member.evidences.iter()) {
-                if let Evidence::Given(binder) = evidence {
-                    self.evidence_binder_name(&mut evidence_names, *binder)?;
+                    let mut evidence_names = EvidenceNames::new();
+                    let instance_evidences =
+                        instance.evidences.iter().map(|evidence| &evidence.evidence);
+                    for evidence in instance_evidences.chain(member.evidences.iter()) {
+                        if let Evidence::Given(binder) = evidence {
+                            self.evidence_binder_name(&mut evidence_names, *binder)?;
+                        }
+                    }
+
+                    let Some(equations) = self.equation_declarations(
+                        &member_name,
+                        "  ",
+                        &member.evidences,
+                        &member.equations,
+                        &mut evidence_names,
+                        &rigid_names,
+                    )?
+                    else {
+                        continue;
+                    };
+
+                    let signature = self.instance_member_signature(
+                        &member_name,
+                        member.implementation_type,
+                        &rigid_names,
+                    );
+                    fields.push(signature.append(self.arena.hardline()).append(equations));
                 }
             }
-
-            let Some(equations) = self.equation_declarations(
-                &member_name,
-                "  ",
-                &member.evidences,
-                &member.equations,
-                &mut evidence_names,
-                &rigid_names,
-            )?
-            else {
-                continue;
-            };
-            fields.push(equations);
+            InstanceImplementation::Delegate { evidence, .. } => {
+                let evidence = self.evidence_variable_name(&mut outer_evidence_names, *evidence)?;
+                fields.push(self.arena.text(format!("  delegate = {evidence}")));
+            }
         }
 
         let mut fields = fields.into_iter();
@@ -520,6 +537,23 @@ where
         let where_clause = self.arena.line().append(self.arena.text("where")).nest(2);
         let header = signature.append(where_clause).group();
         Ok(header.append(self.arena.hardline()).append(fields))
+    }
+
+    fn instance_member_signature(
+        &self,
+        name: &str,
+        type_id: crate::TypeId,
+        rigid_names: &[(crate::TypeId, SmolStr)],
+    ) -> Doc<'arena> {
+        let mut type_pretty = self.type_pretty.state();
+        for (rigid, display) in rigid_names {
+            if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
+                type_pretty.assign_display_name(name, SmolStr::clone(display));
+            }
+        }
+
+        let type_id = type_pretty.render(type_id);
+        self.arena.text(format!("  {name} :: {type_id}"))
     }
 
     fn dictionary_signature(
@@ -671,7 +705,7 @@ where
         }
         for equation in equations.iter() {
             let has_abstraction = !equation.binders.is_empty() || !evidences.is_empty();
-            let (mut expression, where_bindings, force_body_break) = if let [alternative] =
+            let (mut expression, where_bindings, force_body_break, is_lambda) = if let [alternative] =
                 equation.guarded_expression.alternatives.as_ref()
                 && alternative.pattern_guards.is_empty()
             {
@@ -682,14 +716,18 @@ where
                     .then_some(&where_expression.bindings);
                 let force_body_break =
                     self.expression_requires_body_break(where_expression.expression);
-                (expression, bindings, force_body_break)
+                let is_lambda = matches!(
+                    self.checked.tree[where_expression.expression].kind,
+                    ExpressionKind::Lambda { .. }
+                );
+                (expression, bindings, force_body_break, is_lambda)
             } else {
                 let expression = self.guarded_expression(
                     &equation.guarded_expression,
                     evidence_names,
                     &mut type_pretty,
                 )?;
-                (expression, None, false)
+                (expression, None, false, false)
             };
 
             let mut abstractions = vec![];
@@ -723,6 +761,8 @@ where
                 self.arena
                     .text(format!("{prefix}{name} ="))
                     .append(self.arena.hardline().append(expression).nest(2))
+            } else if is_lambda {
+                self.arena.text(format!("{prefix}{name} = ")).append(expression).group()
             } else {
                 self.arena
                     .text(format!("{prefix}{name} ="))
@@ -1070,6 +1110,9 @@ where
                     Ok(self.arena.text(variable.to_string()))
                 }
                 BinderSource::Section(source) => Ok(self.arena.text(section_name(source))),
+                BinderSource::Generated { ref name, .. } => {
+                    Ok(self.arena.text(self.queries.lookup_smol_str(*name).to_string()))
+                }
                 BinderSource::DoStatement(_) | BinderSource::Operator(_) => {
                     unreachable!("invariant violated: generated semantic variable binder")
                 }
@@ -1295,8 +1338,20 @@ where
             }
             ExpressionKind::Variable { resolution }
             | ExpressionKind::RecordPun { resolution, .. } => {
-                let name =
-                    match *resolution {
+                let name = match *resolution {
+                    VariableResolution::Generated(binder) => {
+                        let generated = &self.checked.tree[binder];
+                        match &generated.source {
+                            BinderSource::Generated { name, .. } => {
+                                self.queries.lookup_smol_str(*name).to_string()
+                            }
+                            _ => {
+                                let index = binder.into_raw().into_u32();
+                                format!("<generated#{index}>")
+                            }
+                        }
+                    }
+                    VariableResolution::Source(resolution) => match resolution {
                         TermVariableResolution::Binder(binder) => {
                             let kind = self.lowered.info.get_binder_kind(binder).expect(
                                 "invariant violated: variable expression binder is missing",
@@ -1330,7 +1385,8 @@ where
                                 format!("<pun#{index}>")
                             })
                         }
-                    };
+                    },
+                };
                 Ok(self.arena.text(name))
             }
             ExpressionKind::Section { binder } => {
