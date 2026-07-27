@@ -1,8 +1,7 @@
 module Data.Ord where
 
 import Data.Eq (class Eq, class Eq1)
-
-data Ordering = LT | EQ | GT
+import Data.Ordering (Ordering(..))
 
 class Eq a <= Ord a where
   compare :: a -> a -> Ordering
