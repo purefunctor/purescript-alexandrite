@@ -1,8 +1,5 @@
 name: Cargo Build & Release
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
@@ -12,6 +9,8 @@ jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: taiki-e/create-gh-release-action@v1
@@ -22,6 +21,10 @@ jobs:
     needs: create-release
     name: Build & Release
     runs-on: ${{ matrix.os }}
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
     strategy:
       matrix:
         include:
@@ -48,6 +51,7 @@ jobs:
           target: ${{ matrix.target }}
       
       - name: Build and Release
+        id: release
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: purescript-analyzer,purescript-alexandrite
@@ -58,3 +62,17 @@ jobs:
           locked: true
           target: ${{ matrix.target }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest release archive
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ steps.release.outputs.tar || steps.release.outputs.zip }}
+
+  test-installers:
+    needs: build-and-release
+    permissions:
+      attestations: read
+      contents: read
+    uses: ./.github/workflows/installers.yml
+    with:
+      version: ${{ github.ref_name }}

@@ -16,3 +16,23 @@ to enable minimal recomputation across trivial formatting changes.
 
 The language server component implements core code intelligence features such as completion, jump to
 definition, hover information, find references, workspace symbol search, and diagnostics.
+
+## Installation
+
+On Linux and macOS:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://raw.githubusercontent.com/purefunctor/purescript-alexandrite/main/install.sh | sh
+```
+
+On Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/purefunctor/purescript-alexandrite/main/install.ps1 | iex
+```
+
+The installers verify the release's GitHub build-provenance attestation when
+[GitHub CLI](https://cli.github.com/) is available. They display a warning and continue when it is not
+installed. Set `ALEXANDRITE_VERSION` to a release tag or `ALEXANDRITE_INSTALL_DIR` to an installation
+directory to override the defaults.
