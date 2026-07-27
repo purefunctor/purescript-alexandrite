@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Void :: Type
+data Void
+
+data Ordering :: Type
+data Ordering
+  | First :: Ordering
+  | Second :: Ordering
+  | Third :: Ordering
+
+dictionary eqVoid :: Eq Void where
+  eq :: Void -> Void -> Boolean
+  eq = \left right ->
+  case left, right of
+    _, _ -> false
+
+dictionary ordVoid :: Ord Void where
+  superclass eqDict = eqVoid
+  compare :: Void -> Void -> Ordering
+  compare = \left right -> EQ
+
+dictionary eqOrdering :: Eq Ordering where
+  eq :: Ordering -> Ordering -> Boolean
+  eq = \left right ->
+  case left, right of
+    First, First -> true
+    Second, Second -> true
+    Third, Third -> true
+    _, _ -> false
+
+dictionary ordOrdering :: Ord Ordering where
+  superclass eqDict = eqOrdering
+  compare :: Ordering -> Ordering -> Ordering
+  compare = \left right ->
+  case left, right of
+    First, First -> EQ
+    First, _ -> LT
+    _, First -> GT
+    Second, Second -> EQ
+    Second, _ -> LT
+    _, Second -> GT
+    Third, Third -> EQ

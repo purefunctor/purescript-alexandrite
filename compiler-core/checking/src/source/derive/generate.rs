@@ -471,11 +471,12 @@ where
         let patterns = vec![comparison.left_pattern, comparison.right_pattern];
         alternatives.push(builder.alternative(patterns, body));
 
-        if let Some(ordering) = constructor_ordering {
+        if let Some(ordering) = constructor_ordering
+            && !later_constructors.is_empty()
+        {
             emit_constructor_ordering_alternatives(
                 builder,
                 constructor,
-                later_constructors,
                 member,
                 ordering,
                 &mut alternatives,
@@ -490,7 +491,6 @@ where
 fn emit_constructor_ordering_alternatives<Q>(
     builder: &mut DerivedTreeBuilder<'_, '_, '_, Q>,
     constructor: &AppliedConstructor,
-    later_constructors: &[AppliedConstructor],
     member: &BinaryComparisonMember,
     ordering: ConstructorOrdering,
     alternatives: &mut Vec<tree::CaseAlternative>,
@@ -498,17 +498,15 @@ fn emit_constructor_ordering_alternatives<Q>(
 where
     Q: ExternalQueries,
 {
-    for later in later_constructors {
-        let left = emit_constructor_wildcard(builder, constructor, member.left_type);
-        let right = emit_constructor_wildcard(builder, later, member.right_type);
-        let body = emit_ordering_constant(builder, ordering.less, member.result_type)?;
-        alternatives.push(builder.alternative(vec![left, right], body));
+    let left = emit_constructor_wildcard(builder, constructor, member.left_type);
+    let right = builder.wildcard_pattern("right", member.right_type);
+    let body = emit_ordering_constant(builder, ordering.less, member.result_type)?;
+    alternatives.push(builder.alternative(vec![left, right], body));
 
-        let left = emit_constructor_wildcard(builder, later, member.left_type);
-        let right = emit_constructor_wildcard(builder, constructor, member.right_type);
-        let body = emit_ordering_constant(builder, ordering.greater, member.result_type)?;
-        alternatives.push(builder.alternative(vec![left, right], body));
-    }
+    let left = builder.wildcard_pattern("left", member.left_type);
+    let right = emit_constructor_wildcard(builder, constructor, member.right_type);
+    let body = emit_ordering_constant(builder, ordering.greater, member.result_type)?;
+    alternatives.push(builder.alternative(vec![left, right], body));
 
     Ok(())
 }
