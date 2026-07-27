@@ -4,7 +4,7 @@ use building_types::QueryResult;
 use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
-use crate::core::{KindOrType, TypeId, toolkit};
+use crate::core::{KindOrType, TypeId, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::{field, tools};
@@ -27,7 +27,7 @@ where
 {
     let dispatch = derive_dispatch(context, result.class_file, result.class_id);
     match dispatch {
-        DeriveDispatch::Eq | DeriveDispatch::Ord => {
+        DeriveDispatch::Eq | DeriveDispatch::Eq1 | DeriveDispatch::Ord | DeriveDispatch::Ord1 => {
             generate_known_instance(state, context, result, dispatch)
         }
         _ => Ok(()),
@@ -73,9 +73,23 @@ where
 
         let member = match dispatch {
             DeriveDispatch::Eq => generate_eq_member(state, context, result, &freshened.arguments)?,
+            DeriveDispatch::Eq1 => generate_delegated_member(
+                state,
+                context,
+                result,
+                &freshened.arguments,
+                context.known_terms.eq,
+            )?,
             DeriveDispatch::Ord => {
                 generate_ord_member(state, context, result, &freshened.arguments)?
             }
+            DeriveDispatch::Ord1 => generate_delegated_member(
+                state,
+                context,
+                result,
+                &freshened.arguments,
+                context.known_terms.compare,
+            )?,
             _ => None,
         };
 
@@ -101,15 +115,25 @@ where
 }
 
 struct ComparisonMember {
-    resolution: (files::FileId, indexing::TermItemId),
-    implementation_type: TypeId,
+    member: ResolvedMember,
     constructors: Vec<AppliedConstructor>,
+}
+
+struct ResolvedMember {
+    file_id: files::FileId,
+    item_id: indexing::TermItemId,
+    implementation_type: TypeId,
 }
 
 struct AppliedConstructor {
     file_id: files::FileId,
     item_id: indexing::TermItemId,
-    fields: Vec<TypeId>,
+    fields: Vec<AppliedField>,
+}
+
+struct AppliedField {
+    type_id: TypeId,
+    comparison: field::ComparisonStyle,
 }
 
 fn resolve_comparison_member<Q>(
@@ -137,16 +161,17 @@ where
         let constructor_type =
             toolkit::lookup_file_term(state, context, data_file, constructor_id)?;
 
-        let fields = field::instantiate_constructor_fields(
+        let field_types = field::instantiate_constructor_fields(
             state,
             context,
             constructor_type,
             &type_arguments,
         )?;
-        for &field in &fields {
-            if field::requires_lifted_comparison(state, context, field)? {
-                return Ok(None);
-            }
+
+        let mut fields = Vec::with_capacity(field_types.len());
+        for type_id in field_types {
+            let comparison = field::comparison_style(state, context, type_id)?;
+            fields.push(AppliedField { type_id, comparison });
         }
 
         constructors.push(AppliedConstructor {
@@ -156,6 +181,22 @@ where
         });
     }
 
+    let Some(member) = resolve_member(state, context, result, instance_arguments)? else {
+        return Ok(None);
+    };
+
+    Ok(Some(ComparisonMember { member, constructors }))
+}
+
+fn resolve_member<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    instance_arguments: &[KindOrType],
+) -> QueryResult<Option<ResolvedMember>>
+where
+    Q: ExternalQueries,
+{
     let Some(class) =
         toolkit::lookup_file_class(state, context, result.class_file, result.class_id)?
     else {
@@ -166,11 +207,12 @@ where
         return Ok(None);
     };
 
-    let resolution = (result.class_file, member.item_id);
+    let file_id = result.class_file;
+    let item_id = member.item_id;
     let Some(implementation_type) = instantiate_class_member_type(
         state,
         context,
-        resolution,
+        (file_id, item_id),
         (result.class_file, result.class_id),
         instance_arguments,
     )?
@@ -178,7 +220,7 @@ where
         return Ok(None);
     };
 
-    Ok(Some(ComparisonMember { resolution, implementation_type, constructors }))
+    Ok(Some(ResolvedMember { file_id, item_id, implementation_type }))
 }
 
 fn generate_eq_member<Q>(
@@ -194,18 +236,19 @@ where
     else {
         return Ok(None);
     };
-    let Some(operation) = context.known_terms.eq else {
+    let Some(direct) = context.known_terms.eq else {
         return Ok(None);
     };
+    let operations = ComparisonOperations { direct, lifted: context.known_terms.eq1 };
 
-    let Some(body) = emit_eq(state, context, result.derive_id, &member, operation)? else {
+    let Some(body) = emit_eq(state, context, result.derive_id, &member, operations)? else {
         return Ok(None);
     };
 
     let member = generated_member(
         result.derive_id,
-        member.resolution,
-        member.implementation_type,
+        (member.member.file_id, member.member.item_id),
+        member.member.implementation_type,
         vec![],
         body,
     );
@@ -225,9 +268,10 @@ where
     else {
         return Ok(None);
     };
-    let Some(operation) = context.known_terms.compare else {
+    let Some(direct) = context.known_terms.compare else {
         return Ok(None);
     };
+    let operations = ComparisonOperations { direct, lifted: context.known_terms.compare1 };
     let Some(equal) = context.known_terms.ordering_eq else {
         return Ok(None);
     };
@@ -248,7 +292,7 @@ where
         context,
         result.derive_id,
         &member,
-        operation,
+        operations,
         equal,
         constructor_ordering,
     )?
@@ -258,12 +302,59 @@ where
 
     let member = generated_member(
         result.derive_id,
-        member.resolution,
-        member.implementation_type,
+        (member.member.file_id, member.member.item_id),
+        member.member.implementation_type,
         vec![],
         body,
     );
     Ok(Some(member))
+}
+
+fn generate_delegated_member<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    instance_arguments: &[KindOrType],
+    operation: Option<(files::FileId, indexing::TermItemId)>,
+) -> QueryResult<Option<tree::InstanceMember>>
+where
+    Q: ExternalQueries,
+{
+    state.with_implication(|state| {
+        let DeriveStrategy::DelegateConstraint { .. } = result.strategy else {
+            return Ok(None);
+        };
+        let Some(operation) = operation else {
+            return Ok(None);
+        };
+        let Some(member) = resolve_member(state, context, result, instance_arguments)? else {
+            return Ok(None);
+        };
+
+        let signature::SkolemisedSignature { substitution, constraints, result: body_type, .. } =
+            signature::expect_term_signature(state, context, member.implementation_type, 0)?;
+
+        let mut evidences = Vec::with_capacity(constraints.len());
+        for constraint in constraints {
+            let evidence = Evidence::Given(state.push_given(constraint));
+            evidences.push(evidence);
+        }
+
+        let body = state.with_implicit(context, &substitution, |state| {
+            let mut builder = DerivedTreeBuilder::new(state, context, result.derive_id);
+            let body = builder.term_reference(operation)?;
+            builder.subtype(body, body_type)
+        })?;
+
+        let member = generated_member(
+            result.derive_id,
+            (member.file_id, member.item_id),
+            member.implementation_type,
+            evidences,
+            body,
+        );
+        Ok(Some(member))
+    })
 }
 
 fn generated_member(
@@ -289,6 +380,12 @@ fn generated_member(
 struct ConstructorOrdering {
     less: (files::FileId, indexing::TermItemId),
     greater: (files::FileId, indexing::TermItemId),
+}
+
+#[derive(Clone, Copy)]
+struct ComparisonOperations {
+    direct: (files::FileId, indexing::TermItemId),
+    lifted: Option<(files::FileId, indexing::TermItemId)>,
 }
 
 struct BinaryComparisonMember {
@@ -345,13 +442,16 @@ fn emit_eq<Q>(
     context: &CheckContext<Q>,
     derive_id: indexing::DeriveId,
     comparison_member: &ComparisonMember,
-    operation: (files::FileId, indexing::TermItemId),
+    operations: ComparisonOperations,
 ) -> QueryResult<Option<ElaboratedExpression>>
 where
     Q: ExternalQueries,
 {
-    let Some(member) =
-        BinaryComparisonMember::decode(state, context, comparison_member.implementation_type)?
+    let Some(member) = BinaryComparisonMember::decode(
+        state,
+        context,
+        comparison_member.member.implementation_type,
+    )?
     else {
         return Ok(None);
     };
@@ -362,7 +462,7 @@ where
     let mut alternatives = vec![];
     for constructor in &comparison_member.constructors {
         let Some(comparison) =
-            emit_constructor_comparison(&mut builder, constructor, &member, operation)?
+            emit_constructor_comparison(&mut builder, constructor, &member, operations)?
         else {
             return Ok(None);
         };
@@ -407,15 +507,18 @@ fn emit_ord<Q>(
     context: &CheckContext<Q>,
     derive_id: indexing::DeriveId,
     comparison_member: &ComparisonMember,
-    operation: (files::FileId, indexing::TermItemId),
+    operations: ComparisonOperations,
     equal: (files::FileId, indexing::TermItemId),
     constructor_ordering: Option<ConstructorOrdering>,
 ) -> QueryResult<Option<ElaboratedExpression>>
 where
     Q: ExternalQueries,
 {
-    let Some(member) =
-        BinaryComparisonMember::decode(state, context, comparison_member.implementation_type)?
+    let Some(member) = BinaryComparisonMember::decode(
+        state,
+        context,
+        comparison_member.member.implementation_type,
+    )?
     else {
         return Ok(None);
     };
@@ -436,7 +539,7 @@ where
         &mut builder,
         &comparison_member.constructors,
         &member,
-        operation,
+        operations,
         equal,
         constructor_ordering,
     )?
@@ -452,7 +555,7 @@ fn emit_ord_alternatives<Q>(
     builder: &mut DerivedTreeBuilder<'_, '_, '_, Q>,
     constructors: &[AppliedConstructor],
     member: &BinaryComparisonMember,
-    operation: (files::FileId, indexing::TermItemId),
+    operations: ComparisonOperations,
     equal: (files::FileId, indexing::TermItemId),
     constructor_ordering: Option<ConstructorOrdering>,
 ) -> QueryResult<Option<Vec<tree::CaseAlternative>>>
@@ -463,7 +566,7 @@ where
     let mut remaining = constructors;
     while let Some((constructor, later_constructors)) = remaining.split_first() {
         let Some(comparison) =
-            emit_constructor_comparison(builder, constructor, member, operation)?
+            emit_constructor_comparison(builder, constructor, member, operations)?
         else {
             return Ok(None);
         };
@@ -529,14 +632,14 @@ fn emit_constructor_comparison<Q>(
     builder: &mut DerivedTreeBuilder<'_, '_, '_, Q>,
     constructor: &AppliedConstructor,
     member: &BinaryComparisonMember,
-    operation: (files::FileId, indexing::TermItemId),
+    operations: ComparisonOperations,
 ) -> QueryResult<Option<ConstructorComparison>>
 where
     Q: ExternalQueries,
 {
     let mut fields = Vec::with_capacity(constructor.fields.len());
-    for (index, &field_type) in constructor.fields.iter().enumerate() {
-        let Some(field) = emit_field_comparison(builder, operation, index, field_type)? else {
+    for (index, field) in constructor.fields.iter().enumerate() {
+        let Some(field) = emit_field_comparison(builder, operations, index, field)? else {
             return Ok(None);
         };
         fields.push(field);
@@ -567,15 +670,25 @@ where
 
 fn emit_field_comparison<Q>(
     builder: &mut DerivedTreeBuilder<'_, '_, '_, Q>,
-    operation: (files::FileId, indexing::TermItemId),
+    operations: ComparisonOperations,
     index: usize,
-    field_type: TypeId,
+    field: &AppliedField,
 ) -> QueryResult<Option<GeneratedFieldPair>>
 where
     Q: ExternalQueries,
 {
-    let left = builder.variable_binder(&format_smolstr!("left{index}"), field_type);
-    let right = builder.variable_binder(&format_smolstr!("right{index}"), field_type);
+    let operation = match field.comparison {
+        field::ComparisonStyle::Direct => operations.direct,
+        field::ComparisonStyle::Lifted => {
+            let Some(operation) = operations.lifted else {
+                return Ok(None);
+            };
+            operation
+        }
+    };
+
+    let left = builder.variable_binder(&format_smolstr!("left{index}"), field.type_id);
+    let right = builder.variable_binder(&format_smolstr!("right{index}"), field.type_id);
     let left_value = builder.variable(left);
     let right_value = builder.variable(right);
     let Some(comparison) = emit_comparison(builder, operation, left_value, right_value)? else {
@@ -608,11 +721,9 @@ fn emit_constructor_wildcard<Q>(
 where
     Q: ExternalQueries,
 {
-    let fields = constructor
-        .fields
-        .iter()
-        .map(|&field_type| builder.wildcard_pattern("field", field_type))
-        .collect();
+    let fields =
+        constructor.fields.iter().map(|field| builder.wildcard_pattern("field", field.type_id));
+    let fields = fields.collect();
     builder.constructor_pattern(
         "constructor",
         type_id,

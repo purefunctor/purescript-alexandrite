@@ -10,6 +10,12 @@ use crate::state::CheckState;
 
 use super::tools;
 
+#[derive(Clone, Copy)]
+pub enum ComparisonStyle {
+    Direct,
+    Lifted,
+}
+
 pub fn generate_field_constraints<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -93,13 +99,16 @@ where
             let function = normalise::expand(state, context, function)?;
             if function == context.prim.record {
                 generate_constraint(state, context, argument, class, class1)?;
-            } else if is_type_to_type_variable(state, context, function)? {
-                if let Some(class1) = class1 {
-                    tools::emit_constraint(context, state, class1, function);
-                }
-                tools::emit_constraint(context, state, class, argument);
             } else {
-                tools::emit_constraint(context, state, class, type_id);
+                let comparison = comparison_style_for_function(state, context, function)?;
+                if let ComparisonStyle::Lifted = comparison {
+                    if let Some(class1) = class1 {
+                        tools::emit_constraint(context, state, class1, function);
+                    }
+                    tools::emit_constraint(context, state, class, argument);
+                } else {
+                    tools::emit_constraint(context, state, class, type_id);
+                }
             }
         }
         Type::Row(row_id) => {
@@ -117,35 +126,41 @@ where
     Ok(())
 }
 
-fn is_type_to_type_variable<Q>(
+pub fn comparison_style<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     type_id: TypeId,
-) -> QueryResult<bool>
-where
-    Q: ExternalQueries,
-{
-    let type_id = normalise::expand(state, context, type_id)?;
-    let kind = match context.lookup_type(type_id) {
-        Type::Rigid(_, _, kind) => kind,
-        Type::Unification(unification_id) => state.unifications.get(unification_id).kind,
-        _ => return Ok(false),
-    };
-
-    Ok(normalise::expand(state, context, kind)? == context.prim.type_to_type)
-}
-
-pub fn requires_lifted_comparison<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    type_id: TypeId,
-) -> QueryResult<bool>
+) -> QueryResult<ComparisonStyle>
 where
     Q: ExternalQueries,
 {
     let type_id = normalise::expand(state, context, type_id)?;
     let Type::Application(function, _) = context.lookup_type(type_id) else {
-        return Ok(false);
+        return Ok(ComparisonStyle::Direct);
     };
-    is_type_to_type_variable(state, context, function)
+    comparison_style_for_function(state, context, function)
+}
+
+fn comparison_style_for_function<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    function: TypeId,
+) -> QueryResult<ComparisonStyle>
+where
+    Q: ExternalQueries,
+{
+    let function = normalise::expand(state, context, function)?;
+    let kind = match context.lookup_type(function) {
+        Type::Rigid(_, _, kind) => kind,
+        Type::Unification(unification_id) => state.unifications.get(unification_id).kind,
+        _ => return Ok(ComparisonStyle::Direct),
+    };
+
+    let kind = normalise::expand(state, context, kind)?;
+    let comparison = if kind == context.prim.type_to_type {
+        ComparisonStyle::Lifted
+    } else {
+        ComparisonStyle::Direct
+    };
+    Ok(comparison)
 }

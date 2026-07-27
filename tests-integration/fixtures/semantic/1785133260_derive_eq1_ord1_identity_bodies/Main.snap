@@ -14,6 +14,10 @@ dictionary eqIdentity :: forall t. { eqDict :: Eq t } => Eq (Identity t) where
     (Identity left0), (Identity right0) ->
       if eq @t {eqDict} left0 right0 then true else false
 
+dictionary eq1Identity :: Eq1 Identity where
+  eq1 :: forall (t :: Type). Eq t => Identity t -> Identity t -> Boolean
+  eq1 = \{eqDict} -> eq @(Identity t) {eqIdentity {eqDict}}
+
 dictionary ordIdentity :: forall t. { ordDict :: Ord t } => Ord (Identity t) where
   superclass eqDict = eqIdentity {ordDict.eqDict}
   compare :: Identity t -> Identity t -> Ordering
@@ -23,3 +27,8 @@ dictionary ordIdentity :: forall t. { ordDict :: Ord t } => Ord (Identity t) whe
       case compare @t {ordDict} left0 right0 of
         EQ -> EQ
         ordering -> ordering
+
+dictionary ord1Identity :: Ord1 Identity where
+  superclass eq1Dict = eq1Identity
+  compare1 :: forall (t :: Type). Ord t => Identity t -> Identity t -> Ordering
+  compare1 = \{ordDict} -> compare @(Identity t) {ordIdentity {ordDict}}

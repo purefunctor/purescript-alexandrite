@@ -779,7 +779,9 @@ impl KnownGeneric {
 pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub eq: Option<(FileId, TermItemId)>,
+    pub eq1: Option<(FileId, TermItemId)>,
     pub compare: Option<(FileId, TermItemId)>,
+    pub compare1: Option<(FileId, TermItemId)>,
     pub ordering_lt: Option<(FileId, TermItemId)>,
     pub ordering_eq: Option<(FileId, TermItemId)>,
     pub ordering_gt: Option<(FileId, TermItemId)>,
@@ -789,10 +791,21 @@ impl KnownTermsCore {
     fn collect(queries: &impl ExternalQueries) -> QueryResult<KnownTermsCore> {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
         let eq = fetch_known_term(queries, "Data.Eq", "eq")?;
+        let eq1 = fetch_known_term(queries, "Data.Eq", "eq1")?;
         let compare = fetch_known_term(queries, "Data.Ord", "compare")?;
+        let compare1 = fetch_known_term(queries, "Data.Ord", "compare1")?;
         let ordering_lt = fetch_known_term(queries, "Data.Ordering", "LT")?;
         let ordering_eq = fetch_known_term(queries, "Data.Ordering", "EQ")?;
         let ordering_gt = fetch_known_term(queries, "Data.Ordering", "GT")?;
-        Ok(KnownTermsCore { otherwise, eq, compare, ordering_lt, ordering_eq, ordering_gt })
+        Ok(KnownTermsCore {
+            otherwise,
+            eq,
+            eq1,
+            compare,
+            compare1,
+            ordering_lt,
+            ordering_eq,
+            ordering_gt,
+        })
     }
 }

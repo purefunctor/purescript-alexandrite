@@ -6,3 +6,39 @@ expression: report
 data Wrap :: forall (k :: Type). (k -> Type) -> k -> Type
 data Wrap @f @a
   | Wrap :: f a -> Wrap f a
+
+dictionary eqWrap ::
+  forall t t1.
+  { eq1Dict :: Eq1 t } =>
+  { eqDict :: Eq t1 } =>
+  Eq (Wrap @Type t t1)
+  where
+  eq :: Wrap @Type t t1 -> Wrap @Type t t1 -> Boolean
+  eq = \left right ->
+  case left, right of
+    (Wrap left0), (Wrap right0) ->
+      if eq1 @t {eq1Dict} @t1 {eqDict} left0 right0 then true else false
+
+dictionary eq1Wrap :: forall t. { eq1Dict :: Eq1 t } => Eq1 (Wrap @Type t) where
+  eq1 :: forall (t1 :: Type). Eq t1 => Wrap @Type t t1 -> Wrap @Type t t1 -> Boolean
+  eq1 = \{eqDict} -> eq @(Wrap @Type t t1) {eqWrap {eq1Dict} {eqDict}}
+
+dictionary ordWrap ::
+  forall t t1.
+  { ord1Dict :: Ord1 t } =>
+  { ordDict :: Ord t1 } =>
+  Ord (Wrap @Type t t1)
+  where
+  superclass eqDict = eqWrap {ord1Dict.eq1Dict} {ordDict.eqDict}
+  compare :: Wrap @Type t t1 -> Wrap @Type t t1 -> Ordering
+  compare = \left right ->
+  case left, right of
+    (Wrap left0), (Wrap right0) ->
+      case compare1 @t {ord1Dict} @t1 {ordDict} left0 right0 of
+        EQ -> EQ
+        ordering -> ordering
+
+dictionary ord1Wrap :: forall t. { ord1Dict :: Ord1 t } => Ord1 (Wrap @Type t) where
+  superclass eq1Dict = eq1Wrap {ord1Dict.eq1Dict}
+  compare1 :: forall (t1 :: Type). Ord t1 => Wrap @Type t t1 -> Wrap @Type t t1 -> Ordering
+  compare1 = \{ordDict} -> compare @(Wrap @Type t t1) {ordWrap {ord1Dict} {ordDict}}
