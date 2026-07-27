@@ -20,43 +20,33 @@ Roles
 Opaque1 = [Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq (Opaque1 (t :: Type))
+error[CannotDeriveForType]: Cannot derive for type: Opaque1
   --> 9:1..9:28
   |
 9 | derive instance Eq1 Opaque1
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (t :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Ord (Opaque1 (t1 :: Type))
+error[CannotDeriveForType]: Cannot derive for type: Opaque1
   --> 10:1..10:29
    |
 10 | derive instance Ord1 Opaque1
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t1 :: Type) is in scope
-  trivia: Eq (t1 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq (Imported (t2 :: Type))
+error[CannotDeriveForType]: Cannot derive for type: Imported (t :: Type)
+  --> 12:1..12:40
+   |
+12 | derive instance Eq a => Eq (Imported a)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Imported
   --> 13:1..13:29
    |
 13 | derive instance Eq1 Imported
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (t2 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq (Imported (t3 :: Type))
+error[CannotDeriveForType]: Cannot derive for type: Imported (t1 :: Type)
   --> 14:1..14:42
    |
 14 | derive instance Ord a => Ord (Imported a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t3 :: Type) is in scope
-  trivia: Eq (t3 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq1 Imported
+error[CannotDeriveForType]: Cannot derive for type: Imported
   --> 15:1..15:30
    |
 15 | derive instance Ord1 Imported
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t4 :: Type) is in scope
-  trivia: Eq (t4 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Ord (Imported (t4 :: Type))
-  --> 15:1..15:30
-   |
-15 | derive instance Ord1 Imported
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t4 :: Type) is in scope
-  trivia: Eq (t4 :: Type) is in scope

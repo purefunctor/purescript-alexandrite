@@ -74,31 +74,28 @@ where
     }
 }
 
-pub enum DataDeclarationKind {
-    Algebraic,
-    Unsupported,
-}
-
-pub fn classify_data_declaration<Q>(
+pub fn extract_local_algebraic_data<Q>(
+    state: &mut CheckState,
     context: &CheckContext<Q>,
-    data_file: FileId,
-    data_id: TypeItemId,
-) -> QueryResult<DataDeclarationKind>
+    derived_type: TypeId,
+) -> QueryResult<Option<(FileId, TypeItemId)>>
 where
     Q: ExternalQueries,
 {
-    let indexed = if data_file == context.id {
-        &context.indexed
-    } else {
-        &context.queries.indexed(data_file)?
+    let Some((data_file, data_id)) =
+        toolkit::extract_type_constructor(state, context, derived_type)?
+    else {
+        return Ok(None);
     };
+    if data_file != context.id {
+        return Ok(None);
+    }
 
-    let kind = &indexed.items[data_id].kind;
-    let declaration = match kind {
-        TypeItemKind::Data { .. } | TypeItemKind::Newtype { .. } => DataDeclarationKind::Algebraic,
-        _ => DataDeclarationKind::Unsupported,
-    };
-    Ok(declaration)
+    let kind = &context.indexed.items[data_id].kind;
+    match kind {
+        TypeItemKind::Data { .. } | TypeItemKind::Newtype { .. } => Ok(Some((data_file, data_id))),
+        _ => Ok(None),
+    }
 }
 
 pub enum ConstraintReport {

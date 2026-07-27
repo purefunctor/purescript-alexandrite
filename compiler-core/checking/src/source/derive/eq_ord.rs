@@ -4,7 +4,6 @@ use indexing::TypeItemId;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::toolkit;
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 
@@ -57,17 +56,11 @@ where
     };
 
     let Some((data_file, data_id)) =
-        toolkit::extract_type_constructor(state, context, *derived_type)?
+        tools::extract_local_algebraic_data(state, context, *derived_type)?
     else {
         state.insert_error(ErrorKind::CannotDeriveForType { type_id: *derived_type });
         return Ok(None);
     };
-
-    let declaration = tools::classify_data_declaration(context, data_file, data_id)?;
-    if let tools::DataDeclarationKind::Unsupported = declaration {
-        state.insert_error(ErrorKind::CannotDeriveForType { type_id: *derived_type });
-        return Ok(None);
-    }
 
     Ok(Some(DeriveStrategy::FieldConstraints {
         data_file,
