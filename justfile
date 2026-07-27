@@ -41,6 +41,11 @@ fix:
 licenses:
   cargo bundle-licenses --prefer MIT -o ../THIRDPARTY.toml
 
+[doc("Update the release version and third-party licenses")]
+prepare-release version:
+  cargo set-version --package purescript-alexandrite "{{version}}"
+  just licenses
+
 [doc("Format imports with module granularity")]
 @format *args="":
   cargo +nightly fmt {{args}} -- --config imports_granularity=Module

@@ -467,44 +467,8 @@ license = "No license specified"
 text = "NOT FOUND"
 
 [[third_party_libraries]]
-package_name = "bumpalo"
-package_version = "3.19.1"
-repository = "https://github.com/fitzgen/bumpalo"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2019 Nick Fitzgerald
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
 package_name = "bytes"
-package_version = "1.11.0"
+package_version = "1.12.1"
 repository = "https://github.com/tokio-rs/bytes"
 license = "MIT"
 
@@ -735,14 +699,94 @@ SOFTWARE.
 """
 
 [[third_party_libraries]]
-package_name = "countme"
-package_version = "3.0.1"
-repository = "https://github.com/matklad/countme"
+package_name = "crossbeam-deque"
+package_version = "0.8.6"
+repository = "https://github.com/crossbeam-rs/crossbeam"
 license = "MIT"
 
 [[third_party_libraries.licenses]]
 license = "MIT"
 text = """
+The MIT License (MIT)
+
+Copyright (c) 2019 The Crossbeam Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the \"Software\"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
+
+[[third_party_libraries]]
+package_name = "crossbeam-epoch"
+package_version = "0.9.20"
+repository = "https://github.com/crossbeam-rs/crossbeam"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = """
+The MIT License (MIT)
+
+Copyright (c) 2019 The Crossbeam Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the \"Software\"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
+
+[[third_party_libraries]]
+package_name = "crossbeam-utils"
+package_version = "0.8.21"
+repository = "https://github.com/crossbeam-rs/crossbeam"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = """
+The MIT License (MIT)
+
+Copyright (c) 2019 The Crossbeam Project Developers
+
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
 documentation files (the \"Software\"), to deal in the
@@ -811,6 +855,26 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
+[[third_party_libraries]]
+package_name = "documentation"
+package_version = "0.1.0"
+repository = ""
+license = "No license specified"
+
+[[third_party_libraries.licenses]]
+license = "No license specified"
+text = "NOT FOUND"
+
+[[third_party_libraries]]
+package_name = "documenting"
+package_version = "0.1.0"
+repository = ""
+license = "No license specified"
+
+[[third_party_libraries.licenses]]
+license = "No license specified"
+text = "NOT FOUND"
 
 [[third_party_libraries]]
 package_name = "drop_bomb"
@@ -1524,42 +1588,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
-package_name = "hashbrown"
-package_version = "0.14.5"
-repository = "https://github.com/rust-lang/hashbrown"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2016 Amanieu d'Antras
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
 """
 
 [[third_party_libraries]]
@@ -2334,42 +2362,6 @@ DEALINGS IN THE SOFTWARE.
 """
 
 [[third_party_libraries]]
-package_name = "js-sys"
-package_version = "0.3.83"
-repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/js-sys"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2014 Alex Crichton
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
 package_name = "la-arena"
 package_version = "0.3.1"
 repository = "https://github.com/rust-lang/rust-analyzer/tree/master/lib/la-arena"
@@ -2427,14 +2419,14 @@ text = "NOT FOUND"
 
 [[third_party_libraries]]
 package_name = "libc"
-package_version = "0.2.178"
+package_version = "0.2.186"
 repository = "https://github.com/rust-lang/libc"
 license = "MIT"
 
 [[third_party_libraries.licenses]]
 license = "MIT"
 text = """
-Copyright (c) 2014-2020 The Rust Project Developers
+Copyright (c) The Rust Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -2711,7 +2703,7 @@ THE SOFTWARE.
 
 [[third_party_libraries]]
 package_name = "mio"
-package_version = "1.1.1"
+package_version = "1.2.2"
 repository = "https://github.com/tokio-rs/mio"
 license = "MIT"
 
@@ -3458,6 +3450,78 @@ THE SOFTWARE.
 """
 
 [[third_party_libraries]]
+package_name = "rayon"
+package_version = "1.12.0"
+repository = "https://github.com/rayon-rs/rayon"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = """
+Copyright (c) 2010 The Rust Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the \"Software\"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
+
+[[third_party_libraries]]
+package_name = "rayon-core"
+package_version = "1.13.0"
+repository = "https://github.com/rayon-rs/rayon"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = """
+Copyright (c) 2010 The Rust Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the \"Software\"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
+
+[[third_party_libraries]]
 package_name = "redox_syscall"
 package_version = "0.5.18"
 repository = "https://gitlab.redox-os.org/redox-os/syscall"
@@ -3573,76 +3637,8 @@ license = "No license specified"
 text = "NOT FOUND"
 
 [[third_party_libraries]]
-package_name = "rowan"
-package_version = "0.16.1"
-repository = "https://github.com/rust-analyzer/rowan"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
 package_name = "rustc-hash"
-package_version = "1.1.0"
-repository = "https://github.com/rust-lang-nursery/rustc-hash"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
-package_name = "rustc-hash"
-package_version = "2.1.1"
+package_version = "2.1.2"
 repository = "https://github.com/rust-lang/rustc-hash"
 license = "MIT"
 
@@ -3911,7 +3907,7 @@ DEALINGS IN THE SOFTWARE.
 
 [[third_party_libraries]]
 package_name = "serde_json"
-package_version = "1.0.148"
+package_version = "1.0.150"
 repository = "https://github.com/serde-rs/json"
 license = "MIT"
 
@@ -4117,7 +4113,7 @@ DEALINGS IN THE SOFTWARE.
 
 [[third_party_libraries]]
 package_name = "smol_str"
-package_version = "0.3.5"
+package_version = "0.3.6"
 repository = "https://github.com/rust-lang/rust-analyzer/tree/master/lib/smol_str"
 license = "MIT"
 
@@ -4151,7 +4147,7 @@ DEALINGS IN THE SOFTWARE.
 
 [[third_party_libraries]]
 package_name = "socket2"
-package_version = "0.6.1"
+package_version = "0.6.5"
 repository = "https://github.com/rust-lang/socket2"
 license = "MIT"
 
@@ -4567,6 +4563,16 @@ license = "No license specified"
 text = "NOT FOUND"
 
 [[third_party_libraries]]
+package_name = "syntree"
+package_version = "0.18.0"
+repository = "https://github.com/udoprog/syntree"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = "NOT FOUND"
+
+[[third_party_libraries]]
 package_name = "tempfile"
 package_version = "3.24.0"
 repository = "https://github.com/Stebalien/tempfile"
@@ -4600,6 +4606,38 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+"""
+
+[[third_party_libraries]]
+package_name = "termcolor"
+package_version = "1.4.1"
+repository = "https://github.com/BurntSushi/termcolor"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = """
+The MIT License (MIT)
+
+Copyright (c) 2015 Andrew Gallant
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the \"Software\"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 """
 
 [[third_party_libraries]]
@@ -4799,7 +4837,7 @@ ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation a
 
 [[third_party_libraries]]
 package_name = "tokio"
-package_version = "1.48.0"
+package_version = "1.52.3"
 repository = "https://github.com/tokio-rs/tokio"
 license = "MIT"
 
@@ -4831,7 +4869,7 @@ SOFTWARE.
 
 [[third_party_libraries]]
 package_name = "tokio-macros"
-package_version = "2.6.0"
+package_version = "2.7.1"
 repository = "https://github.com/tokio-rs/tokio"
 license = "MIT"
 
@@ -5181,6 +5219,26 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
+[[third_party_libraries]]
+package_name = "ts-rs"
+package_version = "12.0.1"
+repository = "https://github.com/Aleph-Alpha/ts-rs"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = "NOT FOUND"
+
+[[third_party_libraries]]
+package_name = "ts-rs-macros"
+package_version = "12.0.1"
+repository = "https://github.com/Aleph-Alpha/ts-rs"
+license = "MIT"
+
+[[third_party_libraries.licenses]]
+license = "MIT"
+text = "NOT FOUND"
 
 [[third_party_libraries]]
 package_name = "typed-arena"
@@ -5750,150 +5808,6 @@ license = "MIT"
 text = "NOT FOUND"
 
 [[third_party_libraries]]
-package_name = "wasm-bindgen"
-package_version = "0.2.106"
-repository = "https://github.com/wasm-bindgen/wasm-bindgen"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2014 Alex Crichton
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
-package_name = "wasm-bindgen-macro"
-package_version = "0.2.106"
-repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2014 Alex Crichton
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
-package_name = "wasm-bindgen-macro-support"
-package_version = "0.2.106"
-repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro-support"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2014 Alex Crichton
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
-package_name = "wasm-bindgen-shared"
-package_version = "0.2.106"
-repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/shared"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-Copyright (c) 2014 Alex Crichton
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the \"Software\"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
-
-[[third_party_libraries]]
 package_name = "winapi-util"
 package_version = "0.1.11"
 repository = "https://github.com/BurntSushi/winapi-util"
@@ -5991,38 +5905,6 @@ text = """
 
 [[third_party_libraries]]
 package_name = "windows-sys"
-package_version = "0.60.2"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
-package_name = "windows-sys"
 package_version = "0.61.2"
 repository = "https://github.com/microsoft/windows-rs"
 license = "MIT"
@@ -6086,72 +5968,8 @@ text = """
 """
 
 [[third_party_libraries]]
-package_name = "windows-targets"
-package_version = "0.53.5"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
 package_name = "windows_aarch64_gnullvm"
 package_version = "0.52.6"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
-package_name = "windows_aarch64_gnullvm"
-package_version = "0.53.1"
 repository = "https://github.com/microsoft/windows-rs"
 license = "MIT"
 
@@ -6214,72 +6032,8 @@ text = """
 """
 
 [[third_party_libraries]]
-package_name = "windows_aarch64_msvc"
-package_version = "0.53.1"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
 package_name = "windows_i686_gnu"
 package_version = "0.52.6"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
-package_name = "windows_i686_gnu"
-package_version = "0.53.1"
 repository = "https://github.com/microsoft/windows-rs"
 license = "MIT"
 
@@ -6342,72 +6096,8 @@ text = """
 """
 
 [[third_party_libraries]]
-package_name = "windows_i686_gnullvm"
-package_version = "0.53.1"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
 package_name = "windows_i686_msvc"
 package_version = "0.52.6"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
-package_name = "windows_i686_msvc"
-package_version = "0.53.1"
 repository = "https://github.com/microsoft/windows-rs"
 license = "MIT"
 
@@ -6470,38 +6160,6 @@ text = """
 """
 
 [[third_party_libraries]]
-package_name = "windows_x86_64_gnu"
-package_version = "0.53.1"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
 package_name = "windows_x86_64_gnullvm"
 package_version = "0.52.6"
 repository = "https://github.com/microsoft/windows-rs"
@@ -6534,72 +6192,8 @@ text = """
 """
 
 [[third_party_libraries]]
-package_name = "windows_x86_64_gnullvm"
-package_version = "0.53.1"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
 package_name = "windows_x86_64_msvc"
 package_version = "0.52.6"
-repository = "https://github.com/microsoft/windows-rs"
-license = "MIT"
-
-[[third_party_libraries.licenses]]
-license = "MIT"
-text = """
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the \"Software\"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-"""
-
-[[third_party_libraries]]
-package_name = "windows_x86_64_msvc"
-package_version = "0.53.1"
 repository = "https://github.com/microsoft/windows-rs"
 license = "MIT"
 
