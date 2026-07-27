@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Wrap :: forall (k :: Type). (k -> Type) -> k -> Type
+data Wrap @f @a
+  | Wrap :: f a -> Wrap f a

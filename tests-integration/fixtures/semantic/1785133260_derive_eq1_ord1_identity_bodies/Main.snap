@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Identity :: Type -> Type
+data Identity @a
+  | Identity :: a -> Identity a
+
+dictionary eqIdentity :: forall t. { eqDict :: Eq t } => Eq (Identity t) where
+  eq :: Identity t -> Identity t -> Boolean
+  eq = \left right ->
+  case left, right of
+    (Identity left0), (Identity right0) ->
+      if eq @t {eqDict} left0 right0 then true else false
+
+dictionary ordIdentity :: forall t. { ordDict :: Ord t } => Ord (Identity t) where
+  superclass eqDict = eqIdentity {ordDict.eqDict}
+  compare :: Identity t -> Identity t -> Ordering
+  compare = \left right ->
+  case left, right of
+    (Identity left0), (Identity right0) ->
+      case compare @t {ordDict} left0 right0 of
+        EQ -> EQ
+        ordering -> ordering
