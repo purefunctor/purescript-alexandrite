@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   build_site:
     runs-on: ubuntu-latest
