@@ -15,4 +15,5 @@ foreign import compareImpl :: Int -> Int -> Int
 
 dictionary ordInt :: { eqDict :: Eq Int } => Ord Int where
   superclass eqDict = eqDict
+  compare :: Int -> Int -> Int
   compare = compareImpl

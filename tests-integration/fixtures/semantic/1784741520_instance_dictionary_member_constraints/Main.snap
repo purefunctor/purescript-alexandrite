@@ -16,4 +16,5 @@ implementation = \{requiredDict} -> \_ -> \_ -> boolean
 foreign import boolean :: Boolean
 
 dictionary exampleInt :: Example Int where
+  apply :: forall (b :: Type). Required b => Int -> b -> Boolean
   apply = \{requiredDict} -> implementation @Int @b {requiredDict}

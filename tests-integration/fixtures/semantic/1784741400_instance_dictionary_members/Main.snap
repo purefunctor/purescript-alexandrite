@@ -14,5 +14,7 @@ interface Example a where
   second :: a
 
 dictionary exampleToken :: Example Token where
+  first :: Token
   first = FirstToken
+  second :: Token
   second = SecondToken
