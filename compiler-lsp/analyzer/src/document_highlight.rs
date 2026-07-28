@@ -1,12 +1,12 @@
 use std::iter;
 
-use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportItemId, ImportKind, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
 };
+use lsp_types::*;
 use smol_str::ToSmolStr;
 use stabilizing::AstId;
 use syntax::ast::AstNode;
@@ -16,13 +16,13 @@ use crate::position::{PositionEncoding, Utf8Range};
 use crate::{AnalyzerError, LanguageContext, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let content = context.engine.content(current_file);
@@ -68,7 +68,7 @@ enum HighlightTarget {
 }
 
 fn highlight_import(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -101,7 +101,7 @@ fn highlight_import(
 }
 
 fn import_target(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<HighlightTarget, AnalyzerError> {
@@ -180,7 +180,7 @@ fn import_target(
 }
 
 fn highlight_binder(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -234,7 +234,7 @@ fn highlight_binder(
 }
 
 fn highlight_expression(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -265,7 +265,7 @@ fn highlight_expression(
 }
 
 fn highlight_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     type_id: TypeId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -282,7 +282,7 @@ fn highlight_type(
 }
 
 fn highlight_file_term(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
@@ -375,7 +375,7 @@ fn highlight_file_term(
 }
 
 fn highlight_file_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
@@ -439,7 +439,7 @@ fn highlight_file_type(
 }
 
 fn highlight_term_operator(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     operator_id: TermOperatorId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -450,7 +450,7 @@ fn highlight_term_operator(
 }
 
 fn highlight_type_operator(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     operator_id: TypeOperatorId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -461,7 +461,7 @@ fn highlight_type_operator(
 }
 
 fn highlight_let(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     let_binding_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -521,7 +521,7 @@ fn highlight_let(
 }
 
 fn highlight_binder_pun(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -565,7 +565,7 @@ fn highlight_binder_pun(
 }
 
 fn highlight_expression_pun(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -587,7 +587,7 @@ fn highlight_expression_pun(
 }
 
 fn term_item_highlights(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -641,7 +641,7 @@ fn term_item_highlights(
 }
 
 fn type_item_highlights(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -726,7 +726,7 @@ fn let_equation_name_range(
 }
 
 fn push_name_highlight<T>(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     highlights: &mut Vec<DocumentHighlight>,
     id: Option<AstId<T>>,

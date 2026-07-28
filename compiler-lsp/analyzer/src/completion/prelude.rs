@@ -1,6 +1,6 @@
-use async_lsp::lsp_types::*;
 use files::FileId;
 use lowering::{GraphNodeId, LoweredModule};
+use lsp_types::*;
 use parsing::ParsedModule;
 use resolving::ResolvedModule;
 use smol_str::SmolStr;
@@ -13,8 +13,8 @@ use syntax::{
 use crate::position::{PositionEncoding, Utf8Position};
 use crate::{AnalyzerError, LanguageContext, position};
 
-pub struct CompletionContext<'c, 'a> {
-    pub language: &'c LanguageContext<'c>,
+pub struct CompletionContext<'c, 'a, Queries, Catalog> {
+    pub language: &'c LanguageContext<'c, Queries, Catalog>,
     pub current_file: FileId,
     pub content: &'a str,
     pub stabilized: &'a StabilizedModule,
@@ -30,7 +30,11 @@ pub struct CompletionContext<'c, 'a> {
     pub offset: TextSize,
 }
 
-impl CompletionContext<'_, '_> {
+impl<Queries, Catalog> CompletionContext<'_, '_, Queries, Catalog>
+where
+    Queries: crate::AnalyzerQueries,
+    Catalog: crate::FileCatalog,
+{
     pub fn insert_import_range(&self) -> Option<Range> {
         let cst = self.parsed.cst();
 
@@ -156,7 +160,7 @@ pub trait CompletionSource {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError>;

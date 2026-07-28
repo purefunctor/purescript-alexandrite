@@ -12,7 +12,7 @@ checking = { version = "0.1.0", path = "../checking" }
 stabilizing = { version = "0.1.0", path = "../stabilizing" }
 syntax = { version = "0.1.0", path = "../syntax" }
 
-lsp-types = "0.95.1"
+lsp-types.workspace = true
 line-index = "0.1.2"
 itertools = "0.14.0"
 smol_str = "0.3.2"

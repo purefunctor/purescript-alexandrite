@@ -1,4 +1,4 @@
-use async_lsp::lsp_types::*;
+use lsp_types::*;
 
 use super::resolve::CompletionResolveData;
 

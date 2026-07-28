@@ -4,17 +4,17 @@ use std::fmt::Write;
 
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
-use analyzer::{QueryEngine, prim};
-use async_lsp::lsp_types::{
+use building::QueryEngine;
+use files::{FileId, Files};
+use itertools::Itertools;
+use line_index::{LineIndex, TextSize};
+use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
     CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
     DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
     LanguageString, Location, MarkedString, Position, Range, SymbolInformation, TextEdit, Url,
     WorkspaceEdit, WorkspaceSymbolResponse,
 };
-use files::{FileId, Files};
-use itertools::Itertools;
-use line_index::{LineIndex, TextSize};
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
@@ -121,9 +121,7 @@ fn extract_requests(content: &str) -> Vec<Request> {
 pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
     let uri = {
         let path = files.path(id);
-        let content = files.content(id);
-        let uri = Url::parse(&path).unwrap();
-        prim::handle_generated(uri, &content).unwrap()
+        Url::parse(&path).unwrap()
     };
 
     let content = engine.content(id);
@@ -474,7 +472,7 @@ fn render_symbol_information(symbol: SymbolInformation) -> String {
 
 fn redact_paths(mut result: String) -> String {
     let manifest_directory = env!("CARGO_MANIFEST_DIR");
-    let temporary_directory = prim::TEMPORARY_DIRECTORY.path();
+    let temporary_directory = crate::PRIM_DIRECTORY.path();
 
     let manifest_directory_url = url::Url::from_file_path(manifest_directory).unwrap();
     let temporary_directory_url = url::Url::from_file_path(temporary_directory).unwrap();

@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 use std::{io, str};
 
-use analyzer::{AnalyzerError, QueryError};
+use analyzer::AnalyzerError;
 use async_lsp::ErrorCode;
+use building::QueryError;
 use spago::LockfileGlobSetError;
 use thiserror::Error;
 use tokio::task;

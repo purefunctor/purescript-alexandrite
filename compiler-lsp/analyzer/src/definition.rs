@@ -1,12 +1,12 @@
 use std::iter;
 
-use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, ImplicitTypeVariable,
     LetBindingNameGroupId, TermVariableResolution, TypeId, TypeKind, TypeVariableResolution,
 };
+use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::{SyntaxNode, SyntaxNodePtr, cst};
@@ -16,13 +16,13 @@ use crate::position::Utf8Range;
 use crate::{AnalyzerError, LanguageContext, common, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     position: Position,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let content = context.engine.content(current_file);
@@ -67,7 +67,7 @@ pub fn implementation(
 }
 
 fn definition_module_name(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -96,7 +96,7 @@ fn definition_module_name(
 }
 
 fn definition_import(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -183,7 +183,7 @@ fn definition_import(
 }
 
 fn definition_binder(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -199,7 +199,7 @@ fn definition_binder(
 }
 
 fn definition_expression(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     current_file: FileId,
     expression_id: ExpressionId,
@@ -295,7 +295,7 @@ fn record_pun_name_range(
 }
 
 fn definition_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     current_file: FileId,
     type_id: TypeId,
@@ -339,7 +339,7 @@ fn definition_type(
 }
 
 fn definition_file_term(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -349,7 +349,7 @@ fn definition_file_term(
 }
 
 fn definition_file_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -359,7 +359,7 @@ fn definition_file_type(
 }
 
 fn definition_let_binding(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     file_id: FileId,
     let_id: LetBindingNameGroupId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {

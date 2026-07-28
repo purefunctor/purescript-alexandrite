@@ -1,5 +1,5 @@
 use analyzer::position::PositionEncoding;
-use async_lsp::lsp_types::{InitializeParams, PositionEncodingKind};
+use lsp_types::{InitializeParams, PositionEncodingKind};
 
 pub fn negotiate_position_encoding(params: &InitializeParams) -> PositionEncoding {
     let Some(encodings) = params
@@ -24,7 +24,7 @@ pub fn negotiate_position_encoding(params: &InitializeParams) -> PositionEncodin
 
 #[cfg(test)]
 mod tests {
-    use async_lsp::lsp_types::{ClientCapabilities, GeneralClientCapabilities};
+    use lsp_types::{ClientCapabilities, GeneralClientCapabilities};
 
     use super::*;
 

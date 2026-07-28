@@ -3,6 +3,7 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use analyzer::FileCatalog;
 use building_types::{ModuleNameId, ModuleNameInterner, QueryProxy, QueryResult};
 use documenting::DocumentedModule;
 use files::{FileId, Files};
@@ -13,6 +14,7 @@ use prim_constants::MODULE_MAP;
 use resolving::ResolvedModule;
 use rustc_hash::FxHashMap;
 use stabilizing::StabilizedModule;
+use url::Url;
 
 #[derive(Default)]
 struct InputStorage {
@@ -42,10 +44,10 @@ struct InternedStorage {
 
 /// Single-threaded query engine for WASM
 pub struct WasmQueryEngine {
-    files: RefCell<Files>,
-    input: RefCell<InputStorage>,
+    files: Files,
+    input: InputStorage,
     derived: RefCell<DerivedStorage>,
-    interned: RefCell<InternedStorage>,
+    interned: InternedStorage,
 
     prim_id: FileId,
     user_id: Option<FileId>,
@@ -75,10 +77,10 @@ impl WasmQueryEngine {
         }
 
         Self {
-            files: RefCell::new(files),
-            input: RefCell::new(input),
+            files,
+            input,
             derived: RefCell::new(DerivedStorage::default()),
-            interned: RefCell::new(interned),
+            interned,
             prim_id: prim_id.expect("invariant violated: Prim must exist"),
             user_id: None,
             external_ids: Vec::new(),
@@ -89,15 +91,15 @@ impl WasmQueryEngine {
     /// Returns the parsed module name on success, or None if parsing fails.
     pub fn register_external_source(&mut self, path: &str, source: &str) -> Option<String> {
         let virtual_path = format!("pkg://registry/{path}");
-        let id = self.files.borrow_mut().insert(virtual_path.as_str(), source);
+        let id = self.files.insert(virtual_path.as_str(), source);
 
-        self.input.borrow_mut().content.insert(id, Arc::from(source));
+        self.input.content.insert(id, Arc::from(source));
 
         let (parsed, _) = self.parsed(id).ok()?;
         let module_name = parsed.module_name(source)?;
 
-        let name_id = self.interned.borrow().module.intern(&module_name);
-        self.input.borrow_mut().module.insert(name_id, id);
+        let name_id = self.interned.module.intern(&module_name);
+        self.input.module.insert(name_id, id);
 
         self.external_ids.push(id);
 
@@ -106,8 +108,8 @@ impl WasmQueryEngine {
 
     /// Clear all external modules (packages), keeping Prim and user modules.
     pub fn clear_external_modules(&mut self) {
-        let mut derived = self.derived.borrow_mut();
-        let mut input = self.input.borrow_mut();
+        let derived = self.derived.get_mut();
+        let input = &mut self.input;
 
         for id in self.external_ids.drain(..) {
             input.content.remove(&id);
@@ -142,7 +144,7 @@ impl WasmQueryEngine {
     /// Clears caches for the user file only.
     pub fn set_user_source(&mut self, source: &str) -> FileId {
         let id = if let Some(existing_id) = self.user_id {
-            let mut derived = self.derived.borrow_mut();
+            let derived = self.derived.get_mut();
             derived.parsed.remove(&existing_id);
             derived.stabilized.remove(&existing_id);
             derived.indexed.remove(&existing_id);
@@ -155,16 +157,16 @@ impl WasmQueryEngine {
             derived.documented.remove(&existing_id);
             existing_id
         } else {
-            let id = self.files.borrow_mut().insert("user://localhost/Main.purs", source);
+            let id = self.files.insert("user://localhost/Main.purs", source);
             self.user_id = Some(id);
 
-            let name_id = self.interned.borrow().module.intern("Main");
-            self.input.borrow_mut().module.insert(name_id, id);
+            let name_id = self.interned.module.intern("Main");
+            self.input.module.insert(name_id, id);
 
             id
         };
 
-        self.input.borrow_mut().content.insert(id, Arc::from(source));
+        self.input.content.insert(id, Arc::from(source));
         id
     }
 
@@ -195,12 +197,7 @@ impl WasmQueryEngine {
     }
 
     fn content(&self, id: FileId) -> Arc<str> {
-        self.input
-            .borrow()
-            .content
-            .get(&id)
-            .cloned()
-            .expect("invariant violated: content must exist")
+        self.input.content.get(&id).cloned().expect("invariant violated: content must exist")
     }
 }
 
@@ -215,6 +212,10 @@ impl QueryProxy for WasmQueryEngine {
     type Sectioned = Arc<sugar::Sectioned>;
     type Checked = Arc<checking::CheckedModule>;
     type Documented = Arc<DocumentedModule>;
+
+    fn content(&self, id: FileId) -> Arc<str> {
+        WasmQueryEngine::content(self, id)
+    }
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         if let Some(cached) = self.derived.borrow().parsed.get(&id) {
@@ -347,51 +348,70 @@ impl QueryProxy for WasmQueryEngine {
     }
 
     fn module_file(&self, name: &str) -> Option<FileId> {
-        let interned = self.interned.borrow();
-        let name_id = interned.module.lookup(name)?;
-        self.input.borrow().module.get(&name_id).copied()
+        let name_id = self.interned.module.lookup(name)?;
+        self.input.module.get(&name_id).copied()
+    }
+}
+
+impl FileCatalog for WasmQueryEngine {
+    fn file_id(&self, uri: &str) -> Option<FileId> {
+        let id = self.files.id(uri)?;
+        self.input.content.contains_key(&id).then_some(id)
+    }
+
+    fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
+        if !self.input.content.contains_key(&file_id) {
+            return Ok(None);
+        }
+        let path = self.files.path(file_id);
+        Url::parse(&path).map(Some)
+    }
+
+    fn active_files(&self) -> impl Iterator<Item = FileId> {
+        let files = self.files.iter_id();
+        files.filter(|id| self.input.content.contains_key(id))
     }
 }
 
 impl checking::PrettyQueries for WasmQueryEngine {
     fn lookup_type(&self, id: checking::core::TypeId) -> checking::core::Type {
-        self.interned.borrow().checking.lookup_type(id)
+        self.interned.checking.lookup_type(id)
     }
 
     fn lookup_forall_binder(
         &self,
         id: checking::core::ForallBinderId,
     ) -> checking::core::ForallBinder {
-        self.interned.borrow().checking.lookup_forall_binder(id)
+        self.interned.checking.lookup_forall_binder(id)
     }
 
     fn lookup_row_type(&self, id: checking::core::RowTypeId) -> checking::core::RowType {
-        self.interned.borrow().checking.lookup_row_type(id)
+        self.interned.checking.lookup_row_type(id)
     }
 
     fn lookup_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
-        self.interned.borrow().checking.lookup_smol_str(id)
+        self.interned.checking.lookup_smol_str(id)
     }
 }
 
 impl checking::ExternalQueries for WasmQueryEngine {
     fn intern_type(&self, t: checking::core::Type) -> checking::core::TypeId {
-        self.interned.borrow().checking.intern_type(t)
+        self.interned.checking.intern_type(t)
     }
 
     fn intern_forall_binder(
         &self,
         binder: checking::core::ForallBinder,
     ) -> checking::core::ForallBinderId {
-        self.interned.borrow().checking.intern_forall_binder(binder)
+        self.interned.checking.intern_forall_binder(binder)
     }
 
     fn intern_row_type(&self, row: checking::core::RowType) -> checking::core::RowTypeId {
-        self.interned.borrow().checking.intern_row_type(row)
+        self.interned.checking.intern_row_type(row)
     }
 
     fn intern_smol_str(&self, s: smol_str::SmolStr) -> checking::core::SmolStrId {
-        self.interned.borrow().checking.intern_smol_str(s)
+        self.interned.checking.intern_smol_str(s)
     }
 }
 

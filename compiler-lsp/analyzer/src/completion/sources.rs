@@ -1,8 +1,8 @@
-use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportKind, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::GraphNode;
+use lsp_types::*;
 use resolving::ResolvedModule;
 use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
@@ -16,7 +16,7 @@ use super::prelude::{CompletionContext, CompletionSource, Filter};
 use super::resolve::CompletionResolveData;
 
 fn module_name(
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     file_id: FileId,
 ) -> Result<Option<String>, AnalyzerError> {
     let content = context.language.engine.content(file_id);
@@ -40,7 +40,7 @@ impl CompletionSource for QualifiedModules {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -77,7 +77,7 @@ impl CompletionSource for ScopeTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -166,7 +166,7 @@ impl CompletionSource for ScopeTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -239,7 +239,10 @@ impl CompletionSource for ScopeTypes {
     }
 }
 
-fn implicit_binding_at_cursor(context: &CompletionContext, type_id: &[lowering::TypeId]) -> bool {
+fn implicit_binding_at_cursor(
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    type_id: &[lowering::TypeId],
+) -> bool {
     let root = context.parsed.syntax_node();
 
     type_id.iter().any(|type_id| {
@@ -259,7 +262,7 @@ impl CompletionSource for LocalTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -291,7 +294,7 @@ impl CompletionSource for LocalTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -339,7 +342,7 @@ impl CompletionSource for ImportedTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -380,7 +383,7 @@ impl CompletionSource for ImportedTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -440,7 +443,7 @@ impl CompletionSource for QualifiedTerms<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -484,7 +487,7 @@ impl CompletionSource for QualifiedTypes<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -556,7 +559,7 @@ trait SuggestionsHelper {
 
     fn candidate(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -573,7 +576,7 @@ impl SuggestionsHelper for SuggestedTerms {
 
     fn candidate(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -625,7 +628,7 @@ impl SuggestionsHelper for SuggestedTypes {
 
     fn candidate(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -668,7 +671,7 @@ impl SuggestionsHelper for SuggestedTypes {
 
 fn suggestions_candidates<T: SuggestionsHelper>(
     this: &T,
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     filter: impl Filter,
     items: &mut Vec<CompletionItem>,
 ) -> Result<(), AnalyzerError> {
@@ -679,7 +682,7 @@ fn suggestions_candidates<T: SuggestionsHelper>(
         .flatten()
         .any(|import| import.file == context.prim_id);
 
-    let file_ids = context.language.files.iter_id().filter(move |&id| {
+    let file_ids = context.language.files.active_files().filter(move |&id| {
         let not_self = id != context.current_file;
         let not_prim = id != context.prim_id;
         not_self && (not_prim || has_prim)
@@ -706,7 +709,7 @@ impl CompletionSource for SuggestedTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -719,7 +722,7 @@ impl CompletionSource for SuggestedTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -735,7 +738,7 @@ impl CompletionSource for PrimTerms {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -770,7 +773,7 @@ impl CompletionSource for PrimTypes {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -833,7 +836,7 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
 
     fn candidate(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -876,7 +879,7 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
 
     fn candidate(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         name: &SmolStr,
         import_id: FileId,
         file_id: FileId,
@@ -911,14 +914,14 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
 fn suggestions_candidates_qualified<T: SuggestionsHelper>(
     this: &T,
     prefix: &str,
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     filter: impl Filter,
     items: &mut Vec<CompletionItem>,
 ) -> Result<(), AnalyzerError> {
     let has_prim =
         context.resolved.qualified.values().flatten().any(|import| import.file == context.prim_id);
 
-    let file_ids = context.language.files.iter_id().filter(move |&id| {
+    let file_ids = context.language.files.active_files().filter(move |&id| {
         let not_self = id != context.current_file;
         let not_prim = id != context.prim_id;
         not_self && (not_prim || has_prim)
@@ -952,7 +955,7 @@ impl CompletionSource for QualifiedTermsSuggestions<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -965,7 +968,7 @@ impl CompletionSource for QualifiedTypesSuggestions<'_> {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
@@ -981,11 +984,11 @@ impl CompletionSource for WorkspaceModules {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext,
+        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
-        for id in context.language.files.iter_id() {
+        for id in context.language.files.active_files() {
             let Some(module_name) = module_name(context, id)? else {
                 continue;
             };

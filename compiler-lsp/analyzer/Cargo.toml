@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-async-lsp = { version = "0.2.2", features = ["tokio"] }
-building = { version = "0.1.0", path = "../../compiler-core/building" }
+building-types = { version = "0.1.0", path = "../../compiler-core/building-types" }
 checking = { version = "0.1.0", path = "../../compiler-core/checking" }
 files = { version = "0.1.0", path = "../../compiler-core/files" }
 indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
@@ -13,6 +12,7 @@ itertools = "0.14.0"
 la-arena = "0.3.1"
 lexing = { version = "0.1.0", path = "../../compiler-core/lexing" }
 line-index = "0.1.2"
+lsp-types.workspace = true
 lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
 parsing = { version = "0.1.0", path = "../../compiler-core/parsing" }
 radix_trie = "0.3.0"

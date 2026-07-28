@@ -894,6 +894,10 @@ impl QueryProxy for QueryEngine {
 
     type Documented = Arc<documenting::DocumentedModule>;
 
+    fn content(&self, id: FileId) -> Arc<str> {
+        QueryEngine::content(self, id)
+    }
+
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed> {
         QueryEngine::parsed(self, id)
     }

@@ -1,9 +1,9 @@
 use std::iter;
 
-use async_lsp::lsp_types::Range;
 use files::FileId;
 use indexing::{ImportKind, IndexedModule, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use itertools::Itertools;
+use lsp_types::Range;
 use resolving::ResolvedImport;
 use smol_str::{SmolStrBuilder, ToSmolStr};
 use syntax::ast::AstNode;
@@ -12,7 +12,7 @@ use crate::completion::CompletionContext;
 use crate::{locate, position};
 
 fn import_item<F, G>(
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     module_name: &str,
     file_id: FileId,
     lookup_fn: F,
@@ -94,7 +94,7 @@ where
 }
 
 pub(super) fn term_import_item(
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     module_name: &str,
     term_name: &str,
     file_id: FileId,
@@ -114,7 +114,7 @@ pub(super) fn term_import_item(
 }
 
 pub(super) fn type_import_item(
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     module_name: &str,
     type_name: &str,
     file_id: FileId,

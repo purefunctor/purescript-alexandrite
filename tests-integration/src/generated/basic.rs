@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
-use analyzer::{QueryEngine, position};
+use analyzer::position;
+use building::QueryEngine;
 use checking::core::pretty;
 use checking::{PrettyQueries, core};
 use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};

@@ -3,11 +3,31 @@ pub mod generated;
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
-use analyzer::{QueryEngine, prim};
+use building::QueryEngine;
 use files::Files;
 use glob::glob;
+use prim_constants::MODULE_MAP;
+use tempfile::TempDir;
 use url::Url;
+
+static PRIM_DIRECTORY: LazyLock<TempDir> =
+    LazyLock::new(|| TempDir::new().expect("invariant violated: failed to create PRIM_DIRECTORY"));
+
+fn configure_materialized_prim(engine: &QueryEngine, files: &mut Files) {
+    for (name, content) in MODULE_MAP {
+        let path = PRIM_DIRECTORY.path().join(format!("{name}.purs"));
+        fs::write(&path, content).expect("invariant violated: failed to materialize Prim module");
+
+        let uri = Url::from_file_path(path)
+            .expect("invariant violated: failed to create Prim module file URL");
+        let id = files.insert(uri.as_str(), *content);
+
+        engine.set_content(id, *content);
+        engine.set_module_file(name, id);
+    }
+}
 
 fn load_file(engine: &mut QueryEngine, files: &mut Files, path: &Path) {
     let url = Url::from_file_path(path).unwrap();
@@ -38,7 +58,7 @@ fn load_folder(folder: &Path) -> impl Iterator<Item = PathBuf> {
 pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
-    prim::configure(&mut engine, &mut files);
+    configure_materialized_prim(&engine, &mut files);
 
     if folder.starts_with("fixtures/checking/") || folder.starts_with("fixtures/semantic/") {
         let prelude = Path::new("fixtures/checking/prelude");

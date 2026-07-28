@@ -1,5 +1,5 @@
-use async_lsp::lsp_types;
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
+use lsp_types;
 use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr, TextRange, TextSize, cst};
 
@@ -244,7 +244,7 @@ pub fn infix_operator_range(
 
 #[cfg(test)]
 mod tests {
-    use async_lsp::lsp_types::{Position, PositionEncodingKind};
+    use lsp_types::{Position, PositionEncodingKind};
     use syntax::TextSize;
 
     use super::{

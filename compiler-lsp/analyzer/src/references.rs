@@ -1,10 +1,10 @@
-use async_lsp::lsp_types::*;
 use files::FileId;
 use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermVariableResolution, TypeId, TypeKind,
 };
+use lsp_types::*;
 use parsing::ParsedModule;
 use resolving::ResolvedImport;
 use rustc_hash::FxHashSet;
@@ -16,13 +16,13 @@ use syntax::cst;
 use crate::{AnalyzerError, LanguageContext, common, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let content = context.engine.content(current_file);
@@ -71,7 +71,7 @@ pub fn implementation(
 }
 
 fn references_module_name(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -108,7 +108,7 @@ fn references_module_name(
 }
 
 fn references_import(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -195,7 +195,7 @@ fn references_import(
 }
 
 fn references_binder(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -247,7 +247,7 @@ fn references_binder(
 }
 
 fn references_expression(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -284,7 +284,7 @@ fn references_expression(
 }
 
 fn references_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     type_id: TypeId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -304,7 +304,7 @@ fn references_type(
 }
 
 fn id_range<T>(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     content: &str,
     parsed: &ParsedModule,
     stabilized: &StabilizedModule,
@@ -320,7 +320,7 @@ where
 }
 
 fn references_file_term(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
@@ -384,7 +384,7 @@ fn references_file_term(
 }
 
 fn references_file_type(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
@@ -432,7 +432,7 @@ fn references_file_type(
 }
 
 fn probe_term_references(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
@@ -445,7 +445,7 @@ fn probe_term_references(
 }
 
 fn probe_type_references(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
@@ -460,14 +460,14 @@ fn probe_type_references(
 }
 
 fn probe_workspace_imports(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     source_file: FileId,
     check_import: impl Fn(&ResolvedImport) -> bool,
 ) -> Result<FxHashSet<FileId>, AnalyzerError> {
     let mut probe = FxHashSet::from_iter([current_file, source_file]);
 
-    for workspace_file_id in context.files.iter_id() {
+    for workspace_file_id in context.files.active_files() {
         if workspace_file_id == current_file || workspace_file_id == source_file {
             continue;
         }
@@ -489,12 +489,12 @@ fn probe_workspace_imports(
 }
 
 fn probe_imports_for(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     module_id: FileId,
 ) -> Result<FxHashSet<(FileId, ImportId)>, AnalyzerError> {
     let mut probe = FxHashSet::default();
 
-    for workspace_file_id in context.files.iter_id() {
+    for workspace_file_id in context.files.active_files() {
         let resolved = context.engine.resolved(workspace_file_id)?;
 
         let unqualified = resolved.unqualified.values().flatten();
@@ -512,7 +512,7 @@ fn probe_imports_for(
 }
 
 fn references_let(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     let_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -556,7 +556,7 @@ fn references_let(
 }
 
 fn references_binder_pun(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
@@ -599,7 +599,7 @@ fn references_binder_pun(
 }
 
 fn references_expression_pun(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {

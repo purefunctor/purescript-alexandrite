@@ -2,7 +2,6 @@
 
 use std::iter;
 
-use building::QueryEngine;
 use files::FileId;
 use indexing::{ImportItemId, IndexedModule, TermItemId, TypeItemId};
 use lowering::{
@@ -15,7 +14,7 @@ use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TokenAtOffset, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::position::{Utf8Position, Utf8Range};
-use crate::{AnalyzerError, position};
+use crate::{AnalyzerError, AnalyzerQueries, position};
 
 pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
     let range = AnnotationSyntaxRange::from_ptr(root, ptr);
@@ -92,7 +91,7 @@ pub enum Located {
 }
 
 pub fn locate(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     id: FileId,
     position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {

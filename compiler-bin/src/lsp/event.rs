@@ -1,9 +1,9 @@
 use analyzer::{common, position};
 use async_lsp::LanguageClient;
-use async_lsp::lsp_types::*;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
 use files::FileId;
 use itertools::Itertools;
+use lsp_types::*;
 use syntax::TextSize;
 
 use crate::lsp::error::LspError;

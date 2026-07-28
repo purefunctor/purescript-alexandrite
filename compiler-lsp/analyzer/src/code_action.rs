@@ -2,21 +2,21 @@ mod holes;
 
 use std::collections::HashMap;
 
-use async_lsp::lsp_types::*;
 use files::FileId;
 use lowering::{ExpressionId, TypeId};
+use lsp_types::*;
 
 use crate::{AnalyzerError, LanguageContext, locate, position};
 
 pub fn implementation(
-    language: &LanguageContext,
+    language: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     range: Range,
     action_context: CodeActionContext,
 ) -> Result<Option<CodeActionResponse>, AnalyzerError> {
     let file = {
         let uri = uri.as_str();
-        language.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        language.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let content = language.engine.content(file);
@@ -34,8 +34,8 @@ pub fn implementation(
     Ok(has_actions.then_some(actions))
 }
 
-pub struct CodeActionRequest<'request, 'language> {
-    pub language: &'request LanguageContext<'language>,
+pub struct CodeActionRequest<'request, 'language, Queries, Catalog> {
+    pub language: &'request LanguageContext<'language, Queries, Catalog>,
     pub uri: &'request Url,
     pub file: FileId,
     pub kinds: RequestedCodeActionKinds<'request>,
@@ -72,7 +72,7 @@ pub fn workspace_edit(uri: &Url, edits: Vec<TextEdit>) -> WorkspaceEdit {
 }
 
 pub fn expression_range(
-    request: &CodeActionRequest,
+    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     expression_id: ExpressionId,
 ) -> Result<Range, AnalyzerError> {
     let content = request.language.engine.content(request.file);
@@ -86,7 +86,10 @@ pub fn expression_range(
         .ok_or(AnalyzerError::NonFatal)
 }
 
-pub fn type_range(request: &CodeActionRequest, type_id: TypeId) -> Result<Range, AnalyzerError> {
+pub fn type_range(
+    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    type_id: TypeId,
+) -> Result<Range, AnalyzerError> {
     let content = request.language.engine.content(request.file);
     let (parsed, _) = request.language.engine.parsed(request.file)?;
     let stabilized = request.language.engine.stabilized(request.file)?;

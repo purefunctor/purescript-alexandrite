@@ -1,7 +1,5 @@
 use std::mem;
 
-use async_lsp::lsp_types::*;
-use building::QueryEngine;
 use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
@@ -9,16 +7,17 @@ use lowering::{
     BinderId, GraphNodeId, ImplicitBindingId, LetBindingNameGroupId, RecordPunId,
     TypeVariableBindingId,
 };
+use lsp_types::*;
 use serde::{Deserialize, Serialize};
 
-use crate::AnalyzerError;
 use crate::extract::{AnnotationSyntaxRange, extract_annotation, extract_syntax};
+use crate::{AnalyzerError, AnalyzerQueries};
 
 const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
 
 #[allow(clippy::result_large_err)]
 pub fn implementation(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, (AnalyzerError, CompletionItem)> {
     let Some(value) = mem::take(&mut item.data) else {
@@ -81,7 +80,7 @@ fn resolve_documentation(
 }
 
 fn resolve_term_item(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     term_id: TermItemId,
     mut item: CompletionItem,
@@ -105,7 +104,7 @@ fn resolve_term_item(
 }
 
 fn render_term_signature(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Option<String> {
@@ -121,7 +120,7 @@ fn render_term_signature(
 }
 
 fn resolve_type_item(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     type_id: TypeItemId,
     mut item: CompletionItem,
@@ -145,7 +144,7 @@ fn resolve_type_item(
 }
 
 fn render_type_signature(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Option<String> {
@@ -161,7 +160,7 @@ fn render_type_signature(
 }
 
 fn resolve_binder(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     binder_id: BinderId,
     mut item: CompletionItem,
@@ -176,7 +175,7 @@ fn resolve_binder(
 }
 
 fn resolve_let(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     let_id: LetBindingNameGroupId,
     mut item: CompletionItem,
@@ -191,7 +190,7 @@ fn resolve_let(
 }
 
 fn resolve_record_pun(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     pun_id: RecordPunId,
     mut item: CompletionItem,
@@ -206,7 +205,7 @@ fn resolve_record_pun(
 }
 
 fn resolve_forall_type_variable(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     binding_id: TypeVariableBindingId,
     mut item: CompletionItem,
@@ -221,7 +220,7 @@ fn resolve_forall_type_variable(
 }
 
 fn resolve_implicit_type_variable(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     node_id: GraphNodeId,
     binding_id: ImplicitBindingId,
@@ -237,7 +236,7 @@ fn resolve_implicit_type_variable(
 }
 
 fn render_local_signature(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     name: &str,
     lookup: impl FnOnce(&checking::CheckedModule) -> Option<checking::TypeId>,

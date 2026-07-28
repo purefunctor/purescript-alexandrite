@@ -1,7 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use analyzer::QueryError;
+use building::QueryError;
 use documentation::Error as DocumentationError;
 use thiserror::Error;
 
