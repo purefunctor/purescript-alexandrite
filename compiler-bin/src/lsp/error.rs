@@ -52,6 +52,9 @@ impl LspError {
         if let Some(QueryError::Cancelled) = self.as_query_error() {
             return ErrorCode::REQUEST_CANCELLED;
         }
+        if matches!(self, LspError::AnalyzerError(AnalyzerError::RenameRejected(_))) {
+            return ErrorCode::INVALID_PARAMS;
+        }
         ErrorCode::REQUEST_FAILED
     }
 
@@ -59,11 +62,16 @@ impl LspError {
         if let Some(QueryError::Cancelled) = self.as_query_error() {
             return "Request cancelled";
         }
+        if let LspError::AnalyzerError(AnalyzerError::RenameRejected(message)) = self {
+            return message;
+        }
         "Request failed"
     }
 
     pub fn emit_trace(&self) {
         if let Some(QueryError::Cancelled) = self.as_query_error() {
+            tracing::warn!("{self}")
+        } else if matches!(self, LspError::AnalyzerError(AnalyzerError::RenameRejected(_))) {
             tracing::warn!("{self}")
         } else {
             tracing::error!("{self}")

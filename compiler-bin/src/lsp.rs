@@ -266,7 +266,12 @@ fn initialize(
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
-                rename_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
+                    prepare_provider: Some(true),
+                    work_done_progress_options: WorkDoneProgressOptions {
+                        work_done_progress: None,
+                    },
+                })),
                 document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
@@ -476,6 +481,20 @@ fn rename(snapshot: StateSnapshot, p: RenameParams) -> Result<Option<WorkspaceEd
     let result = snapshot.with_analyzer_context(|context| {
         analyzer::rename::implementation(context, uri, position, new_name)
     });
+
+    result.on_non_fatal(None)
+}
+
+fn prepare_rename(
+    snapshot: StateSnapshot,
+    p: TextDocumentPositionParams,
+) -> Result<Option<PrepareRenameResponse>, LspError> {
+    let _span = tracing::info_span!("prepare_rename").entered();
+    let uri = p.text_document.uri;
+    let position = p.position;
+
+    let result =
+        snapshot.with_analyzer_context(|context| analyzer::rename::prepare(context, uri, position));
 
     result.on_non_fatal(None)
 }
@@ -693,6 +712,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .request_snapshot::<request::Completion>(completion)
             .request_snapshot::<request::ResolveCompletionItem>(resolve_completion_item)
             .request_snapshot::<request::References>(references)
+            .request_snapshot::<request::PrepareRenameRequest>(prepare_rename)
             .request_snapshot::<request::Rename>(rename)
             .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)

@@ -4,7 +4,7 @@ use indexing::{ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, Typ
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use lsp_types::*;
 use syntax::ast::{AstNode, AstPtr};
-use syntax::{TokenAtOffset, cst};
+use syntax::{SyntaxToken, TextRange, TextSize, TokenAtOffset, cst};
 
 use crate::{AnalyzerContext, AnalyzerError, locate, position, references};
 
@@ -43,32 +43,23 @@ pub fn implementation(
     position: Position,
     new_name: String,
 ) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
-    let current_file = {
-        let uri = uri.as_str();
-        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
-    };
-
-    let content = context.queries().content(current_file);
-    let utf8_position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
-
-    let target = if let Some(target) = qualifier_target(context, current_file, utf8_position)? {
-        target
-    } else {
-        let located = locate::locate(context.queries(), current_file, utf8_position)?;
-        rename_target(context, current_file, located)?
-    };
+    let (_, _, target) = target_at_position(context, &uri, position)?;
 
     let Some((old_name, name_kind)) = target_name(context, target)? else {
         return Ok(None);
     };
-    if old_name == new_name || !valid_new_name(&new_name, name_kind) {
+    if old_name == new_name {
         return Ok(None);
     }
 
     if !context.is_editable(target.file()) {
         return Ok(None);
+    }
+
+    if !valid_new_name(&new_name, name_kind) {
+        let message =
+            format!("Cannot rename `{old_name}` to `{new_name}` because the new name is invalid");
+        return Err(AnalyzerError::RenameRejected(message));
     }
 
     let mut edits = edit::RenameEdits::new(context);
@@ -88,6 +79,88 @@ pub fn implementation(
     }
 
     edits.finish()
+}
+
+pub fn prepare(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    position: Position,
+) -> Result<Option<PrepareRenameResponse>, AnalyzerError> {
+    let (current_file, utf8_position, target) = target_at_position(context, &uri, position)?;
+    let Some((old_name, _)) = target_name(context, target)? else {
+        return Ok(None);
+    };
+    if !context.is_editable(target.file()) {
+        return Ok(None);
+    }
+
+    let range = rename_range(context, current_file, utf8_position, &old_name)?;
+
+    Ok(Some(PrepareRenameResponse::RangeWithPlaceholder { range, placeholder: old_name }))
+}
+
+fn target_at_position(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: &Url,
+    position: Position,
+) -> Result<(FileId, position::Utf8Position, RenameTarget), AnalyzerError> {
+    let current_file = {
+        let uri = uri.as_str();
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+    };
+
+    let content = context.queries().content(current_file);
+    let utf8_position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
+
+    let target = if let Some(target) = qualifier_target(context, current_file, utf8_position)? {
+        target
+    } else {
+        let located = locate::locate(context.queries(), current_file, utf8_position)?;
+        rename_target(context, current_file, located)?
+    };
+
+    Ok((current_file, utf8_position, target))
+}
+
+fn rename_range(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    current_file: FileId,
+    position: position::Utf8Position,
+    old_name: &str,
+) -> Result<Range, AnalyzerError> {
+    let content = context.queries().content(current_file);
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let root = parsed.syntax_node();
+
+    let name_range = |token: SyntaxToken| -> Option<TextRange> {
+        let token_text = token.text(&content);
+        if token_text == old_name {
+            return Some(token.text_range());
+        }
+        if token_text.strip_suffix('.') == Some(old_name) {
+            let range = token.text_range();
+            let end = range.end() - TextSize::from(1);
+            return Some(TextRange::new(range.start(), end));
+        }
+
+        token
+            .parent_ancestors()
+            .find_map(|node| (node.text(&content) == old_name).then(|| node.text_range()))
+    };
+
+    let range = match root.token_at_offset(offset) {
+        TokenAtOffset::None => None,
+        TokenAtOffset::Single(token) => name_range(token),
+        TokenAtOffset::Between(left, right) => name_range(right).or_else(|| name_range(left)),
+    };
+
+    let range = range.ok_or(AnalyzerError::NonFatal)?;
+    position::text_range_to_protocol(&content, range, context.position_encoding())
+        .ok_or(AnalyzerError::NonFatal)
 }
 
 fn qualifier_target(
