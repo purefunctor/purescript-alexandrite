@@ -1,6 +1,7 @@
 pub mod render;
 
 use std::fmt::Write;
+use std::path::Path;
 
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
@@ -16,6 +17,8 @@ use lsp_types::{
     TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
+use similar::TextDiff;
+use syntax::{SyntaxKind, TokenAtOffset};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
 
@@ -26,13 +29,14 @@ enum CursorKind {
     Completion,
     CompletionCached,
     References,
+    Rename,
     DocumentHighlight,
     DocumentSymbols,
     CodeAction,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '!', '&', '.'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '/', '!', '&', '.'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -41,6 +45,7 @@ impl CursorKind {
             "^" => Some(CursorKind::Completion),
             "~" => Some(CursorKind::CompletionCached),
             "%" => Some(CursorKind::References),
+            "/" => Some(CursorKind::Rename),
             "&" => Some(CursorKind::DocumentHighlight),
             "!" => Some(CursorKind::DocumentSymbols),
             "." => Some(CursorKind::CodeAction),
@@ -283,6 +288,62 @@ fn render_workspace_edit(edit: WorkspaceEdit) -> Vec<String> {
     result
 }
 
+fn render_rename_edit(edit: WorkspaceEdit, files: &Files, encoding: PositionEncoding) -> String {
+    let Some(changes) = edit.changes else { return String::new() };
+
+    let mut changes = changes.into_iter().collect::<Vec<_>>();
+    changes.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
+
+    let mut rendered = changes.into_iter().map(|(uri, edits)| {
+        let file_id = files.id(uri.as_str()).expect("rename edit references a loaded file");
+        let content = files.content(file_id);
+        let changed = apply_text_edits(&content, edits, encoding);
+        let file_name = uri
+            .to_file_path()
+            .ok()
+            .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+            .unwrap_or_else(|| uri.to_string());
+
+        let diff = TextDiff::from_lines(content.as_ref(), changed.as_str());
+        let diff = diff.unified_diff().header(&file_name, &file_name).to_string();
+        let mut diff = diff.lines().map(|line| if line == " " { "" } else { line });
+        let diff = diff.join("\n");
+
+        format!("```diff\n{diff}\n```")
+    });
+
+    rendered.join("\n\n")
+}
+
+fn apply_text_edits(content: &str, edits: Vec<TextEdit>, encoding: PositionEncoding) -> String {
+    let edits = edits.into_iter().map(|edit| {
+        let start =
+            analyzer::position::protocol_position_to_utf8(content, edit.range.start, encoding)
+                .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
+                .expect("rename edit starts at a valid source position");
+        let end = analyzer::position::protocol_position_to_utf8(content, edit.range.end, encoding)
+            .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
+            .expect("rename edit ends at a valid source position");
+
+        (usize::from(start), usize::from(end), edit.new_text)
+    });
+    let mut edits = edits.collect::<Vec<_>>();
+    edits.sort_by_key(|(start, end, _)| (*start, *end));
+
+    let mut result = String::with_capacity(content.len());
+    let mut cursor = 0;
+
+    for (start, end, new_text) in edits {
+        assert!(cursor <= start, "rename edits must not overlap");
+        result.push_str(&content[cursor..start]);
+        result.push_str(&new_text);
+        cursor = end;
+    }
+
+    result.push_str(&content[cursor..]);
+    result
+}
+
 fn render_code_action_response(response: CodeActionResponse) -> String {
     let mut result = vec![];
 
@@ -454,6 +515,29 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+        CursorKind::Rename => {
+            let Some(new_name) = rename_target_name(engine, files, uri.clone(), position, encoding)
+            else {
+                writeln!(result, "<empty>").unwrap();
+                return;
+            };
+            let context = analyzer::LanguageContext::new(engine, files, encoding);
+            let workspace_root =
+                uri.to_file_path().ok().and_then(|path| path.parent().map(Path::to_path_buf));
+            let response = analyzer::rename::implementation(
+                &context,
+                workspace_root.as_deref(),
+                uri,
+                position,
+                new_name,
+            );
+            if let Ok(Some(edit)) = response {
+                let edit = render_rename_edit(edit, files, encoding);
+                writeln!(result, "{edit}").unwrap();
+            } else {
+                writeln!(result, "<empty>").unwrap();
+            }
+        }
         CursorKind::DocumentHighlight => {
             let render_highlight = |h: DocumentHighlight| -> String {
                 format!(
@@ -474,6 +558,43 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+    }
+}
+
+fn rename_target_name(
+    engine: &QueryEngine,
+    files: &Files,
+    uri: Url,
+    position: Position,
+    encoding: PositionEncoding,
+) -> Option<String> {
+    let file_id = files.id(uri.as_str())?;
+    let content = engine.content(file_id);
+    let position = analyzer::position::protocol_position_to_utf8(&content, position, encoding)?;
+    let offset = analyzer::position::utf8_position_to_offset(&content, position)?;
+    let (parsed, _) = engine.parsed(file_id).ok()?;
+    let root = parsed.syntax_node();
+    let token = match root.token_at_offset(offset) {
+        TokenAtOffset::None => return None,
+        TokenAtOffset::Single(token) => token,
+        TokenAtOffset::Between(_, right) => right,
+    };
+
+    if token.parent().kind() == SyntaxKind::Qualifier {
+        return Some("Renamed".to_string());
+    }
+
+    match token.kind() {
+        SyntaxKind::LOWER => Some("renamed".to_string()),
+        SyntaxKind::UPPER => Some("Renamed".to_string()),
+        SyntaxKind::OPERATOR
+        | SyntaxKind::OPERATOR_NAME
+        | SyntaxKind::COLON
+        | SyntaxKind::DOUBLE_PERIOD
+        | SyntaxKind::DOUBLE_PERIOD_OPERATOR_NAME
+        | SyntaxKind::MINUS
+        | SyntaxKind::LEFT_THICK_ARROW => Some("<~>".to_string()),
+        _ => None,
     }
 }
 

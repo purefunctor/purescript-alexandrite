@@ -1,0 +1,236 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 2, character: 14 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,6 +1,6 @@
+-module Lib (value, class Example, Data(Constructor), (<?>), type (++)) where
++module Lib (renamed, class Example, Data(Constructor), (<?>), type (++)) where
+
+-value = 42
++renamed = 42
+
+ class Example a
+
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+ module Main where
+
+-import Lib (value, class Example, Data(Constructor), (<?>), type (++))
++import Lib (renamed, class Example, Data(Constructor), (<?>), type (++))
+ --            /            /      /                    /          /
+
+-valueUse = value
++valueUse = renamed
+
+ classUse :: forall a. Example a => a -> a
+ classUse a = a
+@@ -11,6 +11,6 @@
+ constructorUse :: Data
+ constructorUse = Constructor
+
+-operatorUse = value <?> value
++operatorUse = renamed <?> renamed
+
+ type TypeOperatorUse = Data ++ Data
+```
+
+
+Rename at Position { line: 2, character: 27 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,8 +1,8 @@
+-module Lib (value, class Example, Data(Constructor), (<?>), type (++)) where
++module Lib (value, class Renamed, Data(Constructor), (<?>), type (++)) where
+
+ value = 42
+
+-class Example a
++class Renamed a
+
+ data Data = Constructor
+
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,11 +1,11 @@
+ module Main where
+
+-import Lib (value, class Example, Data(Constructor), (<?>), type (++))
++import Lib (value, class Renamed, Data(Constructor), (<?>), type (++))
+ --            /            /      /                    /          /
+
+ valueUse = value
+
+-classUse :: forall a. Example a => a -> a
++classUse :: forall a. Renamed a => a -> a
+ classUse a = a
+
+ constructorUse :: Data
+```
+
+
+Rename at Position { line: 2, character: 34 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,10 +1,10 @@
+-module Lib (value, class Example, Data(Constructor), (<?>), type (++)) where
++module Lib (value, class Example, Renamed(Constructor), (<?>), type (++)) where
+
+ value = 42
+
+ class Example a
+
+-data Data = Constructor
++data Renamed = Constructor
+
+ infix 5 value as <?>
+
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Lib (value, class Example, Data(Constructor), (<?>), type (++))
++import Lib (value, class Example, Renamed(Constructor), (<?>), type (++))
+ --            /            /      /                    /          /
+
+ valueUse = value
+@@ -8,9 +8,9 @@
+ classUse :: forall a. Example a => a -> a
+ classUse a = a
+
+-constructorUse :: Data
++constructorUse :: Renamed
+ constructorUse = Constructor
+
+ operatorUse = value <?> value
+
+-type TypeOperatorUse = Data ++ Data
++type TypeOperatorUse = Renamed ++ Renamed
+```
+
+
+Rename at Position { line: 2, character: 55 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,4 +1,4 @@
+-module Lib (value, class Example, Data(Constructor), (<?>), type (++)) where
++module Lib (value, class Example, Data(Constructor), (<~>), type (++)) where
+
+ value = 42
+
+@@ -6,6 +6,6 @@
+
+ data Data = Constructor
+
+-infix 5 value as <?>
++infix 5 value as <~>
+
+ infix 5 type Data as ++
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Lib (value, class Example, Data(Constructor), (<?>), type (++))
++import Lib (value, class Example, Data(Constructor), (<~>), type (++))
+ --            /            /      /                    /          /
+
+ valueUse = value
+@@ -11,6 +11,6 @@
+ constructorUse :: Data
+ constructorUse = Constructor
+
+-operatorUse = value <?> value
++operatorUse = value <~> value
+
+ type TypeOperatorUse = Data ++ Data
+```
+
+
+Rename at Position { line: 2, character: 66 }
+
+```
+import Lib (value, class Example, Data(Constructor), (<?>), type (++))
+--            /            /      /                    /          /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,4 +1,4 @@
+-module Lib (value, class Example, Data(Constructor), (<?>), type (++)) where
++module Lib (value, class Example, Data(Constructor), (<?>), type (<~>)) where
+
+ value = 42
+
+@@ -8,4 +8,4 @@
+
+ infix 5 value as <?>
+
+-infix 5 type Data as ++
++infix 5 type Data as <~>
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Lib (value, class Example, Data(Constructor), (<?>), type (++))
++import Lib (value, class Example, Data(Constructor), (<?>), type (<~>))
+ --            /            /      /                    /          /
+
+ valueUse = value
+@@ -13,4 +13,4 @@
+
+ operatorUse = value <?> value
+
+-type TypeOperatorUse = Data ++ Data
++type TypeOperatorUse = Data <~> Data
+```

@@ -175,6 +175,20 @@ pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Op
     text_range_to_utf8_range(content, range)
 }
 
+pub fn export_item_name_range(content: &str, export_item: cst::ExportItem) -> Option<Utf8Range> {
+    let token = match export_item {
+        cst::ExportItem::ExportValue(cst) => cst.name_token()?,
+        cst::ExportItem::ExportClass(cst) => cst.name_token()?,
+        cst::ExportItem::ExportType(cst) => cst.name_token()?,
+        cst::ExportItem::ExportOperator(cst) => cst.name_token()?,
+        cst::ExportItem::ExportTypeOperator(cst) => cst.name_token()?,
+        cst::ExportItem::ExportModule(_) => return None,
+    };
+
+    let range = token.text_range();
+    text_range_to_utf8_range(content, range)
+}
+
 pub fn declaration_name_range(
     content: &str,
     root: &SyntaxNode,

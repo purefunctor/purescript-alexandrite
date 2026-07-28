@@ -1,0 +1,230 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 5, character: 11 }
+
+```
+term = original
+--         /
+```
+
+```diff
+--- Bridge.purs
++++ Bridge.purs
+@@ -1,3 +1,3 @@
+ module Bridge (module Lib) where
+
+-import Lib (Original(Original), original, hidden)
++import Lib (Original(Original), renamed, hidden)
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,9 +1,9 @@
+-module Lib (Original(Original), original, hidden) where
++module Lib (Original(Original), renamed, hidden) where
+
+ data Original = Original
+
+-original :: Original
+-original = Original
++renamed :: Original
++renamed = Original
+
+ hidden :: Original
+ hidden = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+ module Main where
+
+-import Bridge (Original(Original), original)
++import Bridge (Original(Original), renamed)
+ import Lib as Library
+
+-term = original
++term = renamed
+ --         /
+
+ type Example = Original
+```
+
+
+Rename at Position { line: 8, character: 19 }
+
+```
+type Example = Original
+--                 /
+```
+
+```diff
+--- Bridge.purs
++++ Bridge.purs
+@@ -1,3 +1,3 @@
+ module Bridge (module Lib) where
+
+-import Lib (Original(Original), original, hidden)
++import Lib (Renamed(Original), original, hidden)
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,9 +1,9 @@
+-module Lib (Original(Original), original, hidden) where
++module Lib (Renamed(Original), original, hidden) where
+
+-data Original = Original
++data Renamed = Original
+
+-original :: Original
++original :: Renamed
+ original = Original
+
+-hidden :: Original
++hidden :: Renamed
+ hidden = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,12 +1,12 @@
+ module Main where
+
+-import Bridge (Original(Original), original)
++import Bridge (Renamed(Original), original)
+ import Lib as Library
+
+ term = original
+ --         /
+
+-type Example = Original
++type Example = Renamed
+ --                 /
+
+ constructor = Original
+```
+
+
+Rename at Position { line: 11, character: 18 }
+
+```
+constructor = Original
+--                /
+```
+
+```diff
+--- Bridge.purs
++++ Bridge.purs
+@@ -1,3 +1,3 @@
+ module Bridge (module Lib) where
+
+-import Lib (Original(Original), original, hidden)
++import Lib (Original(Renamed), original, hidden)
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,9 +1,9 @@
+-module Lib (Original(Original), original, hidden) where
++module Lib (Original(Renamed), original, hidden) where
+
+-data Original = Original
++data Original = Renamed
+
+ original :: Original
+-original = Original
++original = Renamed
+
+ hidden :: Original
+-hidden = Original
++hidden = Renamed
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Bridge (Original(Original), original)
++import Bridge (Original(Renamed), original)
+ import Lib as Library
+
+ term = original
+@@ -9,7 +9,7 @@
+ type Example = Original
+ --                 /
+
+-constructor = Original
++constructor = Renamed
+ --                /
+
+ hiddenTerm = Library.hidden
+```
+
+
+Rename at Position { line: 14, character: 25 }
+
+```
+hiddenTerm = Library.hidden
+--                       /
+```
+
+```diff
+--- Bridge.purs
++++ Bridge.purs
+@@ -1,3 +1,3 @@
+ module Bridge (module Lib) where
+
+-import Lib (Original(Original), original, hidden)
++import Lib (Original(Original), original, renamed)
+```
+
+```diff
+--- Hidden.purs
++++ Hidden.purs
+@@ -1,3 +1,3 @@
+ module Hidden where
+
+-import Bridge hiding (hidden)
++import Bridge hiding (renamed)
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,9 +1,9 @@
+-module Lib (Original(Original), original, hidden) where
++module Lib (Original(Original), original, renamed) where
+
+ data Original = Original
+
+ original :: Original
+ original = Original
+
+-hidden :: Original
+-hidden = Original
++renamed :: Original
++renamed = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -12,5 +12,5 @@
+ constructor = Original
+ --                /
+
+-hiddenTerm = Library.hidden
++hiddenTerm = Library.renamed
+ --                       /
+```
