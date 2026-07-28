@@ -12,8 +12,8 @@ use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
     CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
     DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, Position, Range, SymbolInformation, TextEdit, Url,
-    WorkspaceEdit, WorkspaceSymbolResponse,
+    LanguageString, Location, MarkedString, Position, Range, SemanticTokens, SymbolInformation,
+    TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use tabled::Table;
@@ -60,9 +60,11 @@ fn cursor_marker_line(line: &str) -> bool {
 
 enum Request {
     Cursor(Position, CursorKind),
+    SemanticTokens,
     WorkspaceSymbols(String),
 }
 
+const SEMANTIC_TOKENS_DIRECTIVE: &str = "-- semantic tokens";
 const WORKSPACE_SYMBOLS_DIRECTIVE: &str = "-- #";
 
 fn extract_cursors(content: &str) -> Vec<(usize, Request)> {
@@ -111,8 +113,16 @@ fn extract_workspace_symbol_queries(content: &str) -> Vec<(usize, Request)> {
     queries
 }
 
+fn extract_semantic_tokens_requests(content: &str) -> Vec<(usize, Request)> {
+    content
+        .match_indices(SEMANTIC_TOKENS_DIRECTIVE)
+        .map(|(index, _)| (index, Request::SemanticTokens))
+        .collect()
+}
+
 fn extract_requests(content: &str) -> Vec<Request> {
     let mut requests = extract_cursors(content);
+    requests.extend(extract_semantic_tokens_requests(content));
     requests.extend(extract_workspace_symbol_queries(content));
     requests.sort_by_key(|(index, _)| *index);
     requests.into_iter().map(|(_, request)| request).collect()
@@ -172,10 +182,70 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
                 writeln!(result, "WorkspaceSymbols query {query:?}\n").unwrap();
                 dispatch_workspace_symbols(&mut result, engine, files, &mut symbols_cache, query);
             }
+            Request::SemanticTokens => {
+                writeln!(result, "SemanticTokens\n").unwrap();
+                dispatch_semantic_tokens(&mut result, engine, files, uri, &content);
+            }
         }
     }
 
     redact_paths(result)
+}
+
+fn dispatch_semantic_tokens(
+    result: &mut String,
+    engine: &QueryEngine,
+    files: &Files,
+    uri: Url,
+    content: &str,
+) {
+    let encoding = PositionEncoding::Utf16;
+    let context = analyzer::LanguageContext::new(engine, files, encoding);
+    let Ok(Some(SemanticTokens { data, .. })) =
+        analyzer::semantic_tokens::implementation(&context, uri)
+    else {
+        writeln!(result, "<empty>").unwrap();
+        return;
+    };
+
+    let mut line = 0;
+    let mut start = 0;
+    for token in data {
+        line += token.delta_line;
+        start = if token.delta_line == 0 { start + token.delta_start } else { token.delta_start };
+
+        let start_position = Position::new(line, start);
+        let end_position = Position::new(line, start + token.length);
+        let token_text =
+            analyzer::position::protocol_position_to_utf8(content, start_position, encoding)
+                .zip(analyzer::position::protocol_position_to_utf8(content, end_position, encoding))
+                .and_then(|(start, end)| {
+                    let start = analyzer::position::utf8_position_to_offset(content, start)?;
+                    let end = analyzer::position::utf8_position_to_offset(content, end)?;
+                    content.get(usize::from(start)..usize::from(end))
+                })
+                .unwrap_or("<invalid range>");
+
+        let token_type = &analyzer::semantic_tokens::TOKEN_TYPES[token.token_type as usize];
+        let modifiers = analyzer::semantic_tokens::TOKEN_MODIFIERS
+            .iter()
+            .enumerate()
+            .filter_map(|(index, modifier)| {
+                let bit = 1 << index;
+                (token.token_modifiers_bitset & bit != 0).then(|| modifier.as_str())
+            })
+            .join(", ");
+        let modifiers =
+            if modifiers.is_empty() { String::new() } else { format!(" [{modifiers}]") };
+
+        writeln!(
+            result,
+            "{line}:{start}..{} {}{modifiers} {token_text:?}",
+            start + token.length,
+            token_type.as_str(),
+        )
+        .unwrap();
+    }
 }
 
 fn render_location(location: Location) -> String {

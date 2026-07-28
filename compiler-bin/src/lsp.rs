@@ -201,6 +201,22 @@ fn initialize(
                 document_highlight_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            work_done_progress_options: WorkDoneProgressOptions {
+                                work_done_progress: None,
+                            },
+                            legend: SemanticTokensLegend {
+                                token_types: analyzer::semantic_tokens::TOKEN_TYPES.to_vec(),
+                                token_modifiers: analyzer::semantic_tokens::TOKEN_MODIFIERS
+                                    .to_vec(),
+                            },
+                            range: Some(false),
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                        },
+                    ),
+                ),
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
@@ -412,6 +428,20 @@ fn document_symbols(
     result.on_non_fatal(None)
 }
 
+fn semantic_tokens(
+    snapshot: StateSnapshot,
+    p: SemanticTokensParams,
+) -> Result<Option<SemanticTokensResult>, LspError> {
+    let _span = tracing::info_span!("semantic_tokens").entered();
+    let uri = p.text_document.uri;
+    let result = snapshot.with_language_context(|context| {
+        analyzer::semantic_tokens::implementation(context, uri)
+            .map(|tokens| tokens.map(SemanticTokensResult::Tokens))
+    });
+
+    result.on_non_fatal(None)
+}
+
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
     let uri = p.text_document.uri.as_str();
 
@@ -541,6 +571,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .request_snapshot::<request::DocumentHighlightRequest>(document_highlight)
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
             .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)
+            .request_snapshot::<request::SemanticTokensFullRequest>(semantic_tokens)
             .notification_ext::<notification::Initialized>(initialized)
             .notification_ext::<notification::Exit>(exit)
             .notification_ext::<notification::DidOpenTextDocument>(did_open)

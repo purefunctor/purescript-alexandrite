@@ -10,6 +10,7 @@ pub mod hover;
 pub mod locate;
 pub mod position;
 pub mod references;
+pub mod semantic_tokens;
 pub mod symbols;
 
 pub use context::{AnalyzerQueries, FileCatalog, LanguageContext};
