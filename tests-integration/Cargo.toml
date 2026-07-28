@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = "0.2.2"
+building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
@@ -17,11 +18,14 @@ itertools = "0.14.0"
 insta = "1.45.1"
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
+lsp-types.workspace = true
+prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
 serde_json = "1.0"
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-core/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
 tabled = "0.20.0"
+tempfile = "3.24.0"
 url = "2.5.7"
 
 [dev-dependencies]

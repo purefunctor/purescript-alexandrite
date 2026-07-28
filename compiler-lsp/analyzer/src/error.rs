@@ -1,4 +1,4 @@
-pub use building::QueryError;
+pub use building_types::QueryError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

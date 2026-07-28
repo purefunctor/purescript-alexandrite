@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 use std::{env, fs, process};
 
-use analyzer::{QueryEngine, prim};
+use building::{QueryEngine, prim};
 use documentation::schema::Location;
 use files::{FileId, Files};
 use itertools::Itertools;

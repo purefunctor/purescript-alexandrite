@@ -1,14 +1,13 @@
-use async_lsp::lsp_types::*;
-use building::prim;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
+use lsp_types::*;
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
 use crate::position::Utf8Range;
 use crate::{AnalyzerError, LanguageContext, locate, position};
 
 pub fn file_term_location(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     file_id: FileId,
     term_id: TermItemId,
@@ -30,7 +29,7 @@ pub fn file_term_location(
 }
 
 pub fn file_type_location(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     file_id: FileId,
     type_id: TypeItemId,
@@ -52,12 +51,11 @@ pub fn file_type_location(
     Ok(Location { uri, range })
 }
 
-pub fn file_uri(context: &LanguageContext, file_id: FileId) -> Result<Url, AnalyzerError> {
-    let path = context.files.path(file_id);
-    let content = context.engine.content(file_id);
-
-    let uri = Url::parse(&path)?;
-    prim::handle_generated(uri, &content).ok_or(AnalyzerError::NonFatal)
+pub fn file_uri(
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    file_id: FileId,
+) -> Result<Url, AnalyzerError> {
+    context.files.file_uri(file_id)?.ok_or(AnalyzerError::NonFatal)
 }
 
 pub fn pointers_range(

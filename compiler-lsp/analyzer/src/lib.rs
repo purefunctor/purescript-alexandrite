@@ -12,7 +12,5 @@ pub mod position;
 pub mod references;
 pub mod symbols;
 
-pub use building::{QueryEngine, QueryError, prim};
-pub use context::LanguageContext;
+pub use context::{AnalyzerQueries, FileCatalog, LanguageContext};
 pub use error::AnalyzerError;
-pub use files::Files;

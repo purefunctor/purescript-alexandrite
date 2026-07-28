@@ -3,7 +3,7 @@ use std::error::Error;
 use std::io;
 use std::path::Path;
 
-use analyzer::QueryEngine;
+use building::QueryEngine;
 use files::{FileId, Files};
 use itertools::Itertools;
 use serde_json::json;

@@ -1,4 +1,4 @@
-use analyzer::{QueryEngine, prim};
+use building::{QueryEngine, prim};
 use files::Files;
 
 #[test]

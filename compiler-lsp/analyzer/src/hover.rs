@@ -1,27 +1,26 @@
-use async_lsp::lsp_types::*;
-use building::QueryEngine;
 use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
+use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::{TextRange, cst};
 
 use crate::extract::AnnotationSyntaxRange;
-use crate::{AnalyzerError, LanguageContext, extract, locate, position};
+use crate::{AnalyzerError, AnalyzerQueries, LanguageContext, extract, locate, position};
 
 const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
 
 pub fn implementation(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let engine = context.engine;
@@ -63,7 +62,7 @@ pub fn implementation(
 }
 
 fn hover_module_name(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -90,7 +89,7 @@ fn hover_module_name(
 }
 
 fn hover_import(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -117,14 +116,14 @@ fn hover_import(
     let import_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
     let import_resolved = engine.resolved(import_id)?;
 
-    let hover_term_import = |engine: &QueryEngine, name: &str| {
+    let hover_term_import = |engine, name: &str| {
         let name = name.trim_start_matches("(").trim_end_matches(")");
         let (f_id, t_id) =
             import_resolved.exports.lookup_term(name).ok_or(AnalyzerError::NonFatal)?;
         hover_file_term(engine, f_id, t_id)
     };
 
-    let hover_type_import = |engine: &QueryEngine, name: &str| {
+    let hover_type_import = |engine, name: &str| {
         let name = name.trim_start_matches("(").trim_end_matches(")");
         let (f_id, t_id) = import_resolved
             .exports
@@ -134,7 +133,7 @@ fn hover_import(
         hover_file_type(engine, f_id, t_id)
     };
 
-    let hover_class_import = |engine: &QueryEngine, name: &str| {
+    let hover_class_import = |engine, name: &str| {
         let name = name.trim_start_matches("(").trim_end_matches(")");
         let (f_id, t_id) = import_resolved
             .exports
@@ -174,7 +173,7 @@ fn hover_import(
 }
 
 fn hover_binder(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     binder_id: lowering::BinderId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -197,7 +196,7 @@ fn hover_binder(
 }
 
 fn hover_expression(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     expression_id: lowering::ExpressionId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -242,7 +241,7 @@ fn hover_expression(
 }
 
 fn hover_let(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     let_binding_id: lowering::LetBindingNameGroupId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -255,7 +254,7 @@ fn hover_let(
 }
 
 fn hover_type(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     type_id: lowering::TypeId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -279,7 +278,7 @@ fn hover_type(
 }
 
 fn hover_checked_type(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     type_id: checking::TypeId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -296,7 +295,7 @@ fn hover_checked_type(
 }
 
 fn hover_file_term(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -325,7 +324,7 @@ fn hover_file_term(
 }
 
 fn hover_file_type(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
@@ -365,7 +364,7 @@ fn render_syntax(source: &str, range: TextRange) -> Option<MarkedString> {
 }
 
 fn hover_pun(
-    engine: &QueryEngine,
+    engine: &impl AnalyzerQueries,
     current_file: FileId,
     pun_id: lowering::RecordPunId,
 ) -> Result<Option<Hover>, AnalyzerError> {

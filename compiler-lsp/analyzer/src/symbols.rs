@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use async_lsp::lsp_types::*;
 use indexing::{TermItemKind, TypeItemKind};
+use lsp_types::*;
 use radix_trie::Trie;
 
 use crate::{AnalyzerError, LanguageContext, common};
@@ -31,7 +31,7 @@ fn type_symbol_kind(kind: &TypeItemKind) -> SymbolKind {
 }
 
 pub fn document(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     uri: Url,
 ) -> Result<Option<DocumentSymbolResponse>, AnalyzerError> {
     let engine = context.engine;
@@ -39,7 +39,7 @@ pub fn document(
 
     let current_file = {
         let uri = uri.as_str();
-        files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let resolved = engine.resolved(current_file)?;
@@ -106,7 +106,7 @@ pub fn document(
 }
 
 pub fn workspace(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     cache: &mut WorkspaceSymbolsCache,
     query: &str,
 ) -> Result<Option<WorkspaceSymbolResponse>, AnalyzerError> {
@@ -149,12 +149,12 @@ fn filter_symbols(cached: &[SymbolInformation], query: &str) -> Vec<SymbolInform
 }
 
 fn build_symbol_list(
-    context: &LanguageContext,
+    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     query: &str,
 ) -> Result<Vec<SymbolInformation>, AnalyzerError> {
     let mut symbols = vec![];
 
-    for file_id in context.files.iter_id() {
+    for file_id in context.files.active_files() {
         let resolved = context.engine.resolved(file_id)?;
         let indexed = context.engine.indexed(file_id)?;
         let uri = common::file_uri(context, file_id)?;

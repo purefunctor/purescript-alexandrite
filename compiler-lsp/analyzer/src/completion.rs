@@ -8,8 +8,8 @@ pub mod resolve;
 
 use std::sync::Arc;
 
-use async_lsp::lsp_types::*;
 use filter::{FuzzyMatch, NoFilter, StartsWith};
+use lsp_types::*;
 use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use radix_trie::Trie;
 use smol_str::SmolStr;
@@ -33,14 +33,14 @@ pub struct SuggestionsCacheEntry {
 pub type SuggestionsCache = Trie<String, Arc<SuggestionsCacheEntry>>;
 
 pub fn implementation(
-    language: &LanguageContext,
+    language: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     cache: &mut SuggestionsCache,
     uri: Url,
     position: Position,
 ) -> Result<Option<CompletionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        language.files.id(uri).ok_or(AnalyzerError::NonFatal)?
+        language.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let engine = language.engine;
@@ -98,7 +98,7 @@ pub fn implementation(
 }
 
 fn collect(
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     cache: &mut SuggestionsCache,
 ) -> Result<Vec<CompletionItem>, AnalyzerError> {
     let mut items = vec![];
@@ -219,7 +219,7 @@ fn collect(
 fn get_or_populate_suggestions<F: Filter>(
     cache: &mut SuggestionsCache,
     query: &str,
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     prefix: Option<&str>,
     filter: F,
 ) -> Result<Arc<SuggestionsCacheEntry>, AnalyzerError> {
@@ -273,7 +273,7 @@ fn filter_suggestions<F>(
     cached: &SuggestionsCacheEntry,
     prefix: Option<&str>,
     filter: &F,
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
 ) -> SuggestionsCacheEntry
 where
     F: Filter,
@@ -290,7 +290,7 @@ fn collect_entries<F>(
     items: &[CompletionItem],
     filter: &F,
     prefix: Option<&str>,
-    context: &CompletionContext,
+    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
 ) -> Vec<CompletionItem>
 where
     F: Filter,

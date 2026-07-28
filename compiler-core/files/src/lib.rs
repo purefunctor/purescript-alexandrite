@@ -41,7 +41,7 @@ impl Files {
         Arc::clone(contents)
     }
 
-    pub fn iter_id(&self) -> impl Iterator<Item = FileId> {
+    pub fn iter_id(&self) -> impl Iterator<Item = FileId> + use<> {
         let length = self.files.len();
         (0..length).map(|index| {
             let index = RawIdx::from_u32(index as u32);

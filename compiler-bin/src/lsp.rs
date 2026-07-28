@@ -4,32 +4,53 @@ pub mod event;
 pub mod extension;
 
 use std::borrow::BorrowMut;
-use std::ops::{ControlFlow, Deref};
+use std::ops::ControlFlow;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::{env, fs, mem, process};
 
+use analyzer::LanguageContext;
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
-use analyzer::{Files, LanguageContext, QueryEngine, prim};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
 use async_lsp::concurrency::ConcurrencyLayer;
-use async_lsp::lsp_types::notification::Notification;
-use async_lsp::lsp_types::request::Request;
-use async_lsp::lsp_types::*;
 use async_lsp::panic::CatchUnwindLayer;
 use async_lsp::router::Router;
 use async_lsp::server::LifecycleLayer;
 use async_lsp::{ClientSocket, ResponseError};
+use building::QueryEngine;
+use files::Files;
 use itertools::Itertools;
+use lsp_types::notification::Notification;
+use lsp_types::request::Request;
+use lsp_types::*;
 use parking_lot::RwLock;
+use prim_constants::MODULE_MAP;
+use tempfile::TempDir;
 use tokio::task;
 use tower::ServiceBuilder;
 
 use crate::lsp::capabilities::negotiate_position_encoding;
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 use crate::walk;
+
+static PRIM_DIRECTORY: LazyLock<TempDir> =
+    LazyLock::new(|| TempDir::new().expect("invariant violated: failed to create PRIM_DIRECTORY"));
+
+fn configure_materialized_prim(engine: &QueryEngine, files: &mut Files) {
+    for (name, content) in MODULE_MAP {
+        let path = PRIM_DIRECTORY.path().join(format!("{name}.purs"));
+        fs::write(&path, content).expect("invariant violated: failed to materialize Prim module");
+
+        let uri = Url::from_file_path(path)
+            .expect("invariant violated: failed to create Prim module file URL");
+        let id = files.insert(uri.as_str(), *content);
+
+        engine.set_content(id, *content);
+        engine.set_module_file(name, id);
+    }
+}
 
 #[derive(Debug)]
 pub struct LspConfig {
@@ -55,9 +76,9 @@ pub struct State {
 
 impl State {
     fn new(config: Arc<LspConfig>, client: ClientSocket) -> State {
-        let mut engine = QueryEngine::default();
+        let engine = QueryEngine::default();
         let mut files = Files::default();
-        prim::configure(&mut engine, &mut files);
+        configure_materialized_prim(&engine, &mut files);
 
         let files = Arc::new(RwLock::new(files));
 
@@ -118,13 +139,16 @@ struct StateSnapshot {
 }
 
 impl StateSnapshot {
-    fn files(&self) -> impl Deref<Target = Files> {
-        self.files.read()
-    }
-
-    fn with_language_context<T>(&self, f: impl FnOnce(&LanguageContext) -> T) -> T {
-        let files = self.files();
-        let context = LanguageContext::new(&self.engine, &files, self.position_encoding);
+    fn with_language_context<T>(
+        &self,
+        f: impl FnOnce(&LanguageContext<QueryEngine, Files>) -> T,
+    ) -> T {
+        let files = self.files.read();
+        let context = LanguageContext::<QueryEngine, Files>::new(
+            &self.engine,
+            &files,
+            self.position_encoding,
+        );
         f(&context)
     }
 }

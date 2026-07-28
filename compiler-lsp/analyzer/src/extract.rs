@@ -1,11 +1,10 @@
-use building::QueryEngine;
 use files::FileId;
 use indexing::{TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::AstNode;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, TextRange};
 
-use crate::AnalyzerError;
+use crate::{AnalyzerError, AnalyzerQueries};
 
 #[derive(Debug, Default)]
 pub struct AnnotationSyntaxRange {
@@ -67,7 +66,7 @@ pub fn extract_syntax(source: &str, range: TextRange) -> String {
 
 impl AnnotationSyntaxRange {
     pub fn of_file(
-        engine: &QueryEngine,
+        engine: &impl AnalyzerQueries,
         file_id: FileId,
     ) -> Result<AnnotationSyntaxRange, AnalyzerError> {
         let (parsed, _) = engine.parsed(file_id)?;
@@ -100,7 +99,7 @@ impl AnnotationSyntaxRange {
     }
 
     pub fn of_file_term(
-        engine: &QueryEngine,
+        engine: &impl AnalyzerQueries,
         file_id: FileId,
         term_id: TermItemId,
     ) -> Result<AnnotationSyntaxRange, AnalyzerError> {
@@ -140,7 +139,7 @@ impl AnnotationSyntaxRange {
     }
 
     pub fn of_file_type(
-        engine: &QueryEngine,
+        engine: &impl AnalyzerQueries,
         file_id: FileId,
         type_id: TypeItemId,
     ) -> Result<AnnotationSyntaxRange, AnalyzerError> {

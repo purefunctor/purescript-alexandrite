@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
+analyzer = { version = "0.1.0", path = "../../../compiler-lsp/analyzer" }
 wasm-bindgen = "0.2.106"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 web-sys = { version = "0.3.83", features = ["Performance", "Window", "Worker", "WorkerGlobalScope"] }
@@ -39,6 +40,7 @@ syntax = { version = "0.1.0", path = "../../../compiler-core/syntax" }
 # Data structures
 rustc-hash = "2"
 smol_str = "0.3.5"
+url = "2.5.7"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.56"

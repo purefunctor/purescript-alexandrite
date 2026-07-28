@@ -44,6 +44,8 @@ pub trait QueryProxy {
     type Checked;
     type Documented;
 
+    fn content(&self, id: FileId) -> Arc<str>;
+
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed>;
 
     fn stabilized(&self, id: FileId) -> QueryResult<Self::Stabilized>;

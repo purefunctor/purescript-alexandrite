@@ -27,8 +27,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "analyzer"
 version = "0.1.0"
 dependencies = [
- "async-lsp",
- "building",
+ "building-types",
  "checking",
  "files",
  "indexing",
@@ -38,6 +37,7 @@ dependencies = [
  "lexing",
  "line-index",
  "lowering",
+ "lsp-types",
  "parsing",
  "radix_trie",
  "resolving",
@@ -268,9 +268,7 @@ dependencies = [
  "smol_str",
  "stabilizing",
  "sugar",
- "tempfile",
  "thread_local",
- "url",
 ]
 
 [[package]]
@@ -619,6 +617,7 @@ dependencies = [
 name = "docs-lib"
 version = "0.1.0"
 dependencies = [
+ "analyzer",
  "building-types",
  "checking",
  "console_error_panic_hook",
@@ -639,6 +638,7 @@ dependencies = [
  "stabilizing",
  "sugar",
  "syntax",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -1841,6 +1841,7 @@ version = "0.0.14"
 dependencies = [
  "analyzer",
  "async-lsp",
+ "building",
  "checking",
  "clap",
  "diagnostics",
@@ -1851,8 +1852,10 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "lowering",
+ "lsp-types",
  "parking_lot",
  "path-absolutize",
+ "prim-constants",
  "radix_trie",
  "rayon",
  "resolving",
@@ -1863,6 +1866,7 @@ dependencies = [
  "spago",
  "stabilizing",
  "syntax",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-util",
@@ -2607,6 +2611,7 @@ version = "0.1.0"
 dependencies = [
  "analyzer",
  "async-lsp",
+ "building",
  "checking",
  "datatest-stable",
  "diagnostics",
@@ -2619,11 +2624,14 @@ dependencies = [
  "itertools 0.14.0",
  "line-index",
  "lowering",
+ "lsp-types",
+ "prim-constants",
  "serde_json",
  "stabilizing",
  "sugar",
  "syntax",
  "tabled",
+ "tempfile",
  "url",
 ]
 

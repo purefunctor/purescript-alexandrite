@@ -1,4 +1,4 @@
-use analyzer::QueryEngine;
+use building::QueryEngine;
 use checking::tree::pretty;
 use files::FileId;
 

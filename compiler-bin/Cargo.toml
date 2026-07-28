@@ -25,7 +25,8 @@ path = "src/bin/purescript-analyzer.rs"
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
-async-lsp = "0.2.2"
+async-lsp = { version = "0.2.2", features = ["tokio"] }
+building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4.5.53", features = ["derive"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
@@ -35,8 +36,10 @@ globset = "0.4.18"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 itertools = "0.14.0"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
+lsp-types.workspace = true
 parking_lot = "0.12.5"
 path-absolutize = "3.1.1"
+prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
 radix_trie = "0.3.0"
 rayon = "1.12.0"
 resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
@@ -47,6 +50,7 @@ smol_str = "0.3.6"
 spago = { version = "0.1.0", path = "../compiler-lsp/spago" }
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
+tempfile = "3.24.0"
 thiserror = "2.0.17"
 tokio = { version = "1.52.3", features = ["full"] }
 tower = "0.5.2"

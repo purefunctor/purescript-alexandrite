@@ -1,11 +1,11 @@
-use async_lsp::lsp_types::*;
 use checking::holes::HoleBinding;
+use lsp_types::*;
 
 use crate::code_action::{CodeActionRequest, expression_range, type_range, workspace_edit};
 use crate::{AnalyzerError, locate};
 
 pub fn collect(
-    request: &CodeActionRequest,
+    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     actions: &mut Vec<CodeActionOrCommand>,
 ) -> Result<(), AnalyzerError> {
     if !request.kinds.includes(&CodeActionKind::QUICKFIX) {
@@ -33,7 +33,7 @@ pub fn collect(
 }
 
 fn collect_binding_actions(
-    request: &CodeActionRequest,
+    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
     range: Range,
     bindings: &[HoleBinding],
     actions: &mut Vec<CodeActionOrCommand>,

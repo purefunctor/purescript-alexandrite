@@ -1,5 +1,5 @@
-use async_lsp::lsp_types::{CompletionItem, CompletionItemKind, CompletionTextEdit, TextEdit};
 use itertools::Itertools;
+use lsp_types::{CompletionItem, CompletionItemKind, CompletionTextEdit, TextEdit};
 use tabled::Tabled;
 use tabled::derive::display;
 
