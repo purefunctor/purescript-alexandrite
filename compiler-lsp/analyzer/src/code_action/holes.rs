@@ -1,3 +1,4 @@
+use building_types::QueryProxy;
 use checking::holes::HoleBinding;
 use lsp_types::*;
 
@@ -5,14 +6,14 @@ use crate::code_action::{CodeActionRequest, expression_range, type_range, worksp
 use crate::{AnalyzerError, locate};
 
 pub fn collect(
-    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    request: &CodeActionRequest<impl crate::AnalyzerHost>,
     actions: &mut Vec<CodeActionOrCommand>,
 ) -> Result<(), AnalyzerError> {
     if !request.kinds.includes(&CodeActionKind::QUICKFIX) {
         return Ok(());
     }
 
-    let checked = request.language.engine.checked(request.file)?;
+    let checked = request.language.queries().checked(request.file)?;
     match &request.located {
         locate::Located::Expression(expression_id) => {
             let Some(hole) = checked.lookup_term_hole(*expression_id) else { return Ok(()) };
@@ -33,7 +34,7 @@ pub fn collect(
 }
 
 fn collect_binding_actions(
-    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    request: &CodeActionRequest<impl crate::AnalyzerHost>,
     range: Range,
     bindings: &[HoleBinding],
     actions: &mut Vec<CodeActionOrCommand>,

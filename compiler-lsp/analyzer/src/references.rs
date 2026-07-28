@@ -1,3 +1,4 @@
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
 use lowering::{
@@ -13,23 +14,24 @@ use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::{AstNode, AstPtr};
 use syntax::cst;
 
-use crate::{AnalyzerError, LanguageContext, common, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, common, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.engine.content(current_file);
-    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let content = context.queries().content(current_file);
+    let position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.engine, current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, position)?;
 
     match located {
         locate::Located::ModuleName(module_name) => {
@@ -44,13 +46,13 @@ pub fn implementation(
         }
         locate::Located::Type(type_id) => references_type(context, current_file, type_id),
         locate::Located::TermOperator(operator_id) => {
-            let lowered = context.engine.lowered(current_file)?;
+            let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_term(context, current_file, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
-            let lowered = context.engine.lowered(current_file)?;
+            let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_type(context, current_file, f_id, t_id)
@@ -71,11 +73,11 @@ pub fn implementation(
 }
 
 fn references_module_name(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
@@ -98,7 +100,7 @@ fn references_module_name(
         let stabilized = engine.stabilized(candidate_id)?;
         let ptr = stabilized.syntax_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
         let range = locate::syntax_range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
-        let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+        let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
 
         locations.push(Location { uri, range });
@@ -108,11 +110,11 @@ fn references_module_name(
 }
 
 fn references_import(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
@@ -195,17 +197,17 @@ fn references_import(
 }
 
 fn references_binder(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let uri = common::file_uri(context, current_file)?;
 
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
 
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
 
     let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
@@ -247,11 +249,11 @@ fn references_binder(
 }
 
 fn references_expression(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
@@ -284,11 +286,11 @@ fn references_expression(
 }
 
 fn references_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     type_id: TypeId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         TypeKind::Constructor { resolution, .. } => {
@@ -304,7 +306,7 @@ fn references_type(
 }
 
 fn id_range<T>(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     content: &str,
     parsed: &ParsedModule,
     stabilized: &StabilizedModule,
@@ -316,16 +318,16 @@ where
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
     let range = locate::syntax_range(content, &root, &ptr)?;
-    position::utf8_range_to_protocol(content, range, context.encoding)
+    position::utf8_range_to_protocol(content, range, context.position_encoding())
 }
 
 fn references_file_term(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let candidates = probe_term_references(context, current_file, file_id, term_id)?;
 
     let mut locations = vec![];
@@ -384,12 +386,12 @@ fn references_file_term(
 }
 
 fn references_file_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let candidates = probe_type_references(context, current_file, file_id, type_id)?;
 
     let mut locations = vec![];
@@ -432,7 +434,7 @@ fn references_file_type(
 }
 
 fn probe_term_references(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
@@ -445,7 +447,7 @@ fn probe_term_references(
 }
 
 fn probe_type_references(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
@@ -460,19 +462,19 @@ fn probe_type_references(
 }
 
 fn probe_workspace_imports(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     source_file: FileId,
     check_import: impl Fn(&ResolvedImport) -> bool,
 ) -> Result<FxHashSet<FileId>, AnalyzerError> {
     let mut probe = FxHashSet::from_iter([current_file, source_file]);
 
-    for workspace_file_id in context.files.active_files() {
+    for workspace_file_id in context.active_files() {
         if workspace_file_id == current_file || workspace_file_id == source_file {
             continue;
         }
 
-        let resolved = context.engine.resolved(workspace_file_id)?;
+        let resolved = context.queries().resolved(workspace_file_id)?;
 
         let unqualified = resolved.unqualified.values().flatten();
         let qualified = resolved.qualified.values().flatten();
@@ -489,13 +491,13 @@ fn probe_workspace_imports(
 }
 
 fn probe_imports_for(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     module_id: FileId,
 ) -> Result<FxHashSet<(FileId, ImportId)>, AnalyzerError> {
     let mut probe = FxHashSet::default();
 
-    for workspace_file_id in context.files.active_files() {
-        let resolved = context.engine.resolved(workspace_file_id)?;
+    for workspace_file_id in context.active_files() {
+        let resolved = context.queries().resolved(workspace_file_id)?;
 
         let unqualified = resolved.unqualified.values().flatten();
         let qualified = resolved.qualified.values().flatten();
@@ -512,11 +514,11 @@ fn probe_imports_for(
 }
 
 fn references_let(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     let_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let uri = common::file_uri(context, current_file)?;
 
     let content = engine.content(current_file);
@@ -556,11 +558,11 @@ fn references_let(
 }
 
 fn references_binder_pun(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let uri = common::file_uri(context, current_file)?;
 
     let content = engine.content(current_file);
@@ -599,11 +601,11 @@ fn references_binder_pun(
 }
 
 fn references_expression_pun(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     match lowered.info.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
         TermVariableResolution::Binder(binder_id) => {
             references_binder(context, current_file, binder_id)

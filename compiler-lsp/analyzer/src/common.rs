@@ -1,18 +1,19 @@
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
 use lsp_types::*;
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
 use crate::position::Utf8Range;
-use crate::{AnalyzerError, LanguageContext, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, locate, position};
 
 pub fn file_term_location(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Location, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
 
@@ -23,18 +24,18 @@ pub fn file_term_location(
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
     let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
 pub fn file_type_location(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Location, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
 
@@ -45,17 +46,17 @@ pub fn file_type_location(
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
     let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
 
 pub fn file_uri(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     file_id: FileId,
 ) -> Result<Url, AnalyzerError> {
-    context.files.file_uri(file_id)?.ok_or(AnalyzerError::NonFatal)
+    context.file_uri(file_id)?.ok_or(AnalyzerError::NonFatal)
 }
 
 pub fn pointers_range(

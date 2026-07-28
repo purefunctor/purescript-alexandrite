@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use building_types::QueryProxy;
 use indexing::{TermItemKind, TypeItemKind};
 use lsp_types::*;
 use radix_trie::Trie;
 
-use crate::{AnalyzerError, LanguageContext, common};
+use crate::{AnalyzerContext, AnalyzerError, common};
 
 fn term_symbol_kind(kind: &TermItemKind) -> SymbolKind {
     match kind {
@@ -31,15 +32,14 @@ fn type_symbol_kind(kind: &TypeItemKind) -> SymbolKind {
 }
 
 pub fn document(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
 ) -> Result<Option<DocumentSymbolResponse>, AnalyzerError> {
-    let engine = context.engine;
-    let files = context.files;
+    let engine = context.queries();
 
     let current_file = {
         let uri = uri.as_str();
-        files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
     let resolved = engine.resolved(current_file)?;
@@ -106,7 +106,7 @@ pub fn document(
 }
 
 pub fn workspace(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     cache: &mut WorkspaceSymbolsCache,
     query: &str,
 ) -> Result<Option<WorkspaceSymbolResponse>, AnalyzerError> {
@@ -149,14 +149,14 @@ fn filter_symbols(cached: &[SymbolInformation], query: &str) -> Vec<SymbolInform
 }
 
 fn build_symbol_list(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     query: &str,
 ) -> Result<Vec<SymbolInformation>, AnalyzerError> {
     let mut symbols = vec![];
 
-    for file_id in context.files.active_files() {
-        let resolved = context.engine.resolved(file_id)?;
-        let indexed = context.engine.indexed(file_id)?;
+    for file_id in context.active_files() {
+        let resolved = context.queries().resolved(file_id)?;
+        let indexed = context.queries().indexed(file_id)?;
         let uri = common::file_uri(context, file_id)?;
 
         for (name, _, term_id) in resolved.locals.iter_terms() {

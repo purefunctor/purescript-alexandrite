@@ -5,14 +5,14 @@ pub mod extension;
 
 use std::borrow::BorrowMut;
 use std::ops::ControlFlow;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 use std::{env, fs, mem, process};
 
-use analyzer::LanguageContext;
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
+use analyzer::{AnalyzerContext, AnalyzerHost};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
 use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::panic::CatchUnwindLayer;
@@ -20,12 +20,12 @@ use async_lsp::router::Router;
 use async_lsp::server::LifecycleLayer;
 use async_lsp::{ClientSocket, ResponseError};
 use building::QueryEngine;
-use files::Files;
+use files::{FileId, Files};
 use itertools::Itertools;
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
 use lsp_types::*;
-use parking_lot::RwLock;
+use parking_lot::{RwLock, RwLockReadGuard};
 use prim_constants::MODULE_MAP;
 use tempfile::TempDir;
 use tokio::task;
@@ -141,17 +141,55 @@ struct StateSnapshot {
 }
 
 impl StateSnapshot {
-    fn with_language_context<T>(
+    fn with_analyzer_context<T>(
         &self,
-        f: impl FnOnce(&LanguageContext<QueryEngine, Files>) -> T,
+        f: impl FnOnce(&AnalyzerContext<LspAnalyzerHost<'_>>) -> T,
     ) -> T {
         let files = self.files.read();
-        let context = LanguageContext::<QueryEngine, Files>::new(
-            &self.engine,
-            &files,
-            self.position_encoding,
-        );
+        let host =
+            LspAnalyzerHost { queries: &self.engine, files, workspace_root: self.root.as_deref() };
+        let context = AnalyzerContext::new(&host, self.position_encoding);
         f(&context)
+    }
+}
+
+struct LspAnalyzerHost<'a> {
+    queries: &'a QueryEngine,
+    files: RwLockReadGuard<'a, Files>,
+    workspace_root: Option<&'a Path>,
+}
+
+impl AnalyzerHost for LspAnalyzerHost<'_> {
+    type Queries = QueryEngine;
+
+    fn queries(&self) -> &QueryEngine {
+        self.queries
+    }
+
+    fn file_id(&self, uri: &str) -> Option<FileId> {
+        self.files.id(uri)
+    }
+
+    fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
+        let uri = self.files.path(file_id);
+        Url::parse(&uri).map(Some)
+    }
+
+    fn active_files(&self) -> impl Iterator<Item = FileId> {
+        self.files.iter_id()
+    }
+
+    fn is_editable(&self, file_id: FileId) -> bool {
+        let Some(workspace_root) = self.workspace_root else {
+            return true;
+        };
+        let Ok(Some(uri)) = self.file_uri(file_id) else {
+            return false;
+        };
+        let Ok(path) = uri.to_file_path() else {
+            return false;
+        };
+        path.starts_with(workspace_root)
     }
 }
 
@@ -299,7 +337,7 @@ fn load_files(state: &mut State, files: &[PathBuf]) -> Result<(), LspError> {
         let uri = url.to_string();
 
         let text = fs::read_to_string(file)?;
-        on_change(state, &uri, &text)?
+        on_change(state, &uri, &text)?;
     }
 
     tracing::info!("Loaded {} files.", files.len());
@@ -315,7 +353,7 @@ fn definition(
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
 
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::definition::implementation(context, uri, position)
     });
 
@@ -328,7 +366,7 @@ fn hover(snapshot: StateSnapshot, p: HoverParams) -> Result<Option<Hover>, LspEr
     let position = p.text_document_position_params.position;
 
     let result = snapshot
-        .with_language_context(|context| analyzer::hover::implementation(context, uri, position));
+        .with_analyzer_context(|context| analyzer::hover::implementation(context, uri, position));
 
     result.on_non_fatal(None)
 }
@@ -342,7 +380,7 @@ fn code_action(
     let range = p.range;
     let action_context = p.context;
 
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::code_action::implementation(context, uri, range, action_context)
     });
 
@@ -359,7 +397,7 @@ fn completion(
 
     let mut cache = snapshot.suggestions_cache.write();
 
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::completion::implementation(context, &mut cache, uri, position)
     });
 
@@ -383,7 +421,7 @@ fn references(
     let uri = p.text_document_position.text_document.uri;
     let position = p.text_document_position.position;
 
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::references::implementation(context, uri, position)
     });
 
@@ -396,8 +434,8 @@ fn rename(snapshot: StateSnapshot, p: RenameParams) -> Result<Option<WorkspaceEd
     let position = p.text_document_position.position;
     let new_name = p.new_name;
 
-    let result = snapshot.with_language_context(|context| {
-        analyzer::rename::implementation(context, snapshot.root.as_deref(), uri, position, new_name)
+    let result = snapshot.with_analyzer_context(|context| {
+        analyzer::rename::implementation(context, uri, position, new_name)
     });
 
     result.on_non_fatal(None)
@@ -410,7 +448,7 @@ fn document_highlight(
     let _span = tracing::info_span!("document_highlight").entered();
     let uri = p.text_document_position_params.text_document.uri;
     let position = p.text_document_position_params.position;
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::document_highlight::implementation(context, uri, position)
     });
 
@@ -425,7 +463,7 @@ fn workspace_symbols(
 
     let mut cache = snapshot.workspace_symbols_cache.write();
 
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::symbols::workspace(context, &mut cache, &p.query)
     });
 
@@ -439,7 +477,7 @@ fn document_symbols(
     let _span = tracing::info_span!("document_symbols").entered();
     let uri = p.text_document.uri;
     let result =
-        snapshot.with_language_context(|context| analyzer::symbols::document(context, uri));
+        snapshot.with_analyzer_context(|context| analyzer::symbols::document(context, uri));
 
     result.on_non_fatal(None)
 }
@@ -450,7 +488,7 @@ fn semantic_tokens(
 ) -> Result<Option<SemanticTokensResult>, LspError> {
     let _span = tracing::info_span!("semantic_tokens").entered();
     let uri = p.text_document.uri;
-    let result = snapshot.with_language_context(|context| {
+    let result = snapshot.with_analyzer_context(|context| {
         analyzer::semantic_tokens::implementation(context, uri)
             .map(|tokens| tokens.map(SemanticTokensResult::Tokens))
     });
@@ -463,7 +501,7 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
 
     for content_change in &p.content_changes {
         let text = content_change.text.as_str();
-        on_change(state, uri, text)?
+        on_change(state, uri, text)?;
     }
 
     state.invalidate_workspace_symbols();

@@ -1,8 +1,8 @@
 pub mod render;
 
 use std::fmt::Write;
-use std::path::Path;
 
+use analyzer::AnalyzerHost;
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use building::QueryEngine;
@@ -21,6 +21,36 @@ use similar::TextDiff;
 use syntax::{SyntaxKind, TokenAtOffset};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
+
+struct IntegrationAnalyzerHost<'a> {
+    queries: &'a QueryEngine,
+    files: &'a Files,
+}
+
+impl AnalyzerHost for IntegrationAnalyzerHost<'_> {
+    type Queries = QueryEngine;
+
+    fn queries(&self) -> &QueryEngine {
+        self.queries
+    }
+
+    fn file_id(&self, uri: &str) -> Option<FileId> {
+        self.files.id(uri)
+    }
+
+    fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
+        let uri = self.files.path(file_id);
+        Url::parse(&uri).map(Some)
+    }
+
+    fn active_files(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.files.iter_id()
+    }
+
+    fn is_editable(&self, _file_id: FileId) -> bool {
+        true
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 enum CursorKind {
@@ -205,7 +235,8 @@ fn dispatch_semantic_tokens(
     content: &str,
 ) {
     let encoding = PositionEncoding::Utf16;
-    let context = analyzer::LanguageContext::new(engine, files, encoding);
+    let host = IntegrationAnalyzerHost { queries: engine, files };
+    let context = analyzer::AnalyzerContext::new(&host, encoding);
     let Ok(Some(SemanticTokens { data, .. })) =
         analyzer::semantic_tokens::implementation(&context, uri)
     else {
@@ -384,7 +415,8 @@ fn dispatch_cursor(
     uri: Url,
 ) {
     let encoding = PositionEncoding::Utf16;
-    let context = analyzer::LanguageContext::new(engine, files, encoding);
+    let host = IntegrationAnalyzerHost { queries: engine, files };
+    let context = analyzer::AnalyzerContext::new(&host, encoding);
 
     match cursor {
         CursorKind::GotoDefinition => {
@@ -521,16 +553,9 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
                 return;
             };
-            let context = analyzer::LanguageContext::new(engine, files, encoding);
-            let workspace_root =
-                uri.to_file_path().ok().and_then(|path| path.parent().map(Path::to_path_buf));
-            let response = analyzer::rename::implementation(
-                &context,
-                workspace_root.as_deref(),
-                uri,
-                position,
-                new_name,
-            );
+            let host = IntegrationAnalyzerHost { queries: engine, files };
+            let context = analyzer::AnalyzerContext::new(&host, encoding);
+            let response = analyzer::rename::implementation(&context, uri, position, new_name);
             if let Ok(Some(edit)) = response {
                 let edit = render_rename_edit(edit, files, encoding);
                 writeln!(result, "{edit}").unwrap();
@@ -606,7 +631,8 @@ fn dispatch_workspace_symbols(
     query: &str,
 ) {
     let encoding = PositionEncoding::Utf16;
-    let context = analyzer::LanguageContext::new(engine, files, encoding);
+    let host = IntegrationAnalyzerHost { queries: engine, files };
+    let context = analyzer::AnalyzerContext::new(&host, encoding);
 
     match analyzer::symbols::workspace(&context, cache, query) {
         Ok(Some(WorkspaceSymbolResponse::Flat(symbols))) => {

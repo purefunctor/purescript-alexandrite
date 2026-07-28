@@ -1,5 +1,6 @@
 use std::iter;
 
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use lowering::{
@@ -13,23 +14,24 @@ use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::position::Utf8Range;
-use crate::{AnalyzerError, LanguageContext, common, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, common, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     position: Position,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.engine.content(current_file);
-    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let content = context.queries().content(current_file);
+    let position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.engine, current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, position)?;
 
     match located {
         locate::Located::ModuleName(module_name) => {
@@ -44,13 +46,13 @@ pub fn implementation(
         }
         locate::Located::Type(type_id) => definition_type(context, uri, current_file, type_id),
         locate::Located::TermOperator(operator_id) => {
-            let lowered = context.engine.lowered(current_file)?;
+            let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_term(context, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
-            let lowered = context.engine.lowered(current_file)?;
+            let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
                 lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_type(context, f_id, t_id)
@@ -67,11 +69,11 @@ pub fn implementation(
 }
 
 fn definition_module_name(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
@@ -89,18 +91,18 @@ fn definition_module_name(
     let range = root.text_range();
 
     let uri = common::file_uri(context, module_id)?;
-    let range = position::text_range_to_protocol(&content, range, context.encoding)
+    let range = position::text_range_to_protocol(&content, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
 }
 
 fn definition_import(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
@@ -183,11 +185,11 @@ fn definition_import(
 }
 
 fn definition_binder(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         BinderKind::Constructor { resolution, .. } => {
@@ -199,12 +201,12 @@ fn definition_binder(
 }
 
 fn definition_expression(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     current_file: FileId,
     expression_id: ExpressionId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
 
@@ -226,8 +228,12 @@ fn definition_expression(
                     let ptr = stabilized.syntax_ptr(*id).ok_or(AnalyzerError::NonFatal)?;
                     let range = locate::syntax_range(&content, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
-                        .ok_or(AnalyzerError::NonFatal)?;
+                    let range = position::utf8_range_to_protocol(
+                        &content,
+                        range,
+                        context.position_encoding(),
+                    )
+                    .ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TermVariableResolution::Let(binding_id) => {
@@ -252,8 +258,12 @@ fn definition_expression(
                         .chain(equations)
                         .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
-                        .ok_or(AnalyzerError::NonFatal)?;
+                    let range = position::utf8_range_to_protocol(
+                        &content,
+                        range,
+                        context.position_encoding(),
+                    )
+                    .ok_or(AnalyzerError::NonFatal)?;
 
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
@@ -262,8 +272,12 @@ fn definition_expression(
                     let ptr = stabilized.syntax_ptr(*id).ok_or(AnalyzerError::NonFatal)?;
                     let range = record_pun_name_range(&content, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
-                        .ok_or(AnalyzerError::NonFatal)?;
+                    let range = position::utf8_range_to_protocol(
+                        &content,
+                        range,
+                        context.position_encoding(),
+                    )
+                    .ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TermVariableResolution::Reference(f_id, t_id) => {
@@ -295,12 +309,12 @@ fn record_pun_name_range(
 }
 
 fn definition_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     current_file: FileId,
     type_id: TypeId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
@@ -327,8 +341,12 @@ fn definition_type(
                         .syntax_node_ptr();
                     let range = locate::syntax_range(&content, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
-                        .ok_or(AnalyzerError::NonFatal)?;
+                    let range = position::utf8_range_to_protocol(
+                        &content,
+                        range,
+                        context.position_encoding(),
+                    )
+                    .ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TypeVariableResolution::Implicit(ImplicitTypeVariable { .. }) => Ok(None),
@@ -339,7 +357,7 @@ fn definition_type(
 }
 
 fn definition_file_term(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -349,7 +367,7 @@ fn definition_file_term(
 }
 
 fn definition_file_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
@@ -359,11 +377,11 @@ fn definition_file_type(
 }
 
 fn definition_let_binding(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     file_id: FileId,
     let_id: LetBindingNameGroupId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(file_id);
     let (parsed, _) = engine.parsed(file_id)?;
     let stabilized = engine.stabilized(file_id)?;
@@ -379,7 +397,7 @@ fn definition_let_binding(
 
     let pointers = iter::chain(signature, equations);
     let range = common::pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.encoding)
+    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))

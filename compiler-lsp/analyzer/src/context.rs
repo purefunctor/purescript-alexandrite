@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryProxy;
 use checking::core::pretty::PrettyQueries;
-use files::{FileId, Files};
+use files::FileId;
 use lsp_types::Url;
 
 use crate::position::PositionEncoding;
@@ -33,39 +33,47 @@ impl<Queries> AnalyzerQueries for Queries where
 {
 }
 
-pub trait FileCatalog {
+pub trait AnalyzerHost {
+    type Queries: AnalyzerQueries;
+
+    fn queries(&self) -> &Self::Queries;
     fn file_id(&self, uri: &str) -> Option<FileId>;
     fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError>;
-    fn active_files(&self) -> impl Iterator<Item = FileId>;
+    fn active_files(&self) -> impl Iterator<Item = FileId> + '_;
+    fn is_editable(&self, file_id: FileId) -> bool;
 }
 
-impl FileCatalog for Files {
-    fn file_id(&self, uri: &str) -> Option<FileId> {
-        self.id(uri)
-    }
-
-    fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
-        let path = self.path(file_id);
-        Url::parse(&path).map(Some)
-    }
-
-    fn active_files(&self) -> impl Iterator<Item = FileId> {
-        self.iter_id()
-    }
+pub struct AnalyzerContext<'a, Host> {
+    host: &'a Host,
+    position_encoding: PositionEncoding,
 }
 
-pub struct LanguageContext<'a, Queries, Catalog> {
-    pub engine: &'a Queries,
-    pub files: &'a Catalog,
-    pub encoding: PositionEncoding,
-}
+impl<'a, Host: AnalyzerHost> AnalyzerContext<'a, Host> {
+    pub fn new(host: &'a Host, position_encoding: PositionEncoding) -> AnalyzerContext<'a, Host> {
+        AnalyzerContext { host, position_encoding }
+    }
 
-impl<'a, Queries, Catalog> LanguageContext<'a, Queries, Catalog> {
-    pub fn new(
-        engine: &'a Queries,
-        files: &'a Catalog,
-        encoding: PositionEncoding,
-    ) -> LanguageContext<'a, Queries, Catalog> {
-        LanguageContext { engine, files, encoding }
+    pub fn queries(&self) -> &Host::Queries {
+        self.host.queries()
+    }
+
+    pub fn file_id(&self, uri: &str) -> Option<FileId> {
+        self.host.file_id(uri)
+    }
+
+    pub fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
+        self.host.file_uri(file_id)
+    }
+
+    pub fn active_files(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.host.active_files()
+    }
+
+    pub fn is_editable(&self, file_id: FileId) -> bool {
+        self.host.is_editable(file_id)
+    }
+
+    pub fn position_encoding(&self) -> PositionEncoding {
+        self.position_encoding
     }
 }

@@ -1,3 +1,4 @@
+use building_types::QueryProxy;
 use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
@@ -9,24 +10,25 @@ use syntax::ast::{AstNode, AstPtr};
 use syntax::{TextRange, cst};
 
 use crate::extract::AnnotationSyntaxRange;
-use crate::{AnalyzerError, AnalyzerQueries, LanguageContext, extract, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, AnalyzerQueries, extract, locate, position};
 
 const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let engine = context.engine;
+    let engine = context.queries();
     let content = engine.content(current_file);
-    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
     let located = locate::locate(engine, current_file, position)?;
 
