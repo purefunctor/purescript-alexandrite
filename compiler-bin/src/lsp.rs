@@ -216,6 +216,10 @@ fn initialize(
     }
 }
 
+fn shutdown(_state: &mut State, (): ()) -> impl Future<Output = Result<(), ResponseError>> + use<> {
+    async { Ok(()) }
+}
+
 fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> {
     let _span = tracing::info_span!("initialization").entered();
     let config = Arc::clone(&state.config);
@@ -224,6 +228,10 @@ fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> 
     } else {
         initialized_spago(state)
     }
+}
+
+fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
+    Ok(())
 }
 
 fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> {
@@ -517,11 +525,13 @@ impl RequestExtension for Router<State> {}
 
 pub async fn async_start(config: Arc<LspConfig>) {
     let (server, _) = async_lsp::MainLoop::new_server(move |client| {
+        let client_socket = ClientSocket::clone(&client);
         let mut router: Router<State, ResponseError> =
-            Router::new(State::new(config, client.clone()));
+            Router::new(State::new(config, client_socket));
 
         router
             .request::<extension::CustomInitialize, _>(initialize)
+            .request::<request::Shutdown, _>(shutdown)
             .request_snapshot::<request::GotoDefinition>(definition)
             .request_snapshot::<request::HoverRequest>(hover)
             .request_snapshot::<request::CodeActionRequest>(code_action)
@@ -532,6 +542,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .request_snapshot::<request::WorkspaceSymbolRequest>(workspace_symbols)
             .request_snapshot::<request::DocumentSymbolRequest>(document_symbols)
             .notification_ext::<notification::Initialized>(initialized)
+            .notification_ext::<notification::Exit>(exit)
             .notification_ext::<notification::DidOpenTextDocument>(did_open)
             .notification_ext::<notification::DidSaveTextDocument>(did_save)
             .notification_ext::<notification::DidCloseTextDocument>(|_, _| Ok(()))
