@@ -1,3 +1,4 @@
+use building_types::QueryProxy;
 use files::FileId;
 use lowering::{GraphNodeId, LoweredModule};
 use lsp_types::*;
@@ -11,10 +12,10 @@ use syntax::{
 };
 
 use crate::position::{PositionEncoding, Utf8Position};
-use crate::{AnalyzerError, LanguageContext, position};
+use crate::{AnalyzerContext, AnalyzerError, position};
 
-pub struct CompletionContext<'c, 'a, Queries, Catalog> {
-    pub language: &'c LanguageContext<'c, Queries, Catalog>,
+pub struct CompletionContext<'c, 'a, Host> {
+    pub language: &'c AnalyzerContext<'c, Host>,
     pub current_file: FileId,
     pub content: &'a str,
     pub stabilized: &'a StabilizedModule,
@@ -30,11 +31,7 @@ pub struct CompletionContext<'c, 'a, Queries, Catalog> {
     pub offset: TextSize,
 }
 
-impl<Queries, Catalog> CompletionContext<'_, '_, Queries, Catalog>
-where
-    Queries: crate::AnalyzerQueries,
-    Catalog: crate::FileCatalog,
-{
+impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
     pub fn insert_import_range(&self) -> Option<Range> {
         let cst = self.parsed.cst();
 
@@ -51,8 +48,11 @@ where
         position.line += 1;
         position.column = 0;
 
-        let position =
-            position::utf8_position_to_protocol(self.content, position, self.language.encoding)?;
+        let position = position::utf8_position_to_protocol(
+            self.content,
+            position,
+            self.language.position_encoding(),
+        )?;
         Some(Range::new(position, position))
     }
 
@@ -86,7 +86,7 @@ where
     }
 
     pub fn scope_node(&self) -> Result<Option<GraphNodeId>, AnalyzerError> {
-        let lowered = self.language.engine.lowered(self.current_file)?;
+        let lowered = self.language.queries().lowered(self.current_file)?;
         let root = self.parsed.syntax_node();
 
         let scope_node = match root.token_at_offset(self.offset) {
@@ -160,7 +160,7 @@ pub trait CompletionSource {
 
     fn collect_into<F: Filter>(
         &self,
-        context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
         filter: F,
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError>;

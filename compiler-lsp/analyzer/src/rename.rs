@@ -1,5 +1,4 @@
-use std::path::Path;
-
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
@@ -7,7 +6,7 @@ use lsp_types::*;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::{TokenAtOffset, cst};
 
-use crate::{AnalyzerError, LanguageContext, locate, position, references};
+use crate::{AnalyzerContext, AnalyzerError, locate, position, references};
 
 mod edit;
 
@@ -39,25 +38,25 @@ enum NameKind {
 }
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
-    workspace_root: Option<&Path>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     position: Position,
     new_name: String,
 ) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.engine.content(current_file);
-    let utf8_position = position::protocol_position_to_utf8(&content, position, context.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let content = context.queries().content(current_file);
+    let utf8_position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
     let target = if let Some(target) = qualifier_target(context, current_file, utf8_position)? {
         target
     } else {
-        let located = locate::locate(context.engine, current_file, utf8_position)?;
+        let located = locate::locate(context.queries(), current_file, utf8_position)?;
         rename_target(context, current_file, located)?
     };
 
@@ -68,7 +67,7 @@ pub fn implementation(
         return Ok(None);
     }
 
-    if !editable_file(context, workspace_root, target.file()) {
+    if !context.is_editable(target.file()) {
         return Ok(None);
     }
 
@@ -78,13 +77,13 @@ pub fn implementation(
             edits.collect_qualifier(file_id, import_id, &new_name)?;
         }
         RenameTarget::Module(file_id) => {
-            edits.collect_module(workspace_root, file_id, &new_name)?;
+            edits.collect_module(file_id, &new_name)?;
         }
         RenameTarget::Term(_, _) | RenameTarget::Type(_, _) => {
             let locations = references::implementation(context, uri, position)?.unwrap_or_default();
-            edits.collect_references(workspace_root, locations, name_kind, &new_name)?;
+            edits.collect_references(locations, name_kind, &new_name)?;
             edits.collect_declaration(target, &new_name)?;
-            edits.collect_item_surfaces(workspace_root, target, &old_name, &new_name)?;
+            edits.collect_item_surfaces(target, &old_name, &new_name)?;
         }
     }
 
@@ -92,14 +91,14 @@ pub fn implementation(
 }
 
 fn qualifier_target(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     position: position::Utf8Position,
 ) -> Result<Option<RenameTarget>, AnalyzerError> {
-    let content = context.engine.content(current_file);
+    let content = context.queries().content(current_file);
     let offset =
         position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
 
     let token = match root.token_at_offset(offset) {
@@ -137,7 +136,7 @@ fn qualifier_target(
         return Ok(None);
     };
 
-    let indexed = context.engine.indexed(current_file)?;
+    let indexed = context.queries().indexed(current_file)?;
     let import_id = indexed.imports.iter().find_map(|(import_id, import)| {
         (import.alias.as_deref() == Some(name.as_str())).then_some(*import_id)
     });
@@ -146,11 +145,11 @@ fn qualifier_target(
 }
 
 fn rename_target(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     located: locate::Located,
 ) -> Result<RenameTarget, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
 
     let target = match located {
         locate::Located::ModuleName(module_name) => {
@@ -213,12 +212,12 @@ fn rename_target(
 }
 
 fn module_target(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<RenameTarget, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
     let parent = module_name.syntax().parent().ok_or(AnalyzerError::NonFatal)?;
@@ -233,19 +232,19 @@ fn module_target(
     }
 
     let name = module_name.syntax().text(&content);
-    let file_id = context.engine.module_file(name).ok_or(AnalyzerError::NonFatal)?;
+    let file_id = context.queries().module_file(name).ok_or(AnalyzerError::NonFatal)?;
 
     Ok(RenameTarget::Module(file_id))
 }
 
 fn import_target(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<RenameTarget, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let stabilized = context.engine.stabilized(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
 
     let root = parsed.syntax_node();
     let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
@@ -259,8 +258,9 @@ fn import_target(
     let module_name =
         statement.module_name().ok_or(AnalyzerError::NonFatal)?.syntax().text(&content).to_string();
 
-    let imported_file = context.engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
-    let resolved = context.engine.resolved(imported_file)?;
+    let imported_file =
+        context.queries().module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
+    let resolved = context.queries().resolved(imported_file)?;
 
     let target = match node {
         cst::ImportItem::ImportValue(item) => {
@@ -323,12 +323,12 @@ fn trim_operator_name(name: &str) -> &str {
 }
 
 fn target_name(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     target: RenameTarget,
 ) -> Result<Option<(String, NameKind)>, AnalyzerError> {
     let result = match target {
         RenameTarget::Term(file_id, term_id) => {
-            let indexed = context.engine.indexed(file_id)?;
+            let indexed = context.queries().indexed(file_id)?;
             let item = &indexed.items[term_id];
 
             let Some(name) = item.name.as_ref() else {
@@ -345,7 +345,7 @@ fn target_name(
             Some((name.to_string(), kind))
         }
         RenameTarget::Type(file_id, type_id) => {
-            let indexed = context.engine.indexed(file_id)?;
+            let indexed = context.queries().indexed(file_id)?;
             let item = &indexed.items[type_id];
 
             let Some(name) = item.name.as_ref() else {
@@ -360,14 +360,14 @@ fn target_name(
             Some((name.to_string(), kind))
         }
         RenameTarget::Qualifier(file_id, import_id) => {
-            let indexed = context.engine.indexed(file_id)?;
+            let indexed = context.queries().indexed(file_id)?;
             let name = indexed.imports.get(&import_id).and_then(|import| import.alias.as_ref());
 
             name.map(|name| (name.to_string(), NameKind::Upper))
         }
         RenameTarget::Module(file_id) => {
-            let content = context.engine.content(file_id);
-            let (parsed, _) = context.engine.parsed(file_id)?;
+            let content = context.queries().content(file_id);
+            let (parsed, _) = context.queries().parsed(file_id)?;
 
             parsed.module_name(&content).map(|name| (name.to_string(), NameKind::Module))
         }
@@ -383,25 +383,6 @@ fn valid_new_name(new_name: &str, kind: NameKind) -> bool {
         NameKind::Operator => lexing::is_operator_name(new_name),
         NameKind::Module => new_name.split('.').all(lexing::is_upper_name),
     }
-}
-
-fn editable_file(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
-    workspace_root: Option<&Path>,
-    file_id: FileId,
-) -> bool {
-    let Some(workspace_root) = workspace_root else {
-        return true;
-    };
-
-    let Ok(Some(uri)) = context.files.file_uri(file_id) else {
-        return false;
-    };
-    let Ok(path) = uri.to_file_path() else {
-        return false;
-    };
-
-    path.starts_with(workspace_root)
 }
 
 #[cfg(test)]

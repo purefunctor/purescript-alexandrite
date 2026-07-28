@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use analyzer::FileCatalog;
+use analyzer::AnalyzerHost;
 use building_types::{ModuleNameId, ModuleNameInterner, QueryProxy, QueryResult};
 use documenting::DocumentedModule;
 use files::{FileId, Files};
@@ -353,7 +353,13 @@ impl QueryProxy for WasmQueryEngine {
     }
 }
 
-impl FileCatalog for WasmQueryEngine {
+impl AnalyzerHost for WasmQueryEngine {
+    type Queries = WasmQueryEngine;
+
+    fn queries(&self) -> &WasmQueryEngine {
+        self
+    }
+
     fn file_id(&self, uri: &str) -> Option<FileId> {
         let id = self.files.id(uri)?;
         self.input.content.contains_key(&id).then_some(id)
@@ -370,6 +376,10 @@ impl FileCatalog for WasmQueryEngine {
     fn active_files(&self) -> impl Iterator<Item = FileId> {
         let files = self.files.iter_id();
         files.filter(|id| self.input.content.contains_key(id))
+    }
+
+    fn is_editable(&self, file_id: FileId) -> bool {
+        self.user_id == Some(file_id)
     }
 }
 

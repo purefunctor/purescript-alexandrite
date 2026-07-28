@@ -1,5 +1,6 @@
 use std::iter;
 
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportItemId, ImportKind, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use lowering::{
@@ -13,23 +14,24 @@ use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
 use crate::position::{PositionEncoding, Utf8Range};
-use crate::{AnalyzerError, LanguageContext, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, locate, position};
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     position: Position,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.engine.content(current_file);
-    let position = position::protocol_position_to_utf8(&content, position, context.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let content = context.queries().content(current_file);
+    let position =
+        position::protocol_position_to_utf8(&content, position, context.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.engine, current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, position)?;
     match located {
         locate::Located::ImportItem(import_id) => {
             highlight_import(context, current_file, import_id)
@@ -68,7 +70,7 @@ enum HighlightTarget {
 }
 
 fn highlight_import(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
@@ -84,30 +86,30 @@ fn highlight_import(
     }
     .unwrap_or_default();
 
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
-    let stabilized = context.engine.stabilized(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
 
     let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
     let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
 
     highlights.extend(
         position::import_item_name_range(&content, node)
-            .and_then(|range| document_highlight(&content, context.encoding, range)),
+            .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
     Ok(finish_highlights(highlights))
 }
 
 fn import_target(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<HighlightTarget, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let stabilized = context.engine.stabilized(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
 
     let root = parsed.syntax_node();
     let ptr = stabilized.ast_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
@@ -125,8 +127,9 @@ fn import_target(
         .text(&content)
         .to_smolstr();
 
-    let imported_file = context.engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
-    let imported_resolved = context.engine.resolved(imported_file)?;
+    let imported_file =
+        context.queries().module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
+    let imported_resolved = context.queries().resolved(imported_file)?;
 
     let term_target = |name: &str| {
         let name = name.trim_start_matches("(").trim_end_matches(")");
@@ -180,14 +183,14 @@ fn import_target(
 }
 
 fn highlight_binder(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
 
     let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
 
@@ -203,7 +206,7 @@ fn highlight_binder(
     highlights.extend(
         binder_name_range(&content, &root, &ptr)
             .or_else(|| locate::syntax_range(&content, &root, &ptr))
-            .and_then(|range| document_highlight(&content, context.encoding, range)),
+            .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
     for (expr_id, expr_kind) in lowered.info.iter_expression() {
@@ -212,10 +215,9 @@ fn highlight_binder(
         } = expr_kind
             && *id == binder_id
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expr_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, expr_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
@@ -223,10 +225,9 @@ fn highlight_binder(
         if let TermVariableResolution::Binder(id) = resolution
             && id == binder_id
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, pun_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
@@ -234,11 +235,11 @@ fn highlight_binder(
 }
 
 fn highlight_expression(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
@@ -265,11 +266,11 @@ fn highlight_expression(
 }
 
 fn highlight_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     type_id: TypeId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
@@ -282,18 +283,18 @@ fn highlight_type(
 }
 
 fn highlight_file_term(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
-    let indexed = context.engine.indexed(current_file)?;
-    let resolved = context.engine.resolved(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
+    let indexed = context.queries().indexed(current_file)?;
+    let resolved = context.queries().resolved(current_file)?;
 
     let mut highlights = vec![];
 
@@ -307,8 +308,9 @@ fn highlight_file_term(
             && (*f_id, *t_id) == (file_id, term_id)
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, expression_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
             );
         }
     }
@@ -318,8 +320,9 @@ fn highlight_file_term(
             && (*f_id, *t_id) == (file_id, term_id)
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, binder_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, binder_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
             );
         }
     }
@@ -327,8 +330,9 @@ fn highlight_file_term(
     for (operator_id, f_id, t_id) in lowered.info.iter_term_operator() {
         if (f_id, t_id) == (file_id, term_id) {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, operator_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
             );
         }
     }
@@ -337,10 +341,9 @@ fn highlight_file_term(
         if let TermVariableResolution::Reference(f_id, t_id) = resolution
             && (f_id, t_id) == (file_id, term_id)
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, pun_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
@@ -358,7 +361,7 @@ fn highlight_file_term(
                     highlights.extend(stabilized.ast_ptr(*import_item_id).and_then(|ptr| {
                         let node = ptr.try_to_node(&root)?;
                         let range = position::import_item_name_range(&content, node)?;
-                        document_highlight(&content, context.encoding, range)
+                        document_highlight(&content, context.position_encoding(), range)
                     }));
                 }
             }
@@ -375,18 +378,18 @@ fn highlight_file_term(
 }
 
 fn highlight_file_type(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
-    let indexed = context.engine.indexed(current_file)?;
-    let resolved = context.engine.resolved(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
+    let indexed = context.queries().indexed(current_file)?;
+    let resolved = context.queries().resolved(current_file)?;
 
     let mut highlights = vec![];
 
@@ -395,18 +398,18 @@ fn highlight_file_type(
         | TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
             && (*f_id, *t_id) == (file_id, type_id)
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, ty_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, ty_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
     for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
         if (f_id, t_id) == (file_id, type_id) {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, operator_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
             );
         }
     }
@@ -422,7 +425,7 @@ fn highlight_file_type(
                     highlights.extend(stabilized.ast_ptr(*import_item_id).and_then(|ptr| {
                         let node = ptr.try_to_node(&root)?;
                         let range = position::import_item_name_range(&content, node)?;
-                        document_highlight(&content, context.encoding, range)
+                        document_highlight(&content, context.position_encoding(), range)
                     }));
                 }
             }
@@ -439,36 +442,36 @@ fn highlight_file_type(
 }
 
 fn highlight_term_operator(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     operator_id: TermOperatorId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let (file_id, term_id) =
         lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
     highlight_file_term(context, current_file, file_id, term_id)
 }
 
 fn highlight_type_operator(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     operator_id: TypeOperatorId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     let (file_id, type_id) =
         lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
     highlight_file_type(context, current_file, file_id, type_id)
 }
 
 fn highlight_let(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     let_binding_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
 
     let root = parsed.syntax_node();
     let binding = lowered.info.get_let_binding_group(let_binding_id);
@@ -480,7 +483,7 @@ fn highlight_let(
         highlights.extend(
             let_signature_name_range(&content, &root, &ptr)
                 .or_else(|| locate::syntax_range(&content, &root, &ptr))
-                .and_then(|range| document_highlight(&content, context.encoding, range)),
+                .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
         );
     }
 
@@ -489,7 +492,7 @@ fn highlight_let(
         highlights.extend(
             let_equation_name_range(&content, &root, &ptr)
                 .or_else(|| locate::syntax_range(&content, &root, &ptr))
-                .and_then(|range| document_highlight(&content, context.encoding, range)),
+                .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
         );
     }
 
@@ -499,10 +502,9 @@ fn highlight_let(
         } = expr_kind
             && *id == let_binding_id
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expr_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, expr_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
@@ -510,10 +512,9 @@ fn highlight_let(
         if let TermVariableResolution::Let(id) = resolution
             && id == let_binding_id
         {
-            highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, pun_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
-            );
+            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
         }
     }
 
@@ -521,20 +522,20 @@ fn highlight_let(
 }
 
 fn highlight_binder_pun(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
-    let stabilized = context.engine.stabilized(current_file)?;
-    let lowered = context.engine.lowered(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
 
     let mut highlights = vec![];
 
     highlights.extend(
         locate::id_range(&content, &parsed, &stabilized, pun_id)
-            .and_then(|range| document_highlight(&content, context.encoding, range)),
+            .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
     for (expression_id, expression_kind) in lowered.info.iter_expression() {
@@ -544,8 +545,9 @@ fn highlight_binder_pun(
             && *candidate_id == pun_id
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, expression_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
             );
         }
     }
@@ -555,8 +557,9 @@ fn highlight_binder_pun(
             && candidate_id == pun_id
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_pun_id)
-                    .and_then(|range| document_highlight(&content, context.encoding, range)),
+                locate::id_range(&content, &parsed, &stabilized, expression_pun_id).and_then(
+                    |range| document_highlight(&content, context.position_encoding(), range),
+                ),
             );
         }
     }
@@ -565,11 +568,11 @@ fn highlight_binder_pun(
 }
 
 fn highlight_expression_pun(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let lowered = context.engine.lowered(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
     match lowered.info.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
         TermVariableResolution::Binder(binder_id) => {
             highlight_binder(context, current_file, binder_id)
@@ -587,11 +590,11 @@ fn highlight_expression_pun(
 }
 
 fn term_item_highlights(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let indexed = context.engine.indexed(current_file)?;
+    let indexed = context.queries().indexed(current_file)?;
 
     let mut highlights = vec![];
 
@@ -641,11 +644,11 @@ fn term_item_highlights(
 }
 
 fn type_item_highlights(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let indexed = context.engine.indexed(current_file)?;
+    let indexed = context.queries().indexed(current_file)?;
 
     let mut highlights = vec![];
 
@@ -726,7 +729,7 @@ fn let_equation_name_range(
 }
 
 fn push_name_highlight<T>(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
     highlights: &mut Vec<DocumentHighlight>,
     id: Option<AstId<T>>,
@@ -735,15 +738,15 @@ fn push_name_highlight<T>(
 where
     T: AstNode,
 {
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
-    let stabilized = context.engine.stabilized(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
 
     highlights.extend(id.and_then(|id| {
         let ptr = stabilized.syntax_ptr(id)?;
         let range = range(&content, &root, &ptr)?;
-        document_highlight(&content, context.encoding, range)
+        document_highlight(&content, context.position_encoding(), range)
     }));
 
     Ok(())

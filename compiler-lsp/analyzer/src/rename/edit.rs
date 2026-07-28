@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::path::Path;
 
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{
     ImplicitItems, ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind,
@@ -11,9 +11,9 @@ use stabilizing::AstId;
 use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst};
 
-use super::{NameKind, RenameTarget, editable_file};
+use super::{NameKind, RenameTarget};
 use crate::position::Utf8Range;
-use crate::{AnalyzerError, AnalyzerQueries, FileCatalog, LanguageContext, common, position};
+use crate::{AnalyzerContext, AnalyzerError, AnalyzerHost, common, position};
 
 macro_rules! push_name_edits {
     ($self:expr, $file_id:expr, $new_name:expr, $range:expr; $($id:expr),+ $(,)?) => {
@@ -21,31 +21,28 @@ macro_rules! push_name_edits {
     };
 }
 
-pub(super) struct RenameEdits<'edits, 'language, Queries, Catalog>
+pub(super) struct RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
-    context: &'edits LanguageContext<'language, Queries, Catalog>,
+    context: &'edits AnalyzerContext<'language, Host>,
     edits: Vec<(FileId, TextEdit)>,
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     pub(super) fn new(
-        context: &'edits LanguageContext<'language, Queries, Catalog>,
-    ) -> RenameEdits<'edits, 'language, Queries, Catalog> {
+        context: &'edits AnalyzerContext<'language, Host>,
+    ) -> RenameEdits<'edits, 'language, Host> {
         RenameEdits { context, edits: vec![] }
     }
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     pub(super) fn collect_qualifier(
         &mut self,
@@ -53,15 +50,15 @@ where
         import_id: ImportId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let indexed = self.context.engine.indexed(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
         let old_name = indexed
             .imports
             .get(&import_id)
             .and_then(|import| import.alias.as_deref())
             .ok_or(AnalyzerError::NonFatal)?;
 
-        let content = self.context.engine.content(file_id);
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
 
         let statements = root.preorder().filter_map(|event| {
@@ -131,11 +128,10 @@ where
 
     pub(super) fn collect_module(
         &mut self,
-        workspace_root: Option<&Path>,
         target_file: FileId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let (parsed, _) = self.context.engine.parsed(target_file)?;
+        let (parsed, _) = self.context.queries().parsed(target_file)?;
         let module_name = parsed
             .cst()
             .header()
@@ -144,8 +140,8 @@ where
 
         self.push_text_range_edit(target_file, module_name.syntax().text_range(), new_name)?;
 
-        for file_id in self.context.files.active_files() {
-            if !editable_file(self.context, workspace_root, file_id) {
+        for file_id in self.context.active_files() {
+            if !self.context.is_editable(file_id) {
                 continue;
             }
 
@@ -162,16 +158,16 @@ where
         target_file: FileId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let indexed = self.context.engine.indexed(file_id)?;
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         for (import_id, import) in &indexed.imports {
             let Some(name) = import.name.as_deref() else {
                 continue;
             };
-            if self.context.engine.module_file(name) != Some(target_file) {
+            if self.context.queries().module_file(name) != Some(target_file) {
                 continue;
             }
 
@@ -191,11 +187,11 @@ where
         target_file: FileId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let indexed = self.context.engine.indexed(file_id)?;
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
         let current_module = parsed.module_name(&content);
 
         for export in &indexed.exports.modules {
@@ -204,7 +200,7 @@ where
             let exports_import = indexed.imports.values().any(|import| {
                 import.alias.is_none()
                     && import.name.as_ref() == Some(&export.name)
-                    && self.context.engine.module_file(&export.name) == Some(target_file)
+                    && self.context.queries().module_file(&export.name) == Some(target_file)
             });
 
             if !exports_self && !exports_import {
@@ -225,22 +221,20 @@ where
     }
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     pub(super) fn collect_references(
         &mut self,
-        workspace_root: Option<&Path>,
         locations: Vec<Location>,
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         for location in locations {
             let file_id =
-                self.context.files.file_id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
-            if !editable_file(self.context, workspace_root, file_id) {
+                self.context.file_id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
+            if !self.context.is_editable(file_id) {
                 continue;
             }
 
@@ -257,14 +251,17 @@ where
         range: Range,
         name_kind: NameKind,
     ) -> Result<Range, AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let position =
-            position::protocol_position_to_utf8(&content, range.start, self.context.encoding)
-                .ok_or(AnalyzerError::NonFatal)?;
+        let content = self.context.queries().content(file_id);
+        let position = position::protocol_position_to_utf8(
+            &content,
+            range.start,
+            self.context.position_encoding(),
+        )
+        .ok_or(AnalyzerError::NonFatal)?;
         let offset =
             position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
 
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
 
         let token = match root.token_at_offset(offset) {
@@ -277,8 +274,12 @@ where
 
         let token = Self::qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
 
-        position::text_range_to_protocol(&content, token.text_range(), self.context.encoding)
-            .ok_or(AnalyzerError::NonFatal)
+        position::text_range_to_protocol(
+            &content,
+            token.text_range(),
+            self.context.position_encoding(),
+        )
+        .ok_or(AnalyzerError::NonFatal)
     }
 
     fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
@@ -293,10 +294,9 @@ where
     }
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     pub(super) fn collect_declaration(
         &mut self,
@@ -321,7 +321,7 @@ where
         term_id: TermItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let indexed = self.context.engine.indexed(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
 
         match &indexed.items[term_id].kind {
             TermItemKind::ClassMember { id } => {
@@ -360,7 +360,7 @@ where
         type_id: TypeItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let indexed = self.context.engine.indexed(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
 
         match indexed.items[type_id].kind {
             TypeItemKind::Data { signature, equation, role, .. } => {
@@ -387,20 +387,18 @@ where
     }
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     pub(super) fn collect_item_surfaces(
         &mut self,
-        workspace_root: Option<&Path>,
         target: RenameTarget,
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        for file_id in self.context.files.active_files() {
-            if !editable_file(self.context, workspace_root, file_id) {
+        for file_id in self.context.active_files() {
+            if !self.context.is_editable(file_id) {
                 continue;
             }
 
@@ -418,8 +416,8 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let indexed = self.context.engine.indexed(file_id)?;
-        let resolved = self.context.engine.resolved(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
+        let resolved = self.context.queries().resolved(file_id)?;
 
         let unqualified = resolved.unqualified.values().flatten();
         let qualified = resolved.qualified.values().flatten();
@@ -480,7 +478,7 @@ where
     ) -> Result<(), AnalyzerError> {
         let (target_file, target_term) = target;
         let (old_name, new_name) = names;
-        let target_indexed = self.context.engine.indexed(target_file)?;
+        let target_indexed = self.context.queries().indexed(target_file)?;
         let Some(parent_type) = target_indexed.constructor_type(target_term) else {
             return Ok(());
         };
@@ -513,8 +511,8 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let indexed = self.context.engine.indexed(file_id)?;
-        let resolved = self.context.engine.resolved(file_id)?;
+        let indexed = self.context.queries().indexed(file_id)?;
+        let resolved = self.context.queries().resolved(file_id)?;
 
         match target {
             RenameTarget::Term(target_file, target_term) => {
@@ -526,7 +524,7 @@ where
                     }
                 }
 
-                let target_indexed = self.context.engine.indexed(target_file)?;
+                let target_indexed = self.context.queries().indexed(target_file)?;
                 let Some(parent_type) = target_indexed.constructor_type(target_term) else {
                     return Ok(());
                 };
@@ -572,10 +570,10 @@ where
         import_item_id: ImportItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
@@ -591,10 +589,10 @@ where
         export_item_id: indexing::ExportItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
@@ -611,9 +609,9 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
@@ -632,9 +630,9 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
@@ -653,7 +651,7 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
+        let content = self.context.queries().content(file_id);
         let cst::TypeItems::TypeItemsList(items) = type_items else {
             return Ok(());
         };
@@ -671,10 +669,9 @@ where
     }
 }
 
-impl<'edits, 'language, Queries, Catalog> RenameEdits<'edits, 'language, Queries, Catalog>
+impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
-    Queries: AnalyzerQueries,
-    Catalog: FileCatalog,
+    Host: AnalyzerHost,
 {
     fn push_text_range_edit(
         &mut self,
@@ -682,7 +679,7 @@ where
         range: TextRange,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
+        let content = self.context.queries().content(file_id);
         let range =
             position::text_range_to_utf8_range(&content, range).ok_or(AnalyzerError::NonFatal)?;
 
@@ -695,9 +692,10 @@ where
         range: Utf8Range,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let range = position::utf8_range_to_protocol(&content, range, self.context.encoding)
-            .ok_or(AnalyzerError::NonFatal)?;
+        let content = self.context.queries().content(file_id);
+        let range =
+            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
+                .ok_or(AnalyzerError::NonFatal)?;
         self.push_protocol_edit(file_id, range, new_name)
     }
 
@@ -715,15 +713,16 @@ where
             return Ok(());
         };
 
-        let content = self.context.engine.content(file_id);
-        let (parsed, _) = self.context.engine.parsed(file_id)?;
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
-        let stabilized = self.context.engine.stabilized(file_id)?;
+        let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.syntax_ptr(id).ok_or(AnalyzerError::NonFatal)?;
         let range = range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
-        let range = position::utf8_range_to_protocol(&content, range, self.context.encoding)
-            .ok_or(AnalyzerError::NonFatal)?;
+        let range =
+            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
+                .ok_or(AnalyzerError::NonFatal)?;
         self.push_protocol_edit(file_id, range, new_name)
     }
 
@@ -744,14 +743,21 @@ where
         range: Range,
         new_name: &str,
     ) -> Result<String, AnalyzerError> {
-        let content = self.context.engine.content(file_id);
-        let start =
-            position::protocol_position_to_utf8(&content, range.start, self.context.encoding)
-                .and_then(|position| position::utf8_position_to_offset(&content, position))
-                .ok_or(AnalyzerError::NonFatal)?;
-        let end = position::protocol_position_to_utf8(&content, range.end, self.context.encoding)
-            .and_then(|position| position::utf8_position_to_offset(&content, position))
-            .ok_or(AnalyzerError::NonFatal)?;
+        let content = self.context.queries().content(file_id);
+        let start = position::protocol_position_to_utf8(
+            &content,
+            range.start,
+            self.context.position_encoding(),
+        )
+        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .ok_or(AnalyzerError::NonFatal)?;
+        let end = position::protocol_position_to_utf8(
+            &content,
+            range.end,
+            self.context.position_encoding(),
+        )
+        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .ok_or(AnalyzerError::NonFatal)?;
 
         let range = TextRange::new(start, end);
         let text = &content[range];

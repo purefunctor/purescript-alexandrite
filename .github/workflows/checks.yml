@@ -48,6 +48,26 @@ jobs:
       - name: Run integration tests
         run: cargo nextest run -p tests-integration
 
+  wasm:
+    name: Compilation (docs-lib)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown
+
+      - name: Cache build artifacts
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          cache-bin: "false"
+          prefix-key: "v1-wasm"
+
+      - name: Check Wasm crates
+        run: cargo check -p analyzer -p docs-lib --target wasm32-unknown-unknown
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest

@@ -1,8 +1,9 @@
+use building_types::QueryProxy;
 use line_index::LineIndex;
 use lsp_types::{SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokens};
 use syntax::{SyntaxKind, SyntaxToken, TextRange, WalkEvent};
 
-use crate::{AnalyzerError, LanguageContext, position};
+use crate::{AnalyzerContext, AnalyzerError, position};
 
 pub const TOKEN_TYPES: &[SemanticTokenType] = &[
     SemanticTokenType::NAMESPACE,
@@ -57,16 +58,16 @@ impl TokenClassification {
 }
 
 pub fn implementation(
-    context: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: lsp_types::Url,
 ) -> Result<Option<SemanticTokens>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        context.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.engine.content(current_file);
-    let (parsed, _) = context.engine.parsed(current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let line_index = LineIndex::new(&content);
     let mut data = vec![];
@@ -84,7 +85,7 @@ pub fn implementation(
             &content,
             token.text_range(),
             classification,
-            context.encoding,
+            context.position_encoding(),
         );
     }
 

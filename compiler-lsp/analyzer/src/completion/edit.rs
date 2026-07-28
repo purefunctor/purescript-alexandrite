@@ -1,5 +1,6 @@
 use std::iter;
 
+use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportKind, IndexedModule, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
 use itertools::Itertools;
@@ -12,7 +13,7 @@ use crate::completion::CompletionContext;
 use crate::{locate, position};
 
 fn import_item<F, G>(
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
     module_name: &str,
     file_id: FileId,
     lookup_fn: F,
@@ -28,7 +29,7 @@ where
         .flatten()
         .find_map(|import| lookup_fn(import).map(|kind| (import, kind)));
 
-    let Ok(import_indexed) = context.language.engine.indexed(file_id) else {
+    let Ok(import_indexed) = context.language.queries().indexed(file_id) else {
         return (None, None);
     };
 
@@ -80,7 +81,11 @@ where
         let import_range = {
             let ptr = ptr.syntax_node_ptr();
             locate::syntax_range(context.content, &root, &ptr).and_then(|range| {
-                position::utf8_range_to_protocol(context.content, range, context.language.encoding)
+                position::utf8_range_to_protocol(
+                    context.content,
+                    range,
+                    context.language.position_encoding(),
+                )
             })
         };
 
@@ -94,7 +99,7 @@ where
 }
 
 pub(super) fn term_import_item(
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
     module_name: &str,
     term_name: &str,
     file_id: FileId,
@@ -114,7 +119,7 @@ pub(super) fn term_import_item(
 }
 
 pub(super) fn type_import_item(
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
     module_name: &str,
     type_name: &str,
     file_id: FileId,

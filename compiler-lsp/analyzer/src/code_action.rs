@@ -2,28 +2,30 @@ mod holes;
 
 use std::collections::HashMap;
 
+use building_types::QueryProxy;
 use files::FileId;
 use lowering::{ExpressionId, TypeId};
 use lsp_types::*;
 
-use crate::{AnalyzerError, LanguageContext, locate, position};
+use crate::{AnalyzerContext, AnalyzerError, locate, position};
 
 pub fn implementation(
-    language: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    language: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     range: Range,
     action_context: CodeActionContext,
 ) -> Result<Option<CodeActionResponse>, AnalyzerError> {
     let file = {
         let uri = uri.as_str();
-        language.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        language.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = language.engine.content(file);
-    let position = position::protocol_position_to_utf8(&content, range.start, language.encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let content = language.queries().content(file);
+    let position =
+        position::protocol_position_to_utf8(&content, range.start, language.position_encoding())
+            .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(language.engine, file, position)?;
+    let located = locate::locate(language.queries(), file, position)?;
     let kinds = RequestedCodeActionKinds { only: action_context.only.as_deref() };
     let request = CodeActionRequest { language, uri: &uri, file, kinds, located };
 
@@ -34,8 +36,8 @@ pub fn implementation(
     Ok(has_actions.then_some(actions))
 }
 
-pub struct CodeActionRequest<'request, 'language, Queries, Catalog> {
-    pub language: &'request LanguageContext<'language, Queries, Catalog>,
+pub struct CodeActionRequest<'request, 'language, Host> {
+    pub language: &'request AnalyzerContext<'language, Host>,
     pub uri: &'request Url,
     pub file: FileId,
     pub kinds: RequestedCodeActionKinds<'request>,
@@ -72,31 +74,31 @@ pub fn workspace_edit(uri: &Url, edits: Vec<TextEdit>) -> WorkspaceEdit {
 }
 
 pub fn expression_range(
-    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    request: &CodeActionRequest<impl crate::AnalyzerHost>,
     expression_id: ExpressionId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.engine.content(request.file);
-    let (parsed, _) = request.language.engine.parsed(request.file)?;
-    let stabilized = request.language.engine.stabilized(request.file)?;
+    let content = request.language.queries().content(request.file);
+    let (parsed, _) = request.language.queries().parsed(request.file)?;
+    let stabilized = request.language.queries().stabilized(request.file)?;
 
     let range = locate::id_range(&content, &parsed, &stabilized, expression_id)
         .ok_or(AnalyzerError::NonFatal)?;
 
-    position::utf8_range_to_protocol(&content, range, request.language.encoding)
+    position::utf8_range_to_protocol(&content, range, request.language.position_encoding())
         .ok_or(AnalyzerError::NonFatal)
 }
 
 pub fn type_range(
-    request: &CodeActionRequest<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    request: &CodeActionRequest<impl crate::AnalyzerHost>,
     type_id: TypeId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.engine.content(request.file);
-    let (parsed, _) = request.language.engine.parsed(request.file)?;
-    let stabilized = request.language.engine.stabilized(request.file)?;
+    let content = request.language.queries().content(request.file);
+    let (parsed, _) = request.language.queries().parsed(request.file)?;
+    let stabilized = request.language.queries().stabilized(request.file)?;
 
     let range =
         locate::id_range(&content, &parsed, &stabilized, type_id).ok_or(AnalyzerError::NonFatal)?;
 
-    position::utf8_range_to_protocol(&content, range, request.language.encoding)
+    position::utf8_range_to_protocol(&content, range, request.language.position_encoding())
         .ok_or(AnalyzerError::NonFatal)
 }

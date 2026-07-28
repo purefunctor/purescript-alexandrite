@@ -8,6 +8,7 @@ pub mod resolve;
 
 use std::sync::Arc;
 
+use building_types::QueryProxy;
 use filter::{FuzzyMatch, NoFilter, StartsWith};
 use lsp_types::*;
 use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
@@ -20,7 +21,7 @@ use sources::{
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
-use crate::{AnalyzerError, LanguageContext, position};
+use crate::{AnalyzerContext, AnalyzerError, position};
 
 #[derive(Clone, Default)]
 pub struct SuggestionsCacheEntry {
@@ -33,18 +34,18 @@ pub struct SuggestionsCacheEntry {
 pub type SuggestionsCache = Trie<String, Arc<SuggestionsCacheEntry>>;
 
 pub fn implementation(
-    language: &LanguageContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    language: &AnalyzerContext<impl crate::AnalyzerHost>,
     cache: &mut SuggestionsCache,
     uri: Url,
     position: Position,
 ) -> Result<Option<CompletionResponse>, AnalyzerError> {
     let current_file = {
         let uri = uri.as_str();
-        language.files.file_id(uri).ok_or(AnalyzerError::NonFatal)?
+        language.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let engine = language.engine;
-    let encoding = language.encoding;
+    let engine = language.queries();
+    let encoding = language.position_encoding();
     let prim_id = engine.prim_id();
     let content = engine.content(current_file);
     let position = position::protocol_position_to_utf8(&content, position, encoding)
@@ -98,7 +99,7 @@ pub fn implementation(
 }
 
 fn collect(
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
     cache: &mut SuggestionsCache,
 ) -> Result<Vec<CompletionItem>, AnalyzerError> {
     let mut items = vec![];
@@ -219,7 +220,7 @@ fn collect(
 fn get_or_populate_suggestions<F: Filter>(
     cache: &mut SuggestionsCache,
     query: &str,
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
     prefix: Option<&str>,
     filter: F,
 ) -> Result<Arc<SuggestionsCacheEntry>, AnalyzerError> {
@@ -273,7 +274,7 @@ fn filter_suggestions<F>(
     cached: &SuggestionsCacheEntry,
     prefix: Option<&str>,
     filter: &F,
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
 ) -> SuggestionsCacheEntry
 where
     F: Filter,
@@ -290,7 +291,7 @@ fn collect_entries<F>(
     items: &[CompletionItem],
     filter: &F,
     prefix: Option<&str>,
-    context: &CompletionContext<impl crate::AnalyzerQueries, impl crate::FileCatalog>,
+    context: &CompletionContext<impl crate::AnalyzerHost>,
 ) -> Vec<CompletionItem>
 where
     F: Filter,
