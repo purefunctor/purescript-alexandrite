@@ -5,7 +5,7 @@ pub mod extension;
 
 use std::borrow::BorrowMut;
 use std::ops::ControlFlow;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, LazyLock};
 use std::{env, fs, mem, process};
 
@@ -27,6 +27,7 @@ use lsp_types::request::Request;
 use lsp_types::*;
 use parking_lot::{RwLock, RwLockReadGuard};
 use prim_constants::MODULE_MAP;
+use rustc_hash::FxHashSet;
 use tempfile::TempDir;
 use tokio::task;
 use tower::ServiceBuilder;
@@ -65,7 +66,7 @@ pub struct State {
     pub client: ClientSocket,
 
     pub engine: QueryEngine,
-    pub files: Arc<RwLock<Files>>,
+    pub files: Arc<RwLock<LspFiles>>,
 
     pub workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
@@ -80,6 +81,7 @@ impl State {
         let mut files = Files::default();
         configure_materialized_prim(&engine, &mut files);
 
+        let files = LspFiles::new(files);
         let files = Arc::new(RwLock::new(files));
 
         let workspace_symbols_cache = WorkspaceSymbolsCache::default();
@@ -113,7 +115,6 @@ impl State {
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
-            root: self.root.clone(),
             position_encoding: self.position_encoding,
         };
         task::spawn_blocking(move || f(snapshot))
@@ -133,10 +134,9 @@ impl State {
 struct StateSnapshot {
     client: ClientSocket,
     engine: QueryEngine,
-    files: Arc<RwLock<Files>>,
+    files: Arc<RwLock<LspFiles>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
-    root: Option<PathBuf>,
     position_encoding: PositionEncoding,
 }
 
@@ -146,17 +146,54 @@ impl StateSnapshot {
         f: impl FnOnce(&AnalyzerContext<LspAnalyzerHost<'_>>) -> T,
     ) -> T {
         let files = self.files.read();
-        let host =
-            LspAnalyzerHost { queries: &self.engine, files, workspace_root: self.root.as_deref() };
+        let host = LspAnalyzerHost { queries: &self.engine, files };
         let context = AnalyzerContext::new(&host, self.position_encoding);
         f(&context)
     }
 }
 
+pub struct LspFiles {
+    files: Files,
+    editable: FxHashSet<FileId>,
+}
+
+impl LspFiles {
+    fn new(files: Files) -> LspFiles {
+        LspFiles { files, editable: FxHashSet::default() }
+    }
+
+    fn id(&self, uri: &str) -> Option<FileId> {
+        self.files.id(uri)
+    }
+
+    fn path(&self, file_id: FileId) -> Arc<str> {
+        self.files.path(file_id)
+    }
+
+    fn iter_id(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.files.iter_id()
+    }
+
+    fn is_editable(&self, file_id: FileId) -> bool {
+        self.editable.contains(&file_id)
+    }
+
+    fn insert(&mut self, uri: &str, content: &str, editable: Option<bool>) -> FileId {
+        let file_id = self.files.insert(uri, content);
+        if let Some(editable) = editable {
+            if editable {
+                self.editable.insert(file_id);
+            } else {
+                self.editable.remove(&file_id);
+            }
+        }
+        file_id
+    }
+}
+
 struct LspAnalyzerHost<'a> {
     queries: &'a QueryEngine,
-    files: RwLockReadGuard<'a, Files>,
-    workspace_root: Option<&'a Path>,
+    files: RwLockReadGuard<'a, LspFiles>,
 }
 
 impl AnalyzerHost for LspAnalyzerHost<'_> {
@@ -180,16 +217,7 @@ impl AnalyzerHost for LspAnalyzerHost<'_> {
     }
 
     fn is_editable(&self, file_id: FileId) -> bool {
-        let Some(workspace_root) = self.workspace_root else {
-            return true;
-        };
-        let Ok(Some(uri)) = self.file_uri(file_id) else {
-            return false;
-        };
-        let Ok(path) = uri.to_file_path() else {
-            return false;
-        };
-        path.starts_with(workspace_root)
+        self.files.is_editable(file_id)
     }
 }
 
@@ -292,7 +320,7 @@ fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
 }
 
 fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> {
-    let root = state.root.as_ref().ok_or(LspError::MissingRoot)?;
+    let root = state.root.clone().ok_or(LspError::MissingRoot)?;
 
     tracing::info!("Using '{}'", command);
 
@@ -305,8 +333,12 @@ fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> 
     let output = command.output()?;
     let output = str::from_utf8(&output.stdout)?;
 
-    let walk::Walk { files, .. } = walk::walk(root, output.lines())?;
-    load_files(state, &files)?;
+    let walk::Walk { files, .. } = walk::walk(&root, output.lines())?;
+    let files = files.into_iter().map(|file| {
+        let editable = file.starts_with(&root);
+        (file, editable)
+    });
+    load_files(state, files)?;
 
     Ok(())
 }
@@ -317,18 +349,25 @@ fn initialized_spago(state: &mut State) -> Result<(), LspError> {
     tracing::info!("Using 'spago.lock'");
 
     let packages = spago::source_files_by_package(root).map_err(LspError::SpagoLock)?;
-    let files = packages.into_values().flat_map(|package| package.sources);
+    let files = packages.into_values().flat_map(|package| {
+        let editable = package.reference == spago::PackageReference::Workspace;
+        package.sources.into_iter().map(move |file| (file, editable))
+    });
 
     let files = files.sorted().collect_vec();
-    load_files(state, &files)?;
+    load_files(state, files)?;
 
     Ok(())
 }
 
-fn load_files(state: &mut State, files: &[PathBuf]) -> Result<(), LspError> {
+fn load_files(
+    state: &mut State,
+    files: impl IntoIterator<Item = (PathBuf, bool)>,
+) -> Result<(), LspError> {
+    let files = files.into_iter().collect_vec();
     tracing::info!("Loading {} files.", files.len());
 
-    for file in files {
+    for (file, editable) in &files {
         let url = url::Url::from_file_path(file).map_err(|_| {
             let file = PathBuf::clone(file);
             LspError::PathParseFail(file)
@@ -337,7 +376,7 @@ fn load_files(state: &mut State, files: &[PathBuf]) -> Result<(), LspError> {
         let uri = url.to_string();
 
         let text = fs::read_to_string(file)?;
-        on_change(state, &uri, &text)?;
+        on_change(state, &uri, &text, Some(*editable))?;
     }
 
     tracing::info!("Loaded {} files.", files.len());
@@ -501,7 +540,7 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
 
     for content_change in &p.content_changes {
         let text = content_change.text.as_str();
-        on_change(state, uri, text)?;
+        on_change(state, uri, text, None)?;
     }
 
     state.invalidate_workspace_symbols();
@@ -518,7 +557,18 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
     let uri = p.text_document.uri.as_str();
     let text = p.text_document.text.as_str();
 
-    on_change(state, uri, text)?;
+    let editable = {
+        let files = state.files.read();
+        let previous_id = files.id(uri);
+        previous_id.map(|file_id| files.is_editable(file_id))
+    }
+    .unwrap_or_else(|| {
+        let Some(root) = state.root.as_ref() else {
+            return true;
+        };
+        p.text_document.uri.to_file_path().is_ok_and(|path| path.starts_with(root))
+    });
+    on_change(state, uri, text, Some(editable))?;
 
     state.invalidate_workspace_symbols();
     state.invalidate_suggestions_cache();
@@ -539,7 +589,12 @@ fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspEr
     Ok(())
 }
 
-fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError> {
+fn on_change(
+    state: &mut State,
+    uri: &str,
+    content: &str,
+    editable: Option<bool>,
+) -> Result<(), LspError> {
     let previous_id = state.files.read().id(uri);
     let previous_name = if let Some(id) = previous_id {
         let previous_content = state.engine.content(id);
@@ -555,7 +610,7 @@ fn on_change(state: &mut State, uri: &str, content: &str) -> Result<(), LspError
     state.engine.request_cancel();
 
     let mut files = state.files.write();
-    let id = files.insert(uri, content);
+    let id = files.insert(uri, content, editable);
 
     state.engine.set_content(id, content);
 
