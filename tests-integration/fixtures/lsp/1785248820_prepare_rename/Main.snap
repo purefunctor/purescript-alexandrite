@@ -1,0 +1,63 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+PrepareRename at Position { line: 0, character: 7 }
+
+```
+module Main where
+--     ?
+```
+
+0:7..0:11 Main
+
+
+PrepareRename at Position { line: 3, character: 15 }
+
+```
+import Prim as P
+--             ?
+```
+
+3:15..3:16 P
+
+
+PrepareRename at Position { line: 6, character: 3 }
+
+```
+value = 42
+-- ?
+```
+
+6:0..6:5 value
+
+
+PrepareRename at Position { line: 9, character: 6 }
+
+```
+use = value
+--    ?
+```
+
+9:6..9:11 value
+
+
+PrepareRename at Position { line: 12, character: 10 }
+
+```
+typed :: P.Int
+--        ?
+```
+
+12:9..12:10 P
+
+
+PrepareRename at Position { line: 16, character: 10 }
+
+```
+literal = 42
+--        ?
+```
+
+<empty>

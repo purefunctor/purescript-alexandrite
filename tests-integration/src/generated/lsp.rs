@@ -13,8 +13,8 @@ use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
     CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
     DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, Position, Range, SemanticTokens, SymbolInformation,
-    TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
+    LanguageString, Location, MarkedString, Position, PrepareRenameResponse, Range, SemanticTokens,
+    SymbolInformation, TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use similar::TextDiff;
@@ -60,13 +60,14 @@ enum CursorKind {
     CompletionCached,
     References,
     Rename,
+    PrepareRename,
     DocumentHighlight,
     DocumentSymbols,
     CodeAction,
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '/', '!', '&', '.'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '/', '?', '!', '&', '.'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -76,6 +77,7 @@ impl CursorKind {
             "~" => Some(CursorKind::CompletionCached),
             "%" => Some(CursorKind::References),
             "/" => Some(CursorKind::Rename),
+            "?" => Some(CursorKind::PrepareRename),
             "&" => Some(CursorKind::DocumentHighlight),
             "!" => Some(CursorKind::DocumentSymbols),
             "." => Some(CursorKind::CodeAction),
@@ -292,6 +294,13 @@ fn render_location(location: Location) -> String {
         location.range.start.character,
         location.range.end.line,
         location.range.end.character,
+    )
+}
+
+fn render_range(range: Range) -> String {
+    format!(
+        "{}:{}..{}:{}",
+        range.start.line, range.start.character, range.end.line, range.end.character,
     )
 }
 
@@ -563,6 +572,20 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
+        CursorKind::PrepareRename => match analyzer::rename::prepare(&context, uri, position) {
+            Ok(Some(PrepareRenameResponse::Range(range))) => {
+                writeln!(result, "{}", render_range(range)).unwrap();
+            }
+            Ok(Some(PrepareRenameResponse::RangeWithPlaceholder { range, placeholder })) => {
+                writeln!(result, "{} {placeholder}", render_range(range)).unwrap();
+            }
+            Ok(Some(PrepareRenameResponse::DefaultBehavior { default_behavior })) => {
+                writeln!(result, "default behavior: {default_behavior}").unwrap();
+            }
+            Ok(None) | Err(_) => {
+                writeln!(result, "<empty>").unwrap();
+            }
+        },
         CursorKind::DocumentHighlight => {
             let render_highlight = |h: DocumentHighlight| -> String {
                 format!(
