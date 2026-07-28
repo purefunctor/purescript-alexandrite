@@ -51,14 +51,15 @@ pub fn implementation(
     if old_name == new_name {
         return Ok(None);
     }
+
+    if !context.is_editable(target.file()) {
+        return Ok(None);
+    }
+
     if !valid_new_name(&new_name, name_kind) {
         let message =
             format!("Cannot rename `{old_name}` to `{new_name}` because the new name is invalid");
         return Err(AnalyzerError::RenameRejected(message));
-    }
-
-    if !context.is_editable(target.file()) {
-        return Ok(None);
     }
 
     let mut edits = edit::RenameEdits::new(context);
