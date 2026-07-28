@@ -27,6 +27,11 @@ fn normalize_source(source: PathBuf) -> Option<String> {
     Some(source.replace('\\', "/"))
 }
 
+fn normalize_path(path: &mut PathBuf) {
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    *path = PathBuf::from(normalized);
+}
+
 #[test]
 fn test_parse_lockfile() {
     let lockfile = serde_json::from_str::<Lockfile>(SPAGO_LOCK);
@@ -116,7 +121,15 @@ fn test_lockfile_sources_by_package_include_package_roots() {
     )
     .unwrap();
 
-    let packages = lockfile.sources_by_package();
+    let mut packages = lockfile.sources_by_package();
+    for package in packages.values_mut() {
+        for root in &mut package.roots {
+            normalize_path(root);
+        }
+        for source in &mut package.sources {
+            normalize_path(source);
+        }
+    }
     insta::assert_debug_snapshot!(packages, @r#"
     {
         "git-package": PackageSources {
