@@ -4,6 +4,7 @@ use building_types::QueryResult;
 use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
+use crate::core::substitute::SubstituteName;
 use crate::core::{KindOrType, TypeId, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
@@ -25,6 +26,10 @@ pub(crate) fn generate_instance<Q>(
 where
     Q: ExternalQueries,
 {
+    if let DeriveStrategy::NewtypeDeriveConstraint { delegate_constraint } = result.strategy {
+        return generate_delegate_instance(state, context, result, delegate_constraint);
+    }
+
     let dispatch = derive_dispatch(context, result.class_file, result.class_id);
     match dispatch {
         DeriveDispatch::Eq | DeriveDispatch::Eq1 | DeriveDispatch::Ord | DeriveDispatch::Ord1 => {
@@ -32,6 +37,67 @@ where
         }
         _ => Ok(()),
     }
+}
+
+fn generate_delegate_instance<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    delegate_constraint: TypeId,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let Some(instance) = toolkit::instance_info(
+        state,
+        context,
+        result.signature,
+        (result.class_file, result.class_id),
+    )?
+    else {
+        return Ok(());
+    };
+
+    let freshened = freshen_instance_rigids(state, context, &instance)?;
+    state.with_implicit(context, &freshened.substitution, |state| {
+        let mut evidences = Vec::with_capacity(freshened.constraints.len());
+        for (&constraint, &signature_constraint) in
+            std::iter::zip(&freshened.constraints, &instance.constraints)
+        {
+            let evidence = Evidence::Given(state.push_given(constraint));
+            evidences.push(tree::InstanceEvidence { constraint: signature_constraint, evidence });
+        }
+
+        let superclasses = emit_instance_superclass_constraints(
+            state,
+            context,
+            result.class_file,
+            result.class_id,
+            &freshened.arguments,
+        )?;
+
+        let delegate_constraint =
+            SubstituteName::many(state, context, &freshened.substitution, delegate_constraint)?;
+        let evidence = state.push_wanted(delegate_constraint);
+
+        let instance = tree::InstanceDeclaration {
+            class: (result.class_file, result.class_id),
+            rigid_parameters: Arc::from(freshened.rigids),
+            evidences: Arc::from(evidences),
+            superclasses: Arc::from(superclasses),
+            implementation: tree::InstanceImplementation::Delegate {
+                constraint: delegate_constraint,
+                evidence,
+            },
+        };
+        let declaration = tree::TermDeclaration {
+            type_id: result.signature,
+            kind: tree::TermDeclarationKind::Instance(instance),
+        };
+        state.checked.tree.insert_term(result.item_id, declaration);
+
+        Ok(())
+    })
 }
 
 fn generate_known_instance<Q>(

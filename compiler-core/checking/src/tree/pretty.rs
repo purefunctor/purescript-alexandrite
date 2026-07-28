@@ -476,6 +476,13 @@ where
             instance,
             &mut outer_evidence_names,
         )?;
+
+        if let InstanceImplementation::Delegate { evidence, .. } = &instance.implementation {
+            let evidence = self.evidence_variable_name(&mut outer_evidence_names, *evidence)?;
+            let delegation = self.arena.text(format!(" = {evidence}"));
+            return Ok(signature.append(delegation));
+        }
+
         let mut fields = vec![];
 
         let superclass_names = self.instance_superclass_field_names(instance)?;
@@ -524,9 +531,10 @@ where
                     fields.push(signature.append(self.arena.hardline()).append(equations));
                 }
             }
-            InstanceImplementation::Delegate { evidence, .. } => {
-                let evidence = self.evidence_variable_name(&mut outer_evidence_names, *evidence)?;
-                fields.push(self.arena.text(format!("  delegate = {evidence}")));
+            InstanceImplementation::Delegate { .. } => {
+                unreachable!(
+                    "invariant violated: delegated instances return before rendering members"
+                )
             }
         }
 

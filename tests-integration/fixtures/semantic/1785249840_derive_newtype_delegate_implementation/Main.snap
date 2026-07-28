@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+newtype Identity :: Type -> Type
+newtype Identity @a
+  | Identity :: a -> Identity a
+
+dictionary showIdentity :: forall t. { showDict :: Show t } => Show (Identity t) = showDict

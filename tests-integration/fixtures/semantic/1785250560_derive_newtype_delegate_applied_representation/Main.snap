@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+newtype NonEmpty :: Type -> Type
+newtype NonEmpty @a
+  | NonEmpty :: Array a -> NonEmpty a
+
+dictionary showNonEmpty ::
+  forall t.
+  { showDict :: Show t } =>
+  Show (NonEmpty t) = showArray {showDict}

@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+newtype NonZero :: Type
+newtype NonZero
+  | NonZero :: Int -> NonZero
+
+dictionary showNonZero :: Show NonZero = showInt
