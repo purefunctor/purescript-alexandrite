@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 116
+assertion_line: 134
 expression: report
 ---
 Rename at Position { line: 0, character: 9 }
@@ -10,7 +10,16 @@ module Main (module Alias, original) where
 --       /
 ```
 
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 0:7..0:11 => "Renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,4 +1,4 @@
+-module Main (module Alias, original) where
++module Renamed (module Alias, original) where
+ --       /
+
+ import Library.Original
+```
 
 
 Rename at Position { line: 3, character: 10 }
@@ -20,9 +29,39 @@ import Library.Original
 --        /
 ```
 
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Bridge.purs @ 0:22..0:38 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Bridge.purs @ 2:7..2:23 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Library.purs @ 0:32..0:48 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Library.purs @ 0:7..0:23 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 3:7..3:23 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866780_rename_module_name/Main.purs @ 5:7..5:23 => "Renamed"
+```diff
+--- Bridge.purs
++++ Bridge.purs
+@@ -1,3 +1,3 @@
+-module Bridge (module Library.Original) where
++module Bridge (module Renamed) where
+
+-import Library.Original
++import Renamed
+```
+
+```diff
+--- Library.purs
++++ Library.purs
+@@ -1,3 +1,3 @@
+-module Library.Original (module Library.Original, original) where
++module Renamed (module Renamed, original) where
+
+ original = 42
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,8 +1,8 @@
+ module Main (module Alias, original) where
+ --       /
+
+-import Library.Original
++import Renamed
+ --        /
+-import Library.Original as Alias
++import Renamed as Alias
+
+ term = Alias.original
+```

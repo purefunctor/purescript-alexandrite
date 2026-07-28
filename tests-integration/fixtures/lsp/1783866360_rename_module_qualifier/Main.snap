@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 116
+assertion_line: 134
 expression: report
 ---
 Rename at Position { line: 2, character: 15 }
@@ -10,10 +10,24 @@ import Lib as Library
 --             /
 ```
 
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 0:20..0:27 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 2:14..2:21 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 5:7..5:15 => "Renamed."
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 8:15..8:23 => "Renamed."
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+-module Main (module Library, term, type Example) where
++module Main (module Renamed, term, type Example) where
+
+-import Lib as Library
++import Lib as Renamed
+ --             /
+
+-term = Library.original
++term = Renamed.original
+ --       /
+
+-type Example = Library.Original
++type Example = Renamed.Original
+```
 
 
 Rename at Position { line: 5, character: 9 }
@@ -23,7 +37,21 @@ term = Library.original
 --       /
 ```
 
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 0:20..0:27 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 2:14..2:21 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 5:7..5:15 => "Renamed."
-file:///tests-integration/fixtures/lsp/1783866360_rename_module_qualifier/Main.purs @ 8:15..8:23 => "Renamed."
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+-module Main (module Library, term, type Example) where
++module Main (module Renamed, term, type Example) where
+
+-import Lib as Library
++import Lib as Renamed
+ --             /
+
+-term = Library.original
++term = Renamed.original
+ --       /
+
+-type Example = Library.Original
++type Example = Renamed.Original
+```

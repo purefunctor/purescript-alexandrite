@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 116
+assertion_line: 134
 expression: report
 ---
 Rename at Position { line: 4, character: 19 }
@@ -10,9 +10,32 @@ term = Library.original
 --                 /
 ```
 
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 4:0..4:8 => "renamed"
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 5:0..5:8 => "renamed"
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Main.purs @ 4:15..4:23 => "renamed"
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -2,5 +2,5 @@
+
+ data Original = Original
+
+-original :: Original
+-original = Original
++renamed :: Original
++renamed = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -2,7 +2,7 @@
+
+ import Lib as Library
+
+-term = Library.original
++term = Library.renamed
+ --                 /
+
+ type Example = Library.Original
+```
 
 
 Rename at Position { line: 7, character: 27 }
@@ -22,6 +45,28 @@ type Example = Library.Original
 --                         /
 ```
 
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 2:5..2:13 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Lib.purs @ 4:12..4:20 => "Renamed"
-file:///tests-integration/fixtures/lsp/1783865400_rename_item_baseline/Main.purs @ 7:23..7:31 => "Renamed"
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,6 +1,6 @@
+ module Lib where
+
+-data Original = Original
++data Renamed = Original
+
+-original :: Original
++original :: Renamed
+ original = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -5,5 +5,5 @@
+ term = Library.original
+ --                 /
+
+-type Example = Library.Original
++type Example = Library.Renamed
+ --                         /
+```

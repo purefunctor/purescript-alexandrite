@@ -2627,6 +2627,7 @@ dependencies = [
  "lsp-types",
  "prim-constants",
  "serde_json",
+ "similar",
  "stabilizing",
  "sugar",
  "syntax",

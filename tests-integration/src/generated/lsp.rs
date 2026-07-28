@@ -17,6 +17,7 @@ use lsp_types::{
     TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
+use similar::TextDiff;
 use syntax::{SyntaxKind, TokenAtOffset};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
@@ -287,18 +288,59 @@ fn render_workspace_edit(edit: WorkspaceEdit) -> Vec<String> {
     result
 }
 
-fn render_rename_edit(edit: WorkspaceEdit) -> Vec<String> {
-    let mut result = vec![];
+fn render_rename_edit(edit: WorkspaceEdit, files: &Files, encoding: PositionEncoding) -> String {
+    let Some(changes) = edit.changes else { return String::new() };
 
-    if let Some(changes) = edit.changes {
-        for (uri, edits) in changes {
-            for edit in edits {
-                result.push(format!("{uri} @ {}", render_text_edit(edit)));
-            }
-        }
+    let mut changes = changes.into_iter().collect::<Vec<_>>();
+    changes.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
+
+    let mut rendered = changes.into_iter().map(|(uri, edits)| {
+        let file_id = files.id(uri.as_str()).expect("rename edit references a loaded file");
+        let content = files.content(file_id);
+        let changed = apply_text_edits(&content, edits, encoding);
+        let file_name = uri
+            .to_file_path()
+            .ok()
+            .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+            .unwrap_or_else(|| uri.to_string());
+
+        let diff = TextDiff::from_lines(content.as_ref(), changed.as_str());
+        let diff = diff.unified_diff().header(&file_name, &file_name).to_string();
+        let mut diff = diff.lines().map(|line| if line == " " { "" } else { line });
+        let diff = diff.join("\n");
+
+        format!("```diff\n{diff}\n```")
+    });
+
+    rendered.join("\n\n")
+}
+
+fn apply_text_edits(content: &str, edits: Vec<TextEdit>, encoding: PositionEncoding) -> String {
+    let edits = edits.into_iter().map(|edit| {
+        let start =
+            analyzer::position::protocol_position_to_utf8(content, edit.range.start, encoding)
+                .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
+                .expect("rename edit starts at a valid source position");
+        let end = analyzer::position::protocol_position_to_utf8(content, edit.range.end, encoding)
+            .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
+            .expect("rename edit ends at a valid source position");
+
+        (usize::from(start), usize::from(end), edit.new_text)
+    });
+    let mut edits = edits.collect::<Vec<_>>();
+    edits.sort_by_key(|(start, end, _)| (*start, *end));
+
+    let mut result = String::with_capacity(content.len());
+    let mut cursor = 0;
+
+    for (start, end, new_text) in edits {
+        assert!(cursor <= start, "rename edits must not overlap");
+        result.push_str(&content[cursor..start]);
+        result.push_str(&new_text);
+        cursor = end;
     }
 
-    result.sort();
+    result.push_str(&content[cursor..]);
     result
 }
 
@@ -490,8 +532,8 @@ fn dispatch_cursor(
                 new_name,
             );
             if let Ok(Some(edit)) = response {
-                let edits = render_rename_edit(edit);
-                writeln!(result, "{}", edits.join("\n")).unwrap();
+                let edit = render_rename_edit(edit, files, encoding);
+                writeln!(result, "{edit}").unwrap();
             } else {
                 writeln!(result, "<empty>").unwrap();
             }

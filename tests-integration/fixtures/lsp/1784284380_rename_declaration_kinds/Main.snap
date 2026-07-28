@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 116
+assertion_line: 134
 expression: report
 ---
 Rename at Position { line: 2, character: 20 }
@@ -10,10 +10,30 @@ foreign import data ForeignType :: Type
 --                  /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:26..11:37 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 2:20..2:31 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 5:31..5:42 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 8:15..8:26 => "Renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,15 +1,15 @@
+ module Main where
+
+-foreign import data ForeignType :: Type
++foreign import data Renamed :: Type
+ --                  /
+
+-foreign import foreignValue :: ForeignType
++foreign import foreignValue :: Renamed
+ --             /
+
+-type Synonym = ForeignType
++type Synonym = Renamed
+ --   /
+
+-newtype Wrapper = Wrapper ForeignType
++newtype Wrapper = Wrapper Renamed
+ --      /
+
+ class Example a where
+```
 
 
 Rename at Position { line: 5, character: 15 }
@@ -23,9 +43,28 @@ foreign import foreignValue :: ForeignType
 --             /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:14..25:26 => "renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:31..25:43 => "renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 5:15..5:27 => "renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -3,7 +3,7 @@
+ foreign import data ForeignType :: Type
+ --                  /
+
+-foreign import foreignValue :: ForeignType
++foreign import renamed :: ForeignType
+ --             /
+
+ type Synonym = ForeignType
+@@ -23,7 +23,7 @@
+
+ infixl 5 combine as <?>
+
+-operatorUse = foreignValue <?> foreignValue
++operatorUse = renamed <?> renamed
+ --                         /
+
+ infixl 5 type Synonym as :+:
+```
 
 
 Rename at Position { line: 8, character: 5 }
@@ -35,9 +74,26 @@ type Synonym = ForeignType
 --   /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:19..30:26 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:31..30:38 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 8:5..8:12 => "Renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -6,7 +6,7 @@
+ foreign import foreignValue :: ForeignType
+ --             /
+
+-type Synonym = ForeignType
++type Renamed = ForeignType
+ --   /
+
+ newtype Wrapper = Wrapper ForeignType
+@@ -28,5 +28,5 @@
+
+ infixl 5 type Synonym as :+:
+
+-type OperatorUse = Synonym :+: Synonym
++type OperatorUse = Renamed :+: Renamed
+ --                         /
+```
 
 
 Rename at Position { line: 11, character: 8 }
@@ -47,7 +103,19 @@ newtype Wrapper = Wrapper ForeignType
 --      /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:8..11:15 => "Renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -9,7 +9,7 @@
+ type Synonym = ForeignType
+ --   /
+
+-newtype Wrapper = Wrapper ForeignType
++newtype Renamed = Wrapper ForeignType
+ --      /
+
+ class Example a where
+```
 
 
 Rename at Position { line: 15, character: 3 }
@@ -57,7 +125,19 @@ Rename at Position { line: 15, character: 3 }
 -- /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 15:2..15:8 => "renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -13,7 +13,7 @@
+ --      /
+
+ class Example a where
+-  member :: a -> a
++  renamed :: a -> a
+ -- /
+
+ unwrap (Wrapper value) = value
+```
 
 
 Rename at Position { line: 18, character: 8 }
@@ -67,8 +147,27 @@ unwrap (Wrapper value) = value
 --      /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 11:18..11:25 => "Renamed"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 18:8..18:15 => "Renamed"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -9,14 +9,14 @@
+ type Synonym = ForeignType
+ --   /
+
+-newtype Wrapper = Wrapper ForeignType
++newtype Wrapper = Renamed ForeignType
+ --      /
+
+ class Example a where
+   member :: a -> a
+ -- /
+
+-unwrap (Wrapper value) = value
++unwrap (Renamed value) = value
+ --      /
+
+ combine left right = left
+```
 
 
 Rename at Position { line: 25, character: 27 }
@@ -78,8 +177,22 @@ operatorUse = foreignValue <?> foreignValue
 --                         /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 23:20..23:23 => "<~>"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 25:27..25:30 => "<~>"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -21,9 +21,9 @@
+
+ combine left right = left
+
+-infixl 5 combine as <?>
++infixl 5 combine as <~>
+
+-operatorUse = foreignValue <?> foreignValue
++operatorUse = foreignValue <~> foreignValue
+ --                         /
+
+ infixl 5 type Synonym as :+:
+```
 
 
 Rename at Position { line: 30, character: 27 }
@@ -89,5 +202,17 @@ type OperatorUse = Synonym :+: Synonym
 --                         /
 ```
 
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 28:25..28:28 => "<~>"
-file:///tests-integration/fixtures/lsp/1784284380_rename_declaration_kinds/Main.purs @ 30:27..30:30 => "<~>"
+```diff
+--- Main.purs
++++ Main.purs
+@@ -26,7 +26,7 @@
+ operatorUse = foreignValue <?> foreignValue
+ --                         /
+
+-infixl 5 type Synonym as :+:
++infixl 5 type Synonym as <~>
+
+-type OperatorUse = Synonym :+: Synonym
++type OperatorUse = Synonym <~> Synonym
+ --                         /
+```
