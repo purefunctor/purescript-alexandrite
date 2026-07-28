@@ -137,8 +137,30 @@ pub fn text_range_to_protocol(
     range: TextRange,
     encoding: PositionEncoding,
 ) -> Option<lsp_types::Range> {
-    let range = text_range_to_utf8_range(content, range)?;
-    utf8_range_to_protocol(content, range, encoding)
+    let line_index = LineIndex::new(content);
+    text_range_to_protocol_with_line_index(&line_index, range, encoding)
+}
+
+pub(crate) fn text_range_to_protocol_with_line_index(
+    line_index: &LineIndex,
+    range: TextRange,
+    encoding: PositionEncoding,
+) -> Option<lsp_types::Range> {
+    let convert = |offset| {
+        let line_col = line_index.try_line_col(offset)?;
+        let line_col = match encoding.wide() {
+            None => line_col,
+            Some(encoding) => {
+                let wide = line_index.to_wide(encoding, line_col)?;
+                LineCol { line: wide.line, col: wide.col }
+            }
+        };
+        Some(lsp_types::Position { line: line_col.line, character: line_col.col })
+    };
+
+    let start = convert(range.start())?;
+    let end = convert(range.end())?;
+    Some(lsp_types::Range { start, end })
 }
 
 pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Option<Utf8Range> {
@@ -245,11 +267,11 @@ pub fn infix_operator_range(
 #[cfg(test)]
 mod tests {
     use lsp_types::{Position, PositionEncodingKind};
-    use syntax::TextSize;
+    use syntax::{TextRange, TextSize};
 
     use super::{
         PositionEncoding, Utf8Position, offset_to_utf8_position, protocol_position_to_utf8,
-        utf8_position_to_offset, utf8_position_to_protocol,
+        text_range_to_protocol, utf8_position_to_offset, utf8_position_to_protocol,
     };
 
     #[test]
@@ -297,6 +319,21 @@ mod tests {
         let position =
             utf8_position_to_protocol(content, position, PositionEncoding::Utf8).unwrap();
         assert_eq!(position, Position::new(0, 5));
+    }
+
+    #[test]
+    fn text_ranges_use_negotiated_position_encoding() {
+        let content = "a😀b";
+        let range = TextRange::new(TextSize::new(1), TextSize::new(5));
+
+        let utf8 = text_range_to_protocol(content, range, PositionEncoding::Utf8).unwrap();
+        assert_eq!(utf8, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 5)));
+
+        let utf16 = text_range_to_protocol(content, range, PositionEncoding::Utf16).unwrap();
+        assert_eq!(utf16, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 3)));
+
+        let utf32 = text_range_to_protocol(content, range, PositionEncoding::Utf32).unwrap();
+        assert_eq!(utf32, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 2)));
     }
 
     #[test]
