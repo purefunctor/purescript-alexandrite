@@ -39,11 +39,14 @@ jobs:
         with:
           tool: cargo-nextest
 
-      - name: Build and Test
-        run: |
-          cargo build --workspace --verbose
-          cargo nextest run
-          cargo nextest run -p tests-integration
+      - name: Build workspace
+        run: cargo build --workspace --verbose
+
+      - name: Run workspace tests
+        run: cargo nextest run
+
+      - name: Run integration tests
+        run: cargo nextest run -p tests-integration
 
   coverage:
     name: Coverage
