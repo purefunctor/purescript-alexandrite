@@ -59,11 +59,18 @@ impl LspError {
         if let Some(QueryError::Cancelled) = self.as_query_error() {
             return "Request cancelled";
         }
+        if let LspError::AnalyzerError(AnalyzerError::RenameRejected(message)) = self {
+            return message;
+        }
         "Request failed"
     }
 
     pub fn emit_trace(&self) {
-        if let Some(QueryError::Cancelled) = self.as_query_error() {
+        let cancelled = matches!(self.as_query_error(), Some(QueryError::Cancelled));
+        let rename_rejected =
+            matches!(self, LspError::AnalyzerError(AnalyzerError::RenameRejected(_)));
+
+        if cancelled || rename_rejected {
             tracing::warn!("{self}")
         } else {
             tracing::error!("{self}")

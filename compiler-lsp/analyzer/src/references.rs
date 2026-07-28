@@ -343,22 +343,25 @@ fn references_file_term(
             if let ExpressionKind::Constructor { resolution: Some((f_id, t_id)) } = expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, expr_id) else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::OperatorName { resolution: Some((f_id, t_id)) } =
                 expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, expr_id) else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::Variable { resolution: Some(resolution) } = expr_kind
                 && let TermVariableResolution::Reference(f_id, t_id) = resolution
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, expr_id) else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
@@ -367,16 +370,20 @@ fn references_file_term(
             if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, binder_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, binder_id)
+                else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
 
         for (operator_id, f_id, t_id) in lowered.info.iter_term_operator() {
             if (f_id, t_id) == (file_id, term_id) {
-                let range = id_range(context, &content, &parsed, &stabilized, operator_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, operator_id)
+                else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
@@ -408,23 +415,27 @@ fn references_file_type(
             if let TypeKind::Constructor { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, ty_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, ty_id) else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
             if let TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, ty_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, ty_id) else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
 
         for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
             if (f_id, t_id) == (file_id, type_id) {
-                let range = id_range(context, &content, &parsed, &stabilized, operator_id)
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = id_range(context, &content, &parsed, &stabilized, operator_id)
+                else {
+                    continue;
+                };
                 locations.push(Location { uri: uri.clone(), range });
             }
         }

@@ -6,15 +6,17 @@ use indexing::{
     ImplicitItems, ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind,
     TypeSelection,
 };
+use itertools::Itertools;
 use lsp_types::*;
 use stabilizing::AstId;
-use syntax::ast::AstNode;
-use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, WalkEvent, cst};
+use syntax::ast::{AstNode, support};
+use syntax::{SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TokenAtOffset, cst};
 
-use super::{NameKind, RenameTarget};
+use super::{NameKind, RenameTarget, qualifier_name};
 use crate::position::Utf8Range;
 use crate::{AnalyzerContext, AnalyzerError, AnalyzerHost, common, position};
 
+// A macro permits one invocation to contain IDs with different AstId<T> types.
 macro_rules! push_name_edits {
     ($self:expr, $file_id:expr, $new_name:expr, $range:expr; $($id:expr),+ $(,)?) => {
         $($self.push_name_edit($file_id, $id, $range, $new_name)?;)+
@@ -51,23 +53,20 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let indexed = self.context.queries().indexed(file_id)?;
-        let old_name = indexed
-            .imports
-            .get(&import_id)
-            .and_then(|import| import.alias.as_deref())
-            .ok_or(AnalyzerError::NonFatal)?;
+        let old_name =
+            indexed.imports.get(&import_id).and_then(|import| import.alias.as_deref()).ok_or_else(
+                || {
+                    AnalyzerError::RenameRejected(
+                        "Rename could not resolve the target qualifier".to_string(),
+                    )
+                },
+            )?;
 
         let content = self.context.queries().content(file_id);
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
 
-        let statements = root.preorder().filter_map(|event| {
-            let WalkEvent::Enter(node) = event else {
-                return None;
-            };
-
-            cst::ImportStatement::cast(node)
-        });
+        let statements = support::descendants::<cst::ImportStatement>(&root);
 
         for statement in statements {
             let Some(module_name) = statement.import_alias().and_then(|alias| alias.module_name())
@@ -78,16 +77,11 @@ where
                 continue;
             }
 
-            self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name)?;
+            let _ = self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name);
         }
 
-        let qualified_names = root.preorder().filter_map(|event| {
-            let WalkEvent::Enter(node) = event else {
-                return None;
-            };
-
-            cst::QualifiedName::cast(node)
-        });
+        let qualified_names = support::descendants::<cst::QualifiedName>(&root);
+        let qualified_new_name = format!("{new_name}.");
 
         for qualified in qualified_names {
             let Some(qualifier) = qualified.qualifier() else {
@@ -96,21 +90,14 @@ where
             let Some(token) = qualifier.text() else {
                 continue;
             };
-            if token.text(&content).trim_end_matches('.') != old_name {
+            if qualifier_name(token.text(&content)) != Some(old_name) {
                 continue;
             }
 
-            let new_name = format!("{new_name}.");
-            self.push_text_range_edit(file_id, token.text_range(), &new_name)?;
+            let _ = self.push_text_range_edit(file_id, token.text_range(), &qualified_new_name);
         }
 
-        let exports = root.preorder().filter_map(|event| {
-            let WalkEvent::Enter(node) = event else {
-                return None;
-            };
-
-            cst::ExportModule::cast(node)
-        });
+        let exports = support::descendants::<cst::ExportModule>(&root);
 
         for export in exports {
             let Some(module_name) = export.module_name() else {
@@ -120,7 +107,7 @@ where
                 continue;
             }
 
-            self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name)?;
+            let _ = self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name);
         }
 
         Ok(())
@@ -132,13 +119,19 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let (parsed, _) = self.context.queries().parsed(target_file)?;
-        let module_name = parsed
-            .cst()
-            .header()
-            .and_then(|header| header.name())
-            .ok_or(AnalyzerError::NonFatal)?;
+        let module_name =
+            parsed.cst().header().and_then(|header| header.name()).ok_or_else(|| {
+                AnalyzerError::RenameRejected(
+                    "Rename could not resolve the target module name".to_string(),
+                )
+            })?;
 
-        self.push_text_range_edit(target_file, module_name.syntax().text_range(), new_name)?;
+        self.push_text_range_edit(target_file, module_name.syntax().text_range(), new_name)
+            .ok_or_else(|| {
+                AnalyzerError::RenameRejected(
+                    "Rename could not edit the target module name".to_string(),
+                )
+            })?;
 
         for file_id in self.context.active_files() {
             if !self.context.is_editable(file_id) {
@@ -171,11 +164,17 @@ where
                 continue;
             }
 
-            let ptr = stabilized.ast_ptr(*import_id).ok_or(AnalyzerError::NonFatal)?;
-            let statement = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
-            let module_name = statement.module_name().ok_or(AnalyzerError::NonFatal)?;
+            let Some(ptr) = stabilized.ast_ptr(*import_id) else {
+                continue;
+            };
+            let Some(statement) = ptr.try_to_node(&root) else {
+                continue;
+            };
+            let Some(module_name) = statement.module_name() else {
+                continue;
+            };
 
-            self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name)?;
+            let _ = self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name);
         }
 
         Ok(())
@@ -197,24 +196,31 @@ where
         for export in &indexed.exports.modules {
             let exports_self =
                 file_id == target_file && current_module.as_ref() == Some(&export.name);
-            let exports_import = indexed.imports.values().any(|import| {
-                import.alias.is_none()
-                    && import.name.as_ref() == Some(&export.name)
-                    && self.context.queries().module_file(&export.name) == Some(target_file)
-            });
+            let exports_target_module =
+                self.context.queries().module_file(&export.name) == Some(target_file);
+            let exports_import = exports_target_module
+                && indexed.imports.values().any(|import| {
+                    import.alias.is_none() && import.name.as_ref() == Some(&export.name)
+                });
 
             if !exports_self && !exports_import {
                 continue;
             }
 
-            let ptr = stabilized.ast_ptr(export.id).ok_or(AnalyzerError::NonFatal)?;
-            let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
-            let cst::ExportItem::ExportModule(export) = item else {
-                return Err(AnalyzerError::NonFatal);
+            let Some(ptr) = stabilized.ast_ptr(export.id) else {
+                continue;
             };
-            let module_name = export.module_name().ok_or(AnalyzerError::NonFatal)?;
+            let Some(item) = ptr.try_to_node(&root) else {
+                continue;
+            };
+            let cst::ExportItem::ExportModule(export) = item else {
+                continue;
+            };
+            let Some(module_name) = export.module_name() else {
+                continue;
+            };
 
-            self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name)?;
+            let _ = self.push_text_range_edit(file_id, module_name.syntax().text_range(), new_name);
         }
 
         Ok(())
@@ -232,14 +238,19 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         for location in locations {
-            let file_id =
-                self.context.file_id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
+            let Some(file_id) = self.context.file_id(location.uri.as_str()) else {
+                continue;
+            };
             if !self.context.is_editable(file_id) {
                 continue;
             }
 
-            let range = self.reference_name_range(file_id, location.range, name_kind)?;
-            self.push_protocol_edit(file_id, range, new_name)?;
+            let Some(range) = self.reference_name_range(file_id, location.range, name_kind)? else {
+                continue;
+            };
+            if self.push_protocol_edit(file_id, range, new_name).is_none() {
+                continue;
+            }
         }
 
         Ok(())
@@ -250,36 +261,42 @@ where
         file_id: FileId,
         range: Range,
         name_kind: NameKind,
-    ) -> Result<Range, AnalyzerError> {
+    ) -> Result<Option<Range>, AnalyzerError> {
         let content = self.context.queries().content(file_id);
-        let position = position::protocol_position_to_utf8(
+        let Some(position) = position::protocol_position_to_utf8(
             &content,
             range.start,
             self.context.position_encoding(),
-        )
-        .ok_or(AnalyzerError::NonFatal)?;
-        let offset =
-            position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+        ) else {
+            return Ok(None);
+        };
+        let Some(offset) = position::utf8_position_to_offset(&content, position) else {
+            return Ok(None);
+        };
 
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
 
         let token = match root.token_at_offset(offset) {
-            TokenAtOffset::None => return Err(AnalyzerError::NonFatal),
+            TokenAtOffset::None => return Ok(None),
             TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(left, right) => {
-                if Self::qualified_name_token(&right, name_kind).is_some() { right } else { left }
+                if RenameEdits::<Host>::qualified_name_token(&right, name_kind).is_some() {
+                    right
+                } else {
+                    left
+                }
             }
         };
 
-        let token = Self::qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
+        let Some(token) = RenameEdits::<Host>::qualified_name_token(&token, name_kind) else {
+            return Ok(None);
+        };
 
-        position::text_range_to_protocol(
-            &content,
-            token.text_range(),
-            self.context.position_encoding(),
-        )
-        .ok_or(AnalyzerError::NonFatal)
+        let range = token.text_range();
+        let range =
+            position::text_range_to_protocol(&content, range, self.context.position_encoding());
+        Ok(range)
     }
 
     fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
@@ -575,12 +592,18 @@ where
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
-        let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
-        let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
-        let range =
-            position::import_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+        let Some(ptr) = stabilized.ast_ptr(import_item_id) else {
+            return Ok(());
+        };
+        let Some(item) = ptr.try_to_node(&root) else {
+            return Ok(());
+        };
+        let Some(range) = position::import_item_name_range(&content, item) else {
+            return Ok(());
+        };
 
-        self.push_utf8_edit(file_id, range, new_name)
+        let _ = self.push_utf8_edit(file_id, range, new_name);
+        Ok(())
     }
 
     fn push_export_item_edit(
@@ -594,12 +617,18 @@ where
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
-        let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
-        let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
-        let range =
-            position::export_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+        let Some(ptr) = stabilized.ast_ptr(export_item_id) else {
+            return Ok(());
+        };
+        let Some(item) = ptr.try_to_node(&root) else {
+            return Ok(());
+        };
+        let Some(range) = position::export_item_name_range(&content, item) else {
+            return Ok(());
+        };
 
-        self.push_utf8_edit(file_id, range, new_name)
+        let _ = self.push_utf8_edit(file_id, range, new_name);
+        Ok(())
     }
 
     fn push_import_constructor_edit(
@@ -613,13 +642,19 @@ where
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
-        let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
-        let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+        let Some(ptr) = stabilized.ast_ptr(import_item_id) else {
+            return Ok(());
+        };
+        let Some(item) = ptr.try_to_node(&root) else {
+            return Ok(());
+        };
         let cst::ImportItem::ImportType(item) = item else {
-            return Err(AnalyzerError::NonFatal);
+            return Ok(());
         };
 
-        let type_items = item.type_items().ok_or(AnalyzerError::NonFatal)?;
+        let Some(type_items) = item.type_items() else {
+            return Ok(());
+        };
         self.push_constructor_token_edit(file_id, type_items, old_name, new_name)
     }
 
@@ -634,13 +669,19 @@ where
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
-        let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
-        let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+        let Some(ptr) = stabilized.ast_ptr(export_item_id) else {
+            return Ok(());
+        };
+        let Some(item) = ptr.try_to_node(&root) else {
+            return Ok(());
+        };
         let cst::ExportItem::ExportType(item) = item else {
-            return Err(AnalyzerError::NonFatal);
+            return Ok(());
         };
 
-        let type_items = item.type_items().ok_or(AnalyzerError::NonFatal)?;
+        let Some(type_items) = item.type_items() else {
+            return Ok(());
+        };
         self.push_constructor_token_edit(file_id, type_items, old_name, new_name)
     }
 
@@ -658,10 +699,12 @@ where
 
         for token in items.name_tokens() {
             if token.text(&content) == old_name {
-                let range = position::text_range_to_utf8_range(&content, token.text_range())
-                    .ok_or(AnalyzerError::NonFatal)?;
+                let Some(range) = position::text_range_to_utf8_range(&content, token.text_range())
+                else {
+                    continue;
+                };
 
-                self.push_utf8_edit(file_id, range, new_name)?;
+                let _ = self.push_utf8_edit(file_id, range, new_name);
             }
         }
 
@@ -678,24 +721,17 @@ where
         file_id: FileId,
         range: TextRange,
         new_name: &str,
-    ) -> Result<(), AnalyzerError> {
+    ) -> Option<()> {
         let content = self.context.queries().content(file_id);
-        let range =
-            position::text_range_to_utf8_range(&content, range).ok_or(AnalyzerError::NonFatal)?;
+        let range = position::text_range_to_utf8_range(&content, range)?;
 
         self.push_utf8_edit(file_id, range, new_name)
     }
 
-    fn push_utf8_edit(
-        &mut self,
-        file_id: FileId,
-        range: Utf8Range,
-        new_name: &str,
-    ) -> Result<(), AnalyzerError> {
+    fn push_utf8_edit(&mut self, file_id: FileId, range: Utf8Range, new_name: &str) -> Option<()> {
         let content = self.context.queries().content(file_id);
         let range =
-            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
-                .ok_or(AnalyzerError::NonFatal)?;
+            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())?;
         self.push_protocol_edit(file_id, range, new_name)
     }
 
@@ -718,54 +754,47 @@ where
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
-        let ptr = stabilized.syntax_ptr(id).ok_or(AnalyzerError::NonFatal)?;
-        let range = range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
+        let rejected = || {
+            AnalyzerError::RenameRejected(
+                "Rename could not edit the target declaration".to_string(),
+            )
+        };
+        let ptr = stabilized.syntax_ptr(id).ok_or_else(rejected)?;
+        let range = range(&content, &root, &ptr).ok_or_else(rejected)?;
         let range =
             position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
-                .ok_or(AnalyzerError::NonFatal)?;
-        self.push_protocol_edit(file_id, range, new_name)
+                .ok_or_else(rejected)?;
+        self.push_protocol_edit(file_id, range, new_name).ok_or_else(rejected)
     }
 
-    fn push_protocol_edit(
-        &mut self,
-        file_id: FileId,
-        range: Range,
-        new_name: &str,
-    ) -> Result<(), AnalyzerError> {
+    fn push_protocol_edit(&mut self, file_id: FileId, range: Range, new_name: &str) -> Option<()> {
         let new_name = self.new_name_text(file_id, range, new_name)?;
         self.edits.push((file_id, TextEdit { range, new_text: new_name }));
-        Ok(())
+        Some(())
     }
 
-    fn new_name_text(
-        &self,
-        file_id: FileId,
-        range: Range,
-        new_name: &str,
-    ) -> Result<String, AnalyzerError> {
+    fn new_name_text(&self, file_id: FileId, range: Range, new_name: &str) -> Option<String> {
         let content = self.context.queries().content(file_id);
         let start = position::protocol_position_to_utf8(
             &content,
             range.start,
             self.context.position_encoding(),
         )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
-        .ok_or(AnalyzerError::NonFatal)?;
+        .and_then(|position| position::utf8_position_to_offset(&content, position))?;
         let end = position::protocol_position_to_utf8(
             &content,
             range.end,
             self.context.position_encoding(),
         )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
-        .ok_or(AnalyzerError::NonFatal)?;
+        .and_then(|position| position::utf8_position_to_offset(&content, position))?;
 
         let range = TextRange::new(start, end);
         let text = &content[range];
 
         if text.starts_with('(') && text.ends_with(')') {
-            Ok(format!("({new_name})"))
+            Some(format!("({new_name})"))
         } else {
-            Ok(new_name.to_string())
+            Some(new_name.to_string())
         }
     }
 
@@ -779,7 +808,26 @@ where
                 edit.range.end.character,
             )
         });
-        self.edits.dedup_by(|left, right| left.0 == right.0 && left.1.range == right.1.range);
+        self.edits.dedup_by(|(left_file, left_edit), (right_file, right_edit)| {
+            left_file == right_file
+                && left_edit.range == right_edit.range
+                && left_edit.new_text == right_edit.new_text
+        });
+
+        let mut edit_windows = self.edits.iter().tuple_windows();
+        let conflicting_edits = edit_windows.any(|(left, right)| {
+            let (left_file, left_edit) = left;
+            let (right_file, right_edit) = right;
+
+            left_file == right_file
+                && (right_edit.range == left_edit.range
+                    || right_edit.range.start < left_edit.range.end)
+        });
+        if conflicting_edits {
+            return Err(AnalyzerError::RenameRejected(
+                "Rename produced conflicting text edits".to_string(),
+            ));
+        }
 
         if self.edits.is_empty() {
             return Ok(None);

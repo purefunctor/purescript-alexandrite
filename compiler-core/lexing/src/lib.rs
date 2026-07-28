@@ -38,6 +38,7 @@ pub fn is_operator_name(source: &str) -> bool {
     !source.is_empty()
         && !source.starts_with("--")
         && source.chars().all(char::is_operator)
+        // Admit operator-like tokens explicitly: `..` is valid and `<=` lexes as LEFT_THICK_ARROW.
         && matches!(
             lexer::operator_kind(source),
             SyntaxKind::OPERATOR

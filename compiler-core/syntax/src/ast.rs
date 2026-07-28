@@ -67,6 +67,16 @@ pub mod support {
         AstChildren::new(node)
     }
 
+    pub fn descendants<N: AstNode>(node: &SyntaxNode) -> impl Iterator<Item = N> + '_ {
+        node.preorder().filter_map(|event| {
+            let crate::WalkEvent::Enter(node) = event else {
+                return None;
+            };
+
+            N::cast(node)
+        })
+    }
+
     pub fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
         node.children_with_tokens()
             .filter_map(|element| element.into_token())
