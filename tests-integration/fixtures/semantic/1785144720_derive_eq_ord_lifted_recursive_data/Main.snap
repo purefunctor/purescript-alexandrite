@@ -10,16 +10,16 @@ newtype Mu @f
 dictionary eqMu :: forall t. { eq1Dict :: Data.Eq.Eq1 t } => Data.Eq.Eq (Main.Mu t) where
   eq :: Main.Mu t -> Main.Mu t -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    (In left0), (In right0) ->
-      if eq1 @t {eq1Dict} @(Main.Mu t) {eqMu {eq1Dict}} left0 right0 then true else false
+    case left, right of
+      (In left0), (In right0) ->
+        if eq1 @t {eq1Dict} @(Main.Mu t) {eqMu {eq1Dict}} left0 right0 then true else false
 
 dictionary ordMu :: forall t. { ord1Dict :: Data.Ord.Ord1 t } => Data.Ord.Ord (Main.Mu t) where
   superclass eqDict = eqMu {ord1Dict.eq1Dict}
   compare :: Main.Mu t -> Main.Mu t -> Data.Ordering.Ordering
   compare = \left right ->
-  case left, right of
-    (In left0), (In right0) ->
-      case compare1 @t {ord1Dict} @(Main.Mu t) {ordMu {ord1Dict}} left0 right0 of
-        EQ -> EQ
-        ordering -> ordering
+    case left, right of
+      (In left0), (In right0) ->
+        case compare1 @t {ord1Dict} @(Main.Mu t) {ordMu {ord1Dict}} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering

@@ -10,5 +10,5 @@ data Unit
 dictionary eqUnit :: Data.Eq.Eq Main.Unit where
   eq :: Main.Unit -> Main.Unit -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    Unit, Unit -> true
+    case left, right of
+      Unit, Unit -> true

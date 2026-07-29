@@ -15,12 +15,12 @@ dictionary eqTuple ::
   where
   eq :: Main.Tuple t t1 -> Main.Tuple t t1 -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    (Tuple left0 left1), (Tuple right0 right1) ->
-      if eq @t {eqDict} left0 right0 then
-        if eq @t1 {eqDict1} left1 right1 then true else false
-      else
-        false
+    case left, right of
+      (Tuple left0 left1), (Tuple right0 right1) ->
+        if eq @t {eqDict} left0 right0 then
+          if eq @t1 {eqDict1} left1 right1 then true else false
+        else
+          false
 
 dictionary ordTuple ::
   forall t t1.
@@ -31,11 +31,11 @@ dictionary ordTuple ::
   superclass eqDict = eqTuple {ordDict.eqDict} {ordDict1.eqDict}
   compare :: Main.Tuple t t1 -> Main.Tuple t t1 -> Data.Ordering.Ordering
   compare = \left right ->
-  case left, right of
-    (Tuple left0 left1), (Tuple right0 right1) ->
-      case compare @t {ordDict} left0 right0 of
-        EQ ->
-          case compare @t1 {ordDict1} left1 right1 of
-            EQ -> EQ
-            ordering -> ordering
-        ordering -> ordering
+    case left, right of
+      (Tuple left0 left1), (Tuple right0 right1) ->
+        case compare @t {ordDict} left0 right0 of
+          EQ ->
+            case compare @t1 {ordDict1} left1 right1 of
+              EQ -> EQ
+              ordering -> ordering
+          ordering -> ordering

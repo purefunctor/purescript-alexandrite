@@ -10,9 +10,9 @@ data Identity @a
 dictionary eqIdentity :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Identity t) where
   eq :: Main.Identity t -> Main.Identity t -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    (Identity left0), (Identity right0) ->
-      if eq @t {eqDict} left0 right0 then true else false
+    case left, right of
+      (Identity left0), (Identity right0) ->
+        if eq @t {eqDict} left0 right0 then true else false
 
 dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
   eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.Identity t -> Main.Identity t -> Prim.Boolean
@@ -23,11 +23,11 @@ dictionary ordIdentity :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Or
   superclass eqDict = eqIdentity {ordDict.eqDict}
   compare :: Main.Identity t -> Main.Identity t -> Data.Ordering.Ordering
   compare = \left right ->
-  case left, right of
-    (Identity left0), (Identity right0) ->
-      case compare @t {ordDict} left0 right0 of
-        EQ -> EQ
-        ordering -> ordering
+    case left, right of
+      (Identity left0), (Identity right0) ->
+        case compare @t {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
 
 dictionary ord1Identity :: Data.Ord.Ord1 Main.Identity where
   superclass eq1Dict = eq1Identity

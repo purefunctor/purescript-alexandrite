@@ -11,8 +11,8 @@ data Maybe @a
 dictionary eqMaybe :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Maybe t) where
   eq :: Main.Maybe t -> Main.Maybe t -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    Nothing, Nothing -> true
-    (Just left0), (Just right0) ->
-      if eq @t {eqDict} left0 right0 then true else false
-    _, _ -> false
+    case left, right of
+      Nothing, Nothing -> true
+      (Just left0), (Just right0) ->
+        if eq @t {eqDict} left0 right0 then true else false
+      _, _ -> false
