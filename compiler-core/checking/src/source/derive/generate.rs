@@ -17,9 +17,7 @@ use crate::source::terms::ElaboratedExpression;
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
-use super::variance::{
-    RecordFieldRecipe, TraversalOperation, TraversalParameter, VarianceRecipe,
-};
+use super::variance::{RecordFieldRecipe, TraversalOperation, TraversalParameter, VarianceRecipe};
 use super::{DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch};
 
 pub(crate) fn generate_instance<Q>(
@@ -41,7 +39,8 @@ where
         | DeriveDispatch::Eq1
         | DeriveDispatch::Ord
         | DeriveDispatch::Ord1
-        | DeriveDispatch::Functor => {
+        | DeriveDispatch::Functor
+        | DeriveDispatch::Bifunctor => {
             generate_known_instance(state, context, result, dispatch, variance_recipe)
         }
         _ => Ok(None),
@@ -164,9 +163,21 @@ where
                 &freshened.arguments,
                 context.known_terms.compare,
             )?,
-            DeriveDispatch::Functor => {
+            DeriveDispatch::Functor | DeriveDispatch::Bifunctor => {
                 let Some(recipe) = variance_recipe else { return Ok(None) };
-                generate_functor_member(state, context, result, &freshened.arguments, recipe)?
+                let traversal = match dispatch {
+                    DeriveDispatch::Functor => TraversalKind::Functor,
+                    DeriveDispatch::Bifunctor => TraversalKind::Bifunctor,
+                    _ => unreachable!(),
+                };
+                generate_traversal_member(
+                    state,
+                    context,
+                    result,
+                    &freshened.arguments,
+                    recipe,
+                    traversal,
+                )?
             }
             _ => None,
         };
@@ -438,49 +449,87 @@ struct InstantiatedDataType {
     constructor_arguments: Vec<KindOrType>,
 }
 
-struct DecodedFunctorMember {
+#[derive(Clone, Copy)]
+enum TraversalKind {
+    Functor,
+    Bifunctor,
+}
+
+#[derive(Clone, Copy)]
+enum Mappings<T> {
+    Functor(T),
+    Bifunctor { first: T, second: T },
+}
+
+impl Mappings<ElaboratedExpression> {
+    fn mapping_for(self, parameter: TraversalParameter) -> Option<ElaboratedExpression> {
+        match (self, parameter) {
+            (Mappings::Functor(function), TraversalParameter::First) => Some(function),
+            (Mappings::Bifunctor { first, .. }, TraversalParameter::First) => Some(first),
+            (Mappings::Bifunctor { second, .. }, TraversalParameter::Second) => Some(second),
+            (Mappings::Functor(_), TraversalParameter::Second) => None,
+        }
+    }
+}
+
+struct DecodedTraversalMember {
     member: ResolvedMember,
     substitution: NameToType,
     constraints: Vec<TypeId>,
     implementation_type: TypeId,
     function_type: TypeId,
-    mapping_type: TypeId,
+    mappings: Mappings<TypeId>,
     data_file: files::FileId,
     source: InstantiatedDataType,
     target: InstantiatedDataType,
 }
 
-impl DecodedFunctorMember {
+impl DecodedTraversalMember {
     fn decode<Q>(
         state: &mut CheckState,
         context: &CheckContext<Q>,
         member: ResolvedMember,
         data_file: files::FileId,
-    ) -> QueryResult<Option<DecodedFunctorMember>>
+        traversal: TraversalKind,
+    ) -> QueryResult<Option<DecodedTraversalMember>>
     where
         Q: ExternalQueries,
     {
+        let argument_count = match traversal {
+            TraversalKind::Functor => 2,
+            TraversalKind::Bifunctor => 3,
+        };
         let signature::SkolemisedSignature { substitution, constraints, arguments, result } =
-            signature::expect_term_signature(state, context, member.implementation_type, 2)?;
-        let [mapping_type, source_type] = arguments.as_slice() else {
-            return Ok(None);
+            signature::expect_term_signature(
+                state,
+                context,
+                member.implementation_type,
+                argument_count,
+            )?;
+
+        let (source_type, mappings) = match (traversal, arguments.as_slice()) {
+            (TraversalKind::Functor, [mapping, source]) => (*source, Mappings::Functor(*mapping)),
+            (TraversalKind::Bifunctor, [first, second, source]) => {
+                (*source, Mappings::Bifunctor { first: *first, second: *second })
+            }
+            _ => return Ok(None),
         };
 
-        let (_, source_arguments) =
-            toolkit::extract_all_applications(state, context, *source_type)?;
+        let (_, source_arguments) = toolkit::extract_all_applications(state, context, source_type)?;
         let (_, target_arguments) = toolkit::extract_all_applications(state, context, result)?;
-        let function_type = context.intern_function_iter([*mapping_type, *source_type], result);
+        let function_arguments = arguments.iter().copied();
+        let function_type = context.intern_function_iter(function_arguments, result);
 
-        Ok(Some(DecodedFunctorMember {
+        Ok(Some(DecodedTraversalMember {
             implementation_type: member.implementation_type,
             member,
             substitution,
             constraints,
             function_type,
-            mapping_type: *mapping_type,
+            mappings,
             data_file,
             source: InstantiatedDataType {
-                type_id: *source_type,
+                type_id: source_type,
                 constructor_arguments: source_arguments,
             },
             target: InstantiatedDataType {
@@ -491,12 +540,13 @@ impl DecodedFunctorMember {
     }
 }
 
-fn generate_functor_member<Q>(
+fn generate_traversal_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
     instance_arguments: &[KindOrType],
     recipe: &VarianceRecipe,
+    traversal: TraversalKind,
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
@@ -509,7 +559,9 @@ where
         let Some(member) = resolve_member(state, context, result, instance_arguments)? else {
             return Ok(None);
         };
-        let Some(member) = DecodedFunctorMember::decode(state, context, member, data_file)? else {
+        let Some(member) =
+            DecodedTraversalMember::decode(state, context, member, data_file, traversal)?
+        else {
             return Ok(None);
         };
 
@@ -519,7 +571,7 @@ where
         }
 
         let body = state.with_implicit(context, &member.substitution, |state| {
-            emit_functor(state, context, result.derive_id, &member, recipe)
+            emit_variance_traversal(state, context, result.derive_id, &member, recipe)
         })?;
         let Some(body) = body else { return Ok(None) };
 
@@ -533,11 +585,11 @@ where
     })
 }
 
-fn emit_functor<Q>(
+fn emit_variance_traversal<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     derive_id: indexing::DeriveId,
-    member: &DecodedFunctorMember,
+    member: &DecodedTraversalMember,
     recipe: &VarianceRecipe,
 ) -> QueryResult<Option<ElaboratedExpression>>
 where
@@ -545,17 +597,31 @@ where
 {
     let mut builder = DerivedTreeBuilder::new(state, context, derive_id);
 
-    let mapping = builder.variable_binder("function", member.mapping_type);
+    let (mapping_binders, mapping_expressions) = match member.mappings {
+        Mappings::Functor(mapping) => {
+            let function = builder.variable_binder("function", mapping);
+            let expression = builder.variable(function);
+            (vec![function], Mappings::Functor(expression))
+        }
+        Mappings::Bifunctor { first, second } => {
+            let first = builder.variable_binder("firstFunction", first);
+            let second = builder.variable_binder("secondFunction", second);
+            let expressions = Mappings::Bifunctor {
+                first: builder.variable(first),
+                second: builder.variable(second),
+            };
+            (vec![first, second], expressions)
+        }
+    };
     let value = builder.variable_binder("value", member.source.type_id);
 
-    let mapping_expression = builder.variable(mapping);
     let value_expression = builder.variable(value);
 
     let mut alternatives = Vec::with_capacity(recipe.constructors.len());
 
     for constructor in &recipe.constructors {
         let Some(alternative) =
-            emit_functor_alternative(&mut builder, member, constructor, mapping_expression)?
+            emit_traversal_alternative(&mut builder, member, constructor, mapping_expressions)?
         else {
             return Ok(None);
         };
@@ -563,14 +629,16 @@ where
     }
 
     let body = builder.case(member.target.type_id, vec![value_expression], alternatives);
-    Ok(Some(builder.lambda(member.function_type, vec![mapping, value], body)))
+    let mut binders = mapping_binders;
+    binders.push(value);
+    Ok(Some(builder.lambda(member.function_type, binders, body)))
 }
 
-fn emit_functor_alternative<Q>(
+fn emit_traversal_alternative<Q>(
     builder: &mut DerivedTreeBuilder<'_, '_, '_, Q>,
-    member: &DecodedFunctorMember,
+    member: &DecodedTraversalMember,
     constructor: &super::variance::ConstructorRecipe,
-    mapping_expression: ElaboratedExpression,
+    mapping_expressions: Mappings<ElaboratedExpression>,
 ) -> QueryResult<Option<tree::CaseAlternative>>
 where
     Q: ExternalQueries,
@@ -599,7 +667,7 @@ where
         return Ok(None);
     }
 
-    let mut emitter = FunctorTraversalEmitter { builder, mapping_expression };
+    let mut emitter = VarianceTraversalEmitter { builder, mapping_expressions };
     let mut binders = Vec::with_capacity(source_fields.len());
     let mut values = Vec::with_capacity(source_fields.len());
 
@@ -647,12 +715,12 @@ struct TraversalContext {
     function_depth: usize,
 }
 
-struct FunctorTraversalEmitter<'builder, 'state, 'context, 'queries, Q: ExternalQueries> {
+struct VarianceTraversalEmitter<'builder, 'state, 'context, 'queries, Q: ExternalQueries> {
     builder: &'builder mut DerivedTreeBuilder<'state, 'context, 'queries, Q>,
-    mapping_expression: ElaboratedExpression,
+    mapping_expressions: Mappings<ElaboratedExpression>,
 }
 
-impl<Q> FunctorTraversalEmitter<'_, '_, '_, '_, Q>
+impl<Q> VarianceTraversalEmitter<'_, '_, '_, '_, Q>
 where
     Q: ExternalQueries,
 {
@@ -664,13 +732,16 @@ where
     ) -> QueryResult<Option<ElaboratedExpression>> {
         let TraversalContext { source_type, target_type, function_depth } = traversal;
         match operation {
-            TraversalOperation::Parameter { parameter: TraversalParameter::First } => {
-                let Some(mapped) = self.builder.apply(self.mapping_expression, value)? else {
+            TraversalOperation::Parameter { parameter } => {
+                let Some(mapping_expression) = self.mapping_expressions.mapping_for(*parameter)
+                else {
+                    return Ok(None);
+                };
+                let Some(mapped) = self.builder.apply(mapping_expression, value)? else {
                     return Ok(None);
                 };
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::Parameter { parameter: TraversalParameter::Second } => Ok(None),
             TraversalOperation::Map { argument } => {
                 let Some((_, source_argument)) = toolkit::decompose_type_application(
                     self.builder.state,
@@ -707,6 +778,9 @@ where
                     return Ok(None);
                 };
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
+            }
+            TraversalOperation::Bimap { first, second } => {
+                self.emit_bimap(first, second.as_deref(), value, traversal)
             }
             TraversalOperation::Function { argument, result } => {
                 let Some((source_argument, source_result)) = toolkit::decompose_function(
@@ -784,6 +858,93 @@ where
         let function =
             self.builder.context.intern_function(traversal.source_type, traversal.target_type);
         Ok(Some(self.builder.lambda(function, vec![input], body)))
+    }
+
+    fn emit_bimap(
+        &mut self,
+        first: &TraversalOperation,
+        second: Option<&TraversalOperation>,
+        value: ElaboratedExpression,
+        traversal: TraversalContext,
+    ) -> QueryResult<Option<ElaboratedExpression>> {
+        let Some((source_function, source_second)) = toolkit::decompose_type_application(
+            self.builder.state,
+            self.builder.context,
+            traversal.source_type,
+        )?
+        else {
+            return Ok(None);
+        };
+        let Some((_, source_first)) = toolkit::decompose_type_application(
+            self.builder.state,
+            self.builder.context,
+            source_function,
+        )?
+        else {
+            return Ok(None);
+        };
+        let Some((target_function, target_second)) = toolkit::decompose_type_application(
+            self.builder.state,
+            self.builder.context,
+            traversal.target_type,
+        )?
+        else {
+            return Ok(None);
+        };
+        let Some((_, target_first)) = toolkit::decompose_type_application(
+            self.builder.state,
+            self.builder.context,
+            target_function,
+        )?
+        else {
+            return Ok(None);
+        };
+
+        let first_context = TraversalContext {
+            source_type: source_first,
+            target_type: target_first,
+            function_depth: traversal.function_depth,
+        };
+        let Some(first_transformer) = self.emit_transformer(first, first_context)? else {
+            return Ok(None);
+        };
+
+        let second_context = TraversalContext {
+            source_type: source_second,
+            target_type: target_second,
+            function_depth: traversal.function_depth,
+        };
+        let second_transformer = match second {
+            Some(second) => {
+                let Some(transformer) = self.emit_transformer(second, second_context)? else {
+                    return Ok(None);
+                };
+                transformer
+            }
+            None => self.emit_identity(second_context)?,
+        };
+
+        let Some(bimap) = self.builder.context.known_terms.bimap else {
+            return Ok(None);
+        };
+        let bimap = self.builder.term_reference(bimap)?;
+        let Some(bimap) = self.builder.apply(bimap, first_transformer)? else {
+            return Ok(None);
+        };
+        let Some(bimap) = self.builder.apply(bimap, second_transformer)? else {
+            return Ok(None);
+        };
+        let Some(mapped) = self.builder.apply(bimap, value)? else { return Ok(None) };
+        Ok(Some(self.builder.subtype(mapped, traversal.target_type)?))
+    }
+
+    fn emit_identity(&mut self, traversal: TraversalContext) -> QueryResult<ElaboratedExpression> {
+        let input = self.builder.variable_binder("unchanged", traversal.source_type);
+        let value = self.builder.variable(input);
+        let body = self.builder.subtype(value, traversal.target_type)?;
+        let function =
+            self.builder.context.intern_function(traversal.source_type, traversal.target_type);
+        Ok(self.builder.lambda(function, vec![input], body))
     }
 
     fn emit_record_traversal(

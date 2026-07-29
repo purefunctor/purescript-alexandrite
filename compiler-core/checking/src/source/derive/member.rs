@@ -98,7 +98,7 @@ where
             )?;
             if matches!(
                 derive_dispatch(context, result.class_file, result.class_id),
-                DeriveDispatch::Functor
+                DeriveDispatch::Functor | DeriveDispatch::Bifunctor
             ) && recipe.valid
             {
                 variance_recipe = Some(recipe);
