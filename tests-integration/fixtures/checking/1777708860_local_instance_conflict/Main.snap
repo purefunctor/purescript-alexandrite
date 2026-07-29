@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-classInt :: Int
-test :: Array Int
+classInt :: Prim.Int
+test :: Prim.Array Prim.Int
 
 Types
-Class :: Type -> Constraint
+Class :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Class (a :: Type)
+class forall (a :: Prim.Type). Main.Class (a :: Prim.Type)
 
 Instances
-instance Class
+instance Main.Class
 
 Diagnostics
 error[InstanceHeadMismatch]: Instance head mismatch: expected 1 arguments, got 0

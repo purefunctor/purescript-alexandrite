@@ -78,16 +78,23 @@ impl EvidenceNames {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PrettyConfig {
     width: usize,
+    fully_qualified_names: bool,
 }
 
 impl PrettyConfig {
     pub const fn new() -> PrettyConfig {
-        PrettyConfig { width: DEFAULT_WIDTH }
+        PrettyConfig { width: DEFAULT_WIDTH, fully_qualified_names: false }
     }
 
     #[must_use]
     pub const fn width(mut self, width: usize) -> PrettyConfig {
         self.width = width;
+        self
+    }
+
+    #[must_use]
+    pub const fn fully_qualified_names(mut self) -> PrettyConfig {
+        self.fully_qualified_names = true;
         self
     }
 }
@@ -155,6 +162,7 @@ where
     checked: &'context CheckedModule,
     type_pretty: TypePretty<'context, Q>,
     signature_type_pretty: TypePretty<'context, Q>,
+    fully_qualified_names: bool,
 }
 
 impl<'arena, 'context, 'module, Q> Printer<'arena, 'context, 'module, Q>
@@ -170,7 +178,10 @@ where
         checked: &'context CheckedModule,
         config: PrettyConfig,
     ) -> Printer<'arena, 'context, 'module, Q> {
-        let type_config = TypePrettyConfig::new().without_rigid_kinds().width(config.width);
+        let mut type_config = TypePrettyConfig::new().without_rigid_kinds().width(config.width);
+        if config.fully_qualified_names {
+            type_config = type_config.fully_qualified_names();
+        }
         let signature_type_config = type_config.without_forall_kinds();
         let type_pretty = TypePretty::with_config(queries, checked, type_config);
         let signature_type_pretty =
@@ -184,7 +195,26 @@ where
             checked,
             type_pretty,
             signature_type_pretty,
+            fully_qualified_names: config.fully_qualified_names,
         }
+    }
+
+    fn display_local_type_name(&self, name: &str) -> String {
+        if !self.fully_qualified_names {
+            return name.to_string();
+        }
+
+        let content = self.queries.content(self.file_id);
+
+        let Ok((parsed, _)) = self.queries.parsed(self.file_id) else {
+            return name.to_string();
+        };
+
+        let Some(module_name) = parsed.module_name(&content) else {
+            return name.to_string();
+        };
+
+        format!("{module_name}.{name}")
     }
 
     fn module(&mut self) -> QueryResult<Doc<'arena>> {
@@ -314,7 +344,8 @@ where
                 unreachable!("invariant violated: data declaration contains a value declaration");
             };
 
-            let mut result = self.arena.text(name.to_string());
+            let result_name = self.display_local_type_name(name);
+            let mut result = self.arena.text(result_name);
             for (parameter, _) in &parameter_names {
                 result = result.append(self.arena.text(format!(" {parameter}")));
             }

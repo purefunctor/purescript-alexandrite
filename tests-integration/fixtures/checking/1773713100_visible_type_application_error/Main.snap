@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-identity :: forall (a :: Type). (a :: Type) -> (a :: Type)
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
 test :: ?[invalid visible type application]
 
 Types

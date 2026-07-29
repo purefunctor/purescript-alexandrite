@@ -1,12 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 useBoth ::
-  forall (s :: Type) (m :: Type).
-    Marker (m :: Type) => Lookup (s :: Type) (m :: Type) => (s :: Type) -> Int
-test :: Int
+  forall (s :: Prim.Type) (m :: Prim.Type).
+    Class.Marker (m :: Prim.Type) =>
+    Class.Lookup (s :: Prim.Type) (m :: Prim.Type) =>
+    (s :: Prim.Type) -> Prim.Int
+test :: Prim.Int
 
 Types

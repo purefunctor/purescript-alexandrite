@@ -3,10 +3,10 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Maybe :: Type -> Type
+data Maybe :: Prim.Type -> Prim.Type
 data Maybe @a
-  | Just :: a -> Maybe a
-  | Nothing :: Maybe a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
 
-nothing :: forall a. Maybe a
+nothing :: forall a. Main.Maybe a
 nothing = Nothing @a

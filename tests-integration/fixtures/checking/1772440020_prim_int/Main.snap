@@ -4,30 +4,47 @@ assertion_line: 50
 expression: report
 ---
 Terms
-deriveSum :: forall (sum :: Int). Add 1 2 (sum :: Int) => Proxy @Int (sum :: Int)
-deriveRight :: forall (right :: Int). Add 1 (right :: Int) 3 => Proxy @Int (right :: Int)
-deriveLeft :: forall (left :: Int). Add (left :: Int) 2 3 => Proxy @Int (left :: Int)
+deriveSum ::
+  forall (sum :: Prim.Int).
+    Prim.Int.Add 1 2 (sum :: Prim.Int) => Type.Proxy.Proxy @Prim.Int (sum :: Prim.Int)
+deriveRight ::
+  forall (right :: Prim.Int).
+    Prim.Int.Add 1 (right :: Prim.Int) 3 => Type.Proxy.Proxy @Prim.Int (right :: Prim.Int)
+deriveLeft ::
+  forall (left :: Prim.Int).
+    Prim.Int.Add (left :: Prim.Int) 2 3 => Type.Proxy.Proxy @Prim.Int (left :: Prim.Int)
 stuckAdd ::
-  forall (left :: Int) (sum :: Int).
-    Add (left :: Int) 1 (sum :: Int) => Proxy @Int (left :: Int) -> Proxy @Int (sum :: Int)
-deriveMul :: forall (product :: Int). Mul 3 4 (product :: Int) => Proxy @Int (product :: Int)
+  forall (left :: Prim.Int) (sum :: Prim.Int).
+    Prim.Int.Add (left :: Prim.Int) 1 (sum :: Prim.Int) =>
+    Type.Proxy.Proxy @Prim.Int (left :: Prim.Int) -> Type.Proxy.Proxy @Prim.Int (sum :: Prim.Int)
+deriveMul ::
+  forall (product :: Prim.Int).
+    Prim.Int.Mul 3 4 (product :: Prim.Int) => Type.Proxy.Proxy @Prim.Int (product :: Prim.Int)
 compareLT ::
-  forall (ord :: Ordering). Compare 1 2 (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Int.Compare 1 2 (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
 compareEQ ::
-  forall (ord :: Ordering). Compare 5 5 (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Int.Compare 5 5 (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
 compareGT ::
-  forall (ord :: Ordering). Compare 10 3 (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
-deriveString :: forall (s :: Symbol). ToString 42 (s :: Symbol) => Proxy @Symbol (s :: Symbol)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Int.Compare 10 3 (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
+deriveString ::
+  forall (s :: Prim.Symbol).
+    Prim.Int.ToString 42 (s :: Prim.Symbol) => Type.Proxy.Proxy @Prim.Symbol (s :: Prim.Symbol)
 forceSolve ::
-  { compareEQ :: Proxy @Ordering EQ
-  , compareGT :: Proxy @Ordering GT
-  , compareLT :: Proxy @Ordering LT
-  , deriveLeft :: Proxy @Int 1
-  , deriveMul :: Proxy @Int 12
-  , deriveRight :: Proxy @Int 2
-  , deriveString :: Proxy @Symbol "42"
-  , deriveSum :: Proxy @Int 3
-  , keepStuck :: Proxy @Int 1
+  { compareEQ :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.EQ
+  , compareGT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.GT
+  , compareLT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+  , deriveLeft :: Type.Proxy.Proxy @Prim.Int 1
+  , deriveMul :: Type.Proxy.Proxy @Prim.Int 12
+  , deriveRight :: Type.Proxy.Proxy @Prim.Int 2
+  , deriveString :: Type.Proxy.Proxy @Prim.Symbol "42"
+  , deriveSum :: Type.Proxy.Proxy @Prim.Int 3
+  , keepStuck :: Type.Proxy.Proxy @Prim.Int 1
   }
 
 Types

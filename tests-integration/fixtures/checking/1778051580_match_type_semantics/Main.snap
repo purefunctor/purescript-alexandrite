@@ -5,47 +5,51 @@ expression: report
 ---
 Terms
 isEq ::
-  forall (@a :: Type) (@b :: Type) (@o :: Type).
-    IsEq (a :: Type) (b :: Type) (o :: Type) => (a :: Type) -> (b :: Type) -> (o :: Type)
-Unit :: Unit
-Output :: Output
-testEqConcrete :: Output
-testSkolemRight :: forall (x :: Type). (x :: Type) -> Output
-testSkolemLeft :: forall (x :: Type). (x :: Type) -> Output
-testSkolemIsEq :: forall (x :: Type) (y :: Type). (x :: Type) -> (y :: Type) -> Output
+  forall (@a :: Prim.Type) (@b :: Prim.Type) (@o :: Prim.Type).
+    Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (o :: Prim.Type)
+Unit :: Main.Unit
+Output :: Main.Output
+testEqConcrete :: Main.Output
+testSkolemRight :: forall (x :: Prim.Type). (x :: Prim.Type) -> Main.Output
+testSkolemLeft :: forall (x :: Prim.Type). (x :: Prim.Type) -> Main.Output
+testSkolemIsEq ::
+  forall (x :: Prim.Type) (y :: Prim.Type). (x :: Prim.Type) -> (y :: Prim.Type) -> Main.Output
 typeEquals ::
-  forall (t :: Type) (@a :: (t :: Type)) (@b :: (t :: Type)).
-    TypeEquals @(t :: Type) (a :: (t :: Type)) (b :: (t :: Type)) => Unit
-testOpenRows :: Unit
+  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)) (@b :: (t :: Prim.Type)).
+    Main.TypeEquals @(t :: Prim.Type) (a :: (t :: Prim.Type)) (b :: (t :: Prim.Type)) => Main.Unit
+testOpenRows :: Main.Unit
 rowSame ::
-  forall (k :: Type) (@a :: (k :: Type)) (@b :: (k :: Type)).
-    RowSame @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type)) => Unit
-testOpenRowsNoFd :: Unit
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
+    Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) => Main.Unit
+testOpenRowsNoFd :: Main.Unit
 
 Types
-IsEq :: Type -> Type -> Type -> Constraint
-Unit :: Type
-Output :: Type
-TypeEquals :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
-RowSame :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
+IsEq :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+Unit :: Prim.Type
+Output :: Prim.Type
+TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
+RowSame :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type) (o :: Type). IsEq (a :: Type) (b :: Type) (o :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type). Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type)
   isEq ::
-  forall (@a :: Type) (@b :: Type) (@o :: Type).
-    IsEq (a :: Type) (b :: Type) (o :: Type) => (a :: Type) -> (b :: Type) -> (o :: Type)
-class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEquals @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
-class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). RowSame @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
+  forall (@a :: Prim.Type) (@b :: Prim.Type) (@o :: Prim.Type).
+    Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (o :: Prim.Type)
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
   rowSame ::
-  forall (k :: Type) (@a :: (k :: Type)) (@b :: (k :: Type)).
-    RowSame @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type)) => Unit
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
+    Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) => Main.Unit
 
 Instances
-instance forall (t :: Type). IsEq (t :: Type) (t :: Type) Output
-instance forall (t :: Type) (t1 :: Type). IsEq (t :: Type) (t1 :: Type) Output
-instance forall (t :: Type) (t1 :: (t :: Type)).
-  TypeEquals @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
-instance forall (t :: Type) (t1 :: (t :: Type)). RowSame @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance forall (t :: Prim.Type). Main.IsEq (t :: Prim.Type) (t :: Prim.Type) Main.Output
+instance forall (t :: Prim.Type) (t1 :: Prim.Type). Main.IsEq (t :: Prim.Type) (t1 :: Prim.Type) Main.Output
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.TypeEquals @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.RowSame @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
 
 Roles
 Unit = []

@@ -4,20 +4,25 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
 
 Types
-Identity :: Type -> Type
-ReaderT :: Type -> (Type -> Type) -> Type -> Type
+Identity :: Prim.Type -> Prim.Type
+ReaderT :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
 Apply ::
-  forall (k1 :: Type) (k2 :: Type). ((k1 :: Type) -> (k2 :: Type)) -> (k1 :: Type) -> (k2 :: Type)
-Good :: Type
+  forall (k1 :: Prim.Type) (k2 :: Prim.Type).
+    ((k1 :: Prim.Type) -> (k2 :: Prim.Type)) -> (k1 :: Prim.Type) -> (k2 :: Prim.Type)
+Good :: Prim.Type
 Bad :: ?[partial synonym application]
 
 Synonyms
-type ReaderT r m a = (r :: Type) -> (m :: Type -> Type) (a :: Type)
-type Apply f a = (f :: (k1 :: Type) -> (k2 :: Type)) (a :: (k1 :: Type))
-type Good = Apply @Type @Type (Apply @(Type -> Type) @(Type -> Type) (ReaderT Int) Identity) String
+type ReaderT r m a = (r :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+type Apply f a = (f :: (k1 :: Prim.Type) -> (k2 :: Prim.Type)) (a :: (k1 :: Prim.Type))
+type Good = Main.Apply @Prim.Type @Prim.Type
+  (Main.Apply @(Prim.Type -> Prim.Type) @(Prim.Type -> Prim.Type)
+    (Main.ReaderT Prim.Int)
+    Main.Identity)
+  Prim.String
 type Bad = ?[partial synonym application]
 
 Roles

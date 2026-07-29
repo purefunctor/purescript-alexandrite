@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive Show
+derive Data.Show.Show
 
 Diagnostics
 error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 0

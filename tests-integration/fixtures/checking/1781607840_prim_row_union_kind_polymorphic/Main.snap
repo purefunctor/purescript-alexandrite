@@ -5,21 +5,26 @@ expression: report
 ---
 Terms
 openLeftHigherKinded ::
-  forall (tail :: Row (Type -> Type)) (output :: Row (Type -> Type)).
-    Union @(Type -> Type)
-      ( effect :: Effect | (tail :: Row (Type -> Type)) )
+  forall (tail :: Prim.Row (Prim.Type -> Prim.Type)) (output :: Prim.Row (Prim.Type -> Prim.Type)).
+    Prim.Row.Union @(Prim.Type -> Prim.Type)
+      ( effect :: Main.Effect | (tail :: Prim.Row (Prim.Type -> Prim.Type)) )
       ()
-      (output :: Row (Type -> Type)) =>
-    Proxy @(Row (Type -> Type)) (output :: Row (Type -> Type))
+      (output :: Prim.Row (Prim.Type -> Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type))
+      (output :: Prim.Row (Prim.Type -> Prim.Type))
 forceSolve ::
-  forall (tail :: Row (Type -> Type)) (output :: Row (Type -> Type)).
-    Union @(Type -> Type) (tail :: Row (Type -> Type)) () (output :: Row (Type -> Type)) =>
+  forall (tail :: Prim.Row (Prim.Type -> Prim.Type)) (output :: Prim.Row (Prim.Type -> Prim.Type)).
+    Prim.Row.Union @(Prim.Type -> Prim.Type)
+      (tail :: Prim.Row (Prim.Type -> Prim.Type))
+      ()
+      (output :: Prim.Row (Prim.Type -> Prim.Type)) =>
     { openLeftHigherKinded ::
-        Proxy @(Row (Type -> Type)) ( effect :: Effect | (output :: Row (Type -> Type)) )
+        Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type))
+          ( effect :: Main.Effect | (output :: Prim.Row (Prim.Type -> Prim.Type)) )
     }
 
 Types
-Effect :: Type -> Type
+Effect :: Prim.Type -> Prim.Type
 
 Roles
 Effect = [Nominal]

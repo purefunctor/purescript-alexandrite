@@ -3,8 +3,8 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-newtype NonZero :: Type
+newtype NonZero :: Prim.Type
 newtype NonZero
-  | NonZero :: Int -> NonZero
+  | NonZero :: Prim.Int -> Main.NonZero
 
-dictionary showNonZero :: Show NonZero = showInt
+dictionary showNonZero :: Data.Show.Show Main.NonZero = showInt

@@ -4,8 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-test :: Effect Int
-test' :: forall (t :: Type -> Type). Applicative (t :: Type -> Type) => (t :: Type -> Type) Int
+test :: Effect.Effect Prim.Int
+test' ::
+  forall (t :: Prim.Type -> Prim.Type).
+    Control.Applicative.Applicative (t :: Prim.Type -> Prim.Type) =>
+    (t :: Prim.Type -> Prim.Type) Prim.Int
 
 Types
 

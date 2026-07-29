@@ -5,20 +5,28 @@ expression: report
 ---
 Terms
 unionTypeMismatch ::
-  forall (l :: Row Type).
-    Union @Type (l :: Row Type) ( b :: String ) ( a :: Int, b :: Int ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.Int ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 consMissingLabel ::
-  forall (t :: Row Type).
-    Cons @Type "missing" Int (t :: Row Type) ( a :: Int, b :: String ) =>
-    Proxy @(Row Type) (t :: Row Type)
+  forall (t :: Prim.Row Prim.Type).
+    Prim.Row.Cons @Prim.Type
+      "missing"
+      Prim.Int
+      (t :: Prim.Row Prim.Type)
+      ( a :: Prim.Int, b :: Prim.String ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
 lacksPresent ::
-  Lacks @Type "b" ( a :: Int, b :: String ) => Proxy @(Row Type) ( a :: Int, b :: String )
+  Prim.Row.Lacks @Prim.Type "b" ( a :: Prim.Int, b :: Prim.String ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
 forceSolve ::
-  forall (t :: Row Type).
-    { consMissingLabel :: Proxy @(Row Type) (t :: Row Type)
-    , lacksPresent :: Proxy @(Row Type) ( a :: Int, b :: String )
-    , unionTypeMismatch :: Proxy @(Row Type) ( a :: Int )
+  forall (t :: Prim.Row Prim.Type).
+    { consMissingLabel :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    , lacksPresent :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+    , unionTypeMismatch :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     }
 
 Types

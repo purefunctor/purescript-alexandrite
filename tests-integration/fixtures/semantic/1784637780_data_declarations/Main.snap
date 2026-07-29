@@ -3,15 +3,15 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Proxy :: forall (k :: Type). k -> Type
+data Proxy :: forall (k :: Prim.Type). k -> Prim.Type
 data Proxy @a
-  | Proxy :: Proxy a
+  | Proxy :: Main.Proxy a
 
-newtype Tagged :: forall (k :: Type). k -> Type -> Type
+newtype Tagged :: forall (k :: Prim.Type). k -> Prim.Type -> Prim.Type
 newtype Tagged @t @a
-  | Tagged :: a -> Tagged t a
+  | Tagged :: a -> Main.Tagged t a
 
-data Maybe :: Type -> Type
+data Maybe :: Prim.Type -> Prim.Type
 data Maybe @a
-  | Just :: a -> Maybe a
-  | Nothing :: Maybe a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a

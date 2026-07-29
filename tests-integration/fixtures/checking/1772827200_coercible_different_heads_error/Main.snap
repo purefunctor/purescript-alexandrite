@@ -4,15 +4,19 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
-coerceDifferent :: Maybe Int -> Either Int String
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Left ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Right ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+coerceDifferent :: Main.Maybe Prim.Int -> Main.Either Prim.Int Prim.String
 
 Types
-Maybe :: Type -> Type
-Either :: Type -> Type -> Type
+Maybe :: Prim.Type -> Prim.Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
 
 Roles
 Maybe = [Representational]

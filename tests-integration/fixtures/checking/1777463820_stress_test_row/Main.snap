@@ -4,13 +4,18 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 build ::
-  forall (t :: Type) (t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)).
-    Build @(t :: Type) @(t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)) =>
-    Proxy @(t :: Type) (n :: (t :: Type)) -> Proxy @(t1 :: Type) (r :: (t1 :: Type))
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (n :: (t :: Prim.Type)) (r :: (t1 :: Prim.Type)).
+    Main.Build @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (n :: (t :: Prim.Type))
+      (r :: (t1 :: Prim.Type)) =>
+    Main.Proxy @(t :: Prim.Type) (n :: (t :: Prim.Type)) ->
+    Main.Proxy @(t1 :: Prim.Type) (r :: (t1 :: Prim.Type))
 test ::
-  Proxy @(Row Int)
+  Main.Proxy @(Prim.Row Prim.Int)
     ( n1 :: 1
     , n10 :: 10
     , n100 :: 100
@@ -10014,21 +10019,28 @@ test ::
     )
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
-Build :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> Constraint
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Build ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Type) (t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type)). Build @(t :: Type) @(t1 :: Type) (n :: (t :: Type)) (r :: (t1 :: Type))
+class forall (t :: Prim.Type) (t1 :: Prim.Type) (n :: (t :: Prim.Type)) (r :: (t1 :: Prim.Type)). Main.Build @(t :: Prim.Type) @(t1 :: Prim.Type) (n :: (t :: Prim.Type)) (r :: (t1 :: Prim.Type))
 
 Instances
-instance forall (t :: Type). Build @Int @(Row (t :: Type)) 0 ()
-instance forall (t :: Int) (t1 :: Int) (t2 :: Symbol) (t3 :: Symbol) (t4 :: Row Int) (t5 :: Row Int).
-  Add (t :: Int) 1 (t1 :: Int) =>
-  ToString (t1 :: Int) (t2 :: Symbol) =>
-  Append "n" (t2 :: Symbol) (t3 :: Symbol) =>
-  Build @Int @(Row Int) (t :: Int) (t4 :: Row Int) =>
-  Cons @Int (t3 :: Symbol) (t1 :: Int) (t4 :: Row Int) (t5 :: Row Int) =>
-  Build @Int @(Row Int) (t1 :: Int) (t5 :: Row Int)
+instance forall (t :: Prim.Type). Main.Build @Prim.Int @(Prim.Row (t :: Prim.Type)) 0 ()
+instance forall (t :: Prim.Int) (t1 :: Prim.Int) (t2 :: Prim.Symbol) (t3 :: Prim.Symbol)
+  (t4 :: Prim.Row Prim.Int) (t5 :: Prim.Row Prim.Int).
+  Prim.Int.Add (t :: Prim.Int) 1 (t1 :: Prim.Int) =>
+  Prim.Int.ToString (t1 :: Prim.Int) (t2 :: Prim.Symbol) =>
+  Prim.Symbol.Append "n" (t2 :: Prim.Symbol) (t3 :: Prim.Symbol) =>
+  Main.Build @Prim.Int @(Prim.Row Prim.Int) (t :: Prim.Int) (t4 :: Prim.Row Prim.Int) =>
+  Prim.Row.Cons @Prim.Int
+    (t3 :: Prim.Symbol)
+    (t1 :: Prim.Int)
+    (t4 :: Prim.Row Prim.Int)
+    (t5 :: Prim.Row Prim.Int) =>
+  Main.Build @Prim.Int @(Prim.Row Prim.Int) (t1 :: Prim.Int) (t5 :: Prim.Row Prim.Int)
 
 Roles
 Proxy = [Phantom]

@@ -3,22 +3,22 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-add :: Int -> Int -> Int
+add :: Prim.Int -> Prim.Int -> Prim.Int
 add = \left -> \right -> left
 
-use :: Int -> String -> String
+use :: Prim.Int -> Prim.String -> Prim.String
 use = \integer -> \string -> string
 
-checked :: Int -> Int
+checked :: Prim.Int -> Prim.Int
 checked = \v40 -> add v40 1
 
-inferred :: Int -> Int
+inferred :: Prim.Int -> Prim.Int
 inferred = \v48 -> add v48 1
 
-ordered :: Int -> String -> String
+ordered :: Prim.Int -> Prim.String -> Prim.String
 ordered = \v64 v66 -> use v64 v66
 
-nested :: forall t t1. (((Int -> t) -> t) -> t1) -> t1
+nested :: forall t t1. (((Prim.Int -> t) -> t) -> t1) -> t1
 nested = \v71 -> v71 \v75 -> v75 1
 
 access :: forall t t1. { value :: t | t1 } -> t
@@ -28,23 +28,23 @@ update :: forall t t1 t2 t3 t4.
   { first :: t, second :: t1 | t2 } -> t3 -> t4 -> { first :: t3, second :: t4 | t2 }
 update = \v87 v90 v92 -> v87 { first = v90, second = v92 }
 
-conditional :: forall t. Boolean -> t -> t -> t
+conditional :: forall t. Prim.Boolean -> t -> t -> t
 conditional = \v98 v100 v102 ->
   if v98 then v100 else v102
 
-caseScrutinee :: Boolean -> Int
+caseScrutinee :: Prim.Boolean -> Prim.Int
 caseScrutinee = \v108 ->
   case v108 of
     true -> 1
     false -> 0
 
-caseScrutinees :: Boolean -> Int -> Int
+caseScrutinees :: Prim.Boolean -> Prim.Int -> Prim.Int
 caseScrutinees = \v127 v128 ->
   case v127, v128 of
     true, value -> value
     false, _ -> 0
 
-caseAlternatives :: forall t t1. Boolean -> { value :: t | t1 } -> t
+caseAlternatives :: forall t t1. Prim.Boolean -> { value :: t | t1 } -> t
 caseAlternatives = \v149 ->
   case v149 of
     true -> \v157 -> v157.value

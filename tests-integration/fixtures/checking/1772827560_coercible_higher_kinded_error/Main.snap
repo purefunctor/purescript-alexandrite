@@ -4,16 +4,18 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nil :: forall (@a :: Type). List (a :: Type)
-Cons :: forall (@a :: Type). (a :: Type) -> List (a :: Type) -> List (a :: Type)
-coerceContainerDifferent :: Container Maybe -> Container List
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nil :: forall (@a :: Prim.Type). Main.List (a :: Prim.Type)
+Cons ::
+  forall (@a :: Prim.Type).
+    (a :: Prim.Type) -> Main.List (a :: Prim.Type) -> Main.List (a :: Prim.Type)
+coerceContainerDifferent :: Main.Container Main.Maybe -> Main.Container Main.List
 
 Types
-Maybe :: Type -> Type
-List :: Type -> Type
-Container :: (Type -> Type) -> Type
+Maybe :: Prim.Type -> Prim.Type
+List :: Prim.Type -> Prim.Type
+Container :: (Prim.Type -> Prim.Type) -> Prim.Type
 
 Roles
 Maybe = [Representational]

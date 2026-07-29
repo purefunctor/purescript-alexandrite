@@ -3,11 +3,12 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Token :: Type
+data Token :: Prim.Type
 data Token
-  | Token :: Token
+  | Token :: Main.Token
 
-dictionary childToken :: { parentDict :: Parent Token } => Child Token where
+dictionary childToken :: { parentDict :: Classes.Parent Main.Token } => Classes.Child Main.Token
+  where
   superclass parentDict = parentDict
-  child :: Token
+  child :: Main.Token
   child = Token

@@ -4,16 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Age :: Int -> Age
-wrapAge :: Int -> Age
-unwrapAge :: Age -> Int
-Wrapper :: forall (@a :: Type). (a :: Type) -> Wrapper (a :: Type)
-wrapValue :: forall (a :: Type). (a :: Type) -> Wrapper (a :: Type)
-unwrapValue :: forall (a :: Type). Wrapper (a :: Type) -> (a :: Type)
+Age :: Prim.Int -> Main.Age
+wrapAge :: Prim.Int -> Main.Age
+unwrapAge :: Main.Age -> Prim.Int
+Wrapper :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
+wrapValue :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
+unwrapValue :: forall (a :: Prim.Type). Main.Wrapper (a :: Prim.Type) -> (a :: Prim.Type)
 
 Types
-Age :: Type
-Wrapper :: Type -> Type
+Age :: Prim.Type
+Wrapper :: Prim.Type -> Prim.Type
 
 Roles
 Age = []

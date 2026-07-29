@@ -4,21 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Yes :: Option
-No :: Option
-localOption :: Option
-option :: Option
-imported :: ImportedOption
-select :: forall (@a :: Type). Select (a :: Type) => (a :: Type) -> Option
-method :: forall (a :: Type). Select (a :: Type) => (a :: Type) -> Option
+Yes :: Main.Option
+No :: Main.Option
+localOption :: Main.Option
+option :: Main.Option
+imported :: Lib.ImportedOption
+select :: forall (@a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
+method :: forall (a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
 
 Types
-Option :: Type
-Select :: Type -> Constraint
+Option :: Prim.Type
+Select :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Select (a :: Type)
-  select :: forall (@a :: Type). Select (a :: Type) => (a :: Type) -> Option
+class forall (a :: Prim.Type). Main.Select (a :: Prim.Type)
+  select :: forall (@a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
 
 Roles
 Option = []

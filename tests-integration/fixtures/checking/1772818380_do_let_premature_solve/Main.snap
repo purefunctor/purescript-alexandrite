@@ -4,29 +4,39 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unit :: Unit
-pure :: forall (a :: Type). (a :: Type) -> Effect (a :: Type)
+unit :: Main.Unit
+pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
 bind ::
-  forall (a :: Type) (b :: Type).
-    Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
-discard :: forall (a :: Type). Effect (a :: Type) -> Effect Unit -> Effect Unit
-add :: forall (@a :: Type). Semiring (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-addImpl :: Int -> Int -> Int
-+ :: forall (@a :: Type). Semiring (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-thing1 :: Effect String
-test :: Effect Unit
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Main.Effect (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
+    Main.Effect (b :: Prim.Type)
+discard ::
+  forall (a :: Prim.Type).
+    Main.Effect (a :: Prim.Type) -> Main.Effect Main.Unit -> Main.Effect Main.Unit
+add ::
+  forall (@a :: Prim.Type).
+    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+addImpl :: Prim.Int -> Prim.Int -> Prim.Int
++ ::
+  forall (@a :: Prim.Type).
+    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+thing1 :: Main.Effect Prim.String
+test :: Main.Effect Main.Unit
 
 Types
-Effect :: Type -> Type
-Unit :: Type
-Semiring :: Type -> Constraint
+Effect :: Prim.Type -> Prim.Type
+Unit :: Prim.Type
+Semiring :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Semiring (a :: Type)
-  add :: forall (@a :: Type). Semiring (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+class forall (a :: Prim.Type). Main.Semiring (a :: Prim.Type)
+  add ::
+  forall (@a :: Prim.Type).
+    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
 
 Instances
-instance Semiring Int
+instance Main.Semiring Prim.Int
 
 Roles
 Effect = [Nominal]

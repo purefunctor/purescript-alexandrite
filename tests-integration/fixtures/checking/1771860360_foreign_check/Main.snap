@@ -6,9 +6,11 @@ expression: report
 Terms
 
 Types
-M :: Type -> Type
-P :: forall (k :: Type). (k :: Type) -> Type
-T :: forall (t :: Type) (k :: (t :: Type)). P @(t :: Type) (k :: (t :: Type)) -> Type
+M :: Prim.Type -> Prim.Type
+P :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+T ::
+  forall (t :: Prim.Type) (k :: (t :: Prim.Type)).
+    Main.P @(t :: Prim.Type) (k :: (t :: Prim.Type)) -> Prim.Type
 
 Roles
 M = [Nominal]

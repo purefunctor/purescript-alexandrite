@@ -5,20 +5,24 @@ expression: report
 ---
 Terms
 const ::
-  forall (@f :: Type -> Type).
-    Const (f :: Type -> Type) =>
-    (forall (a :: Type).
-      (f :: Type -> Type) (a :: Type) ->
-      (forall (b :: Type). (f :: Type -> Type) (b :: Type) -> (f :: Type -> Type) (a :: Type)))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Const (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type).
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (forall (b :: Prim.Type).
+        (f :: Prim.Type -> Prim.Type) (b :: Prim.Type) ->
+        (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)))
 
 Types
-Const :: (Type -> Type) -> Constraint
+Const :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (f :: Type -> Type). Const (f :: Type -> Type)
+class forall (f :: Prim.Type -> Prim.Type). Main.Const (f :: Prim.Type -> Prim.Type)
   const ::
-  forall (@f :: Type -> Type).
-    Const (f :: Type -> Type) =>
-    (forall (a :: Type).
-      (f :: Type -> Type) (a :: Type) ->
-      (forall (b :: Type). (f :: Type -> Type) (b :: Type) -> (f :: Type -> Type) (a :: Type)))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Const (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type).
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (forall (b :: Prim.Type).
+        (f :: Prim.Type -> Prim.Type) (b :: Prim.Type) ->
+        (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)))

@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-f :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type)
-g :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type)
+f :: forall (t :: Prim.Type) (t1 :: Prim.Type). (t :: Prim.Type) -> (t1 :: Prim.Type)
+g :: forall (t :: Prim.Type) (t1 :: Prim.Type). (t :: Prim.Type) -> (t1 :: Prim.Type)
 
 Types

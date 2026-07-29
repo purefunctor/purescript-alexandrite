@@ -6,11 +6,11 @@ expression: report
 Terms
 
 Types
-Opaque :: Type
+Opaque :: Prim.Type
 
 Derived
-derive Eq Opaque
-derive Ord Opaque
+derive Data.Eq.Eq Main.Opaque
+derive Data.Ord.Ord Main.Opaque
 
 Roles
 Opaque = []

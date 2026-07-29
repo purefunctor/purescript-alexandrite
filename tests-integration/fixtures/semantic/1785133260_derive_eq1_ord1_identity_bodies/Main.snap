@@ -3,24 +3,25 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Identity :: Type -> Type
+data Identity :: Prim.Type -> Prim.Type
 data Identity @a
-  | Identity :: a -> Identity a
+  | Identity :: a -> Main.Identity a
 
-dictionary eqIdentity :: forall t. { eqDict :: Eq t } => Eq (Identity t) where
-  eq :: Identity t -> Identity t -> Boolean
+dictionary eqIdentity :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Identity t) where
+  eq :: Main.Identity t -> Main.Identity t -> Prim.Boolean
   eq = \left right ->
   case left, right of
     (Identity left0), (Identity right0) ->
       if eq @t {eqDict} left0 right0 then true else false
 
-dictionary eq1Identity :: Eq1 Identity where
-  eq1 :: forall (t :: Type). Eq t => Identity t -> Identity t -> Boolean
-  eq1 = \{eqDict} -> eq @(Identity t) {eqIdentity {eqDict}}
+dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
+  eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.Identity t -> Main.Identity t -> Prim.Boolean
+  eq1 = \{eqDict} -> eq @(Main.Identity t) {eqIdentity {eqDict}}
 
-dictionary ordIdentity :: forall t. { ordDict :: Ord t } => Ord (Identity t) where
+dictionary ordIdentity :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.Identity t)
+  where
   superclass eqDict = eqIdentity {ordDict.eqDict}
-  compare :: Identity t -> Identity t -> Ordering
+  compare :: Main.Identity t -> Main.Identity t -> Data.Ordering.Ordering
   compare = \left right ->
   case left, right of
     (Identity left0), (Identity right0) ->
@@ -28,7 +29,8 @@ dictionary ordIdentity :: forall t. { ordDict :: Ord t } => Ord (Identity t) whe
         EQ -> EQ
         ordering -> ordering
 
-dictionary ord1Identity :: Ord1 Identity where
+dictionary ord1Identity :: Data.Ord.Ord1 Main.Identity where
   superclass eq1Dict = eq1Identity
-  compare1 :: forall (t :: Type). Ord t => Identity t -> Identity t -> Ordering
-  compare1 = \{ordDict} -> compare @(Identity t) {ordIdentity {ordDict}}
+  compare1 :: forall (t :: Prim.Type).
+  Data.Ord.Ord t => Main.Identity t -> Main.Identity t -> Data.Ordering.Ordering
+  compare1 = \{ordDict} -> compare @(Main.Identity t) {ordIdentity {ordDict}}

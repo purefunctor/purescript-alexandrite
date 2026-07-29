@@ -5,22 +5,41 @@ expression: report
 ---
 Terms
 mk ::
-  forall (a :: Type) (r :: Row Type) (r' :: Row Type) (s :: Symbol).
-    Cons @Type (s :: Symbol) (a :: Type) (r' :: Row Type) (CombinedRow (r :: Row Type)) =>
-    Proxy @Symbol (s :: Symbol) -> (a :: Type) -> Proxy @(Row Type) (CombinedRow (r :: Row Type))
-test :: forall (r :: Row Type). Proxy @(Row Type) (CombinedRow (r :: Row Type))
-forceSolve :: forall (t :: Row Type). { test :: Proxy @(Row Type) (CombinedRow (t :: Row Type)) }
+  forall (a :: Prim.Type) (r :: Prim.Row Prim.Type) (r' :: Prim.Row Prim.Type) (s :: Prim.Symbol).
+    Prim.Row.Cons @Prim.Type
+      (s :: Prim.Symbol)
+      (a :: Prim.Type)
+      (r' :: Prim.Row Prim.Type)
+      (Main.CombinedRow (r :: Prim.Row Prim.Type)) =>
+    Type.Proxy.Proxy @Prim.Symbol (s :: Prim.Symbol) ->
+    (a :: Prim.Type) ->
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (r :: Prim.Row Prim.Type))
+test ::
+  forall (r :: Prim.Row Prim.Type).
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (r :: Prim.Row Prim.Type))
+forceSolve ::
+  forall (t :: Prim.Row Prim.Type).
+    { test :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (t :: Prim.Row Prim.Type)) }
 
 Types
 RowApply ::
-  forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-+ :: forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-LeftRow :: Row Type -> Row Type
-RightRow :: Row Type -> Row Type
-CombinedRow :: Row Type -> Row Type
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
++ ::
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
+LeftRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
+RightRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
+CombinedRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 
 Synonyms
-type RowApply f a = (f :: Row (k :: Type) -> Row (k :: Type)) (a :: Row (k :: Type))
-type LeftRow r = ( left :: Boolean | (r :: Row Type) )
-type RightRow r = ( right :: String | (r :: Row Type) )
-type CombinedRow r = RowApply @Type LeftRow (RowApply @Type RightRow (r :: Row Type))
+type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type LeftRow r = ( left :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
+type RightRow r = ( right :: Prim.String | (r :: Prim.Row Prim.Type) )
+type CombinedRow r = Main.RowApply @Prim.Type
+  Main.LeftRow
+  (Main.RowApply @Prim.Type Main.RightRow (r :: Prim.Row Prim.Type))

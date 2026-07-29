@@ -4,51 +4,81 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
-M :: forall (@context :: Row Type) (@a :: Type). (a :: Type) -> M (context :: Row Type) (a :: Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+M ::
+  forall (@context :: Prim.Row Prim.Type) (@a :: Prim.Type).
+    (a :: Prim.Type) -> Main.M (context :: Prim.Row Prim.Type) (a :: Prim.Type)
 bind ::
-  forall (context :: Row Type) (a :: Type) (b :: Type).
-    M (context :: Row Type) (a :: Type) ->
-    ((a :: Type) -> M (context :: Row Type) (b :: Type)) ->
-    M (context :: Row Type) (b :: Type)
+  forall (context :: Prim.Row Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+    Main.M (context :: Prim.Row Prim.Type) (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.M (context :: Prim.Row Prim.Type) (b :: Prim.Type)) ->
+    Main.M (context :: Prim.Row Prim.Type) (b :: Prim.Type)
 ask ::
-  forall (@context :: Row Type) (@m :: Type -> Type).
-    Ask (context :: Row Type) (m :: Type -> Type) => (m :: Type -> Type) {| (context :: Row Type) }
+  forall (@context :: Prim.Row Prim.Type) (@m :: Prim.Type -> Prim.Type).
+    Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) {| (context :: Prim.Row Prim.Type) }
 consume ::
-  forall (row :: Row Type) (list :: RowList Type).
-    RowToList @Type (row :: Row Type) (list :: RowList Type) => {| (row :: Row Type) } -> {}
+  forall (row :: Prim.Row Prim.Type) (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      (row :: Prim.Row Prim.Type)
+      (list :: Prim.RowList.RowList Prim.Type) =>
+    {| (row :: Prim.Row Prim.Type) } -> {}
 produce ::
-  forall (@context :: Row Type) (@input :: Row Type) (@output :: Row Type).
-    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
-    {| (context :: Row Type) } -> {| (input :: Row Type) } -> {| (output :: Row Type) }
+  forall (@context :: Prim.Row Prim.Type) (@input :: Prim.Row Prim.Type)
+    (@output :: Prim.Row Prim.Type).
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (context :: Prim.Row Prim.Type) } ->
+    {| (input :: Prim.Row Prim.Type) } ->
+    {| (output :: Prim.Row Prim.Type) }
 test ::
-  forall (context :: Row Type) (input :: Row Type) (output :: Row Type)
-    (outputList :: RowList Type).
-    RowToList @Type (output :: Row Type) (outputList :: RowList Type) =>
-    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
-    {| (input :: Row Type) } -> M (context :: Row Type) {}
+  forall (context :: Prim.Row Prim.Type) (input :: Prim.Row Prim.Type)
+    (output :: Prim.Row Prim.Type) (outputList :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      (output :: Prim.Row Prim.Type)
+      (outputList :: Prim.RowList.RowList Prim.Type) =>
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (input :: Prim.Row Prim.Type) } -> Main.M (context :: Prim.Row Prim.Type) {}
 
 Types
-M :: Row Type -> Type -> Type
-Ask :: Row Type -> (Type -> Type) -> Constraint
-Produce :: Row Type -> Row Type -> Row Type -> Constraint
+M :: Prim.Row Prim.Type -> Prim.Type -> Prim.Type
+Ask :: Prim.Row Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+Produce :: Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
 
 Classes
-class forall (context :: Row Type) (m :: Type -> Type). Ask (context :: Row Type) (m :: Type -> Type)
+class forall (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type)
   ask ::
-  forall (@context :: Row Type) (@m :: Type -> Type).
-    Ask (context :: Row Type) (m :: Type -> Type) => (m :: Type -> Type) {| (context :: Row Type) }
-class forall (context :: Row Type) (input :: Row Type) (output :: Row Type). Produce (context :: Row Type) (input :: Row Type) (output :: Row Type)
+  forall (@context :: Prim.Row Prim.Type) (@m :: Prim.Type -> Prim.Type).
+    Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) {| (context :: Prim.Row Prim.Type) }
+class forall (context :: Prim.Row Prim.Type) (input :: Prim.Row Prim.Type) (output :: Prim.Row Prim.Type). Main.Produce
+  (context :: Prim.Row Prim.Type)
+  (input :: Prim.Row Prim.Type)
+  (output :: Prim.Row Prim.Type)
   produce ::
-  forall (@context :: Row Type) (@input :: Row Type) (@output :: Row Type).
-    Produce (context :: Row Type) (input :: Row Type) (output :: Row Type) =>
-    {| (context :: Row Type) } -> {| (input :: Row Type) } -> {| (output :: Row Type) }
+  forall (@context :: Prim.Row Prim.Type) (@input :: Prim.Row Prim.Type)
+    (@output :: Prim.Row Prim.Type).
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (context :: Prim.Row Prim.Type) } ->
+    {| (input :: Prim.Row Prim.Type) } ->
+    {| (output :: Prim.Row Prim.Type) }
 
 Instances
-instance forall (t :: Row Type). Ask (t :: Row Type) (M (t :: Row Type))
-instance forall (t :: Row Type) (t1 :: RowList Type) (t2 :: Row Type).
-  RowToList @Type (t :: Row Type) (t1 :: RowList Type) =>
-  Produce (t2 :: Row Type) (t :: Row Type) (t :: Row Type)
+instance forall (t :: Prim.Row Prim.Type).
+  Main.Ask (t :: Prim.Row Prim.Type) (Main.M (t :: Prim.Row Prim.Type))
+instance forall (t :: Prim.Row Prim.Type) (t1 :: Prim.RowList.RowList Prim.Type) (t2 :: Prim.Row Prim.Type).
+  Prim.RowList.RowToList @Prim.Type
+    (t :: Prim.Row Prim.Type)
+    (t1 :: Prim.RowList.RowList Prim.Type) =>
+  Main.Produce (t2 :: Prim.Row Prim.Type) (t :: Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
 
 Roles
 M = [Phantom, Representational]

@@ -5,36 +5,54 @@ expression: report
 ---
 Terms
 T ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@g :: Type -> (t :: Type)).
-    (f :: (t :: Type) -> Type) ((g :: Type -> (t :: Type)) Int) ->
-    T @(t :: Type) (f :: (t :: Type) -> Type) (g :: Type -> (t :: Type))
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-U :: forall (@f :: Type -> Type). (f :: Type -> Type) (Maybe Int) -> U (f :: Type -> Type)
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: Prim.Type -> (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) ((g :: Prim.Type -> (t :: Prim.Type)) Prim.Int) ->
+    Main.T @(t :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: Prim.Type -> (t :: Prim.Type))
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+U ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    (f :: Prim.Type -> Prim.Type) (Main.Maybe Prim.Int) -> Main.U (f :: Prim.Type -> Prim.Type)
 V ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@g :: Int -> (t :: Type)).
-    (f :: (t :: Type) -> Type) ((g :: Int -> (t :: Type)) 42) ->
-    V @(t :: Type) (f :: (t :: Type) -> Type) (g :: Int -> (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: Prim.Int -> (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) ((g :: Prim.Int -> (t :: Prim.Type)) 42) ->
+    Main.V @(t :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: Prim.Int -> (t :: Prim.Type))
 
 Types
-T :: forall (t :: Type). ((t :: Type) -> Type) -> (Type -> (t :: Type)) -> Type
-Maybe :: Type -> Type
-U :: (Type -> Type) -> Type
-V :: forall (t :: Type). ((t :: Type) -> Type) -> (Int -> (t :: Type)) -> Type
+T ::
+  forall (t :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) -> (Prim.Type -> (t :: Prim.Type)) -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
+U :: (Prim.Type -> Prim.Type) -> Prim.Type
+V ::
+  forall (t :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) -> (Prim.Int -> (t :: Prim.Type)) -> Prim.Type
 
 Derived
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Eq1 (t :: Type -> Type) => Eq (T @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Ord1 (t :: Type -> Type) => Ord (T @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type). Eq (t :: Type) => Eq (Maybe (t :: Type))
-derive forall (t :: Type). Ord (t :: Type) => Ord (Maybe (t :: Type))
-derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq (U (t :: Type -> Type))
-derive forall (t :: Type -> Type). Ord1 (t :: Type -> Type) => Ord (U (t :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Int -> Type).
-  Eq1 (t :: Type -> Type) => Eq (V @Type (t :: Type -> Type) (t1 :: Int -> Type))
-derive forall (t :: Type -> Type) (t1 :: Int -> Type).
-  Ord1 (t :: Type -> Type) => Ord (V @Type (t :: Type -> Type) (t1 :: Int -> Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (Main.T @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.T @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t :: Prim.Type))
+derive forall (t :: Prim.Type). Data.Ord.Ord (t :: Prim.Type) => Data.Ord.Ord (Main.Maybe (t :: Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) => Data.Eq.Eq (Main.U (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) => Data.Ord.Ord (Main.U (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (Main.V @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.V @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
 
 Roles
 T = [Representational, Representational]

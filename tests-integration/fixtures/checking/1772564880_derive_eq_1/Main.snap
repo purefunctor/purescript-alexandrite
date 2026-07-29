@@ -4,63 +4,80 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Id :: forall (@a :: Type). (a :: Type) -> Id (a :: Type)
-Pair :: forall (@a :: Type). (a :: Type) -> (a :: Type) -> Pair (a :: Type)
-Mixed :: forall (@a :: Type). Int -> (a :: Type) -> Boolean -> Mixed (a :: Type)
-Rec :: forall (@a :: Type). { count :: Int, value :: (a :: Type) } -> Rec (a :: Type)
+Id :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Id (a :: Prim.Type)
+Pair :: forall (@a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type) -> Main.Pair (a :: Prim.Type)
+Mixed ::
+  forall (@a :: Prim.Type).
+    Prim.Int -> (a :: Prim.Type) -> Prim.Boolean -> Main.Mixed (a :: Prim.Type)
+Rec ::
+  forall (@a :: Prim.Type).
+    { count :: Prim.Int, value :: (a :: Prim.Type) } -> Main.Rec (a :: Prim.Type)
 Wrap ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 Compose ::
-  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> (t :: Type))
-    (@a :: (t1 :: Type)).
-    (f :: (t :: Type) -> Type) ((g :: (t1 :: Type) -> (t :: Type)) (a :: (t1 :: Type))) ->
-    Compose @(t :: Type) @(t1 :: Type)
-      (f :: (t :: Type) -> Type)
-      (g :: (t1 :: Type) -> (t :: Type))
-      (a :: (t1 :: Type))
-Left' :: forall (@a :: Type). (a :: Type) -> Either' (a :: Type)
-Right' :: forall (@a :: Type). (a :: Type) -> Either' (a :: Type)
-NoEq :: forall (@a :: Type). (a :: Type) -> NoEq (a :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type)
+      ((g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
+    Main.Compose @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: (t1 :: Prim.Type) -> (t :: Prim.Type))
+      (a :: (t1 :: Prim.Type))
+Left' :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Either' (a :: Prim.Type)
+Right' :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Either' (a :: Prim.Type)
+NoEq :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.NoEq (a :: Prim.Type)
 
 Types
-Id :: Type -> Type
-Pair :: Type -> Type
-Mixed :: Type -> Type
-Rec :: Type -> Type
-Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+Id :: Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type
+Mixed :: Prim.Type -> Prim.Type
+Rec :: Prim.Type -> Prim.Type
+Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
 Compose ::
-  forall (t :: Type) (t1 :: Type).
-    ((t :: Type) -> Type) -> ((t1 :: Type) -> (t :: Type)) -> (t1 :: Type) -> Type
-Either' :: Type -> Type
-NoEq :: Type -> Type
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) ->
+    ((t1 :: Prim.Type) -> (t :: Prim.Type)) ->
+    (t1 :: Prim.Type) ->
+    Prim.Type
+Either' :: Prim.Type -> Prim.Type
+NoEq :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t :: Type). Eq (t :: Type) => Eq (Id (t :: Type))
-derive Eq1 Id
-derive forall (t :: Type). Eq (t :: Type) => Eq (Pair (t :: Type))
-derive Eq1 Pair
-derive forall (t :: Type). Eq (t :: Type) => Eq (Mixed (t :: Type))
-derive Eq1 Mixed
-derive forall (t :: Type). Eq (t :: Type) => Eq (Rec (t :: Type))
-derive Eq1 Rec
-derive forall (t :: Type -> Type) (t1 :: Type).
-  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
-derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq1 (Wrap @Type (t :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type) (t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type)).
-  Eq1 (t :: Type -> Type) =>
-  Eq ((t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type))) =>
-  Eq
-    (Compose @Type @(t1 :: Type)
-      (t :: Type -> Type)
-      (t2 :: (t1 :: Type) -> Type)
-      (t3 :: (t1 :: Type)))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Eq1 (t :: Type -> Type) => Eq1 (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type). Eq (t :: Type) => Eq (Either' (t :: Type))
-derive Eq1 Either'
-derive Eq1 NoEq
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Id (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Id
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Pair (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Pair
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Mixed (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Mixed
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Rec (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Rec
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (t1 :: Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1 (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+  (t3 :: (t1 :: Prim.Type)).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq ((t2 :: (t1 :: Prim.Type) -> Prim.Type) (t3 :: (t1 :: Prim.Type))) =>
+  Data.Eq.Eq
+    (Main.Compose @Prim.Type @(t1 :: Prim.Type)
+      (t :: Prim.Type -> Prim.Type)
+      (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+      (t3 :: (t1 :: Prim.Type)))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1
+    (Main.Compose @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Either' (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Either'
+derive Data.Eq.Eq1 Main.NoEq
 
 Roles
 Id = [Representational]

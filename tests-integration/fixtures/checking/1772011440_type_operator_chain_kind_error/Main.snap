@@ -1,18 +1,18 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Add :: Type -> Type -> Type
-+ :: Type -> Type -> Type
-Bad :: Type
+Add :: Prim.Type -> Prim.Type -> Prim.Type
++ :: Prim.Type -> Prim.Type -> Prim.Type
+Bad :: Prim.Type
 
 Synonyms
-type Add a b = (a :: Type)
-type Bad = Add Int "hello"
+type Add a b = (a :: Prim.Type)
+type Bad = Main.Add Prim.Int "hello"
 
 Diagnostics
 error[CannotUnify]: Cannot unify 'Symbol' with 'Type'

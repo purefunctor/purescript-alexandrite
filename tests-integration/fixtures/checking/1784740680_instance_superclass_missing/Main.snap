@@ -4,19 +4,19 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Missing :: Missing
+Missing :: Main.Missing
 
 Types
-Missing :: Type
-Parent :: Type -> Constraint
-Child :: Type -> Constraint
+Missing :: Prim.Type
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (value :: Type). Parent (value :: Type)
-class forall (value :: Type). Parent (value :: Type) <= Child (value :: Type)
+class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type)
+class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type) <= Main.Child (value :: Prim.Type)
 
 Instances
-instance Child Missing
+instance Main.Child Main.Missing
 
 Roles
 Missing = []

@@ -29,7 +29,11 @@ pub(crate) fn breakable_continuation<'arena>(
 }
 
 pub trait PrettyQueries:
-    QueryProxy<Indexed = Arc<indexing::IndexedModule>, Lowered = Arc<lowering::LoweredModule>>
+    QueryProxy<
+        Parsed = parsing::FullParsedModule,
+        Indexed = Arc<indexing::IndexedModule>,
+        Lowered = Arc<lowering::LoweredModule>,
+    >
 {
     fn lookup_type(&self, id: TypeId) -> Type;
 
@@ -138,11 +142,17 @@ pub struct PrettyConfig {
     width: usize,
     show_rigid_kinds: bool,
     show_forall_kinds: bool,
+    fully_qualified_names: bool,
 }
 
 impl PrettyConfig {
     pub const fn new() -> PrettyConfig {
-        PrettyConfig { width: DEFAULT_WIDTH, show_rigid_kinds: true, show_forall_kinds: true }
+        PrettyConfig {
+            width: DEFAULT_WIDTH,
+            show_rigid_kinds: true,
+            show_forall_kinds: true,
+            fully_qualified_names: false,
+        }
     }
 
     #[must_use]
@@ -160,6 +170,12 @@ impl PrettyConfig {
     #[must_use]
     pub const fn without_forall_kinds(mut self) -> PrettyConfig {
         self.show_forall_kinds = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn fully_qualified_names(mut self) -> PrettyConfig {
+        self.fully_qualified_names = true;
         self
     }
 }
@@ -268,6 +284,7 @@ where
             &mut self.names,
             self.config.show_rigid_kinds,
             self.config.show_forall_kinds,
+            self.config.fully_qualified_names,
         );
 
         let document = if let Some(name) = signature {
@@ -303,6 +320,7 @@ where
     pretty_names: &'names mut PrettyNames,
     show_rigid_kinds: bool,
     show_forall_kinds: bool,
+    fully_qualified_names: bool,
 }
 
 impl<'arena, 'context, 'names, Q> Printer<'arena, 'context, 'names, Q>
@@ -316,8 +334,17 @@ where
         pretty_names: &'names mut PrettyNames,
         show_rigid_kinds: bool,
         show_forall_kinds: bool,
+        fully_qualified_names: bool,
     ) -> Printer<'arena, 'context, 'names, Q> {
-        Printer { arena, queries, names, pretty_names, show_rigid_kinds, show_forall_kinds }
+        Printer {
+            arena,
+            queries,
+            names,
+            pretty_names,
+            show_rigid_kinds,
+            show_forall_kinds,
+            fully_qualified_names,
+        }
     }
 
     fn lookup_type(&self, id: TypeId) -> Type {
@@ -343,6 +370,30 @@ where
     ) -> Option<String> {
         let indexed = self.queries.indexed(file_id).ok()?;
         indexed.items[type_id].name.as_ref().map(|name| name.to_string())
+    }
+
+    fn lookup_module_name(&self, file_id: files::FileId) -> Option<SmolStr> {
+        let content = self.queries.content(file_id);
+        let (parsed, _) = self.queries.parsed(file_id).ok()?;
+        parsed.module_name(&content)
+    }
+
+    fn display_type_name(
+        &self,
+        file_id: files::FileId,
+        type_id: indexing::TypeItemId,
+    ) -> Option<String> {
+        let name = self.lookup_type_name(file_id, type_id)?;
+
+        if !self.fully_qualified_names {
+            return Some(name);
+        }
+
+        let Some(module_name) = self.lookup_module_name(file_id) else {
+            return Some(name);
+        };
+
+        Some(format!("{module_name}.{name}"))
     }
 
     fn is_record_constructor(&self, id: TypeId) -> bool {
@@ -394,7 +445,7 @@ where
 
             Type::Constructor(file_id, type_id) => {
                 let name = self
-                    .lookup_type_name(file_id, type_id)
+                    .display_type_name(file_id, type_id)
                     .unwrap_or_else(|| "<InvalidName>".to_string());
                 self.arena.text(name)
             }

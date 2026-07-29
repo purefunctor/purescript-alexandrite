@@ -3,5 +3,5 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-life :: Int
+life :: Prim.Int
 life = 42

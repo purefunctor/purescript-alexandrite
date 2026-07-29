@@ -5,16 +5,24 @@ expression: report
 ---
 Terms
 unify ::
-  forall (r :: Row (Type -> Type)).
-    Box (r :: Row (Type -> Type)) -> Box (r :: Row (Type -> Type)) -> Box (r :: Row (Type -> Type))
-withF :: forall (r :: Row (Type -> Type)). Box ( f :: F | (r :: Row (Type -> Type)) )
-withG :: forall (r :: Row (Type -> Type)). Box ( g :: G | (r :: Row (Type -> Type)) )
-test :: forall (t :: Row (Type -> Type)). Box ( f :: F, g :: G | (t :: Row (Type -> Type)) )
+  forall (r :: Prim.Row (Prim.Type -> Prim.Type)).
+    Main.Box (r :: Prim.Row (Prim.Type -> Prim.Type)) ->
+    Main.Box (r :: Prim.Row (Prim.Type -> Prim.Type)) ->
+    Main.Box (r :: Prim.Row (Prim.Type -> Prim.Type))
+withF ::
+  forall (r :: Prim.Row (Prim.Type -> Prim.Type)).
+    Main.Box ( f :: Main.F | (r :: Prim.Row (Prim.Type -> Prim.Type)) )
+withG ::
+  forall (r :: Prim.Row (Prim.Type -> Prim.Type)).
+    Main.Box ( g :: Main.G | (r :: Prim.Row (Prim.Type -> Prim.Type)) )
+test ::
+  forall (t :: Prim.Row (Prim.Type -> Prim.Type)).
+    Main.Box ( f :: Main.F, g :: Main.G | (t :: Prim.Row (Prim.Type -> Prim.Type)) )
 
 Types
-F :: Type -> Type
-G :: Type -> Type
-Box :: Row (Type -> Type) -> Type
+F :: Prim.Type -> Prim.Type
+G :: Prim.Type -> Prim.Type
+Box :: Prim.Row (Prim.Type -> Prim.Type) -> Prim.Type
 
 Roles
 F = [Nominal]

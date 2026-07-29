@@ -4,23 +4,31 @@ assertion_line: 50
 expression: report
 ---
 Terms
-make :: forall (@a :: Type) (@b :: Type). Make (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-testMake :: { a :: Int, b :: String } -> { a :: Int, b :: String }
+make ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Make (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+testMake :: { a :: Prim.Int, b :: Prim.String } -> { a :: Prim.Int, b :: Prim.String }
 convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-testConvert :: { x :: Int } -> { converted :: { x :: Int } }
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+testConvert :: { x :: Prim.Int } -> { converted :: { x :: Prim.Int } }
 
 Types
-Make :: Type -> Type -> Constraint
-Convert :: Type -> Type -> Constraint
+Make :: Prim.Type -> Prim.Type -> Prim.Constraint
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type). Make (a :: Type) (b :: Type)
-  make :: forall (@a :: Type) (@b :: Type). Make (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Make (a :: Prim.Type) (b :: Prim.Type)
+  make ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Make (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
   convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance forall (t :: Row Type). Make {| (t :: Row Type) } {| (t :: Row Type) }
-instance forall (t :: Row Type). Convert {| (t :: Row Type) } { converted :: {| (t :: Row Type) } }
+instance forall (t :: Prim.Row Prim.Type).
+  Main.Make {| (t :: Prim.Row Prim.Type) } {| (t :: Prim.Row Prim.Type) }
+instance forall (t :: Prim.Row Prim.Type).
+  Main.Convert {| (t :: Prim.Row Prim.Type) } { converted :: {| (t :: Prim.Row Prim.Type) } }

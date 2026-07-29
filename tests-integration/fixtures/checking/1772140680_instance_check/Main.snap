@@ -6,13 +6,14 @@ expression: report
 Terms
 
 Types
-Eq :: Type -> Constraint
-TypeEq :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
+Eq :: Prim.Type -> Prim.Constraint
+TypeEq :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Eq (a :: Type)
-class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEq @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
+class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEq @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
 
 Instances
-instance forall (t :: Type). Eq (t :: Type) => Eq (Array (t :: Type))
-instance forall (t :: Type) (t1 :: (t :: Type)). TypeEq @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance forall (t :: Prim.Type). Main.Eq (t :: Prim.Type) => Main.Eq (Prim.Array (t :: Prim.Type))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.TypeEq @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))

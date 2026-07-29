@@ -4,13 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nil :: forall (@a :: Type). List (a :: Type)
-Cons :: forall (@a :: Type). List (a :: Type) -> List (a :: Type)
-append :: forall (a :: Type). List (a :: Type) -> List Int -> List (a :: Type)
-<+> :: forall (a :: Type). List (a :: Type) -> List Int -> List (a :: Type)
+Nil :: forall (@a :: Prim.Type). Main.List (a :: Prim.Type)
+Cons :: forall (@a :: Prim.Type). Main.List (a :: Prim.Type) -> Main.List (a :: Prim.Type)
+append ::
+  forall (a :: Prim.Type).
+    Main.List (a :: Prim.Type) -> Main.List Prim.Int -> Main.List (a :: Prim.Type)
+<+> ::
+  forall (a :: Prim.Type).
+    Main.List (a :: Prim.Type) -> Main.List Prim.Int -> Main.List (a :: Prim.Type)
 
 Types
-List :: Type -> Type
+List :: Prim.Type -> Prim.Type
 
 Roles
 List = [Representational]

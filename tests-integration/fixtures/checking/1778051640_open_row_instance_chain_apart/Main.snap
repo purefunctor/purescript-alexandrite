@@ -4,31 +4,38 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
-K1 :: K1
-Unit :: Unit
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+K1 :: Main.K1
+Unit :: Main.Unit
 c ::
-  forall (@key :: Type) (@row :: Row Type).
-    C (key :: Type) (row :: Row Type) =>
-    Proxy @Type (key :: Type) -> Proxy @(Row Type) (row :: Row Type) -> Unit
-test :: forall (key :: Type). Proxy @Type (key :: Type) -> Unit
+  forall (@key :: Prim.Type) (@row :: Prim.Row Prim.Type).
+    Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type) =>
+    Main.Proxy @Prim.Type (key :: Prim.Type) ->
+    Main.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type) ->
+    Main.Unit
+test :: forall (key :: Prim.Type). Main.Proxy @Prim.Type (key :: Prim.Type) -> Main.Unit
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
-K1 :: Type
-Unit :: Type
-C :: Type -> Row Type -> Constraint
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+K1 :: Prim.Type
+Unit :: Prim.Type
+C :: Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
 
 Classes
-class forall (key :: Type) (row :: Row Type). C (key :: Type) (row :: Row Type)
+class forall (key :: Prim.Type) (row :: Prim.Row Prim.Type). Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type)
   c ::
-  forall (@key :: Type) (@row :: Row Type).
-    C (key :: Type) (row :: Row Type) =>
-    Proxy @Type (key :: Type) -> Proxy @(Row Type) (row :: Row Type) -> Unit
+  forall (@key :: Prim.Type) (@row :: Prim.Row Prim.Type).
+    Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type) =>
+    Main.Proxy @Prim.Type (key :: Prim.Type) ->
+    Main.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type) ->
+    Main.Unit
 
 Instances
-instance C K1 ( a :: Int, b :: Boolean )
-instance forall (t :: Type) (t1 :: Row Type). C (t :: Type) ( a :: String, b :: Boolean | (t1 :: Row Type) )
+instance Main.C Main.K1 ( a :: Prim.Int, b :: Prim.Boolean )
+instance forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+  Main.C (t :: Prim.Type) ( a :: Prim.String, b :: Prim.Boolean | (t1 :: Prim.Row Prim.Type) )
 
 Roles
 Proxy = [Phantom]

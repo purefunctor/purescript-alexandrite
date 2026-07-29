@@ -6,11 +6,11 @@ expression: report
 Terms
 
 Types
-NonZeroInt :: Type
-Identity :: forall (t :: Type). (t :: Type) -> (t :: Type)
-FourtyTwo :: Int
+NonZeroInt :: Prim.Type
+Identity :: forall (t :: Prim.Type). (t :: Prim.Type) -> (t :: Prim.Type)
+FourtyTwo :: Prim.Int
 
 Synonyms
-type NonZeroInt = Int
-type Identity a = (a :: (t :: Type))
+type NonZeroInt = Prim.Int
+type Identity a = (a :: (t :: Prim.Type))
 type FourtyTwo = 42

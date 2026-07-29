@@ -5,14 +5,14 @@ expression: report
 ---
 Terms
 Pair ::
-  forall (t :: Type) (@a :: Type) (@b :: (t :: Type)).
-    (a :: Type) -> Pair @(t :: Type) (a :: Type) (b :: (t :: Type))
+  forall (t :: Prim.Type) (@a :: Prim.Type) (@b :: (t :: Prim.Type)).
+    (a :: Prim.Type) -> Main.Pair @(t :: Prim.Type) (a :: Prim.Type) (b :: (t :: Prim.Type))
 
 Types
-Pair :: forall (t :: Type). Type -> (t :: Type) -> Type
+Pair :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
 
 Derived
-derive Show (Pair @Type Int String)
+derive Data.Show.Show (Main.Pair @Prim.Type Prim.Int Prim.String)
 
 Roles
 Pair = [Representational, Phantom]

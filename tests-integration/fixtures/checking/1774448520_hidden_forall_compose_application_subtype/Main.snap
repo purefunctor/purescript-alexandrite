@@ -5,40 +5,57 @@ expression: report
 ---
 Terms
 compose ::
-  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type).
-    Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type) =>
-    (forall (a :: (k :: Type)) (b :: (k :: Type)) (c :: (k :: Type)).
-      (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
-      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
-      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type)))
-Tagged :: forall (@n :: Int) (@a :: Type). (a :: Type) -> Tagged (n :: Int) (a :: Type)
-make :: forall (a :: Type). (a :: Type) -> HiddenTagged (a :: Type)
-ConcreteNewtype :: forall (@a :: Type). ConcreteTagged (a :: Type) -> ConcreteNewtype (a :: Type)
-test :: forall (a :: Type). (a :: Type) -> ConcreteNewtype (a :: Type)
+  forall (k :: Prim.Type) (@f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type).
+    Main.Semigroupoid @(k :: Prim.Type) (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) =>
+    (forall (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) (c :: (k :: Prim.Type)).
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (b :: (k :: Prim.Type))
+        (c :: (k :: Prim.Type)) ->
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (a :: (k :: Prim.Type))
+        (b :: (k :: Prim.Type)) ->
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (a :: (k :: Prim.Type))
+        (c :: (k :: Prim.Type)))
+Tagged ::
+  forall (@n :: Prim.Int) (@a :: Prim.Type).
+    (a :: Prim.Type) -> Main.Tagged (n :: Prim.Int) (a :: Prim.Type)
+make :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.HiddenTagged (a :: Prim.Type)
+ConcreteNewtype ::
+  forall (@a :: Prim.Type).
+    Main.ConcreteTagged (a :: Prim.Type) -> Main.ConcreteNewtype (a :: Prim.Type)
+test :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.ConcreteNewtype (a :: Prim.Type)
 
 Types
-Semigroupoid :: forall (k :: Type). ((k :: Type) -> (k :: Type) -> Type) -> Constraint
-Tagged :: Int -> Type -> Type
-ConcreteTagged :: Type -> Type
-HiddenTagged :: Type -> Type
-ConcreteNewtype :: Type -> Type
+Semigroupoid ::
+  forall (k :: Prim.Type). ((k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) -> Prim.Constraint
+Tagged :: Prim.Int -> Prim.Type -> Prim.Type
+ConcreteTagged :: Prim.Type -> Prim.Type
+HiddenTagged :: Prim.Type -> Prim.Type
+ConcreteNewtype :: Prim.Type -> Prim.Type
 
 Synonyms
-type ConcreteTagged a = Tagged 42 (a :: Type)
-type HiddenTagged a = forall (n :: Int). Tagged (n :: Int) (a :: Type)
+type ConcreteTagged a = Main.Tagged 42 (a :: Prim.Type)
+type HiddenTagged a = forall (n :: Prim.Int). Main.Tagged (n :: Prim.Int) (a :: Prim.Type)
 
 Classes
-class forall (k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type). Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type)
+class forall (k :: Prim.Type) (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type). Main.Semigroupoid @(k :: Prim.Type) (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
   compose ::
-  forall (k :: Type) (@f :: (k :: Type) -> (k :: Type) -> Type).
-    Semigroupoid @(k :: Type) (f :: (k :: Type) -> (k :: Type) -> Type) =>
-    (forall (a :: (k :: Type)) (b :: (k :: Type)) (c :: (k :: Type)).
-      (f :: (k :: Type) -> (k :: Type) -> Type) (b :: (k :: Type)) (c :: (k :: Type)) ->
-      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (b :: (k :: Type)) ->
-      (f :: (k :: Type) -> (k :: Type) -> Type) (a :: (k :: Type)) (c :: (k :: Type)))
+  forall (k :: Prim.Type) (@f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type).
+    Main.Semigroupoid @(k :: Prim.Type) (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) =>
+    (forall (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) (c :: (k :: Prim.Type)).
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (b :: (k :: Prim.Type))
+        (c :: (k :: Prim.Type)) ->
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (a :: (k :: Prim.Type))
+        (b :: (k :: Prim.Type)) ->
+      (f :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+        (a :: (k :: Prim.Type))
+        (c :: (k :: Prim.Type)))
 
 Instances
-instance Semigroupoid @Type Function
+instance Main.Semigroupoid @Prim.Type Prim.Function
 
 Roles
 Tagged = [Phantom, Representational]

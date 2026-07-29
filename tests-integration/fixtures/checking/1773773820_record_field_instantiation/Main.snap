@@ -4,19 +4,19 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 constructor ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
-    { example :: (t :: Type) | (t1 :: Row Type) } ->
-    { example :: Maybe (t2 :: Type) | (t1 :: Row Type) }
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { example :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    { example :: Main.Maybe (t2 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
 variable ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
-    { example :: (t :: Type) | (t1 :: Row Type) } ->
-    { example :: Maybe (t2 :: Type) | (t1 :: Row Type) }
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { example :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    { example :: Main.Maybe (t2 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
 
 Types
-Maybe :: Type -> Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Maybe = [Representational]

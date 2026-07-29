@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
 
 Types
-Identity :: Type -> Type
+Identity :: Prim.Type -> Prim.Type
 
 Derived
-derive Show (Identity Int)
+derive Data.Show.Show (Main.Identity Prim.Int)
 
 Roles
 Identity = [Representational]

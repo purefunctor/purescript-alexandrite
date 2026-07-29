@@ -3,17 +3,17 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Eq :: Type -> Constraint
+interface Eq :: Prim.Type -> Prim.Constraint
 interface Eq a where
 
-interface Ord :: Type -> Constraint
+interface Ord :: Prim.Type -> Prim.Constraint
 interface Ord a where
-  superclass eqDict :: Eq a
-  compare :: a -> a -> Int
+  superclass eqDict :: Main.Eq a
+  compare :: a -> a -> Prim.Int
 
-foreign import compareImpl :: Int -> Int -> Int
+foreign import compareImpl :: Prim.Int -> Prim.Int -> Prim.Int
 
-dictionary ordInt :: { eqDict :: Eq Int } => Ord Int where
+dictionary ordInt :: { eqDict :: Main.Eq Prim.Int } => Main.Ord Prim.Int where
   superclass eqDict = eqDict
-  compare :: Int -> Int -> Int
+  compare :: Prim.Int -> Prim.Int -> Prim.Int
   compare = compareImpl

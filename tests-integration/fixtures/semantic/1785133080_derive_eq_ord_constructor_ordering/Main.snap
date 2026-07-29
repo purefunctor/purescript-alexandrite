@@ -3,28 +3,28 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Void :: Type
+data Void :: Prim.Type
 data Void
 
-data Ordering :: Type
+data Ordering :: Prim.Type
 data Ordering
-  | First :: Ordering
-  | Second :: Ordering
-  | Third :: Ordering
+  | First :: Main.Ordering
+  | Second :: Main.Ordering
+  | Third :: Main.Ordering
 
-dictionary eqVoid :: Eq Void where
-  eq :: Void -> Void -> Boolean
+dictionary eqVoid :: Data.Eq.Eq Main.Void where
+  eq :: Main.Void -> Main.Void -> Prim.Boolean
   eq = \left right ->
   case left, right of
     _, _ -> false
 
-dictionary ordVoid :: Ord Void where
+dictionary ordVoid :: Data.Ord.Ord Main.Void where
   superclass eqDict = eqVoid
-  compare :: Void -> Void -> Ordering
+  compare :: Main.Void -> Main.Void -> Data.Ordering.Ordering
   compare = \left right -> EQ
 
-dictionary eqOrdering :: Eq Ordering where
-  eq :: Ordering -> Ordering -> Boolean
+dictionary eqOrdering :: Data.Eq.Eq Main.Ordering where
+  eq :: Main.Ordering -> Main.Ordering -> Prim.Boolean
   eq = \left right ->
   case left, right of
     First, First -> true
@@ -32,9 +32,9 @@ dictionary eqOrdering :: Eq Ordering where
     Third, Third -> true
     _, _ -> false
 
-dictionary ordOrdering :: Ord Ordering where
+dictionary ordOrdering :: Data.Ord.Ord Main.Ordering where
   superclass eqDict = eqOrdering
-  compare :: Ordering -> Ordering -> Ordering
+  compare :: Main.Ordering -> Main.Ordering -> Data.Ordering.Ordering
   compare = \left right ->
   case left, right of
     First, First -> EQ

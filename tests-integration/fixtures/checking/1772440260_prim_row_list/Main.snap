@@ -5,35 +5,59 @@ expression: report
 ---
 Terms
 rowToListSimple ::
-  forall (list :: RowList Type).
-    RowToList @Type ( a :: Int ) (list :: RowList Type) =>
-    Proxy @(RowList Type) (list :: RowList Type)
+  forall (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type ( a :: Prim.Int ) (list :: Prim.RowList.RowList Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 rowToListMultiple ::
-  forall (list :: RowList Type).
-    RowToList @Type ( a :: Int, b :: String ) (list :: RowList Type) =>
-    Proxy @(RowList Type) (list :: RowList Type)
+  forall (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      ( a :: Prim.Int, b :: Prim.String )
+      (list :: Prim.RowList.RowList Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 rowToListEmpty ::
-  forall (t :: Type) (list :: RowList (t :: Type)).
-    RowToList @(t :: Type) () (list :: RowList (t :: Type)) =>
-    Proxy @(RowList (t :: Type)) (list :: RowList (t :: Type))
+  forall (t :: Prim.Type) (list :: Prim.RowList.RowList (t :: Prim.Type)).
+    Prim.RowList.RowToList @(t :: Prim.Type) () (list :: Prim.RowList.RowList (t :: Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.RowList.RowList (t :: Prim.Type))
+      (list :: Prim.RowList.RowList (t :: Prim.Type))
 rowToListThree ::
-  forall (list :: RowList Type).
-    RowToList @Type ( a :: Int, b :: String, c :: Boolean ) (list :: RowList Type) =>
-    Proxy @(RowList Type) (list :: RowList Type)
+  forall (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      ( a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean )
+      (list :: Prim.RowList.RowList Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 stuckOpenRow ::
-  forall (tail :: Row Type) (list :: RowList Type).
-    RowToList @Type ( a :: Int | (tail :: Row Type) ) (list :: RowList Type) =>
-    Proxy @(Row Type) (tail :: Row Type) -> Proxy @(RowList Type) (list :: RowList Type)
+  forall (tail :: Prim.Row Prim.Type) (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      ( a :: Prim.Int | (tail :: Prim.Row Prim.Type) )
+      (list :: Prim.RowList.RowList Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (tail :: Prim.Row Prim.Type) ->
+    Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 forceSolve ::
-  forall (t :: Type).
-    { nowSolved :: Proxy @(RowList Type) (Cons @Type "a" Int (Nil @Type))
-    , rowToListEmpty :: Proxy @(RowList (t :: Type)) (Nil @(t :: Type))
+  forall (t :: Prim.Type).
+    { nowSolved ::
+        Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
+          (Prim.RowList.Cons @Prim.Type "a" Prim.Int (Prim.RowList.Nil @Prim.Type))
+    , rowToListEmpty ::
+        Type.Proxy.Proxy @(Prim.RowList.RowList (t :: Prim.Type))
+          (Prim.RowList.Nil @(t :: Prim.Type))
     , rowToListMultiple ::
-        Proxy @(RowList Type) (Cons @Type "a" Int (Cons @Type "b" String (Nil @Type)))
-    , rowToListSimple :: Proxy @(RowList Type) (Cons @Type "a" Int (Nil @Type))
+        Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
+          (Prim.RowList.Cons @Prim.Type
+            "a"
+            Prim.Int
+            (Prim.RowList.Cons @Prim.Type "b" Prim.String (Prim.RowList.Nil @Prim.Type)))
+    , rowToListSimple ::
+        Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
+          (Prim.RowList.Cons @Prim.Type "a" Prim.Int (Prim.RowList.Nil @Prim.Type))
     , rowToListThree ::
-        Proxy @(RowList Type)
-          (Cons @Type "a" Int (Cons @Type "b" String (Cons @Type "c" Boolean (Nil @Type))))
+        Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
+          (Prim.RowList.Cons @Prim.Type
+            "a"
+            Prim.Int
+            (Prim.RowList.Cons @Prim.Type
+              "b"
+              Prim.String
+              (Prim.RowList.Cons @Prim.Type "c" Prim.Boolean (Prim.RowList.Nil @Prim.Type))))
     }
 
 Types

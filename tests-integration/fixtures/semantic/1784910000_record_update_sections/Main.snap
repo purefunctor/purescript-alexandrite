@@ -3,27 +3,28 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-singleFieldUpdate :: forall t t1. { a :: t | t1 } -> { a :: Int | t1 }
+singleFieldUpdate :: forall t t1. { a :: t | t1 } -> { a :: Prim.Int | t1 }
 singleFieldUpdate = \v9 -> v9 { a = 1 }
 
-multipleFieldUpdate :: forall t t1 t2 t3. { a :: t, b :: t1, c :: t2 | t3 } -> { a :: Int, b :: Boolean, c :: String | t3 }
+multipleFieldUpdate :: forall t t1 t2 t3.
+  { a :: t, b :: t1, c :: t2 | t3 } -> { a :: Prim.Int, b :: Prim.Boolean, c :: Prim.String | t3 }
 multipleFieldUpdate = \v17 -> v17 { a = 2, b = true, c = "three" }
 
 nestedRecordUpdate :: forall t t1 t2 t3.
-  { a :: { b :: { c :: t | t1 } | t2 } | t3 } -> { a :: { b :: { c :: Int | t1 } | t2 } | t3 }
+  { a :: { b :: { c :: t | t1 } | t2 } | t3 } -> { a :: { b :: { c :: Prim.Int | t1 } | t2 } | t3 }
 nestedRecordUpdate = \v29 -> v29 { a { b { c = 42 } } }
 
-updateWithValueSection :: forall t t1. { a :: t | t1 } -> { a :: Int -> Int | t1 }
+updateWithValueSection :: forall t t1. { a :: t | t1 } -> { a :: Prim.Int -> Prim.Int | t1 }
 updateWithValueSection = \v41 -> v41 { a = \v46 -> add v46 1 }
 
 updateWithSectionInteraction :: forall t t1 t2. { a :: t | t1 } -> t2 -> { a :: t2 | t1 }
 updateWithSectionInteraction = \v54 v57 -> v54 { a = v57 }
 
-polymorphicRecordUpdate :: forall t t1. { foo :: t | t1 } -> { foo :: Int | t1 }
+polymorphicRecordUpdate :: forall t t1. { foo :: t | t1 } -> { foo :: Prim.Int | t1 }
 polymorphicRecordUpdate = \v62 -> v62 { foo = 0 }
 
-higherOrderContext :: forall t t1. Array { x :: t | t1 } -> Array { x :: Int | t1 }
-higherOrderContext = map @{ x :: t | t1 } @{ x :: Int | t1 } \v74 -> v74 { x = 10 }
+higherOrderContext :: forall t t1. Prim.Array { x :: t | t1 } -> Prim.Array { x :: Prim.Int | t1 }
+higherOrderContext = map @{ x :: t | t1 } @{ x :: Prim.Int | t1 } \v74 -> v74 { x = 10 }
 
 multipleSectionsInteraction :: forall t t1 t2 t3 t4. { x :: t, y :: t1 | t2 } -> t3 -> t4 -> { x :: t3, y :: t4 | t2 }
 multipleSectionsInteraction = \v82 v85 v87 -> v82 { x = v85, y = v87 }
@@ -31,7 +32,7 @@ multipleSectionsInteraction = \v82 v85 v87 -> v82 { x = v85, y = v87 }
 nestedSectionInteraction :: forall t t1 t2 t3. { a :: { b :: t | t1 } | t2 } -> t3 -> { a :: { b :: t3 | t1 } | t2 }
 nestedSectionInteraction = \v92 v97 -> v92 { a { b = v97 } }
 
-mixedSections :: forall t t1 t2. { a :: t, b :: t1 | t2 } -> { a :: Int -> Int, b :: Int | t2 }
+mixedSections :: forall t t1 t2. { a :: t, b :: t1 | t2 } -> { a :: Prim.Int -> Prim.Int, b :: Prim.Int | t2 }
 mixedSections = \v102 -> v102 { a = \v106 -> add v106 1, b = 2 }
 
 recordAccessSectionUpdate :: forall t t1 t2 t3. { a :: t | t1 } -> { a :: { b :: t2 | t3 } -> t2 | t1 }
@@ -40,8 +41,8 @@ recordAccessSectionUpdate = \v116 -> v116 { a = \v120 -> v120.b }
 concreteRecordUpdateSection :: forall t. t -> { a :: t }
 concreteRecordUpdateSection = \v131 -> { a: 1 } { a = v131 }
 
-map :: forall a b. (a -> b) -> Array a -> Array b
+map :: forall a b. (a -> b) -> Prim.Array a -> Prim.Array b
 map = \f -> \x -> []
 
-add :: Int -> Int -> Int
+add :: Prim.Int -> Prim.Int -> Prim.Int
 add = \x -> \y -> x

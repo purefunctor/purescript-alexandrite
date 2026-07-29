@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive Show (Int -> Int)
+derive Data.Show.Show (Prim.Int -> Prim.Int)
 
 Diagnostics
 error[CannotDeriveForType]: Cannot derive for type: Int -> Int

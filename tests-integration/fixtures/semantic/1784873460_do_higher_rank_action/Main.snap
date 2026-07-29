@@ -3,9 +3,10 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-foreign import polymorphic :: forall value. Box value
+foreign import polymorphic :: forall value. Main.Box value
 
-foreign import bind :: forall result. (forall value. Box value) -> ((forall value1. Box value1) -> result) -> result
+foreign import bind :: forall result.
+  (forall value. Main.Box value) -> ((forall value1. Main.Box value1) -> result) -> result
 
-higherRank :: Int
-higherRank = bind @Int polymorphic \value -> 42
+higherRank :: Prim.Int
+higherRank = bind @Prim.Int polymorphic \value -> 42

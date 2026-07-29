@@ -4,16 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
-value :: Int
+test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+value :: Prim.Int
 
 Types
-Test :: Type -> Constraint
+Test :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Test (a :: Type)
-  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> (a :: Type)
+class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
+  test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
 
 Instances
-instance Test Int
-instance forall (t :: Type). Test (t :: Type)
+instance Main.Test Prim.Int
+instance forall (t :: Prim.Type). Main.Test (t :: Prim.Type)

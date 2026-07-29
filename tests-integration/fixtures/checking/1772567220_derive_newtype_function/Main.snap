@@ -1,18 +1,19 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Builder ::
-  forall (@a :: Type) (@b :: Type). ((a :: Type) -> (b :: Type)) -> Builder (a :: Type) (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> Main.Builder (a :: Prim.Type) (b :: Prim.Type)
 
 Types
-Builder :: Type -> Type -> Type
+Builder :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive Semigroupoid @Type Builder
-derive Category @Type Builder
+derive Data.Semigroupoid.Semigroupoid @Prim.Type Main.Builder
+derive Control.Category.Category @Prim.Type Main.Builder
 
 Roles
 Builder = [Representational, Representational]

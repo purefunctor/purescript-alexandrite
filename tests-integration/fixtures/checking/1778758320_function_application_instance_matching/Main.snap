@@ -4,17 +4,25 @@ assertion_line: 50
 expression: report
 ---
 Terms
-disj :: forall (@a :: Type). HeytingAlgebra (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-test :: Function Char Boolean -> Function Char Boolean -> Function Char Boolean
+disj ::
+  forall (@a :: Prim.Type).
+    Main.HeytingAlgebra (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+test ::
+  Prim.Function Prim.Char Prim.Boolean ->
+  Prim.Function Prim.Char Prim.Boolean ->
+  Prim.Function Prim.Char Prim.Boolean
 
 Types
-HeytingAlgebra :: Type -> Constraint
+HeytingAlgebra :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). HeytingAlgebra (a :: Type)
-  disj :: forall (@a :: Type). HeytingAlgebra (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+class forall (a :: Prim.Type). Main.HeytingAlgebra (a :: Prim.Type)
+  disj ::
+  forall (@a :: Prim.Type).
+    Main.HeytingAlgebra (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
 
 Instances
-instance HeytingAlgebra Boolean
-instance forall (t :: Type) (t1 :: Type).
-  HeytingAlgebra (t :: Type) => HeytingAlgebra ((t1 :: Type) -> (t :: Type))
+instance Main.HeytingAlgebra Prim.Boolean
+instance forall (t :: Prim.Type) (t1 :: Prim.Type).
+  Main.HeytingAlgebra (t :: Prim.Type) =>
+  Main.HeytingAlgebra ((t1 :: Prim.Type) -> (t :: Prim.Type))

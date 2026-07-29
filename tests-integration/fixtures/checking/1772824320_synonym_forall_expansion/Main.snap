@@ -5,14 +5,17 @@ expression: report
 ---
 Terms
 apply ::
-  forall (f :: Type -> Type) (g :: Type -> Type).
-    NatTrans @Type (f :: Type -> Type) (g :: Type -> Type) ->
-    (f :: Type -> Type) Int ->
-    (g :: Type -> Type) Int
+  forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+    Main.NatTrans @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) Prim.Int ->
+    (g :: Prim.Type -> Prim.Type) Prim.Int
 
 Types
-NatTrans :: forall (t :: Type). ((t :: Type) -> Type) -> ((t :: Type) -> Type) -> Type
+NatTrans ::
+  forall (t :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) -> ((t :: Prim.Type) -> Prim.Type) -> Prim.Type
 
 Synonyms
-type NatTrans f g = forall (a :: (t :: Type)).
-  (f :: (t :: Type) -> Type) (a :: (t :: Type)) -> (g :: (t :: Type) -> Type) (a :: (t :: Type))
+type NatTrans f g = forall (a :: (t :: Prim.Type)).
+  (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+  (g :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))

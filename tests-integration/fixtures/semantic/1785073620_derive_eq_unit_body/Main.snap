@@ -3,12 +3,12 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Unit :: Type
+data Unit :: Prim.Type
 data Unit
-  | Unit :: Unit
+  | Unit :: Main.Unit
 
-dictionary eqUnit :: Eq Unit where
-  eq :: Unit -> Unit -> Boolean
+dictionary eqUnit :: Data.Eq.Eq Main.Unit where
+  eq :: Main.Unit -> Main.Unit -> Prim.Boolean
   eq = \left right ->
   case left, right of
     Unit, Unit -> true

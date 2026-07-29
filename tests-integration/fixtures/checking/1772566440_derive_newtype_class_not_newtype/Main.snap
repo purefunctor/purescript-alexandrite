@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-NotANewtype :: Int -> NotANewtype
+NotANewtype :: Prim.Int -> Main.NotANewtype
 
 Types
-NotANewtype :: Type
+NotANewtype :: Prim.Type
 
 Derived
-derive forall (t :: Type). Newtype @Type NotANewtype (t :: Type)
+derive forall (t :: Prim.Type). Data.Newtype.Newtype @Prim.Type Main.NotANewtype (t :: Prim.Type)
 
 Roles
 NotANewtype = []

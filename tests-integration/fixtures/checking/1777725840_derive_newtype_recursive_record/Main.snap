@@ -4,22 +4,25 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 List ::
-  forall (t :: Type) (@a :: (t :: Type)).
-    { head :: Int, tail :: Maybe (List @(t :: Type) (a :: (t :: Type))) } ->
-    List @(t :: Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
+    { head :: Prim.Int
+    , tail :: Main.Maybe (Main.List @(t :: Prim.Type) (a :: (t :: Prim.Type)))
+    } ->
+    Main.List @(t :: Prim.Type) (a :: (t :: Prim.Type))
 
 Types
-Maybe :: Type -> Type
-List :: forall (t :: Type). (t :: Type) -> Type
+Maybe :: Prim.Type -> Prim.Type
+List :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
 
 Instances
-instance forall (t :: Type). Eq (t :: Type) => Eq (Maybe (t :: Type))
+instance forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t :: Prim.Type))
 
 Derived
-derive forall (t :: Type). Eq (t :: Type) => Eq (List @Type (t :: Type))
+derive forall (t :: Prim.Type).
+  Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.List @Prim.Type (t :: Prim.Type))
 
 Roles
 Maybe = [Representational]

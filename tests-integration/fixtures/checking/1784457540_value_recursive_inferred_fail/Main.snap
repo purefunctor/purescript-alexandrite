@@ -4,8 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-guardedFailure :: Fail (Text "failure was demanded") => Int
-test :: Int
+guardedFailure :: Prim.TypeError.Fail (Prim.TypeError.Text "failure was demanded") => Prim.Int
+test :: Prim.Int
 
 Types
 

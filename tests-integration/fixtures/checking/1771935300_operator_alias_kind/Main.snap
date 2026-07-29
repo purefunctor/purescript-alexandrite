@@ -6,8 +6,12 @@ expression: report
 Terms
 
 Types
-Add :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
-+ :: forall (t :: Type) (t1 :: Type). (t :: Type) -> (t1 :: Type) -> (t :: Type)
+Add ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
++ ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
 
 Synonyms
-type Add a b = (a :: (t :: Type))
+type Add a b = (a :: (t :: Prim.Type))

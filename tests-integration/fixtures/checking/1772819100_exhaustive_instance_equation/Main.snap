@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-c :: forall (@a :: Type). C (a :: Type) => (a :: Type) -> Int
+c :: forall (@a :: Prim.Type). Main.C (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Types
-C :: Type -> Constraint
+C :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). C (a :: Type)
-  c :: forall (@a :: Type). C (a :: Type) => (a :: Type) -> Int
+class forall (a :: Prim.Type). Main.C (a :: Prim.Type)
+  c :: forall (@a :: Prim.Type). Main.C (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Instances
-instance C Boolean
+instance Main.C Prim.Boolean
 
 Diagnostics
 warning[MissingPatterns]: Pattern match is not exhaustive. Missing: false

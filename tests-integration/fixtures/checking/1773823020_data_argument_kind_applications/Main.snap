@@ -4,20 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-force :: forall (a :: Type). Lazy (a :: Type) -> (a :: Type)
+force :: forall (a :: Prim.Type). Main.Lazy (a :: Prim.Type) -> (a :: Prim.Type)
 Tuple ::
-  forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
 Node ::
-  forall (t :: Type) (@s :: (t :: Type)) (@a :: Type).
-    Lazy (a :: Type) ->
-    Lazy (Supply @(t :: Type) (s :: (t :: Type)) (a :: Type)) ->
-    Lazy (Supply @(t :: Type) (s :: (t :: Type)) (a :: Type)) ->
-    Supply @(t :: Type) (s :: (t :: Type)) (a :: Type)
+  forall (t :: Prim.Type) (@s :: (t :: Prim.Type)) (@a :: Prim.Type).
+    Main.Lazy (a :: Prim.Type) ->
+    Main.Lazy (Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)) ->
+    Main.Lazy (Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)) ->
+    Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)
 
 Types
-Lazy :: Type -> Type
-Tuple :: Type -> Type -> Type
-Supply :: forall (t :: Type). (t :: Type) -> Type -> Type
+Lazy :: Prim.Type -> Prim.Type
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+Supply :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type -> Prim.Type
 
 Roles
 Lazy = [Nominal]

@@ -4,37 +4,46 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Age :: Int -> Age
-coerceFn :: (Age -> Int) -> Int -> Age
+Age :: Prim.Int -> Main.Age
+coerceFn :: (Main.Age -> Prim.Int) -> Prim.Int -> Main.Age
 over ::
-  forall (t :: Type) (a :: Type) (s :: Type) (b :: Type).
-    Newtype @Type (t :: Type) (a :: Type) =>
-    Newtype @Type (s :: Type) (b :: Type) =>
-    ((a :: Type) -> (t :: Type)) -> ((a :: Type) -> (b :: Type)) -> (t :: Type) -> (s :: Type)
+  forall (t :: Prim.Type) (a :: Prim.Type) (s :: Prim.Type) (b :: Prim.Type).
+    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
+    Data.Newtype.Newtype @Prim.Type (s :: Prim.Type) (b :: Prim.Type) =>
+    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
+    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    (t :: Prim.Type) ->
+    (s :: Prim.Type)
 under ::
-  forall (t :: Type) (a :: Type) (s :: Type) (b :: Type).
-    Newtype @Type (t :: Type) (a :: Type) =>
-    Newtype @Type (s :: Type) (b :: Type) =>
-    ((a :: Type) -> (t :: Type)) -> ((t :: Type) -> (s :: Type)) -> (a :: Type) -> (b :: Type)
+  forall (t :: Prim.Type) (a :: Prim.Type) (s :: Prim.Type) (b :: Prim.Type).
+    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
+    Data.Newtype.Newtype @Prim.Type (s :: Prim.Type) (b :: Prim.Type) =>
+    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
+    ((t :: Prim.Type) -> (s :: Prim.Type)) ->
+    (a :: Prim.Type) ->
+    (b :: Prim.Type)
 alaF ::
-  forall (t :: Type) (f :: Type -> Type) (g :: (t :: Type) -> Type) (t1 :: Type) (a :: Type)
-    (s :: (t :: Type)) (b :: (t :: Type)).
-    Coercible @Type ((f :: Type -> Type) (t1 :: Type)) ((f :: Type -> Type) (a :: Type)) =>
-    Coercible @Type
-      ((g :: (t :: Type) -> Type) (s :: (t :: Type)))
-      ((g :: (t :: Type) -> Type) (b :: (t :: Type))) =>
-    Newtype @Type (t1 :: Type) (a :: Type) =>
-    Newtype @(t :: Type) (s :: (t :: Type)) (b :: (t :: Type)) =>
-    ((a :: Type) -> (t1 :: Type)) ->
-    ((f :: Type -> Type) (t1 :: Type) -> (g :: (t :: Type) -> Type) (s :: (t :: Type))) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (g :: (t :: Type) -> Type) (b :: (t :: Type))
+  forall (t :: Prim.Type) (f :: Prim.Type -> Prim.Type) (g :: (t :: Prim.Type) -> Prim.Type)
+    (t1 :: Prim.Type) (a :: Prim.Type) (s :: (t :: Prim.Type)) (b :: (t :: Prim.Type)).
+    Prim.Coerce.Coercible @Prim.Type
+      ((f :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+      ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
+    Prim.Coerce.Coercible @Prim.Type
+      ((g :: (t :: Prim.Type) -> Prim.Type) (s :: (t :: Prim.Type)))
+      ((g :: (t :: Prim.Type) -> Prim.Type) (b :: (t :: Prim.Type))) =>
+    Data.Newtype.Newtype @Prim.Type (t1 :: Prim.Type) (a :: Prim.Type) =>
+    Data.Newtype.Newtype @(t :: Prim.Type) (s :: (t :: Prim.Type)) (b :: (t :: Prim.Type)) =>
+    ((a :: Prim.Type) -> (t1 :: Prim.Type)) ->
+    ((f :: Prim.Type -> Prim.Type) (t1 :: Prim.Type) ->
+    (g :: (t :: Prim.Type) -> Prim.Type) (s :: (t :: Prim.Type))) ->
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (g :: (t :: Prim.Type) -> Prim.Type) (b :: (t :: Prim.Type))
 
 Types
-Age :: Type
+Age :: Prim.Type
 
 Derived
-derive Newtype @Type Age Int
+derive Data.Newtype.Newtype @Prim.Type Main.Age Prim.Int
 
 Roles
 Age = []

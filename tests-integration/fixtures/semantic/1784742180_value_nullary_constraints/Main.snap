@@ -3,7 +3,9 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-foreign import boolean :: Boolean
+foreign import boolean :: Prim.Boolean
 
-deferred :: Fail (Text "first deferred error") => Fail (Text "second deferred error") => Boolean
+deferred :: Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") =>
+Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") =>
+Prim.Boolean
 deferred = \{failDict} -> \{failDict1} -> boolean

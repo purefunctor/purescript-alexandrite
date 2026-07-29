@@ -1,19 +1,19 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-test1 :: { x :: Int, y :: Int } -> Int
-test2 :: { x :: Maybe Int } -> Int
-test3 :: { x :: Int, y :: Int } -> Int
-test4 :: { a :: Maybe Int, b :: Maybe String } -> Int
-test5 :: { inner :: { x :: Int } } -> Int
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+test1 :: { x :: Prim.Int, y :: Prim.Int } -> Prim.Int
+test2 :: { x :: Main.Maybe Prim.Int } -> Prim.Int
+test3 :: { x :: Prim.Int, y :: Prim.Int } -> Prim.Int
+test4 :: { a :: Main.Maybe Prim.Int, b :: Main.Maybe Prim.String } -> Prim.Int
+test5 :: { inner :: { x :: Prim.Int } } -> Prim.Int
 
 Types
-Maybe :: Type -> Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Maybe = [Representational]

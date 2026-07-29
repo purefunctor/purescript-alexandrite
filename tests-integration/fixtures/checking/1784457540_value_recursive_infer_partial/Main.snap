@@ -4,8 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-partialValue :: Partial => Int
-test :: Partial => Int
+partialValue :: Prim.Partial => Prim.Int
+test :: Prim.Partial => Prim.Int
 
 Types
 

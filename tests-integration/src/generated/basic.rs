@@ -219,7 +219,8 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let indexed = engine.indexed(id).unwrap();
     let checked = engine.checked(id).unwrap();
-    let pretty = pretty::Pretty::new(engine, &checked);
+    let config = pretty::PrettyConfig::new().fully_qualified_names();
+    let pretty = pretty::Pretty::with_config(engine, &checked, config);
 
     let mut out = String::default();
 

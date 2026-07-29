@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-fromJust :: forall (a :: Type). Partial => Maybe (a :: Type) -> (a :: Type)
-test :: forall (a :: Type). Int
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+fromJust :: forall (a :: Prim.Type). Prim.Partial => Main.Maybe (a :: Prim.Type) -> (a :: Prim.Type)
+test :: forall (a :: Prim.Type). Prim.Int
 
 Types
-Maybe :: Type -> Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Maybe = [Representational]

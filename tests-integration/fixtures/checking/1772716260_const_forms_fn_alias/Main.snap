@@ -4,17 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-fn0 :: forall (a :: Type) (b :: Type). ConstFn (a :: Type) (b :: Type)
-fn1 :: forall (a :: Type) (b :: Type). ConstFn (a :: Type) (b :: Type)
-fn2 :: forall (a :: Type) (b :: Type). ConstFn (a :: Type) (b :: Type)
-fn3 :: forall (a :: Type) (b :: Type). ConstFn (a :: Type) (b :: Type)
-fn4 :: forall (b :: Type) (a :: Type). (a :: Type) -> Fn (b :: Type) (a :: Type)
-fn5 :: forall (b :: Type) (a :: Type). (a :: Type) -> Fn (b :: Type) (a :: Type)
+fn0 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
+fn1 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
+fn2 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
+fn3 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
+fn4 ::
+  forall (b :: Prim.Type) (a :: Prim.Type).
+    (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)
+fn5 ::
+  forall (b :: Prim.Type) (a :: Prim.Type).
+    (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)
 
 Types
-Fn :: Type -> Type -> Type
-ConstFn :: Type -> Type -> Type
+Fn :: Prim.Type -> Prim.Type -> Prim.Type
+ConstFn :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Fn b a = (b :: Type) -> (a :: Type)
-type ConstFn a b = (a :: Type) -> Fn (b :: Type) (a :: Type)
+type Fn b a = (b :: Prim.Type) -> (a :: Prim.Type)
+type ConstFn a b = (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)

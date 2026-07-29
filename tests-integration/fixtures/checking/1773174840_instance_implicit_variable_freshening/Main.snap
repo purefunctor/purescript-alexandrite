@@ -4,19 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
-top :: forall (@a :: Type). Top (a :: Type) => (a :: Type)
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+top :: forall (@a :: Prim.Type). Main.Top (a :: Prim.Type) => (a :: Prim.Type)
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
-Top :: Type -> Constraint
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Top :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Top (a :: Type)
-  top :: forall (@a :: Type). Top (a :: Type) => (a :: Type)
+class forall (a :: Prim.Type). Main.Top (a :: Prim.Type)
+  top :: forall (@a :: Prim.Type). Main.Top (a :: Prim.Type) => (a :: Prim.Type)
 
 Instances
-instance forall (t :: Type) (t1 :: (t :: Type)). Top (Proxy @(t :: Type) (t1 :: (t :: Type)))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.Top (Main.Proxy @(t :: Prim.Type) (t1 :: (t :: Prim.Type)))
 
 Roles
 Proxy = [Phantom]

@@ -5,23 +5,30 @@ expression: report
 ---
 Terms
 unsafeSet ::
-  forall (r1 :: Row Type) (r2 :: Row Type) (a :: Type).
-    String -> (a :: Type) -> {| (r1 :: Row Type) } -> {| (r2 :: Row Type) }
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (a :: Prim.Type).
+    Prim.String ->
+    (a :: Prim.Type) ->
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) }
 buildIt ::
-  forall (@row :: Row Type) (@subrow :: Row Type).
-    BuildRecord (row :: Row Type) (subrow :: Row Type) => {| (subrow :: Row Type) }
+  forall (@row :: Prim.Row Prim.Type) (@subrow :: Prim.Row Prim.Type).
+    Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type) =>
+    {| (subrow :: Prim.Row Prim.Type) }
 test ::
-  forall (r :: Row Type) (s :: Row Type).
-    BuildRecord (r :: Row Type) (s :: Row Type) => {| (s :: Row Type) }
+  forall (r :: Prim.Row Prim.Type) (s :: Prim.Row Prim.Type).
+    Main.BuildRecord (r :: Prim.Row Prim.Type) (s :: Prim.Row Prim.Type) =>
+    {| (s :: Prim.Row Prim.Type) }
 
 Types
-BuildRecord :: Row Type -> Row Type -> Constraint
+BuildRecord :: Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
 
 Classes
-class forall (row :: Row Type) (subrow :: Row Type). BuildRecord (row :: Row Type) (subrow :: Row Type)
+class forall (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type). Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type)
   buildIt ::
-  forall (@row :: Row Type) (@subrow :: Row Type).
-    BuildRecord (row :: Row Type) (subrow :: Row Type) => {| (subrow :: Row Type) }
+  forall (@row :: Prim.Row Prim.Type) (@subrow :: Prim.Row Prim.Type).
+    Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type) =>
+    {| (subrow :: Prim.Row Prim.Type) }
 
 Instances
-instance forall (t :: Row Type) (t1 :: Row Type). BuildRecord (t :: Row Type) (t1 :: Row Type)
+instance forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
+  Main.BuildRecord (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type)

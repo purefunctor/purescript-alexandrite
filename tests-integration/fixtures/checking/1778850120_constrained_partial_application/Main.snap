@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-test :: JSX -> JSX
+test :: Module2.JSX -> Module2.JSX
 
 Types

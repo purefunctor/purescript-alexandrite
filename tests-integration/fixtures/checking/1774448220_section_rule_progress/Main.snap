@@ -4,91 +4,105 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Done :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Step (a :: Type) (b :: Type)
-Loop :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Step (a :: Type) (b :: Type)
-append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-mempty :: forall (@a :: Type). Monoid (a :: Type) => (a :: Type)
+Done ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Step (a :: Prim.Type) (b :: Prim.Type)
+Loop ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Step (a :: Prim.Type) (b :: Prim.Type)
+append ::
+  forall (@a :: Prim.Type).
+    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+mempty :: forall (@a :: Prim.Type). Main.Monoid (a :: Prim.Type) => (a :: Prim.Type)
 tailRecM ::
-  forall (@m :: Type -> Type).
-    MonadRec (m :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
-      (a :: Type) ->
-      (m :: Type -> Type) (b :: Type))
+  forall (@m :: Prim.Type -> Prim.Type).
+    Main.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((a :: Prim.Type) ->
+      (m :: Prim.Type -> Prim.Type) (Main.Step (a :: Prim.Type) (b :: Prim.Type))) ->
+      (a :: Prim.Type) ->
+      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
 ifM ::
-  forall (m :: Type -> Type) (a :: Type).
-    Bind (m :: Type -> Type) =>
-    (m :: Type -> Type) Boolean ->
-    (m :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (a :: Type)
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    Control.Bind.Bind (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) Prim.Boolean ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type)
 lift2 ::
-  forall (f :: Type -> Type) (a :: Type) (b :: Type) (c :: Type).
-    Apply (f :: Type -> Type) =>
-    ((a :: Type) -> (b :: Type) -> (c :: Type)) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (f :: Type -> Type) (b :: Type) ->
-    (f :: Type -> Type) (c :: Type)
+  forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+    Control.Apply.Apply (f :: Prim.Type -> Prim.Type) =>
+    ((a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)) ->
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) (b :: Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) (c :: Prim.Type)
 liftIfM ::
-  forall (m :: Type -> Type) (f :: Type -> Type) (a :: Type).
-    Apply (f :: Type -> Type) =>
-    Bind (m :: Type -> Type) =>
-    (m :: Type -> Type) Boolean ->
-    (f :: Type -> Type) ((m :: Type -> Type) (a :: Type)) ->
-    (f :: Type -> Type) ((m :: Type -> Type) (a :: Type)) ->
-    (f :: Type -> Type) ((m :: Type -> Type) (a :: Type))
+  forall (m :: Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    Control.Apply.Apply (f :: Prim.Type -> Prim.Type) =>
+    Control.Bind.Bind (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) Prim.Boolean ->
+    (f :: Prim.Type -> Prim.Type) ((m :: Prim.Type -> Prim.Type) (a :: Prim.Type)) ->
+    (f :: Prim.Type -> Prim.Type) ((m :: Prim.Type -> Prim.Type) (a :: Prim.Type)) ->
+    (f :: Prim.Type -> Prim.Type) ((m :: Prim.Type -> Prim.Type) (a :: Prim.Type))
 appendM ::
-  forall (m :: Type -> Type) (f :: Type -> Type) (a :: Type) (b :: Type).
-    MonadRec (m :: Type -> Type) =>
-    Applicative (f :: Type -> Type) =>
-    Semigroup ((f :: Type -> Type) (a :: Type)) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (Step ((f :: Type -> Type) (a :: Type)) (b :: Type))
+  forall (m :: Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+    (b :: Prim.Type).
+    Main.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    Control.Applicative.Applicative (f :: Prim.Type -> Prim.Type) =>
+    Main.Semigroup ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type)
+      (Main.Step ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) (b :: Prim.Type))
 <+> ::
-  forall (m :: Type -> Type) (f :: Type -> Type) (a :: Type) (b :: Type).
-    MonadRec (m :: Type -> Type) =>
-    Applicative (f :: Type -> Type) =>
-    Semigroup ((f :: Type -> Type) (a :: Type)) =>
-    (f :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) (Step ((f :: Type -> Type) (a :: Type)) (b :: Type))
+  forall (m :: Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+    (b :: Prim.Type).
+    Main.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    Control.Applicative.Applicative (f :: Prim.Type -> Prim.Type) =>
+    Main.Semigroup ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type)
+      (Main.Step ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) (b :: Prim.Type))
 loop ::
-  forall (m :: Type -> Type) (a :: Type) (b :: Type).
-    Applicative (m :: Type -> Type) =>
-    (a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+    Control.Applicative.Applicative (m :: Prim.Type -> Prim.Type) =>
+    (a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (Main.Step (a :: Prim.Type) (b :: Prim.Type))
 done ::
-  forall (m :: Type -> Type) (a :: Type) (b :: Type).
-    Applicative (m :: Type -> Type) =>
-    (b :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+    Control.Applicative.Applicative (m :: Prim.Type -> Prim.Type) =>
+    (b :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (Main.Step (a :: Prim.Type) (b :: Prim.Type))
 whileM' ::
-  forall (a :: Type) (f :: Type -> Type) (m :: Type -> Type).
-    MonadRec (m :: Type -> Type) =>
-    Applicative (f :: Type -> Type) =>
-    Monoid ((f :: Type -> Type) (a :: Type)) =>
-    (m :: Type -> Type) Boolean ->
-    (m :: Type -> Type) (a :: Type) ->
-    (m :: Type -> Type) ((f :: Type -> Type) (a :: Type))
+  forall (a :: Prim.Type) (f :: Prim.Type -> Prim.Type) (m :: Prim.Type -> Prim.Type).
+    Main.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    Control.Applicative.Applicative (f :: Prim.Type -> Prim.Type) =>
+    Main.Monoid ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
+    (m :: Prim.Type -> Prim.Type) Prim.Boolean ->
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (m :: Prim.Type -> Prim.Type) ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
 
 Types
-Step :: Type -> Type -> Type
-Semigroup :: Type -> Constraint
-Monoid :: Type -> Constraint
-MonadRec :: (Type -> Type) -> Constraint
+Step :: Prim.Type -> Prim.Type -> Prim.Type
+Semigroup :: Prim.Type -> Prim.Constraint
+Monoid :: Prim.Type -> Prim.Constraint
+MonadRec :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Semigroup (a :: Type)
-  append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-class forall (a :: Type). Semigroup (a :: Type) <= Monoid (a :: Type)
-  mempty :: forall (@a :: Type). Monoid (a :: Type) => (a :: Type)
-class forall (m :: Type -> Type). Applicative (m :: Type -> Type), Bind (m :: Type -> Type) <= MonadRec (m :: Type -> Type)
+class forall (a :: Prim.Type). Main.Semigroup (a :: Prim.Type)
+  append ::
+  forall (@a :: Prim.Type).
+    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Semigroup (a :: Prim.Type) <= Main.Monoid (a :: Prim.Type)
+  mempty :: forall (@a :: Prim.Type). Main.Monoid (a :: Prim.Type) => (a :: Prim.Type)
+class forall (m :: Prim.Type -> Prim.Type). Control.Applicative.Applicative (m :: Prim.Type -> Prim.Type), Control.Bind.Bind (m :: Prim.Type -> Prim.Type) <= Main.MonadRec (m :: Prim.Type -> Prim.Type)
   tailRecM ::
-  forall (@m :: Type -> Type).
-    MonadRec (m :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (m :: Type -> Type) (Step (a :: Type) (b :: Type))) ->
-      (a :: Type) ->
-      (m :: Type -> Type) (b :: Type))
+  forall (@m :: Prim.Type -> Prim.Type).
+    Main.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((a :: Prim.Type) ->
+      (m :: Prim.Type -> Prim.Type) (Main.Step (a :: Prim.Type) (b :: Prim.Type))) ->
+      (a :: Prim.Type) ->
+      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
 
 Roles
 Step = [Representational, Representational]

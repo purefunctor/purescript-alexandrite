@@ -1,10 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-coerceContainer :: Container Maybe -> Container MaybeAlias
-coerceContainerReverse :: Container MaybeAlias -> Container Maybe
+coerceContainer :: Lib.Container Lib.Maybe -> Lib.Container Lib.MaybeAlias
+coerceContainerReverse :: Lib.Container Lib.MaybeAlias -> Lib.Container Lib.Maybe
 
 Types

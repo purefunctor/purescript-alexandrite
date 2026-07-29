@@ -5,40 +5,45 @@ expression: report
 ---
 Terms
 step ::
-  forall (@f :: Type) (@a :: Type) (@x :: Type) (@a' :: Type).
-    Step (f :: Type) (a :: Type) (x :: Type) (a' :: Type) =>
-    (f :: Type) -> (a :: Type) -> (x :: Type) -> (a' :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type).
+    Main.Step (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (x :: Prim.Type) -> (a' :: Prim.Type)
 done ::
-  forall (@f :: Type) (@a :: Type) (@x :: Type).
-    Done (f :: Type) (a :: Type) (x :: Type) => (f :: Type) -> (a :: Type) -> (x :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@x :: Prim.Type).
+    Main.Done (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (x :: Prim.Type)
 walk ::
-  forall (@f :: Type) (@a :: Type) (@r :: Type).
-    Walk (f :: Type) (a :: Type) (r :: Type) => (f :: Type) -> (a :: Type) -> (r :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@r :: Prim.Type).
+    Main.Walk (f :: Prim.Type) (a :: Prim.Type) (r :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (r :: Prim.Type)
 
 Types
-Step :: Type -> Type -> Type -> Type -> Constraint
-Done :: Type -> Type -> Type -> Constraint
-Walk :: Type -> Type -> Type -> Constraint
+Step :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+Done :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+Walk :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (f :: Type) (a :: Type) (x :: Type) (a' :: Type). Step (f :: Type) (a :: Type) (x :: Type) (a' :: Type)
+class forall (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type). Main.Step (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type)
   step ::
-  forall (@f :: Type) (@a :: Type) (@x :: Type) (@a' :: Type).
-    Step (f :: Type) (a :: Type) (x :: Type) (a' :: Type) =>
-    (f :: Type) -> (a :: Type) -> (x :: Type) -> (a' :: Type)
-class forall (f :: Type) (a :: Type) (x :: Type). Done (f :: Type) (a :: Type) (x :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type).
+    Main.Step (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (x :: Prim.Type) -> (a' :: Prim.Type)
+class forall (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type). Main.Done (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type)
   done ::
-  forall (@f :: Type) (@a :: Type) (@x :: Type).
-    Done (f :: Type) (a :: Type) (x :: Type) => (f :: Type) -> (a :: Type) -> (x :: Type)
-class forall (f :: Type) (a :: Type) (r :: Type). Walk (f :: Type) (a :: Type) (r :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@x :: Prim.Type).
+    Main.Done (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (x :: Prim.Type)
+class forall (f :: Prim.Type) (a :: Prim.Type) (r :: Prim.Type). Main.Walk (f :: Prim.Type) (a :: Prim.Type) (r :: Prim.Type)
   walk ::
-  forall (@f :: Type) (@a :: Type) (@r :: Type).
-    Walk (f :: Type) (a :: Type) (r :: Type) => (f :: Type) -> (a :: Type) -> (r :: Type)
+  forall (@f :: Prim.Type) (@a :: Prim.Type) (@r :: Prim.Type).
+    Main.Walk (f :: Prim.Type) (a :: Prim.Type) (r :: Prim.Type) =>
+    (f :: Prim.Type) -> (a :: Prim.Type) -> (r :: Prim.Type)
 
 Instances
-instance forall (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Type) (t4 :: Type).
-  Step (t :: Type) (t1 :: Type) (t2 :: Type) (t3 :: Type) =>
-  Walk (t :: Type) (t3 :: Type) (t4 :: Type) =>
-  Walk (t :: Type) (t1 :: Type) ((t2 :: Type) -> (t4 :: Type))
-instance forall (t :: Type) (t1 :: Type) (t2 :: Type).
-  Done (t :: Type) (t1 :: Type) (t2 :: Type) => Walk (t :: Type) (t1 :: Type) (t2 :: Type)
+instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type).
+  Main.Step (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) =>
+  Main.Walk (t :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type) =>
+  Main.Walk (t :: Prim.Type) (t1 :: Prim.Type) ((t2 :: Prim.Type) -> (t4 :: Prim.Type))
+instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+  Main.Done (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) =>
+  Main.Walk (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type)

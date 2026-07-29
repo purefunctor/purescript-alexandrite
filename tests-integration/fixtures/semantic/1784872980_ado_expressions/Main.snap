@@ -3,54 +3,58 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Tuple :: Type -> Type -> Type
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
 data Tuple @first @second
-  | Tuple :: first -> second -> Tuple first second
+  | Tuple :: first -> second -> Main.Tuple first second
 
-foreign import pure :: forall value. value -> Effect value
+foreign import pure :: forall value. value -> Main.Effect value
 
-foreign import map :: forall value result. (value -> result) -> Effect value -> Effect result
+foreign import map :: forall value result. (value -> result) -> Main.Effect value -> Main.Effect result
 
-foreign import apply :: forall value result. Effect (value -> result) -> Effect value -> Effect result
+foreign import apply :: forall value result. Main.Effect (value -> result) -> Main.Effect value -> Main.Effect result
 
-zero :: Effect Int
-zero = pure @Int 1
+zero :: Main.Effect Prim.Int
+zero = pure @Prim.Int 1
 
-zeroWithLet :: Effect Int
+zeroWithLet :: Main.Effect Prim.Int
 zeroWithLet =
   let
-    value :: Int
+    value :: Prim.Int
     value = 1
   in
-    pure @Int value
+    pure @Prim.Int value
 
-one :: Effect Int
-one = map @Int @Int (\value -> value) (pure @Int 1)
+one :: Main.Effect Prim.Int
+one = map @Prim.Int @Prim.Int (\value -> value) (pure @Prim.Int 1)
 
-multiple :: Effect (Tuple Int String)
+multiple :: Main.Effect (Main.Tuple Prim.Int Prim.String)
 multiple =
-  apply @String @(Tuple Int String)
-    (map @Int @(String -> Tuple Int String) (\first second -> Tuple @Int @String first second)
-      (pure @Int 1))
-    (pure @String "two")
+  apply @Prim.String @(Main.Tuple Prim.Int Prim.String)
+    (map @Prim.Int @(Prim.String -> Main.Tuple Prim.Int Prim.String)
+      (\first second -> Tuple @Prim.Int @Prim.String first second)
+      (pure @Prim.Int 1))
+    (pure @Prim.String "two")
 
-discarded :: Effect String
+discarded :: Main.Effect Prim.String
 discarded =
-  apply @String @String (map @Int @(String -> String) (\_ value -> value) (pure @Int 1))
-    (pure @String "kept")
+  apply @Prim.String @Prim.String
+    (map @Prim.Int @(Prim.String -> Prim.String) (\_ value -> value) (pure @Prim.Int 1))
+    (pure @Prim.String "kept")
 
-withLet :: Effect (Tuple Int Int)
+withLet :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
 withLet =
-  apply @Int @(Tuple Int Int)
-    (map @Int @(Int -> Tuple Int Int)
+  apply @Prim.Int @(Main.Tuple Prim.Int Prim.Int)
+    (map @Prim.Int @(Prim.Int -> Main.Tuple Prim.Int Prim.Int)
       (\first second ->
         let
-          next :: Int
+          next :: Prim.Int
           next = first
         in
-          Tuple @Int @Int next second)
-      (pure @Int 1))
-    (pure @Int 2)
+          Tuple @Prim.Int @Prim.Int next second)
+      (pure @Prim.Int 1))
+    (pure @Prim.Int 2)
 
-nested :: Effect Int
-nested = map @Int @Int (\value -> value) (map @Int @Int (\inner -> inner) (pure @Int 1))
+nested :: Main.Effect Prim.Int
+nested =
+  map @Prim.Int @Prim.Int (\value -> value)
+    (map @Prim.Int @Prim.Int (\inner -> inner) (pure @Prim.Int 1))

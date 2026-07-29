@@ -4,13 +4,24 @@ assertion_line: 50
 expression: report
 ---
 Terms
-const :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-choose :: Int -> (forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type))
+const ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+choose ::
+  Prim.Int ->
+  (forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type))
 normal ::
-  forall (t :: Type) (t1 :: Type). { parenthesised :: (t :: Type) -> (t1 :: Type) -> (t :: Type) }
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    { parenthesised :: (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type) }
 prenex ::
-  { application :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-  , variable :: Int -> (forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type))
+  { application ::
+      forall (@a :: Prim.Type) (@b :: Prim.Type).
+        (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+  , variable ::
+      Prim.Int ->
+      (forall (@a :: Prim.Type) (@b :: Prim.Type).
+        (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type))
   }
 
 Types

@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-testNonExhaustive :: Array Int -> Int
-testRedundant :: Array Int -> Int
-testExhaustive :: Array Int -> Int
+testNonExhaustive :: Prim.Array Prim.Int -> Prim.Int
+testRedundant :: Prim.Array Prim.Int -> Prim.Int
+testExhaustive :: Prim.Array Prim.Int -> Prim.Int
 
 Types
 

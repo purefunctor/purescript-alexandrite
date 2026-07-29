@@ -3,8 +3,11 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-newtype Identity :: Type -> Type
+newtype Identity :: Prim.Type -> Prim.Type
 newtype Identity @a
-  | Identity :: a -> Identity a
+  | Identity :: a -> Main.Identity a
 
-dictionary showIdentity :: forall t. { showDict :: Show t } => Show (Identity t) = showDict
+dictionary showIdentity ::
+  forall t.
+  { showDict :: Data.Show.Show t } =>
+  Data.Show.Show (Main.Identity t) = showDict

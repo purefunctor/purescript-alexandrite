@@ -1,13 +1,19 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-needsAdd :: forall (x :: Int). Add 1 (x :: Int) 3 => Proxy @Int (x :: Int)
+needsAdd ::
+  forall (x :: Prim.Int).
+    Prim.Int.Add 1 (x :: Prim.Int) 3 => Type.Proxy.Proxy @Prim.Int (x :: Prim.Int)
 nonHeadGivenImprovement ::
-  forall (n :: Int).
-    Union @Type ( a :: Proxy @Int (n :: Int) ) () ( a :: Proxy @Int 2 ) => Proxy @Int (n :: Int)
-forceSolve :: { nonHeadGivenImprovement :: Proxy @Int 2 }
+  forall (n :: Prim.Int).
+    Prim.Row.Union @Prim.Type
+      ( a :: Type.Proxy.Proxy @Prim.Int (n :: Prim.Int) )
+      ()
+      ( a :: Type.Proxy.Proxy @Prim.Int 2 ) =>
+    Type.Proxy.Proxy @Prim.Int (n :: Prim.Int)
+forceSolve :: { nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2 }
 
 Types

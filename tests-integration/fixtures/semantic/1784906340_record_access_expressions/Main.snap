@@ -6,21 +6,22 @@ expression: report
 identity :: forall a. a -> a
 identity = \value -> value
 
-record :: { function :: Int -> Int, nested :: { value :: Int } }
-record = { function: identity @Int, nested: { value: 42 } }
+record :: { function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
+record = { function: identity @Prim.Int, nested: { value: 42 } }
 
-direct :: { value :: Int }
+direct :: { value :: Prim.Int }
 direct = record.nested
 
-chained :: Int
+chained :: Prim.Int
 chained = record.nested.value
 
-functionPosition :: Int
+functionPosition :: Prim.Int
 functionPosition = record.function 1
 
-argument :: { value :: Int }
-argument = identity @{ value :: Int } record.nested
+argument :: { value :: Prim.Int }
+argument = identity @{ value :: Prim.Int } record.nested
 
-applicationBase :: Int
+applicationBase :: Prim.Int
 applicationBase =
-  (identity @{ function :: Int -> Int, nested :: { value :: Int } } record).nested.value
+  (identity @{ function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
+    record).nested.value

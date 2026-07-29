@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-missingField :: { valid :: Int }
+missingField :: { valid :: Prim.Int }
 missingField = <error>
 
 unresolvedPun :: {}

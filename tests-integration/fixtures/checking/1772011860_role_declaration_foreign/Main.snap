@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Effect :: Type -> Type
+Effect :: Prim.Type -> Prim.Type
 
 Roles
 Effect = [Representational]

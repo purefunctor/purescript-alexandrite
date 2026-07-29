@@ -6,15 +6,17 @@ expression: report
 Terms
 
 Types
-Opaque1 :: Type -> Type
+Opaque1 :: Prim.Type -> Prim.Type
 
 Derived
-derive Eq1 Opaque1
-derive Ord1 Opaque1
-derive forall (t :: Type). Eq (t :: Type) => Eq (Imported (t :: Type))
-derive Eq1 Imported
-derive forall (t :: Type). Ord (t :: Type) => Ord (Imported (t :: Type))
-derive Ord1 Imported
+derive Data.Eq.Eq1 Main.Opaque1
+derive Data.Ord.Ord1 Main.Opaque1
+derive forall (t :: Prim.Type).
+  Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Library.Imported (t :: Prim.Type))
+derive Data.Eq.Eq1 Library.Imported
+derive forall (t :: Prim.Type).
+  Data.Ord.Ord (t :: Prim.Type) => Data.Ord.Ord (Library.Imported (t :: Prim.Type))
+derive Data.Ord.Ord1 Library.Imported
 
 Roles
 Opaque1 = [Nominal]

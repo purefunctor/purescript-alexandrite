@@ -5,23 +5,30 @@ expression: report
 ---
 Terms
 Tuple ::
-  forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
 map ::
-  forall (f :: Type -> Type) (a :: Type) (b :: Type).
-    ((a :: Type) -> (b :: Type)) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (f :: Type -> Type) (b :: Type)
+  forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) (b :: Prim.Type)
 apply ::
-  forall (f :: Type -> Type) (a :: Type) (b :: Type).
-    (f :: Type -> Type) ((a :: Type) -> (b :: Type)) ->
-    (f :: Type -> Type) (a :: Type) ->
-    (f :: Type -> Type) (b :: Type)
-pure :: forall (f :: Type -> Type) (a :: Type). (a :: Type) -> (f :: Type -> Type) (a :: Type)
-test :: forall (f :: Type -> Type). (f :: Type -> Type) (Tuple Int String)
-test' :: forall (t :: Type -> Type). (t :: Type -> Type) (Tuple Int String)
+  forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+    (f :: Prim.Type -> Prim.Type) ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) (b :: Prim.Type)
+pure ::
+  forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+test ::
+  forall (f :: Prim.Type -> Prim.Type).
+    (f :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
+test' ::
+  forall (t :: Prim.Type -> Prim.Type).
+    (t :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 
 Types
-Tuple :: Type -> Type -> Type
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
 
 Roles
 Tuple = [Representational, Representational]

@@ -5,14 +5,16 @@ expression: report
 ---
 Terms
 test ::
-  forall (m :: Type -> Type) (a :: Type).
-    MonadRec (m :: Type -> Type) => (a :: Type) -> (m :: Type -> Type) (a :: Type)
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    Control.Monad.Rec.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    (a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (a :: Prim.Type)
 test2 ::
-  forall (m :: Type -> Type) (a :: Type).
-    MonadRec (m :: Type -> Type) =>
-    (m :: Type -> Type) (a :: Type) -> (m :: Type -> Type) (a :: Type)
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    Control.Monad.Rec.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (a :: Prim.Type)
 test3 ::
-  forall (m :: Type -> Type).
-    MonadRec (m :: Type -> Type) => (m :: Type -> Type) Int -> (m :: Type -> Type) Int
+  forall (m :: Prim.Type -> Prim.Type).
+    Control.Monad.Rec.MonadRec (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
 
 Types

@@ -5,19 +5,22 @@ expression: report
 ---
 Terms
 Z3 ::
-  forall (@r :: Type) (@mode :: Type) (@a :: Type).
-    Aff (a :: Type) -> Z3 (r :: Type) (mode :: Type) (a :: Type)
+  forall (@r :: Prim.Type) (@mode :: Prim.Type) (@a :: Prim.Type).
+    Main.Aff (a :: Prim.Type) -> Main.Z3 (r :: Prim.Type) (mode :: Prim.Type) (a :: Prim.Type)
 run ::
-  forall (a :: Type).
-    (forall (r :: Type) (mode :: Type). Z3 (r :: Type) (mode :: Type) (a :: Type)) ->
-    Aff (a :: Type)
-Box :: forall (@a :: Type). (a :: Type) -> Box (a :: Type)
-unbox :: (forall (a :: Type). Box (a :: Type)) -> (forall (a1 :: Type). (a1 :: Type))
+  forall (a :: Prim.Type).
+    (forall (r :: Prim.Type) (mode :: Prim.Type).
+      Main.Z3 (r :: Prim.Type) (mode :: Prim.Type) (a :: Prim.Type)) ->
+    Main.Aff (a :: Prim.Type)
+Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+unbox ::
+  (forall (a :: Prim.Type). Main.Box (a :: Prim.Type)) ->
+  (forall (a1 :: Prim.Type). (a1 :: Prim.Type))
 
 Types
-Aff :: Type -> Type
-Z3 :: Type -> Type -> Type -> Type
-Box :: Type -> Type
+Aff :: Prim.Type -> Prim.Type
+Z3 :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+Box :: Prim.Type -> Prim.Type
 
 Roles
 Aff = [Nominal]

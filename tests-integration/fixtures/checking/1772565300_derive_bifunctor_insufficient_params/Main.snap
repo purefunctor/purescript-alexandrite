@@ -1,18 +1,21 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Triple ::
-  forall (@a :: Type) (@b :: Type) (@c :: Type).
-    (a :: Type) -> (b :: Type) -> (c :: Type) -> Triple (a :: Type) (b :: Type) (c :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
+    (a :: Prim.Type) ->
+    (b :: Prim.Type) ->
+    (c :: Prim.Type) ->
+    Main.Triple (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
 
 Types
-Triple :: Type -> Type -> Type -> Type
+Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive Bifunctor (Triple Int String)
+derive Data.Bifunctor.Bifunctor (Main.Triple Prim.Int Prim.String)
 
 Roles
 Triple = [Representational, Representational, Representational]

@@ -3,27 +3,29 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-foreign import pure :: forall value. value -> Effect value
+foreign import pure :: forall value. value -> Main.Effect value
 
-foreign import bind :: forall value result. Effect value -> (value -> Effect result) -> Effect result
+foreign import bind :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
 
-foreign import discard :: forall value result. Effect value -> (value -> Effect result) -> Effect result
+foreign import discard :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
 
-bound :: Effect Int
-bound = bind @Int @Int (pure @Int 1) \value -> pure @Int value
+bound :: Main.Effect Prim.Int
+bound = bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \value -> pure @Prim.Int value
 
-discarded :: Effect String
-discarded = discard @Int @String (pure @Int 1) \_ -> pure @String "done"
+discarded :: Main.Effect Prim.String
+discarded = discard @Prim.Int @Prim.String (pure @Prim.Int 1) \_ -> pure @Prim.String "done"
 
-withLet :: Effect Int
+withLet :: Main.Effect Prim.Int
 withLet =
-  bind @Int @Int (pure @Int 1) \value ->
+  bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \value ->
     let
-      next :: Int
+      next :: Prim.Int
       next = value
     in
-      pure @Int next
+      pure @Prim.Int next
 
-nested :: Effect Int
+nested :: Main.Effect Prim.Int
 nested =
-  bind @Int @Int (bind @Int @Int (pure @Int 1) \inner -> pure @Int inner) \value -> pure @Int value
+  bind @Prim.Int @Prim.Int
+    (bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \inner -> pure @Prim.Int inner) \value ->
+    pure @Prim.Int value

@@ -3,11 +3,11 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Maybe :: Type -> Type
+data Maybe :: Prim.Type -> Prim.Type
 data Maybe @a
-  | Just :: a -> Maybe a
-  | Nothing :: Maybe a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
 
-fromMaybe :: forall a. a -> Maybe a -> a
+fromMaybe :: forall a. a -> Main.Maybe a -> a
 fromMaybe = \fallback -> \whole@(Just value) -> value
 fromMaybe = \fallback -> \Nothing -> fallback

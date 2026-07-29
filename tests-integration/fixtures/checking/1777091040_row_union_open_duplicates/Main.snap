@@ -4,29 +4,43 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 rightmostDuplicate ::
-  forall (l :: Row Type).
-    Union @Type (l :: Row Type) ( a :: String ) ( a :: Int, a :: String ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( a :: Prim.String )
+      ( a :: Prim.Int, a :: Prim.String ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 leftmostDuplicateMismatch ::
-  forall (l :: Row Type).
-    Union @Type (l :: Row Type) ( a :: String ) ( a :: String, a :: Int ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( a :: Prim.String )
+      ( a :: Prim.String, a :: Prim.Int ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 openOutputBackwards ::
-  forall (l :: Row Type) (r :: Row Type).
-    Union @Type (l :: Row Type) ( b :: String ) ( a :: Int, b :: String | (r :: Row Type) ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 forceSolve ::
-  forall (t :: Row Type) (t1 :: Row Type).
-    Union @Type (t :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t1 :: Row Type) ) =>
-    { leftmostDuplicateMismatch :: Proxy @(Row Type) ( a :: String )
-    , openOutputBackwards :: Proxy @(Row Type) (t :: Row Type)
-    , rightmostDuplicate :: Proxy @(Row Type) ( a :: Int )
+  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (t :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String | (t1 :: Prim.Row Prim.Type) ) =>
+    { leftmostDuplicateMismatch :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String )
+    , openOutputBackwards :: Main.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    , rightmostDuplicate :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     }
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

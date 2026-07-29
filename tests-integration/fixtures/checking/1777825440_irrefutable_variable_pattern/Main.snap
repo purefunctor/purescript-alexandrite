@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-variable :: Array Int -> Int
-wildcard :: Array Int -> Int
-refutable :: Array Int -> Int
-arrayLength :: forall (a :: Type). Array (a :: Type) -> Int
+variable :: Prim.Array Prim.Int -> Prim.Int
+wildcard :: Prim.Array Prim.Int -> Prim.Int
+refutable :: Prim.Array Prim.Int -> Prim.Int
+arrayLength :: forall (a :: Prim.Type). Prim.Array (a :: Prim.Type) -> Prim.Int
 
 Types
 

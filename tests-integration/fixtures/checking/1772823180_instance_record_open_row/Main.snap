@@ -5,24 +5,35 @@ expression: report
 ---
 Terms
 clone ::
-  forall (@a :: Type) (@b :: Type). Clone (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-testClonePerson :: { age :: Int, name :: String } -> { age :: Int, name :: String }
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Clone (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+testClonePerson ::
+  { age :: Prim.Int, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
 testCloneEmpty :: {} -> {}
-testCloneSingle :: { x :: Int } -> { x :: Int }
-nest :: forall (@a :: Type) (@b :: Type). Nest (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-testNest :: { a :: String } -> { inner :: { a :: String }, outer :: Int }
+testCloneSingle :: { x :: Prim.Int } -> { x :: Prim.Int }
+nest ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Nest (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+testNest :: { a :: Prim.String } -> { inner :: { a :: Prim.String }, outer :: Prim.Int }
 
 Types
-Clone :: Type -> Type -> Constraint
-Nest :: Type -> Type -> Constraint
+Clone :: Prim.Type -> Prim.Type -> Prim.Constraint
+Nest :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type). Clone (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Clone (a :: Prim.Type) (b :: Prim.Type)
   clone ::
-  forall (@a :: Type) (@b :: Type). Clone (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-class forall (a :: Type) (b :: Type). Nest (a :: Type) (b :: Type)
-  nest :: forall (@a :: Type) (@b :: Type). Nest (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Clone (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Nest (a :: Prim.Type) (b :: Prim.Type)
+  nest ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Nest (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance forall (t :: Row Type). Clone {| (t :: Row Type) } {| (t :: Row Type) }
-instance forall (t :: Row Type). Nest {| (t :: Row Type) } { inner :: {| (t :: Row Type) }, outer :: Int }
+instance forall (t :: Prim.Row Prim.Type).
+  Main.Clone {| (t :: Prim.Row Prim.Type) } {| (t :: Prim.Row Prim.Type) }
+instance forall (t :: Prim.Row Prim.Type).
+  Main.Nest
+    {| (t :: Prim.Row Prim.Type) }
+    { inner :: {| (t :: Prim.Row Prim.Type) }, outer :: Prim.Int }

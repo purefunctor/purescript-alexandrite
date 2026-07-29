@@ -5,15 +5,17 @@ expression: report
 ---
 Terms
 F ::
-  forall (k :: Type) (@a :: (k :: Type)).
-    G @(k :: Type) (a :: (k :: Type)) -> F @(k :: Type) (a :: (k :: Type))
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.G @(k :: Prim.Type) (a :: (k :: Prim.Type)) ->
+    Main.F @(k :: Prim.Type) (a :: (k :: Prim.Type))
 G ::
-  forall (k :: Type) (@a :: (k :: Type)).
-    F @(k :: Type) (a :: (k :: Type)) -> G @(k :: Type) (a :: (k :: Type))
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.F @(k :: Prim.Type) (a :: (k :: Prim.Type)) ->
+    Main.G @(k :: Prim.Type) (a :: (k :: Prim.Type))
 
 Types
-F :: forall (k :: Type). (k :: Type) -> Type
-G :: forall (k :: Type). (k :: Type) -> Type
+F :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+G :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 
 Roles
 F = [Representational]

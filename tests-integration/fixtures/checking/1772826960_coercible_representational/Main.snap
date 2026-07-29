@@ -1,21 +1,21 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Age :: Int -> Age
-coerceMaybe :: Maybe Age -> Maybe Int
-coerceMaybeReverse :: Maybe Int -> Maybe Age
-UserId :: Int -> UserId
-coerceNested :: Maybe UserId -> Maybe Int
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Age :: Prim.Int -> Main.Age
+coerceMaybe :: Main.Maybe Main.Age -> Main.Maybe Prim.Int
+coerceMaybeReverse :: Main.Maybe Prim.Int -> Main.Maybe Main.Age
+UserId :: Prim.Int -> Main.UserId
+coerceNested :: Main.Maybe Main.UserId -> Main.Maybe Prim.Int
 
 Types
-Maybe :: Type -> Type
-Age :: Type
-UserId :: Type
+Maybe :: Prim.Type -> Prim.Type
+Age :: Prim.Type
+UserId :: Prim.Type
 
 Roles
 Maybe = [Representational]

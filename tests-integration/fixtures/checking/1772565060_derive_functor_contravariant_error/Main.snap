@@ -4,22 +4,25 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Predicate :: forall (@a :: Type). ((a :: Type) -> Boolean) -> Predicate (a :: Type)
+Predicate ::
+  forall (@a :: Prim.Type). ((a :: Prim.Type) -> Prim.Boolean) -> Main.Predicate (a :: Prim.Type)
 Reader ::
-  forall (@r :: Type) (@a :: Type). ((r :: Type) -> (a :: Type)) -> Reader (r :: Type) (a :: Type)
+  forall (@r :: Prim.Type) (@a :: Prim.Type).
+    ((r :: Prim.Type) -> (a :: Prim.Type)) -> Main.Reader (r :: Prim.Type) (a :: Prim.Type)
 Cont ::
-  forall (@r :: Type) (@a :: Type).
-    (((a :: Type) -> (r :: Type)) -> (r :: Type)) -> Cont (r :: Type) (a :: Type)
+  forall (@r :: Prim.Type) (@a :: Prim.Type).
+    (((a :: Prim.Type) -> (r :: Prim.Type)) -> (r :: Prim.Type)) ->
+    Main.Cont (r :: Prim.Type) (a :: Prim.Type)
 
 Types
-Predicate :: Type -> Type
-Reader :: Type -> Type -> Type
-Cont :: Type -> Type -> Type
+Predicate :: Prim.Type -> Prim.Type
+Reader :: Prim.Type -> Prim.Type -> Prim.Type
+Cont :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive Functor Predicate
-derive forall (t :: Type). Functor (Reader (t :: Type))
-derive forall (t :: Type). Functor (Cont (t :: Type))
+derive Data.Functor.Functor Main.Predicate
+derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Reader (t :: Prim.Type))
+derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Cont (t :: Prim.Type))
 
 Roles
 Predicate = [Representational]

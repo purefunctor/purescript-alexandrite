@@ -3,38 +3,38 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface First :: Type -> Constraint
+interface First :: Prim.Type -> Prim.Constraint
 interface First a where
 
-interface Second :: Type -> Constraint
+interface Second :: Prim.Type -> Prim.Constraint
 interface Second a where
 
-interface Capability :: (Type -> Type) -> Constraint
+interface Capability :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Capability m where
 
-foreign import interleaved :: forall a. First a => (forall b. Second b => a -> b)
+foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
 
-inferredPun :: forall t t1. First t => Second t1 => { interleaved :: t -> t1 }
+inferredPun :: forall t t1. Main.First t => Main.Second t1 => { interleaved :: t -> t1 }
 inferredPun = \{firstDict} -> \{secondDict} ->
   { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
 
-inferredExplicit :: forall t t1. First t => Second t1 => { interleaved :: t -> t1 }
+inferredExplicit :: forall t t1. Main.First t => Main.Second t1 => { interleaved :: t -> t1 }
 inferredExplicit = \{firstDict} -> \{secondDict} ->
   { interleaved: interleaved @t {firstDict} @t1 {secondDict} }
 
-aliased :: Alias
+aliased :: Main.Alias
 aliased = 1
 
-inferredAliasPun :: { aliased :: Int }
+inferredAliasPun :: { aliased :: Prim.Int }
 inferredAliasPun = { aliased }
 
-inferredAliasExplicit :: { aliased :: Int }
+inferredAliasExplicit :: { aliased :: Prim.Int }
 inferredAliasExplicit = { aliased: aliased }
 
-foreign import fetch :: forall m. Capability m => Int -> m Int
+foreign import fetch :: forall m. Main.Capability m => Prim.Int -> m Prim.Int
 
-expectedPun :: Setup
+expectedPun :: Main.Setup
 expectedPun = { fetch: fetch @m {capabilityDict} }
 
-expectedExplicit :: Setup
+expectedExplicit :: Main.Setup
 expectedExplicit = { fetch: fetch @m {capabilityDict} }

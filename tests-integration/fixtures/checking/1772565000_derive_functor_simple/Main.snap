@@ -4,22 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
 Const ::
-  forall (t :: Type) (@e :: Type) (@a :: (t :: Type)).
-    (e :: Type) -> Const @(t :: Type) (e :: Type) (a :: (t :: Type))
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
+  forall (t :: Prim.Type) (@e :: Prim.Type) (@a :: (t :: Prim.Type)).
+    (e :: Prim.Type) -> Main.Const @(t :: Prim.Type) (e :: Prim.Type) (a :: (t :: Prim.Type))
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 
 Types
-Identity :: Type -> Type
-Const :: forall (t :: Type). Type -> (t :: Type) -> Type
-Maybe :: Type -> Type
+Identity :: Prim.Type -> Prim.Type
+Const :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
 
 Derived
-derive Functor Identity
-derive forall (t :: Type). Functor (Const @Type (t :: Type))
-derive Functor Maybe
+derive Data.Functor.Functor Main.Identity
+derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t :: Prim.Type))
+derive Data.Functor.Functor Main.Maybe
 
 Roles
 Identity = [Representational]

@@ -3,10 +3,10 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Default :: Type -> Constraint
+interface Default :: Prim.Type -> Prim.Constraint
 interface Default a where
 
-foreign import select :: forall a. Default a => (forall @b. a -> b -> a)
+foreign import select :: forall a. Main.Default a => (forall @b. a -> b -> a)
 
-specialize :: forall a. Default a => a -> String -> a
-specialize = \{defaultDict} -> select @a {defaultDict} @String
+specialize :: forall a. Main.Default a => a -> Prim.String -> a
+specialize = \{defaultDict} -> select @a {defaultDict} @Prim.String

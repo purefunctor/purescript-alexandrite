@@ -3,35 +3,35 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data List :: Type -> Type
+data List :: Prim.Type -> Prim.Type
 data List @a
-  | Nil :: List a
-  | Cons :: a -> List a -> List a
+  | Nil :: Main.List a
+  | Cons :: a -> Main.List a -> Main.List a
 
-data Tree :: Type -> Type
+data Tree :: Prim.Type -> Prim.Type
 data Tree @a
-  | Leaf :: a -> Tree a
-  | Branch :: Tree a -> Tree a -> Tree a
+  | Leaf :: a -> Main.Tree a
+  | Branch :: Main.Tree a -> Main.Tree a -> Main.Tree a
 
-dictionary eqList :: forall t. { eqDict :: Eq t } => Eq (List t) where
-  eq :: List t -> List t -> Boolean
+dictionary eqList :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.List t) where
+  eq :: Main.List t -> Main.List t -> Prim.Boolean
   eq = \left right ->
   case left, right of
     Nil, Nil -> true
     (Cons left0 left1), (Cons right0 right1) ->
       if eq @t {eqDict} left0 right0 then
-        if eq @(List t) {eqList {eqDict}} left1 right1 then true else false
+        if eq @(Main.List t) {eqList {eqDict}} left1 right1 then true else false
       else
         false
     _, _ -> false
 
-dictionary eq1List :: Eq1 List where
-  eq1 :: forall (t :: Type). Eq t => List t -> List t -> Boolean
-  eq1 = \{eqDict} -> eq @(List t) {eqList {eqDict}}
+dictionary eq1List :: Data.Eq.Eq1 Main.List where
+  eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.List t -> Main.List t -> Prim.Boolean
+  eq1 = \{eqDict} -> eq @(Main.List t) {eqList {eqDict}}
 
-dictionary ordList :: forall t. { ordDict :: Ord t } => Ord (List t) where
+dictionary ordList :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.List t) where
   superclass eqDict = eqList {ordDict.eqDict}
-  compare :: List t -> List t -> Ordering
+  compare :: Main.List t -> Main.List t -> Data.Ordering.Ordering
   compare = \left right ->
   case left, right of
     Nil, Nil -> EQ
@@ -40,36 +40,36 @@ dictionary ordList :: forall t. { ordDict :: Ord t } => Ord (List t) where
     (Cons left0 left1), (Cons right0 right1) ->
       case compare @t {ordDict} left0 right0 of
         EQ ->
-          case compare @(List t) {ordList {ordDict}} left1 right1 of
+          case compare @(Main.List t) {ordList {ordDict}} left1 right1 of
             EQ -> EQ
             ordering -> ordering
         ordering -> ordering
 
-dictionary ord1List :: Ord1 List where
+dictionary ord1List :: Data.Ord.Ord1 Main.List where
   superclass eq1Dict = eq1List
-  compare1 :: forall (t :: Type). Ord t => List t -> List t -> Ordering
-  compare1 = \{ordDict} -> compare @(List t) {ordList {ordDict}}
+  compare1 :: forall (t :: Prim.Type). Data.Ord.Ord t => Main.List t -> Main.List t -> Data.Ordering.Ordering
+  compare1 = \{ordDict} -> compare @(Main.List t) {ordList {ordDict}}
 
-dictionary eqTree :: forall t. { eqDict :: Eq t } => Eq (Tree t) where
-  eq :: Tree t -> Tree t -> Boolean
+dictionary eqTree :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Tree t) where
+  eq :: Main.Tree t -> Main.Tree t -> Prim.Boolean
   eq = \left right ->
   case left, right of
     (Leaf left0), (Leaf right0) ->
       if eq @t {eqDict} left0 right0 then true else false
     (Branch left0 left1), (Branch right0 right1) ->
-      if eq @(Tree t) {eqTree {eqDict}} left0 right0 then
-        if eq @(Tree t) {eqTree {eqDict}} left1 right1 then true else false
+      if eq @(Main.Tree t) {eqTree {eqDict}} left0 right0 then
+        if eq @(Main.Tree t) {eqTree {eqDict}} left1 right1 then true else false
       else
         false
     _, _ -> false
 
-dictionary eq1Tree :: Eq1 Tree where
-  eq1 :: forall (t :: Type). Eq t => Tree t -> Tree t -> Boolean
-  eq1 = \{eqDict} -> eq @(Tree t) {eqTree {eqDict}}
+dictionary eq1Tree :: Data.Eq.Eq1 Main.Tree where
+  eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.Tree t -> Main.Tree t -> Prim.Boolean
+  eq1 = \{eqDict} -> eq @(Main.Tree t) {eqTree {eqDict}}
 
-dictionary ordTree :: forall t. { ordDict :: Ord t } => Ord (Tree t) where
+dictionary ordTree :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.Tree t) where
   superclass eqDict = eqTree {ordDict.eqDict}
-  compare :: Tree t -> Tree t -> Ordering
+  compare :: Main.Tree t -> Main.Tree t -> Data.Ordering.Ordering
   compare = \left right ->
   case left, right of
     (Leaf left0), (Leaf right0) ->
@@ -79,14 +79,14 @@ dictionary ordTree :: forall t. { ordDict :: Ord t } => Ord (Tree t) where
     (Leaf _), _ -> LT
     _, (Leaf _) -> GT
     (Branch left0 left1), (Branch right0 right1) ->
-      case compare @(Tree t) {ordTree {ordDict}} left0 right0 of
+      case compare @(Main.Tree t) {ordTree {ordDict}} left0 right0 of
         EQ ->
-          case compare @(Tree t) {ordTree {ordDict}} left1 right1 of
+          case compare @(Main.Tree t) {ordTree {ordDict}} left1 right1 of
             EQ -> EQ
             ordering -> ordering
         ordering -> ordering
 
-dictionary ord1Tree :: Ord1 Tree where
+dictionary ord1Tree :: Data.Ord.Ord1 Main.Tree where
   superclass eq1Dict = eq1Tree
-  compare1 :: forall (t :: Type). Ord t => Tree t -> Tree t -> Ordering
-  compare1 = \{ordDict} -> compare @(Tree t) {ordTree {ordDict}}
+  compare1 :: forall (t :: Prim.Type). Data.Ord.Ord t => Main.Tree t -> Main.Tree t -> Data.Ordering.Ordering
+  compare1 = \{ordDict} -> compare @(Main.Tree t) {ordTree {ordDict}}

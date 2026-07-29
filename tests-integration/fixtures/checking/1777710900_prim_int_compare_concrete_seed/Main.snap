@@ -5,23 +5,29 @@ expression: report
 ---
 Terms
 assertGreater ::
-  forall (l :: Int) (r :: Int).
-    Compare (l :: Int) (r :: Int) GT => Proxy @(Row Int) ( left :: (l :: Int), right :: (r :: Int) )
+  forall (l :: Prim.Int) (r :: Prim.Int).
+    Prim.Int.Compare (l :: Prim.Int) (r :: Prim.Int) Prim.Ordering.GT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (l :: Prim.Int), right :: (r :: Prim.Int) )
 assertLesser ::
-  forall (l :: Int) (r :: Int).
-    Compare (l :: Int) (r :: Int) LT => Proxy @(Row Int) ( left :: (l :: Int), right :: (r :: Int) )
+  forall (l :: Prim.Int) (r :: Prim.Int).
+    Prim.Int.Compare (l :: Prim.Int) (r :: Prim.Int) Prim.Ordering.LT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (l :: Prim.Int), right :: (r :: Prim.Int) )
 weakenZeroToNegOne ::
-  forall (h :: Int).
-    Compare (h :: Int) 0 GT => Proxy @(Row Int) ( left :: (h :: Int), right :: (-1) )
+  forall (h :: Prim.Int).
+    Prim.Int.Compare (h :: Prim.Int) 0 Prim.Ordering.GT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (h :: Prim.Int), right :: (-1) )
 weakenZeroToNegTwo ::
-  forall (h :: Int).
-    Compare (h :: Int) 0 GT => Proxy @(Row Int) ( left :: (h :: Int), right :: (-2) )
+  forall (h :: Prim.Int).
+    Prim.Int.Compare (h :: Prim.Int) 0 Prim.Ordering.GT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (h :: Prim.Int), right :: (-2) )
 weakenZeroLT ::
-  forall (h :: Int). Compare (h :: Int) 0 LT => Proxy @(Row Int) ( left :: (h :: Int), right :: 1 )
+  forall (h :: Prim.Int).
+    Prim.Int.Compare (h :: Prim.Int) 0 Prim.Ordering.LT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (h :: Prim.Int), right :: 1 )
 chainAbstractAndConcrete ::
-  forall (h :: Int) (k :: Int).
-    Compare (h :: Int) (k :: Int) GT =>
-    Compare (k :: Int) 5 GT =>
-    Proxy @(Row Int) ( left :: (h :: Int), right :: 4 )
+  forall (h :: Prim.Int) (k :: Prim.Int).
+    Prim.Int.Compare (h :: Prim.Int) (k :: Prim.Int) Prim.Ordering.GT =>
+    Prim.Int.Compare (k :: Prim.Int) 5 Prim.Ordering.GT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (h :: Prim.Int), right :: 4 )
 
 Types

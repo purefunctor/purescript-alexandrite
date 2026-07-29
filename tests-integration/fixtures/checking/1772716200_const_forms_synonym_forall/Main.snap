@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-poly0 :: ConstPoly
-poly1 :: ConstPoly
-poly2 :: ConstPoly
-poly3 :: ConstPoly
+poly0 :: Main.ConstPoly
+poly1 :: Main.ConstPoly
+poly2 :: Main.ConstPoly
+poly3 :: Main.ConstPoly
 
 Types
-ConstPoly :: Type
+ConstPoly :: Prim.Type
 
 Synonyms
-type ConstPoly = forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
+type ConstPoly = forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)

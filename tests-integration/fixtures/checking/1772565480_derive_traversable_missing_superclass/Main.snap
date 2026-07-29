@@ -5,24 +5,31 @@ expression: report
 ---
 Terms
 Compose ::
-  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> (t :: Type))
-    (@a :: (t1 :: Type)).
-    (f :: (t :: Type) -> Type) ((g :: (t1 :: Type) -> (t :: Type)) (a :: (t1 :: Type))) ->
-    Compose @(t :: Type) @(t1 :: Type)
-      (f :: (t :: Type) -> Type)
-      (g :: (t1 :: Type) -> (t :: Type))
-      (a :: (t1 :: Type))
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type)
+      ((g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
+    Main.Compose @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: (t1 :: Prim.Type) -> (t :: Prim.Type))
+      (a :: (t1 :: Prim.Type))
 
 Types
 Compose ::
-  forall (t :: Type) (t1 :: Type).
-    ((t :: Type) -> Type) -> ((t1 :: Type) -> (t :: Type)) -> (t1 :: Type) -> Type
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) ->
+    ((t1 :: Prim.Type) -> (t :: Prim.Type)) ->
+    (t1 :: Prim.Type) ->
+    Prim.Type
 
 Derived
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Traversable (t :: Type -> Type) =>
-  Traversable (t1 :: Type -> Type) =>
-  Traversable (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Traversable.Traversable (t :: Prim.Type -> Prim.Type) =>
+  Data.Traversable.Traversable (t1 :: Prim.Type -> Prim.Type) =>
+  Data.Traversable.Traversable
+    (Main.Compose @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
 
 Roles
 Compose = [Representational, Representational, Nominal]

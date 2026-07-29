@@ -3,9 +3,9 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Identity :: Type -> Type
+data Identity :: Prim.Type -> Prim.Type
 data Identity @a
-  | Identity :: a -> Identity a
+  | Identity :: a -> Main.Identity a
 
 letBinding :: forall a. a -> a
 letBinding = \value ->
@@ -21,7 +21,7 @@ whereBinding = \value -> local
   local :: a
   local = value
 
-unIdentity :: forall a. Identity a -> a
+unIdentity :: forall a. Main.Identity a -> a
 unIdentity = \value ->
   let
     (Identity inner) = value

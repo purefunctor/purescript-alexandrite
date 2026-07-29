@@ -5,14 +5,16 @@ expression: report
 ---
 Terms
 bind ::
-  forall (a :: Type) (b :: Type).
-    Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
-before :: Effect { field :: Int }
-expectString :: String -> Int
-test :: forall (t :: Type). Effect (t :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Main.Effect (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
+    Main.Effect (b :: Prim.Type)
+before :: Main.Effect { field :: Prim.Int }
+expectString :: Prim.String -> Prim.Int
+test :: forall (t :: Prim.Type). Main.Effect (t :: Prim.Type)
 
 Types
-Effect :: Type -> Type
+Effect :: Prim.Type -> Prim.Type
 
 Roles
 Effect = [Nominal]

@@ -4,25 +4,28 @@ assertion_line: 50
 expression: report
 ---
 Terms
-defaultOptions :: {| Optional @Type }
+defaultOptions :: {| Main.Optional @Prim.Type }
 
 Types
-Optional :: forall (k :: Type). Row (k :: Type)
-All :: Row Type
+Optional :: forall (k :: Prim.Type). Prim.Row (k :: Prim.Type)
+All :: Prim.Row Prim.Type
 ConvertOptions ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Type).
-    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
 
 Synonyms
 type Optional = ()
-type All = ( value :: Int | Optional @Type )
+type All = ( value :: Prim.Int | Main.Optional @Prim.Type )
 
 Classes
-class forall (t :: Type) (t1 :: Type) (t2 :: Type) (defaults :: (t :: Type)) (provided :: (t1 :: Type)) (all :: (t2 :: Type)). ConvertOptions @(t :: Type) @(t1 :: Type) @(t2 :: Type)
-  (defaults :: (t :: Type))
-  (provided :: (t1 :: Type))
-  (all :: (t2 :: Type))
+class forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (defaults :: (t :: Prim.Type)) (provided :: (t1 :: Prim.Type)) (all :: (t2 :: Prim.Type)). Main.ConvertOptions @(t :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
+  (defaults :: (t :: Prim.Type))
+  (provided :: (t1 :: Prim.Type))
+  (all :: (t2 :: Prim.Type))
 
 Instances
-instance forall (t :: Row Type).
-  ConvertOptions @Type @Type @Type {| Optional @Type } {| (t :: Row Type) } {| All }
+instance forall (t :: Prim.Row Prim.Type).
+  Main.ConvertOptions @Prim.Type @Prim.Type @Prim.Type
+    {| Main.Optional @Prim.Type }
+    {| (t :: Prim.Row Prim.Type) }
+    {| Main.All }

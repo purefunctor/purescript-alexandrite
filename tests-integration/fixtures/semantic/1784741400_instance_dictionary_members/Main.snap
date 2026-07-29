@@ -3,18 +3,18 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Token :: Type
+data Token :: Prim.Type
 data Token
-  | FirstToken :: Token
-  | SecondToken :: Token
+  | FirstToken :: Main.Token
+  | SecondToken :: Main.Token
 
-interface Example :: Type -> Constraint
+interface Example :: Prim.Type -> Prim.Constraint
 interface Example a where
   first :: a
   second :: a
 
-dictionary exampleToken :: Example Token where
-  first :: Token
+dictionary exampleToken :: Main.Example Main.Token where
+  first :: Main.Token
   first = FirstToken
-  second :: Token
+  second :: Main.Token
   second = SecondToken

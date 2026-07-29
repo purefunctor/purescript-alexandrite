@@ -3,13 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Maybe :: Type -> Type
+data Maybe :: Prim.Type -> Prim.Type
 data Maybe @a
-  | Nothing :: Maybe a
-  | Just :: a -> Maybe a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
 
-checked :: Partial => Maybe Int -> Int
+checked :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
 checked = \{partialDict} -> \(Just value) -> value
 
-inferred :: forall t. Partial => Maybe t -> t
+inferred :: forall t. Prim.Partial => Main.Maybe t -> t
 inferred = \{trivial} -> \(Just value) -> value

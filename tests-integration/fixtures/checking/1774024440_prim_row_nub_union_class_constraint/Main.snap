@@ -4,38 +4,61 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
 consume ::
-  forall (given :: Row Type) (given_ :: Row Type).
-    Union @Type (given :: Row Type) (given_ :: Row Type) Required =>
-    {| (given :: Row Type) } -> String
+  forall (given :: Prim.Row Prim.Type) (given_ :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (given :: Prim.Row Prim.Type)
+      (given_ :: Prim.Row Prim.Type)
+      Main.Required =>
+    {| (given :: Prim.Row Prim.Type) } -> Prim.String
 merge ::
-  forall (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) (r4 :: Row Type).
-    Union @Type (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) =>
-    Nub @Type (r3 :: Row Type) (r4 :: Row Type) =>
-    {| (r1 :: Row Type) } -> {| (r2 :: Row Type) } -> {| (r4 :: Row Type) }
-collect :: forall (@a :: Type). Collect (a :: Type) => (a :: Type) -> Array String
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type)
+    (r4 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    Prim.Row.Nub @Prim.Type (r3 :: Prim.Row Prim.Type) (r4 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r4 :: Prim.Row Prim.Type) }
+collect ::
+  forall (@a :: Prim.Type).
+    Main.Collect (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Array Prim.String
 combine ::
-  forall (partial :: Row Type) (duplicated :: Row Type) (deduped :: Row Type) (deduped_ :: Row Type)
-    (items :: Type).
-    Collect (items :: Type) =>
-    Union @Type ( key :: String ) (partial :: Row Type) (duplicated :: Row Type) =>
-    Nub @Type ( key :: String | (partial :: Row Type) ) (deduped :: Row Type) =>
-    Union @Type (deduped :: Row Type) (deduped_ :: Row Type) Required =>
-    {| (partial :: Row Type) } -> (items :: Type) -> String
-combine' :: forall (items :: Type). Collect (items :: Type) => (items :: Type) -> String
-repro :: String
+  forall (partial :: Prim.Row Prim.Type) (duplicated :: Prim.Row Prim.Type)
+    (deduped :: Prim.Row Prim.Type) (deduped_ :: Prim.Row Prim.Type) (items :: Prim.Type).
+    Main.Collect (items :: Prim.Type) =>
+    Prim.Row.Union @Prim.Type
+      ( key :: Prim.String )
+      (partial :: Prim.Row Prim.Type)
+      (duplicated :: Prim.Row Prim.Type) =>
+    Prim.Row.Nub @Prim.Type
+      ( key :: Prim.String | (partial :: Prim.Row Prim.Type) )
+      (deduped :: Prim.Row Prim.Type) =>
+    Prim.Row.Union @Prim.Type
+      (deduped :: Prim.Row Prim.Type)
+      (deduped_ :: Prim.Row Prim.Type)
+      Main.Required =>
+    {| (partial :: Prim.Row Prim.Type) } -> (items :: Prim.Type) -> Prim.String
+combine' ::
+  forall (items :: Prim.Type).
+    Main.Collect (items :: Prim.Type) => (items :: Prim.Type) -> Prim.String
+repro :: Prim.String
 
 Types
-Required :: Row Type
-Collect :: Type -> Constraint
+Required :: Prim.Row Prim.Type
+Collect :: Prim.Type -> Prim.Constraint
 
 Synonyms
-type Required = ( key :: String )
+type Required = ( key :: Prim.String )
 
 Classes
-class forall (a :: Type). Collect (a :: Type)
-  collect :: forall (@a :: Type). Collect (a :: Type) => (a :: Type) -> Array String
+class forall (a :: Prim.Type). Main.Collect (a :: Prim.Type)
+  collect ::
+  forall (@a :: Prim.Type).
+    Main.Collect (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Array Prim.String
 
 Instances
-instance Collect (Array String)
+instance Main.Collect (Prim.Array Prim.String)

@@ -6,12 +6,12 @@ expression: report
 Terms
 
 Types
-Add :: Type -> Type -> Type
-+ :: Type -> Type -> Type
-Chain :: Type -> Type -> Type -> Type
-ChainParen :: Type -> Type -> Type -> Type
+Add :: Prim.Type -> Prim.Type -> Prim.Type
++ :: Prim.Type -> Prim.Type -> Prim.Type
+Chain :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+ChainParen :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Add a b = (a :: Type)
-type Chain a b c = Add (Add (a :: Type) (b :: Type)) (c :: Type)
-type ChainParen a b c = Add (Add (a :: Type) (b :: Type)) (c :: Type)
+type Add a b = (a :: Prim.Type)
+type Chain a b c = Main.Add (Main.Add (a :: Prim.Type) (b :: Prim.Type)) (c :: Prim.Type)
+type ChainParen a b c = Main.Add (Main.Add (a :: Prim.Type) (b :: Prim.Type)) (c :: Prim.Type)

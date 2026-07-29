@@ -4,28 +4,28 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 Const ::
-  forall (t :: Type) (@e :: Type) (@a :: (t :: Type)).
-    (e :: Type) -> Const @(t :: Type) (e :: Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@e :: Prim.Type) (@a :: (t :: Prim.Type)).
+    (e :: Prim.Type) -> Main.Const @(t :: Prim.Type) (e :: Prim.Type) (a :: (t :: Prim.Type))
 
 Types
-Identity :: Type -> Type
-Maybe :: Type -> Type
-Const :: forall (t :: Type). Type -> (t :: Type) -> Type
+Identity :: Prim.Type -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
+Const :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
 
 Derived
-derive Functor Identity
-derive Foldable Identity
-derive Traversable Identity
-derive Functor Maybe
-derive Foldable Maybe
-derive Traversable Maybe
-derive forall (t :: Type). Functor (Const @Type (t :: Type))
-derive forall (t :: Type). Foldable (Const @Type (t :: Type))
-derive forall (t :: Type). Traversable (Const @Type (t :: Type))
+derive Data.Functor.Functor Main.Identity
+derive Data.Foldable.Foldable Main.Identity
+derive Data.Traversable.Traversable Main.Identity
+derive Data.Functor.Functor Main.Maybe
+derive Data.Foldable.Foldable Main.Maybe
+derive Data.Traversable.Traversable Main.Maybe
+derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t :: Prim.Type))
+derive forall (t :: Prim.Type). Data.Foldable.Foldable (Main.Const @Prim.Type (t :: Prim.Type))
+derive forall (t :: Prim.Type). Data.Traversable.Traversable (Main.Const @Prim.Type (t :: Prim.Type))
 
 Roles
 Identity = [Representational]

@@ -3,16 +3,16 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Choice :: Type -> Type
+data Choice :: Prim.Type -> Prim.Type
 data Choice @a
-  | Empty :: Choice a
-  | One :: a -> Choice a
-  | Pair :: a -> a -> Choice a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+  | Pair :: a -> a -> Main.Choice a
 
 identity :: forall a. a -> a
 identity = \value -> value
 
-nested :: Choice (Choice Int) -> Int
+nested :: Main.Choice (Main.Choice Prim.Int) -> Prim.Int
 nested = \choice ->
   case choice of
     (One inner) ->
@@ -22,8 +22,8 @@ nested = \choice ->
         _ -> 0
     _ -> 0
 
-applied :: Choice Int -> Int
+applied :: Main.Choice Prim.Int -> Prim.Int
 applied = \choice ->
-  identity @Int case choice of
+  identity @Prim.Int case choice of
     (One value) -> value
     _ -> 0

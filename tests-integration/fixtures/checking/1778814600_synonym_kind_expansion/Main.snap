@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-TypeToType :: Type
-ApplyAliasKind :: TypeToType -> Type
+TypeToType :: Prim.Type
+ApplyAliasKind :: Main.TypeToType -> Prim.Type
 
 Synonyms
-type TypeToType = Type -> Type
-type ApplyAliasKind f = (f :: TypeToType) Int
+type TypeToType = Prim.Type -> Prim.Type
+type ApplyAliasKind f = (f :: Main.TypeToType) Prim.Int

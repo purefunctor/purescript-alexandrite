@@ -4,11 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-bareTail :: forall (opts :: Type). (opts :: Type) -> Int
-plainTail :: forall (opts :: Type). (opts :: Type) -> Int
-recordTail :: forall (opts :: Row Type). {| (opts :: Row Type) } -> Int
-withBareTail :: Int
-withPlainTail :: Int
-withRecordTail :: Int
+bareTail :: forall (opts :: Prim.Type). (opts :: Prim.Type) -> Prim.Int
+plainTail :: forall (opts :: Prim.Type). (opts :: Prim.Type) -> Prim.Int
+recordTail :: forall (opts :: Prim.Row Prim.Type). {| (opts :: Prim.Row Prim.Type) } -> Prim.Int
+withBareTail :: Prim.Int
+withPlainTail :: Prim.Int
+withRecordTail :: Prim.Int
 
 Types

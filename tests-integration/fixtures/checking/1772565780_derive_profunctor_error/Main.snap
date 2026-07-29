@@ -5,18 +5,19 @@ expression: report
 ---
 Terms
 WrongFirst ::
-  forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> WrongFirst (a :: Type) (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.WrongFirst (a :: Prim.Type) (b :: Prim.Type)
 WrongSecond ::
-  forall (@a :: Type) (@b :: Type).
-    ((b :: Type) -> (a :: Type)) -> WrongSecond (a :: Type) (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    ((b :: Prim.Type) -> (a :: Prim.Type)) -> Main.WrongSecond (a :: Prim.Type) (b :: Prim.Type)
 
 Types
-WrongFirst :: Type -> Type -> Type
-WrongSecond :: Type -> Type -> Type
+WrongFirst :: Prim.Type -> Prim.Type -> Prim.Type
+WrongSecond :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive Profunctor WrongFirst
-derive Profunctor WrongSecond
+derive Data.Profunctor.Profunctor Main.WrongFirst
+derive Data.Profunctor.Profunctor Main.WrongSecond
 
 Roles
 WrongFirst = [Representational, Representational]

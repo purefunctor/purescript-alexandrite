@@ -5,30 +5,35 @@ expression: report
 ---
 Terms
 singleton ::
-  forall (@f :: Type -> Type).
-    Build (f :: Type -> Type) =>
-    (forall (a :: Type). (a :: Type) -> (f :: Type -> Type) (a :: Type))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Build (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
 produce ::
-  forall (@f :: Type -> Type).
-    Build (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((b :: Type) -> (a :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a :: Type))
-identity :: forall (a :: Type). (a :: Type) -> (a :: Type)
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Build (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((b :: Prim.Type) -> (a :: Prim.Type)) ->
+      (b :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
 test ::
-  forall (f :: Type -> Type).
-    Build (f :: Type -> Type) => Boolean -> Boolean -> (f :: Type -> Type) Boolean
+  forall (f :: Prim.Type -> Prim.Type).
+    Main.Build (f :: Prim.Type -> Prim.Type) =>
+    Prim.Boolean -> Prim.Boolean -> (f :: Prim.Type -> Prim.Type) Prim.Boolean
 
 Types
-Build :: (Type -> Type) -> Constraint
+Build :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (f :: Type -> Type). Build (f :: Type -> Type)
+class forall (f :: Prim.Type -> Prim.Type). Main.Build (f :: Prim.Type -> Prim.Type)
   singleton ::
-  forall (@f :: Type -> Type).
-    Build (f :: Type -> Type) =>
-    (forall (a :: Type). (a :: Type) -> (f :: Type -> Type) (a :: Type))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Build (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
   produce ::
-  forall (@f :: Type -> Type).
-    Build (f :: Type -> Type) =>
-    (forall (a1 :: Type) (b :: Type).
-      ((b :: Type) -> (a1 :: Type)) -> (b :: Type) -> (f :: Type -> Type) (a1 :: Type))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Build (f :: Prim.Type -> Prim.Type) =>
+    (forall (a1 :: Prim.Type) (b :: Prim.Type).
+      ((b :: Prim.Type) -> (a1 :: Prim.Type)) ->
+      (b :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a1 :: Prim.Type))

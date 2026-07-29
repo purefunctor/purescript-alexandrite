@@ -4,19 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: forall (@a :: Type). (a :: Type) -> Box (a :: Type)
-method :: forall (@route :: Type). Route (route :: Type) => Box (route :: Type)
-routeCase :: forall (@route :: Type). Route (route :: Type) => (route :: Type)
-routeLet :: forall (@route :: Type). Route (route :: Type) => (route :: Type)
-routeGuard :: forall (@route :: Type). Route (route :: Type) => (route :: Type)
+Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+method ::
+  forall (@route :: Prim.Type). Main.Route (route :: Prim.Type) => Main.Box (route :: Prim.Type)
+routeCase :: forall (@route :: Prim.Type). Main.Route (route :: Prim.Type) => (route :: Prim.Type)
+routeLet :: forall (@route :: Prim.Type). Main.Route (route :: Prim.Type) => (route :: Prim.Type)
+routeGuard :: forall (@route :: Prim.Type). Main.Route (route :: Prim.Type) => (route :: Prim.Type)
 
 Types
-Box :: Type -> Type
-Route :: Type -> Constraint
+Box :: Prim.Type -> Prim.Type
+Route :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (route :: Type). Route (route :: Type)
-  method :: forall (@route :: Type). Route (route :: Type) => Box (route :: Type)
+class forall (route :: Prim.Type). Main.Route (route :: Prim.Type)
+  method ::
+  forall (@route :: Prim.Type). Main.Route (route :: Prim.Type) => Main.Box (route :: Prim.Type)
 
 Roles
 Box = [Representational]
