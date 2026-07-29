@@ -1,6 +1,7 @@
 use building_types::QueryResult;
 use files::FileId;
-use indexing::TypeItemId;
+use indexing::{TermItemId, TypeItemId};
+use smol_str::SmolStr;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
@@ -34,8 +35,37 @@ pub(in crate::source) enum VarianceConfig {
     Pair(ParameterConfig, ParameterConfig),
 }
 
+pub struct VarianceRecipe {
+    pub constructors: Vec<ConstructorRecipe>,
+    pub valid: bool,
+}
+
+pub struct ConstructorRecipe {
+    pub constructor_id: TermItemId,
+    pub fields: Vec<Option<TraversalOperation>>,
+}
+
+#[derive(Clone, Copy)]
+pub enum TraversalParameter {
+    First,
+    Second,
+}
+
+pub enum TraversalOperation {
+    Parameter { parameter: TraversalParameter },
+    Function { argument: Option<Box<TraversalOperation>>, result: Option<Box<TraversalOperation>> },
+    Map { argument: Box<TraversalOperation> },
+    Record { fields: Vec<RecordFieldRecipe> },
+}
+
+pub struct RecordFieldRecipe {
+    pub label: SmolStr,
+    pub operation: TraversalOperation,
+}
+
 struct DerivedParameter {
     name: Name,
+    traversal_parameter: TraversalParameter,
     expected: Variance,
     class: Option<(FileId, TypeItemId)>,
 }
@@ -68,21 +98,35 @@ pub fn generate_variance_constraints<Q>(
     data_id: TypeItemId,
     derived_type: TypeId,
     config: VarianceConfig,
-) -> QueryResult<()>
+) -> QueryResult<VarianceRecipe>
 where
     Q: ExternalQueries,
 {
-    for constructor_id in tools::lookup_data_constructors(context, data_file, data_id)? {
+    let constructor_ids = tools::lookup_data_constructors(context, data_file, data_id)?;
+    let mut constructors = Vec::with_capacity(constructor_ids.len());
+    let mut valid = true;
+    for constructor_id in constructor_ids {
         let constructor_t = toolkit::lookup_file_term(state, context, data_file, constructor_id)?;
         let (fields, rigids) =
             extract_fields_with_rigids(state, context, constructor_t, derived_type, config)?;
+        valid &= !matches!(rigids, DerivedRigids::Invalid);
 
+        let mut field_recipes = Vec::with_capacity(fields.len());
         for field in fields {
-            check_variance_field(state, context, field, Variance::Covariant, &rigids)?;
+            let operation = check_variance_field(
+                state,
+                context,
+                field,
+                Variance::Covariant,
+                &rigids,
+                &mut valid,
+            )?;
+            field_recipes.push(operation);
         }
+        constructors.push(ConstructorRecipe { constructor_id, fields: field_recipes });
     }
 
-    Ok(())
+    Ok(VarianceRecipe { constructors, valid })
 }
 
 fn extract_fields_with_rigids<Q>(
@@ -126,14 +170,29 @@ where
 
     let rigids = match (config, &names[..]) {
         (VarianceConfig::Single((expected, class)), [.., a]) => {
-            DerivedRigids::Single(DerivedParameter { name: *a, expected, class })
+            DerivedRigids::Single(DerivedParameter {
+                name: *a,
+                traversal_parameter: TraversalParameter::First,
+                expected,
+                class,
+            })
         }
         (
             VarianceConfig::Pair((first_expected, first_class), (second_expected, second_class)),
             [.., a, b],
         ) => DerivedRigids::Pair(
-            DerivedParameter { name: *a, expected: first_expected, class: first_class },
-            DerivedParameter { name: *b, expected: second_expected, class: second_class },
+            DerivedParameter {
+                name: *a,
+                traversal_parameter: TraversalParameter::First,
+                expected: first_expected,
+                class: first_class,
+            },
+            DerivedParameter {
+                name: *b,
+                traversal_parameter: TraversalParameter::Second,
+                expected: second_expected,
+                class: second_class,
+            },
         ),
         _ => {
             state.insert_error(ErrorKind::CannotDeriveForType { type_id: derived_type });
@@ -153,7 +212,8 @@ fn check_variance_field<Q>(
     type_id: TypeId,
     variance: Variance,
     rigids: &DerivedRigids,
-) -> QueryResult<()>
+    valid: &mut bool,
+) -> QueryResult<Option<TraversalOperation>>
 where
     Q: ExternalQueries,
 {
@@ -162,49 +222,72 @@ where
     match context.lookup_type(type_id) {
         Type::Rigid(name, _, _) => {
             if let Some(parameter) = rigids.get(name) {
-                emit_variance_error(state, type_id, variance, parameter.expected);
+                *valid &= emit_variance_error(state, type_id, variance, parameter.expected);
+                return Ok(Some(TraversalOperation::Parameter {
+                    parameter: parameter.traversal_parameter,
+                }));
             }
         }
         Type::Function(argument, result) => {
-            check_variance_field(state, context, argument, variance.flip(), rigids)?;
-            check_variance_field(state, context, result, variance, rigids)?;
+            let argument =
+                check_variance_field(state, context, argument, variance.flip(), rigids, valid)?;
+            let result = check_variance_field(state, context, result, variance, rigids, valid)?;
+            if argument.is_some() || result.is_some() {
+                return Ok(Some(TraversalOperation::Function {
+                    argument: argument.map(Box::new),
+                    result: result.map(Box::new),
+                }));
+            }
         }
         Type::Application(function, argument) => {
             let function = normalise::expand(state, context, function)?;
             if function == context.prim.record {
-                check_variance_field(state, context, argument, variance, rigids)?;
+                return check_variance_field(state, context, argument, variance, rigids, valid);
             } else {
                 for parameter in rigids.iter() {
                     if toolkit::contains_rigid(state, context, argument, parameter.name)? {
-                        emit_variance_error(state, type_id, variance, parameter.expected);
+                        *valid &= emit_variance_error(state, type_id, variance, parameter.expected);
                         if variance == parameter.expected {
                             if let Some(class) = parameter.class {
                                 tools::emit_constraint(context, state, class, function);
                             } else {
                                 state.insert_error(ErrorKind::DeriveMissingFunctor);
+                                *valid = false;
                             }
                         }
                     }
                 }
-                check_variance_field(state, context, argument, variance, rigids)?;
+                let argument =
+                    check_variance_field(state, context, argument, variance, rigids, valid)?;
+                if let Some(argument) = argument {
+                    return Ok(Some(TraversalOperation::Map { argument: Box::new(argument) }));
+                }
             }
         }
         Type::KindApplication(_, argument) => {
-            check_variance_field(state, context, argument, variance, rigids)?;
+            return check_variance_field(state, context, argument, variance, rigids, valid);
         }
         Type::Row(row_id) => {
             let row = context.lookup_row_type(row_id);
+            let mut fields = Vec::new();
             for field in row.fields.iter() {
-                check_variance_field(state, context, field.id, variance, rigids)?;
+                let operation =
+                    check_variance_field(state, context, field.id, variance, rigids, valid)?;
+                if let Some(operation) = operation {
+                    fields.push(RecordFieldRecipe { label: field.label.clone(), operation });
+                }
             }
             if let Some(tail) = row.tail {
-                check_variance_field(state, context, tail, variance, rigids)?;
+                check_variance_field(state, context, tail, variance, rigids, valid)?;
+            }
+            if !fields.is_empty() {
+                return Ok(Some(TraversalOperation::Record { fields }));
             }
         }
         _ => {}
     }
 
-    Ok(())
+    Ok(None)
 }
 
 fn emit_variance_error(
@@ -212,9 +295,9 @@ fn emit_variance_error(
     type_id: TypeId,
     actual: Variance,
     expected: Variance,
-) {
+) -> bool {
     if actual == expected {
-        return;
+        return true;
     }
 
     match actual {
@@ -223,4 +306,5 @@ fn emit_variance_error(
             state.insert_error(ErrorKind::ContravariantOccurrence { type_id })
         }
     }
+    false
 }

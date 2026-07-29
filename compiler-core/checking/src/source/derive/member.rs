@@ -6,7 +6,10 @@ use crate::core::Type;
 use crate::error::ErrorCrumb;
 use crate::state::CheckState;
 
-use super::{DeriveHeadResult, DeriveStrategy, field, generate, tools, variance};
+use super::{
+    DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch, field, generate, tools,
+    variance,
+};
 
 pub fn check_derive_members<Q>(
     state: &mut CheckState,
@@ -36,6 +39,7 @@ where
         state.push_given(constraint);
     }
 
+    let mut variance_recipe = None;
     match result.strategy {
         DeriveStrategy::FieldConstraints { data_file, data_id, derived_type, class } => {
             tools::emit_superclass_constraints(
@@ -84,7 +88,7 @@ where
                 result.class_id,
                 &result.arguments,
             )?;
-            variance::generate_variance_constraints(
+            let recipe = variance::generate_variance_constraints(
                 state,
                 context,
                 data_file,
@@ -92,12 +96,25 @@ where
                 derived_type,
                 config,
             )?;
+            if matches!(
+                derive_dispatch(context, result.class_file, result.class_id),
+                DeriveDispatch::Functor
+            ) && recipe.valid
+            {
+                variance_recipe = Some(recipe);
+            }
         }
     }
 
     if let tools::ConstraintReport::Solved = tools::solve_and_report_constraints(state, context)? {
-        generate::generate_instance(state, context, result)?;
-        tools::solve_and_report_constraints(state, context)?;
+        let declaration =
+            generate::generate_instance(state, context, result, variance_recipe.as_ref())?;
+        if let tools::ConstraintReport::Solved =
+            tools::solve_and_report_constraints(state, context)?
+            && let Some(declaration) = declaration
+        {
+            state.checked.tree.insert_term(result.item_id, declaration);
+        }
     }
 
     Ok(())

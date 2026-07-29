@@ -711,6 +711,21 @@ where
     }
 }
 
+pub fn decompose_type_application<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    type_id: TypeId,
+) -> QueryResult<Option<(TypeId, TypeId)>>
+where
+    Q: ExternalQueries,
+{
+    let type_id = normalise::expand(state, context, type_id)?;
+    let Type::Application(function, argument) = context.lookup_type(type_id) else {
+        return Ok(None);
+    };
+    Ok(Some((function, argument)))
+}
+
 pub fn lookup_file_roles<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
