@@ -1,10 +1,6 @@
-use analyzer::{common, position};
 use async_lsp::LanguageClient;
-use diagnostics::{DiagnosticsContext, ToDiagnostics};
 use files::FileId;
-use itertools::Itertools;
-use lsp_types::*;
-use syntax::TextSize;
+use lsp_types::{PublishDiagnosticsParams, Url};
 
 use crate::lsp::error::LspError;
 use crate::lsp::{State, StateSnapshot};
@@ -34,92 +30,12 @@ fn collect_diagnostics_core(
     mut snapshot: StateSnapshot,
     CollectDiagnostics(id): CollectDiagnostics,
 ) -> Result<(), LspError> {
-    let content = snapshot.engine.content(id);
-
-    let (parsed, _) = snapshot.engine.parsed(id)?;
-    let root = parsed.syntax_node();
-
-    let stabilized = snapshot.engine.stabilized(id)?;
-    let indexed = snapshot.engine.indexed(id)?;
-    let resolved = snapshot.engine.resolved(id)?;
-    let lowered = snapshot.engine.lowered(id)?;
-    let checked = snapshot.engine.checked(id)?;
-
-    let uri = snapshot.with_analyzer_context(|context| common::file_uri(context, id))?;
-
-    let context = DiagnosticsContext::new(
-        &snapshot.engine,
-        &content,
-        &root,
-        &stabilized,
-        &indexed,
-        &lowered,
-        &checked,
-    );
-
-    let mut all_diagnostics = vec![];
-
-    for error in &lowered.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    for error in &resolved.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    for error in &checked.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    let to_position = |offset: u32| {
-        let position = position::offset_to_utf8_position(&content, TextSize::from(offset))?;
-        position::utf8_position_to_protocol(&content, position, snapshot.position_encoding)
-    };
-
-    let diagnostics = all_diagnostics
-        .iter()
-        .filter_map(|diagnostic| {
-            let start = to_position(diagnostic.span.start)?;
-            let end = to_position(diagnostic.span.end)?;
-            let range = Range { start, end };
-
-            let severity = match diagnostic.severity {
-                diagnostics::Severity::Error => DiagnosticSeverity::ERROR,
-                diagnostics::Severity::Warning => DiagnosticSeverity::WARNING,
-            };
-
-            let related_information = diagnostic.related.iter().filter_map(|related| {
-                let start = to_position(related.span.start)?;
-                let end = to_position(related.span.end)?;
-                Some(DiagnosticRelatedInformation {
-                    location: Location { uri: uri.clone(), range: Range { start, end } },
-                    message: related.message.clone(),
-                })
-            });
-
-            let related_information = related_information.collect_vec();
-
-            Some(Diagnostic {
-                range,
-                severity: Some(severity),
-                code: Some(NumberOrString::String(diagnostic.code.to_string())),
-                code_description: None,
-                source: Some(format!("analyzer/{}", diagnostic.source)),
-                message: diagnostic.message.clone(),
-                related_information: if related_information.is_empty() {
-                    None
-                } else {
-                    Some(related_information)
-                },
-                tags: None,
-                data: None,
-            })
-        })
-        .collect();
+    let collected = snapshot
+        .with_analyzer_context(|context| analyzer::diagnostics::implementation(context, id))?;
 
     snapshot.client.publish_diagnostics(PublishDiagnosticsParams {
-        uri,
-        diagnostics,
+        uri: collected.uri,
+        diagnostics: collected.diagnostics,
         version: None,
     })?;
 

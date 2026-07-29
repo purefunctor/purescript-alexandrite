@@ -29,6 +29,7 @@ version = "0.1.0"
 dependencies = [
  "building-types",
  "checking",
+ "diagnostics",
  "files",
  "indexing",
  "insta",
@@ -1844,7 +1845,6 @@ dependencies = [
  "building",
  "checking",
  "clap",
- "diagnostics",
  "documentation",
  "files",
  "globset",
@@ -1865,7 +1865,6 @@ dependencies = [
  "smol_str",
  "spago",
  "stabilizing",
- "syntax",
  "tempfile",
  "thiserror",
  "tokio",
