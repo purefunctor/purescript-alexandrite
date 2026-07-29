@@ -3,27 +3,27 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Choice :: Type -> Type
+data Choice :: Prim.Type -> Prim.Type
 data Choice @a
-  | Empty :: Choice a
-  | One :: a -> Choice a
-  | Pair :: a -> a -> Choice a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+  | Pair :: a -> a -> Main.Choice a
 
-checked :: Choice Int -> Int
+checked :: Main.Choice Prim.Int -> Prim.Int
 checked = \choice ->
   case choice of
     Empty -> 0
     (One value) -> value
     (Pair left _) -> left
 
-inferred :: Choice Int -> Int
+inferred :: Main.Choice Prim.Int -> Prim.Int
 inferred = \choice ->
   case choice of
     Empty -> 0
     (One value) -> value
     (Pair left _) -> left
 
-multiple :: Choice Int -> Choice Int -> Int
+multiple :: Main.Choice Prim.Int -> Main.Choice Prim.Int -> Prim.Int
 multiple = \first -> \second ->
   case first, second of
     (One left), (One _) -> left
@@ -31,7 +31,7 @@ multiple = \first -> \second ->
     _, (One right) -> right
     _, _ -> 0
 
-partial :: forall t. Partial => Choice t -> t
+partial :: forall t. Prim.Partial => Main.Choice t -> t
 partial = \{trivial} -> \choice ->
   case choice of
     (One value) -> value

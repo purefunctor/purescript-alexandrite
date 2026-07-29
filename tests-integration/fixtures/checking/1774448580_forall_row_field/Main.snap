@@ -1,12 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-Test :: Row Type
+Test :: Prim.Row Prim.Type
 
 Synonyms
-type Test = ( test :: forall (a :: Type). (a :: Type) )
+type Test = ( test :: forall (a :: Prim.Type). (a :: Prim.Type) )

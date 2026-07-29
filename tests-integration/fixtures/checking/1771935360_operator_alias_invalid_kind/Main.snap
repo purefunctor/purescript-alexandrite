@@ -6,8 +6,8 @@ expression: report
 Terms
 
 Types
-Identity :: forall (t :: Type). (t :: Type) -> (t :: Type)
-+ :: forall (t :: Type). (t :: Type) -> (t :: Type)
+Identity :: forall (t :: Prim.Type). (t :: Prim.Type) -> (t :: Prim.Type)
++ :: forall (t :: Prim.Type). (t :: Prim.Type) -> (t :: Prim.Type)
 
 Synonyms
-type Identity a = (a :: (t :: Type))
+type Identity a = (a :: (t :: Prim.Type))

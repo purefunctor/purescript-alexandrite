@@ -1,14 +1,18 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-eq :: forall (@a :: Type). Eq (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean
+eq ::
+  forall (@a :: Prim.Type).
+    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
 
 Types
-Eq :: Type -> Constraint
+Eq :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Eq (a :: Type)
-  eq :: forall (@a :: Type). Eq (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean
+class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
+  eq ::
+  forall (@a :: Prim.Type).
+    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean

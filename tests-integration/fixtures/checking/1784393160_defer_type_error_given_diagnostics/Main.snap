@@ -4,21 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-value :: forall (@a :: Type). Value (a :: Type) => (a :: Type)
-guardedFailure :: Fail (Text "failure was demanded") => Int
-useFailure :: Int
-guardedWarning :: Warn (Text "warning was demanded") => Int
-useWarning :: Int
+value :: forall (@a :: Prim.Type). Main.Value (a :: Prim.Type) => (a :: Prim.Type)
+guardedFailure :: Prim.TypeError.Fail (Prim.TypeError.Text "failure was demanded") => Prim.Int
+useFailure :: Prim.Int
+guardedWarning :: Prim.TypeError.Warn (Prim.TypeError.Text "warning was demanded") => Prim.Int
+useWarning :: Prim.Int
 
 Types
-Value :: Type -> Constraint
+Value :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Value (a :: Type)
-  value :: forall (@a :: Type). Value (a :: Type) => (a :: Type)
+class forall (a :: Prim.Type). Main.Value (a :: Prim.Type)
+  value :: forall (@a :: Prim.Type). Main.Value (a :: Prim.Type) => (a :: Prim.Type)
 
 Instances
-instance Value Int
+instance Main.Value Prim.Int
 
 Diagnostics
 error[CustomFailure]: failure was demanded

@@ -5,33 +5,40 @@ expression: report
 ---
 Terms
 assertLesser ::
-  forall (l :: Int) (r :: Int).
-    Compare (l :: Int) (r :: Int) LT => Proxy @(Row Int) ( left :: (l :: Int), right :: (r :: Int) )
+  forall (l :: Prim.Int) (r :: Prim.Int).
+    Prim.Int.Compare (l :: Prim.Int) (r :: Prim.Int) Prim.Ordering.LT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (l :: Prim.Int), right :: (r :: Prim.Int) )
 assertGreater ::
-  forall (l :: Int) (r :: Int).
-    Compare (l :: Int) (r :: Int) GT => Proxy @(Row Int) ( left :: (l :: Int), right :: (r :: Int) )
+  forall (l :: Prim.Int) (r :: Prim.Int).
+    Prim.Int.Compare (l :: Prim.Int) (r :: Prim.Int) Prim.Ordering.GT =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (l :: Prim.Int), right :: (r :: Prim.Int) )
 assertEqual ::
-  forall (l :: Int) (r :: Int).
-    Compare (l :: Int) (r :: Int) EQ => Proxy @(Row Int) ( left :: (l :: Int), right :: (r :: Int) )
+  forall (l :: Prim.Int) (r :: Prim.Int).
+    Prim.Int.Compare (l :: Prim.Int) (r :: Prim.Int) Prim.Ordering.EQ =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (l :: Prim.Int), right :: (r :: Prim.Int) )
 transLt ::
-  forall (m :: Int) (n :: Int) (p :: Int).
-    Compare (m :: Int) (n :: Int) LT =>
-    Compare (n :: Int) (p :: Int) LT =>
-    Proxy @Int (n :: Int) -> Proxy @(Row Int) ( left :: (m :: Int), right :: (p :: Int) )
+  forall (m :: Prim.Int) (n :: Prim.Int) (p :: Prim.Int).
+    Prim.Int.Compare (m :: Prim.Int) (n :: Prim.Int) Prim.Ordering.LT =>
+    Prim.Int.Compare (n :: Prim.Int) (p :: Prim.Int) Prim.Ordering.LT =>
+    Type.Proxy.Proxy @Prim.Int (n :: Prim.Int) ->
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (m :: Prim.Int), right :: (p :: Prim.Int) )
 transLtEq ::
-  forall (m :: Int) (n :: Int) (p :: Int).
-    Compare (m :: Int) (n :: Int) LT =>
-    Compare (n :: Int) (p :: Int) EQ =>
-    Proxy @Int (n :: Int) -> Proxy @(Row Int) ( left :: (m :: Int), right :: (p :: Int) )
+  forall (m :: Prim.Int) (n :: Prim.Int) (p :: Prim.Int).
+    Prim.Int.Compare (m :: Prim.Int) (n :: Prim.Int) Prim.Ordering.LT =>
+    Prim.Int.Compare (n :: Prim.Int) (p :: Prim.Int) Prim.Ordering.EQ =>
+    Type.Proxy.Proxy @Prim.Int (n :: Prim.Int) ->
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (m :: Prim.Int), right :: (p :: Prim.Int) )
 transEqGt ::
-  forall (m :: Int) (n :: Int) (p :: Int).
-    Compare (m :: Int) (n :: Int) EQ =>
-    Compare (n :: Int) (p :: Int) GT =>
-    Proxy @Int (n :: Int) -> Proxy @(Row Int) ( left :: (m :: Int), right :: (p :: Int) )
+  forall (m :: Prim.Int) (n :: Prim.Int) (p :: Prim.Int).
+    Prim.Int.Compare (m :: Prim.Int) (n :: Prim.Int) Prim.Ordering.EQ =>
+    Prim.Int.Compare (n :: Prim.Int) (p :: Prim.Int) Prim.Ordering.GT =>
+    Type.Proxy.Proxy @Prim.Int (n :: Prim.Int) ->
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (m :: Prim.Int), right :: (p :: Prim.Int) )
 transSymmEq ::
-  forall (m :: Int) (n :: Int) (p :: Int).
-    Compare (n :: Int) (m :: Int) EQ =>
-    Compare (n :: Int) (p :: Int) EQ =>
-    Proxy @Int (n :: Int) -> Proxy @(Row Int) ( left :: (m :: Int), right :: (p :: Int) )
+  forall (m :: Prim.Int) (n :: Prim.Int) (p :: Prim.Int).
+    Prim.Int.Compare (n :: Prim.Int) (m :: Prim.Int) Prim.Ordering.EQ =>
+    Prim.Int.Compare (n :: Prim.Int) (p :: Prim.Int) Prim.Ordering.EQ =>
+    Type.Proxy.Proxy @Prim.Int (n :: Prim.Int) ->
+    Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: (m :: Prim.Int), right :: (p :: Prim.Int) )
 
 Types

@@ -5,59 +5,63 @@ expression: report
 ---
 Terms
 recordDef ::
-  forall (@token :: Type) (@row :: Row Type).
-    RecordDef (token :: Type) (row :: Row Type) =>
+  forall (@token :: Prim.Type) (@row :: Prim.Row Prim.Type).
+    Main.RecordDef (token :: Prim.Type) (row :: Prim.Row Prim.Type) =>
     { handle ::
-        forall (a :: Type).
-          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+        forall (a :: Prim.Type).
+          Main.Encode (token :: Prim.Type) (a :: Prim.Type) =>
+          (token :: Prim.Type) -> Type.Proxy.Proxy @Prim.Type (a :: Prim.Type) -> Prim.String
     } ->
-    (token :: Type) ->
-    {| (row :: Row Type) } ->
-    String
+    (token :: Prim.Type) ->
+    {| (row :: Prim.Row Prim.Type) } ->
+    Prim.String
 recordDefRowList ::
-  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
-    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+  forall (@token :: Prim.Type) (@row :: Prim.Row Prim.Type) (@rowList :: Prim.Type).
+    Main.RecordDefRowList (token :: Prim.Type) (row :: Prim.Row Prim.Type) (rowList :: Prim.Type) =>
     { handle ::
-        forall (a :: Type).
-          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+        forall (a :: Prim.Type).
+          Main.Encode (token :: Prim.Type) (a :: Prim.Type) =>
+          (token :: Prim.Type) -> Type.Proxy.Proxy @Prim.Type (a :: Prim.Type) -> Prim.String
     } ->
-    (token :: Type) ->
-    {| (row :: Row Type) } ->
-    Proxy @Type (rowList :: Type) ->
-    String
+    (token :: Prim.Type) ->
+    {| (row :: Prim.Row Prim.Type) } ->
+    Type.Proxy.Proxy @Prim.Type (rowList :: Prim.Type) ->
+    Prim.String
 
 Types
-Encode :: Type -> Type -> Constraint
-RecordDef :: Type -> Row Type -> Constraint
-RecordDefRowList :: Type -> Row Type -> Type -> Constraint
+Encode :: Prim.Type -> Prim.Type -> Prim.Constraint
+RecordDef :: Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
+RecordDefRowList :: Prim.Type -> Prim.Row Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (token :: Type) (a :: Type). Encode (token :: Type) (a :: Type)
-class forall (token :: Type) (row :: Row Type). RecordDef (token :: Type) (row :: Row Type)
+class forall (token :: Prim.Type) (a :: Prim.Type). Main.Encode (token :: Prim.Type) (a :: Prim.Type)
+class forall (token :: Prim.Type) (row :: Prim.Row Prim.Type). Main.RecordDef (token :: Prim.Type) (row :: Prim.Row Prim.Type)
   recordDef ::
-  forall (@token :: Type) (@row :: Row Type).
-    RecordDef (token :: Type) (row :: Row Type) =>
+  forall (@token :: Prim.Type) (@row :: Prim.Row Prim.Type).
+    Main.RecordDef (token :: Prim.Type) (row :: Prim.Row Prim.Type) =>
     { handle ::
-        forall (a :: Type).
-          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+        forall (a :: Prim.Type).
+          Main.Encode (token :: Prim.Type) (a :: Prim.Type) =>
+          (token :: Prim.Type) -> Type.Proxy.Proxy @Prim.Type (a :: Prim.Type) -> Prim.String
     } ->
-    (token :: Type) ->
-    {| (row :: Row Type) } ->
-    String
-class forall (token :: Type) (row :: Row Type) (rowList :: Type). RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type)
+    (token :: Prim.Type) ->
+    {| (row :: Prim.Row Prim.Type) } ->
+    Prim.String
+class forall (token :: Prim.Type) (row :: Prim.Row Prim.Type) (rowList :: Prim.Type). Main.RecordDefRowList (token :: Prim.Type) (row :: Prim.Row Prim.Type) (rowList :: Prim.Type)
   recordDefRowList ::
-  forall (@token :: Type) (@row :: Row Type) (@rowList :: Type).
-    RecordDefRowList (token :: Type) (row :: Row Type) (rowList :: Type) =>
+  forall (@token :: Prim.Type) (@row :: Prim.Row Prim.Type) (@rowList :: Prim.Type).
+    Main.RecordDefRowList (token :: Prim.Type) (row :: Prim.Row Prim.Type) (rowList :: Prim.Type) =>
     { handle ::
-        forall (a :: Type).
-          Encode (token :: Type) (a :: Type) => (token :: Type) -> Proxy @Type (a :: Type) -> String
+        forall (a :: Prim.Type).
+          Main.Encode (token :: Prim.Type) (a :: Prim.Type) =>
+          (token :: Prim.Type) -> Type.Proxy.Proxy @Prim.Type (a :: Prim.Type) -> Prim.String
     } ->
-    (token :: Type) ->
-    {| (row :: Row Type) } ->
-    Proxy @Type (rowList :: Type) ->
-    String
+    (token :: Prim.Type) ->
+    {| (row :: Prim.Row Prim.Type) } ->
+    Type.Proxy.Proxy @Prim.Type (rowList :: Prim.Type) ->
+    Prim.String
 
 Instances
-instance forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
-  RecordDefRowList (t :: Type) (t1 :: Row Type) (t2 :: Type) =>
-  RecordDef (t :: Type) (t1 :: Row Type)
+instance forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+  Main.RecordDefRowList (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type) =>
+  Main.RecordDef (t :: Prim.Type) (t1 :: Prim.Row Prim.Type)

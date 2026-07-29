@@ -4,20 +4,24 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unit :: Unit
-pure :: forall (a :: Type). (a :: Type) -> Effect (a :: Type)
+unit :: Main.Unit
+pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
 map ::
-  forall (a :: Type) (b :: Type).
-    ((a :: Type) -> (b :: Type)) -> Effect (a :: Type) -> Effect (b :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    Main.Effect (a :: Prim.Type) ->
+    Main.Effect (b :: Prim.Type)
 apply ::
-  forall (a :: Type) (b :: Type).
-    Effect ((a :: Type) -> (b :: Type)) -> Effect (a :: Type) -> Effect (b :: Type)
-thing1 :: Effect String
-test :: Effect Unit
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Main.Effect ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    Main.Effect (a :: Prim.Type) ->
+    Main.Effect (b :: Prim.Type)
+thing1 :: Main.Effect Prim.String
+test :: Main.Effect Main.Unit
 
 Types
-Effect :: Type -> Type
-Unit :: Type
+Effect :: Prim.Type -> Prim.Type
+Unit :: Prim.Type
 
 Roles
 Effect = [Nominal]

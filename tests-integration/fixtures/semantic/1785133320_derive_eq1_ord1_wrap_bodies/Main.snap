@@ -3,34 +3,36 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Wrap :: forall (k :: Type). (k -> Type) -> k -> Type
+data Wrap :: forall (k :: Prim.Type). (k -> Prim.Type) -> k -> Prim.Type
 data Wrap @f @a
-  | Wrap :: f a -> Wrap f a
+  | Wrap :: f a -> Main.Wrap f a
 
 dictionary eqWrap ::
   forall t t1.
-  { eq1Dict :: Eq1 t } =>
-  { eqDict :: Eq t1 } =>
-  Eq (Wrap @Type t t1)
+  { eq1Dict :: Data.Eq.Eq1 t } =>
+  { eqDict :: Data.Eq.Eq t1 } =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type t t1)
   where
-  eq :: Wrap @Type t t1 -> Wrap @Type t t1 -> Boolean
+  eq :: Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Prim.Boolean
   eq = \left right ->
   case left, right of
     (Wrap left0), (Wrap right0) ->
       if eq1 @t {eq1Dict} @t1 {eqDict} left0 right0 then true else false
 
-dictionary eq1Wrap :: forall t. { eq1Dict :: Eq1 t } => Eq1 (Wrap @Type t) where
-  eq1 :: forall (t1 :: Type). Eq t1 => Wrap @Type t t1 -> Wrap @Type t t1 -> Boolean
-  eq1 = \{eqDict} -> eq @(Wrap @Type t t1) {eqWrap {eq1Dict} {eqDict}}
+dictionary eq1Wrap :: forall t. { eq1Dict :: Data.Eq.Eq1 t } => Data.Eq.Eq1 (Main.Wrap @Prim.Type t)
+  where
+  eq1 :: forall (t1 :: Prim.Type).
+  Data.Eq.Eq t1 => Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Prim.Boolean
+  eq1 = \{eqDict} -> eq @(Main.Wrap @Prim.Type t t1) {eqWrap {eq1Dict} {eqDict}}
 
 dictionary ordWrap ::
   forall t t1.
-  { ord1Dict :: Ord1 t } =>
-  { ordDict :: Ord t1 } =>
-  Ord (Wrap @Type t t1)
+  { ord1Dict :: Data.Ord.Ord1 t } =>
+  { ordDict :: Data.Ord.Ord t1 } =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type t t1)
   where
   superclass eqDict = eqWrap {ord1Dict.eq1Dict} {ordDict.eqDict}
-  compare :: Wrap @Type t t1 -> Wrap @Type t t1 -> Ordering
+  compare :: Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Data.Ordering.Ordering
   compare = \left right ->
   case left, right of
     (Wrap left0), (Wrap right0) ->
@@ -38,7 +40,13 @@ dictionary ordWrap ::
         EQ -> EQ
         ordering -> ordering
 
-dictionary ord1Wrap :: forall t. { ord1Dict :: Ord1 t } => Ord1 (Wrap @Type t) where
+dictionary ord1Wrap ::
+  forall t.
+  { ord1Dict :: Data.Ord.Ord1 t } =>
+  Data.Ord.Ord1 (Main.Wrap @Prim.Type t)
+  where
   superclass eq1Dict = eq1Wrap {ord1Dict.eq1Dict}
-  compare1 :: forall (t1 :: Type). Ord t1 => Wrap @Type t t1 -> Wrap @Type t t1 -> Ordering
-  compare1 = \{ordDict} -> compare @(Wrap @Type t t1) {ordWrap {ord1Dict} {ordDict}}
+  compare1 :: forall (t1 :: Prim.Type).
+  Data.Ord.Ord t1 =>
+  Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Data.Ordering.Ordering
+  compare1 = \{ordDict} -> compare @(Main.Wrap @Prim.Type t t1) {ordWrap {ord1Dict} {ordDict}}

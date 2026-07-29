@@ -6,5 +6,5 @@ expression: report
 identity :: forall @a. a -> a
 identity = \value -> value
 
-test :: Int -> Int
+test :: Prim.Int -> Prim.Int
 test = <error>

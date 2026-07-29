@@ -4,9 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-tail :: forall (r :: Row Type). {| (r :: Row Type) } -> Int
-nonTail :: forall (r :: Row Type). {| (r :: Row Type) } -> Int
-asTail :: Array (forall (r :: Row Type). {| (r :: Row Type) } -> Int)
-asNonTail :: Array (forall (r :: Row Type). {| (r :: Row Type) } -> Int)
+tail :: forall (r :: Prim.Row Prim.Type). {| (r :: Prim.Row Prim.Type) } -> Prim.Int
+nonTail :: forall (r :: Prim.Row Prim.Type). {| (r :: Prim.Row Prim.Type) } -> Prim.Int
+asTail :: Prim.Array (forall (r :: Prim.Row Prim.Type). {| (r :: Prim.Row Prim.Type) } -> Prim.Int)
+asNonTail ::
+  Prim.Array (forall (r :: Prim.Row Prim.Type). {| (r :: Prim.Row Prim.Type) } -> Prim.Int)
 
 Types

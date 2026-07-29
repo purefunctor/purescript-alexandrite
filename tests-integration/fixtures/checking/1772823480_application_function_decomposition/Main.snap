@@ -4,79 +4,93 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 foldMap ::
-  forall (@f :: Type -> Type).
-    Foldable (f :: Type -> Type) =>
-    (forall (a :: Type) (m :: Type).
-      ((a :: Type) -> (m :: Type)) -> (f :: Type -> Type) (a :: Type) -> (m :: Type))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Foldable (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (m :: Prim.Type).
+      ((a :: Prim.Type) -> (m :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (m :: Prim.Type))
 foldMapWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a :: Type) (m :: Type).
-      ((i :: Type) -> (a :: Type) -> (m :: Type)) -> (f :: Type -> Type) (a :: Type) -> (m :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (m :: Prim.Type).
+      ((i :: Prim.Type) -> (a :: Prim.Type) -> (m :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (m :: Prim.Type))
 foldlWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((i :: Type) -> (b :: Type) -> (a :: Type) -> (b :: Type)) ->
-      (b :: Type) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (b :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((i :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type) -> (b :: Prim.Type)) ->
+      (b :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (b :: Prim.Type))
 foldrWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((i :: Type) -> (a :: Type) -> (b :: Type) -> (b :: Type)) ->
-      (b :: Type) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (b :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((i :: Prim.Type) -> (a :: Prim.Type) -> (b :: Prim.Type) -> (b :: Prim.Type)) ->
+      (b :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (b :: Prim.Type))
 NonEmpty ::
-  forall (@f :: Type -> Type) (@a :: Type).
-    (a :: Type) -> (f :: Type -> Type) (a :: Type) -> NonEmpty (f :: Type -> Type) (a :: Type)
+  forall (@f :: Prim.Type -> Prim.Type) (@a :: Prim.Type).
+    (a :: Prim.Type) ->
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    Main.NonEmpty (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
 
 Types
-Maybe :: Type -> Type
-Foldable :: (Type -> Type) -> Constraint
-FoldableWithIndex :: Type -> (Type -> Type) -> Constraint
-NonEmpty :: (Type -> Type) -> Type -> Type
+Maybe :: Prim.Type -> Prim.Type
+Foldable :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+FoldableWithIndex :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+NonEmpty :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
 
 Classes
-class forall (f :: Type -> Type). Foldable (f :: Type -> Type)
+class forall (f :: Prim.Type -> Prim.Type). Main.Foldable (f :: Prim.Type -> Prim.Type)
   foldMap ::
-  forall (@f :: Type -> Type).
-    Foldable (f :: Type -> Type) =>
-    (forall (a :: Type) (m :: Type).
-      ((a :: Type) -> (m :: Type)) -> (f :: Type -> Type) (a :: Type) -> (m :: Type))
-class forall (i :: Type) (f :: Type -> Type). Foldable (f :: Type -> Type) <= FoldableWithIndex (i :: Type) (f :: Type -> Type)
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Foldable (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (m :: Prim.Type).
+      ((a :: Prim.Type) -> (m :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (m :: Prim.Type))
+class forall (i :: Prim.Type) (f :: Prim.Type -> Prim.Type). Main.Foldable (f :: Prim.Type -> Prim.Type) <= Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type)
   foldMapWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a :: Type) (m :: Type).
-      ((i :: Type) -> (a :: Type) -> (m :: Type)) -> (f :: Type -> Type) (a :: Type) -> (m :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (m :: Prim.Type).
+      ((i :: Prim.Type) -> (a :: Prim.Type) -> (m :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (m :: Prim.Type))
   foldlWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a1 :: Type) (b :: Type).
-      ((i :: Type) -> (b :: Type) -> (a1 :: Type) -> (b :: Type)) ->
-      (b :: Type) ->
-      (f :: Type -> Type) (a1 :: Type) ->
-      (b :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a1 :: Prim.Type) (b :: Prim.Type).
+      ((i :: Prim.Type) -> (b :: Prim.Type) -> (a1 :: Prim.Type) -> (b :: Prim.Type)) ->
+      (b :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a1 :: Prim.Type) ->
+      (b :: Prim.Type))
   foldrWithIndex ::
-  forall (@i :: Type) (@f :: Type -> Type).
-    FoldableWithIndex (i :: Type) (f :: Type -> Type) =>
-    (forall (a2 :: Type) (b1 :: Type).
-      ((i :: Type) -> (a2 :: Type) -> (b1 :: Type) -> (b1 :: Type)) ->
-      (b1 :: Type) ->
-      (f :: Type -> Type) (a2 :: Type) ->
-      (b1 :: Type))
+  forall (@i :: Prim.Type) (@f :: Prim.Type -> Prim.Type).
+    Main.FoldableWithIndex (i :: Prim.Type) (f :: Prim.Type -> Prim.Type) =>
+    (forall (a2 :: Prim.Type) (b1 :: Prim.Type).
+      ((i :: Prim.Type) -> (a2 :: Prim.Type) -> (b1 :: Prim.Type) -> (b1 :: Prim.Type)) ->
+      (b1 :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (a2 :: Prim.Type) ->
+      (b1 :: Prim.Type))
 
 Instances
-instance forall (t :: Type -> Type). Foldable (t :: Type -> Type) => Foldable (NonEmpty (t :: Type -> Type))
-instance forall (t :: Type) (t1 :: Type -> Type).
-  FoldableWithIndex (t :: Type) (t1 :: Type -> Type) =>
-  FoldableWithIndex (Maybe (t :: Type)) (NonEmpty (t1 :: Type -> Type))
+instance forall (t :: Prim.Type -> Prim.Type).
+  Main.Foldable (t :: Prim.Type -> Prim.Type) =>
+  Main.Foldable (Main.NonEmpty (t :: Prim.Type -> Prim.Type))
+instance forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Main.FoldableWithIndex (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type) =>
+  Main.FoldableWithIndex
+    (Main.Maybe (t :: Prim.Type))
+    (Main.NonEmpty (t1 :: Prim.Type -> Prim.Type))
 
 Roles
 Maybe = [Representational]

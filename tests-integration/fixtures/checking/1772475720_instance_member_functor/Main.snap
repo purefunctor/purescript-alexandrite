@@ -5,30 +5,30 @@ expression: report
 ---
 Terms
 map ::
-  forall (@f :: Type -> Type).
-    Functor (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (f :: Type -> Type) (b :: Type))
-Box :: forall (@a :: Type). (a :: Type) -> Box (a :: Type)
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Functor (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
 
 Types
-Functor :: (Type -> Type) -> Constraint
-Box :: Type -> Type
+Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Box :: Prim.Type -> Prim.Type
 
 Classes
-class forall (f :: Type -> Type). Functor (f :: Type -> Type)
+class forall (f :: Prim.Type -> Prim.Type). Main.Functor (f :: Prim.Type -> Prim.Type)
   map ::
-  forall (@f :: Type -> Type).
-    Functor (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (f :: Type -> Type) (b :: Type))
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Functor (f :: Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type).
+      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
 
 Instances
-instance Functor Box
+instance Main.Functor Main.Box
 
 Roles
 Box = [Representational]

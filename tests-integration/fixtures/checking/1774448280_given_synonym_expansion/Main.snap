@@ -4,37 +4,46 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
 coerceRecord ::
-  forall (a :: Row Type) (b :: Row Type).
-    TypeEquals @(Row Type) (a :: Row Type) (b :: Row Type) =>
-    {| (a :: Row Type) } -> {| (b :: Row Type) }
+  forall (a :: Prim.Row Prim.Type) (b :: Prim.Row Prim.Type).
+    Main.TypeEquals @(Prim.Row Prim.Type) (a :: Prim.Row Prim.Type) (b :: Prim.Row Prim.Type) =>
+    {| (a :: Prim.Row Prim.Type) } -> {| (b :: Prim.Row Prim.Type) }
 transform ::
-  forall (a :: Row Type).
-    TypeEquals @(Row Type) (a :: Row Type) Include =>
-    {| (a :: Row Type) } -> { x :: Int, y :: String, z :: Boolean }
-test :: { x :: Int, y :: String, z :: Boolean }
+  forall (a :: Prim.Row Prim.Type).
+    Main.TypeEquals @(Prim.Row Prim.Type) (a :: Prim.Row Prim.Type) Main.Include =>
+    {| (a :: Prim.Row Prim.Type) } -> { x :: Prim.Int, y :: Prim.String, z :: Prim.Boolean }
+test :: { x :: Prim.Int, y :: Prim.String, z :: Prim.Boolean }
 
 Types
 RowApply ::
-  forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-+ :: forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-IncludeX :: Row Type -> Row Type
-IncludeY :: Row Type -> Row Type
-IncludeZ :: Row Type -> Row Type
-Include :: Row Type
-TypeEquals :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
++ ::
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
+IncludeX :: Prim.Row Prim.Type -> Prim.Row Prim.Type
+IncludeY :: Prim.Row Prim.Type -> Prim.Row Prim.Type
+IncludeZ :: Prim.Row Prim.Type -> Prim.Row Prim.Type
+Include :: Prim.Row Prim.Type
+TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
 
 Synonyms
-type RowApply f a = (f :: Row (k :: Type) -> Row (k :: Type)) (a :: Row (k :: Type))
-type IncludeX r = ( x :: Int | (r :: Row Type) )
-type IncludeY r = ( y :: String | (r :: Row Type) )
-type IncludeZ r = ( z :: Boolean | (r :: Row Type) )
-type Include = RowApply @Type IncludeX (RowApply @Type IncludeY (RowApply @Type IncludeZ ()))
+type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type IncludeX r = ( x :: Prim.Int | (r :: Prim.Row Prim.Type) )
+type IncludeY r = ( y :: Prim.String | (r :: Prim.Row Prim.Type) )
+type IncludeZ r = ( z :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
+type Include = Main.RowApply @Prim.Type
+  Main.IncludeX
+  (Main.RowApply @Prim.Type Main.IncludeY (Main.RowApply @Prim.Type Main.IncludeZ ()))
 
 Classes
-class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEquals @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
 
 Instances
-instance forall (t :: Type) (t1 :: (t :: Type)).
-  TypeEquals @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.TypeEquals @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))

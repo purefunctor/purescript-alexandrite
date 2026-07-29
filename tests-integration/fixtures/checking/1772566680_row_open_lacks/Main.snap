@@ -4,19 +4,24 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 lacksOpen ::
-  forall (r :: Row Type).
-    Lacks @Type "missing" ( a :: Int, b :: String | (r :: Row Type) ) =>
-    Proxy @(Row Type) (r :: Row Type) -> Int
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type
+      "missing"
+      ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
 lacksPresent ::
-  forall (r :: Row Type).
-    Lacks @Type "a" ( a :: Int | (r :: Row Type) ) => Proxy @(Row Type) (r :: Row Type) -> Int
-empty :: forall (t :: Type). Proxy @(Row (t :: Type)) ()
-forceSolve :: { lacksOpen :: Int, lacksPresent :: Int }
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
+empty :: forall (t :: Prim.Type). Main.Proxy @(Prim.Row (t :: Prim.Type)) ()
+forceSolve :: { lacksOpen :: Prim.Int, lacksPresent :: Prim.Int }
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

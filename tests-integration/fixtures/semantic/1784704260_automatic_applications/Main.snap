@@ -3,20 +3,20 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Default :: Type -> Constraint
+interface Default :: Prim.Type -> Prim.Constraint
 interface Default a where
   default :: a
 
-interface First :: Type -> Constraint
+interface First :: Prim.Type -> Prim.Constraint
 interface First a where
 
-interface Second :: Type -> Constraint
+interface Second :: Prim.Type -> Prim.Constraint
 interface Second a where
 
-useDefault :: forall a. Default a => a
+useDefault :: forall a. Main.Default a => a
 useDefault = \{defaultDict} -> default @a {defaultDict}
 
-foreign import interleaved :: forall a. First a => (forall b. Second b => a -> b)
+foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
 
-useInterleaved :: forall a b. First a => Second b => a -> b
+useInterleaved :: forall a b. Main.First a => Main.Second b => a -> b
 useInterleaved = \{firstDict} -> \{secondDict} -> interleaved @a {firstDict} @b {secondDict}

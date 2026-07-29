@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-test :: { a :: Int, b :: Int } -> Int
+test :: { a :: Prim.Int, b :: Prim.Int } -> Prim.Int
 
 Types

@@ -5,19 +5,21 @@ expression: report
 ---
 Terms
 convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Types
-Convert :: Type -> Type -> Constraint
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
   convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance Convert String Int
-instance Convert String Boolean
+instance Main.Convert Prim.String Prim.Int
+instance Main.Convert Prim.String Prim.Boolean
 
 Diagnostics
 error[OverlappingInstances]: Overlapping type class instances found for: Convert String Boolean

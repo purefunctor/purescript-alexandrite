@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-coerceNominalSame :: Nominal Int -> Nominal Int
-coerceNominalDifferent :: Nominal Int -> Nominal String
+coerceNominalSame :: Main.Nominal Prim.Int -> Main.Nominal Prim.Int
+coerceNominalDifferent :: Main.Nominal Prim.Int -> Main.Nominal Prim.String
 
 Types
-Nominal :: Type -> Type
+Nominal :: Prim.Type -> Prim.Type
 
 Roles
 Nominal = [Nominal]

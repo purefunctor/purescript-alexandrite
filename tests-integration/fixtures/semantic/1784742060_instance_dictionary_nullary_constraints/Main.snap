@@ -3,23 +3,26 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Required :: Type -> Constraint
+interface Required :: Prim.Type -> Prim.Constraint
 interface Required value where
 
-interface Example :: Type -> Constraint
+interface Example :: Prim.Type -> Prim.Constraint
 interface Example a where
-  example :: Boolean
+  example :: Prim.Boolean
 
-implementation :: Fail (Text "first deferred error") => Required Int => Fail (Text "second deferred error") => Boolean
+implementation :: Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") =>
+Main.Required Prim.Int =>
+Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") =>
+Prim.Boolean
 implementation = \{failDict} -> \{requiredDict} -> \{failDict1} -> boolean
 
-foreign import boolean :: Boolean
+foreign import boolean :: Prim.Boolean
 
 dictionary exampleInt ::
-  { failDict :: Fail (Text "first deferred error") } =>
-  { requiredDict :: Required Int } =>
-  { failDict1 :: Fail (Text "second deferred error") } =>
-  Example Int
+  { failDict :: Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") } =>
+  { requiredDict :: Main.Required Prim.Int } =>
+  { failDict1 :: Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") } =>
+  Main.Example Prim.Int
   where
-  example :: Boolean
+  example :: Prim.Boolean
   example = implementation {failDict} {requiredDict} {failDict1}

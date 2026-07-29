@@ -5,24 +5,26 @@ expression: report
 ---
 Terms
 convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-value :: String
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+value :: Prim.String
 
 Types
-Convert :: Type -> Type -> Constraint
-Bar :: Type
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+Bar :: Prim.Type
 
 Synonyms
-type Bar = String
+type Bar = Prim.String
 
 Classes
-class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
   convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance Convert String Bar
-instance Convert String String
+instance Main.Convert Prim.String Main.Bar
+instance Main.Convert Prim.String Prim.String
 
 Diagnostics
 error[OverlappingInstances]: Overlapping type class instances found for: Convert String String

@@ -4,16 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
-first :: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
-second :: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+append ::
+  forall (@a :: Prim.Type).
+    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+first ::
+  forall (t :: Prim.Type). Main.Semigroup (t :: Prim.Type) => (t :: Prim.Type) -> (t :: Prim.Type)
+second ::
+  forall (t :: Prim.Type). Main.Semigroup (t :: Prim.Type) => (t :: Prim.Type) -> (t :: Prim.Type)
 
 Types
-Semigroup :: Type -> Constraint
+Semigroup :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Semigroup (a :: Type)
-  append :: forall (@a :: Type). Semigroup (a :: Type) => (a :: Type) -> (a :: Type) -> (a :: Type)
+class forall (a :: Prim.Type). Main.Semigroup (a :: Prim.Type)
+  append ::
+  forall (@a :: Prim.Type).
+    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
 
 Diagnostics
 error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this recursive function.

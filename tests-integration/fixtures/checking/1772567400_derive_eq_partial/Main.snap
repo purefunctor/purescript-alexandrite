@@ -4,15 +4,20 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
+Left ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Right ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
 
 Types
-Either :: Type -> Type -> Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive forall (t :: Type). Eq (t :: Type) => Eq (Either Int (t :: Type))
-derive forall (t :: Type). Eq (Either Int (t :: Type))
+derive forall (t :: Prim.Type).
+  Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Either Prim.Int (t :: Prim.Type))
+derive forall (t :: Prim.Type). Data.Eq.Eq (Main.Either Prim.Int (t :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]

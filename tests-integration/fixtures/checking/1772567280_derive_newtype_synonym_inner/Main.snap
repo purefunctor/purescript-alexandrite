@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Test :: State -> Test
+Test :: Main.State -> Main.Test
 
 Types
-State :: Type
-Test :: Type
+State :: Prim.Type
+Test :: Prim.Type
 
 Instances
-instance Eq State
+instance Data.Eq.Eq Main.State
 
 Derived
-derive Eq Test
+derive Data.Eq.Eq Main.Test
 
 Roles
 State = []

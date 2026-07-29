@@ -1,17 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-lazyFail :: forall (@a :: Type). LazyFail (a :: Type) => (a :: Type)
+lazyFail :: forall (@a :: Prim.Type). Main.LazyFail (a :: Prim.Type) => (a :: Prim.Type)
 
 Types
-LazyFail :: Type -> Constraint
+LazyFail :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). LazyFail (a :: Type)
-  lazyFail :: forall (@a :: Type). LazyFail (a :: Type) => (a :: Type)
+class forall (a :: Prim.Type). Main.LazyFail (a :: Prim.Type)
+  lazyFail :: forall (@a :: Prim.Type). Main.LazyFail (a :: Prim.Type) => (a :: Prim.Type)
 
 Instances
-instance Fail (Text "LazyFail") => LazyFail Int
+instance Prim.TypeError.Fail (Prim.TypeError.Text "LazyFail") => Main.LazyFail Prim.Int

@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-lessThan :: Int -> Int -> Boolean
-test :: Int -> Int
-test' :: Int -> Int
-test2 :: Int -> Int
-test2' :: Int -> Int
+lessThan :: Prim.Int -> Prim.Int -> Prim.Boolean
+test :: Prim.Int -> Prim.Int
+test' :: Prim.Int -> Prim.Int
+test2 :: Prim.Int -> Prim.Int
+test2' :: Prim.Int -> Prim.Int
 
 Types

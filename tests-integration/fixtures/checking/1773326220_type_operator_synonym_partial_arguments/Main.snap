@@ -7,14 +7,21 @@ Terms
 
 Types
 RowApply ::
-  forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-+ :: forall (k :: Type). (Row (k :: Type) -> Row (k :: Type)) -> Row (k :: Type) -> Row (k :: Type)
-AddField :: Type -> Row Type -> Row Type
-Bad :: Type -> Row Type
-Good :: Type -> Row Type
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
++ ::
+  forall (k :: Prim.Type).
+    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
+    Prim.Row (k :: Prim.Type) ->
+    Prim.Row (k :: Prim.Type)
+AddField :: Prim.Type -> Prim.Row Prim.Type -> Prim.Row Prim.Type
+Bad :: Prim.Type -> Prim.Row Prim.Type
+Good :: Prim.Type -> Prim.Row Prim.Type
 
 Synonyms
-type RowApply f a = (f :: Row (k :: Type) -> Row (k :: Type)) (a :: Row (k :: Type))
-type AddField a r = ( field :: (a :: Type) | (r :: Row Type) )
-type Bad a = RowApply @Type (AddField (a :: Type)) ()
-type Good a = RowApply @Type (AddField (a :: Type)) ()
+type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type AddField a r = ( field :: (a :: Prim.Type) | (r :: Prim.Row Prim.Type) )
+type Bad a = Main.RowApply @Prim.Type (Main.AddField (a :: Prim.Type)) ()
+type Good a = Main.RowApply @Prim.Type (Main.AddField (a :: Prim.Type)) ()

@@ -4,14 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
+Proxy ::
+  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
 coerceProxy ::
-  forall (t :: Type) (t1 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type)).
-    Proxy @(t :: Type) (a :: (t :: Type)) -> Proxy @(t1 :: Type) (b :: (t1 :: Type))
-coerceProxyIntString :: Proxy @Type Int -> Proxy @Type String
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (a :: (t :: Prim.Type)) (b :: (t1 :: Prim.Type)).
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Proxy @(t1 :: Prim.Type) (b :: (t1 :: Prim.Type))
+coerceProxyIntString :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
 
 Types
-Proxy :: forall (t :: Type). (t :: Type) -> Type
+Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

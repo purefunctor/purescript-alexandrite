@@ -4,20 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Age :: Int -> Age
-Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
-coerceProxy :: Proxy @Type Int -> Proxy @Type String
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-coerceMaybe :: Maybe Age -> Maybe Int
-coerceMaybeReverse :: Maybe Int -> Maybe Age
-coerceRecord :: { age :: Age, name :: String } -> { age :: Int, name :: String }
-coerceFunction :: (Int -> Age) -> Int -> Int
+Age :: Prim.Int -> Main.Age
+Proxy ::
+  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+coerceProxy :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+coerceMaybe :: Main.Maybe Main.Age -> Main.Maybe Prim.Int
+coerceMaybeReverse :: Main.Maybe Prim.Int -> Main.Maybe Main.Age
+coerceRecord :: { age :: Main.Age, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+coerceFunction :: (Prim.Int -> Main.Age) -> Prim.Int -> Prim.Int
 
 Types
-Age :: Type
-Proxy :: forall (t :: Type). (t :: Type) -> Type
-Maybe :: Type -> Type
+Age :: Prim.Type
+Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Age = []

@@ -4,29 +4,36 @@ assertion_line: 50
 expression: report
 ---
 Terms
-empty :: forall (@f :: Type -> Type). Empty (f :: Type -> Type) => (f :: Type -> Type) Int
+empty ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
 Vector ::
-  forall (t :: Type) (@n :: (t :: Type)) (@a :: Type).
-    Array (a :: Type) -> Vector @(t :: Type) (n :: (t :: Type)) (a :: Type)
+  forall (t :: Prim.Type) (@n :: (t :: Prim.Type)) (@a :: Prim.Type).
+    Prim.Array (a :: Prim.Type) ->
+    Main.Vector @(t :: Prim.Type) (n :: (t :: Prim.Type)) (a :: Prim.Type)
 InvalidVector ::
-  forall (t :: Type) (@a :: Type) (@n :: (t :: Type)).
-    Array (a :: Type) -> InvalidVector @(t :: Type) (a :: Type) (n :: (t :: Type))
+  forall (t :: Prim.Type) (@a :: Prim.Type) (@n :: (t :: Prim.Type)).
+    Prim.Array (a :: Prim.Type) ->
+    Main.InvalidVector @(t :: Prim.Type) (a :: Prim.Type) (n :: (t :: Prim.Type))
 
 Types
-Empty :: (Type -> Type) -> Constraint
-Vector :: forall (t :: Type). (t :: Type) -> Type -> Type
-InvalidVector :: forall (t :: Type). Type -> (t :: Type) -> Type
+Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Vector :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type -> Prim.Type
+InvalidVector :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
 
 Classes
-class forall (f :: Type -> Type). Empty (f :: Type -> Type)
-  empty :: forall (@f :: Type -> Type). Empty (f :: Type -> Type) => (f :: Type -> Type) Int
+class forall (f :: Prim.Type -> Prim.Type). Main.Empty (f :: Prim.Type -> Prim.Type)
+  empty ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
 
 Instances
-instance Empty Array
+instance Main.Empty Prim.Array
 
 Derived
-derive forall (t :: Type) (t1 :: (t :: Type)). Empty (Vector @(t :: Type) (t1 :: (t :: Type)))
-derive Empty (InvalidVector @Type Int)
+derive forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.Empty (Main.Vector @(t :: Prim.Type) (t1 :: (t :: Prim.Type)))
+derive Main.Empty (Main.InvalidVector @Prim.Type Prim.Int)
 
 Roles
 Vector = [Phantom, Representational]

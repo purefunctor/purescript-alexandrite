@@ -4,10 +4,12 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (t :: Type) (@a :: (t :: Type)). Proxy @(t :: Type) (a :: (t :: Type))
+Proxy ::
+  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
 
 Types
-Proxy :: forall (t :: Type). (t :: Type) -> Type
+Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

@@ -5,22 +5,27 @@ expression: report
 ---
 Terms
 convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-useGiven :: forall (x :: Type). Convert Int (x :: Type) => (x :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+useGiven :: forall (x :: Prim.Type). Main.Convert Prim.Int (x :: Prim.Type) => (x :: Prim.Type)
 relate ::
-  forall (@a :: Type) (@b :: Type) (@c :: Type).
-    Relate (a :: Type) (b :: Type) (c :: Type) => (a :: Type) -> (b :: Type) -> (c :: Type)
-useRelate :: forall (y :: Type). Relate Int String (y :: Type) => (y :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
+    Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)
+useRelate ::
+  forall (y :: Prim.Type). Main.Relate Prim.Int Prim.String (y :: Prim.Type) => (y :: Prim.Type)
 
 Types
-Convert :: Type -> Type -> Constraint
-Relate :: Type -> Type -> Type -> Constraint
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+Relate :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
   convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-class forall (a :: Type) (b :: Type) (c :: Type). Relate (a :: Type) (b :: Type) (c :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type). Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
   relate ::
-  forall (@a :: Type) (@b :: Type) (@c :: Type).
-    Relate (a :: Type) (b :: Type) (c :: Type) => (a :: Type) -> (b :: Type) -> (c :: Type)
+  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
+    Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)

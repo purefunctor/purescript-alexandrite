@@ -4,17 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-pure :: forall (a :: Type). (a :: Type) -> Effect (a :: Type)
+pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
 bind ::
-  forall (a :: Type) (b :: Type).
-    Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Main.Effect (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
+    Main.Effect (b :: Prim.Type)
 discard ::
-  forall (a :: Type) (b :: Type).
-    Effect (a :: Type) -> ((a :: Type) -> Effect (b :: Type)) -> Effect (b :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Main.Effect (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
+    Main.Effect (b :: Prim.Type)
 test :: ?[empty do block]
 
 Types
-Effect :: Type -> Type
+Effect :: Prim.Type -> Prim.Type
 
 Roles
 Effect = [Nominal]

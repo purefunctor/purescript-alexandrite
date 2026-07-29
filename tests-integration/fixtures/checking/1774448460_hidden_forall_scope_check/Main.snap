@@ -4,38 +4,79 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Unit :: Unit
+Unit :: Main.Unit
 Respond ::
-  forall (@x' :: Type) (@x :: Type) (@a' :: Type) (@a :: Type) (@m :: Type -> Type) (@r :: Type).
-    (a :: Type) ->
-    ((a' :: Type) ->
-    Proxy (x' :: Type) (x :: Type) (a' :: Type) (a :: Type) (m :: Type -> Type) (r :: Type)) ->
-    Proxy (x' :: Type) (x :: Type) (a' :: Type) (a :: Type) (m :: Type -> Type) (r :: Type)
+  forall (@x' :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type) (@a :: Prim.Type)
+    (@m :: Prim.Type -> Prim.Type) (@r :: Prim.Type).
+    (a :: Prim.Type) ->
+    ((a' :: Prim.Type) ->
+    Main.Proxy
+      (x' :: Prim.Type)
+      (x :: Prim.Type)
+      (a' :: Prim.Type)
+      (a :: Prim.Type)
+      (m :: Prim.Type -> Prim.Type)
+      (r :: Prim.Type)) ->
+    Main.Proxy
+      (x' :: Prim.Type)
+      (x :: Prim.Type)
+      (a' :: Prim.Type)
+      (a :: Prim.Type)
+      (m :: Prim.Type -> Prim.Type)
+      (r :: Prim.Type)
 Pure ::
-  forall (@x' :: Type) (@x :: Type) (@a' :: Type) (@a :: Type) (@m :: Type -> Type) (@r :: Type).
-    (r :: Type) ->
-    Proxy (x' :: Type) (x :: Type) (a' :: Type) (a :: Type) (m :: Type -> Type) (r :: Type)
+  forall (@x' :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type) (@a :: Prim.Type)
+    (@m :: Prim.Type -> Prim.Type) (@r :: Prim.Type).
+    (r :: Prim.Type) ->
+    Main.Proxy
+      (x' :: Prim.Type)
+      (x :: Prim.Type)
+      (a' :: Prim.Type)
+      (a :: Prim.Type)
+      (m :: Prim.Type -> Prim.Type)
+      (r :: Prim.Type)
 respond ::
-  forall (m :: Type -> Type) (a :: Type) (a' :: Type) (x :: Type) (x' :: Type).
-    Monad (m :: Type -> Type) =>
-    (a :: Type) ->
-    Proxy (x' :: Type) (x :: Type) (a' :: Type) (a :: Type) (m :: Type -> Type) (a' :: Type)
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (a' :: Prim.Type) (x :: Prim.Type)
+    (x' :: Prim.Type).
+    Main.Monad (m :: Prim.Type -> Prim.Type) =>
+    (a :: Prim.Type) ->
+    Main.Proxy
+      (x' :: Prim.Type)
+      (x :: Prim.Type)
+      (a' :: Prim.Type)
+      (a :: Prim.Type)
+      (m :: Prim.Type -> Prim.Type)
+      (a' :: Prim.Type)
 yield ::
-  forall (m :: Type -> Type) (a :: Type).
-    Monad (m :: Type -> Type) => (a :: Type) -> Producer_ (a :: Type) (m :: Type -> Type) Unit
+  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    Main.Monad (m :: Prim.Type -> Prim.Type) =>
+    (a :: Prim.Type) -> Main.Producer_ (a :: Prim.Type) (m :: Prim.Type -> Prim.Type) Main.Unit
 
 Types
-Unit :: Type
-Monad :: (Type -> Type) -> Constraint
-Proxy :: Type -> Type -> Type -> Type -> (Type -> Type) -> Type -> Type
-Producer_ :: Type -> (Type -> Type) -> Type -> Type
+Unit :: Prim.Type
+Monad :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Proxy ::
+  Prim.Type ->
+  Prim.Type ->
+  Prim.Type ->
+  Prim.Type ->
+  (Prim.Type -> Prim.Type) ->
+  Prim.Type ->
+  Prim.Type
+Producer_ :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
 
 Synonyms
-type Producer_ b m r = forall (x' :: Type) (x :: Type).
-  Proxy (x' :: Type) (x :: Type) Unit (b :: Type) (m :: Type -> Type) (r :: Type)
+type Producer_ b m r = forall (x' :: Prim.Type) (x :: Prim.Type).
+  Main.Proxy
+    (x' :: Prim.Type)
+    (x :: Prim.Type)
+    Main.Unit
+    (b :: Prim.Type)
+    (m :: Prim.Type -> Prim.Type)
+    (r :: Prim.Type)
 
 Classes
-class forall (m :: Type -> Type). Monad (m :: Type -> Type)
+class forall (m :: Prim.Type -> Prim.Type). Main.Monad (m :: Prim.Type -> Prim.Type)
 
 Roles
 Unit = []

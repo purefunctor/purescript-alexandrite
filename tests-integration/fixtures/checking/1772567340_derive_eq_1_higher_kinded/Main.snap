@@ -5,23 +5,27 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 MkWrapNoEq1 ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    WrapNoEq1 @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.WrapNoEq1 @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
-WrapNoEq1 :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+WrapNoEq1 ::
+  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Type -> Type) (t1 :: Type).
-  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
-derive forall (t :: Type) (t1 :: Type -> Type).
-  Eq (t :: Type) => Eq (WrapNoEq1 @Type (t1 :: Type -> Type) (t :: Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (t1 :: Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq (t :: Prim.Type) =>
+  Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (t1 :: Prim.Type -> Prim.Type) (t :: Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]

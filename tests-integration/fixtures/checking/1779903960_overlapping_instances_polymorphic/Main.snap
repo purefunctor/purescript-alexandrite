@@ -4,25 +4,31 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 showP ::
-  forall (k :: Type) (@a :: (k :: Type)).
-    ShowP @(k :: Type) (a :: (k :: Type)) => Proxy @(k :: Type) (a :: (k :: Type)) -> String
-value :: String
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type)) -> Prim.String
+value :: Prim.String
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
-ShowP :: forall (k :: Type). (k :: Type) -> Constraint
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+ShowP :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (k :: Type) (a :: (k :: Type)). ShowP @(k :: Type) (a :: (k :: Type))
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)). Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type))
   showP ::
-  forall (k :: Type) (@a :: (k :: Type)).
-    ShowP @(k :: Type) (a :: (k :: Type)) => Proxy @(k :: Type) (a :: (k :: Type)) -> String
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type)) -> Prim.String
 
 Instances
-instance forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type))
-instance forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.ShowP @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.ShowP @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
 
 Roles
 Proxy = [Phantom]

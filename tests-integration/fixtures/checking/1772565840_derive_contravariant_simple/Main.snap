@@ -4,19 +4,24 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Predicate :: forall (@a :: Type). ((a :: Type) -> Boolean) -> Predicate (a :: Type)
-Comparison :: forall (@a :: Type). ((a :: Type) -> (a :: Type) -> Boolean) -> Comparison (a :: Type)
-Op :: forall (@a :: Type) (@b :: Type). ((b :: Type) -> (a :: Type)) -> Op (a :: Type) (b :: Type)
+Predicate ::
+  forall (@a :: Prim.Type). ((a :: Prim.Type) -> Prim.Boolean) -> Main.Predicate (a :: Prim.Type)
+Comparison ::
+  forall (@a :: Prim.Type).
+    ((a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean) -> Main.Comparison (a :: Prim.Type)
+Op ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    ((b :: Prim.Type) -> (a :: Prim.Type)) -> Main.Op (a :: Prim.Type) (b :: Prim.Type)
 
 Types
-Predicate :: Type -> Type
-Comparison :: Type -> Type
-Op :: Type -> Type -> Type
+Predicate :: Prim.Type -> Prim.Type
+Comparison :: Prim.Type -> Prim.Type
+Op :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive Contravariant Predicate
-derive Contravariant Comparison
-derive forall (t :: Type). Contravariant (Op (t :: Type))
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.Comparison
+derive forall (t :: Prim.Type). Data.Functor.Contravariant.Contravariant (Main.Op (t :: Prim.Type))
 
 Roles
 Predicate = [Representational]

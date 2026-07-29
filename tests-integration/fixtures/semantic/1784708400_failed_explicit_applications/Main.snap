@@ -3,9 +3,9 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-foreign import identityInt :: Int -> Int
+foreign import identityInt :: Prim.Int -> Prim.Int
 
-foreign import integer :: Int
+foreign import integer :: Prim.Int
 
-test :: Int
+test :: Prim.Int
 test = <error>

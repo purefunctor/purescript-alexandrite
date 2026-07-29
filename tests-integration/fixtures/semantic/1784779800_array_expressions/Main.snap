@@ -6,26 +6,26 @@ expression: report
 identity :: forall t. t -> t
 identity = \value -> value
 
-empty :: Array Int
+empty :: Prim.Array Prim.Int
 empty = []
 
-values :: Array Int
+values :: Prim.Array Prim.Int
 values = [1, 2]
 
-nested :: Array (Array Int)
+nested :: Prim.Array (Prim.Array Prim.Int)
 nested = [[1], [2, 3]]
 
-inferredFunctions :: forall t. Array (t -> t)
+inferredFunctions :: forall t. Prim.Array (t -> t)
 inferredFunctions = [identity]
 
-checkedFunctions :: Array (Int -> Int)
-checkedFunctions = [identity @Int]
+checkedFunctions :: Prim.Array (Prim.Int -> Prim.Int)
+checkedFunctions = [identity @Prim.Int]
 
-checkedIdentity :: Array Int -> Array Int
-checkedIdentity = identity @(Array Int)
+checkedIdentity :: Prim.Array Prim.Int -> Prim.Array Prim.Int
+checkedIdentity = identity @(Prim.Array Prim.Int)
 
-consume :: Array Int -> Array Int
+consume :: Prim.Array Prim.Int -> Prim.Array Prim.Int
 consume = \value -> value
 
-application :: Array Int
+application :: Prim.Array Prim.Int
 application = consume [1, 2]

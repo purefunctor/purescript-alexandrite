@@ -5,54 +5,95 @@ expression: report
 ---
 Terms
 openLeft ::
-  forall (r :: Row Type) (u :: Row Type).
-    Union @Type ( a :: Int | (r :: Row Type) ) ( b :: String ) (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int | (r :: Prim.Row Prim.Type) )
+      ( b :: Prim.String )
+      (u :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 openRight ::
-  forall (r :: Row Type) (u :: Row Type).
-    Union @Type ( a :: Int ) ( b :: String | (r :: Row Type) ) (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int )
+      ( b :: Prim.String | (r :: Prim.Row Prim.Type) )
+      (u :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 backwardLeft ::
-  forall (l :: Row Type) (r :: Row Type).
-    Union @Type (l :: Row Type) ( b :: String ) ( a :: Int, b :: String | (r :: Row Type) ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 backwardRight ::
-  forall (r :: Row Type) (u :: Row Type).
-    Union @Type ( a :: Int ) (r :: Row Type) ( a :: Int, b :: String | (u :: Row Type) ) =>
-    Proxy @(Row Type) (r :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int )
+      (r :: Prim.Row Prim.Type)
+      ( a :: Prim.Int, b :: Prim.String | (u :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type)
 consOpen ::
-  forall (r :: Row Type) (row :: Row Type).
-    Cons @Type "x" Int ( a :: String | (r :: Row Type) ) (row :: Row Type) =>
-    Proxy @(Row Type) (row :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (row :: Prim.Row Prim.Type).
+    Prim.Row.Cons @Prim.Type
+      "x"
+      Prim.Int
+      ( a :: Prim.String | (r :: Prim.Row Prim.Type) )
+      (row :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
 decomposeOpen ::
-  forall (t :: Type) (tail :: Row Type) (r :: Row Type).
-    Cons @Type "x" (t :: Type) (tail :: Row Type) ( a :: String, x :: Int | (r :: Row Type) ) =>
-    Proxy @Type (t :: Type)
+  forall (t :: Prim.Type) (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+    Prim.Row.Cons @Prim.Type
+      "x"
+      (t :: Prim.Type)
+      (tail :: Prim.Row Prim.Type)
+      ( a :: Prim.String, x :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @Prim.Type (t :: Prim.Type)
 extractTail ::
-  forall (tail :: Row Type) (r :: Row Type).
-    Cons @Type "x" Int (tail :: Row Type) ( a :: String, x :: Int | (r :: Row Type) ) =>
-    Proxy @(Row Type) (tail :: Row Type)
+  forall (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+    Prim.Row.Cons @Prim.Type
+      "x"
+      Prim.Int
+      (tail :: Prim.Row Prim.Type)
+      ( a :: Prim.String, x :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (tail :: Prim.Row Prim.Type)
 lacksOpen ::
-  forall (r :: Row Type).
-    Lacks @Type "missing" ( a :: Int, b :: String | (r :: Row Type) ) =>
-    Proxy @(Row Type) (r :: Row Type) -> Int
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type
+      "missing"
+      ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
 lacksPresent ::
-  forall (r :: Row Type).
-    Lacks @Type "a" ( a :: Int | (r :: Row Type) ) => Proxy @(Row Type) (r :: Row Type) -> Int
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
 forceSolve ::
-  forall (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type) (t4 :: Row Type)
-    (t5 :: Row Type) (t6 :: Row Type) (t7 :: Row Type).
-    Union @Type (t :: Row Type) ( b :: String ) ( a :: Int, b :: String | (t1 :: Row Type) ) =>
-    Union @Type (t2 :: Row Type) ( b :: String ) (t3 :: Row Type) =>
-    { backwardLeft :: Proxy @(Row Type) (t :: Row Type)
-    , backwardRight :: Proxy @(Row Type) ( b :: String | (t4 :: Row Type) )
-    , consOpen :: Proxy @(Row Type) ( a :: String, x :: Int | (t5 :: Row Type) )
-    , decomposeOpen :: Proxy @Type Int
-    , extractTail :: Proxy @(Row Type) ( a :: String | (t6 :: Row Type) )
-    , lacksOpen :: Int
-    , lacksPresent :: Int
-    , openLeft :: Proxy @(Row Type) ( a :: Int | (t3 :: Row Type) )
-    , openRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t7 :: Row Type) )
+  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+    (t3 :: Prim.Row Prim.Type) (t4 :: Prim.Row Prim.Type) (t5 :: Prim.Row Prim.Type)
+    (t6 :: Prim.Row Prim.Type) (t7 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (t :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String | (t1 :: Prim.Row Prim.Type) ) =>
+    Prim.Row.Union @Prim.Type
+      (t2 :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      (t3 :: Prim.Row Prim.Type) =>
+    { backwardLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    , backwardRight ::
+        Type.Proxy.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | (t4 :: Prim.Row Prim.Type) )
+    , consOpen ::
+        Type.Proxy.Proxy @(Prim.Row Prim.Type)
+          ( a :: Prim.String, x :: Prim.Int | (t5 :: Prim.Row Prim.Type) )
+    , decomposeOpen :: Type.Proxy.Proxy @Prim.Type Prim.Int
+    , extractTail ::
+        Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String | (t6 :: Prim.Row Prim.Type) )
+    , lacksOpen :: Prim.Int
+    , lacksPresent :: Prim.Int
+    , openLeft ::
+        Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | (t3 :: Prim.Row Prim.Type) )
+    , openRight ::
+        Type.Proxy.Proxy @(Prim.Row Prim.Type)
+          ( a :: Prim.Int, b :: Prim.String | (t7 :: Prim.Row Prim.Type) )
     }
 
 Types

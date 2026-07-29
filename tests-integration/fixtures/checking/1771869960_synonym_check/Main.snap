@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 
 Types
-NonZeroInt :: Type
-Identity :: Type -> Type
-FourtyTwo :: Int
+NonZeroInt :: Prim.Type
+Identity :: Prim.Type -> Prim.Type
+FourtyTwo :: Prim.Int
 
 Synonyms
-type NonZeroInt = Int
-type Identity a = (a :: Type)
+type NonZeroInt = Prim.Int
+type Identity a = (a :: Prim.Type)
 type FourtyTwo = 42

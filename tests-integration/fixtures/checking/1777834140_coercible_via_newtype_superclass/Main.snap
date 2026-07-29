@@ -4,7 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-useUnwrap :: forall (t :: Type). Newtype @Type (t :: Type) HiddenInt => (t :: Type) -> HiddenInt
-useCoerce :: forall (t :: Type). Newtype @Type (t :: Type) HiddenInt => (t :: Type) -> HiddenInt
+useUnwrap ::
+  forall (t :: Prim.Type).
+    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) Lib.HiddenInt =>
+    (t :: Prim.Type) -> Lib.HiddenInt
+useCoerce ::
+  forall (t :: Prim.Type).
+    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) Lib.HiddenInt =>
+    (t :: Prim.Type) -> Lib.HiddenInt
 
 Types

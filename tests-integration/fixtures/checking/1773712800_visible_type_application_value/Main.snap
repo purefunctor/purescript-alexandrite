@@ -4,9 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-identity :: forall (@a :: Type). (a :: Type) -> (a :: Type)
-const :: forall (a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-testIdentity :: Int -> Int
-testConst :: forall (t :: Type). (t :: Type) -> String -> (t :: Type)
+identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+const ::
+  forall (a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+testIdentity :: Prim.Int -> Prim.Int
+testConst :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.String -> (t :: Prim.Type)
 
 Types

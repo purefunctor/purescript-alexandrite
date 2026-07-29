@@ -1,22 +1,22 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-testSymbol :: String
-testSymbol' :: String
-testInt :: Int
-testInt' :: Int
-testTrue :: Boolean
-testTrue' :: Boolean
-testFalse :: Boolean
-testFalse' :: Boolean
-testLT :: Ordering
-testLT' :: Ordering
-testEQ :: Ordering
-testEQ' :: Ordering
-testGT :: Ordering
-testGT' :: Ordering
+testSymbol :: Prim.String
+testSymbol' :: Prim.String
+testInt :: Prim.Int
+testInt' :: Prim.Int
+testTrue :: Prim.Boolean
+testTrue' :: Prim.Boolean
+testFalse :: Prim.Boolean
+testFalse' :: Prim.Boolean
+testLT :: Data.Ordering.Ordering
+testLT' :: Data.Ordering.Ordering
+testEQ :: Data.Ordering.Ordering
+testEQ' :: Data.Ordering.Ordering
+testGT :: Data.Ordering.Ordering
+testGT' :: Data.Ordering.Ordering
 
 Types

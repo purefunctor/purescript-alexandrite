@@ -3,24 +3,24 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data List :: Type -> Type
+data List :: Prim.Type -> Prim.Type
 data List @a
-  | Cons :: a -> List a -> List a
-  | Nil :: List a
+  | Cons :: a -> Main.List a -> Main.List a
+  | Nil :: Main.List a
 
-data Snoc :: Type -> Type
+data Snoc :: Prim.Type -> Prim.Type
 data Snoc @a
-  | Empty :: Snoc a
-  | Snoc :: Snoc a -> a -> Snoc a
+  | Empty :: Main.Snoc a
+  | Snoc :: Main.Snoc a -> a -> Main.Snoc a
 
-first :: forall a. List a -> a
+first :: forall a. Main.List a -> a
 first = \(Cons value _) -> value
 
-second :: forall a. List a -> a
+second :: forall a. Main.List a -> a
 second = \(Cons _ (Cons value _)) -> value
 
-inferred :: forall t. Partial => List t -> t
+inferred :: forall t. Prim.Partial => Main.List t -> t
 inferred = \{trivial} -> \(Cons value _) -> value
 
-second' :: forall a. Snoc a -> a
+second' :: forall a. Main.Snoc a -> a
 second' = \(Snoc (Snoc _ value) _) -> value

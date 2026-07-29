@@ -3,14 +3,15 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Select :: forall (k :: Type). k -> Constraint
+interface Select :: forall (k :: Prim.Type). k -> Prim.Constraint
 interface Select value where
 
-foreign import constrained :: forall value. Select @Type value => Effect value
+foreign import constrained :: forall value. Main.Select @Prim.Type value => Main.Effect value
 
-foreign import pure :: forall value. value -> Effect value
+foreign import pure :: forall value. value -> Main.Effect value
 
-foreign import bind :: forall value result. Effect value -> (value -> Effect result) -> Effect result
+foreign import bind :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
 
-selected :: Select @Type Int => Effect Int
-selected = \{selectDict} -> bind @Int @Int (constrained @Int {selectDict}) \value -> pure @Int value
+selected :: Main.Select @Prim.Type Prim.Int => Main.Effect Prim.Int
+selected = \{selectDict} ->
+  bind @Prim.Int @Prim.Int (constrained @Prim.Int {selectDict}) \value -> pure @Prim.Int value

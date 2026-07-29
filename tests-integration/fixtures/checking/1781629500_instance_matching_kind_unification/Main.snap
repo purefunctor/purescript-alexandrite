@@ -5,36 +5,37 @@ expression: report
 ---
 Terms
 choose ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type))
-    (result :: (t2 :: Type)).
-    Pick @(t :: Type) @(t1 :: Type) @(t2 :: Type)
-      (a :: (t :: Type))
-      (b :: (t1 :: Type))
-      (result :: (t2 :: Type)) =>
-    Proxy @(t :: Type) (a :: (t :: Type)) ->
-    Proxy @(t1 :: Type) (b :: (t1 :: Type)) ->
-    Proxy @(t2 :: Type) (result :: (t2 :: Type))
-x :: Proxy @Type Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (a :: (t :: Prim.Type))
+    (b :: (t1 :: Prim.Type)) (result :: (t2 :: Prim.Type)).
+    Main.Pick @(t :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
+      (a :: (t :: Prim.Type))
+      (b :: (t1 :: Prim.Type))
+      (result :: (t2 :: Prim.Type)) =>
+    Type.Proxy.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
+    Type.Proxy.Proxy @(t1 :: Prim.Type) (b :: (t1 :: Prim.Type)) ->
+    Type.Proxy.Proxy @(t2 :: Prim.Type) (result :: (t2 :: Prim.Type))
+x :: Type.Proxy.Proxy @Prim.Type Prim.Int
 
 Types
 Pick ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Type).
-    (t :: Type) -> (t1 :: Type) -> (t2 :: Type) -> Constraint
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Type) (t1 :: Type) (t2 :: Type) (a :: (t :: Type)) (b :: (t1 :: Type)) (result :: (t2 :: Type)). Pick @(t :: Type) @(t1 :: Type) @(t2 :: Type)
-  (a :: (t :: Type))
-  (b :: (t1 :: Type))
-  (result :: (t2 :: Type))
+class forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (a :: (t :: Prim.Type)) (b :: (t1 :: Prim.Type)) (result :: (t2 :: Prim.Type)). Main.Pick @(t :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
+  (a :: (t :: Prim.Type))
+  (b :: (t1 :: Prim.Type))
+  (result :: (t2 :: Prim.Type))
 
 Instances
-instance forall (t :: Int).
-  Compare (t :: Int) (t :: Int) EQ => Pick @Int @Int @Int (t :: Int) (t :: Int) (t :: Int)
-instance forall (t :: Type) (t1 :: Type) (t2 :: (t :: Type)) (t3 :: (t1 :: Type)).
-  Pick @(t :: Type) @(t1 :: Type) @(t1 :: Type)
-    (t2 :: (t :: Type))
-    (t3 :: (t1 :: Type))
-    (t3 :: (t1 :: Type))
+instance forall (t :: Prim.Int).
+  Prim.Int.Compare (t :: Prim.Int) (t :: Prim.Int) Prim.Ordering.EQ =>
+  Main.Pick @Prim.Int @Prim.Int @Prim.Int (t :: Prim.Int) (t :: Prim.Int) (t :: Prim.Int)
+instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: (t :: Prim.Type)) (t3 :: (t1 :: Prim.Type)).
+  Main.Pick @(t :: Prim.Type) @(t1 :: Prim.Type) @(t1 :: Prim.Type)
+    (t2 :: (t :: Prim.Type))
+    (t3 :: (t1 :: Prim.Type))
+    (t3 :: (t1 :: Prim.Type))
 
 Diagnostics
 error[CannotUnify]: Cannot unify 'Type' with 'Int'

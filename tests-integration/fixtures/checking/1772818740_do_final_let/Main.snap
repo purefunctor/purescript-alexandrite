@@ -4,8 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-test :: Effect Int
-test' :: forall (t :: Type). (t :: Type)
+test :: Effect.Effect Prim.Int
+test' :: forall (t :: Prim.Type). (t :: Prim.Type)
 
 Types
 

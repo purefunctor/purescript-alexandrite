@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive forall (t :: Type). Newtype @Type Wrapper (t :: Type)
+derive forall (t :: Prim.Type). Data.Newtype.Newtype @Prim.Type Lib.Wrapper (t :: Prim.Type)
 
 Diagnostics
 error[NonLocalNewtype]: Expected a local newtype, got: Wrapper

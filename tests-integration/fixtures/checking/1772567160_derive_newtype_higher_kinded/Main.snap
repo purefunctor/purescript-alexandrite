@@ -1,25 +1,29 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-empty :: forall (@f :: Type -> Type). Empty (f :: Type -> Type) => (f :: Type -> Type) Int
-Wrapper :: forall (@a :: Type). Array (a :: Type) -> Wrapper (a :: Type)
+empty ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
+Wrapper :: forall (@a :: Prim.Type). Prim.Array (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
 
 Types
-Empty :: (Type -> Type) -> Constraint
-Wrapper :: Type -> Type
+Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Wrapper :: Prim.Type -> Prim.Type
 
 Classes
-class forall (f :: Type -> Type). Empty (f :: Type -> Type)
-  empty :: forall (@f :: Type -> Type). Empty (f :: Type -> Type) => (f :: Type -> Type) Int
+class forall (f :: Prim.Type -> Prim.Type). Main.Empty (f :: Prim.Type -> Prim.Type)
+  empty ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
 
 Instances
-instance Empty Array
+instance Main.Empty Prim.Array
 
 Derived
-derive Empty Wrapper
+derive Main.Empty Main.Wrapper
 
 Roles
 Wrapper = [Representational]

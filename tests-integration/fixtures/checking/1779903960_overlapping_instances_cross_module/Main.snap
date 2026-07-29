@@ -4,14 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Y :: Y
-value :: Int
+Y :: Main.Y
+value :: Prim.Int
 
 Types
-Y :: Type
+Y :: Prim.Type
 
 Instances
-instance C X Y
+instance Lib.C Lib.X Main.Y
 
 Roles
 Y = []

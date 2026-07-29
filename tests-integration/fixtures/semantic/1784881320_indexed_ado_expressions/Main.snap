@@ -3,44 +3,45 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface OnStep :: Int -> Constraint
+interface OnStep :: Prim.Int -> Prim.Constraint
 interface OnStep step where
 
-dictionary onZero :: OnStep 0
+dictionary onZero :: Main.OnStep 0
 
-dictionary onTwo :: OnStep 2
+dictionary onTwo :: Main.OnStep 2
 
-dictionary onDefault :: forall t. OnStep t
+dictionary onDefault :: forall t. Main.OnStep t
 
 foreign import map :: forall step.
-  OnStep step => (forall value result. (value -> result) -> Action step value -> Action step result)
+  Main.OnStep step =>
+  (forall value result. (value -> result) -> Main.Action step value -> Main.Action step result)
 
 foreign import apply :: forall step.
-  OnStep step =>
+  Main.OnStep step =>
   (forall previous value result.
-    Action previous (value -> result) -> Action step value -> Action step result)
+    Main.Action previous (value -> result) -> Main.Action step value -> Main.Action step result)
 
-foreign import pure :: forall step. OnStep step => (forall value. value -> Action step value)
+foreign import pure :: forall step. Main.OnStep step => (forall value. value -> Main.Action step value)
 
-foreign import stepZero :: Action 0 Int
+foreign import stepZero :: Main.Action 0 Prim.Int
 
-foreign import stepOne :: Action 1 String
+foreign import stepOne :: Main.Action 1 Prim.String
 
-foreign import stepTwo :: Action 2 Boolean
+foreign import stepTwo :: Main.Action 2 Prim.Boolean
 
-foreign import stepThree :: Action 3 String
+foreign import stepThree :: Main.Action 3 Prim.String
 
-indexedApply :: Action 3 String
+indexedApply :: Main.Action 3 Prim.String
 indexedApply =
-  apply @3 {onDefault} @2 @String @String
-    (apply @2 {onTwo} @1 @Boolean @(String -> String)
-      (apply @1 {onDefault} @0 @String @(Boolean -> String -> String)
-        (map @0 {onZero} @Int @(String -> Boolean -> String -> String)
+  apply @3 {onDefault} @2 @Prim.String @Prim.String
+    (apply @2 {onTwo} @1 @Prim.Boolean @(Prim.String -> Prim.String)
+      (apply @1 {onDefault} @0 @Prim.String @(Prim.Boolean -> Prim.String -> Prim.String)
+        (map @0 {onZero} @Prim.Int @(Prim.String -> Prim.Boolean -> Prim.String -> Prim.String)
           (\zero one two three -> three)
           stepZero)
         stepOne)
       stepTwo)
     stepThree
 
-indexedPure :: Action 2 Int
-indexedPure = pure @2 {onTwo} @Int 1
+indexedPure :: Main.Action 2 Prim.Int
+indexedPure = pure @2 {onTwo} @Prim.Int 1

@@ -4,18 +4,39 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
 merge ::
-  forall (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type).
-    Union @Type (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) =>
-    {| (r1 :: Row Type) } -> {| (r2 :: Row Type) } -> {| (r3 :: Row Type) }
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r3 :: Prim.Row Prim.Type) }
 merge2 ::
-  forall (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type).
-    Merge @Type (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) =>
-    {| (r1 :: Row Type) } -> {| (r2 :: Row Type) } -> {| (r3 :: Row Type) }
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Main.Merge @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r3 :: Prim.Row Prim.Type) }
 
 Types
-Merge :: forall (t :: Type). Row (t :: Type) -> Row (t :: Type) -> Row (t :: Type) -> Constraint
+Merge ::
+  forall (t :: Prim.Type).
+    Prim.Row (t :: Prim.Type) ->
+    Prim.Row (t :: Prim.Type) ->
+    Prim.Row (t :: Prim.Type) ->
+    Prim.Constraint
 
 Classes
-class forall (t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type)). Union @(t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type)) <= Merge @(t :: Type) (r1 :: Row (t :: Type)) (r2 :: Row (t :: Type)) (r3 :: Row (t :: Type))
+class forall (t :: Prim.Type) (r1 :: Prim.Row (t :: Prim.Type)) (r2 :: Prim.Row (t :: Prim.Type)) (r3 :: Prim.Row (t :: Prim.Type)). Prim.Row.Union @(t :: Prim.Type)
+  (r1 :: Prim.Row (t :: Prim.Type))
+  (r2 :: Prim.Row (t :: Prim.Type))
+  (r3 :: Prim.Row (t :: Prim.Type)) <= Main.Merge @(t :: Prim.Type)
+  (r1 :: Prim.Row (t :: Prim.Type))
+  (r2 :: Prim.Row (t :: Prim.Type))
+  (r3 :: Prim.Row (t :: Prim.Type))

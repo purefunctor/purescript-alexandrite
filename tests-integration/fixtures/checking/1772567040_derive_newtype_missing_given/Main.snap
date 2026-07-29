@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
 
 Types
-Identity :: Type -> Type
+Identity :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t :: Type). Show (Identity (t :: Type))
+derive forall (t :: Prim.Type). Data.Show.Show (Main.Identity (t :: Prim.Type))
 
 Roles
 Identity = [Representational]

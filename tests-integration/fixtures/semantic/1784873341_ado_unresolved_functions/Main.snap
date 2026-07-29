@@ -9,5 +9,5 @@ unresolvedMap = <error> (\value -> value) 1
 unresolvedApply :: forall t t1. t t1
 unresolvedApply = <error> (<error> (\first second -> first) 1) 2
 
-unresolvedPure :: forall t. t Int
+unresolvedPure :: forall t. t Prim.Int
 unresolvedPure = <error> 1

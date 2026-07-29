@@ -9,8 +9,8 @@ identity = \value -> value
 const :: forall a @b. a -> b -> a
 const = \value -> \_ -> value
 
-testIdentity :: Int -> Int
-testIdentity = identity @Int
+testIdentity :: Prim.Int -> Prim.Int
+testIdentity = identity @Prim.Int
 
-testConst :: forall t. t -> String -> t
-testConst = const @t @String
+testConst :: forall t. t -> Prim.String -> t
+testConst = const @t @Prim.String

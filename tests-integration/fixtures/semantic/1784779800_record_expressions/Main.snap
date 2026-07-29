@@ -3,23 +3,23 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-value :: Int
+value :: Prim.Int
 value = 42
 
 empty :: {}
 empty = { }
 
-explicit :: { a :: String, z :: Int }
+explicit :: { a :: Prim.String, z :: Prim.Int }
 explicit = { z: 1, a: "text" }
 
-punned :: { value :: Int }
+punned :: { value :: Prim.Int }
 punned = { value }
 
-nested :: { array :: Array Int, record :: { boolean :: Boolean } }
+nested :: { array :: Prim.Array Prim.Int, record :: { boolean :: Prim.Boolean } }
 nested = { array: [1, 2], record: { boolean: true } }
 
-consume :: { value :: Int } -> Int
+consume :: { value :: Prim.Int } -> Prim.Int
 consume = \{ value: inner } -> inner
 
-application :: Int
+application :: Prim.Int
 application = consume { value: 1 }

@@ -4,16 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Shared :: Local
-LocalOnly :: Local
-localValue :: Local
-shadowedValue :: Local
-local :: Local
-remote :: Remote
-binderShadow :: Local -> Remote
+Shared :: Main.Local
+LocalOnly :: Main.Local
+localValue :: Main.Local
+shadowedValue :: Main.Local
+local :: Main.Local
+remote :: Lib.Remote
+binderShadow :: Main.Local -> Lib.Remote
 
 Types
-Local :: Type
+Local :: Prim.Type
 
 Roles
 Local = []

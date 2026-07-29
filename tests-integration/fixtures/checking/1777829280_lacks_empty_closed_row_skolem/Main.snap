@@ -5,8 +5,10 @@ expression: report
 ---
 Terms
 useLacksEmpty ::
-  forall (t :: Type) (name :: Symbol).
-    Lacks @(t :: Type) (name :: Symbol) () => Proxy @Symbol (name :: Symbol) -> Int
-forwardLacksEmpty :: forall (name :: Symbol). Proxy @Symbol (name :: Symbol) -> Int
+  forall (t :: Prim.Type) (name :: Prim.Symbol).
+    Prim.Row.Lacks @(t :: Prim.Type) (name :: Prim.Symbol) () =>
+    Type.Proxy.Proxy @Prim.Symbol (name :: Prim.Symbol) -> Prim.Int
+forwardLacksEmpty ::
+  forall (name :: Prim.Symbol). Type.Proxy.Proxy @Prim.Symbol (name :: Prim.Symbol) -> Prim.Int
 
 Types

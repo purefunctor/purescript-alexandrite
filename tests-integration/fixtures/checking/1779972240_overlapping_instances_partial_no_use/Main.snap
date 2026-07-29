@@ -4,20 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
-test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+Pair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Types
-Pair :: Type -> Type -> Type
-Test :: Type -> Constraint
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Test :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Test (a :: Type)
-  test :: forall (@a :: Type). Test (a :: Type) => (a :: Type) -> Int
+class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
+  test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Instances
-instance forall (t :: Type). Test (Pair (t :: Type) Int)
-instance forall (t :: Type). Test (Pair String (t :: Type))
+instance forall (t :: Prim.Type). Main.Test (Main.Pair (t :: Prim.Type) Prim.Int)
+instance forall (t :: Prim.Type). Main.Test (Main.Pair Prim.String (t :: Prim.Type))
 
 Roles
 Pair = [Representational, Representational]

@@ -3,13 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-map :: forall a b. (a -> b) -> Array a -> Array b
+map :: forall a b. (a -> b) -> Prim.Array a -> Prim.Array b
 map = \f -> \x -> []
 
 apply :: forall a b. (a -> b) -> a -> b
 apply = \f -> \x -> f x
 
-f :: ({ foo :: Int } -> Int) -> Int
+f :: ({ foo :: Prim.Int } -> Prim.Int) -> Prim.Int
 f = \g -> g { foo: 1 }
 
 test1 :: forall t t1. { prop :: t | t1 } -> t
@@ -21,10 +21,10 @@ test2 = \v79 -> v79.a.b.c
 test3 :: forall t t1. { poly :: t | t1 } -> t
 test3 = \v84 -> v84.poly
 
-test4 :: forall t t1. Array { prop :: t | t1 } -> Array t
+test4 :: forall t t1. Prim.Array { prop :: t | t1 } -> Prim.Array t
 test4 = map @{ prop :: t | t1 } @t \v92 -> v92.prop
 
-test5 :: Int
+test5 :: Prim.Int
 test5 = f \v100 -> v100.foo
 
 test6 :: forall t t1 t2 t3. t -> (({ bar :: t1 | t2 } -> t1) -> t3) -> t3
@@ -36,7 +36,7 @@ test7 = \r -> (\v120 -> v120.nonexistent) r
 test8 :: forall t t1 t2. (({ foo :: t | t1 } -> t) -> t2) -> t2
 test8 = \v128 -> v128 \v131 -> v131.foo
 
-test9 :: forall t t1 t2. Array (({ prop :: t | t1 } -> t) -> t2) -> Array t2
+test9 :: forall t t1 t2. Prim.Array (({ prop :: t | t1 } -> t) -> t2) -> Prim.Array t2
 test9 = map @(({ prop :: t | t1 } -> t) -> t2) @t2 \v140 -> v140 \v143 -> v143.prop
 
 test10 :: forall t t1 t2. { a :: { b :: t | t1 } | t2 } -> t
@@ -45,7 +45,7 @@ test10 = apply @{ a :: { b :: t | t1 } | t2 } @t \v152 -> v152.a.b
 test11 :: forall t t1 t2. t -> { a :: t, b :: { foo :: t1 | t2 } -> t1 }
 test11 = \v158 -> { a: v158, b: \v161 -> v161.foo }
 
-test12 :: forall t t1. ({ bar :: t | t1 } -> t) -> Array ({ bar :: t | t1 } -> t)
+test12 :: forall t t1. ({ bar :: t | t1 } -> t) -> Prim.Array ({ bar :: t | t1 } -> t)
 test12 = \v166 -> [v166, \v168 -> v168.bar]
 
 test13 :: forall t t1 t2. t -> { prop :: t1 | t2 } -> t1
@@ -53,6 +53,6 @@ test13 = \v174 ->
   case v174 of
     _ -> \v182 -> v182.prop
 
-test14 :: forall t t1. Boolean -> { a :: t, b :: t | t1 } -> t
+test14 :: forall t t1. Prim.Boolean -> { a :: t, b :: t | t1 } -> t
 test14 = \v188 ->
   if v188 then \v191 -> v191.a else \v194 -> v194.b

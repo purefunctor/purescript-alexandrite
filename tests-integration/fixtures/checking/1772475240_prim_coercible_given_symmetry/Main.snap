@@ -5,10 +5,12 @@ expression: report
 ---
 Terms
 test ::
-  forall (a :: Type) (b :: Type).
-    Coercible @Type (b :: Type) (a :: Type) => (a :: Type) -> (b :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Prim.Coerce.Coercible @Prim.Type (b :: Prim.Type) (a :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type)
 test' ::
-  forall (a :: Type) (b :: Type).
-    Coercible @Type (b :: Type) (a :: Type) => (a :: Type) -> (b :: Type)
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    Prim.Coerce.Coercible @Prim.Type (b :: Prim.Type) (a :: Prim.Type) =>
+    (a :: Prim.Type) -> (b :: Prim.Type)
 
 Types

@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Foo :: Int -> Foo
+Foo :: Prim.Int -> Main.Foo
 
 Types
-Foo :: Type
+Foo :: Prim.Type
 
 Derived
-derive Show Foo
+derive Data.Show.Show Main.Foo
 
 Roles
 Foo = []

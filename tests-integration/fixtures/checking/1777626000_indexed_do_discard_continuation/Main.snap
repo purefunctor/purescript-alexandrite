@@ -4,25 +4,29 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Unit :: Unit
+Unit :: Main.Unit
 pure ::
-  forall (hooks :: Type) (a :: Type).
-    (a :: Type) -> Render (hooks :: Type) (hooks :: Type) (a :: Type)
+  forall (hooks :: Prim.Type) (a :: Prim.Type).
+    (a :: Prim.Type) -> Main.Render (hooks :: Prim.Type) (hooks :: Prim.Type) (a :: Prim.Type)
 discard ::
-  forall (a :: Type) (b :: Type) (x :: Type) (y :: Type) (z :: Type).
-    Render (x :: Type) (y :: Type) (a :: Type) ->
-    ((a :: Type) -> Render (y :: Type) (z :: Type) (b :: Type)) ->
-    Render (x :: Type) (z :: Type) (b :: Type)
-use1 :: forall (hooks :: Type). Render (hooks :: Type) (Use1 (hooks :: Type)) Unit
-use2 :: forall (hooks :: Type). Render (hooks :: Type) (Use2 (hooks :: Type)) Unit
-test :: Render Start (Use2 (Use1 Start)) Unit
+  forall (a :: Prim.Type) (b :: Prim.Type) (x :: Prim.Type) (y :: Prim.Type) (z :: Prim.Type).
+    Main.Render (x :: Prim.Type) (y :: Prim.Type) (a :: Prim.Type) ->
+    ((a :: Prim.Type) -> Main.Render (y :: Prim.Type) (z :: Prim.Type) (b :: Prim.Type)) ->
+    Main.Render (x :: Prim.Type) (z :: Prim.Type) (b :: Prim.Type)
+use1 ::
+  forall (hooks :: Prim.Type).
+    Main.Render (hooks :: Prim.Type) (Main.Use1 (hooks :: Prim.Type)) Main.Unit
+use2 ::
+  forall (hooks :: Prim.Type).
+    Main.Render (hooks :: Prim.Type) (Main.Use2 (hooks :: Prim.Type)) Main.Unit
+test :: Main.Render Main.Start (Main.Use2 (Main.Use1 Main.Start)) Main.Unit
 
 Types
-Render :: Type -> Type -> Type -> Type
-Unit :: Type
-Start :: Type
-Use1 :: Type -> Type
-Use2 :: Type -> Type
+Render :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+Unit :: Prim.Type
+Start :: Prim.Type
+Use1 :: Prim.Type -> Prim.Type
+Use2 :: Prim.Type -> Prim.Type
 
 Roles
 Render = [Nominal, Nominal, Nominal]

@@ -4,23 +4,31 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
 union ::
-  forall (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type).
-    Union @Type (r1 :: Row Type) (r2 :: Row Type) (r3 :: Row Type) =>
-    {| (r1 :: Row Type) } -> {| (r2 :: Row Type) } -> {| (r3 :: Row Type) }
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r3 :: Prim.Row Prim.Type) }
 addField ::
-  forall (r :: Row Type).
-    { a :: Int | (r :: Row Type) } -> { a :: Int, b :: String | (r :: Row Type) }
-test :: { a :: Int, b :: String, c :: Boolean }
+  forall (r :: Prim.Row Prim.Type).
+    { a :: Prim.Int | (r :: Prim.Row Prim.Type) } ->
+    { a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) }
+test :: { a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean }
 insertX ::
-  forall (r :: Row Type).
-    Lacks @Type "x" (r :: Row Type) => {| (r :: Row Type) } -> { x :: Int | (r :: Row Type) }
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "x" (r :: Prim.Row Prim.Type) =>
+    {| (r :: Prim.Row Prim.Type) } -> { x :: Prim.Int | (r :: Prim.Row Prim.Type) }
 insertOpen ::
-  forall (r :: Row Type).
-    Lacks @Type "x" (r :: Row Type) =>
-    { a :: Int | (r :: Row Type) } -> { a :: Int, x :: Int | (r :: Row Type) }
-test2 :: { a :: Int, b :: String, x :: Int }
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "x" (r :: Prim.Row Prim.Type) =>
+    { a :: Prim.Int | (r :: Prim.Row Prim.Type) } ->
+    { a :: Prim.Int, x :: Prim.Int | (r :: Prim.Row Prim.Type) }
+test2 :: { a :: Prim.Int, b :: Prim.String, x :: Prim.Int }
 
 Types
 

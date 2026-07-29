@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Unit :: Unit
-unit :: Unit -> Int
-Yes :: YesNo
-No :: YesNo
-yes :: YesNo -> Int
-no :: YesNo -> Int
-yesNo :: YesNo -> Int
+Unit :: Main.Unit
+unit :: Main.Unit -> Prim.Int
+Yes :: Main.YesNo
+No :: Main.YesNo
+yes :: Main.YesNo -> Prim.Int
+no :: Main.YesNo -> Prim.Int
+yesNo :: Main.YesNo -> Prim.Int
 
 Types
-Unit :: Type
-YesNo :: Type
+Unit :: Prim.Type
+YesNo :: Prim.Type
 
 Roles
 Unit = []

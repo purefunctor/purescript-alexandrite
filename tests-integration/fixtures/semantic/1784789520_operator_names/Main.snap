@@ -3,20 +3,20 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Combine :: Type -> Constraint
+interface Combine :: Prim.Type -> Prim.Constraint
 interface Combine a where
   combine :: a -> a -> a
 
-data List :: Type -> Type
+data List :: Prim.Type -> Prim.Type
 data List @a
-  | Cons :: a -> List a -> List a
-  | Nil :: List a
+  | Cons :: a -> Main.List a -> Main.List a
+  | Nil :: Main.List a
 
-operatorName :: forall a. Combine a => a -> a -> a
+operatorName :: forall a. Main.Combine a => a -> a -> a
 operatorName = \{combineDict} -> combine @a {combineDict}
 
-operatorApplication :: forall a. Combine a => a -> a -> a
+operatorApplication :: forall a. Main.Combine a => a -> a -> a
 operatorApplication = \{combineDict} -> \left -> \right -> combine @a {combineDict} left right
 
-constructorOperator :: forall t. t -> List t -> List t
+constructorOperator :: forall t. t -> Main.List t -> Main.List t
 constructorOperator = Cons @t

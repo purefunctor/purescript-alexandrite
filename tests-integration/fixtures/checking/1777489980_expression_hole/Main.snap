@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-hole :: forall (t :: Type). (t :: Type)
+hole :: forall (t :: Prim.Type). (t :: Prim.Type)
 
 Types
 

@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Box :: Int -> Box
+Box :: Prim.Int -> Main.Box
 
 Types
-Box :: Type
+Box :: Prim.Type
 
 Derived
-derive Generic Box
+derive Data.Generic.Rep.Generic Main.Box
 
 Roles
 Box = []

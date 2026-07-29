@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Pair ::
-  forall (k :: Type) (@a :: (k :: Type)) (@b :: (k :: Type)).
-    Pair @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
+    Main.Pair @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
 
 Types
-Pair :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Type
-& :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Type
+Pair :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+& :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type
 
 Roles
 Pair = [Phantom, Phantom]

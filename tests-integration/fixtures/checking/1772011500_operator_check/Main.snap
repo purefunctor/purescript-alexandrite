@@ -1,12 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-<: :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-const :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-+ :: Int -> Int -> Int
-add :: Int -> Int -> Int
+<: ::
+  forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+const ::
+  forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
++ :: Prim.Int -> Prim.Int -> Prim.Int
+add :: Prim.Int -> Prim.Int -> Prim.Int
 
 Types

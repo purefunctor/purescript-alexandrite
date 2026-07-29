@@ -6,13 +6,13 @@ expression: report
 Terms
 
 Types
-Parent :: Type -> Constraint
-Child :: Type -> Constraint
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (value :: Type). Parent (value :: Type)
-class forall (value :: Type). Parent (value :: Type) <= Child (value :: Type)
+class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type)
+class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type) <= Main.Child (value :: Prim.Type)
 
 Instances
-instance Parent Int
-instance Child Int
+instance Main.Parent Prim.Int
+instance Main.Child Prim.Int

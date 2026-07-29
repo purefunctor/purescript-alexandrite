@@ -3,24 +3,24 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Parent :: Type -> Constraint
+interface Parent :: Prim.Type -> Prim.Constraint
 interface Parent value where
 
-interface Child :: Type -> Constraint
+interface Child :: Prim.Type -> Prim.Constraint
 interface Child value where
-  superclass parentDict :: Parent value
+  superclass parentDict :: Main.Parent value
 
-dictionary parentInt :: Parent Int
+dictionary parentInt :: Main.Parent Prim.Int
 
-dictionary childInt :: { parentDict :: Parent Int } => Child Int where
+dictionary childInt :: { parentDict :: Main.Parent Prim.Int } => Main.Child Prim.Int where
   superclass parentDict = parentDict
 
-foreign import useParent :: forall value. Parent value => value -> value
+foreign import useParent :: forall value. Main.Parent value => value -> value
 
-foreign import useChild :: forall value. Child value => value -> value
+foreign import useChild :: forall value. Main.Child value => value -> value
 
-instanceEvidence :: Int
-instanceEvidence = useChild @Int {childInt {parentInt}} 1
+instanceEvidence :: Prim.Int
+instanceEvidence = useChild @Prim.Int {childInt {parentInt}} 1
 
-superclassEvidence :: forall value. Child value => value -> value
+superclassEvidence :: forall value. Main.Child value => value -> value
 superclassEvidence = \{childDict} -> useParent @value {childDict.parentDict}

@@ -4,16 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: Box
+Box :: Main.Box
 
 Types
-Box :: Type
+Box :: Prim.Type
 
 Instances
-instance Eq Box
+instance Data.Eq.Eq Main.Box
 
 Derived
-derive Eq Box
+derive Data.Eq.Eq Main.Box
 
 Roles
 Box = []

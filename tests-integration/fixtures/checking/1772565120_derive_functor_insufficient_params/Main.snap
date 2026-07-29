@@ -1,19 +1,21 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
-Unit :: Unit
+Pair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+Unit :: Main.Unit
 
 Types
-Pair :: Type -> Type -> Type
-Unit :: Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Unit :: Prim.Type
 
 Derived
-derive Functor (Pair Int String)
-derive Functor Unit
+derive Data.Functor.Functor (Main.Pair Prim.Int Prim.String)
+derive Data.Functor.Functor Main.Unit
 
 Roles
 Pair = [Representational, Representational]

@@ -3,41 +3,41 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface OnStep :: Int -> Constraint
+interface OnStep :: Prim.Int -> Prim.Constraint
 interface OnStep step where
 
-dictionary onZero :: OnStep 0
+dictionary onZero :: Main.OnStep 0
 
-dictionary onTwo :: OnStep 2
+dictionary onTwo :: Main.OnStep 2
 
-dictionary onDefault :: forall t. OnStep t
+dictionary onDefault :: forall t. Main.OnStep t
 
 foreign import bind :: forall step.
-  OnStep step =>
+  Main.OnStep step =>
   (forall next value result.
-    Action step value -> (value -> Action next result) -> Action step result)
+    Main.Action step value -> (value -> Main.Action next result) -> Main.Action step result)
 
 foreign import discard :: forall step.
-  OnStep step =>
+  Main.OnStep step =>
   (forall next value result.
-    Action step value -> (value -> Action next result) -> Action step result)
+    Main.Action step value -> (value -> Main.Action next result) -> Main.Action step result)
 
-foreign import stepZero :: Action 0 Int
+foreign import stepZero :: Main.Action 0 Prim.Int
 
-foreign import stepOne :: Action 1 String
+foreign import stepOne :: Main.Action 1 Prim.String
 
-foreign import stepTwo :: Action 2 Boolean
+foreign import stepTwo :: Main.Action 2 Prim.Boolean
 
-foreign import stepThree :: Action 3 String
+foreign import stepThree :: Main.Action 3 Prim.String
 
-foreign import stepFour :: Action 4 Number
+foreign import stepFour :: Main.Action 4 Prim.Number
 
-indexedBind :: Action 0 Number
+indexedBind :: Main.Action 0 Prim.Number
 indexedBind =
-  bind @0 {onZero} @1 @Int @Number stepZero \zero ->
-    bind @1 {onDefault} @2 @String @Number stepOne \one ->
-      bind @2 {onTwo} @3 @Boolean @Number stepTwo \two ->
-        bind @3 {onDefault} @4 @String @Number stepThree \three -> stepFour
+  bind @0 {onZero} @1 @Prim.Int @Prim.Number stepZero \zero ->
+    bind @1 {onDefault} @2 @Prim.String @Prim.Number stepOne \one ->
+      bind @2 {onTwo} @3 @Prim.Boolean @Prim.Number stepTwo \two ->
+        bind @3 {onDefault} @4 @Prim.String @Prim.Number stepThree \three -> stepFour
 
-indexedDiscard :: Action 4 Boolean
-indexedDiscard = discard @4 {onDefault} @2 @Number @Boolean stepFour \_ -> stepTwo
+indexedDiscard :: Main.Action 4 Prim.Boolean
+indexedDiscard = discard @4 {onDefault} @2 @Prim.Number @Prim.Boolean stepFour \_ -> stepTwo

@@ -1,19 +1,19 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Age :: Int -> Age
-Years :: Age -> Years
-coerceTransitive :: Int -> Years
-unwrapTransitive :: Years -> Int
-step1 :: Int -> Age
-step2 :: Age -> Years
+Age :: Prim.Int -> Main.Age
+Years :: Main.Age -> Main.Years
+coerceTransitive :: Prim.Int -> Main.Years
+unwrapTransitive :: Main.Years -> Prim.Int
+step1 :: Prim.Int -> Main.Age
+step2 :: Main.Age -> Main.Years
 
 Types
-Age :: Type
-Years :: Type
+Age :: Prim.Type
+Years :: Prim.Type
 
 Roles
 Age = []

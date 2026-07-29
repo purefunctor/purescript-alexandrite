@@ -4,20 +4,26 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-complete :: forall (t :: Type) (t1 :: Type). Maybe (t :: Type) -> Maybe (t1 :: Type) -> Int
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+complete ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Main.Maybe (t :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
 incomplete1 ::
-  forall (t :: Type) (t1 :: Type). Partial => Maybe (t :: Type) -> Maybe (t1 :: Type) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial => Main.Maybe (t :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
 incomplete2 ::
-  forall (t :: Type) (t1 :: Type). Partial => Maybe (t :: Type) -> Maybe (t1 :: Type) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial => Main.Maybe (t :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
 incomplete3 ::
-  forall (t :: Type) (t1 :: Type). Partial => Maybe (t :: Type) -> Maybe (t1 :: Type) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial => Main.Maybe (t :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
 incomplete4 ::
-  forall (t :: Type) (t1 :: Type). Partial => Maybe (t :: Type) -> Maybe (t1 :: Type) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial => Main.Maybe (t :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
 
 Types
-Maybe :: Type -> Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Maybe = [Representational]

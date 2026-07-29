@@ -5,22 +5,33 @@ expression: report
 ---
 Terms
 Tuple ::
-  forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
-complete :: forall (t :: Type) (t1 :: Type). Tuple (Maybe (t :: Type)) (Maybe (t1 :: Type)) -> Int
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
+Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+complete ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete1 ::
-  forall (t :: Type) (t1 :: Type). Partial => Tuple (Maybe (t :: Type)) (Maybe (t1 :: Type)) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial =>
+    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete2 ::
-  forall (t :: Type) (t1 :: Type). Partial => Tuple (Maybe (t :: Type)) (Maybe (t1 :: Type)) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial =>
+    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete3 ::
-  forall (t :: Type) (t1 :: Type). Partial => Tuple (Maybe (t :: Type)) (Maybe (t1 :: Type)) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial =>
+    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete4 ::
-  forall (t :: Type) (t1 :: Type). Partial => Tuple (Maybe (t :: Type)) (Maybe (t1 :: Type)) -> Int
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Partial =>
+    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 
 Types
-Tuple :: Type -> Type -> Type
-Maybe :: Type -> Type
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
 
 Roles
 Tuple = [Representational, Representational]

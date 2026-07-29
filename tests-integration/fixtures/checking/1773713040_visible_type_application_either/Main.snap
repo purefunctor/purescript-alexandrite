@@ -4,17 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
-testBothLeft :: Int -> Either Int String
-testBothRight :: String -> Either Int String
-testLeftLeft :: forall (t :: Type). Int -> Either Int (t :: Type)
-testLeftRight :: forall (t :: Type). (t :: Type) -> Either (t :: Type) String
-testRightLeft :: forall (t :: Type). (t :: Type) -> Either Int (t :: Type)
-testRightRight :: forall (t :: Type). String -> Either (t :: Type) String
+Left ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Right ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+testBothLeft :: Prim.Int -> Main.Either Prim.Int Prim.String
+testBothRight :: Prim.String -> Main.Either Prim.Int Prim.String
+testLeftLeft :: forall (t :: Prim.Type). Prim.Int -> Main.Either Prim.Int (t :: Prim.Type)
+testLeftRight ::
+  forall (t :: Prim.Type). (t :: Prim.Type) -> Main.Either (t :: Prim.Type) Prim.String
+testRightLeft :: forall (t :: Prim.Type). (t :: Prim.Type) -> Main.Either Prim.Int (t :: Prim.Type)
+testRightRight :: forall (t :: Prim.Type). Prim.String -> Main.Either (t :: Prim.Type) Prim.String
 
 Types
-Either :: Type -> Type -> Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
 
 Roles
 Either = [Representational, Representational]

@@ -1,11 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-safeZero :: Partial => Int -> Int
-unsafeZeroLambda :: Int -> Int
-unsafeZeroName :: Int -> Int
+safeZero :: Prim.Partial => Prim.Int -> Prim.Int
+unsafeZeroLambda :: Prim.Int -> Prim.Int
+unsafeZeroName :: Prim.Int -> Prim.Int
 
 Types

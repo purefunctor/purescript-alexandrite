@@ -3,12 +3,12 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-missingScrutinee :: Boolean
+missingScrutinee :: Prim.Boolean
 missingScrutinee =
   case <error> of
     <error> -> true
 
-mismatchedBinders :: forall t t1. t -> t1 -> Boolean
+mismatchedBinders :: forall t t1. t -> t1 -> Prim.Boolean
 mismatchedBinders = \first -> \second ->
   case first, second of
     _ -> true

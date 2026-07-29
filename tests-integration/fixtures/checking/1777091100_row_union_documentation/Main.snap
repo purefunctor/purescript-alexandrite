@@ -4,61 +4,92 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 closedLeftOpenRight ::
-  forall (r :: Row Type) (u :: Row Type).
-    Union @Type ( a :: Int ) ( b :: String | (r :: Row Type) ) (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int )
+      ( b :: Prim.String | (r :: Prim.Row Prim.Type) )
+      (u :: Prim.Row Prim.Type) =>
+    Main.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 closedLeftKnownFields ::
-  forall (u :: Row Type).
-    Union @Type ( a :: Int ) ( b :: String ) (u :: Row Type) => Proxy @(Row Type) (u :: Row Type)
+  forall (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String ) (u :: Prim.Row Prim.Type) =>
+    Main.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 closedLeftEmpty ::
-  forall (r :: Row Type) (u :: Row Type).
-    Union @Type () ( b :: String | (r :: Row Type) ) (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ()
+      ( b :: Prim.String | (r :: Prim.Row Prim.Type) )
+      (u :: Prim.Row Prim.Type) =>
+    Main.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 closedRightOutputOpenLeft ::
-  forall (l :: Row Type).
-    Union @Type (l :: Row Type) ( b :: String ) ( a :: Int, b :: String ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 closedRightOutputKnownLeft ::
-  forall (l :: Row Type).
-    Union @Type
-      ( a :: Int | (l :: Row Type) )
-      ( b :: String )
-      ( a :: Int, b :: String, c :: Boolean ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int | (l :: Prim.Row Prim.Type) )
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 closedRightOutputDuplicate ::
-  forall (l :: Row Type).
-    Union @Type (l :: Row Type) ( x :: String ) ( x :: Int, x :: String ) =>
-    Proxy @(Row Type) (l :: Row Type)
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( x :: Prim.String )
+      ( x :: Prim.Int, x :: Prim.String ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 openLeftPrefixOne ::
-  forall (rest :: Row Type) (r :: Row Type) (u :: Row Type).
-    Union @Type
-      ( a :: Int | (rest :: Row Type) )
-      ( b :: String | (r :: Row Type) )
-      (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (rest :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int | (rest :: Prim.Row Prim.Type) )
+      ( b :: Prim.String | (r :: Prim.Row Prim.Type) )
+      (u :: Prim.Row Prim.Type) =>
+    Main.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 openLeftPrefixMany ::
-  forall (rest :: Row Type) (u :: Row Type).
-    Union @Type ( a :: Int, b :: String | (rest :: Row Type) ) ( c :: Boolean ) (u :: Row Type) =>
-    Proxy @(Row Type) (u :: Row Type)
+  forall (rest :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: Prim.Int, b :: Prim.String | (rest :: Prim.Row Prim.Type) )
+      ( c :: Prim.Boolean )
+      (u :: Prim.Row Prim.Type) =>
+    Main.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 forceSolve ::
-  forall (t :: Row Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type) (t4 :: Row Type)
-    (t5 :: Row Type) (t6 :: Row Type).
-    Union @Type (t :: Row Type) ( b :: String | (t1 :: Row Type) ) (t2 :: Row Type) =>
-    Union @Type (t3 :: Row Type) ( c :: Boolean ) (t4 :: Row Type) =>
-    { closedLeftEmpty :: Proxy @(Row Type) ( b :: String | (t5 :: Row Type) )
-    , closedLeftKnownFields :: Proxy @(Row Type) ( a :: Int, b :: String )
-    , closedLeftOpenRight :: Proxy @(Row Type) ( a :: Int, b :: String | (t6 :: Row Type) )
-    , closedRightOutputDuplicate :: Proxy @(Row Type) ( x :: Int )
-    , closedRightOutputKnownLeft :: Proxy @(Row Type) ( c :: Boolean )
-    , closedRightOutputOpenLeft :: Proxy @(Row Type) ( a :: Int )
-    , openLeftPrefixMany :: Proxy @(Row Type) ( a :: Int, b :: String | (t4 :: Row Type) )
-    , openLeftPrefixOne :: Proxy @(Row Type) ( a :: Int | (t2 :: Row Type) )
+  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+    (t3 :: Prim.Row Prim.Type) (t4 :: Prim.Row Prim.Type) (t5 :: Prim.Row Prim.Type)
+    (t6 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (t :: Prim.Row Prim.Type)
+      ( b :: Prim.String | (t1 :: Prim.Row Prim.Type) )
+      (t2 :: Prim.Row Prim.Type) =>
+    Prim.Row.Union @Prim.Type
+      (t3 :: Prim.Row Prim.Type)
+      ( c :: Prim.Boolean )
+      (t4 :: Prim.Row Prim.Type) =>
+    { closedLeftEmpty ::
+        Main.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | (t5 :: Prim.Row Prim.Type) )
+    , closedLeftKnownFields :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+    , closedLeftOpenRight ::
+        Main.Proxy @(Prim.Row Prim.Type)
+          ( a :: Prim.Int, b :: Prim.String | (t6 :: Prim.Row Prim.Type) )
+    , closedRightOutputDuplicate :: Main.Proxy @(Prim.Row Prim.Type) ( x :: Prim.Int )
+    , closedRightOutputKnownLeft :: Main.Proxy @(Prim.Row Prim.Type) ( c :: Prim.Boolean )
+    , closedRightOutputOpenLeft :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+    , openLeftPrefixMany ::
+        Main.Proxy @(Prim.Row Prim.Type)
+          ( a :: Prim.Int, b :: Prim.String | (t4 :: Prim.Row Prim.Type) )
+    , openLeftPrefixOne ::
+        Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | (t2 :: Prim.Row Prim.Type) )
     }
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

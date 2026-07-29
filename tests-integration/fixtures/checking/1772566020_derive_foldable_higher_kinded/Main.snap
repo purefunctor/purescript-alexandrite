@@ -5,22 +5,27 @@ expression: report
 ---
 Terms
 Wrap ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 WrapNoFoldable ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    WrapNoFoldable @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.WrapNoFoldable @(t :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (a :: (t :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
-WrapNoFoldable :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+WrapNoFoldable ::
+  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Type -> Type).
-  Foldable (t :: Type -> Type) => Foldable (Wrap @Type (t :: Type -> Type))
-derive forall (t :: Type -> Type). Foldable (WrapNoFoldable @Type (t :: Type -> Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (t :: Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (Main.WrapNoFoldable @Prim.Type (t :: Prim.Type -> Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]

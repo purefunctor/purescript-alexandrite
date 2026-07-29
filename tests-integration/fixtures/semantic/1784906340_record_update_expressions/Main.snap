@@ -6,30 +6,30 @@ expression: report
 identity :: forall a. a -> a
 identity = \value -> value
 
-record :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
-record = { first: 1, nested: { value: 2 }, transform: identity @Int }
+record :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+record = { first: 1, nested: { value: 2 }, transform: identity @Prim.Int }
 
-leaf :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+leaf :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 leaf = record { first = 2 }
 
-typeChanging :: { first :: String, nested :: { value :: Int }, transform :: Int -> Int }
+typeChanging :: { first :: Prim.String, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 typeChanging = record { first = "two" }
 
-multiple :: forall t. { first :: Int, nested :: { value :: Int }, transform :: t -> t }
+multiple :: forall t. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t -> t }
 multiple = record { first = 2, transform = identity @t }
 
-nested :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 nested = record { nested { value = 3 } }
 
-accessValue :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+accessValue :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 accessValue = record { first = record.nested.value }
 
-applicationBase :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+applicationBase :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 applicationBase =
-  (identity @{ first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+  (identity @{ first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
     record) { first = 2 }
 
-argument :: { first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+argument :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 argument =
-  identity @{ first :: Int, nested :: { value :: Int }, transform :: Int -> Int }
+  identity @{ first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
     record { first = 2 }

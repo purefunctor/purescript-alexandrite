@@ -1,18 +1,26 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
 Fix ::
-  forall (k :: Type) (@f :: ((k :: Type) -> Type) -> (k :: Type) -> Type) (@a :: (k :: Type)).
-    (f :: ((k :: Type) -> Type) -> (k :: Type) -> Type)
-      (Fix @(k :: Type) (f :: ((k :: Type) -> Type) -> (k :: Type) -> Type))
-      (a :: (k :: Type)) ->
-    Fix @(k :: Type) (f :: ((k :: Type) -> Type) -> (k :: Type) -> Type) (a :: (k :: Type))
+  forall (k :: Prim.Type) (@f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+    (@a :: (k :: Prim.Type)).
+    (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+      (Main.Fix @(k :: Prim.Type)
+        (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type))
+      (a :: (k :: Prim.Type)) ->
+    Main.Fix @(k :: Prim.Type)
+      (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+      (a :: (k :: Prim.Type))
 
 Types
-Fix :: forall (k :: Type). (((k :: Type) -> Type) -> (k :: Type) -> Type) -> (k :: Type) -> Type
+Fix ::
+  forall (k :: Prim.Type).
+    (((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type) ->
+    (k :: Prim.Type) ->
+    Prim.Type
 
 Roles
 Fix = [Representational, Representational]

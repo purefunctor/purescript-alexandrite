@@ -1,17 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Box :: Box
-test :: Boolean
+Box :: Main.Box
+test :: Prim.Boolean
 
 Types
-Box :: Type
+Box :: Prim.Type
 
 Derived
-derive Eq Box
+derive Data.Eq.Eq Main.Box
 
 Roles
 Box = []

@@ -5,17 +5,18 @@ expression: report
 ---
 Terms
 Tuple ::
-  forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Tuple (a :: Type) (b :: Type)
-test1 :: Identity @(Type -> Type) Array Int
-test2 :: Identity @(Type -> Type -> Type) Tuple Int String
-forceSolve :: { test1 :: Array Int, test2 :: Tuple Int String }
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
+test1 :: Main.Identity @(Prim.Type -> Prim.Type) Prim.Array Prim.Int
+test2 :: Main.Identity @(Prim.Type -> Prim.Type -> Prim.Type) Main.Tuple Prim.Int Prim.String
+forceSolve :: { test1 :: Prim.Array Prim.Int, test2 :: Main.Tuple Prim.Int Prim.String }
 
 Types
-Identity :: forall (k :: Type). (k :: Type) -> (k :: Type)
-Tuple :: Type -> Type -> Type
+Identity :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type)
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Identity a = (a :: (k :: Type))
+type Identity a = (a :: (k :: Prim.Type))
 
 Roles
 Tuple = [Representational, Representational]

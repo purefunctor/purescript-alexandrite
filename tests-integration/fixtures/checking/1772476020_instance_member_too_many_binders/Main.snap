@@ -1,20 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-show :: forall (@a :: Type). Show (a :: Type) => (a :: Type) -> String
+show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
 
 Types
-Show :: Type -> Constraint
+Show :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). Show (a :: Type)
-  show :: forall (@a :: Type). Show (a :: Type) => (a :: Type) -> String
+class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
+  show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
 
 Instances
-instance Show Int
+instance Main.Show Prim.Int
 
 Diagnostics
 error[TooManyBinders]: Too many binders: expected 1, got 2

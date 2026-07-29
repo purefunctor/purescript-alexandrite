@@ -5,16 +5,20 @@ expression: report
 ---
 Terms
 Box ::
-  forall (@f :: Type -> Type) (@a :: Type).
-    (f :: Type -> Type) (a :: Type) -> Box (f :: Type -> Type) (a :: Type)
-test :: forall (f :: Type -> Type). Wrap (f :: Type -> Type) Int -> Wrap (f :: Type -> Type) Int
+  forall (@f :: Prim.Type -> Prim.Type) (@a :: Prim.Type).
+    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
+    Main.Box (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+test ::
+  forall (f :: Prim.Type -> Prim.Type).
+    Main.Wrap (f :: Prim.Type -> Prim.Type) Prim.Int ->
+    Main.Wrap (f :: Prim.Type -> Prim.Type) Prim.Int
 
 Types
-Box :: (Type -> Type) -> Type -> Type
-Wrap :: (Type -> Type) -> Type -> Type
+Box :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+Wrap :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
 
 Synonyms
-type Wrap f = Box (f :: Type -> Type)
+type Wrap f = Main.Box (f :: Prim.Type -> Prim.Type)
 
 Roles
 Box = [Representational, Nominal]

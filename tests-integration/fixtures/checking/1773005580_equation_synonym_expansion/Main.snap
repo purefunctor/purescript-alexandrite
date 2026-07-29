@@ -4,12 +4,15 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type)
-test :: forall (f :: Type -> Type). NaturalTransformation Array (f :: Type -> Type)
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+test ::
+  forall (f :: Prim.Type -> Prim.Type).
+    Main.NaturalTransformation Prim.Array (f :: Prim.Type -> Prim.Type)
 
 Types
-NaturalTransformation :: (Type -> Type) -> (Type -> Type) -> Type
-~> :: (Type -> Type) -> (Type -> Type) -> Type
+NaturalTransformation :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
+~> :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
 
 Synonyms
-type NaturalTransformation f g = forall (a :: Type). (f :: Type -> Type) (a :: Type) -> (g :: Type -> Type) (a :: Type)
+type NaturalTransformation f g = forall (a :: Prim.Type).
+  (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) -> (g :: Prim.Type -> Prim.Type) (a :: Prim.Type)

@@ -5,39 +5,50 @@ expression: report
 ---
 Terms
 deriveAppended ::
-  forall (appended :: Symbol).
-    Append "Hello" "World" (appended :: Symbol) => Proxy @Symbol (appended :: Symbol)
+  forall (appended :: Prim.Symbol).
+    Prim.Symbol.Append "Hello" "World" (appended :: Prim.Symbol) =>
+    Type.Proxy.Proxy @Prim.Symbol (appended :: Prim.Symbol)
 deriveLeft ::
-  forall (left :: Symbol).
-    Append (left :: Symbol) "World" "HelloWorld" => Proxy @Symbol (left :: Symbol)
+  forall (left :: Prim.Symbol).
+    Prim.Symbol.Append (left :: Prim.Symbol) "World" "HelloWorld" =>
+    Type.Proxy.Proxy @Prim.Symbol (left :: Prim.Symbol)
 deriveRight ::
-  forall (right :: Symbol).
-    Append "Hello" (right :: Symbol) "HelloWorld" => Proxy @Symbol (right :: Symbol)
+  forall (right :: Prim.Symbol).
+    Prim.Symbol.Append "Hello" (right :: Prim.Symbol) "HelloWorld" =>
+    Type.Proxy.Proxy @Prim.Symbol (right :: Prim.Symbol)
 compareLT ::
-  forall (ord :: Ordering). Compare "a" "b" (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Symbol.Compare "a" "b" (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
 compareEQ ::
-  forall (ord :: Ordering).
-    Compare "hello" "hello" (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Symbol.Compare "hello" "hello" (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
 compareGT ::
-  forall (ord :: Ordering). Compare "z" "a" (ord :: Ordering) => Proxy @Ordering (ord :: Ordering)
+  forall (ord :: Prim.Ordering.Ordering).
+    Prim.Symbol.Compare "z" "a" (ord :: Prim.Ordering.Ordering) =>
+    Type.Proxy.Proxy @Prim.Ordering.Ordering (ord :: Prim.Ordering.Ordering)
 deriveCons ::
-  forall (symbol :: Symbol). Cons "H" "ello" (symbol :: Symbol) => Proxy @Symbol (symbol :: Symbol)
+  forall (symbol :: Prim.Symbol).
+    Prim.Symbol.Cons "H" "ello" (symbol :: Prim.Symbol) =>
+    Type.Proxy.Proxy @Prim.Symbol (symbol :: Prim.Symbol)
 deriveHeadTail ::
-  forall (head :: Symbol) (tail :: Symbol).
-    Cons (head :: Symbol) (tail :: Symbol) "World" => Proxy @Symbol (head :: Symbol)
-symbolValue :: String
-symbolValue' :: String
+  forall (head :: Prim.Symbol) (tail :: Prim.Symbol).
+    Prim.Symbol.Cons (head :: Prim.Symbol) (tail :: Prim.Symbol) "World" =>
+    Type.Proxy.Proxy @Prim.Symbol (head :: Prim.Symbol)
+symbolValue :: Prim.String
+symbolValue' :: Prim.String
 forceSolve ::
-  { compareEQ :: Proxy @Ordering EQ
-  , compareGT :: Proxy @Ordering GT
-  , compareLT :: Proxy @Ordering LT
-  , deriveAppended :: Proxy @Symbol "HelloWorld"
-  , deriveCons :: Proxy @Symbol "Hello"
-  , deriveHeadTail :: Proxy @Symbol "W"
-  , deriveLeft :: Proxy @Symbol "Hello"
-  , deriveRight :: Proxy @Symbol "World"
-  , symbolValue :: String
-  , symbolValue' :: String
+  { compareEQ :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.EQ
+  , compareGT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.GT
+  , compareLT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+  , deriveAppended :: Type.Proxy.Proxy @Prim.Symbol "HelloWorld"
+  , deriveCons :: Type.Proxy.Proxy @Prim.Symbol "Hello"
+  , deriveHeadTail :: Type.Proxy.Proxy @Prim.Symbol "W"
+  , deriveLeft :: Type.Proxy.Proxy @Prim.Symbol "Hello"
+  , deriveRight :: Type.Proxy.Proxy @Prim.Symbol "World"
+  , symbolValue :: Prim.String
+  , symbolValue' :: Prim.String
   }
 
 Types

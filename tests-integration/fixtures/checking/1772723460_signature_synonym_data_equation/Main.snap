@@ -1,17 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Box :: forall (@a :: Type). (a :: Type) -> Box (a :: Type)
+Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
 
 Types
-UnaryKind :: Type
-Box :: UnaryKind
+UnaryKind :: Prim.Type
+Box :: Main.UnaryKind
 
 Synonyms
-type UnaryKind = Type -> Type
+type UnaryKind = Prim.Type -> Prim.Type
 
 Roles
 Box = [Representational]

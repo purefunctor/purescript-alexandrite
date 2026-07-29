@@ -5,21 +5,27 @@ expression: report
 ---
 Terms
 Wrap ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 WrapNoFunctor ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    WrapNoFunctor @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.WrapNoFunctor @(t :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (a :: (t :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
-WrapNoFunctor :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+WrapNoFunctor ::
+  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Type -> Type). Functor (t :: Type -> Type) => Functor (Wrap @Type (t :: Type -> Type))
-derive forall (t :: Type -> Type). Functor (WrapNoFunctor @Type (t :: Type -> Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (t :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (Main.WrapNoFunctor @Prim.Type (t :: Prim.Type -> Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]

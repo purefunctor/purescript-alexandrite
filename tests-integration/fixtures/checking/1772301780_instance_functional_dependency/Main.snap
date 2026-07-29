@@ -5,19 +5,22 @@ expression: report
 ---
 Terms
 convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-test :: String
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+test :: Prim.String
 
 Types
-Convert :: Type -> Type -> Constraint
-TypeEq :: forall (k :: Type). (k :: Type) -> (k :: Type) -> Constraint
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+TypeEq :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (a :: Type) (b :: Type). Convert (a :: Type) (b :: Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
   convert ::
-  forall (@a :: Type) (@b :: Type). Convert (a :: Type) (b :: Type) => (a :: Type) -> (b :: Type)
-class forall (k :: Type) (a :: (k :: Type)) (b :: (k :: Type)). TypeEq @(k :: Type) (a :: (k :: Type)) (b :: (k :: Type))
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEq @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
 
 Instances
-instance Convert Int String
-instance forall (t :: Type) (t1 :: (t :: Type)). TypeEq @(t :: Type) (t1 :: (t :: Type)) (t1 :: (t :: Type))
+instance Main.Convert Prim.Int Prim.String
+instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
+  Main.TypeEq @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))

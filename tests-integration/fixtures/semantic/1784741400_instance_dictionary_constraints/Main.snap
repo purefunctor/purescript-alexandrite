@@ -3,26 +3,26 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface First :: Type -> Constraint
+interface First :: Prim.Type -> Prim.Constraint
 interface First a where
 
-interface Second :: Type -> Constraint
+interface Second :: Prim.Type -> Prim.Constraint
 interface Second b where
 
-interface Example :: Type -> Type -> Constraint
+interface Example :: Prim.Type -> Prim.Type -> Prim.Constraint
 interface Example a b where
-  example :: a -> b -> Boolean
+  example :: a -> b -> Prim.Boolean
 
-implementation :: forall b a. Second b => a -> b -> Boolean
+implementation :: forall b a. Main.Second b => a -> b -> Prim.Boolean
 implementation = \{secondDict} -> \_ -> \_ -> boolean
 
-foreign import boolean :: Boolean
+foreign import boolean :: Prim.Boolean
 
 dictionary exampleAB ::
   forall t t1.
-  { firstDict :: First t } =>
-  { secondDict :: Second t1 } =>
-  Example t t1
+  { firstDict :: Main.First t } =>
+  { secondDict :: Main.Second t1 } =>
+  Main.Example t t1
   where
-  example :: t -> t1 -> Boolean
+  example :: t -> t1 -> Prim.Boolean
   example = implementation @t1 @t {secondDict}

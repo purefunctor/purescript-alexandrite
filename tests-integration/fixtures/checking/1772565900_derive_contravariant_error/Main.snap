@@ -4,16 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Type). (a :: Type) -> Identity (a :: Type)
-Producer :: forall (@a :: Type). (Int -> (a :: Type)) -> Producer (a :: Type)
+Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
+Producer ::
+  forall (@a :: Prim.Type). (Prim.Int -> (a :: Prim.Type)) -> Main.Producer (a :: Prim.Type)
 
 Types
-Identity :: Type -> Type
-Producer :: Type -> Type
+Identity :: Prim.Type -> Prim.Type
+Producer :: Prim.Type -> Prim.Type
 
 Derived
-derive Contravariant Identity
-derive Contravariant Producer
+derive Data.Functor.Contravariant.Contravariant Main.Identity
+derive Data.Functor.Contravariant.Contravariant Main.Producer
 
 Roles
 Identity = [Representational]

@@ -3,38 +3,38 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-string :: String
+string :: Prim.String
 string = "line\n\"quote\"\\end"
 
-rawString :: String
+rawString :: Prim.String
 rawString = """line\n"quoted"\\end"""
 
-character :: Char
+character :: Prim.Char
 character = 'λ'
 
-characterNewline :: Char
+characterNewline :: Prim.Char
 characterNewline = '\n'
 
-characterCarriageReturn :: Char
+characterCarriageReturn :: Prim.Char
 characterCarriageReturn = '\r'
 
-characterTab :: Char
+characterTab :: Prim.Char
 characterTab = '\t'
 
-characterQuote :: Char
+characterQuote :: Prim.Char
 characterQuote = '\''
 
-characterBackslash :: Char
+characterBackslash :: Prim.Char
 characterBackslash = '\\'
 
-characterNull :: Char
+characterNull :: Prim.Char
 characterNull = '\0'
 
-characterHexadecimal :: Char
+characterHexadecimal :: Prim.Char
 characterHexadecimal = '☃'
 
-characterDelete :: Char
+characterDelete :: Prim.Char
 characterDelete = '\x7f'
 
-characterControl :: Char
+characterControl :: Prim.Char
 characterControl = '\x85'

@@ -18,5 +18,5 @@ orphanInLambda = \value -> <error>
 failedBody :: forall t. (?[missing expression] -> t) -> t
 failedBody = \v56 -> apply @?[missing expression] @t v56 <error>
 
-invalidExpected :: Int
-invalidExpected = \v67 -> identity @Int v67
+invalidExpected :: Prim.Int
+invalidExpected = \v67 -> identity @Prim.Int v67

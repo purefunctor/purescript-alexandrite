@@ -5,34 +5,47 @@ expression: report
 ---
 Terms
 WrapBoth ::
-  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> Type)
-    (@a :: (t :: Type)) (@b :: (t1 :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    (g :: (t1 :: Type) -> Type) (b :: (t1 :: Type)) ->
-    WrapBoth @(t :: Type) @(t1 :: Type)
-      (f :: (t :: Type) -> Type)
-      (g :: (t1 :: Type) -> Type)
-      (a :: (t :: Type))
-      (b :: (t1 :: Type))
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: (t1 :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)) (@b :: (t1 :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    (g :: (t1 :: Prim.Type) -> Prim.Type) (b :: (t1 :: Prim.Type)) ->
+    Main.WrapBoth @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: (t1 :: Prim.Type) -> Prim.Type)
+      (a :: (t :: Prim.Type))
+      (b :: (t1 :: Prim.Type))
 
 Types
 WrapBoth ::
-  forall (t :: Type) (t1 :: Type).
-    ((t :: Type) -> Type) -> ((t1 :: Type) -> Type) -> (t :: Type) -> (t1 :: Type) -> Type
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) ->
+    ((t1 :: Prim.Type) -> Prim.Type) ->
+    (t :: Prim.Type) ->
+    (t1 :: Prim.Type) ->
+    Prim.Type
 
 Derived
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Functor (t :: Type -> Type) =>
-  Functor (t1 :: Type -> Type) =>
-  Bifunctor (WrapBoth @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Foldable (t :: Type -> Type) =>
-  Foldable (t1 :: Type -> Type) =>
-  Bifoldable (WrapBoth @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Traversable (t :: Type -> Type) =>
-  Traversable (t1 :: Type -> Type) =>
-  Bitraversable (WrapBoth @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (t :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (t1 :: Prim.Type -> Prim.Type) =>
+  Data.Bifunctor.Bifunctor
+    (Main.WrapBoth @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (t :: Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (t1 :: Prim.Type -> Prim.Type) =>
+  Data.Bifoldable.Bifoldable
+    (Main.WrapBoth @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Traversable.Traversable (t :: Prim.Type -> Prim.Type) =>
+  Data.Traversable.Traversable (t1 :: Prim.Type -> Prim.Type) =>
+  Data.Bitraversable.Bitraversable
+    (Main.WrapBoth @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
 
 Roles
 WrapBoth = [Representational, Representational, Nominal, Nominal]

@@ -4,18 +4,24 @@ assertion_line: 50
 expression: report
 ---
 Terms
-const :: forall (@a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
-Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
+const ::
+  forall (@a :: Prim.Type) (b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+Left ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Right ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
 forceSolve ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Type).
-    { const :: Int -> (t :: Type) -> Int
-    , left :: Int -> Either Int (t1 :: Type)
-    , right :: (t2 :: Type) -> Either Int (t2 :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    { const :: Prim.Int -> (t :: Prim.Type) -> Prim.Int
+    , left :: Prim.Int -> Main.Either Prim.Int (t1 :: Prim.Type)
+    , right :: (t2 :: Prim.Type) -> Main.Either Prim.Int (t2 :: Prim.Type)
     }
 
 Types
-Either :: Type -> Type -> Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
 
 Roles
 Either = [Representational, Representational]

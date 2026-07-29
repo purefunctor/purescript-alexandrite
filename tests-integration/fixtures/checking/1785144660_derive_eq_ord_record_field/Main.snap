@@ -4,14 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: { value :: Int } -> Box
+Box :: { value :: Prim.Int } -> Main.Box
 
 Types
-Box :: Type
+Box :: Prim.Type
 
 Derived
-derive Eq Box
-derive Ord Box
+derive Data.Eq.Eq Main.Box
+derive Data.Ord.Ord Main.Box
 
 Roles
 Box = []

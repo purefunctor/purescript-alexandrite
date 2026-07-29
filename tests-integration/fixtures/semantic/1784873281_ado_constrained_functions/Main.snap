@@ -3,23 +3,25 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Tuple :: Type -> Type -> Type
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
 data Tuple @first @second
-  | Tuple :: first -> second -> Tuple first second
+  | Tuple :: first -> second -> Main.Tuple first second
 
-interface Operations :: (Type -> Type) -> Constraint
+interface Operations :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Operations effect where
-  pure :: forall (value :: Type). value -> effect value
-  map :: forall (value :: Type) (result :: Type). (value -> result) -> effect value -> effect result
-  apply :: forall (value :: Type) (result :: Type). effect (value -> result) -> effect value -> effect result
+  pure :: forall (value :: Prim.Type). value -> effect value
+  map :: forall (value :: Prim.Type) (result :: Prim.Type).
+  (value -> result) -> effect value -> effect result
+  apply :: forall (value :: Prim.Type) (result :: Prim.Type).
+  effect (value -> result) -> effect value -> effect result
 
-usingMapApply :: forall effect. Operations effect => effect (Tuple Int String)
+usingMapApply :: forall effect. Main.Operations effect => effect (Main.Tuple Prim.Int Prim.String)
 usingMapApply = \{operationsDict} ->
-  apply @effect {operationsDict} @String @(Tuple Int String)
-    (map @effect {operationsDict} @Int @(String -> Tuple Int String)
-      (\first second -> Tuple @Int @String first second)
-      (pure @effect {operationsDict} @Int 1))
-    (pure @effect {operationsDict} @String "two")
+  apply @effect {operationsDict} @Prim.String @(Main.Tuple Prim.Int Prim.String)
+    (map @effect {operationsDict} @Prim.Int @(Prim.String -> Main.Tuple Prim.Int Prim.String)
+      (\first second -> Tuple @Prim.Int @Prim.String first second)
+      (pure @effect {operationsDict} @Prim.Int 1))
+    (pure @effect {operationsDict} @Prim.String "two")
 
-usingPure :: forall effect. Operations effect => effect Int
-usingPure = \{operationsDict} -> pure @effect {operationsDict} @Int 1
+usingPure :: forall effect. Main.Operations effect => effect Prim.Int
+usingPure = \{operationsDict} -> pure @effect {operationsDict} @Prim.Int 1

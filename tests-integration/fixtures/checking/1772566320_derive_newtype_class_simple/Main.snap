@@ -1,16 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-UserId :: Int -> UserId
+UserId :: Prim.Int -> Main.UserId
 
 Types
-UserId :: Type
+UserId :: Prim.Type
 
 Derived
-derive Newtype @Type UserId Int
+derive Data.Newtype.Newtype @Prim.Type Main.UserId Prim.Int
 
 Roles
 UserId = []

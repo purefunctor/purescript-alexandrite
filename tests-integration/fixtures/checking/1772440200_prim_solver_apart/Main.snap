@@ -1,18 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-invalidAdd :: Add 2 3 10 => Proxy @Int 10
-invalidCompare :: Compare 5 1 LT => Proxy @Ordering LT
-invalidAppend :: Append "hello" "world" "xyz" => Proxy @Symbol "xyz"
-invalidCons :: Cons "hello" "world" "helloworld" => Proxy @Symbol "world"
+invalidAdd :: Prim.Int.Add 2 3 10 => Type.Proxy.Proxy @Prim.Int 10
+invalidCompare ::
+  Prim.Int.Compare 5 1 Prim.Ordering.LT => Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+invalidAppend :: Prim.Symbol.Append "hello" "world" "xyz" => Type.Proxy.Proxy @Prim.Symbol "xyz"
+invalidCons ::
+  Prim.Symbol.Cons "hello" "world" "helloworld" => Type.Proxy.Proxy @Prim.Symbol "world"
 forceSolve ::
-  { invalidAdd :: Proxy @Int 10
-  , invalidAppend :: Proxy @Symbol "xyz"
-  , invalidCompare :: Proxy @Ordering LT
-  , invalidCons :: Proxy @Symbol "world"
+  { invalidAdd :: Type.Proxy.Proxy @Prim.Int 10
+  , invalidAppend :: Type.Proxy.Proxy @Prim.Symbol "xyz"
+  , invalidCompare :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+  , invalidCons :: Type.Proxy.Proxy @Prim.Symbol "world"
   }
 
 Types

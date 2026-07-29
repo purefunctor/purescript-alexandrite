@@ -4,18 +4,28 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy :: forall (k :: Type) (@a :: (k :: Type)). Proxy @(k :: Type) (a :: (k :: Type))
+Proxy ::
+  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
+    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 failBasic ::
-  forall (a :: Type). Fail (Text "This operation is not allowed") => (a :: Type) -> (a :: Type)
-useFailBasic :: Int
+  forall (a :: Prim.Type).
+    Prim.TypeError.Fail (Prim.TypeError.Text "This operation is not allowed") =>
+    (a :: Prim.Type) -> (a :: Prim.Type)
+useFailBasic :: Prim.Int
 failComplex ::
-  forall (t :: Type) (a :: (t :: Type)).
-    Fail (Above (Text "Error:") (Beside (Text "Type ") (Quote @(t :: Type) (a :: (t :: Type))))) =>
-    Proxy @(t :: Type) (a :: (t :: Type)) -> Proxy @(t :: Type) (a :: (t :: Type))
-useFailComplex :: Proxy @Type String
+  forall (t :: Prim.Type) (a :: (t :: Prim.Type)).
+    Prim.TypeError.Fail
+      (Prim.TypeError.Above
+        (Prim.TypeError.Text "Error:")
+        (Prim.TypeError.Beside
+          (Prim.TypeError.Text "Type ")
+          (Prim.TypeError.Quote @(t :: Prim.Type) (a :: (t :: Prim.Type))))) =>
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+useFailComplex :: Main.Proxy @Prim.Type Prim.String
 
 Types
-Proxy :: forall (k :: Type). (k :: Type) -> Type
+Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

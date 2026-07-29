@@ -3,13 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Choice :: Type -> Type
+data Choice :: Prim.Type -> Prim.Type
 data Choice @a
-  | Empty :: Choice a
-  | One :: a -> Choice a
-  | Pair :: a -> a -> Choice a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+  | Pair :: a -> a -> Main.Choice a
 
-guarded :: Boolean -> Choice (Choice Int) -> Int
+guarded :: Prim.Boolean -> Main.Choice (Main.Choice Prim.Int) -> Prim.Int
 guarded = \condition -> \choice ->
   case choice of
     (One nested)
@@ -19,11 +19,11 @@ guarded = \condition -> \choice ->
       | (One value) <- right -> value
     _ -> 0
 
-withWhere :: Choice Int -> Int
+withWhere :: Main.Choice Prim.Int -> Prim.Int
 withWhere = \choice ->
   case choice of
     (One value) -> local
       where
-      local :: Int
+      local :: Prim.Int
       local = value
     _ -> 0

@@ -3,8 +3,8 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-add :: Int -> Int -> Int
+add :: Prim.Int -> Prim.Int -> Prim.Int
 add = \left -> \right -> left
 
-missingRightOperand :: Int
+missingRightOperand :: Prim.Int
 missingRightOperand = <error>

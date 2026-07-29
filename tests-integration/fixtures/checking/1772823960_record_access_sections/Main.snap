@@ -5,55 +5,76 @@ expression: report
 ---
 Terms
 map ::
-  forall (a :: Type) (b :: Type).
-    ((a :: Type) -> (b :: Type)) -> Array (a :: Type) -> Array (b :: Type)
-apply :: forall (a :: Type) (b :: Type). ((a :: Type) -> (b :: Type)) -> (a :: Type) -> (b :: Type)
-f :: ({ foo :: Int } -> Int) -> Int
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+    Prim.Array (a :: Prim.Type) ->
+    Prim.Array (b :: Prim.Type)
+apply ::
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
+f :: ({ foo :: Prim.Int } -> Prim.Int) -> Prim.Int
 test1 ::
-  forall (t :: Type) (t1 :: Row Type). { prop :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { prop :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)
 test2 ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Row Type) (t3 :: Row Type).
-    { a :: { b :: { c :: (t :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) }
-    | (t3 :: Row Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+    (t3 :: Prim.Row Prim.Type).
+    { a ::
+        { b :: { c :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) }
+    | (t3 :: Prim.Row Prim.Type)
     } ->
-    (t :: Type)
+    (t :: Prim.Type)
 test3 ::
-  forall (t :: Type) (t1 :: Row Type). { poly :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { poly :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)
 test4 ::
-  forall (t :: Type) (t1 :: Row Type).
-    Array { prop :: (t :: Type) | (t1 :: Row Type) } -> Array (t :: Type)
-test5 :: Int
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    Prim.Array { prop :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    Prim.Array (t :: Prim.Type)
+test5 :: Prim.Int
 test6 ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Row Type) (t3 :: Type).
-    (t :: Type) ->
-    (({ bar :: (t1 :: Type) | (t2 :: Row Type) } -> (t1 :: Type)) -> (t3 :: Type)) ->
-    (t3 :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type) (t3 :: Prim.Type).
+    (t :: Prim.Type) ->
+    (({ bar :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } -> (t1 :: Prim.Type)) ->
+    (t3 :: Prim.Type)) ->
+    (t3 :: Prim.Type)
 test7 ::
-  forall (t :: Type) (t1 :: Row Type).
-    { nonexistent :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { nonexistent :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)
 test8 ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
-    (({ foo :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)) -> (t2 :: Type)) -> (t2 :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    (({ foo :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)) ->
+    (t2 :: Prim.Type)) ->
+    (t2 :: Prim.Type)
 test9 ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Type).
-    Array (({ prop :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)) -> (t2 :: Type)) ->
-    Array (t2 :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    Prim.Array
+      (({ prop :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)) ->
+      (t2 :: Prim.Type)) ->
+    Prim.Array (t2 :: Prim.Type)
 test10 ::
-  forall (t :: Type) (t1 :: Row Type) (t2 :: Row Type).
-    { a :: { b :: (t :: Type) | (t1 :: Row Type) } | (t2 :: Row Type) } -> (t :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type).
+    { a :: { b :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) } ->
+    (t :: Prim.Type)
 test11 ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Row Type).
-    (t :: Type) ->
-    { a :: (t :: Type), b :: { foo :: (t1 :: Type) | (t2 :: Row Type) } -> (t1 :: Type) }
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type).
+    (t :: Prim.Type) ->
+    { a :: (t :: Prim.Type)
+    , b :: { foo :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } -> (t1 :: Prim.Type)
+    }
 test12 ::
-  forall (t :: Type) (t1 :: Row Type).
-    ({ bar :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)) ->
-    Array ({ bar :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type))
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    ({ bar :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type)) ->
+    Prim.Array ({ bar :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } -> (t :: Prim.Type))
 test13 ::
-  forall (t :: Type) (t1 :: Type) (t2 :: Row Type).
-    (t :: Type) -> { prop :: (t1 :: Type) | (t2 :: Row Type) } -> (t1 :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type).
+    (t :: Prim.Type) ->
+    { prop :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } ->
+    (t1 :: Prim.Type)
 test14 ::
-  forall (t :: Type) (t1 :: Row Type).
-    Boolean -> { a :: (t :: Type), b :: (t :: Type) | (t1 :: Row Type) } -> (t :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    Prim.Boolean ->
+    { a :: (t :: Prim.Type), b :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    (t :: Prim.Type)
 
 Types

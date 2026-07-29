@@ -4,50 +4,64 @@ assertion_line: 50
 expression: report
 ---
 Terms
-$ :: forall (a :: Type) (b :: Type). ((a :: Type) -> (b :: Type)) -> (a :: Type) -> (b :: Type)
-apply :: forall (a :: Type) (b :: Type). ((a :: Type) -> (b :: Type)) -> (a :: Type) -> (b :: Type)
-identity :: forall (a :: Type). (a :: Type) -> (a :: Type)
-Wrap :: forall (@a :: Type). (a :: Type) -> Wrap (a :: Type)
+$ ::
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
+apply ::
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+Wrap :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Wrap (a :: Prim.Type)
 dimap ::
-  forall (@p :: Type -> Type -> Type).
-    Profunctor (p :: Type -> Type -> Type) =>
-    (forall (a :: Type) (b :: Type) (c :: Type) (d :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      ((c :: Type) -> (d :: Type)) ->
-      (p :: Type -> Type -> Type) (b :: Type) (c :: Type) ->
-      (p :: Type -> Type -> Type) (a :: Type) (d :: Type))
+  forall (@p :: Prim.Type -> Prim.Type -> Prim.Type).
+    Main.Profunctor (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+      ((c :: Prim.Type) -> (d :: Prim.Type)) ->
+      (p :: Prim.Type -> Prim.Type -> Prim.Type) (b :: Prim.Type) (c :: Prim.Type) ->
+      (p :: Prim.Type -> Prim.Type -> Prim.Type) (a :: Prim.Type) (d :: Prim.Type))
 lens ::
-  forall (s :: Type) (a :: Type).
-    ((a :: Type) -> (s :: Type)) -> ((s :: Type) -> (a :: Type)) -> Lens (s :: Type) (a :: Type)
-wrapped :: forall (a :: Type). Lens (Wrap (a :: Type)) (a :: Type)
+  forall (s :: Prim.Type) (a :: Prim.Type).
+    ((a :: Prim.Type) -> (s :: Prim.Type)) ->
+    ((s :: Prim.Type) -> (a :: Prim.Type)) ->
+    Main.Lens (s :: Prim.Type) (a :: Prim.Type)
+wrapped :: forall (a :: Prim.Type). Main.Lens (Main.Wrap (a :: Prim.Type)) (a :: Prim.Type)
 
 Types
-Wrap :: Type -> Type
-Profunctor :: (Type -> Type -> Type) -> Constraint
+Wrap :: Prim.Type -> Prim.Type
+Profunctor :: (Prim.Type -> Prim.Type -> Prim.Type) -> Prim.Constraint
 Optic ::
-  forall (t :: Type). ((t :: Type) -> (t :: Type) -> Type) -> (t :: Type) -> (t :: Type) -> Type
-Lens :: Type -> Type -> Type
+  forall (t :: Prim.Type).
+    ((t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type) ->
+    (t :: Prim.Type) ->
+    (t :: Prim.Type) ->
+    Prim.Type
+Lens :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Optic p s a = (p :: (t :: Type) -> (t :: Type) -> Type) (a :: (t :: Type)) (a :: (t :: Type)) ->
-(p :: (t :: Type) -> (t :: Type) -> Type) (s :: (t :: Type)) (s :: (t :: Type))
-type Lens s a = forall (p :: Type -> Type -> Type).
-  Profunctor (p :: Type -> Type -> Type) =>
-  Optic @Type (p :: Type -> Type -> Type) (s :: Type) (a :: Type)
+type Optic p s a = (p :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
+  (a :: (t :: Prim.Type))
+  (a :: (t :: Prim.Type)) ->
+(p :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
+  (s :: (t :: Prim.Type))
+  (s :: (t :: Prim.Type))
+type Lens s a = forall (p :: Prim.Type -> Prim.Type -> Prim.Type).
+  Main.Profunctor (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
+  Main.Optic @Prim.Type (p :: Prim.Type -> Prim.Type -> Prim.Type) (s :: Prim.Type) (a :: Prim.Type)
 
 Classes
-class forall (p :: Type -> Type -> Type). Profunctor (p :: Type -> Type -> Type)
+class forall (p :: Prim.Type -> Prim.Type -> Prim.Type). Main.Profunctor (p :: Prim.Type -> Prim.Type -> Prim.Type)
   dimap ::
-  forall (@p :: Type -> Type -> Type).
-    Profunctor (p :: Type -> Type -> Type) =>
-    (forall (a :: Type) (b :: Type) (c :: Type) (d :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      ((c :: Type) -> (d :: Type)) ->
-      (p :: Type -> Type -> Type) (b :: Type) (c :: Type) ->
-      (p :: Type -> Type -> Type) (a :: Type) (d :: Type))
+  forall (@p :: Prim.Type -> Prim.Type -> Prim.Type).
+    Main.Profunctor (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
+    (forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
+      ((c :: Prim.Type) -> (d :: Prim.Type)) ->
+      (p :: Prim.Type -> Prim.Type -> Prim.Type) (b :: Prim.Type) (c :: Prim.Type) ->
+      (p :: Prim.Type -> Prim.Type -> Prim.Type) (a :: Prim.Type) (d :: Prim.Type))
 
 Instances
-instance Profunctor Function
+instance Main.Profunctor Prim.Function
 
 Roles
 Wrap = [Representational]

@@ -4,27 +4,29 @@ assertion_line: 50
 expression: report
 ---
 Terms
-termHole :: Int -> Int
-recordPunHole :: { punInt :: Int, punString :: String } -> Int
+termHole :: Prim.Int -> Prim.Int
+recordPunHole :: { punInt :: Prim.Int, punString :: Prim.String } -> Prim.Int
 instanceTypeHoleMember ::
-  forall (@implicit :: Type).
-    InstanceTypeHole (implicit :: Type) => (implicit :: Type) -> (implicit :: Type)
+  forall (@implicit :: Prim.Type).
+    Main.InstanceTypeHole (implicit :: Prim.Type) =>
+    (implicit :: Prim.Type) -> (implicit :: Prim.Type)
 
 Types
-TypeHole :: forall (t :: Type). (t :: Type) -> Type
-InstanceTypeHole :: Type -> Constraint
+TypeHole :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+InstanceTypeHole :: Prim.Type -> Prim.Constraint
 
 Synonyms
 type TypeHole a = ?3
 
 Classes
-class forall (implicit :: Type). InstanceTypeHole (implicit :: Type)
+class forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Type)
   instanceTypeHoleMember ::
-  forall (@implicit :: Type).
-    InstanceTypeHole (implicit :: Type) => (implicit :: Type) -> (implicit :: Type)
+  forall (@implicit :: Prim.Type).
+    Main.InstanceTypeHole (implicit :: Prim.Type) =>
+    (implicit :: Prim.Type) -> (implicit :: Prim.Type)
 
 Instances
-instance forall (t :: Type). InstanceTypeHole (t :: Type)
+instance forall (t :: Prim.Type). Main.InstanceTypeHole (t :: Prim.Type)
 
 Diagnostics
 error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type

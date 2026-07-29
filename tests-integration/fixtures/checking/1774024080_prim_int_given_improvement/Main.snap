@@ -5,10 +5,17 @@ expression: report
 ---
 Terms
 addChain ::
-  forall (n :: Int) (m :: Int).
-    Add 1 2 (n :: Int) => Add 1 (n :: Int) (m :: Int) => Proxy @Int (m :: Int)
-addContradiction :: forall (m :: Int). Add 1 2 4 => Add 1 4 (m :: Int) => Proxy @Int (m :: Int)
-forceSolve :: { addChain :: Proxy @Int 4, addContradiction :: Proxy @Int 5 }
+  forall (n :: Prim.Int) (m :: Prim.Int).
+    Prim.Int.Add 1 2 (n :: Prim.Int) =>
+    Prim.Int.Add 1 (n :: Prim.Int) (m :: Prim.Int) =>
+    Type.Proxy.Proxy @Prim.Int (m :: Prim.Int)
+addContradiction ::
+  forall (m :: Prim.Int).
+    Prim.Int.Add 1 2 4 =>
+    Prim.Int.Add 1 4 (m :: Prim.Int) =>
+    Type.Proxy.Proxy @Prim.Int (m :: Prim.Int)
+forceSolve ::
+  { addChain :: Type.Proxy.Proxy @Prim.Int 4, addContradiction :: Type.Proxy.Proxy @Prim.Int 5 }
 
 Types
 

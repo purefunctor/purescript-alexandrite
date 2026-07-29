@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: Int -> Box
+Box :: Prim.Int -> Main.Box
 
 Types
-Box :: Type
+Box :: Prim.Type
 
 Derived
-derive forall (t :: Type). Generic Box (t :: Type)
+derive forall (t :: Prim.Type). Data.Generic.Rep.Generic Main.Box (t :: Prim.Type)
 
 Roles
 Box = []

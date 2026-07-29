@@ -4,28 +4,32 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Unit :: Unit
-Spec :: forall (@g :: Type -> Type). Spec (g :: Type -> Type)
+Unit :: Main.Unit
+Spec :: forall (@g :: Prim.Type -> Prim.Type). Main.Spec (g :: Prim.Type -> Prim.Type)
 it ::
-  forall (t :: Type) (g :: Type -> Type).
-    Convert (t :: Type) (g :: Type -> Type) => String -> (t :: Type) -> Spec (g :: Type -> Type)
-action :: forall (m :: Type -> Type). (m :: Type -> Type) Unit
-test :: Spec Aff
-test2 :: Spec Aff
-test3 :: Spec Aff
+  forall (t :: Prim.Type) (g :: Prim.Type -> Prim.Type).
+    Main.Convert (t :: Prim.Type) (g :: Prim.Type -> Prim.Type) =>
+    Prim.String -> (t :: Prim.Type) -> Main.Spec (g :: Prim.Type -> Prim.Type)
+action :: forall (m :: Prim.Type -> Prim.Type). (m :: Prim.Type -> Prim.Type) Main.Unit
+test :: Main.Spec Effect.Aff.Aff
+test2 :: Main.Spec Effect.Aff.Aff
+test3 :: Main.Spec Effect.Aff.Aff
 
 Types
-Unit :: Type
-Spec :: (Type -> Type) -> Type
-Convert :: Type -> (Type -> Type) -> Constraint
+Unit :: Prim.Type
+Spec :: (Prim.Type -> Prim.Type) -> Prim.Type
+Convert :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Type) (m :: Type -> Type). Convert (t :: Type) (m :: Type -> Type)
+class forall (t :: Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Convert (t :: Prim.Type) (m :: Prim.Type -> Prim.Type)
 
 Instances
-instance forall (t :: Type) (t1 :: Type -> Type).
-  Convert ((t :: Type) -> (t1 :: Type -> Type) Unit) (t1 :: Type -> Type)
-instance forall (t :: Type -> Type). Convert ((t :: Type -> Type) Unit) (t :: Type -> Type)
+instance forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Main.Convert
+    ((t :: Prim.Type) -> (t1 :: Prim.Type -> Prim.Type) Main.Unit)
+    (t1 :: Prim.Type -> Prim.Type)
+instance forall (t :: Prim.Type -> Prim.Type).
+  Main.Convert ((t :: Prim.Type -> Prim.Type) Main.Unit) (t :: Prim.Type -> Prim.Type)
 
 Roles
 Unit = []

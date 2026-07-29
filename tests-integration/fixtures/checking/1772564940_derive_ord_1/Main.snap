@@ -4,63 +4,85 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Id :: forall (@a :: Type). (a :: Type) -> Id (a :: Type)
+Id :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Id (a :: Prim.Type)
 Wrap ::
-  forall (t :: Type) (@f :: (t :: Type) -> Type) (@a :: (t :: Type)).
-    (f :: (t :: Type) -> Type) (a :: (t :: Type)) ->
-    Wrap @(t :: Type) (f :: (t :: Type) -> Type) (a :: (t :: Type))
+  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
+    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
 Compose ::
-  forall (t :: Type) (t1 :: Type) (@f :: (t :: Type) -> Type) (@g :: (t1 :: Type) -> (t :: Type))
-    (@a :: (t1 :: Type)).
-    (f :: (t :: Type) -> Type) ((g :: (t1 :: Type) -> (t :: Type)) (a :: (t1 :: Type))) ->
-    Compose @(t :: Type) @(t1 :: Type)
-      (f :: (t :: Type) -> Type)
-      (g :: (t1 :: Type) -> (t :: Type))
-      (a :: (t1 :: Type))
-NoOrd :: forall (@a :: Type). (a :: Type) -> NoOrd (a :: Type)
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
+    (@g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
+    (f :: (t :: Prim.Type) -> Prim.Type)
+      ((g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
+    Main.Compose @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (f :: (t :: Prim.Type) -> Prim.Type)
+      (g :: (t1 :: Prim.Type) -> (t :: Prim.Type))
+      (a :: (t1 :: Prim.Type))
+NoOrd :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.NoOrd (a :: Prim.Type)
 
 Types
-Id :: Type -> Type
-Wrap :: forall (t :: Type). ((t :: Type) -> Type) -> (t :: Type) -> Type
+Id :: Prim.Type -> Prim.Type
+Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
 Compose ::
-  forall (t :: Type) (t1 :: Type).
-    ((t :: Type) -> Type) -> ((t1 :: Type) -> (t :: Type)) -> (t1 :: Type) -> Type
-NoOrd :: Type -> Type
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    ((t :: Prim.Type) -> Prim.Type) ->
+    ((t1 :: Prim.Type) -> (t :: Prim.Type)) ->
+    (t1 :: Prim.Type) ->
+    Prim.Type
+NoOrd :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t :: Type). Eq (t :: Type) => Eq (Id (t :: Type))
-derive Eq1 Id
-derive forall (t :: Type). Ord (t :: Type) => Ord (Id (t :: Type))
-derive Ord1 Id
-derive forall (t :: Type -> Type) (t1 :: Type).
-  Eq1 (t :: Type -> Type) => Eq (t1 :: Type) => Eq (Wrap @Type (t :: Type -> Type) (t1 :: Type))
-derive forall (t :: Type -> Type). Eq1 (t :: Type -> Type) => Eq1 (Wrap @Type (t :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type).
-  Ord1 (t :: Type -> Type) => Ord (t1 :: Type) => Ord (Wrap @Type (t :: Type -> Type) (t1 :: Type))
-derive forall (t :: Type -> Type). Ord1 (t :: Type -> Type) => Ord1 (Wrap @Type (t :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type) (t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type)).
-  Eq1 (t :: Type -> Type) =>
-  Eq ((t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type))) =>
-  Eq
-    (Compose @Type @(t1 :: Type)
-      (t :: Type -> Type)
-      (t2 :: (t1 :: Type) -> Type)
-      (t3 :: (t1 :: Type)))
-derive forall (t :: Type -> Type) (t1 :: Type) (t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type)).
-  Ord1 (t :: Type -> Type) =>
-  Ord ((t2 :: (t1 :: Type) -> Type) (t3 :: (t1 :: Type))) =>
-  Ord
-    (Compose @Type @(t1 :: Type)
-      (t :: Type -> Type)
-      (t2 :: (t1 :: Type) -> Type)
-      (t3 :: (t1 :: Type)))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Eq1 (t :: Type -> Type) => Eq1 (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type -> Type) (t1 :: Type -> Type).
-  Ord1 (t :: Type -> Type) => Ord1 (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
-derive forall (t :: Type). Eq (t :: Type) => Eq (NoOrd (t :: Type))
-derive Eq1 NoOrd
-derive Ord1 NoOrd
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Id (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.Id
+derive forall (t :: Prim.Type). Data.Ord.Ord (t :: Prim.Type) => Data.Ord.Ord (Main.Id (t :: Prim.Type))
+derive Data.Ord.Ord1 Main.Id
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (t1 :: Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1 (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (t1 :: Prim.Type) =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord1 (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+  (t3 :: (t1 :: Prim.Type)).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq ((t2 :: (t1 :: Prim.Type) -> Prim.Type) (t3 :: (t1 :: Prim.Type))) =>
+  Data.Eq.Eq
+    (Main.Compose @Prim.Type @(t1 :: Prim.Type)
+      (t :: Prim.Type -> Prim.Type)
+      (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+      (t3 :: (t1 :: Prim.Type)))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+  (t3 :: (t1 :: Prim.Type)).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord ((t2 :: (t1 :: Prim.Type) -> Prim.Type) (t3 :: (t1 :: Prim.Type))) =>
+  Data.Ord.Ord
+    (Main.Compose @Prim.Type @(t1 :: Prim.Type)
+      (t :: Prim.Type -> Prim.Type)
+      (t2 :: (t1 :: Prim.Type) -> Prim.Type)
+      (t3 :: (t1 :: Prim.Type)))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1
+    (Main.Compose @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord1
+    (Main.Compose @Prim.Type @Prim.Type
+      (t :: Prim.Type -> Prim.Type)
+      (t1 :: Prim.Type -> Prim.Type))
+derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.NoOrd (t :: Prim.Type))
+derive Data.Eq.Eq1 Main.NoOrd
+derive Data.Ord.Ord1 Main.NoOrd
 
 Roles
 Id = [Representational]

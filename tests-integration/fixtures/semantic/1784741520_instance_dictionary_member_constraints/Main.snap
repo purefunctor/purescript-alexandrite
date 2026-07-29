@@ -3,18 +3,18 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Required :: Type -> Constraint
+interface Required :: Prim.Type -> Prim.Constraint
 interface Required value where
 
-interface Example :: Type -> Constraint
+interface Example :: Prim.Type -> Prim.Constraint
 interface Example a where
-  apply :: forall (b :: Type). Required b => a -> b -> Boolean
+  apply :: forall (b :: Prim.Type). Main.Required b => a -> b -> Prim.Boolean
 
-implementation :: forall a b. Required b => a -> b -> Boolean
+implementation :: forall a b. Main.Required b => a -> b -> Prim.Boolean
 implementation = \{requiredDict} -> \_ -> \_ -> boolean
 
-foreign import boolean :: Boolean
+foreign import boolean :: Prim.Boolean
 
-dictionary exampleInt :: Example Int where
-  apply :: forall (b :: Type). Required b => Int -> b -> Boolean
-  apply = \{requiredDict} -> implementation @Int @b {requiredDict}
+dictionary exampleInt :: Main.Example Prim.Int where
+  apply :: forall (b :: Prim.Type). Main.Required b => Prim.Int -> b -> Prim.Boolean
+  apply = \{requiredDict} -> implementation @Prim.Int @b {requiredDict}

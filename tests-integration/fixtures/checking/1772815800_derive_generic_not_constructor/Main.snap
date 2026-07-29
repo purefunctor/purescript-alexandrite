@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive forall (t :: Type). Generic (Int -> Int) (t :: Type)
+derive forall (t :: Prim.Type). Data.Generic.Rep.Generic (Prim.Int -> Prim.Int) (t :: Prim.Type)
 
 Diagnostics
 error[CannotDeriveForType]: Cannot derive for type: Int -> Int

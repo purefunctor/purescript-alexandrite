@@ -4,15 +4,15 @@ assertion_line: 50
 expression: report
 ---
 Terms
-method :: forall (@a :: Type). MyClass (a :: Type) => (a :: Type) -> Int
-test :: forall (a :: Type). MyClass (a :: Type) => (a :: Type) -> Int
+method :: forall (@a :: Prim.Type). Main.MyClass (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
+test :: forall (a :: Prim.Type). Main.MyClass (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Types
-MyClass :: Type -> Constraint
+MyClass :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Type). MyClass (a :: Type)
-  method :: forall (@a :: Type). MyClass (a :: Type) => (a :: Type) -> Int
+class forall (a :: Prim.Type). Main.MyClass (a :: Prim.Type)
+  method :: forall (@a :: Prim.Type). Main.MyClass (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Instances
-instance MyClass Int
+instance Main.MyClass Prim.Int

@@ -5,17 +5,21 @@ expression: report
 ---
 Terms
 fetch ::
-  forall (m :: Type -> Type). Capability (m :: Type -> Type) => Int -> (m :: Type -> Type) Int
-test :: Setup
+  forall (m :: Prim.Type -> Prim.Type).
+    Main.Capability (m :: Prim.Type -> Prim.Type) =>
+    Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
+test :: Main.Setup
 
 Types
-Capability :: (Type -> Type) -> Constraint
-Setup :: Type
+Capability :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Setup :: Prim.Type
 
 Synonyms
 type Setup = { fetch ::
-    forall (m :: Type -> Type). Capability (m :: Type -> Type) => Int -> (m :: Type -> Type) Int
+    forall (m :: Prim.Type -> Prim.Type).
+      Main.Capability (m :: Prim.Type -> Prim.Type) =>
+      Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
 }
 
 Classes
-class forall (m :: Type -> Type). Capability (m :: Type -> Type)
+class forall (m :: Prim.Type -> Prim.Type). Main.Capability (m :: Prim.Type -> Prim.Type)

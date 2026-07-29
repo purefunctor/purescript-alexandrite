@@ -4,23 +4,36 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left :: forall (@a :: Type) (@b :: Type). (a :: Type) -> Either (a :: Type) (b :: Type)
-Right :: forall (@a :: Type) (@b :: Type). (b :: Type) -> Either (a :: Type) (b :: Type)
-Pair :: forall (@a :: Type) (@b :: Type). (a :: Type) -> (b :: Type) -> Pair (a :: Type) (b :: Type)
+Left ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Right ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Pair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
 Const2 ::
-  forall (t :: Type) (t1 :: Type) (@e :: Type) (@a :: (t :: Type)) (@b :: (t1 :: Type)).
-    (e :: Type) ->
-    Const2 @(t :: Type) @(t1 :: Type) (e :: Type) (a :: (t :: Type)) (b :: (t1 :: Type))
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (@e :: Prim.Type) (@a :: (t :: Prim.Type))
+    (@b :: (t1 :: Prim.Type)).
+    (e :: Prim.Type) ->
+    Main.Const2 @(t :: Prim.Type) @(t1 :: Prim.Type)
+      (e :: Prim.Type)
+      (a :: (t :: Prim.Type))
+      (b :: (t1 :: Prim.Type))
 
 Types
-Either :: Type -> Type -> Type
-Pair :: Type -> Type -> Type
-Const2 :: forall (t :: Type) (t1 :: Type). Type -> (t :: Type) -> (t1 :: Type) -> Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Const2 ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Type -> (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
 
 Derived
-derive Bifunctor Either
-derive Bifunctor Pair
-derive forall (t :: Type). Bifunctor (Const2 @Type @Type (t :: Type))
+derive Data.Bifunctor.Bifunctor Main.Either
+derive Data.Bifunctor.Bifunctor Main.Pair
+derive forall (t :: Prim.Type).
+  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type (t :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]

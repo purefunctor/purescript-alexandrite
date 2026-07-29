@@ -4,6 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-example :: forall (t :: Type) (t1 :: Type). Int -> (t :: Type) -> (t1 :: Type) -> Int
+example ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Int -> (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Int
 
 Types

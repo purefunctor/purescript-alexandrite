@@ -1,31 +1,31 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 39
+assertion_line: 50
 expression: report
 ---
 Terms
-Name :: String -> Name
-Age :: Int -> Age
-Person :: { age :: Age, name :: Name } -> Person
-Company :: { ceo :: Person, name :: Name } -> Company
-unwrapCompany :: Company -> { ceo :: Person, name :: Name }
-fullyUnwrap :: Company -> RawCompany
-fullyWrap :: RawCompany -> Company
-unwrapPerson :: Person -> RawPerson
-nestedFieldCoerce :: { person :: Person } -> { person :: RawPerson }
-arrayOfRecords :: Array { name :: Name } -> Array { name :: String }
+Name :: Prim.String -> Main.Name
+Age :: Prim.Int -> Main.Age
+Person :: { age :: Main.Age, name :: Main.Name } -> Main.Person
+Company :: { ceo :: Main.Person, name :: Main.Name } -> Main.Company
+unwrapCompany :: Main.Company -> { ceo :: Main.Person, name :: Main.Name }
+fullyUnwrap :: Main.Company -> Main.RawCompany
+fullyWrap :: Main.RawCompany -> Main.Company
+unwrapPerson :: Main.Person -> Main.RawPerson
+nestedFieldCoerce :: { person :: Main.Person } -> { person :: Main.RawPerson }
+arrayOfRecords :: Prim.Array { name :: Main.Name } -> Prim.Array { name :: Prim.String }
 
 Types
-Name :: Type
-Age :: Type
-Person :: Type
-Company :: Type
-RawPerson :: Type
-RawCompany :: Type
+Name :: Prim.Type
+Age :: Prim.Type
+Person :: Prim.Type
+Company :: Prim.Type
+RawPerson :: Prim.Type
+RawCompany :: Prim.Type
 
 Synonyms
-type RawPerson = { age :: Int, name :: String }
-type RawCompany = { ceo :: RawPerson, name :: String }
+type RawPerson = { age :: Prim.Int, name :: Prim.String }
+type RawCompany = { ceo :: Main.RawPerson, name :: Prim.String }
 
 Roles
 Name = []
