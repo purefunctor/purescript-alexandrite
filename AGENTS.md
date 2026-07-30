@@ -37,7 +37,7 @@ The canonical specifications for agent instructions and skills are `AGENTS.md` a
 
 Commits must be atomic units of work. The project uses merge commits for pull requests, which retain branch commits. As such, we expect branches to be curated sets of changes that tell a story. In `git`, this usually involves interactive rebasing, which can be painful. `jj` can make this curation process easier. Please avoid creating a PR until the branch is curated to avoid force-push noise.
 
-### Format
+### Commit format
 
 Regular commits should use a short imperative, sentence-case subject line that names the behaviour or subsystem changed. Do not use the pull request merge-commit format for ordinary commits.
 
@@ -51,13 +51,37 @@ Use scoped constraints for solving
 Clarify Prim.Row element kind inference
 ```
 
-Pull request merge commits are different. They should follow this format:
+### Pull request title format
+
+Pull request titles must follow this format:
 
 ```
-[category] description (#123)
+[category] description
 ```
 
-Refer to recent commits on the `main` branch or bookmark for examples of both forms.
+GitHub appends the pull request number when it creates the merge commit, producing `[category] description (#123)`. Do not include the pull request number in the title yourself.
+
+Choose `category` for the primary subsystem or project area changed by the pull request. A category can be a crate name, such as `checking` or `analyzer`, or a broader project area, such as `lsp`. Use `agents` for agent configuration, `meta` for repository-wide maintenance, and `ci` for continuous integration changes. Use the narrowest established category that describes the change, consulting recent merge commits on `main` when necessary. If a pull request touches multiple areas, choose the category of its main intended outcome; do not list multiple categories.
+
+Good pull request titles look like:
+
+```text
+[checking] Preserve type variable names in instance members
+[lsp] Handle rename rejections
+[analyzer] Collect diagnostics through analyzer hosts
+[agents] Clarify pull request title categories
+[meta] Update repository maintenance tooling
+[ci] Test installers on supported platforms
+```
+
+Bad pull request titles look like:
+
+```text
+Preserve type variable names in instance members       # Missing category
+[fix] Preserve type variable names in instance members # Describes the change type, not the subsystem
+[checking/lsp] Improve rename errors                   # Lists multiple categories
+[misc] Update inference                                # Uses a vague category despite a clear subsystem
+```
 
 ## Development tools
 
