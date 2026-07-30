@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+generatedIdentity :: forall (t :: Prim.Type). (t :: Prim.Type) -> (t :: Prim.Type)
+generatedConst ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
+generatedApply ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type).
+    ((t :: Prim.Type) -> (t1 :: Prim.Type)) -> (t :: Prim.Type) -> (t1 :: Prim.Type)
+sourceIdentity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+sourceConst ::
+  forall (first :: Prim.Type) (second :: Prim.Type).
+    (first :: Prim.Type) -> (second :: Prim.Type) -> (first :: Prim.Type)
+sourceNumeric ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
+sourceShadowed ::
+  forall (value :: Prim.Type).
+    (value :: Prim.Type) ->
+    (forall (value1 :: Prim.Type). (value1 :: Prim.Type) -> (value1 :: Prim.Type)) ->
+    (value :: Prim.Type)
+Proxy ::
+  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
+    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+
+Types
+Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
+GeneratedKind0 :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+GeneratedKind1 ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type). (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+GeneratedKind2 ::
+  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
+
+Synonyms
+type GeneratedKind0 = Main.Proxy @(t :: Prim.Type)
+type GeneratedKind1 value = Main.Proxy @(t :: Prim.Type)
+type GeneratedKind2 first second = Main.Proxy @(t :: Prim.Type)
+
+Roles
+Proxy = [Phantom]
