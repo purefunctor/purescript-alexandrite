@@ -23,8 +23,16 @@ pub struct Cli {
     /// Print log path.
     #[arg(long)]
     pub log_file: bool,
+    #[command(flatten)]
+    pub lsp: LspOptions,
     #[command(subcommand)]
     pub command: Option<Command>,
+}
+
+impl Cli {
+    pub fn command(self) -> Command {
+        self.command.unwrap_or(Command::Lsp(self.lsp))
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -144,6 +152,16 @@ mod tests {
     use clap::error::ErrorKind;
     use std::path::Path;
 
+    fn lsp(args: &[&str]) -> LspOptions {
+        let mut argv = vec!["alexandrite"];
+        argv.extend(args);
+        let cli = Cli::parse_from(argv);
+        match cli.command() {
+            Command::Lsp(options) => options,
+            _ => unreachable!("parsed command was not `lsp`"),
+        }
+    }
+
     fn docs(args: &[&str]) -> DocsOptions {
         let mut argv = vec!["alexandrite", "docs"];
         argv.extend(args);
@@ -173,6 +191,14 @@ mod tests {
 
     fn current_directory_path(path: impl AsRef<Path>) -> PathBuf {
         current_directory().join(path)
+    }
+
+    #[test]
+    fn lsp_is_the_default_command() {
+        let options = lsp(&["--stdio", "--diagnostics-on-change"]);
+
+        assert!(options.stdio);
+        assert!(options.diagnostics_on_change);
     }
 
     #[test]

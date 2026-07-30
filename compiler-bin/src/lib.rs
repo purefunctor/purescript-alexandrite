@@ -14,10 +14,7 @@ pub fn run() {
         eprintln!("Log file: {:?}", logging::temporary_log_file());
     }
 
-    let command = cli.command.unwrap_or_else(|| {
-        let options = cli::LspOptions::default();
-        cli::Command::Lsp(options)
-    });
+    let command = cli.command();
 
     match command {
         cli::Command::Lsp(options) => {
