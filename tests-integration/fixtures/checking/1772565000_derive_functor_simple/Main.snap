@@ -18,7 +18,7 @@ Maybe :: Prim.Type -> Prim.Type
 
 Derived
 derive Data.Functor.Functor Main.Identity
-derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t0 :: Prim.Type))
+derive forall (e :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (e :: Prim.Type))
 derive Data.Functor.Functor Main.Maybe
 
 Roles

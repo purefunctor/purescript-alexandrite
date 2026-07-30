@@ -31,8 +31,8 @@ Instances
 instance Main.Empty Prim.Array
 
 Derived
-derive forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
-  Main.Empty (Main.Vector @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)))
+derive forall (t0 :: Prim.Type) (n :: (t0 :: Prim.Type)).
+  Main.Empty (Main.Vector @(t0 :: Prim.Type) (n :: (t0 :: Prim.Type)))
 derive Main.Empty (Main.InvalidVector @Prim.Type Prim.Int)
 
 Roles

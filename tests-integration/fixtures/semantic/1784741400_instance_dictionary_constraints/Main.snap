@@ -19,10 +19,10 @@ implementation = \{secondDict} -> \_ -> \_ -> boolean
 foreign import boolean :: Prim.Boolean
 
 dictionary exampleAB ::
-  forall t0 t1.
-  { firstDict :: Main.First t0 } =>
-  { secondDict :: Main.Second t1 } =>
-  Main.Example t0 t1
+  forall a b.
+  { firstDict :: Main.First a } =>
+  { secondDict :: Main.Second b } =>
+  Main.Example a b
   where
-  example :: t0 -> t1 -> Prim.Boolean
-  example = implementation @t1 @t0 {secondDict}
+  example :: a -> b -> Prim.Boolean
+  example = implementation @b @a {secondDict}

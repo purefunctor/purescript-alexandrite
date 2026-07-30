@@ -21,8 +21,8 @@ Cont :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Functor.Functor Main.Predicate
-derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Reader (t0 :: Prim.Type))
-derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Cont (t0 :: Prim.Type))
+derive forall (r :: Prim.Type). Data.Functor.Functor (Main.Reader (r :: Prim.Type))
+derive forall (r :: Prim.Type). Data.Functor.Functor (Main.Cont (r :: Prim.Type))
 
 Roles
 Predicate = [Representational]

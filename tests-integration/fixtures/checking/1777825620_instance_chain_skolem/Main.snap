@@ -40,10 +40,10 @@ class forall (f :: Prim.Type) (a :: Prim.Type) (r :: Prim.Type). Main.Walk (f ::
     (f :: Prim.Type) -> (a :: Prim.Type) -> (r :: Prim.Type)
 
 Instances
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type).
-  Main.Step (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) =>
-  Main.Walk (t0 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type) =>
-  Main.Walk (t0 :: Prim.Type) (t1 :: Prim.Type) ((t2 :: Prim.Type) -> (t4 :: Prim.Type))
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-  Main.Done (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) =>
-  Main.Walk (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type)
+instance forall (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type) (xs :: Prim.Type).
+  Main.Step (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) (a' :: Prim.Type) =>
+  Main.Walk (f :: Prim.Type) (a' :: Prim.Type) (xs :: Prim.Type) =>
+  Main.Walk (f :: Prim.Type) (a :: Prim.Type) ((x :: Prim.Type) -> (xs :: Prim.Type))
+instance forall (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type).
+  Main.Done (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type) =>
+  Main.Walk (f :: Prim.Type) (a :: Prim.Type) (x :: Prim.Type)

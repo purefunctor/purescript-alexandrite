@@ -26,7 +26,7 @@ class forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Ty
     (implicit :: Prim.Type) -> (implicit :: Prim.Type)
 
 Instances
-instance forall (t0 :: Prim.Type). Main.InstanceTypeHole (t0 :: Prim.Type)
+instance forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Type)
 
 Diagnostics
 error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type

@@ -18,8 +18,8 @@ class forall (a :: Prim.Type). Main.Top (a :: Prim.Type)
   top :: forall (@a :: Prim.Type). Main.Top (a :: Prim.Type) => (a :: Prim.Type)
 
 Instances
-instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
-  Main.Top (Main.Proxy @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)))
+instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
+  Main.Top (Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)))
 
 Roles
 Proxy = [Phantom]

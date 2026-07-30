@@ -32,8 +32,8 @@ Const2 ::
 Derived
 derive Data.Bifunctor.Bifunctor Main.Either
 derive Data.Bifunctor.Bifunctor Main.Pair
-derive forall (t0 :: Prim.Type).
-  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type (t0 :: Prim.Type))
+derive forall (e :: Prim.Type).
+  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type (e :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]

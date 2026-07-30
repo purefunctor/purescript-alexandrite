@@ -15,7 +15,7 @@ class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
   test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
 
 Instances
-instance forall (t0 :: Prim.Type). Main.Test (t0 :: Prim.Type)
+instance forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
 instance Main.Test Prim.Int
 
 Diagnostics
@@ -24,5 +24,5 @@ error[OverlappingInstances]: Overlapping type class instances found for: Test In
   |
 9 | instance testInt :: Test Int where
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (t0 :: Type). Test (t0 :: Type) is matching
+  trivia: forall (a :: Type). Test (a :: Type) is matching
   trivia: Test Int is matching

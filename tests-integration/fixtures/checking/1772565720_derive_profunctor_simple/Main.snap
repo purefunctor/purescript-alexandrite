@@ -25,7 +25,7 @@ Choice :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Profunctor.Profunctor Main.Fn
-derive forall (t0 :: Prim.Type). Data.Profunctor.Profunctor (Main.ConstR @Prim.Type (t0 :: Prim.Type))
+derive forall (r :: Prim.Type). Data.Profunctor.Profunctor (Main.ConstR @Prim.Type (r :: Prim.Type))
 derive Data.Profunctor.Profunctor Main.Choice
 
 Roles

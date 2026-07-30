@@ -42,30 +42,30 @@ WrapBothNoConstraint ::
     Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Foldable.Foldable (t0 :: Prim.Type -> Prim.Type) =>
-  Data.Foldable.Foldable (t1 :: Prim.Type -> Prim.Type) =>
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (f :: Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (g :: Prim.Type -> Prim.Type) =>
   Data.Bifoldable.Bifoldable
     (Main.WrapBoth @Prim.Type @Prim.Type
-      (t0 :: Prim.Type -> Prim.Type)
-      (t1 :: Prim.Type -> Prim.Type))
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+      (f :: Prim.Type -> Prim.Type)
+      (g :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
   Data.Bifoldable.Bifoldable
     (Main.WrapBothNoConstraint @Prim.Type @Prim.Type
-      (t0 :: Prim.Type -> Prim.Type)
-      (t1 :: Prim.Type -> Prim.Type))
+      (f :: Prim.Type -> Prim.Type)
+      (g :: Prim.Type -> Prim.Type))
 
 Roles
 WrapBoth = [Representational, Representational, Nominal, Nominal]
 WrapBothNoConstraint = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Foldable (t0 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Foldable (f :: Type -> Type)
   --> 10:1..10:54
    |
 10 | derive instance Bifoldable (WrapBothNoConstraint f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Foldable (t1 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Foldable (g :: Type -> Type)
   --> 10:1..10:54
    |
 10 | derive instance Bifoldable (WrapBothNoConstraint f g)

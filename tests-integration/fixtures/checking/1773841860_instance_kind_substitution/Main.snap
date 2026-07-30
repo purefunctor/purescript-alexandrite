@@ -25,11 +25,11 @@ class forall (k :: Prim.Type) (a :: (k :: Prim.Type)). Main.Use @(k :: Prim.Type
     Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 
 Instances
-instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t2 :: Prim.RowList.RowList (t0 :: Prim.Type)).
+instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (xs :: Prim.RowList.RowList (t0 :: Prim.Type)).
   Prim.RowList.RowToList @(t0 :: Prim.Type)
-    ( x :: (t1 :: (t0 :: Prim.Type)) )
-    (t2 :: Prim.RowList.RowList (t0 :: Prim.Type)) =>
-  Main.Use @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type))
+    ( x :: (a :: (t0 :: Prim.Type)) )
+    (xs :: Prim.RowList.RowList (t0 :: Prim.Type)) =>
+  Main.Use @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 
 Roles
 Proxy = [Phantom]

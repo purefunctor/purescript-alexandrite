@@ -11,11 +11,11 @@ Opaque1 :: Prim.Type -> Prim.Type
 Derived
 derive Data.Eq.Eq1 Main.Opaque1
 derive Data.Ord.Ord1 Main.Opaque1
-derive forall (t0 :: Prim.Type).
-  Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Library.Imported (t0 :: Prim.Type))
+derive forall (a :: Prim.Type).
+  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Library.Imported (a :: Prim.Type))
 derive Data.Eq.Eq1 Library.Imported
-derive forall (t0 :: Prim.Type).
-  Data.Ord.Ord (t0 :: Prim.Type) => Data.Ord.Ord (Library.Imported (t0 :: Prim.Type))
+derive forall (a :: Prim.Type).
+  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Library.Imported (a :: Prim.Type))
 derive Data.Ord.Ord1 Library.Imported
 
 Roles
@@ -32,7 +32,7 @@ error[CannotDeriveForType]: Cannot derive for type: Opaque1
    |
 10 | derive instance Ord1 Opaque1
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported (t0 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Imported (a :: Type)
   --> 12:1..12:40
    |
 12 | derive instance Eq a => Eq (Imported a)
@@ -42,7 +42,7 @@ error[CannotDeriveForType]: Cannot derive for type: Imported
    |
 13 | derive instance Eq1 Imported
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported (t1 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Imported (a1 :: Type)
   --> 14:1..14:42
    |
 14 | derive instance Ord a => Ord (Imported a)

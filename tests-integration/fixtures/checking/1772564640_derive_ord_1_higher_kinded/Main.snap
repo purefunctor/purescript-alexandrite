@@ -21,38 +21,38 @@ WrapNoOrd1 ::
   forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (t1 :: Prim.Type) =>
-  Data.Eq.Eq (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Ord.Ord1 (t0 :: Prim.Type -> Prim.Type) =>
-  Data.Ord.Ord (t1 :: Prim.Type) =>
-  Data.Ord.Ord (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (t1 :: Prim.Type) =>
-  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Ord.Ord (t0 :: Prim.Type) =>
-  Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (t1 :: Prim.Type -> Prim.Type) (t0 :: Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (a :: Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (a :: Prim.Type) =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (a :: Prim.Type) =>
+  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+derive forall (a :: Prim.Type) (f :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord (a :: Prim.Type) =>
+  Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoOrd1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Ord1 (t0 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Ord1 (f :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t1 :: Type) is in scope
-  trivia: Eq (t1 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq1 (t0 :: Type -> Type)
+  trivia: Ord (a :: Type) is in scope
+  trivia: Eq (a :: Type) is in scope
+error[NoInstanceFound]: No instance found for: Eq1 (f :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (t1 :: Type) is in scope
-  trivia: Eq (t1 :: Type) is in scope
+  trivia: Ord (a :: Type) is in scope
+  trivia: Eq (a :: Type) is in scope

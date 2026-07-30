@@ -23,9 +23,9 @@ use crate::evidence::{
 use crate::tree::{
     BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
     GuardedAlternative, GuardedExpression, InstanceDeclaration, InstanceImplementation,
-    LetBindingChunk, LetBindings, LocalDeclarationId, PatternGuard, RecordBinderField,
-    RecordExpressionField, RecordExpressionUpdate, TermDeclarationKind, TypeDeclarationKind,
-    VariableResolution, WhereExpression,
+    InstanceMember, LetBindingChunk, LetBindings, LocalDeclarationId, PatternGuard,
+    RecordBinderField, RecordExpressionField, RecordExpressionUpdate, TermDeclarationKind,
+    TypeDeclarationKind, VariableResolution, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -554,11 +554,8 @@ where
                         continue;
                     };
 
-                    let signature = self.instance_member_signature(
-                        &member_name,
-                        member.implementation_type,
-                        &rigid_names,
-                    );
+                    let signature =
+                        self.instance_member_signature(member, &member_name, &rigid_names)?;
                     fields.push(signature.append(self.arena.hardline()).append(equations));
                 }
             }
@@ -580,19 +577,35 @@ where
 
     fn instance_member_signature(
         &self,
+        member: &InstanceMember,
         name: &str,
-        type_id: crate::TypeId,
         rigid_names: &[(crate::TypeId, SmolStr)],
-    ) -> Doc<'arena> {
+    ) -> QueryResult<Doc<'arena>> {
         let mut type_pretty = self.type_pretty.state();
+
         for (rigid, display) in rigid_names {
             if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
                 type_pretty.assign_display_name(name, SmolStr::clone(display));
             }
         }
 
-        let type_id = type_pretty.render(type_id);
-        self.arena.text(format!("  {name} :: {type_id}"))
+        let mut remaining_type = member.implementation_type;
+        while let Type::Forall(binder, inner) = self.queries.lookup_type(remaining_type) {
+            let binder = self.queries.lookup_forall_binder(binder);
+            let text = if member.resolution.0 == self.file_id {
+                self.checked.lookup_name(binder.name)
+            } else {
+                self.queries.checked(member.resolution.0)?.lookup_name(binder.name)
+            };
+            if let Some(text) = text {
+                let text = self.queries.lookup_smol_str(text);
+                type_pretty.allocate_display_name(binder.name, text);
+            }
+            remaining_type = inner;
+        }
+
+        let type_id = type_pretty.render(member.implementation_type);
+        Ok(self.arena.text(format!("  {name} :: {type_id}")))
     }
 
     fn dictionary_signature(

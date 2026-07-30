@@ -10,8 +10,8 @@ Types
 Identity :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type).
-  Data.Show.Show (t0 :: Prim.Type) => Data.Show.Show (Main.Identity (t0 :: Prim.Type))
+derive forall (a :: Prim.Type).
+  Data.Show.Show (a :: Prim.Type) => Data.Show.Show (Main.Identity (a :: Prim.Type))
 
 Roles
 Identity = [Representational]

@@ -34,13 +34,13 @@ class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: (t0 :: 
   (h :: (t2 :: Prim.Type))
 
 Instances
-instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
-  Main.TypeEquals @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-  Main.TypeEquals @Prim.Type (t0 :: Prim.Type) (Main.A -> Prim.String) =>
-  Main.TypeEquals @Prim.Type (t1 :: Prim.Type) (Main.B -> Prim.String) =>
-  Main.TypeEquals @Prim.Type (t2 :: Prim.Type) (Main.C -> Prim.String) =>
-  Main.Match3 @Prim.Type @Prim.Type @Prim.Type (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type)
+instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
+  Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
+instance forall (f :: Prim.Type) (g :: Prim.Type) (h :: Prim.Type).
+  Main.TypeEquals @Prim.Type (f :: Prim.Type) (Main.A -> Prim.String) =>
+  Main.TypeEquals @Prim.Type (g :: Prim.Type) (Main.B -> Prim.String) =>
+  Main.TypeEquals @Prim.Type (h :: Prim.Type) (Main.C -> Prim.String) =>
+  Main.Match3 @Prim.Type @Prim.Type @Prim.Type (f :: Prim.Type) (g :: Prim.Type) (h :: Prim.Type)
 
 Roles
 A = []

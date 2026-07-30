@@ -16,8 +16,8 @@ NoEq :: Prim.Type
 ContainsNoEq :: Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
-  Data.Eq.Eq (Main.Proxy @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)))
+derive forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
+  Data.Eq.Eq (Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)))
 derive Data.Eq.Eq Main.ContainsNoEq
 
 Roles
