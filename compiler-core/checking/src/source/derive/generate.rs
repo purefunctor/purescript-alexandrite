@@ -3,7 +3,6 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::substitute::SubstituteName;
 use crate::core::{KindOrType, TypeId, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
@@ -67,7 +66,7 @@ where
     };
 
     let freshened = freshen_instance_rigids(state, context, &instance)?;
-    state.with_implicit(context, &freshened.substitution, |state| {
+    state.with_source_type_renaming(&freshened.renaming, |state| {
         let mut evidences = Vec::with_capacity(freshened.constraints.len());
         for (&constraint, &signature_constraint) in
             std::iter::zip(&freshened.constraints, &instance.constraints)
@@ -85,7 +84,7 @@ where
         )?;
 
         let delegate_constraint =
-            SubstituteName::many(state, context, &freshened.substitution, delegate_constraint)?;
+            freshened.renaming.substitute(state, context, delegate_constraint)?;
         let evidence = state.push_wanted(delegate_constraint);
 
         let instance = tree::InstanceDeclaration {
@@ -127,7 +126,7 @@ where
     };
 
     let freshened = freshen_instance_rigids(state, context, &instance)?;
-    state.with_implicit(context, &freshened.substitution, |state| {
+    state.with_source_type_renaming(&freshened.renaming, |state| {
         let mut evidences = Vec::with_capacity(freshened.constraints.len());
         for (&constraint, &signature_constraint) in
             std::iter::zip(&freshened.constraints, &instance.constraints)
@@ -265,7 +264,7 @@ where
             return Ok(None);
         };
 
-        let signature::SkolemisedSignature { substitution, constraints, result: body_type, .. } =
+        let signature::SkolemisedSignature { renaming, constraints, result: body_type, .. } =
             signature::expect_term_signature(state, context, member.implementation_type, 0)?;
 
         let mut evidences = Vec::with_capacity(constraints.len());
@@ -274,7 +273,7 @@ where
             evidences.push(evidence);
         }
 
-        let body = state.with_implicit(context, &substitution, |state| {
+        let body = state.with_source_type_renaming(&renaming, |state| {
             let mut builder = DerivedTreeBuilder::new(state, context, result.derive_id);
             let body = builder.term_reference(operation)?;
             builder.subtype(body, body_type)

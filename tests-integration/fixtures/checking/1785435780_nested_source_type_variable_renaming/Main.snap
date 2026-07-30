@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Proxy ::
+  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
+    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+grouped ::
+  forall (@left :: Prim.Type) (@right :: Prim.Type).
+    Main.Grouped (left :: Prim.Type) (right :: Prim.Type) =>
+    (forall (value :: Prim.Type).
+      Main.Proxy @Prim.Type (value :: Prim.Type) ->
+      Main.Proxy @Prim.Type (right :: Prim.Type) ->
+      Main.Proxy @Prim.Type (value :: Prim.Type))
+
+Types
+Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
+Grouped :: Prim.Type -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (left :: Prim.Type) (right :: Prim.Type). Main.Grouped (left :: Prim.Type) (right :: Prim.Type)
+  grouped ::
+  forall (@left :: Prim.Type) (@right :: Prim.Type).
+    Main.Grouped (left :: Prim.Type) (right :: Prim.Type) =>
+    (forall (value :: Prim.Type).
+      Main.Proxy @Prim.Type (value :: Prim.Type) ->
+      Main.Proxy @Prim.Type (right :: Prim.Type) ->
+      Main.Proxy @Prim.Type (value :: Prim.Type))
+
+Instances
+instance forall (t0 :: Prim.Type) (function :: (t0 :: Prim.Type) -> Prim.Type) (left :: (t0 :: Prim.Type))
+  (right :: (t0 :: Prim.Type)).
+  Main.Grouped
+    ((function :: (t0 :: Prim.Type) -> Prim.Type) (left :: (t0 :: Prim.Type)))
+    ((function :: (t0 :: Prim.Type) -> Prim.Type) (right :: (t0 :: Prim.Type)))
+
+Roles
+Proxy = [Phantom]

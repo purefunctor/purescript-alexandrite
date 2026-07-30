@@ -12,6 +12,50 @@ use crate::state::CheckState;
 
 pub type NameToType = FxHashMap<Name, TypeId>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RigidReplacement {
+    name: Name,
+    type_id: TypeId,
+}
+
+/// A name-based replacement of rigid variables with fresh rigid variables.
+///
+/// Unlike [`NameToType`], this representation cannot contain non-rigid
+/// replacement types.
+#[derive(Debug, Default)]
+pub struct RigidRenaming {
+    replacements: FxHashMap<Name, RigidReplacement>,
+}
+
+impl RigidRenaming {
+    pub fn insert<Q>(&mut self, context: &CheckContext<Q>, original: Name, replacement: TypeId)
+    where
+        Q: ExternalQueries,
+    {
+        let Type::Rigid(name, _, _) = context.lookup_type(replacement) else {
+            unreachable!("invariant violated: expected a rigid variable");
+        };
+        let replacement = RigidReplacement { name, type_id: replacement };
+        self.replacements.insert(original, replacement);
+    }
+
+    pub fn substitute<Q>(
+        &self,
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        in_type: TypeId,
+    ) -> QueryResult<TypeId>
+    where
+        Q: ExternalQueries,
+    {
+        fold_type(state, context, in_type, &mut SubstituteRigidName { renaming: self })
+    }
+
+    pub(crate) fn replacement_name(&self, original: Name) -> Option<Name> {
+        self.replacements.get(&original).map(|replacement| replacement.name)
+    }
+}
+
 /// Implements [`Name`]-based substitution for [`Type::Rigid`] variables.
 ///
 /// Names are globally unique, removing the need for scope tracking and
@@ -64,6 +108,31 @@ impl TypeFold for SubstituteName<'_> {
             && let Some(id) = self.bindings.get(name)
         {
             Ok(FoldAction::Replace(*id))
+        } else {
+            Ok(FoldAction::Continue)
+        }
+    }
+}
+
+struct SubstituteRigidName<'a> {
+    renaming: &'a RigidRenaming,
+}
+
+impl TypeFold for SubstituteRigidName<'_> {
+    fn transform<Q>(
+        &mut self,
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        _id: TypeId,
+        t: &Type,
+    ) -> QueryResult<FoldAction>
+    where
+        Q: ExternalQueries,
+    {
+        if let Type::Rigid(name, _, _) = t
+            && let Some(replacement) = self.renaming.replacements.get(name)
+        {
+            Ok(FoldAction::Replace(replacement.type_id))
         } else {
             Ok(FoldAction::Continue)
         }
