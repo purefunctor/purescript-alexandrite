@@ -15,22 +15,22 @@ Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type).
-  Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Main.Either Prim.Int (t0 :: Prim.Type))
-derive forall (t0 :: Prim.Type). Data.Eq.Eq (Main.Either Prim.Int (t0 :: Prim.Type))
+derive forall (b :: Prim.Type).
+  Data.Eq.Eq (b :: Prim.Type) => Data.Eq.Eq (Main.Either Prim.Int (b :: Prim.Type))
+derive forall (b :: Prim.Type). Data.Eq.Eq (Main.Either Prim.Int (b :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Eq (Either Int (t0 :: Type))
+error[OverlappingInstances]: Overlapping type class instances found for: Eq (Either Int (b :: Type))
   --> 9:1..9:34
   |
 9 | derive instance Eq (Either Int b)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (t1 :: Type). Eq (t1 :: Type) => Eq (Either Int (t1 :: Type)) is matching
-  trivia: forall (t0 :: Type). Eq (Either Int (t0 :: Type)) is matching
-error[NoInstanceFound]: No instance found for: Eq (t0 :: Type)
+  trivia: forall (b1 :: Type). Eq (b1 :: Type) => Eq (Either Int (b1 :: Type)) is matching
+  trivia: forall (b :: Type). Eq (Either Int (b :: Type)) is matching
+error[NoInstanceFound]: No instance found for: Eq (b :: Type)
   --> 9:1..9:34
   |
 9 | derive instance Eq (Either Int b)

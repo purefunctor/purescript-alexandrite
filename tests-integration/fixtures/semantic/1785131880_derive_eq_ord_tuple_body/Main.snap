@@ -8,34 +8,34 @@ data Tuple @a @b
   | Tuple :: a -> b -> Main.Tuple a b
 
 dictionary eqTuple ::
-  forall t0 t1.
-  { eqDict :: Data.Eq.Eq t0 } =>
-  { eqDict1 :: Data.Eq.Eq t1 } =>
-  Data.Eq.Eq (Main.Tuple t0 t1)
+  forall a b.
+  { eqDict :: Data.Eq.Eq a } =>
+  { eqDict1 :: Data.Eq.Eq b } =>
+  Data.Eq.Eq (Main.Tuple a b)
   where
-  eq :: Main.Tuple t0 t1 -> Main.Tuple t0 t1 -> Prim.Boolean
+  eq :: Main.Tuple a b -> Main.Tuple a b -> Prim.Boolean
   eq = \left right ->
     case left, right of
       (Tuple left0 left1), (Tuple right0 right1) ->
-        if eq @t0 {eqDict} left0 right0 then
-          if eq @t1 {eqDict1} left1 right1 then true else false
+        if eq @a {eqDict} left0 right0 then
+          if eq @b {eqDict1} left1 right1 then true else false
         else
           false
 
 dictionary ordTuple ::
-  forall t0 t1.
-  { ordDict :: Data.Ord.Ord t0 } =>
-  { ordDict1 :: Data.Ord.Ord t1 } =>
-  Data.Ord.Ord (Main.Tuple t0 t1)
+  forall a b.
+  { ordDict :: Data.Ord.Ord a } =>
+  { ordDict1 :: Data.Ord.Ord b } =>
+  Data.Ord.Ord (Main.Tuple a b)
   where
   superclass eqDict = eqTuple {ordDict.eqDict} {ordDict1.eqDict}
-  compare :: Main.Tuple t0 t1 -> Main.Tuple t0 t1 -> Data.Ordering.Ordering
+  compare :: Main.Tuple a b -> Main.Tuple a b -> Data.Ordering.Ordering
   compare = \left right ->
     case left, right of
       (Tuple left0 left1), (Tuple right0 right1) ->
-        case compare @t0 {ordDict} left0 right0 of
+        case compare @a {ordDict} left0 right0 of
           EQ ->
-            case compare @t1 {ordDict1} left1 right1 of
+            case compare @b {ordDict1} left1 right1 of
               EQ -> EQ
               ordering -> ordering
           ordering -> ordering

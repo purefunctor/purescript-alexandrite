@@ -24,4 +24,4 @@ class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
 
 Instances
 instance Main.Eq Prim.Int
-instance forall (t0 :: Prim.Type). Main.Eq (t0 :: Prim.Type) => Main.Eq (Prim.Array (t0 :: Prim.Type))
+instance forall (a :: Prim.Type). Main.Eq (a :: Prim.Type) => Main.Eq (Prim.Array (a :: Prim.Type))

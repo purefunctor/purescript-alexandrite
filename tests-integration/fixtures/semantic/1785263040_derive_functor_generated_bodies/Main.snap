@@ -51,12 +51,12 @@ dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
     case value of
       (Identity field0) -> Identity @b (function field0)
 
-dictionary functorConst :: forall t0. Data.Functor.Functor (Main.Const @Prim.Type t0) where
+dictionary functorConst :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.Const @Prim.Type t0 a -> Main.Const @Prim.Type t0 b
+  (a -> b) -> Main.Const @Prim.Type e a -> Main.Const @Prim.Type e b
   map = \function value ->
     case value of
-      (Const field0) -> Const @Prim.Type @t0 @b field0
+      (Const field0) -> Const @Prim.Type @e @b field0
 
 dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Maybe a -> Main.Maybe b
@@ -66,53 +66,51 @@ dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
       (Just field0) -> Just @b (function field0)
 
 dictionary functorWrap ::
-  forall t0.
-  { functorDict :: Data.Functor.Functor t0 } =>
-  Data.Functor.Functor (Main.Wrap @Prim.Type t0)
+  forall f.
+  { functorDict :: Data.Functor.Functor f } =>
+  Data.Functor.Functor (Main.Wrap @Prim.Type f)
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.Wrap @Prim.Type t0 a -> Main.Wrap @Prim.Type t0 b
+  (a -> b) -> Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f b
   map = \function value ->
     case value of
-      (Wrap field0) -> Wrap @Prim.Type @t0 @b
-        (map @t0 {functorDict} @a @b (\element -> function element) field0)
+      (Wrap field0) -> Wrap @Prim.Type @f @b
+        (map @f {functorDict} @a @b (\element -> function element) field0)
 
 dictionary functorCompose ::
-  forall t0 t1.
-  { functorDict :: Data.Functor.Functor t0 } =>
-  { functorDict1 :: Data.Functor.Functor t1 } =>
-  Data.Functor.Functor (Main.Compose @Prim.Type @Prim.Type t0 t1)
+  forall f g.
+  { functorDict :: Data.Functor.Functor f } =>
+  { functorDict1 :: Data.Functor.Functor g } =>
+  Data.Functor.Functor (Main.Compose @Prim.Type @Prim.Type f g)
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) ->
-  Main.Compose @Prim.Type @Prim.Type t0 t1 a ->
-  Main.Compose @Prim.Type @Prim.Type t0 t1 b
+  (a -> b) -> Main.Compose @Prim.Type @Prim.Type f g a -> Main.Compose @Prim.Type @Prim.Type f g b
   map = \function value ->
     case value of
-      (Compose field0) -> Compose @Prim.Type @Prim.Type @t0 @t1 @b
-        (map @t0 {functorDict} @(t1 a) @(t1 b)
-          (\element -> map @t1 {functorDict1} @a @b (\element -> function element) element)
+      (Compose field0) -> Compose @Prim.Type @Prim.Type @f @g @b
+        (map @f {functorDict} @(g a) @(g b)
+          (\element -> map @g {functorDict1} @a @b (\element -> function element) element)
           field0)
 
-dictionary functorReader :: forall t0. Data.Functor.Functor (Main.Reader t0) where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Reader t0 a -> Main.Reader t0 b
+dictionary functorReader :: forall r. Data.Functor.Functor (Main.Reader r) where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Reader r a -> Main.Reader r b
   map = \function value ->
     case value of
-      (Reader field0) -> Reader @t0 @b \argument -> function (field0 argument)
+      (Reader field0) -> Reader @r @b \argument -> function (field0 argument)
 
-dictionary functorNestedReader :: forall t0 t1. Data.Functor.Functor (Main.NestedReader t0 t1) where
+dictionary functorNestedReader :: forall r s. Data.Functor.Functor (Main.NestedReader r s) where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.NestedReader t0 t1 a -> Main.NestedReader t0 t1 b
+  (a -> b) -> Main.NestedReader r s a -> Main.NestedReader r s b
   map = \function value ->
     case value of
-      (NestedReader field0) -> NestedReader @t0 @t1 @b \argument ->
+      (NestedReader field0) -> NestedReader @r @s @b \argument ->
         \argument1 -> function (field0 argument argument1)
 
-dictionary functorCont :: forall t0. Data.Functor.Functor (Main.Cont t0) where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Cont t0 a -> Main.Cont t0 b
+dictionary functorCont :: forall r. Data.Functor.Functor (Main.Cont r) where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Cont r a -> Main.Cont r b
   map = \function value ->
     case value of
-      (Cont field0) -> Cont @t0 @b \argument -> field0 \argument1 -> argument (function argument1)
+      (Cont field0) -> Cont @r @b \argument -> field0 \argument1 -> argument (function argument1)
 
 dictionary functorRecord :: Data.Functor.Functor Main.Record where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Record a -> Main.Record b
@@ -120,8 +118,8 @@ dictionary functorRecord :: Data.Functor.Functor Main.Record where
     case value of
       (Record field0) -> Record @b field0 { changed = function field0.changed }
 
-dictionary functorOpenRecord :: forall t0. Data.Functor.Functor (Main.OpenRecord t0) where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.OpenRecord t0 a -> Main.OpenRecord t0 b
+dictionary functorOpenRecord :: forall r. Data.Functor.Functor (Main.OpenRecord r) where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.OpenRecord r a -> Main.OpenRecord r b
   map = \function value ->
     case value of
-      (OpenRecord field0) -> OpenRecord @t0 @b field0 { changed = function field0.changed }
+      (OpenRecord field0) -> OpenRecord @r @b field0 { changed = function field0.changed }

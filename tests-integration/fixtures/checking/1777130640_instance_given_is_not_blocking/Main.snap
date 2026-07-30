@@ -30,5 +30,5 @@ class forall (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type). Main.Bu
     {| (subrow :: Prim.Row Prim.Type) }
 
 Instances
-instance forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
-  Main.BuildRecord (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type)
+instance forall (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type).
+  Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type)

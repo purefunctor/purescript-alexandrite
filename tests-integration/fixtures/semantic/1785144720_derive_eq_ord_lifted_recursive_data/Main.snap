@@ -7,19 +7,19 @@ newtype Mu :: (Prim.Type -> Prim.Type) -> Prim.Type
 newtype Mu @f
   | In :: f (Main.Mu f) -> Main.Mu f
 
-dictionary eqMu :: forall t0. { eq1Dict :: Data.Eq.Eq1 t0 } => Data.Eq.Eq (Main.Mu t0) where
-  eq :: Main.Mu t0 -> Main.Mu t0 -> Prim.Boolean
+dictionary eqMu :: forall f. { eq1Dict :: Data.Eq.Eq1 f } => Data.Eq.Eq (Main.Mu f) where
+  eq :: Main.Mu f -> Main.Mu f -> Prim.Boolean
   eq = \left right ->
     case left, right of
       (In left0), (In right0) ->
-        if eq1 @t0 {eq1Dict} @(Main.Mu t0) {eqMu {eq1Dict}} left0 right0 then true else false
+        if eq1 @f {eq1Dict} @(Main.Mu f) {eqMu {eq1Dict}} left0 right0 then true else false
 
-dictionary ordMu :: forall t0. { ord1Dict :: Data.Ord.Ord1 t0 } => Data.Ord.Ord (Main.Mu t0) where
+dictionary ordMu :: forall f. { ord1Dict :: Data.Ord.Ord1 f } => Data.Ord.Ord (Main.Mu f) where
   superclass eqDict = eqMu {ord1Dict.eq1Dict}
-  compare :: Main.Mu t0 -> Main.Mu t0 -> Data.Ordering.Ordering
+  compare :: Main.Mu f -> Main.Mu f -> Data.Ordering.Ordering
   compare = \left right ->
     case left, right of
       (In left0), (In right0) ->
-        case compare1 @t0 {ord1Dict} @(Main.Mu t0) {ordMu {ord1Dict}} left0 right0 of
+        case compare1 @f {ord1Dict} @(Main.Mu f) {ordMu {ord1Dict}} left0 right0 of
           EQ -> EQ
           ordering -> ordering

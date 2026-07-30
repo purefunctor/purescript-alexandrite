@@ -272,6 +272,11 @@ where
         self.names.assign_display_name(name, display);
     }
 
+    pub(crate) fn allocate_display_name(&mut self, name: Name, base: SmolStr) {
+        let display = self.names.allocate_display_name(base);
+        self.names.assign_display_name(name, display);
+    }
+
     pub fn render(&mut self, id: TypeId) -> SmolStr {
         self.names.set_default_name("t");
         self.render_with_signature(None, id, Precedence::Top)

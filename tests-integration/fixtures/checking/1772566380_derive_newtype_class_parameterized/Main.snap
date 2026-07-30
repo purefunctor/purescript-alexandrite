@@ -10,8 +10,8 @@ Types
 Wrapper :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type).
-  Data.Newtype.Newtype @Prim.Type (Main.Wrapper (t0 :: Prim.Type)) (t0 :: Prim.Type)
+derive forall (a :: Prim.Type).
+  Data.Newtype.Newtype @Prim.Type (Main.Wrapper (a :: Prim.Type)) (a :: Prim.Type)
 
 Roles
 Wrapper = [Representational]

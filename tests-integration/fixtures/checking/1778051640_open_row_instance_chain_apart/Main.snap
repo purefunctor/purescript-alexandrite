@@ -34,8 +34,8 @@ class forall (key :: Prim.Type) (row :: Prim.Row Prim.Type). Main.C (key :: Prim
 
 Instances
 instance Main.C Main.K1 ( a :: Prim.Int, b :: Prim.Boolean )
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type).
-  Main.C (t0 :: Prim.Type) ( a :: Prim.String, b :: Prim.Boolean | (t1 :: Prim.Row Prim.Type) )
+instance forall (key :: Prim.Type) (r :: Prim.Row Prim.Type).
+  Main.C (key :: Prim.Type) ( a :: Prim.String, b :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
 
 Roles
 Proxy = [Phantom]

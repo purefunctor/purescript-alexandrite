@@ -19,22 +19,22 @@ WrapNoEq1 ::
   forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (t1 :: Prim.Type) =>
-  Data.Eq.Eq (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Eq.Eq (t0 :: Prim.Type) =>
-  Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (t1 :: Prim.Type -> Prim.Type) (t0 :: Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (a :: Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+derive forall (a :: Prim.Type) (f :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq (a :: Prim.Type) =>
+  Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoEq1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq1 (t0 :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Eq1 (f :: Type -> Type)
   --> 11:1..11:43
    |
 11 | derive instance Eq a => Eq (WrapNoEq1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (t1 :: Type) is in scope
+  trivia: Eq (a :: Type) is in scope

@@ -10,13 +10,13 @@ Types
 Identity :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type). Data.Show.Show (Main.Identity (t0 :: Prim.Type))
+derive forall (a :: Prim.Type). Data.Show.Show (Main.Identity (a :: Prim.Type))
 
 Roles
 Identity = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Show (t0 :: Type)
+error[NoInstanceFound]: No instance found for: Show (a :: Type)
   --> 7:1..7:42
   |
 7 | derive newtype instance Show (Identity a)

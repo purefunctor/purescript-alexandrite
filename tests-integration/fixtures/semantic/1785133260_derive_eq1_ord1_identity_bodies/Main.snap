@@ -7,29 +7,25 @@ data Identity :: Prim.Type -> Prim.Type
 data Identity @a
   | Identity :: a -> Main.Identity a
 
-dictionary eqIdentity :: forall t0. { eqDict :: Data.Eq.Eq t0 } => Data.Eq.Eq (Main.Identity t0)
-  where
-  eq :: Main.Identity t0 -> Main.Identity t0 -> Prim.Boolean
+dictionary eqIdentity :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Identity a) where
+  eq :: Main.Identity a -> Main.Identity a -> Prim.Boolean
   eq = \left right ->
     case left, right of
       (Identity left0), (Identity right0) ->
-        if eq @t0 {eqDict} left0 right0 then true else false
+        if eq @a {eqDict} left0 right0 then true else false
 
 dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
   eq1 :: forall (a :: Prim.Type). Data.Eq.Eq a => Main.Identity a -> Main.Identity a -> Prim.Boolean
   eq1 = \{eqDict} -> eq @(Main.Identity a) {eqIdentity {eqDict}}
 
-dictionary ordIdentity ::
-  forall t0.
-  { ordDict :: Data.Ord.Ord t0 } =>
-  Data.Ord.Ord (Main.Identity t0)
+dictionary ordIdentity :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Identity a)
   where
   superclass eqDict = eqIdentity {ordDict.eqDict}
-  compare :: Main.Identity t0 -> Main.Identity t0 -> Data.Ordering.Ordering
+  compare :: Main.Identity a -> Main.Identity a -> Data.Ordering.Ordering
   compare = \left right ->
     case left, right of
       (Identity left0), (Identity right0) ->
-        case compare @t0 {ordDict} left0 right0 of
+        case compare @a {ordDict} left0 right0 of
           EQ -> EQ
           ordering -> ordering
 

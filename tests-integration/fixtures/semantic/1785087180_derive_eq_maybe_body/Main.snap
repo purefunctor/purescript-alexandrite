@@ -8,11 +8,11 @@ data Maybe @a
   | Nothing :: Main.Maybe a
   | Just :: a -> Main.Maybe a
 
-dictionary eqMaybe :: forall t0. { eqDict :: Data.Eq.Eq t0 } => Data.Eq.Eq (Main.Maybe t0) where
-  eq :: Main.Maybe t0 -> Main.Maybe t0 -> Prim.Boolean
+dictionary eqMaybe :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Maybe a) where
+  eq :: Main.Maybe a -> Main.Maybe a -> Prim.Boolean
   eq = \left right ->
     case left, right of
       Nothing, Nothing -> true
       (Just left0), (Just right0) ->
-        if eq @t0 {eqDict} left0 right0 then true else false
+        if eq @a {eqDict} left0 right0 then true else false
       _, _ -> false

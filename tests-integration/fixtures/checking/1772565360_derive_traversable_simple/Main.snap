@@ -23,9 +23,9 @@ derive Data.Traversable.Traversable Main.Identity
 derive Data.Functor.Functor Main.Maybe
 derive Data.Foldable.Foldable Main.Maybe
 derive Data.Traversable.Traversable Main.Maybe
-derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t0 :: Prim.Type))
-derive forall (t0 :: Prim.Type). Data.Foldable.Foldable (Main.Const @Prim.Type (t0 :: Prim.Type))
-derive forall (t0 :: Prim.Type). Data.Traversable.Traversable (Main.Const @Prim.Type (t0 :: Prim.Type))
+derive forall (e :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (e :: Prim.Type))
+derive forall (e :: Prim.Type). Data.Foldable.Foldable (Main.Const @Prim.Type (e :: Prim.Type))
+derive forall (e :: Prim.Type). Data.Traversable.Traversable (Main.Const @Prim.Type (e :: Prim.Type))
 
 Roles
 Identity = [Representational]

@@ -10029,18 +10029,23 @@ class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (n :: (t0 :: Prim.Type)) (r :: 
 
 Instances
 instance forall (t0 :: Prim.Type). Main.Build @Prim.Int @(Prim.Row (t0 :: Prim.Type)) 0 ()
-instance forall (t0 :: Prim.Int) (t1 :: Prim.Int) (t2 :: Prim.Symbol) (t3 :: Prim.Symbol)
-  (t4 :: Prim.Row Prim.Int) (t5 :: Prim.Row Prim.Int).
-  Prim.Int.Add (t0 :: Prim.Int) 1 (t1 :: Prim.Int) =>
-  Prim.Int.ToString (t1 :: Prim.Int) (t2 :: Prim.Symbol) =>
-  Prim.Symbol.Append "n" (t2 :: Prim.Symbol) (t3 :: Prim.Symbol) =>
-  Main.Build @Prim.Int @(Prim.Row Prim.Int) (t0 :: Prim.Int) (t4 :: Prim.Row Prim.Int) =>
+instance forall (minusOne :: Prim.Int) (currentId :: Prim.Int) (labelId :: Prim.Symbol)
+  (actualLabel :: Prim.Symbol) (minusOneResult :: Prim.Row Prim.Int)
+  (finalResult :: Prim.Row Prim.Int).
+  Prim.Int.Add (minusOne :: Prim.Int) 1 (currentId :: Prim.Int) =>
+  Prim.Int.ToString (currentId :: Prim.Int) (labelId :: Prim.Symbol) =>
+  Prim.Symbol.Append "n" (labelId :: Prim.Symbol) (actualLabel :: Prim.Symbol) =>
+  Main.Build @Prim.Int @(Prim.Row Prim.Int)
+    (minusOne :: Prim.Int)
+    (minusOneResult :: Prim.Row Prim.Int) =>
   Prim.Row.Cons @Prim.Int
-    (t3 :: Prim.Symbol)
-    (t1 :: Prim.Int)
-    (t4 :: Prim.Row Prim.Int)
-    (t5 :: Prim.Row Prim.Int) =>
-  Main.Build @Prim.Int @(Prim.Row Prim.Int) (t1 :: Prim.Int) (t5 :: Prim.Row Prim.Int)
+    (actualLabel :: Prim.Symbol)
+    (currentId :: Prim.Int)
+    (minusOneResult :: Prim.Row Prim.Int)
+    (finalResult :: Prim.Row Prim.Int) =>
+  Main.Build @Prim.Int @(Prim.Row Prim.Int)
+    (currentId :: Prim.Int)
+    (finalResult :: Prim.Row Prim.Int)
 
 Roles
 Proxy = [Phantom]

@@ -589,6 +589,9 @@ where
     for implicit_unification in implicits_unifications {
         match implicit_unification {
             ImplicitOrUnification::Implicit(name, kind) => {
+                if let Some(text) = state.bindings.lookup_implicit_text(name) {
+                    state.checked.names.insert(name, text);
+                }
                 binders.push(ForallBinder { visible: false, name, kind })
             }
             ImplicitOrUnification::Unification(id, kind) => {

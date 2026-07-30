@@ -83,28 +83,28 @@ derive Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
 derive Data.Generic.Rep.Generic
   Main.MyUnit
   (Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments)
-derive forall (t0 :: Prim.Type).
+derive forall (a :: Prim.Type).
   Data.Generic.Rep.Generic
-    (Main.Identity (t0 :: Prim.Type))
-    (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument (t0 :: Prim.Type)))
-derive forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (Main.Identity (a :: Prim.Type))
+    (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument (a :: Prim.Type)))
+derive forall (a :: Prim.Type) (b :: Prim.Type).
   Data.Generic.Rep.Generic
-    (Main.Either (t0 :: Prim.Type) (t1 :: Prim.Type))
+    (Main.Either (a :: Prim.Type) (b :: Prim.Type))
     (Data.Generic.Rep.Sum
-      (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument (t0 :: Prim.Type)))
-      (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument (t1 :: Prim.Type))))
-derive forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+      (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument (a :: Prim.Type)))
+      (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument (b :: Prim.Type))))
+derive forall (a :: Prim.Type) (b :: Prim.Type).
   Data.Generic.Rep.Generic
-    (Main.Tuple (t0 :: Prim.Type) (t1 :: Prim.Type))
+    (Main.Tuple (a :: Prim.Type) (b :: Prim.Type))
     (Data.Generic.Rep.Constructor
       "Tuple"
       (Data.Generic.Rep.Product
-        (Data.Generic.Rep.Argument (t0 :: Prim.Type))
-        (Data.Generic.Rep.Argument (t1 :: Prim.Type))))
-derive forall (t0 :: Prim.Type).
+        (Data.Generic.Rep.Argument (a :: Prim.Type))
+        (Data.Generic.Rep.Argument (b :: Prim.Type))))
+derive forall (a :: Prim.Type).
   Data.Generic.Rep.Generic
-    (Main.Wrapper (t0 :: Prim.Type))
-    (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument (t0 :: Prim.Type)))
+    (Main.Wrapper (a :: Prim.Type))
+    (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument (a :: Prim.Type)))
 
 Roles
 Void = []

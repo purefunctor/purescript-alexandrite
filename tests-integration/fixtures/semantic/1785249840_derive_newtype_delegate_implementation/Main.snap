@@ -8,6 +8,6 @@ newtype Identity @a
   | Identity :: a -> Main.Identity a
 
 dictionary showIdentity ::
-  forall t0.
-  { showDict :: Data.Show.Show t0 } =>
-  Data.Show.Show (Main.Identity t0) = showDict
+  forall a.
+  { showDict :: Data.Show.Show a } =>
+  Data.Show.Show (Main.Identity a) = showDict

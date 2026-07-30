@@ -32,8 +32,8 @@ Const2 ::
 Derived
 derive Data.Bifoldable.Bifoldable Main.Either
 derive Data.Bifoldable.Bifoldable Main.Pair
-derive forall (t0 :: Prim.Type).
-  Data.Bifoldable.Bifoldable (Main.Const2 @Prim.Type @Prim.Type (t0 :: Prim.Type))
+derive forall (e :: Prim.Type).
+  Data.Bifoldable.Bifoldable (Main.Const2 @Prim.Type @Prim.Type (e :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]
