@@ -733,6 +733,14 @@ where
         let TraversalContext { source_type, target_type, function_depth } = traversal;
         match operation {
             TraversalOperation::Parameter { parameter } => {
+                // A parameter is a leaf in the traversal. Apply the corresponding mapping
+                // expression directly to the source expression.
+                //
+                //   source   :: a
+                //   target   :: b
+                //   function :: a -> b
+                //
+                //   function source :: b
                 let Some(mapping_expression) = self.mapping_expressions.mapping_for(*parameter)
                 else {
                     return Ok(None);
@@ -743,6 +751,27 @@ where
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
             TraversalOperation::Map { argument } => {
+                // Map delegates traversal of a unary type constructor to its existing
+                // Functor instance. The generator only needs to produce the transformation
+                // that its map implementation applies to each contained value.
+                //
+                // NonEmpty
+                //
+                //   data NonEmpty a = NonEmpty a (Array a)
+                //
+                //   function :: a -> b
+                //
+                //   source :: Array a
+                //   target :: Array b
+                //
+                // Inventory
+                //
+                //   newtype Inventory a = Inventory (Array { item :: a })
+                //
+                //   function :: a -> b
+                //
+                //   source :: Array { item :: a }
+                //   target :: Array { item :: b }
                 let Some((_, source_argument)) = toolkit::decompose_type_application(
                     self.builder.state,
                     self.builder.context,
@@ -759,6 +788,29 @@ where
                 else {
                     return Ok(None);
                 };
+
+                // First generate the transformation between the applied arguments.
+                // `emit_transformer` wraps the argument operation in the function that
+                // `map` calls for each contained value. A Parameter operation is
+                // semantically just `function`; a Record operation produces a more
+                // involved transformation using record field updates.
+                //
+                // NonEmpty
+                //
+                //   sourceArgument :: a
+                //   targetArgument :: b
+                //
+                //   transformer :: a -> b
+                //   transformer = function
+                //
+                // Inventory
+                //
+                //   sourceArgument :: { item :: a }
+                //   targetArgument :: { item :: b }
+                //
+                //   transformer :: { item :: a } -> { item :: b }
+                //   transformer = \element ->
+                //     element { item = function element.item }
                 let argument_context = TraversalContext {
                     source_type: source_argument,
                     target_type: target_argument,
@@ -767,6 +819,38 @@ where
                 let Some(transformer) = self.emit_transformer(argument, argument_context)? else {
                     return Ok(None);
                 };
+
+                // Resolve the polymorphic, constrained map declaration and specialize it
+                // through application. Applying `transformer` solves the element types;
+                // applying `source` solves the fresh constructor variable, specializing
+                // its wanted Functor evidence.
+                //
+                //   map :: forall f a b. Functor f => (a -> b) -> f a -> f b
+                //
+                // NonEmpty
+                //
+                //   ?f := Array
+                //
+                //   map transformer source :: Array b
+                //
+                // Inventory
+                //
+                //   ?f := Array
+                //
+                //   map transformer source :: Array { item :: b }
+                //
+                // The generated NonEmpty member therefore delegates its tail to Array's
+                // map:
+                //
+                //   map function (NonEmpty head tail) =
+                //     NonEmpty (function head) (map (\element -> function element) tail)
+                //
+                // The generated Inventory member also delegates to Array's map, using the
+                // record transformer for each element:
+                //
+                //   map function (Inventory items) =
+                //     Inventory
+                //       (map (\element -> element { item = function element.item }) items)
                 let Some(map) = self.builder.context.known_terms.map else {
                     return Ok(None);
                 };
@@ -777,12 +861,50 @@ where
                 let Some(mapped) = self.builder.apply(map, value)? else {
                     return Ok(None);
                 };
+
+                // Check the specialized result against the target established above.
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
             TraversalOperation::Bimap { first, second } => {
+                // Bimap lifts transformations through the first and second arguments of a
+                // binary type constructor. See `emit_bimap` for the staged construction.
                 self.emit_bimap(first, second.as_deref(), value, traversal)
             }
+            // Function types require both covariant and contravariant transformations.
+            // Given:
+            //
+            //   f :: sourceArgument -> sourceResult
+            //
+            // and the goal:
+            //
+            //   targetArgument -> targetResult
+            //
+            // derive the two transformations:
+            //
+            //   transformArgument :: targetArgument -> sourceArgument
+            //   transformResult   :: sourceResult -> targetResult
+            //
+            // and combine them as:
+            //
+            //   \targetArgument ->
+            //     transformResult (f (transformArgument targetArgument))
             TraversalOperation::Function { argument, result } => {
+                // Decompose both sides of the transformation. For example:
+                //
+                // Reader
+                //
+                //   source :: r -> a
+                //   target :: r -> b
+                //
+                // CPS
+                //
+                //   source :: (a -> r) -> r
+                //   target :: (b -> r) -> r
+                //
+                // CPS-i (CPS with its intermediate value)
+                //
+                //   source :: (a -> r) -> Tuple r a
+                //   target :: (b -> r) -> Tuple r b
                 let Some((source_argument, source_result)) = toolkit::decompose_function(
                     self.builder.state,
                     self.builder.context,
@@ -799,12 +921,35 @@ where
                 else {
                     return Ok(None);
                 };
+
+                // Bind the target argument.
+                //
+                // Reader
+                //
+                //   argument :: r
+                //
+                // CPS and CPS-i
+                //
+                //   returnB :: b -> r
                 let input_name = match function_depth {
                     0 => "argument".into(),
                     _ => format_smolstr!("argument{function_depth}"),
                 };
                 let input = self.builder.variable_binder(&input_name, target_argument);
                 let mut input_value = self.builder.variable(input);
+
+                // Transform the target argument contravariantly. Reader has no argument
+                // operation, so its argument remains unchanged. CPS and CPS-i
+                // recursively transform `returnB` into the function accepted by `program`.
+                //
+                // Reader
+                //
+                //   argument :: r
+                //
+                // CPS and CPS-i
+                //
+                //   \source -> returnB (function source)
+                //     :: a -> r
                 if let Some(operation) = argument {
                     let argument_context = TraversalContext {
                         source_type: target_argument,
@@ -818,9 +963,40 @@ where
                     };
                     input_value = transformed;
                 }
+
+                // Apply the source function to the transformed argument:
+                //
+                // Reader
+                //
+                //   program argument :: a
+                //
+                // CPS
+                //
+                //   program (\source -> ...) :: r
+                //
+                // CPS-i
+                //
+                //   program (\source -> ...) :: Tuple r a
                 let Some(output) = self.builder.apply(value, input_value)? else {
                     return Ok(None);
                 };
+
+                // Transform the source result covariantly.
+                //
+                // Reader
+                //
+                //   transformResult :: a -> b
+                //   transformResult = function
+                //
+                // CPS
+                //
+                //   transformResult :: r -> r
+                //   transformResult = identity
+                //
+                // CPS-i
+                //
+                //   transformResult :: Tuple r a -> Tuple r b
+                //   transformResult = map function
                 let output = if let Some(operation) = result {
                     let result_context = TraversalContext {
                         source_type: source_result,
@@ -836,9 +1012,28 @@ where
                     output
                 };
                 let output = self.builder.subtype(output, target_result)?;
+
+                // Close the target function.
+                //
+                // Reader
+                //
+                //   \argument -> function (program argument)
+                //
+                // CPS
+                //
+                //   \returnB ->
+                //     program \source ->
+                //       returnB (function source)
+                //
+                // CPS-i
+                //
+                //   \returnB ->
+                //     map function (program \source -> returnB (function source))
                 Ok(Some(self.builder.lambda(target_type, vec![input], output)))
             }
             TraversalOperation::Record { fields } => {
+                // A record operation recursively transforms only the entries containing a
+                // traversed parameter. See `emit_record_traversal` for reconstruction.
                 self.emit_record_traversal(fields, value, traversal)
             }
         }
@@ -849,7 +1044,22 @@ where
         operation: &TraversalOperation,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
-        let input = self.builder.variable_binder("mapped", traversal.source_type);
+        // Map and bimap require a function that transforms the inside of their source type
+        // into the inside of their target type. Bind one source value, emit its traversal,
+        // and return the resulting lambda to the map or bimap call site. A Parameter
+        // operation eta-expands its mapping expression; nested operations produce a more
+        // involved body.
+        //
+        //   source :: a
+        //   target :: b
+        //   element :: a
+        //
+        //   body :: b
+        //   body = emit_traversal operation element
+        //
+        //   transformer :: a -> b
+        //   transformer = \element -> body
+        let input = self.builder.variable_binder("element", traversal.source_type);
         let value = self.builder.variable(input);
         let Some(body) = self.emit_traversal(operation, value, traversal)? else {
             return Ok(None);
@@ -867,6 +1077,32 @@ where
         value: ElaboratedExpression,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
+        // Decompose both arguments of the binary type application.
+        //
+        //   firstFunction :: a -> c
+        //   secondFunction :: b -> d
+        //
+        // Pair
+        //
+        //   newtype Pair a b = Pair (Tuple a b)
+        //
+        //   source :: Tuple a b
+        //   target :: Tuple c d
+        //
+        // LeftPair
+        //
+        //   data LeftPair a b = LeftPair (Tuple a Int) b
+        //
+        //   source :: Tuple a Int
+        //   target :: Tuple c Int
+        //
+        // InventoryPair
+        //
+        //   newtype InventoryPair a b =
+        //     InventoryPair (Tuple (Array a) { item :: b })
+        //
+        //   source :: Tuple (Array a) { item :: b }
+        //   target :: Tuple (Array c) { item :: d }
         let Some((source_function, source_second)) = toolkit::decompose_type_application(
             self.builder.state,
             self.builder.context,
@@ -900,6 +1136,20 @@ where
             return Ok(None);
         };
 
+        // Generate the transformation that bimap calls for values in its first argument.
+        //
+        //   bimap :: (a -> b) -> (c -> d) -> f a c -> f b d
+        //   firstTransformer :: sourceFirst -> targetFirst
+        //
+        // Pair and LeftPair
+        //
+        //   firstTransformer :: a -> c
+        //   firstTransformer = firstFunction
+        //
+        // InventoryPair
+        //
+        //   firstTransformer :: Array a -> Array c
+        //   firstTransformer = map firstFunction
         let first_context = TraversalContext {
             source_type: source_first,
             target_type: target_first,
@@ -909,6 +1159,27 @@ where
             return Ok(None);
         };
 
+        // Generate the transformation that bimap calls for values in its second argument.
+        // When the traversed parameter does not occur there, bimap still requires an
+        // identity function.
+        //
+        //   secondTransformer :: sourceSecond -> targetSecond
+        //
+        // Pair
+        //
+        //   secondTransformer :: b -> d
+        //   secondTransformer = secondFunction
+        //
+        // LeftPair
+        //
+        //   secondTransformer :: Int -> Int
+        //   secondTransformer = identity
+        //
+        // InventoryPair
+        //
+        //   secondTransformer :: { item :: b } -> { item :: d }
+        //   secondTransformer = \record ->
+        //     record { item = secondFunction record.item }
         let second_context = TraversalContext {
             source_type: source_second,
             target_type: target_second,
@@ -924,6 +1195,33 @@ where
             None => self.emit_identity(second_context)?,
         };
 
+        // Resolve the polymorphic, constrained bimap declaration and specialize it through
+        // application. Applying the source solves the fresh constructor variable and
+        // specializes its wanted Bifunctor evidence.
+        //
+        //   bimap :: forall f a b c d.
+        //     Bifunctor f => (a -> b) -> (c -> d) -> f a c -> f b d
+        //
+        //   ?f := Tuple
+        //
+        // Pair
+        //
+        //   bimap firstFunction secondFunction (Pair pair) =
+        //     Pair (bimap firstFunction secondFunction pair)
+        //
+        // LeftPair
+        //
+        //   bimap firstFunction secondFunction (LeftPair pair second) =
+        //     LeftPair (bimap firstFunction identity pair) (secondFunction second)
+        //
+        // InventoryPair
+        //
+        //   bimap firstFunction secondFunction (InventoryPair pair) =
+        //     InventoryPair
+        //       (bimap
+        //         (map firstFunction)
+        //         (\record -> record { item = secondFunction record.item })
+        //         pair)
         let Some(bimap) = self.builder.context.known_terms.bimap else {
             return Ok(None);
         };
@@ -939,6 +1237,17 @@ where
     }
 
     fn emit_identity(&mut self, traversal: TraversalContext) -> QueryResult<ElaboratedExpression> {
+        // A Bimap operation omits its second operation when the traversed parameter does
+        // not occur in that argument. Bimap still requires a second transformer, so supply
+        // identity rather than treating the missing operation as a missing expression.
+        //
+        // LeftPair
+        //
+        //   sourceSecond :: Int
+        //   targetSecond :: Int
+        //
+        //   identity :: Int -> Int
+        //   identity = \a -> a
         let input = self.builder.variable_binder("unchanged", traversal.source_type);
         let value = self.builder.variable(input);
         let body = self.builder.subtype(value, traversal.target_type)?;
@@ -953,6 +1262,27 @@ where
         value: ElaboratedExpression,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
+        // Recover the source and target rows used to type each access and update.
+        //
+        // Profile
+        //
+        //   newtype Profile a = Profile { name :: String, value :: a }
+        //
+        //   function :: a -> b
+        //
+        //   source :: { name :: String, value :: a }
+        //   target :: { name :: String, value :: b }
+        //
+        // Catalog
+        //
+        //   newtype Catalog a b =
+        //     Catalog { items :: Array a, name :: String, selected :: b }
+        //
+        //   firstFunction :: a -> c
+        //   secondFunction :: b -> d
+        //
+        //   source :: { items :: Array a, name :: String, selected :: b }
+        //   target :: { items :: Array c, name :: String, selected :: d }
         let Some(source_row) =
             extract_record_row(self.builder.state, self.builder.context, traversal.source_type)?
         else {
@@ -964,6 +1294,31 @@ where
             return Ok(None);
         };
 
+        // Each entry in `fields` identifies a record entry containing a traversed
+        // parameter; entries such as `name` are absent and remain unchanged. Access each
+        // selected entry and recursively transform it according to its operation.
+        //
+        // Profile
+        //
+        //   valueOperation = Parameter First
+        //
+        //   value :: a
+        //   updatedValue :: b
+        //   updatedValue = function source.value
+        //
+        // Catalog
+        //
+        //   itemsOperation = Map (Parameter First)
+        //
+        //   items :: Array a
+        //   updatedItems :: Array c
+        //   updatedItems = map firstFunction source.items
+        //
+        //   selectedOperation = Parameter Second
+        //
+        //   selected :: b
+        //   updatedSelected :: d
+        //   updatedSelected = secondFunction source.selected
         let mut updates = Vec::with_capacity(fields.len());
         for field in fields {
             let Some(source_field) = source_row.fields.iter().find(|row| row.label == field.label)
@@ -990,6 +1345,21 @@ where
             });
         }
 
+        // Reconstruct the target with the transformed entries.
+        //
+        // Profile
+        //
+        //   map function (Profile source) =
+        //     Profile (source { value = function source.value })
+        //
+        // Catalog
+        //
+        //   bimap firstFunction secondFunction (Catalog source) =
+        //     Catalog
+        //       (source
+        //         { items = map firstFunction source.items
+        //         , selected = secondFunction source.selected
+        //         })
         Ok(Some(self.builder.record_update(value, updates, traversal.target_type)))
     }
 }

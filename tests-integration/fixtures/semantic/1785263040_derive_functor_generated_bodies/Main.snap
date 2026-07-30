@@ -75,7 +75,7 @@ dictionary functorWrap ::
   map = \function value ->
     case value of
       (Wrap field0) -> Wrap @Prim.Type @t @b
-        (map @t {functorDict} @a @b (\mapped -> function mapped) field0)
+        (map @t {functorDict} @a @b (\element -> function element) field0)
 
 dictionary functorCompose ::
   forall t t1.
@@ -91,7 +91,7 @@ dictionary functorCompose ::
     case value of
       (Compose field0) -> Compose @Prim.Type @Prim.Type @t @t1 @b
         (map @t {functorDict} @(t1 a) @(t1 b)
-          (\mapped -> map @t1 {functorDict1} @a @b (\mapped -> function mapped) mapped)
+          (\element -> map @t1 {functorDict1} @a @b (\element -> function element) element)
           field0)
 
 dictionary functorReader :: forall t. Data.Functor.Functor (Main.Reader t) where

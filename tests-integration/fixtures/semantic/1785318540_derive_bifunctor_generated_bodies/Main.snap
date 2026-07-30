@@ -105,8 +105,8 @@ dictionary bifunctorWrapBoth ::
   bimap = \firstFunction secondFunction value ->
     case value of
       (WrapBoth field0 field1) -> WrapBoth @Prim.Type @Prim.Type @t @t1 @b @d
-        (map @t {functorDict} @a @b (\mapped -> firstFunction mapped) field0)
-        (map @t1 {functorDict1} @c @d (\mapped -> secondFunction mapped) field1)
+        (map @t {functorDict} @a @b (\element -> firstFunction element) field0)
+        (map @t1 {functorDict1} @c @d (\element -> secondFunction element) field1)
 
 dictionary bifunctorTuple :: Data.Bifunctor.Bifunctor Main.Tuple where
   bimap :: forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
@@ -127,8 +127,8 @@ dictionary bifunctorBoth :: Data.Bifunctor.Bifunctor Main.Both where
   bimap = \firstFunction secondFunction value ->
     case value of
       (Both field0) -> Both @b @d
-        (bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\mapped -> firstFunction mapped)
-          (\mapped -> secondFunction mapped)
+        (bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\element -> firstFunction element)
+          (\element -> secondFunction element)
           field0)
 
 dictionary bifunctorOneSided :: Data.Bifunctor.Bifunctor Main.OneSided where
@@ -138,11 +138,12 @@ dictionary bifunctorOneSided :: Data.Bifunctor.Bifunctor Main.OneSided where
     case value of
       (OneSidedFirst field0) -> OneSidedFirst @b @d
         (bimap @Main.Tuple {bifunctorTuple} @a @b @Prim.Int @Prim.Int
-          (\mapped -> firstFunction mapped)
+          (\element -> firstFunction element)
           (\unchanged -> unchanged)
           field0)
       (OneSidedSecond field0) -> OneSidedSecond @b @d
-        (map @(Main.Tuple Prim.Int) {functorTuple} @c @d (\mapped -> secondFunction mapped) field0)
+        (map @(Main.Tuple Prim.Int) {functorTuple} @c @d (\element -> secondFunction element)
+          field0)
 
 dictionary functorBox :: Data.Functor.Functor Main.Box where
   map :: forall (t :: Prim.Type) (t1 :: Prim.Type). (t -> t1) -> Main.Box t -> Main.Box t1
@@ -157,10 +158,10 @@ dictionary bifunctorNested :: Data.Bifunctor.Bifunctor Main.Nested where
     case value of
       (Nested field0) -> Nested @b @d
         (map @Main.Box {functorBox} @(Main.Tuple a c) @(Main.Tuple b d)
-          (\mapped ->
-            bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\mapped -> firstFunction mapped)
-              (\mapped -> secondFunction mapped)
-              mapped)
+          (\element ->
+            bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\element -> firstFunction element)
+              (\element -> secondFunction element)
+              element)
           field0)
 
 dictionary bifunctorTriple :: forall t. Data.Bifunctor.Bifunctor (Main.Triple t) where
@@ -184,8 +185,8 @@ dictionary bifunctorNestedTriple :: Data.Bifunctor.Bifunctor Main.NestedTriple w
     case value of
       (NestedTriple field0) -> NestedTriple @b @d
         (bimap @(Main.Triple Prim.Int) {bifunctorTriple} @a @b @c @d
-          (\mapped -> firstFunction mapped)
-          (\mapped -> secondFunction mapped)
+          (\element -> firstFunction element)
+          (\element -> secondFunction element)
           field0)
 
 dictionary bifunctorNestedTripleLast :: Data.Bifunctor.Bifunctor (Main.NestedTripleLast @Prim.Type)
@@ -199,7 +200,7 @@ dictionary bifunctorNestedTripleLast :: Data.Bifunctor.Bifunctor (Main.NestedTri
     case value of
       (NestedTripleLast field0) -> NestedTripleLast @Prim.Type @b @d
         (map @(Main.Triple Prim.Int Prim.String) {functorTriple} @c @d
-          (\mapped -> secondFunction mapped)
+          (\element -> secondFunction element)
           field0)
 
 dictionary bifunctorReaderPair :: Data.Bifunctor.Bifunctor Main.ReaderPair where
@@ -208,8 +209,8 @@ dictionary bifunctorReaderPair :: Data.Bifunctor.Bifunctor Main.ReaderPair where
   bimap = \firstFunction secondFunction value ->
     case value of
       (ReaderPair field0) -> ReaderPair @b @d \argument ->
-        bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\mapped -> firstFunction mapped)
-          (\mapped -> secondFunction mapped)
+        bimap @Main.Tuple {bifunctorTuple} @a @b @c @d (\element -> firstFunction element)
+          (\element -> secondFunction element)
           (field0 argument)
 
 dictionary bifunctorRecordPair :: Data.Bifunctor.Bifunctor Main.RecordPair where
