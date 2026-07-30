@@ -9,8 +9,8 @@ use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
 pub struct DerivedTreeBuilder<'state, 'context, 'query, Q: ExternalQueries> {
-    state: &'state mut CheckState,
-    context: &'context CheckContext<'query, Q>,
+    pub(super) state: &'state mut CheckState,
+    pub(super) context: &'context CheckContext<'query, Q>,
     derive_id: indexing::DeriveId,
 }
 
@@ -94,6 +94,30 @@ where
             application.result,
             argument,
         )))
+    }
+
+    pub fn record_access(
+        &mut self,
+        record: ElaboratedExpression,
+        label: smol_str::SmolStr,
+        field_type: TypeId,
+    ) -> ElaboratedExpression {
+        let labels = Arc::from([label]);
+        let kind = tree::ExpressionKind::RecordAccess { record: record.expression, labels };
+        self.allocate_expression(field_type, kind)
+    }
+
+    pub fn record_update(
+        &mut self,
+        record: ElaboratedExpression,
+        updates: Vec<tree::RecordExpressionUpdate>,
+        record_type: TypeId,
+    ) -> ElaboratedExpression {
+        let kind = tree::ExpressionKind::RecordUpdate {
+            record: record.expression,
+            updates: Arc::from(updates),
+        };
+        self.allocate_expression(record_type, kind)
     }
 
     pub fn if_then_else(

@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Triple ::
+  forall (@x :: Prim.Type) (@a :: Prim.Type) (@b :: Prim.Type).
+    (x :: Prim.Type) ->
+    (a :: Prim.Type) ->
+    (b :: Prim.Type) ->
+    Main.Triple (x :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type)
+Captured ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Triple (a :: Prim.Type) Prim.Int (b :: Prim.Type) ->
+    Main.Captured (a :: Prim.Type) (b :: Prim.Type)
+Outer ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Outer (a :: Prim.Type) (b :: Prim.Type)
+NestedCaptured ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Outer (Main.Triple (a :: Prim.Type) Prim.Int Prim.Boolean) (b :: Prim.Type) ->
+    Main.NestedCaptured (a :: Prim.Type) (b :: Prim.Type)
+
+Types
+Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+Captured :: Prim.Type -> Prim.Type -> Prim.Type
+Outer :: Prim.Type -> Prim.Type -> Prim.Type
+NestedCaptured :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.Captured
+derive Data.Bifunctor.Bifunctor Main.NestedCaptured
+
+Roles
+Triple = [Representational, Representational, Representational]
+Captured = [Representational, Representational]
+Outer = [Representational, Representational]
+NestedCaptured = [Representational, Representational]
+
+Diagnostics
+error[CannotDeriveForType]: Cannot derive for type: Triple (t :: Type) Int (t1 :: Type)
+  --> 8:1..8:35
+  |
+8 | derive instance Bifunctor Captured
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: Triple (t2 :: Type) Int Boolean
+  --> 13:1..13:41
+   |
+13 | derive instance Bifunctor NestedCaptured
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

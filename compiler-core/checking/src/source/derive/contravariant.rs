@@ -9,7 +9,7 @@ use crate::error::ErrorKind;
 use crate::state::CheckState;
 
 use super::DeriveStrategy;
-use super::variance::{Variance, VarianceConfig};
+use super::variance::{ParameterConfig, Variance, VarianceConfig};
 
 pub fn check_derive_contravariant<Q>(
     state: &mut CheckState,
@@ -38,8 +38,11 @@ where
         return Ok(None);
     };
 
-    let contravariant = Some((class_file, class_id));
-    let config = VarianceConfig::Single((Variance::Contravariant, contravariant));
+    let parameter = ParameterConfig {
+        variance: Variance::Contravariant,
+        unary_class: Some((class_file, class_id)),
+    };
+    let config = VarianceConfig::Single(parameter);
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,
@@ -78,10 +81,11 @@ where
 
     let contravariant = context.known_types.contravariant;
     let functor = context.known_types.functor;
-    let config = VarianceConfig::Pair(
-        (Variance::Contravariant, contravariant),
-        (Variance::Covariant, functor),
-    );
+    let config = VarianceConfig::Pair {
+        first: ParameterConfig { variance: Variance::Contravariant, unary_class: contravariant },
+        second: ParameterConfig { variance: Variance::Covariant, unary_class: functor },
+        binary_class: None,
+    };
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,

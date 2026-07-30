@@ -778,6 +778,8 @@ impl KnownGeneric {
 
 pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
+    pub map: Option<(FileId, TermItemId)>,
+    pub bimap: Option<(FileId, TermItemId)>,
     pub eq: Option<(FileId, TermItemId)>,
     pub eq1: Option<(FileId, TermItemId)>,
     pub compare: Option<(FileId, TermItemId)>,
@@ -790,6 +792,8 @@ pub struct KnownTermsCore {
 impl KnownTermsCore {
     fn collect(queries: &impl ExternalQueries) -> QueryResult<KnownTermsCore> {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
+        let map = fetch_known_term(queries, "Data.Functor", "map")?;
+        let bimap = fetch_known_term(queries, "Data.Bifunctor", "bimap")?;
         let eq = fetch_known_term(queries, "Data.Eq", "eq")?;
         let eq1 = fetch_known_term(queries, "Data.Eq", "eq1")?;
         let compare = fetch_known_term(queries, "Data.Ord", "compare")?;
@@ -799,6 +803,8 @@ impl KnownTermsCore {
         let ordering_gt = fetch_known_term(queries, "Data.Ordering", "GT")?;
         Ok(KnownTermsCore {
             otherwise,
+            map,
+            bimap,
             eq,
             eq1,
             compare,

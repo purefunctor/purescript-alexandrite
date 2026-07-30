@@ -795,22 +795,27 @@ where
             }
 
             let mut equation = if has_abstraction {
-                self.arena.text(format!("{prefix}{name} = ")).append(expression)
+                self.arena.text(format!("{name} = ")).append(expression)
             } else if force_body_break {
                 self.arena
-                    .text(format!("{prefix}{name} ="))
+                    .text(format!("{name} ="))
                     .append(self.arena.hardline().append(expression).nest(2))
             } else if is_lambda {
-                self.arena.text(format!("{prefix}{name} = ")).append(expression).group()
+                self.arena.text(format!("{name} = ")).append(expression).group()
             } else {
                 self.arena
-                    .text(format!("{prefix}{name} ="))
+                    .text(format!("{name} ="))
                     .append(self.arena.line().append(expression).nest(2))
                     .group()
             };
             if let Some(bindings) = where_bindings {
                 let where_clause = self.where_clause(bindings, evidence_names, &mut type_pretty)?;
                 equation = equation.append(self.arena.hardline().append(where_clause).nest(2));
+            }
+            if !prefix.is_empty() {
+                let prefix = prefix.to_string();
+                let indentation = prefix.len() as isize;
+                equation = self.arena.text(prefix).append(equation.nest(indentation));
             }
             rendered_equations.push(equation);
         }

@@ -15,9 +15,9 @@ dictionary eqWrap ::
   where
   eq :: Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    (Wrap left0), (Wrap right0) ->
-      if eq1 @t {eq1Dict} @t1 {eqDict} left0 right0 then true else false
+    case left, right of
+      (Wrap left0), (Wrap right0) ->
+        if eq1 @t {eq1Dict} @t1 {eqDict} left0 right0 then true else false
 
 dictionary eq1Wrap :: forall t. { eq1Dict :: Data.Eq.Eq1 t } => Data.Eq.Eq1 (Main.Wrap @Prim.Type t)
   where
@@ -34,11 +34,11 @@ dictionary ordWrap ::
   superclass eqDict = eqWrap {ord1Dict.eq1Dict} {ordDict.eqDict}
   compare :: Main.Wrap @Prim.Type t t1 -> Main.Wrap @Prim.Type t t1 -> Data.Ordering.Ordering
   compare = \left right ->
-  case left, right of
-    (Wrap left0), (Wrap right0) ->
-      case compare1 @t {ord1Dict} @t1 {ordDict} left0 right0 of
-        EQ -> EQ
-        ordering -> ordering
+    case left, right of
+      (Wrap left0), (Wrap right0) ->
+        case compare1 @t {ord1Dict} @t1 {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
 
 dictionary ord1Wrap ::
   forall t.

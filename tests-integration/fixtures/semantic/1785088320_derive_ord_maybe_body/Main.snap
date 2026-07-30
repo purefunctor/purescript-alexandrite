@@ -11,21 +11,21 @@ data Maybe @a
 dictionary eqMaybe :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Maybe t) where
   eq :: Main.Maybe t -> Main.Maybe t -> Prim.Boolean
   eq = \left right ->
-  case left, right of
-    Nothing, Nothing -> true
-    (Just left0), (Just right0) ->
-      if eq @t {eqDict} left0 right0 then true else false
-    _, _ -> false
+    case left, right of
+      Nothing, Nothing -> true
+      (Just left0), (Just right0) ->
+        if eq @t {eqDict} left0 right0 then true else false
+      _, _ -> false
 
 dictionary ordMaybe :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.Maybe t) where
   superclass eqDict = eqMaybe {ordDict.eqDict}
   compare :: Main.Maybe t -> Main.Maybe t -> Data.Ordering.Ordering
   compare = \left right ->
-  case left, right of
-    Nothing, Nothing -> EQ
-    Nothing, _ -> LT
-    _, Nothing -> GT
-    (Just left0), (Just right0) ->
-      case compare @t {ordDict} left0 right0 of
-        EQ -> EQ
-        ordering -> ordering
+    case left, right of
+      Nothing, Nothing -> EQ
+      Nothing, _ -> LT
+      _, Nothing -> GT
+      (Just left0), (Just right0) ->
+        case compare @t {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
