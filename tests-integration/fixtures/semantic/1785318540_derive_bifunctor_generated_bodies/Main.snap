@@ -64,16 +64,16 @@ data RecordPair @a @b
   | RecordPair :: { first :: a, fixed :: Prim.Int, second :: b } -> Main.RecordPair a b
 
 dictionary bifunctorEither :: Data.Bifunctor.Bifunctor Main.Either where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.Either t0 t2 -> Main.Either t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Either a c -> Main.Either b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Left field0) -> Left @b @d (firstFunction field0)
       (Right field0) -> Right @b @d (secondFunction field0)
 
 dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.Pair t0 t2 -> Main.Pair t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Pair field0 field1) -> Pair @b @d (firstFunction field0) (secondFunction field1)
@@ -82,11 +82,11 @@ dictionary bifunctorConst2 ::
   forall t0.
   Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type t0)
   where
-  bimap :: forall (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type).
-  (t1 -> t2) ->
-  (t3 -> t4) ->
-  Main.Const2 @Prim.Type @Prim.Type t0 t1 t3 ->
-  Main.Const2 @Prim.Type @Prim.Type t0 t2 t4
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.Const2 @Prim.Type @Prim.Type t0 a c ->
+  Main.Const2 @Prim.Type @Prim.Type t0 b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Const2 field0) -> Const2 @Prim.Type @Prim.Type @t0 @b @d field0
@@ -97,11 +97,11 @@ dictionary bifunctorWrapBoth ::
   { functorDict1 :: Data.Functor.Functor t1 } =>
   Data.Bifunctor.Bifunctor (Main.WrapBoth @Prim.Type @Prim.Type t0 t1)
   where
-  bimap :: forall (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type) (t5 :: Prim.Type).
-  (t2 -> t3) ->
-  (t4 -> t5) ->
-  Main.WrapBoth @Prim.Type @Prim.Type t0 t1 t2 t4 ->
-  Main.WrapBoth @Prim.Type @Prim.Type t0 t1 t3 t5
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.WrapBoth @Prim.Type @Prim.Type t0 t1 a c ->
+  Main.WrapBoth @Prim.Type @Prim.Type t0 t1 b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (WrapBoth field0 field1) -> WrapBoth @Prim.Type @Prim.Type @t0 @t1 @b @d
@@ -109,21 +109,21 @@ dictionary bifunctorWrapBoth ::
         (map @t1 {functorDict1} @c @d (\element -> secondFunction element) field1)
 
 dictionary bifunctorTuple :: Data.Bifunctor.Bifunctor Main.Tuple where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.Tuple t0 t2 -> Main.Tuple t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Tuple a c -> Main.Tuple b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Tuple field0 field1) -> Tuple @b @d (firstFunction field0) (secondFunction field1)
 
 dictionary functorTuple :: forall t0. Data.Functor.Functor (Main.Tuple t0) where
-  map :: forall (t1 :: Prim.Type) (t2 :: Prim.Type). (t1 -> t2) -> Main.Tuple t0 t1 -> Main.Tuple t0 t2
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Tuple t0 a -> Main.Tuple t0 b
   map = \function value ->
     case value of
       (Tuple field0 field1) -> Tuple @t0 @b field0 (function field1)
 
 dictionary bifunctorBoth :: Data.Bifunctor.Bifunctor Main.Both where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.Both t0 t2 -> Main.Both t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Both a c -> Main.Both b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Both field0) -> Both @b @d
@@ -132,8 +132,8 @@ dictionary bifunctorBoth :: Data.Bifunctor.Bifunctor Main.Both where
           field0)
 
 dictionary bifunctorOneSided :: Data.Bifunctor.Bifunctor Main.OneSided where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.OneSided t0 t2 -> Main.OneSided t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.OneSided a c -> Main.OneSided b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (OneSidedFirst field0) -> OneSidedFirst @b @d
@@ -146,14 +146,14 @@ dictionary bifunctorOneSided :: Data.Bifunctor.Bifunctor Main.OneSided where
           field0)
 
 dictionary functorBox :: Data.Functor.Functor Main.Box where
-  map :: forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 -> t1) -> Main.Box t0 -> Main.Box t1
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Box a -> Main.Box b
   map = \function value ->
     case value of
       (Box field0) -> Box @b (function field0)
 
 dictionary bifunctorNested :: Data.Bifunctor.Bifunctor Main.Nested where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.Nested t0 t2 -> Main.Nested t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Nested a c -> Main.Nested b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Nested field0) -> Nested @b @d
@@ -165,23 +165,22 @@ dictionary bifunctorNested :: Data.Bifunctor.Bifunctor Main.Nested where
           field0)
 
 dictionary bifunctorTriple :: forall t0. Data.Bifunctor.Bifunctor (Main.Triple t0) where
-  bimap :: forall (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type).
-  (t1 -> t2) -> (t3 -> t4) -> Main.Triple t0 t1 t3 -> Main.Triple t0 t2 t4
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Triple t0 a c -> Main.Triple t0 b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Triple field0 field1 field2) -> Triple @t0 @b @d field0 (firstFunction field1)
         (secondFunction field2)
 
 dictionary functorTriple :: forall t0 t1. Data.Functor.Functor (Main.Triple t0 t1) where
-  map :: forall (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t2 -> t3) -> Main.Triple t0 t1 t2 -> Main.Triple t0 t1 t3
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Triple t0 t1 a -> Main.Triple t0 t1 b
   map = \function value ->
     case value of
       (Triple field0 field1 field2) -> Triple @t0 @t1 @b field0 field1 (function field2)
 
 dictionary bifunctorNestedTriple :: Data.Bifunctor.Bifunctor Main.NestedTriple where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.NestedTriple t0 t2 -> Main.NestedTriple t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.NestedTriple a c -> Main.NestedTriple b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (NestedTriple field0) -> NestedTriple @b @d
@@ -192,11 +191,11 @@ dictionary bifunctorNestedTriple :: Data.Bifunctor.Bifunctor Main.NestedTriple w
 
 dictionary bifunctorNestedTripleLast :: Data.Bifunctor.Bifunctor (Main.NestedTripleLast @Prim.Type)
   where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) ->
-  (t2 -> t3) ->
-  Main.NestedTripleLast @Prim.Type t0 t2 ->
-  Main.NestedTripleLast @Prim.Type t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.NestedTripleLast @Prim.Type a c ->
+  Main.NestedTripleLast @Prim.Type b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (NestedTripleLast field0) -> NestedTripleLast @Prim.Type @b @d
@@ -205,8 +204,8 @@ dictionary bifunctorNestedTripleLast :: Data.Bifunctor.Bifunctor (Main.NestedTri
           field0)
 
 dictionary bifunctorReaderPair :: Data.Bifunctor.Bifunctor Main.ReaderPair where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.ReaderPair t0 t2 -> Main.ReaderPair t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.ReaderPair a c -> Main.ReaderPair b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (ReaderPair field0) -> ReaderPair @b @d \argument ->
@@ -215,8 +214,8 @@ dictionary bifunctorReaderPair :: Data.Bifunctor.Bifunctor Main.ReaderPair where
           (field0 argument)
 
 dictionary bifunctorRecordPair :: Data.Bifunctor.Bifunctor Main.RecordPair where
-  bimap :: forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type).
-  (t0 -> t1) -> (t2 -> t3) -> Main.RecordPair t0 t2 -> Main.RecordPair t1 t3
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.RecordPair a c -> Main.RecordPair b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (RecordPair field0) -> RecordPair @b @d
