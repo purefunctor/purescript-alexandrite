@@ -13,8 +13,8 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{self, TypeWalker};
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, Type, TypeId, constraint,
-    normalise, unification,
+    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, SmolStrId, Type, TypeId,
+    constraint, normalise, unification,
 };
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -185,6 +185,22 @@ where
     } else {
         let checked = context.checked_dependency(file_id)?;
         Ok(checked.lookup_class(item_id))
+    }
+}
+
+pub fn lookup_name<Q>(
+    state: &CheckState,
+    context: &CheckContext<Q>,
+    name: Name,
+) -> QueryResult<Option<SmolStrId>>
+where
+    Q: ExternalQueries,
+{
+    if name.file == context.id {
+        Ok(state.checked.lookup_name(name))
+    } else {
+        let checked = context.checked_dependency(name.file)?;
+        Ok(checked.lookup_name(name))
     }
 }
 

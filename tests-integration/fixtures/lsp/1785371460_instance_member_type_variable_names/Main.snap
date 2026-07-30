@@ -11,7 +11,7 @@ Hover at Position { line: 9, character: 6 }
 ```
 
 ```purescript
-((t :: Type) -> (t1 :: Type)) -> (t1 :: Type)
+((a :: Type) -> (r :: Type)) -> (r :: Type)
 ```
 
 
@@ -23,7 +23,7 @@ Hover at Position { line: 11, character: 8 }
 ```
 
 ```purescript
-(t :: Type) -> (t1 :: Type)
+(b :: Type) -> (r :: Type)
 ```
 
 
@@ -35,5 +35,5 @@ Hover at Position { line: 11, character: 16 }
 ```
 
 ```purescript
-(t :: Type) -> (t1 :: Type)
+(a :: Type) -> (b :: Type)
 ```

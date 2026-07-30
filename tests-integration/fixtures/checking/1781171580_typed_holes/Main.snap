@@ -48,7 +48,7 @@ error[TermHole]: Hole '?pun' has inferred type: Int
 17 | recordPunHole { punInt, punString } = ?pun
    |                                       ^~~~
   trivia: punInt :: Int is in scope
-error[TypeHole]: Type hole '?implicit' has inferred type: (t1 :: Type) :: Type
+error[TypeHole]: Type hole '?implicit' has inferred type: (implicit :: Type) :: Type
   --> 23:29..23:38
    |
 23 |   instanceTypeHoleMember :: ?implicit -> implicit

@@ -272,7 +272,9 @@ where
                     let n = state.names.fresh();
                     let k = state.fresh_unification(context.queries, context.prim.t);
 
-                    state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
+                    let text = name.clone().map(|text| context.queries.intern_smol_str(text));
+
+                    state.bindings.bind_implicit(implicit.node, implicit.id, n, k, text);
                     state.checked.nodes.implicit_bindings.insert((implicit.node, implicit.id), k);
 
                     let t = context.intern_rigid(n, state.depth, k);

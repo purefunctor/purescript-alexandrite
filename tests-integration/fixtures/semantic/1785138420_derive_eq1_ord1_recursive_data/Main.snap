@@ -27,7 +27,7 @@ dictionary eqList :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Li
 
 dictionary eq1List :: Data.Eq.Eq1 Main.List where
   eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.List t -> Main.List t -> Prim.Boolean
-  eq1 = \{eqDict} -> eq @(Main.List t) {eqList {eqDict}}
+  eq1 = \{eqDict} -> eq @(Main.List a) {eqList {eqDict}}
 
 dictionary ordList :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.List t) where
   superclass eqDict = eqList {ordDict.eqDict}
@@ -48,7 +48,7 @@ dictionary ordList :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (M
 dictionary ord1List :: Data.Ord.Ord1 Main.List where
   superclass eq1Dict = eq1List
   compare1 :: forall (t :: Prim.Type). Data.Ord.Ord t => Main.List t -> Main.List t -> Data.Ordering.Ordering
-  compare1 = \{ordDict} -> compare @(Main.List t) {ordList {ordDict}}
+  compare1 = \{ordDict} -> compare @(Main.List a) {ordList {ordDict}}
 
 dictionary eqTree :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Tree t) where
   eq :: Main.Tree t -> Main.Tree t -> Prim.Boolean
@@ -65,7 +65,7 @@ dictionary eqTree :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Main.Tr
 
 dictionary eq1Tree :: Data.Eq.Eq1 Main.Tree where
   eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.Tree t -> Main.Tree t -> Prim.Boolean
-  eq1 = \{eqDict} -> eq @(Main.Tree t) {eqTree {eqDict}}
+  eq1 = \{eqDict} -> eq @(Main.Tree a) {eqTree {eqDict}}
 
 dictionary ordTree :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.Tree t) where
   superclass eqDict = eqTree {ordDict.eqDict}
@@ -89,4 +89,4 @@ dictionary ordTree :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (M
 dictionary ord1Tree :: Data.Ord.Ord1 Main.Tree where
   superclass eq1Dict = eq1Tree
   compare1 :: forall (t :: Prim.Type). Data.Ord.Ord t => Main.Tree t -> Main.Tree t -> Data.Ordering.Ordering
-  compare1 = \{ordDict} -> compare @(Main.Tree t) {ordTree {ordDict}}
+  compare1 = \{ordDict} -> compare @(Main.Tree a) {ordTree {ordDict}}

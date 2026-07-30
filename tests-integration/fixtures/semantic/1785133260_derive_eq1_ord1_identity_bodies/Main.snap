@@ -16,7 +16,7 @@ dictionary eqIdentity :: forall t. { eqDict :: Data.Eq.Eq t } => Data.Eq.Eq (Mai
 
 dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
   eq1 :: forall (t :: Prim.Type). Data.Eq.Eq t => Main.Identity t -> Main.Identity t -> Prim.Boolean
-  eq1 = \{eqDict} -> eq @(Main.Identity t) {eqIdentity {eqDict}}
+  eq1 = \{eqDict} -> eq @(Main.Identity a) {eqIdentity {eqDict}}
 
 dictionary ordIdentity :: forall t. { ordDict :: Data.Ord.Ord t } => Data.Ord.Ord (Main.Identity t)
   where
@@ -33,4 +33,4 @@ dictionary ord1Identity :: Data.Ord.Ord1 Main.Identity where
   superclass eq1Dict = eq1Identity
   compare1 :: forall (t :: Prim.Type).
   Data.Ord.Ord t => Main.Identity t -> Main.Identity t -> Data.Ordering.Ordering
-  compare1 = \{ordDict} -> compare @(Main.Identity t) {ordIdentity {ordDict}}
+  compare1 = \{ordDict} -> compare @(Main.Identity a) {ordIdentity {ordDict}}

@@ -104,6 +104,7 @@ struct ImplicitBinding {
     id: lowering::ImplicitBindingId,
     name: Name,
     kind: TypeId,
+    text: Option<SmolStrId>,
 }
 
 impl Bindings {
@@ -125,8 +126,9 @@ impl Bindings {
         id: lowering::ImplicitBindingId,
         name: Name,
         kind: TypeId,
+        text: Option<SmolStrId>,
     ) {
-        self.implicit.push(ImplicitBinding { node, id, name, kind });
+        self.implicit.push(ImplicitBinding { node, id, name, kind, text });
     }
 
     fn bind_implicit_substitution<Q>(
@@ -140,7 +142,7 @@ impl Bindings {
         let scope = state.bindings.implicit.len();
 
         for binding in 0..scope {
-            let ImplicitBinding { node, id, name, kind } = state.bindings.implicit[binding];
+            let ImplicitBinding { node, id, name, kind, text } = state.bindings.implicit[binding];
             let Some(&replacement) = substitution.get(&name) else { continue };
 
             let Type::Rigid(name, _, _) = context.lookup_type(replacement) else {
@@ -148,7 +150,7 @@ impl Bindings {
             };
 
             let kind = SubstituteName::many(state, context, substitution, kind)?;
-            state.bindings.implicit.push(ImplicitBinding { node, id, name, kind });
+            state.bindings.implicit.push(ImplicitBinding { node, id, name, kind, text });
         }
 
         Ok(())
@@ -189,6 +191,14 @@ impl Bindings {
             .rev()
             .find(|binding| binding.node == node && binding.id == id)
             .map(|binding| (binding.name, binding.kind))
+    }
+
+    pub fn lookup_implicit_text(&self, name: Name) -> Option<SmolStrId> {
+        self.implicit
+            .iter()
+            .rev()
+            .find(|binding| binding.name == name)
+            .and_then(|binding| binding.text)
     }
 }
 
