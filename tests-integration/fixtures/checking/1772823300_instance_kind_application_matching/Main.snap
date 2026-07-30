@@ -23,15 +23,15 @@ Endo ::
     ((k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
-  (t2 :: (t :: Prim.Type)).
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
+  (t2 :: (t0 :: Prim.Type)).
   Data.Newtype.Newtype @Prim.Type
-    (Main.Endo @(t :: Prim.Type)
-      (t1 :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
-      (t2 :: (t :: Prim.Type)))
-    ((t1 :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
-      (t2 :: (t :: Prim.Type))
-      (t2 :: (t :: Prim.Type)))
+    (Main.Endo @(t0 :: Prim.Type)
+      (t1 :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
+      (t2 :: (t0 :: Prim.Type)))
+    ((t1 :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
+      (t2 :: (t0 :: Prim.Type))
+      (t2 :: (t0 :: Prim.Type)))
 
 Roles
 Endo = [Representational, Nominal]

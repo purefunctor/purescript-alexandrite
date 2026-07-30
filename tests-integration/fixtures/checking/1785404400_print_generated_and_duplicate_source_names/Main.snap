@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-generatedIdentity :: forall (t :: Prim.Type). (t :: Prim.Type) -> (t :: Prim.Type)
+generatedIdentity :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
 generatedConst ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
 generatedApply ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    ((t :: Prim.Type) -> (t1 :: Prim.Type)) -> (t :: Prim.Type) -> (t1 :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    ((t0 :: Prim.Type) -> (t1 :: Prim.Type)) -> (t0 :: Prim.Type) -> (t1 :: Prim.Type)
 sourceIdentity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
 sourceConst ::
   forall (first :: Prim.Type) (second :: Prim.Type).
@@ -29,17 +29,17 @@ Proxy ::
 
 Types
 Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
-GeneratedKind0 :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+GeneratedKind0 :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 GeneratedKind1 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type). (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
 GeneratedKind2 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
 
 Synonyms
-type GeneratedKind0 = Main.Proxy @(t :: Prim.Type)
-type GeneratedKind1 value = Main.Proxy @(t :: Prim.Type)
-type GeneratedKind2 first second = Main.Proxy @(t :: Prim.Type)
+type GeneratedKind0 = Main.Proxy @(t0 :: Prim.Type)
+type GeneratedKind1 value = Main.Proxy @(t0 :: Prim.Type)
+type GeneratedKind2 first second = Main.Proxy @(t0 :: Prim.Type)
 
 Roles
 Proxy = [Phantom]

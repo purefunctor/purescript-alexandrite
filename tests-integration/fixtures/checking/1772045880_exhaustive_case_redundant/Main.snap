@@ -6,7 +6,7 @@ expression: report
 Terms
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-test :: forall (t :: Prim.Type). Main.Maybe (t :: Prim.Type) -> Prim.Int
+test :: forall (t0 :: Prim.Type). Main.Maybe (t0 :: Prim.Type) -> Prim.Int
 
 Types
 Maybe :: Prim.Type -> Prim.Type

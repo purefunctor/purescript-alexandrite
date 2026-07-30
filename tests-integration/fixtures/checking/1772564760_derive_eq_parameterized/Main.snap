@@ -11,7 +11,7 @@ Types
 Maybe :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t0 :: Prim.Type))
 
 Roles
 Maybe = [Representational]

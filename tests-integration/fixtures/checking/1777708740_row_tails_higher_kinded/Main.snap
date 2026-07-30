@@ -16,8 +16,8 @@ withG ::
   forall (r :: Prim.Row (Prim.Type -> Prim.Type)).
     Main.Box ( g :: Main.G | (r :: Prim.Row (Prim.Type -> Prim.Type)) )
 test ::
-  forall (t :: Prim.Row (Prim.Type -> Prim.Type)).
-    Main.Box ( f :: Main.F, g :: Main.G | (t :: Prim.Row (Prim.Type -> Prim.Type)) )
+  forall (t0 :: Prim.Row (Prim.Type -> Prim.Type)).
+    Main.Box ( f :: Main.F, g :: Main.G | (t0 :: Prim.Row (Prim.Type -> Prim.Type)) )
 
 Types
 F :: Prim.Type -> Prim.Type

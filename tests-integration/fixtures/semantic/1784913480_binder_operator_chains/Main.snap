@@ -19,7 +19,7 @@ first = \(Cons value _) -> value
 second :: forall a. Main.List a -> a
 second = \(Cons _ (Cons value _)) -> value
 
-inferred :: forall t. Prim.Partial => Main.List t -> t
+inferred :: forall t0. Prim.Partial => Main.List t0 -> t0
 inferred = \{trivial} -> \(Cons value _) -> value
 
 second' :: forall a. Main.Snoc a -> a

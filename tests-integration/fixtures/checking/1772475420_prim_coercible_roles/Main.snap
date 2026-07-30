@@ -6,8 +6,8 @@ expression: report
 Terms
 Age :: Prim.Int -> Main.Age
 Proxy ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 coerceProxy :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
@@ -18,7 +18,7 @@ coerceFunction :: (Prim.Int -> Main.Age) -> Prim.Int -> Prim.Int
 
 Types
 Age :: Prim.Type
-Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 Maybe :: Prim.Type -> Prim.Type
 
 Roles

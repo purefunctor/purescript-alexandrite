@@ -9,8 +9,8 @@ Types
 M :: Prim.Type -> Prim.Type
 P :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
 T ::
-  forall (t :: Prim.Type) (k :: (t :: Prim.Type)).
-    Main.P @(t :: Prim.Type) (k :: (t :: Prim.Type)) -> Prim.Type
+  forall (t0 :: Prim.Type) (k :: (t0 :: Prim.Type)).
+    Main.P @(t0 :: Prim.Type) (k :: (t0 :: Prim.Type)) -> Prim.Type
 
 Roles
 M = [Nominal]

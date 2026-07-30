@@ -16,7 +16,7 @@ class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
   show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
 
 Instances
-instance forall (t :: Prim.Type). Main.Show (Main.Box (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Main.Show (Main.Box (t0 :: Prim.Type))
 
 Roles
 Box = [Representational]

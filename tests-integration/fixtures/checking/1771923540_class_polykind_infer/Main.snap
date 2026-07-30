@@ -5,18 +5,18 @@ expression: report
 ---
 Terms
 reflectKind' ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
-    Main.HasKind' @(t :: Prim.Type) (a :: (t :: Prim.Type)) =>
-    (forall (p :: (t :: Prim.Type) -> Prim.Type).
-      (p :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) -> Prim.String)
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    Main.HasKind' @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) =>
+    (forall (p :: (t0 :: Prim.Type) -> Prim.Type).
+      (p :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) -> Prim.String)
 
 Types
-HasKind' :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
+HasKind' :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.HasKind' @(t :: Prim.Type) (a :: (t :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.HasKind' @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
   reflectKind' ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
-    Main.HasKind' @(t :: Prim.Type) (a :: (t :: Prim.Type)) =>
-    (forall (p :: (t :: Prim.Type) -> Prim.Type).
-      (p :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) -> Prim.String)
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    Main.HasKind' @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) =>
+    (forall (p :: (t0 :: Prim.Type) -> Prim.Type).
+      (p :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) -> Prim.String)

@@ -3,11 +3,11 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Proxy :: forall (k :: Prim.Type). k -> Prim.Type
+data Proxy :: forall (k0 :: Prim.Type). k0 -> Prim.Type
 data Proxy @a
   | Proxy :: Main.Proxy a
 
-newtype Tagged :: forall (k :: Prim.Type). k -> Prim.Type -> Prim.Type
+newtype Tagged :: forall (k0 :: Prim.Type). k0 -> Prim.Type -> Prim.Type
 newtype Tagged @t @a
   | Tagged :: a -> Main.Tagged t a
 

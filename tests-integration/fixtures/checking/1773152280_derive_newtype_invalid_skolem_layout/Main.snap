@@ -8,18 +8,18 @@ empty ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
 Vector ::
-  forall (t :: Prim.Type) (@n :: (t :: Prim.Type)) (@a :: Prim.Type).
+  forall (t0 :: Prim.Type) (@n :: (t0 :: Prim.Type)) (@a :: Prim.Type).
     Prim.Array (a :: Prim.Type) ->
-    Main.Vector @(t :: Prim.Type) (n :: (t :: Prim.Type)) (a :: Prim.Type)
+    Main.Vector @(t0 :: Prim.Type) (n :: (t0 :: Prim.Type)) (a :: Prim.Type)
 InvalidVector ::
-  forall (t :: Prim.Type) (@a :: Prim.Type) (@n :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (@a :: Prim.Type) (@n :: (t0 :: Prim.Type)).
     Prim.Array (a :: Prim.Type) ->
-    Main.InvalidVector @(t :: Prim.Type) (a :: Prim.Type) (n :: (t :: Prim.Type))
+    Main.InvalidVector @(t0 :: Prim.Type) (a :: Prim.Type) (n :: (t0 :: Prim.Type))
 
 Types
 Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint
-Vector :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type -> Prim.Type
-InvalidVector :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
+Vector :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type -> Prim.Type
+InvalidVector :: forall (t0 :: Prim.Type). Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
 
 Classes
 class forall (f :: Prim.Type -> Prim.Type). Main.Empty (f :: Prim.Type -> Prim.Type)
@@ -31,8 +31,8 @@ Instances
 instance Main.Empty Prim.Array
 
 Derived
-derive forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.Empty (Main.Vector @(t :: Prim.Type) (t1 :: (t :: Prim.Type)))
+derive forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.Empty (Main.Vector @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)))
 derive Main.Empty (Main.InvalidVector @Prim.Type Prim.Int)
 
 Roles

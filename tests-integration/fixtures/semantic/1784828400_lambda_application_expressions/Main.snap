@@ -6,8 +6,8 @@ expression: report
 apply :: forall a b. (a -> b) -> a -> b
 apply = \function -> \value -> function value
 
-argument :: forall t. t -> t
-argument = apply @t @t \value -> value
+argument :: forall t0. t0 -> t0
+argument = apply @t0 @t0 \value -> value
 
-functionPosition :: forall t t1. (t -> t1) -> t -> t1
-functionPosition = (\function -> function) (apply @t @t1)
+functionPosition :: forall t0 t1. (t0 -> t1) -> t0 -> t1
+functionPosition = (\function -> function) (apply @t0 @t1)

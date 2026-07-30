@@ -24,8 +24,8 @@ test ::
   forall (f :: Prim.Type -> Prim.Type).
     (f :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 test' ::
-  forall (t :: Prim.Type -> Prim.Type).
-    (t :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
+  forall (t0 :: Prim.Type -> Prim.Type).
+    (t0 :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 
 Types
 Tuple :: Prim.Type -> Prim.Type -> Prim.Type

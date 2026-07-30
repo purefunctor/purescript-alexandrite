@@ -16,8 +16,9 @@ testSkolemLeft :: forall (x :: Prim.Type). (x :: Prim.Type) -> Main.Output
 testSkolemIsEq ::
   forall (x :: Prim.Type) (y :: Prim.Type). (x :: Prim.Type) -> (y :: Prim.Type) -> Main.Output
 typeEquals ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)) (@b :: (t :: Prim.Type)).
-    Main.TypeEquals @(t :: Prim.Type) (a :: (t :: Prim.Type)) (b :: (t :: Prim.Type)) => Main.Unit
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)) (@b :: (t0 :: Prim.Type)).
+    Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)) =>
+    Main.Unit
 testOpenRows :: Main.Unit
 rowSame ::
   forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
@@ -44,12 +45,13 @@ class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). M
     Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) => Main.Unit
 
 Instances
-instance forall (t :: Prim.Type). Main.IsEq (t :: Prim.Type) (t :: Prim.Type) Main.Output
-instance forall (t :: Prim.Type) (t1 :: Prim.Type). Main.IsEq (t :: Prim.Type) (t1 :: Prim.Type) Main.Output
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.TypeEquals @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.RowSame @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Main.IsEq (t0 :: Prim.Type) (t0 :: Prim.Type) Main.Output
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+  Main.IsEq (t0 :: Prim.Type) (t1 :: Prim.Type) Main.Output
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.TypeEquals @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.RowSame @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))
 
 Roles
 Unit = []

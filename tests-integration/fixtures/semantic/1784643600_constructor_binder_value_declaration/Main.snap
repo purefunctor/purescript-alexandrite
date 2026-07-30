@@ -8,6 +8,6 @@ data Maybe @a
   | Just :: a -> Main.Maybe a
   | Nothing :: Main.Maybe a
 
-fromMaybe :: forall t. t -> Main.Maybe t -> t
+fromMaybe :: forall t0. t0 -> Main.Maybe t0 -> t0
 fromMaybe = \default -> \(Just value) -> value
 fromMaybe = \default -> \Nothing -> default

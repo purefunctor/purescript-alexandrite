@@ -5,7 +5,7 @@ expression: report
 ---
 Terms
 example ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Int -> (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Int
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Int -> (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Int
 
 Types

@@ -8,9 +8,9 @@ Fn ::
   forall (@a :: Prim.Type) (@b :: Prim.Type).
     ((a :: Prim.Type) -> (b :: Prim.Type)) -> Main.Fn (a :: Prim.Type) (b :: Prim.Type)
 ConstR ::
-  forall (t :: Prim.Type) (@r :: Prim.Type) (@a :: Prim.Type) (@b :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (@r :: Prim.Type) (@a :: Prim.Type) (@b :: (t0 :: Prim.Type)).
     ((a :: Prim.Type) -> (r :: Prim.Type)) ->
-    Main.ConstR @(t :: Prim.Type) (r :: Prim.Type) (a :: Prim.Type) (b :: (t :: Prim.Type))
+    Main.ConstR @(t0 :: Prim.Type) (r :: Prim.Type) (a :: Prim.Type) (b :: (t0 :: Prim.Type))
 GoLeft ::
   forall (@a :: Prim.Type) (@b :: Prim.Type).
     ((a :: Prim.Type) -> Prim.Int) -> Main.Choice (a :: Prim.Type) (b :: Prim.Type)
@@ -20,12 +20,12 @@ GoRight ::
 
 Types
 Fn :: Prim.Type -> Prim.Type -> Prim.Type
-ConstR :: forall (t :: Prim.Type). Prim.Type -> Prim.Type -> (t :: Prim.Type) -> Prim.Type
+ConstR :: forall (t0 :: Prim.Type). Prim.Type -> Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
 Choice :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Profunctor.Profunctor Main.Fn
-derive forall (t :: Prim.Type). Data.Profunctor.Profunctor (Main.ConstR @Prim.Type (t :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Profunctor.Profunctor (Main.ConstR @Prim.Type (t0 :: Prim.Type))
 derive Data.Profunctor.Profunctor Main.Choice
 
 Roles

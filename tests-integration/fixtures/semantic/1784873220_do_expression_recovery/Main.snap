@@ -15,7 +15,7 @@ emptyDo = <error>
 finalBind :: Main.Effect Prim.Int
 finalBind = pure @Prim.Int 1
 
-finalLet :: forall t. t
+finalLet :: forall t0. t0
 finalLet =
   let
     value :: Prim.Int
@@ -23,5 +23,5 @@ finalLet =
   in
     <error>
 
-missingDoAction :: forall t. t
+missingDoAction :: forall t0. t0
 missingDoAction = <error> \value -> pure @?21 value

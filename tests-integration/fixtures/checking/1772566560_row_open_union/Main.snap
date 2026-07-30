@@ -36,17 +36,17 @@ backwardRight ::
       ( a :: Prim.Int, b :: Prim.String | (u :: Prim.Row Prim.Type) ) =>
     Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type)
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
     (t3 :: Prim.Row Prim.Type) (t4 :: Prim.Row Prim.Type) (t5 :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
-      (t :: Prim.Row Prim.Type)
+      (t0 :: Prim.Row Prim.Type)
       ( b :: Prim.String )
       ( a :: Prim.Int, b :: Prim.String | (t1 :: Prim.Row Prim.Type) ) =>
     Prim.Row.Union @Prim.Type
       (t2 :: Prim.Row Prim.Type)
       ( b :: Prim.String )
       (t3 :: Prim.Row Prim.Type) =>
-    { backwardLeft :: Main.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    { backwardLeft :: Main.Proxy @(Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
     , backwardRight ::
         Main.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | (t4 :: Prim.Row Prim.Type) )
     , openLeft :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | (t3 :: Prim.Row Prim.Type) )

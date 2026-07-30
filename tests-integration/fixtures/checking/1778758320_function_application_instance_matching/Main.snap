@@ -23,6 +23,6 @@ class forall (a :: Prim.Type). Main.HeytingAlgebra (a :: Prim.Type)
 
 Instances
 instance Main.HeytingAlgebra Prim.Boolean
-instance forall (t :: Prim.Type) (t1 :: Prim.Type).
-  Main.HeytingAlgebra (t :: Prim.Type) =>
-  Main.HeytingAlgebra ((t1 :: Prim.Type) -> (t :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+  Main.HeytingAlgebra (t0 :: Prim.Type) =>
+  Main.HeytingAlgebra ((t1 :: Prim.Type) -> (t0 :: Prim.Type))

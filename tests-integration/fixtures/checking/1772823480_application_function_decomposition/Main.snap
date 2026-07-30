@@ -83,13 +83,13 @@ class forall (i :: Prim.Type) (f :: Prim.Type -> Prim.Type). Main.Foldable (f ::
       (b1 :: Prim.Type))
 
 Instances
-instance forall (t :: Prim.Type -> Prim.Type).
-  Main.Foldable (t :: Prim.Type -> Prim.Type) =>
-  Main.Foldable (Main.NonEmpty (t :: Prim.Type -> Prim.Type))
-instance forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Main.FoldableWithIndex (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type) =>
+instance forall (t0 :: Prim.Type -> Prim.Type).
+  Main.Foldable (t0 :: Prim.Type -> Prim.Type) =>
+  Main.Foldable (Main.NonEmpty (t0 :: Prim.Type -> Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Main.FoldableWithIndex (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type) =>
   Main.FoldableWithIndex
-    (Main.Maybe (t :: Prim.Type))
+    (Main.Maybe (t0 :: Prim.Type))
     (Main.NonEmpty (t1 :: Prim.Type -> Prim.Type))
 
 Roles

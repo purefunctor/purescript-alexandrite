@@ -31,9 +31,9 @@ class forall (a :: Prim.Type) (b :: Prim.Type). Main.Nest (a :: Prim.Type) (b ::
     Main.Nest (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance forall (t :: Prim.Row Prim.Type).
-  Main.Clone {| (t :: Prim.Row Prim.Type) } {| (t :: Prim.Row Prim.Type) }
-instance forall (t :: Prim.Row Prim.Type).
+instance forall (t0 :: Prim.Row Prim.Type).
+  Main.Clone {| (t0 :: Prim.Row Prim.Type) } {| (t0 :: Prim.Row Prim.Type) }
+instance forall (t0 :: Prim.Row Prim.Type).
   Main.Nest
-    {| (t :: Prim.Row Prim.Type) }
-    { inner :: {| (t :: Prim.Row Prim.Type) }, outer :: Prim.Int }
+    {| (t0 :: Prim.Row Prim.Type) }
+    { inner :: {| (t0 :: Prim.Row Prim.Type) }, outer :: Prim.Int }

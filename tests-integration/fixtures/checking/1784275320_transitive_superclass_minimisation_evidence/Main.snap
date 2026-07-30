@@ -11,14 +11,14 @@ useMiddle ::
 useTop ::
   forall (a :: Prim.Type). Main.Top @Prim.Type (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 test ::
-  forall (t :: Prim.Type). Main.Top @Prim.Type (t :: Prim.Type) => (t :: Prim.Type) -> Prim.Int
+  forall (t0 :: Prim.Type). Main.Top @Prim.Type (t0 :: Prim.Type) => (t0 :: Prim.Type) -> Prim.Int
 
 Types
-Bottom :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
-Middle :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
-Top :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
+Bottom :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Middle :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Top :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.Bottom @(t :: Prim.Type) (a :: (t :: Prim.Type))
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.Bottom @(t :: Prim.Type) (a :: (t :: Prim.Type)) <= Main.Middle @(t :: Prim.Type) (a :: (t :: Prim.Type))
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.Middle @(t :: Prim.Type) (a :: (t :: Prim.Type)) <= Main.Top @(t :: Prim.Type) (a :: (t :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Bottom @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Bottom @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) <= Main.Middle @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Middle @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) <= Main.Top @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))

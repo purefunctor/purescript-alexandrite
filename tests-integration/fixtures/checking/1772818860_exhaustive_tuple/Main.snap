@@ -10,24 +10,24 @@ Tuple ::
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 complete ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    Main.Tuple (Main.Maybe (t0 :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete1 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
     Prim.Partial =>
-    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
+    Main.Tuple (Main.Maybe (t0 :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete2 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
     Prim.Partial =>
-    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
+    Main.Tuple (Main.Maybe (t0 :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete3 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
     Prim.Partial =>
-    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
+    Main.Tuple (Main.Maybe (t0 :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 incomplete4 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
     Prim.Partial =>
-    Main.Tuple (Main.Maybe (t :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
+    Main.Tuple (Main.Maybe (t0 :: Prim.Type)) (Main.Maybe (t1 :: Prim.Type)) -> Prim.Int
 
 Types
 Tuple :: Prim.Type -> Prim.Type -> Prim.Type

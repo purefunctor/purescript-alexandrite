@@ -44,23 +44,23 @@ testDo ::
     Main.Monad (m :: Prim.Type -> Prim.Type) =>
     (m :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 testDo' ::
-  forall (t :: Prim.Type -> Prim.Type).
-    Main.Bind (t :: Prim.Type -> Prim.Type) =>
-    (t :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
+  forall (t0 :: Prim.Type -> Prim.Type).
+    Main.Bind (t0 :: Prim.Type -> Prim.Type) =>
+    (t0 :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 testAdo ::
   forall (f :: Prim.Type -> Prim.Type).
     Main.Applicative (f :: Prim.Type -> Prim.Type) =>
     (f :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 testAdo' ::
-  forall (t :: Prim.Type -> Prim.Type).
-    Main.Applicative (t :: Prim.Type -> Prim.Type) =>
-    (t :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
+  forall (t0 :: Prim.Type -> Prim.Type).
+    Main.Applicative (t0 :: Prim.Type -> Prim.Type) =>
+    (t0 :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
 testDoDiscard ::
   forall (m :: Prim.Type -> Prim.Type).
     Main.Monad (m :: Prim.Type -> Prim.Type) => (m :: Prim.Type -> Prim.Type) Prim.Int
 testDoDiscard' ::
-  forall (t :: Prim.Type -> Prim.Type).
-    Main.Discard (t :: Prim.Type -> Prim.Type) => (t :: Prim.Type -> Prim.Type) Prim.Int
+  forall (t0 :: Prim.Type -> Prim.Type).
+    Main.Discard (t0 :: Prim.Type -> Prim.Type) => (t0 :: Prim.Type -> Prim.Type) Prim.Int
 
 Types
 Tuple :: Prim.Type -> Prim.Type -> Prim.Type

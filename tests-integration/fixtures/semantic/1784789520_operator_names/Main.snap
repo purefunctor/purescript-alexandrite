@@ -18,5 +18,5 @@ operatorName = \{combineDict} -> combine @a {combineDict}
 operatorApplication :: forall a. Main.Combine a => a -> a -> a
 operatorApplication = \{combineDict} -> \left -> \right -> combine @a {combineDict} left right
 
-constructorOperator :: forall t. t -> Main.List t -> Main.List t
-constructorOperator = Cons @t
+constructorOperator :: forall t0. t0 -> Main.List t0 -> Main.List t0
+constructorOperator = Cons @t0

@@ -29,13 +29,13 @@ openOutputBackwards ::
       ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
     Main.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
-      (t :: Prim.Row Prim.Type)
+      (t0 :: Prim.Row Prim.Type)
       ( b :: Prim.String )
       ( a :: Prim.Int, b :: Prim.String | (t1 :: Prim.Row Prim.Type) ) =>
     { leftmostDuplicateMismatch :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String )
-    , openOutputBackwards :: Main.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    , openOutputBackwards :: Main.Proxy @(Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
     , rightmostDuplicate :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     }
 

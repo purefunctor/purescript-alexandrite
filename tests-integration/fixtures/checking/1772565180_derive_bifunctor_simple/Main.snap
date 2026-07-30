@@ -14,26 +14,26 @@ Pair ::
   forall (@a :: Prim.Type) (@b :: Prim.Type).
     (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
 Const2 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (@e :: Prim.Type) (@a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@e :: Prim.Type) (@a :: (t0 :: Prim.Type))
     (@b :: (t1 :: Prim.Type)).
     (e :: Prim.Type) ->
-    Main.Const2 @(t :: Prim.Type) @(t1 :: Prim.Type)
+    Main.Const2 @(t0 :: Prim.Type) @(t1 :: Prim.Type)
       (e :: Prim.Type)
-      (a :: (t :: Prim.Type))
+      (a :: (t0 :: Prim.Type))
       (b :: (t1 :: Prim.Type))
 
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type
 Pair :: Prim.Type -> Prim.Type -> Prim.Type
 Const2 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Type -> (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    Prim.Type -> (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
 
 Derived
 derive Data.Bifunctor.Bifunctor Main.Either
 derive Data.Bifunctor.Bifunctor Main.Pair
-derive forall (t :: Prim.Type).
-  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type (t :: Prim.Type))
+derive forall (t0 :: Prim.Type).
+  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type (t0 :: Prim.Type))
 
 Roles
 Either = [Representational, Representational]

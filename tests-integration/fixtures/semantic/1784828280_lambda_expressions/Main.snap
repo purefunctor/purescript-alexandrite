@@ -6,8 +6,8 @@ expression: report
 checked :: forall a. a -> a
 checked = \value -> value
 
-inferred :: forall t. t -> t
+inferred :: forall t0. t0 -> t0
 inferred = \value -> value
 
-multiple :: forall t t1. t -> t1 -> t
+multiple :: forall t0 t1. t0 -> t1 -> t0
 multiple = \first second -> first

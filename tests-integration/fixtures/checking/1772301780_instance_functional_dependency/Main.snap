@@ -22,5 +22,5 @@ class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). M
 
 Instances
 instance Main.Convert Prim.Int Prim.String
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.TypeEq @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.TypeEq @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))

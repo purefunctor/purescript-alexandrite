@@ -25,7 +25,7 @@ ArrowSyntax = [Representational, Representational]
 ArrowConstructor = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t0 :: Type)
   --> 6:1..6:38
   |
 6 | derive instance Bifunctor ArrowSyntax

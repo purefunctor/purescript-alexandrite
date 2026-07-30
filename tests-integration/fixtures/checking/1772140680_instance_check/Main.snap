@@ -14,6 +14,6 @@ class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
 class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEq @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
 
 Instances
-instance forall (t :: Prim.Type). Main.Eq (t :: Prim.Type) => Main.Eq (Prim.Array (t :: Prim.Type))
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.TypeEq @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Main.Eq (t0 :: Prim.Type) => Main.Eq (Prim.Array (t0 :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.TypeEq @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))

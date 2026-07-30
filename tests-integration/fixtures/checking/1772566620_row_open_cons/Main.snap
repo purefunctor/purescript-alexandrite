@@ -32,10 +32,10 @@ extractTail ::
       ( a :: Prim.String, x :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
     Main.Proxy @(Prim.Row Prim.Type) (tail :: Prim.Row Prim.Type)
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type).
     { consOpen ::
         Main.Proxy @(Prim.Row Prim.Type)
-          ( a :: Prim.String, x :: Prim.Int | (t :: Prim.Row Prim.Type) )
+          ( a :: Prim.String, x :: Prim.Int | (t0 :: Prim.Row Prim.Type) )
     , decomposeOpen :: Main.Proxy @Prim.Type Prim.Int
     , extractTail ::
         Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String | (t1 :: Prim.Row Prim.Type) )

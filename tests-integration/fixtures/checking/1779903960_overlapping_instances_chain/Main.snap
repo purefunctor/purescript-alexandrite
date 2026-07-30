@@ -16,4 +16,4 @@ class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
 
 Instances
 instance Main.Test Prim.Int
-instance forall (t :: Prim.Type). Main.Test (t :: Prim.Type)
+instance forall (t0 :: Prim.Type). Main.Test (t0 :: Prim.Type)

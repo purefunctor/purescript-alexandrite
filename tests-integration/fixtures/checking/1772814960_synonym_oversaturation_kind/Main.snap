@@ -13,17 +13,17 @@ test2 :: Main.Test2 @Prim.Type @Prim.Type @Prim.Int Prim.Int Prim.String 42
 
 Types
 Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-Test0 :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+Test0 :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 Test1 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type). (t :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
 Test2 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
 
 Synonyms
-type Test0 = Main.Proxy @(t :: Prim.Type)
-type Test1 a = Main.Proxy @(t :: Prim.Type)
-type Test2 a b = Main.Proxy @(t :: Prim.Type)
+type Test0 = Main.Proxy @(t0 :: Prim.Type)
+type Test1 a = Main.Proxy @(t0 :: Prim.Type)
+type Test2 a b = Main.Proxy @(t0 :: Prim.Type)
 
 Roles
 Proxy = [Phantom]

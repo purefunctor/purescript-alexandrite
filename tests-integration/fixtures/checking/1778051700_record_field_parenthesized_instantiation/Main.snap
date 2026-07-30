@@ -12,8 +12,8 @@ choose ::
   (forall (@a :: Prim.Type) (@b :: Prim.Type).
     (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type))
 normal ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    { parenthesised :: (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type) }
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    { parenthesised :: (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type) }
 prenex ::
   { application ::
       forall (@a :: Prim.Type) (@b :: Prim.Type).

@@ -5,68 +5,70 @@ expression: report
 ---
 Terms
 singleFieldUpdate ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
-    { a :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { a :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { a :: Prim.Int | (t1 :: Prim.Row Prim.Type) }
 multipleFieldUpdate ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Row Prim.Type).
-    { a :: (t :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Row Prim.Type).
+    { a :: (t0 :: Prim.Type)
     , b :: (t1 :: Prim.Type)
     , c :: (t2 :: Prim.Type)
     | (t3 :: Prim.Row Prim.Type)
     } ->
     { a :: Prim.Int, b :: Prim.Boolean, c :: Prim.String | (t3 :: Prim.Row Prim.Type) }
 nestedRecordUpdate ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
     (t3 :: Prim.Row Prim.Type).
     { a ::
-        { b :: { c :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) }
+        { b :: { c :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
+        | (t2 :: Prim.Row Prim.Type)
+        }
     | (t3 :: Prim.Row Prim.Type)
     } ->
     { a :: { b :: { c :: Prim.Int | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) }
     | (t3 :: Prim.Row Prim.Type)
     }
 updateWithValueSection ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
-    { a :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { a :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { a :: Prim.Int -> Prim.Int | (t1 :: Prim.Row Prim.Type) }
 updateWithSectionInteraction ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
-    { a :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { a :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     (t2 :: Prim.Type) ->
     { a :: (t2 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
 polymorphicRecordUpdate ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
-    { foo :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    { foo :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { foo :: Prim.Int | (t1 :: Prim.Row Prim.Type) }
 higherOrderContext ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type).
-    Prim.Array { x :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type).
+    Prim.Array { x :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     Prim.Array { x :: Prim.Int | (t1 :: Prim.Row Prim.Type) }
 multipleSectionsInteraction ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type) (t3 :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type) (t3 :: Prim.Type)
     (t4 :: Prim.Type).
-    { x :: (t :: Prim.Type), y :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } ->
+    { x :: (t0 :: Prim.Type), y :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } ->
     (t3 :: Prim.Type) ->
     (t4 :: Prim.Type) ->
     { x :: (t3 :: Prim.Type), y :: (t4 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) }
 nestedSectionInteraction ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type) (t3 :: Prim.Type).
-    { a :: { b :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type) (t3 :: Prim.Type).
+    { a :: { b :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) } ->
     (t3 :: Prim.Type) ->
     { a :: { b :: (t3 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } | (t2 :: Prim.Row Prim.Type) }
 mixedSections ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type).
-    { a :: (t :: Prim.Type), b :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Row Prim.Type).
+    { a :: (t0 :: Prim.Type), b :: (t1 :: Prim.Type) | (t2 :: Prim.Row Prim.Type) } ->
     { a :: Prim.Int -> Prim.Int, b :: Prim.Int | (t2 :: Prim.Row Prim.Type) }
 recordAccessSectionUpdate ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Row Prim.Type).
-    { a :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Row Prim.Type).
+    { a :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { a :: { b :: (t2 :: Prim.Type) | (t3 :: Prim.Row Prim.Type) } -> (t2 :: Prim.Type)
     | (t1 :: Prim.Row Prim.Type)
     }
 concreteRecordUpdateSection ::
-  forall (t :: Prim.Type). (t :: Prim.Type) -> { a :: (t :: Prim.Type) }
+  forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> { a :: (t0 :: Prim.Type) }
 map ::
   forall (a :: Prim.Type) (b :: Prim.Type).
     ((a :: Prim.Type) -> (b :: Prim.Type)) ->

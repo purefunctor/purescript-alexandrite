@@ -25,13 +25,13 @@ warnAbove ::
     (a :: Prim.Type) -> (a :: Prim.Type)
 useWarnAbove :: Prim.Int
 warnQuote ::
-  forall (t :: Prim.Type) (a :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Got type: ")
-        (Prim.TypeError.Quote @(t :: Prim.Type) (a :: (t :: Prim.Type)))) =>
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+        (Prim.TypeError.Quote @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)))) =>
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 useWarnQuote :: Main.Proxy @Prim.Type Prim.Int
 warnQuoteLabel ::
   forall (a :: Prim.Type).

@@ -21,8 +21,8 @@ Cont :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Functor.Functor Main.Predicate
-derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Reader (t :: Prim.Type))
-derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Cont (t :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Reader (t0 :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Cont (t0 :: Prim.Type))
 
 Roles
 Predicate = [Representational]
@@ -30,7 +30,7 @@ Reader = [Representational, Representational]
 Cont = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t0 :: Type)
   --> 6:1..6:34
   |
 6 | derive instance Functor Predicate

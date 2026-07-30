@@ -8,21 +8,21 @@ Proxy ::
   forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
     Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
 tail ::
-  forall (t :: Prim.Type) (r :: (t :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) -> Prim.Int
+  forall (t0 :: Prim.Type) (r :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int
 nonTail ::
-  forall (t :: Prim.Type) (r :: (t :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) -> Prim.Int
+  forall (t0 :: Prim.Type) (r :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int
 asTail ::
-  forall (t :: Prim.Type).
+  forall (t0 :: Prim.Type).
     Prim.Array
-      (forall (r :: (t :: Prim.Type)).
-        Main.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) -> Prim.Int)
+      (forall (r :: (t0 :: Prim.Type)).
+        Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int)
 asNonTail ::
-  forall (t :: Prim.Type).
+  forall (t0 :: Prim.Type).
     Prim.Array
-      (forall (r :: (t :: Prim.Type)).
-        Main.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) -> Prim.Int)
+      (forall (r :: (t0 :: Prim.Type)).
+        Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int)
 
 Types
 Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type

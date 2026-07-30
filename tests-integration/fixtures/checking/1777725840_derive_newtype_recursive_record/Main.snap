@@ -7,22 +7,22 @@ Terms
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 List ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
     { head :: Prim.Int
-    , tail :: Main.Maybe (Main.List @(t :: Prim.Type) (a :: (t :: Prim.Type)))
+    , tail :: Main.Maybe (Main.List @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)))
     } ->
-    Main.List @(t :: Prim.Type) (a :: (t :: Prim.Type))
+    Main.List @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 
 Types
 Maybe :: Prim.Type -> Prim.Type
-List :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+List :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 
 Instances
-instance forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t0 :: Prim.Type))
 
 Derived
-derive forall (t :: Prim.Type).
-  Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.List @Prim.Type (t :: Prim.Type))
+derive forall (t0 :: Prim.Type).
+  Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Main.List @Prim.Type (t0 :: Prim.Type))
 
 Roles
 Maybe = [Representational]

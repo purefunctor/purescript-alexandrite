@@ -6,8 +6,8 @@ expression: report
 missingBinder :: Prim.Boolean
 missingBinder = \<error> -> true
 
-missingBody :: forall t t1. t -> t1
+missingBody :: forall t0 t1. t0 -> t1
 missingBody = \value -> <error>
 
-missingBinderAndBody :: forall t. t
+missingBinderAndBody :: forall t0. t0
 missingBinderAndBody = \<error> -> <error>

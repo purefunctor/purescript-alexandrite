@@ -10,8 +10,8 @@ eq ::
 test :: Prim.Boolean
 test2 :: Prim.Boolean
 test3 ::
-  forall (t :: Prim.Type).
-    Main.Eq (t :: Prim.Type) => (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Boolean
+  forall (t0 :: Prim.Type).
+    Main.Eq (t0 :: Prim.Type) => (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Boolean
 
 Types
 Eq :: Prim.Type -> Prim.Constraint
@@ -24,4 +24,4 @@ class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
 
 Instances
 instance Main.Eq Prim.Int
-instance forall (t :: Prim.Type). Main.Eq (t :: Prim.Type) => Main.Eq (Prim.Array (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Main.Eq (t0 :: Prim.Type) => Main.Eq (Prim.Array (t0 :: Prim.Type))

@@ -7,12 +7,12 @@ Terms
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 constructor ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
-    { example :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { example :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { example :: Main.Maybe (t2 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
 variable ::
-  forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
-    { example :: (t :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { example :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
     { example :: Main.Maybe (t2 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) }
 
 Types

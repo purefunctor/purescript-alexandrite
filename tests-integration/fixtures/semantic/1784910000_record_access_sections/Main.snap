@@ -12,47 +12,47 @@ apply = \f -> \x -> f x
 f :: ({ foo :: Prim.Int } -> Prim.Int) -> Prim.Int
 f = \g -> g { foo: 1 }
 
-test1 :: forall t t1. { prop :: t | t1 } -> t
+test1 :: forall t0 t1. { prop :: t0 | t1 } -> t0
 test1 = \v74 -> v74.prop
 
-test2 :: forall t t1 t2 t3. { a :: { b :: { c :: t | t1 } | t2 } | t3 } -> t
+test2 :: forall t0 t1 t2 t3. { a :: { b :: { c :: t0 | t1 } | t2 } | t3 } -> t0
 test2 = \v79 -> v79.a.b.c
 
-test3 :: forall t t1. { poly :: t | t1 } -> t
+test3 :: forall t0 t1. { poly :: t0 | t1 } -> t0
 test3 = \v84 -> v84.poly
 
-test4 :: forall t t1. Prim.Array { prop :: t | t1 } -> Prim.Array t
-test4 = map @{ prop :: t | t1 } @t \v92 -> v92.prop
+test4 :: forall t0 t1. Prim.Array { prop :: t0 | t1 } -> Prim.Array t0
+test4 = map @{ prop :: t0 | t1 } @t0 \v92 -> v92.prop
 
 test5 :: Prim.Int
 test5 = f \v100 -> v100.foo
 
-test6 :: forall t t1 t2 t3. t -> (({ bar :: t1 | t2 } -> t1) -> t3) -> t3
+test6 :: forall t0 t1 t2 t3. t0 -> (({ bar :: t1 | t2 } -> t1) -> t3) -> t3
 test6 = \r -> \g -> g \v111 -> v111.bar
 
-test7 :: forall t t1. { nonexistent :: t | t1 } -> t
+test7 :: forall t0 t1. { nonexistent :: t0 | t1 } -> t0
 test7 = \r -> (\v120 -> v120.nonexistent) r
 
-test8 :: forall t t1 t2. (({ foo :: t | t1 } -> t) -> t2) -> t2
+test8 :: forall t0 t1 t2. (({ foo :: t0 | t1 } -> t0) -> t2) -> t2
 test8 = \v128 -> v128 \v131 -> v131.foo
 
-test9 :: forall t t1 t2. Prim.Array (({ prop :: t | t1 } -> t) -> t2) -> Prim.Array t2
-test9 = map @(({ prop :: t | t1 } -> t) -> t2) @t2 \v140 -> v140 \v143 -> v143.prop
+test9 :: forall t0 t1 t2. Prim.Array (({ prop :: t0 | t1 } -> t0) -> t2) -> Prim.Array t2
+test9 = map @(({ prop :: t0 | t1 } -> t0) -> t2) @t2 \v140 -> v140 \v143 -> v143.prop
 
-test10 :: forall t t1 t2. { a :: { b :: t | t1 } | t2 } -> t
-test10 = apply @{ a :: { b :: t | t1 } | t2 } @t \v152 -> v152.a.b
+test10 :: forall t0 t1 t2. { a :: { b :: t0 | t1 } | t2 } -> t0
+test10 = apply @{ a :: { b :: t0 | t1 } | t2 } @t0 \v152 -> v152.a.b
 
-test11 :: forall t t1 t2. t -> { a :: t, b :: { foo :: t1 | t2 } -> t1 }
+test11 :: forall t0 t1 t2. t0 -> { a :: t0, b :: { foo :: t1 | t2 } -> t1 }
 test11 = \v158 -> { a: v158, b: \v161 -> v161.foo }
 
-test12 :: forall t t1. ({ bar :: t | t1 } -> t) -> Prim.Array ({ bar :: t | t1 } -> t)
+test12 :: forall t0 t1. ({ bar :: t0 | t1 } -> t0) -> Prim.Array ({ bar :: t0 | t1 } -> t0)
 test12 = \v166 -> [v166, \v168 -> v168.bar]
 
-test13 :: forall t t1 t2. t -> { prop :: t1 | t2 } -> t1
+test13 :: forall t0 t1 t2. t0 -> { prop :: t1 | t2 } -> t1
 test13 = \v174 ->
   case v174 of
     _ -> \v182 -> v182.prop
 
-test14 :: forall t t1. Prim.Boolean -> { a :: t, b :: t | t1 } -> t
+test14 :: forall t0 t1. Prim.Boolean -> { a :: t0, b :: t0 | t1 } -> t0
 test14 = \v188 ->
   if v188 then \v191 -> v191.a else \v194 -> v194.b

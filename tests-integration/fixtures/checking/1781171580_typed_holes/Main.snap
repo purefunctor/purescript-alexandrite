@@ -12,7 +12,7 @@ instanceTypeHoleMember ::
     (implicit :: Prim.Type) -> (implicit :: Prim.Type)
 
 Types
-TypeHole :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+TypeHole :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 InstanceTypeHole :: Prim.Type -> Prim.Constraint
 
 Synonyms
@@ -26,7 +26,7 @@ class forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Ty
     (implicit :: Prim.Type) -> (implicit :: Prim.Type)
 
 Instances
-instance forall (t :: Prim.Type). Main.InstanceTypeHole (t :: Prim.Type)
+instance forall (t0 :: Prim.Type). Main.InstanceTypeHole (t0 :: Prim.Type)
 
 Diagnostics
 error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type
@@ -34,7 +34,7 @@ error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type
    |
 14 | type TypeHole a = ?type :: Type
    |                   ^~~~~
-  trivia: a :: (t :: Type) is in scope
+  trivia: a :: (t0 :: Type) is in scope
 error[TermHole]: Hole '?term' has inferred type: Int
   --> 12:5..12:10
    |

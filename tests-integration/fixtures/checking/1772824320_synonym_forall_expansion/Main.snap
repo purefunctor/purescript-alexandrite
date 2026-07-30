@@ -12,10 +12,10 @@ apply ::
 
 Types
 NatTrans ::
-  forall (t :: Prim.Type).
-    ((t :: Prim.Type) -> Prim.Type) -> ((t :: Prim.Type) -> Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type).
+    ((t0 :: Prim.Type) -> Prim.Type) -> ((t0 :: Prim.Type) -> Prim.Type) -> Prim.Type
 
 Synonyms
-type NatTrans f g = forall (a :: (t :: Prim.Type)).
-  (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-  (g :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
+type NatTrans f g = forall (a :: (t0 :: Prim.Type)).
+  (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+  (g :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))

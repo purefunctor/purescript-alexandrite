@@ -12,11 +12,12 @@ Right ::
     (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
 testBothLeft :: Prim.Int -> Main.Either Prim.Int Prim.String
 testBothRight :: Prim.String -> Main.Either Prim.Int Prim.String
-testLeftLeft :: forall (t :: Prim.Type). Prim.Int -> Main.Either Prim.Int (t :: Prim.Type)
+testLeftLeft :: forall (t0 :: Prim.Type). Prim.Int -> Main.Either Prim.Int (t0 :: Prim.Type)
 testLeftRight ::
-  forall (t :: Prim.Type). (t :: Prim.Type) -> Main.Either (t :: Prim.Type) Prim.String
-testRightLeft :: forall (t :: Prim.Type). (t :: Prim.Type) -> Main.Either Prim.Int (t :: Prim.Type)
-testRightRight :: forall (t :: Prim.Type). Prim.String -> Main.Either (t :: Prim.Type) Prim.String
+  forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Main.Either (t0 :: Prim.Type) Prim.String
+testRightLeft ::
+  forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Main.Either Prim.Int (t0 :: Prim.Type)
+testRightRight :: forall (t0 :: Prim.Type). Prim.String -> Main.Either (t0 :: Prim.Type) Prim.String
 
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type

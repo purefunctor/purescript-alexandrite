@@ -5,49 +5,51 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
 MkWrapNoOrd1 ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.WrapNoOrd1 @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.WrapNoOrd1 @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (a :: (t0 :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 WrapNoOrd1 ::
-  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
   Data.Eq.Eq (t1 :: Prim.Type) =>
-  Data.Eq.Eq (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Ord.Ord1 (t0 :: Prim.Type -> Prim.Type) =>
   Data.Ord.Ord (t1 :: Prim.Type) =>
-  Data.Ord.Ord (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
-  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type).
+  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
   Data.Eq.Eq (t1 :: Prim.Type) =>
-  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
-derive forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Ord.Ord (t :: Prim.Type) =>
-  Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (t1 :: Prim.Type -> Prim.Type) (t :: Prim.Type))
+  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+derive forall (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord (t0 :: Prim.Type) =>
+  Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (t1 :: Prim.Type -> Prim.Type) (t0 :: Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoOrd1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Ord1 (t :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Ord1 (t0 :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   trivia: Ord (t1 :: Type) is in scope
   trivia: Eq (t1 :: Type) is in scope
-error[NoInstanceFound]: No instance found for: Eq1 (t :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Eq1 (t0 :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)

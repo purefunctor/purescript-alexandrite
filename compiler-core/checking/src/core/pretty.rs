@@ -10,10 +10,10 @@ use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, SmolStrBuilder, format_smolstr};
 
-use crate::CheckedModule;
 use crate::core::{
     ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, SmolStrId, Type, TypeId,
 };
+use crate::{CheckedModule, safe_loop};
 
 pub(crate) type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
@@ -48,6 +48,7 @@ pub trait PrettyQueries:
 pub struct PrettyNames {
     display_by_name: FxHashMap<Name, SmolStr>,
     next_suffix: FxHashMap<SmolStr, NonZeroU32>,
+    next_generated_suffix: FxHashMap<SmolStr, u32>,
     default_name: SmolStr,
 }
 
@@ -56,6 +57,7 @@ impl Default for PrettyNames {
         PrettyNames {
             display_by_name: FxHashMap::default(),
             next_suffix: FxHashMap::default(),
+            next_generated_suffix: FxHashMap::default(),
             default_name: SmolStr::new("t"),
         }
     }
@@ -69,6 +71,7 @@ impl PrettyNames {
     pub fn reset(&mut self) {
         self.display_by_name.clear();
         self.next_suffix.clear();
+        self.next_generated_suffix.clear();
     }
 
     fn set_default_name(&mut self, default_name: &str) {
@@ -88,14 +91,33 @@ impl PrettyNames {
             return SmolStr::clone(display);
         }
 
-        let base = names
-            .get(&name)
-            .map(|&id| queries.lookup_smol_str(id))
-            .unwrap_or_else(|| SmolStr::clone(&self.default_name));
-
-        let display = self.allocate_display_name(base);
+        let display = if let Some(&id) = names.get(&name) {
+            let base = queries.lookup_smol_str(id);
+            self.allocate_display_name(base)
+        } else {
+            let base = SmolStr::clone(&self.default_name);
+            self.allocate_generated_display_name(base)
+        };
         self.display_by_name.insert(name, SmolStr::clone(&display));
         display
+    }
+
+    fn allocate_generated_display_name(&mut self, base: SmolStr) -> SmolStr {
+        let mut suffix = self.next_generated_suffix.get(&base).copied().unwrap_or(0);
+
+        safe_loop! {
+            let display = format_smolstr!("{base}{suffix}");
+
+            if !self.next_suffix.contains_key(&display) {
+                self.next_suffix.insert(SmolStr::clone(&display), FIRST_SUFFIX);
+                if let Some(next_suffix) = suffix.checked_add(1) {
+                    self.next_generated_suffix.insert(base, next_suffix);
+                }
+                return display;
+            }
+
+            suffix = suffix.checked_add(1).expect("critical failure: exhausted suffixes");
+        }
     }
 
     pub fn allocate_display_name(&mut self, base: SmolStr) -> SmolStr {
@@ -110,7 +132,7 @@ impl PrettyNames {
             .copied()
             .expect("critical failure: display name missing suffix state");
 
-        loop {
+        safe_loop! {
             let display = format_smolstr!("{base}{suffix}");
 
             if !self.next_suffix.contains_key(&display) {
@@ -789,6 +811,24 @@ mod tests {
         assert_eq!(names.allocate_display_name(smol_str("t")), smol_str("t1"));
         assert_eq!(names.allocate_display_name(smol_str("t0")), smol_str("t0"));
         assert_eq!(names.allocate_display_name(smol_str("t0")), smol_str("t02"));
+    }
+
+    #[test]
+    fn allocate_generated_display_name_starts_at_zero() {
+        let mut names = PrettyNames::new();
+
+        assert_eq!(names.allocate_generated_display_name(smol_str("t")), smol_str("t0"));
+        assert_eq!(names.allocate_generated_display_name(smol_str("t")), smol_str("t1"));
+    }
+
+    #[test]
+    fn allocate_generated_display_name_skips_source_names() {
+        let mut names = PrettyNames::new();
+
+        assert_eq!(names.allocate_display_name(smol_str("t0")), smol_str("t0"));
+        assert_eq!(names.allocate_generated_display_name(smol_str("t")), smol_str("t1"));
+        assert_eq!(names.allocate_display_name(smol_str("a")), smol_str("a"));
+        assert_eq!(names.allocate_display_name(smol_str("a")), smol_str("a1"));
     }
 
     #[test]

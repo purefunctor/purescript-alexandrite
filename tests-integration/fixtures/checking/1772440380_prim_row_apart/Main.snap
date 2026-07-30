@@ -23,8 +23,8 @@ lacksPresent ::
   Prim.Row.Lacks @Prim.Type "b" ( a :: Prim.Int, b :: Prim.String ) =>
   Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type).
-    { consMissingLabel :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+  forall (t0 :: Prim.Row Prim.Type).
+    { consMissingLabel :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
     , lacksPresent :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
     , unionTypeMismatch :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     }
@@ -42,7 +42,7 @@ error[CannotUnify]: Cannot unify '( b :: String )' with '( b :: Int )'
    |
 15 | forceSolve =
    | ^~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '( a :: Int, b :: String )' with '( missing :: Int | (t :: Row Type) )'
+error[CannotUnify]: Cannot unify '( a :: Int, b :: String )' with '( missing :: Int | (t0 :: Row Type) )'
   --> 15:1..19:4
    |
 15 | forceSolve =
