@@ -26,29 +26,29 @@ useUnion ::
     {| (r2 :: Prim.Row Prim.Type) } ->
     Prim.Int
 testMin ::
-  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type).
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type).
     Main.Merge @Prim.Type
-      (t :: Prim.Row Prim.Type)
+      (t0 :: Prim.Row Prim.Type)
       (t1 :: Prim.Row Prim.Type)
       (t2 :: Prim.Row Prim.Type) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type) ->
-    {| (t :: Prim.Row Prim.Type) } ->
+    {| (t0 :: Prim.Row Prim.Type) } ->
     {| (t1 :: Prim.Row Prim.Type) } ->
     Prim.Int
 
 Types
 Merge ::
-  forall (t :: Prim.Type).
-    Prim.Row (t :: Prim.Type) ->
-    Prim.Row (t :: Prim.Type) ->
-    Prim.Row (t :: Prim.Type) ->
+  forall (t0 :: Prim.Type).
+    Prim.Row (t0 :: Prim.Type) ->
+    Prim.Row (t0 :: Prim.Type) ->
+    Prim.Row (t0 :: Prim.Type) ->
     Prim.Constraint
 
 Classes
-class forall (t :: Prim.Type) (r1 :: Prim.Row (t :: Prim.Type)) (r2 :: Prim.Row (t :: Prim.Type)) (r3 :: Prim.Row (t :: Prim.Type)). Prim.Row.Union @(t :: Prim.Type)
-  (r1 :: Prim.Row (t :: Prim.Type))
-  (r2 :: Prim.Row (t :: Prim.Type))
-  (r3 :: Prim.Row (t :: Prim.Type)) <= Main.Merge @(t :: Prim.Type)
-  (r1 :: Prim.Row (t :: Prim.Type))
-  (r2 :: Prim.Row (t :: Prim.Type))
-  (r3 :: Prim.Row (t :: Prim.Type))
+class forall (t0 :: Prim.Type) (r1 :: Prim.Row (t0 :: Prim.Type)) (r2 :: Prim.Row (t0 :: Prim.Type)) (r3 :: Prim.Row (t0 :: Prim.Type)). Prim.Row.Union @(t0 :: Prim.Type)
+  (r1 :: Prim.Row (t0 :: Prim.Type))
+  (r2 :: Prim.Row (t0 :: Prim.Type))
+  (r3 :: Prim.Row (t0 :: Prim.Type)) <= Main.Merge @(t0 :: Prim.Type)
+  (r1 :: Prim.Row (t0 :: Prim.Type))
+  (r2 :: Prim.Row (t0 :: Prim.Type))
+  (r3 :: Prim.Row (t0 :: Prim.Type))

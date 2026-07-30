@@ -14,6 +14,6 @@ class forall (k :: Prim.Type) (value :: (k :: Prim.Type)). Main.Parent @(k :: Pr
 class forall (k :: Prim.Type) (value :: (k :: Prim.Type)). Main.Parent @(k :: Prim.Type) (value :: (k :: Prim.Type)) <= Main.Child @(k :: Prim.Type) (value :: (k :: Prim.Type))
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.Parent @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) =>
-  Main.Child @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.Parent @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) =>
+  Main.Child @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type))

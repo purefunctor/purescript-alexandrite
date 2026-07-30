@@ -10,7 +10,7 @@ eq ::
 compare ::
   forall (@a :: Prim.Type).
     Main.Ord (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Int
-test :: forall (t :: Prim.Type). Main.Ord (t :: Prim.Type) => (t :: Prim.Type) -> Prim.Int
+test :: forall (t0 :: Prim.Type). Main.Ord (t0 :: Prim.Type) => (t0 :: Prim.Type) -> Prim.Int
 
 Types
 Eq :: Prim.Type -> Prim.Constraint

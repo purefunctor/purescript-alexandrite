@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive forall (t :: Prim.Type). Data.Newtype.Newtype @Prim.Type (Prim.Int -> Prim.Int) (t :: Prim.Type)
+derive forall (t0 :: Prim.Type). Data.Newtype.Newtype @Prim.Type (Prim.Int -> Prim.Int) (t0 :: Prim.Type)
 
 Diagnostics
 error[CannotDeriveForType]: Cannot derive for type: Int -> Int

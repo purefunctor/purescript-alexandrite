@@ -5,55 +5,55 @@ expression: report
 ---
 Terms
 Compose ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
-    (@g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type)
-      ((g :: (t1 :: Prim.Type) -> (t :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
-    Main.Compose @(t :: Prim.Type) @(t1 :: Prim.Type)
-      (f :: (t :: Prim.Type) -> Prim.Type)
-      (g :: (t1 :: Prim.Type) -> (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
+    (@g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type)
+      ((g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
+    Main.Compose @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type))
       (a :: (t1 :: Prim.Type))
 
 Types
 Compose ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    ((t :: Prim.Type) -> Prim.Type) ->
-    ((t1 :: Prim.Type) -> (t :: Prim.Type)) ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    ((t0 :: Prim.Type) -> Prim.Type) ->
+    ((t1 :: Prim.Type) -> (t0 :: Prim.Type)) ->
     (t1 :: Prim.Type) ->
     Prim.Type
 
 Derived
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Traversable.Traversable (t :: Prim.Type -> Prim.Type) =>
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Traversable.Traversable (t0 :: Prim.Type -> Prim.Type) =>
   Data.Traversable.Traversable (t1 :: Prim.Type -> Prim.Type) =>
   Data.Traversable.Traversable
     (Main.Compose @Prim.Type @Prim.Type
-      (t :: Prim.Type -> Prim.Type)
+      (t0 :: Prim.Type -> Prim.Type)
       (t1 :: Prim.Type -> Prim.Type))
 
 Roles
 Compose = [Representational, Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+error[NoInstanceFound]: No instance found for: Functor (Compose @Type @Type (t0 :: Type -> Type) (t1 :: Type -> Type))
   --> 6:1..6:76
   |
 6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Traversable (t :: Type -> Type) is in scope
+  trivia: Traversable (t0 :: Type -> Type) is in scope
   trivia: Traversable (t1 :: Type -> Type) is in scope
-  trivia: Functor (t :: Type -> Type) is in scope
-  trivia: Foldable (t :: Type -> Type) is in scope
+  trivia: Functor (t0 :: Type -> Type) is in scope
+  trivia: Foldable (t0 :: Type -> Type) is in scope
   trivia: Functor (t1 :: Type -> Type) is in scope
   trivia: Foldable (t1 :: Type -> Type) is in scope
-error[NoInstanceFound]: No instance found for: Foldable (Compose @Type @Type (t :: Type -> Type) (t1 :: Type -> Type))
+error[NoInstanceFound]: No instance found for: Foldable (Compose @Type @Type (t0 :: Type -> Type) (t1 :: Type -> Type))
   --> 6:1..6:76
   |
 6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Traversable (t :: Type -> Type) is in scope
+  trivia: Traversable (t0 :: Type -> Type) is in scope
   trivia: Traversable (t1 :: Type -> Type) is in scope
-  trivia: Functor (t :: Type -> Type) is in scope
-  trivia: Foldable (t :: Type -> Type) is in scope
+  trivia: Functor (t0 :: Type -> Type) is in scope
+  trivia: Foldable (t0 :: Type -> Type) is in scope
   trivia: Functor (t1 :: Type -> Type) is in scope
   trivia: Foldable (t1 :: Type -> Type) is in scope

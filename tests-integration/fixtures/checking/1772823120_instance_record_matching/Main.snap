@@ -28,7 +28,7 @@ class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b
     Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
 
 Instances
-instance forall (t :: Prim.Row Prim.Type).
-  Main.Make {| (t :: Prim.Row Prim.Type) } {| (t :: Prim.Row Prim.Type) }
-instance forall (t :: Prim.Row Prim.Type).
-  Main.Convert {| (t :: Prim.Row Prim.Type) } { converted :: {| (t :: Prim.Row Prim.Type) } }
+instance forall (t0 :: Prim.Row Prim.Type).
+  Main.Make {| (t0 :: Prim.Row Prim.Type) } {| (t0 :: Prim.Row Prim.Type) }
+instance forall (t0 :: Prim.Row Prim.Type).
+  Main.Convert {| (t0 :: Prim.Row Prim.Type) } { converted :: {| (t0 :: Prim.Row Prim.Type) } }

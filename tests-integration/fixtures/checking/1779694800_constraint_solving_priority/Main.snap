@@ -72,13 +72,13 @@ class forall (context :: Prim.Row Prim.Type) (input :: Prim.Row Prim.Type) (outp
     {| (output :: Prim.Row Prim.Type) }
 
 Instances
-instance forall (t :: Prim.Row Prim.Type).
-  Main.Ask (t :: Prim.Row Prim.Type) (Main.M (t :: Prim.Row Prim.Type))
-instance forall (t :: Prim.Row Prim.Type) (t1 :: Prim.RowList.RowList Prim.Type) (t2 :: Prim.Row Prim.Type).
+instance forall (t0 :: Prim.Row Prim.Type).
+  Main.Ask (t0 :: Prim.Row Prim.Type) (Main.M (t0 :: Prim.Row Prim.Type))
+instance forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.RowList.RowList Prim.Type) (t2 :: Prim.Row Prim.Type).
   Prim.RowList.RowToList @Prim.Type
-    (t :: Prim.Row Prim.Type)
+    (t0 :: Prim.Row Prim.Type)
     (t1 :: Prim.RowList.RowList Prim.Type) =>
-  Main.Produce (t2 :: Prim.Row Prim.Type) (t :: Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+  Main.Produce (t2 :: Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
 
 Roles
 M = [Phantom, Representational]

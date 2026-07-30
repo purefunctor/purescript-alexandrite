@@ -12,5 +12,5 @@ const = \value -> \_ -> value
 testIdentity :: Prim.Int -> Prim.Int
 testIdentity = identity @Prim.Int
 
-testConst :: forall t. t -> Prim.String -> t
-testConst = const @t @Prim.String
+testConst :: forall t0. t0 -> Prim.String -> t0
+testConst = const @t0 @Prim.String

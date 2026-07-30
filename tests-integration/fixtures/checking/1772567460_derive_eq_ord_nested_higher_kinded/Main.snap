@@ -5,54 +5,56 @@ expression: report
 ---
 Terms
 T ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
-    (@g :: Prim.Type -> (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) ((g :: Prim.Type -> (t :: Prim.Type)) Prim.Int) ->
-    Main.T @(t :: Prim.Type)
-      (f :: (t :: Prim.Type) -> Prim.Type)
-      (g :: Prim.Type -> (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
+    (@g :: Prim.Type -> (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) ((g :: Prim.Type -> (t0 :: Prim.Type)) Prim.Int) ->
+    Main.T @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (g :: Prim.Type -> (t0 :: Prim.Type))
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 U ::
   forall (@f :: Prim.Type -> Prim.Type).
     (f :: Prim.Type -> Prim.Type) (Main.Maybe Prim.Int) -> Main.U (f :: Prim.Type -> Prim.Type)
 V ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type)
-    (@g :: Prim.Int -> (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) ((g :: Prim.Int -> (t :: Prim.Type)) 42) ->
-    Main.V @(t :: Prim.Type)
-      (f :: (t :: Prim.Type) -> Prim.Type)
-      (g :: Prim.Int -> (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
+    (@g :: Prim.Int -> (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) ((g :: Prim.Int -> (t0 :: Prim.Type)) 42) ->
+    Main.V @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (g :: Prim.Int -> (t0 :: Prim.Type))
 
 Types
 T ::
-  forall (t :: Prim.Type).
-    ((t :: Prim.Type) -> Prim.Type) -> (Prim.Type -> (t :: Prim.Type)) -> Prim.Type
+  forall (t0 :: Prim.Type).
+    ((t0 :: Prim.Type) -> Prim.Type) -> (Prim.Type -> (t0 :: Prim.Type)) -> Prim.Type
 Maybe :: Prim.Type -> Prim.Type
 U :: (Prim.Type -> Prim.Type) -> Prim.Type
 V ::
-  forall (t :: Prim.Type).
-    ((t :: Prim.Type) -> Prim.Type) -> (Prim.Int -> (t :: Prim.Type)) -> Prim.Type
+  forall (t0 :: Prim.Type).
+    ((t0 :: Prim.Type) -> Prim.Type) -> (Prim.Int -> (t0 :: Prim.Type)) -> Prim.Type
 
 Derived
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (Main.T @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
-  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
-  Data.Ord.Ord (Main.T @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type). Data.Eq.Eq (t :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t :: Prim.Type))
-derive forall (t :: Prim.Type). Data.Ord.Ord (t :: Prim.Type) => Data.Ord.Ord (Main.Maybe (t :: Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) => Data.Eq.Eq (Main.U (t :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) => Data.Ord.Ord (Main.U (t :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
-  Data.Eq.Eq1 (t :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (Main.V @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
-  Data.Ord.Ord1 (t :: Prim.Type -> Prim.Type) =>
-  Data.Ord.Ord (Main.V @Prim.Type (t :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (Main.T @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.T @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Eq.Eq (t0 :: Prim.Type) => Data.Eq.Eq (Main.Maybe (t0 :: Prim.Type))
+derive forall (t0 :: Prim.Type).
+  Data.Ord.Ord (t0 :: Prim.Type) => Data.Ord.Ord (Main.Maybe (t0 :: Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) => Data.Eq.Eq (Main.U (t0 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.U (t0 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
+  Data.Eq.Eq1 (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq (Main.V @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type).
+  Data.Ord.Ord1 (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord (Main.V @Prim.Type (t0 :: Prim.Type -> Prim.Type) (t1 :: Prim.Int -> Prim.Type))
 
 Roles
 T = [Representational, Representational]
@@ -61,7 +63,7 @@ U = [Representational]
 V = [Representational, Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq ((t :: Type -> Type) Int)
+error[NoInstanceFound]: No instance found for: Eq ((t0 :: Type -> Type) Int)
   --> 8:1..8:36
   |
 8 | derive instance Eq1 f => Eq (T f g)

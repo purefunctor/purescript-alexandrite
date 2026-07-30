@@ -13,15 +13,15 @@ failBasic ::
     (a :: Prim.Type) -> (a :: Prim.Type)
 useFailBasic :: Prim.Int
 failComplex ::
-  forall (t :: Prim.Type) (a :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
     Prim.TypeError.Fail
       (Prim.TypeError.Above
         (Prim.TypeError.Text "Error:")
         (Prim.TypeError.Beside
           (Prim.TypeError.Text "Type ")
-          (Prim.TypeError.Quote @(t :: Prim.Type) (a :: (t :: Prim.Type))))) =>
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+          (Prim.TypeError.Quote @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))))) =>
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 useFailComplex :: Main.Proxy @Prim.Type Prim.String
 
 Types

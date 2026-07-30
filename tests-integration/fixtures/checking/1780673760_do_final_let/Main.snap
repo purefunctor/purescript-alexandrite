@@ -11,7 +11,7 @@ bind ::
     Main.Effect (b :: Prim.Type)
 before :: Main.Effect { field :: Prim.Int }
 expectString :: Prim.String -> Prim.Int
-test :: forall (t :: Prim.Type). Main.Effect (t :: Prim.Type)
+test :: forall (t0 :: Prim.Type). Main.Effect (t0 :: Prim.Type)
 
 Types
 Effect :: Prim.Type -> Prim.Type

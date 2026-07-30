@@ -9,16 +9,16 @@ Tuple ::
   forall (@a :: Prim.Type) (@b :: Prim.Type).
     (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
 Node ::
-  forall (t :: Prim.Type) (@s :: (t :: Prim.Type)) (@a :: Prim.Type).
+  forall (t0 :: Prim.Type) (@s :: (t0 :: Prim.Type)) (@a :: Prim.Type).
     Main.Lazy (a :: Prim.Type) ->
-    Main.Lazy (Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)) ->
-    Main.Lazy (Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)) ->
-    Main.Supply @(t :: Prim.Type) (s :: (t :: Prim.Type)) (a :: Prim.Type)
+    Main.Lazy (Main.Supply @(t0 :: Prim.Type) (s :: (t0 :: Prim.Type)) (a :: Prim.Type)) ->
+    Main.Lazy (Main.Supply @(t0 :: Prim.Type) (s :: (t0 :: Prim.Type)) (a :: Prim.Type)) ->
+    Main.Supply @(t0 :: Prim.Type) (s :: (t0 :: Prim.Type)) (a :: Prim.Type)
 
 Types
 Lazy :: Prim.Type -> Prim.Type
 Tuple :: Prim.Type -> Prim.Type -> Prim.Type
-Supply :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type -> Prim.Type
+Supply :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type -> Prim.Type
 
 Roles
 Lazy = [Nominal]

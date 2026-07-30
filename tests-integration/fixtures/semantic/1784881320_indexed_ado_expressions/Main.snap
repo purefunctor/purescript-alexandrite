@@ -10,7 +10,7 @@ dictionary onZero :: Main.OnStep 0
 
 dictionary onTwo :: Main.OnStep 2
 
-dictionary onDefault :: forall t. Main.OnStep t
+dictionary onDefault :: forall t0. Main.OnStep t0
 
 foreign import map :: forall step.
   Main.OnStep step =>

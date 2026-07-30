@@ -67,18 +67,18 @@ lacksPresent ::
     Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type)
     (t3 :: Prim.Row Prim.Type) (t4 :: Prim.Row Prim.Type) (t5 :: Prim.Row Prim.Type)
     (t6 :: Prim.Row Prim.Type) (t7 :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
-      (t :: Prim.Row Prim.Type)
+      (t0 :: Prim.Row Prim.Type)
       ( b :: Prim.String )
       ( a :: Prim.Int, b :: Prim.String | (t1 :: Prim.Row Prim.Type) ) =>
     Prim.Row.Union @Prim.Type
       (t2 :: Prim.Row Prim.Type)
       ( b :: Prim.String )
       (t3 :: Prim.Row Prim.Type) =>
-    { backwardLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+    { backwardLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
     , backwardRight ::
         Type.Proxy.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | (t4 :: Prim.Row Prim.Type) )
     , consOpen ::

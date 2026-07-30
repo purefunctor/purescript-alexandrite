@@ -25,19 +25,19 @@ class forall (k :: Prim.Type) (a :: (k :: Prim.Type)). Main.ShowP @(k :: Prim.Ty
     Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type)) -> Prim.String
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.ShowP @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.ShowP @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.ShowP @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.ShowP @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type))
 
 Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: ShowP @(t :: Type) (t1 :: (t :: Type))
+error[OverlappingInstances]: Overlapping type class instances found for: ShowP @(t0 :: Type) (t1 :: (t0 :: Type))
   --> 13:1..14:21
    |
 13 | instance showPSecond :: ShowP a where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   trivia: forall (t2 :: Type) (t3 :: (t2 :: Type)). ShowP @(t2 :: Type) (t3 :: (t2 :: Type)) is matching
-  trivia: forall (t :: Type) (t1 :: (t :: Type)). ShowP @(t :: Type) (t1 :: (t :: Type)) is matching
+  trivia: forall (t0 :: Type) (t1 :: (t0 :: Type)). ShowP @(t0 :: Type) (t1 :: (t0 :: Type)) is matching

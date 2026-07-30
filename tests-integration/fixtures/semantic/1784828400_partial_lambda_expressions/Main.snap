@@ -11,5 +11,5 @@ data Maybe @a
 checked :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
 checked = \{partialDict} -> \(Just value) -> value
 
-inferred :: forall t. Prim.Partial => Main.Maybe t -> t
+inferred :: forall t0. Prim.Partial => Main.Maybe t0 -> t0
 inferred = \{trivial} -> \(Just value) -> value

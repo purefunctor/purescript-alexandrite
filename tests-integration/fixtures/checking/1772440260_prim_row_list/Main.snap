@@ -15,10 +15,10 @@ rowToListMultiple ::
       (list :: Prim.RowList.RowList Prim.Type) =>
     Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 rowToListEmpty ::
-  forall (t :: Prim.Type) (list :: Prim.RowList.RowList (t :: Prim.Type)).
-    Prim.RowList.RowToList @(t :: Prim.Type) () (list :: Prim.RowList.RowList (t :: Prim.Type)) =>
-    Type.Proxy.Proxy @(Prim.RowList.RowList (t :: Prim.Type))
-      (list :: Prim.RowList.RowList (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (list :: Prim.RowList.RowList (t0 :: Prim.Type)).
+    Prim.RowList.RowToList @(t0 :: Prim.Type) () (list :: Prim.RowList.RowList (t0 :: Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.RowList.RowList (t0 :: Prim.Type))
+      (list :: Prim.RowList.RowList (t0 :: Prim.Type))
 rowToListThree ::
   forall (list :: Prim.RowList.RowList Prim.Type).
     Prim.RowList.RowToList @Prim.Type
@@ -33,13 +33,13 @@ stuckOpenRow ::
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (tail :: Prim.Row Prim.Type) ->
     Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type) (list :: Prim.RowList.RowList Prim.Type)
 forceSolve ::
-  forall (t :: Prim.Type).
+  forall (t0 :: Prim.Type).
     { nowSolved ::
         Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
           (Prim.RowList.Cons @Prim.Type "a" Prim.Int (Prim.RowList.Nil @Prim.Type))
     , rowToListEmpty ::
-        Type.Proxy.Proxy @(Prim.RowList.RowList (t :: Prim.Type))
-          (Prim.RowList.Nil @(t :: Prim.Type))
+        Type.Proxy.Proxy @(Prim.RowList.RowList (t0 :: Prim.Type))
+          (Prim.RowList.Nil @(t0 :: Prim.Type))
     , rowToListMultiple ::
         Type.Proxy.Proxy @(Prim.RowList.RowList Prim.Type)
           (Prim.RowList.Cons @Prim.Type

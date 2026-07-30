@@ -23,7 +23,7 @@ List = [Representational]
 Container = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Coercible @Type (Maybe (t :: Type)) (List (t :: Type))
+error[NoInstanceFound]: No instance found for: Coercible @Type (Maybe (t0 :: Type)) (List (t0 :: Type))
   --> 11:1..11:62
    |
 11 | coerceContainerDifferent :: Container Maybe -> Container List

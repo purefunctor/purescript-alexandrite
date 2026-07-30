@@ -10,7 +10,7 @@ Types
 NotANewtype :: Prim.Type
 
 Derived
-derive forall (t :: Prim.Type). Data.Newtype.Newtype @Prim.Type Main.NotANewtype (t :: Prim.Type)
+derive forall (t0 :: Prim.Type). Data.Newtype.Newtype @Prim.Type Main.NotANewtype (t0 :: Prim.Type)
 
 Roles
 NotANewtype = []

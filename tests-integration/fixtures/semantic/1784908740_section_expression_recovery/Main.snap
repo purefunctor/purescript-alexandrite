@@ -12,11 +12,11 @@ apply = \function -> \argument -> function argument
 orphan :: ?[missing expression]
 orphan = <error>
 
-orphanInLambda :: forall t. t -> ?[missing expression]
+orphanInLambda :: forall t0. t0 -> ?[missing expression]
 orphanInLambda = \value -> <error>
 
-failedBody :: forall t. (?[missing expression] -> t) -> t
-failedBody = \v56 -> apply @?[missing expression] @t v56 <error>
+failedBody :: forall t0. (?[missing expression] -> t0) -> t0
+failedBody = \v56 -> apply @?[missing expression] @t0 v56 <error>
 
 invalidExpected :: Prim.Int
 invalidExpected = \v67 -> identity @Prim.Int v67

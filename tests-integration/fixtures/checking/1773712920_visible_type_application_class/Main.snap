@@ -12,9 +12,9 @@ map ::
       (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
       (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
 testMap ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    ((t :: Prim.Type) -> (t1 :: Prim.Type)) ->
-    Prim.Array (t :: Prim.Type) ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    ((t0 :: Prim.Type) -> (t1 :: Prim.Type)) ->
+    Prim.Array (t0 :: Prim.Type) ->
     Prim.Array (t1 :: Prim.Type)
 
 Types

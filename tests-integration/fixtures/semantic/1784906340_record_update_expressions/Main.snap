@@ -15,8 +15,8 @@ leaf = record { first = 2 }
 typeChanging :: { first :: Prim.String, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 typeChanging = record { first = "two" }
 
-multiple :: forall t. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t -> t }
-multiple = record { first = 2, transform = identity @t }
+multiple :: forall t0. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t0 -> t0 }
+multiple = record { first = 2, transform = identity @t0 }
 
 nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 nested = record { nested { value = 3 } }

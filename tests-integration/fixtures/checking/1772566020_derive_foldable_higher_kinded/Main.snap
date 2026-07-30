@@ -5,34 +5,34 @@ expression: report
 ---
 Terms
 Wrap ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
 WrapNoFoldable ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.WrapNoFoldable @(t :: Prim.Type)
-      (f :: (t :: Prim.Type) -> Prim.Type)
-      (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.WrapNoFoldable @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (a :: (t0 :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 WrapNoFoldable ::
-  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Foldable.Foldable (t :: Prim.Type -> Prim.Type) =>
-  Data.Foldable.Foldable (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Foldable.Foldable (Main.WrapNoFoldable @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (Main.WrapNoFoldable @Prim.Type (t0 :: Prim.Type -> Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoFoldable = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Foldable (t :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Foldable (t0 :: Type -> Type)
   --> 9:1..9:44
   |
 9 | derive instance Foldable (WrapNoFoldable f)

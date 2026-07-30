@@ -4,14 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-hole :: forall (t :: Prim.Type). (t :: Prim.Type)
+hole :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
 
 Types
 
 Diagnostics
-error[TermHole]: Hole '?hole' has inferred type: (t :: Type)
+error[TermHole]: Hole '?hole' has inferred type: (t0 :: Type)
   --> 3:8..3:13
   |
 3 | hole = ?hole
   |        ^~~~~
-  trivia: hole :: (t :: Type) is in scope
+  trivia: hole :: (t0 :: Type) is in scope

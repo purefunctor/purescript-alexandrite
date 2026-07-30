@@ -62,6 +62,6 @@ class forall (token :: Prim.Type) (row :: Prim.Row Prim.Type) (rowList :: Prim.T
     Prim.String
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
-  Main.RecordDefRowList (t :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type) =>
-  Main.RecordDef (t :: Prim.Type) (t1 :: Prim.Row Prim.Type)
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+  Main.RecordDefRowList (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type) =>
+  Main.RecordDef (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type)

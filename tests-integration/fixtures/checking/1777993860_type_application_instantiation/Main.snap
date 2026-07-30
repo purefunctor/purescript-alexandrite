@@ -14,8 +14,8 @@ Right ::
   forall (@a :: Prim.Type) (@b :: Prim.Type).
     (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
 forceSolve ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    { const :: Prim.Int -> (t :: Prim.Type) -> Prim.Int
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    { const :: Prim.Int -> (t0 :: Prim.Type) -> Prim.Int
     , left :: Prim.Int -> Main.Either Prim.Int (t1 :: Prim.Type)
     , right :: (t2 :: Prim.Type) -> Main.Either Prim.Int (t2 :: Prim.Type)
     }

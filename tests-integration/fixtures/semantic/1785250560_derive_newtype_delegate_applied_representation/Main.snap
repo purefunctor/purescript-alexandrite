@@ -8,6 +8,6 @@ newtype NonEmpty @a
   | NonEmpty :: Prim.Array a -> Main.NonEmpty a
 
 dictionary showNonEmpty ::
-  forall t.
-  { showDict :: Data.Show.Show t } =>
-  Data.Show.Show (Main.NonEmpty t) = showArray {showDict}
+  forall t0.
+  { showDict :: Data.Show.Show t0 } =>
+  Data.Show.Show (Main.NonEmpty t0) = showArray {showDict}

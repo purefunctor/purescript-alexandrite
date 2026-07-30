@@ -8,9 +8,11 @@ append ::
   forall (@a :: Prim.Type).
     Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
 first ::
-  forall (t :: Prim.Type). Main.Semigroup (t :: Prim.Type) => (t :: Prim.Type) -> (t :: Prim.Type)
+  forall (t0 :: Prim.Type).
+    Main.Semigroup (t0 :: Prim.Type) => (t0 :: Prim.Type) -> (t0 :: Prim.Type)
 second ::
-  forall (t :: Prim.Type). Main.Semigroup (t :: Prim.Type) => (t :: Prim.Type) -> (t :: Prim.Type)
+  forall (t0 :: Prim.Type).
+    Main.Semigroup (t0 :: Prim.Type) => (t0 :: Prim.Type) -> (t0 :: Prim.Type)
 
 Types
 Semigroup :: Prim.Type -> Prim.Constraint
@@ -27,12 +29,12 @@ error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this 
   |
 8 | second value = append value (first value)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: The inferred type was: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+  trivia: The inferred type was: forall (t0 :: Type). Semigroup (t0 :: Type) => (t0 :: Type) -> (t0 :: Type)
   trivia: Try adding a type signature.
 error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this recursive function.
   --> 6:1..6:42
   |
 6 | first value = append value (second value)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: The inferred type was: forall (t :: Type). Semigroup (t :: Type) => (t :: Type) -> (t :: Type)
+  trivia: The inferred type was: forall (t0 :: Type). Semigroup (t0 :: Type) => (t0 :: Type) -> (t0 :: Type)
   trivia: Try adding a type signature.

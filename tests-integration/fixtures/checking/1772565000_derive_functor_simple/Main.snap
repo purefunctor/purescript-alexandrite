@@ -6,19 +6,19 @@ expression: report
 Terms
 Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
 Const ::
-  forall (t :: Prim.Type) (@e :: Prim.Type) (@a :: (t :: Prim.Type)).
-    (e :: Prim.Type) -> Main.Const @(t :: Prim.Type) (e :: Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@e :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (e :: Prim.Type) -> Main.Const @(t0 :: Prim.Type) (e :: Prim.Type) (a :: (t0 :: Prim.Type))
 Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
 Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
 
 Types
 Identity :: Prim.Type -> Prim.Type
-Const :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
+Const :: forall (t0 :: Prim.Type). Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
 Maybe :: Prim.Type -> Prim.Type
 
 Derived
 derive Data.Functor.Functor Main.Identity
-derive forall (t :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Functor.Functor (Main.Const @Prim.Type (t0 :: Prim.Type))
 derive Data.Functor.Functor Main.Maybe
 
 Roles

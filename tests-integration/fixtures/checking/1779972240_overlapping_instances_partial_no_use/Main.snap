@@ -18,17 +18,17 @@ class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
   test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
 
 Instances
-instance forall (t :: Prim.Type). Main.Test (Main.Pair (t :: Prim.Type) Prim.Int)
-instance forall (t :: Prim.Type). Main.Test (Main.Pair Prim.String (t :: Prim.Type))
+instance forall (t0 :: Prim.Type). Main.Test (Main.Pair (t0 :: Prim.Type) Prim.Int)
+instance forall (t0 :: Prim.Type). Main.Test (Main.Pair Prim.String (t0 :: Prim.Type))
 
 Roles
 Pair = [Representational, Representational]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String (t :: Type))
+error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String (t0 :: Type))
   --> 11:1..12:13
    |
 11 | instance testRight :: Test (Pair String b) where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   trivia: forall (t1 :: Type). Test (Pair (t1 :: Type) Int) is matching
-  trivia: forall (t :: Type). Test (Pair String (t :: Type)) is matching
+  trivia: forall (t0 :: Type). Test (Pair String (t0 :: Type)) is matching

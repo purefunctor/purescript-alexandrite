@@ -10,7 +10,7 @@ Types
 Box :: Prim.Type
 
 Derived
-derive forall (t :: Prim.Type). Data.Generic.Rep.Generic Main.Box (t :: Prim.Type)
+derive forall (t0 :: Prim.Type). Data.Generic.Rep.Generic Main.Box (t0 :: Prim.Type)
 
 Roles
 Box = []

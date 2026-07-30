@@ -5,11 +5,11 @@ expression: report
 ---
 Terms
 Tagged ::
-  forall (t :: Prim.Type) (@t1 :: (t :: Prim.Type)) (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Tagged @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (a :: Prim.Type)
+  forall (t0 :: Prim.Type) (@t :: (t0 :: Prim.Type)) (@a :: Prim.Type).
+    (a :: Prim.Type) -> Main.Tagged @(t0 :: Prim.Type) (t :: (t0 :: Prim.Type)) (a :: Prim.Type)
 
 Types
-Tagged :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type -> Prim.Type
+Tagged :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type -> Prim.Type
 
 Roles
 Tagged = [Phantom, Representational]

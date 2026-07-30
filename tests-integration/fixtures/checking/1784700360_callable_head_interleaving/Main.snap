@@ -13,12 +13,12 @@ interleaved ::
 test :: Prim.String
 
 Types
-First :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
-Second :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Constraint
+First :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Second :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.First @(t :: Prim.Type) (a :: (t :: Prim.Type))
-class forall (t :: Prim.Type) (a :: (t :: Prim.Type)). Main.Second @(t :: Prim.Type) (a :: (t :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.First @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Second @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 
 Instances
 instance Main.First @Prim.Type Prim.Int

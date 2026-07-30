@@ -5,19 +5,19 @@ expression: report
 ---
 Terms
 Proxy ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 MkNoEq :: Main.NoEq
 MkContainsNoEq :: Main.NoEq -> Main.ContainsNoEq
 
 Types
-Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 NoEq :: Prim.Type
 ContainsNoEq :: Prim.Type
 
 Derived
-derive forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Data.Eq.Eq (Main.Proxy @(t :: Prim.Type) (t1 :: (t :: Prim.Type)))
+derive forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Data.Eq.Eq (Main.Proxy @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)))
 derive Data.Eq.Eq Main.ContainsNoEq
 
 Roles

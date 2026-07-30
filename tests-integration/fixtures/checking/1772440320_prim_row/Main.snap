@@ -31,9 +31,9 @@ unionEmptyRight ::
     Prim.Row.Union @Prim.Type ( a :: Prim.Int ) () (u :: Prim.Row Prim.Type) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (u :: Prim.Row Prim.Type)
 unionBothEmpty ::
-  forall (t :: Prim.Type) (u :: Prim.Row (t :: Prim.Type)).
-    Prim.Row.Union @(t :: Prim.Type) () () (u :: Prim.Row (t :: Prim.Type)) =>
-    Type.Proxy.Proxy @(Prim.Row (t :: Prim.Type)) (u :: Prim.Row (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (u :: Prim.Row (t0 :: Prim.Type)).
+    Prim.Row.Union @(t0 :: Prim.Type) () () (u :: Prim.Row (t0 :: Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.Row (t0 :: Prim.Type)) (u :: Prim.Row (t0 :: Prim.Type))
 unionMultiple ::
   forall (u :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
@@ -62,29 +62,29 @@ nestedCons ::
     Prim.Row.Cons @Prim.Type "a" Prim.Int ( b :: Prim.String ) (row :: Prim.Row Prim.Type) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
 lacksSimple ::
-  forall (t :: Prim.Type) (r :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (r :: (t0 :: Prim.Type)).
     Prim.Row.Lacks @Prim.Type "missing" ( a :: Prim.Int, b :: Prim.String ) =>
-    Type.Proxy.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) ->
-    Type.Proxy.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type))
+    Type.Proxy.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) ->
+    Type.Proxy.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type))
 lacksEmpty ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (r :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (r :: (t0 :: Prim.Type)).
     Prim.Row.Lacks @(t1 :: Prim.Type) "anything" () =>
-    Type.Proxy.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type)) ->
-    Type.Proxy.Proxy @(t :: Prim.Type) (r :: (t :: Prim.Type))
+    Type.Proxy.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) ->
+    Type.Proxy.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type))
 nubNoDuplicates ::
   forall (nubbed :: Prim.Row Prim.Type).
     Prim.Row.Nub @Prim.Type ( a :: Prim.Int, b :: Prim.String ) (nubbed :: Prim.Row Prim.Type) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (nubbed :: Prim.Row Prim.Type)
 nubEmpty ::
-  forall (t :: Prim.Type) (nubbed :: Prim.Row (t :: Prim.Type)).
-    Prim.Row.Nub @(t :: Prim.Type) () (nubbed :: Prim.Row (t :: Prim.Type)) =>
-    Type.Proxy.Proxy @(Prim.Row (t :: Prim.Type)) (nubbed :: Prim.Row (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (nubbed :: Prim.Row (t0 :: Prim.Type)).
+    Prim.Row.Nub @(t0 :: Prim.Type) () (nubbed :: Prim.Row (t0 :: Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.Row (t0 :: Prim.Type)) (nubbed :: Prim.Row (t0 :: Prim.Type))
 solveUnion ::
-  forall (t :: Prim.Type).
+  forall (t0 :: Prim.Type).
     { deriveUnion :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
     , deriveUnionLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     , deriveUnionRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String )
-    , unionBothEmpty :: Type.Proxy.Proxy @(Prim.Row (t :: Prim.Type)) ()
+    , unionBothEmpty :: Type.Proxy.Proxy @(Prim.Row (t0 :: Prim.Type)) ()
     , unionEmptyLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     , unionEmptyRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
     , unionMultiple ::
@@ -98,13 +98,13 @@ solveCons ::
   , nestedCons :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
   }
 solveLacks ::
-  forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t2 :: Prim.Type) (t3 :: (t2 :: Prim.Type)).
-    { lacksEmpty :: Type.Proxy.Proxy @(t :: Prim.Type) (t1 :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t2 :: Prim.Type) (t3 :: (t2 :: Prim.Type)).
+    { lacksEmpty :: Type.Proxy.Proxy @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type))
     , lacksSimple :: Type.Proxy.Proxy @(t2 :: Prim.Type) (t3 :: (t2 :: Prim.Type))
     }
 solveNub ::
-  forall (t :: Prim.Type).
-    { nubEmpty :: Type.Proxy.Proxy @(Prim.Row (t :: Prim.Type)) ()
+  forall (t0 :: Prim.Type).
+    { nubEmpty :: Type.Proxy.Proxy @(Prim.Row (t0 :: Prim.Type)) ()
     , nubNoDuplicates :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
     }
 

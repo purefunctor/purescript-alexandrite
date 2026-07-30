@@ -5,11 +5,11 @@ expression: report
 ---
 Terms
 Pair ::
-  forall (t :: Prim.Type) (@a :: Prim.Type) (@b :: (t :: Prim.Type)).
-    (a :: Prim.Type) -> Main.Pair @(t :: Prim.Type) (a :: Prim.Type) (b :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@a :: Prim.Type) (@b :: (t0 :: Prim.Type)).
+    (a :: Prim.Type) -> Main.Pair @(t0 :: Prim.Type) (a :: Prim.Type) (b :: (t0 :: Prim.Type))
 
 Types
-Pair :: forall (t :: Prim.Type). Prim.Type -> (t :: Prim.Type) -> Prim.Type
+Pair :: forall (t0 :: Prim.Type). Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
 derive Data.Show.Show (Main.Pair @Prim.Type Prim.Int Prim.String)

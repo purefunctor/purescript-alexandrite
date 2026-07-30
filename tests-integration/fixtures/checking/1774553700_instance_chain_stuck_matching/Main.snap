@@ -24,12 +24,12 @@ Classes
 class forall (t :: Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Convert (t :: Prim.Type) (m :: Prim.Type -> Prim.Type)
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type -> Prim.Type).
   Main.Convert
-    ((t :: Prim.Type) -> (t1 :: Prim.Type -> Prim.Type) Main.Unit)
+    ((t0 :: Prim.Type) -> (t1 :: Prim.Type -> Prim.Type) Main.Unit)
     (t1 :: Prim.Type -> Prim.Type)
-instance forall (t :: Prim.Type -> Prim.Type).
-  Main.Convert ((t :: Prim.Type -> Prim.Type) Main.Unit) (t :: Prim.Type -> Prim.Type)
+instance forall (t0 :: Prim.Type -> Prim.Type).
+  Main.Convert ((t0 :: Prim.Type -> Prim.Type) Main.Unit) (t0 :: Prim.Type -> Prim.Type)
 
 Roles
 Unit = []

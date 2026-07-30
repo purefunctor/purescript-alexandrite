@@ -18,8 +18,8 @@ test ::
   forall (r :: Prim.Row Prim.Type).
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (r :: Prim.Row Prim.Type))
 forceSolve ::
-  forall (t :: Prim.Row Prim.Type).
-    { test :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (t :: Prim.Row Prim.Type)) }
+  forall (t0 :: Prim.Row Prim.Type).
+    { test :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (t0 :: Prim.Row Prim.Type)) }
 
 Types
 RowApply ::

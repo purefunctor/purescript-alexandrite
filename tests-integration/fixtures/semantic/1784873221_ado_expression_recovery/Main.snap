@@ -12,8 +12,8 @@ foreign import apply :: forall value result. Main.Effect (value -> result) -> Ma
 emptyAdo :: ?[empty ado block]
 emptyAdo = <error>
 
-missingAdoAction :: forall t t1. t t1
+missingAdoAction :: forall t0 t1. t0 t1
 missingAdoAction = <error> <error>
 
-missingAdoResult :: forall t. Main.Effect t
-missingAdoResult = map @Prim.Int @t (\value -> <error>) (pure @Prim.Int 1)
+missingAdoResult :: forall t0. Main.Effect t0
+missingAdoResult = map @Prim.Int @t0 (\value -> <error>) (pure @Prim.Int 1)

@@ -21,7 +21,7 @@ Op :: Prim.Type -> Prim.Type -> Prim.Type
 Derived
 derive Data.Functor.Contravariant.Contravariant Main.Predicate
 derive Data.Functor.Contravariant.Contravariant Main.Comparison
-derive forall (t :: Prim.Type). Data.Functor.Contravariant.Contravariant (Main.Op (t :: Prim.Type))
+derive forall (t0 :: Prim.Type). Data.Functor.Contravariant.Contravariant (Main.Op (t0 :: Prim.Type))
 
 Roles
 Predicate = [Representational]

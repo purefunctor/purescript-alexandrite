@@ -5,34 +5,34 @@ expression: report
 ---
 Terms
 Wrap ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.Wrap @(t :: Prim.Type) (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
 WrapNoFunctor ::
-  forall (t :: Prim.Type) (@f :: (t :: Prim.Type) -> Prim.Type) (@a :: (t :: Prim.Type)).
-    (f :: (t :: Prim.Type) -> Prim.Type) (a :: (t :: Prim.Type)) ->
-    Main.WrapNoFunctor @(t :: Prim.Type)
-      (f :: (t :: Prim.Type) -> Prim.Type)
-      (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
+    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+    Main.WrapNoFunctor @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (a :: (t0 :: Prim.Type))
 
 Types
-Wrap :: forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 WrapNoFunctor ::
-  forall (t :: Prim.Type). ((t :: Prim.Type) -> Prim.Type) -> (t :: Prim.Type) -> Prim.Type
+  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
 
 Derived
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Functor.Functor (t :: Prim.Type -> Prim.Type) =>
-  Data.Functor.Functor (Main.Wrap @Prim.Type (t :: Prim.Type -> Prim.Type))
-derive forall (t :: Prim.Type -> Prim.Type).
-  Data.Functor.Functor (Main.WrapNoFunctor @Prim.Type (t :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (t0 :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (Main.Wrap @Prim.Type (t0 :: Prim.Type -> Prim.Type))
+derive forall (t0 :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (Main.WrapNoFunctor @Prim.Type (t0 :: Prim.Type -> Prim.Type))
 
 Roles
 Wrap = [Representational, Nominal]
 WrapNoFunctor = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (t :: Type -> Type)
+error[NoInstanceFound]: No instance found for: Functor (t0 :: Type -> Type)
   --> 9:1..9:42
   |
 9 | derive instance Functor (WrapNoFunctor f)

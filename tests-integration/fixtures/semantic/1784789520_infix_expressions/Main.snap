@@ -15,5 +15,5 @@ multipleInfix = choose @Prim.Int @Prim.Boolean (choose @Prim.Int @Prim.String 1 
 identity :: forall a. a -> a
 identity = \value -> value
 
-polymorphicHead :: forall t. t -> t
-polymorphicHead = choose @(t -> t) @Prim.Int identity 1
+polymorphicHead :: forall t0. t0 -> t0
+polymorphicHead = choose @(t0 -> t0) @Prim.Int identity 1

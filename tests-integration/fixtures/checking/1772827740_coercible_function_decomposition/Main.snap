@@ -23,21 +23,21 @@ under ::
     (a :: Prim.Type) ->
     (b :: Prim.Type)
 alaF ::
-  forall (t :: Prim.Type) (f :: Prim.Type -> Prim.Type) (g :: (t :: Prim.Type) -> Prim.Type)
-    (t1 :: Prim.Type) (a :: Prim.Type) (s :: (t :: Prim.Type)) (b :: (t :: Prim.Type)).
+  forall (t0 :: Prim.Type) (f :: Prim.Type -> Prim.Type) (g :: (t0 :: Prim.Type) -> Prim.Type)
+    (t :: Prim.Type) (a :: Prim.Type) (s :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)).
     Prim.Coerce.Coercible @Prim.Type
-      ((f :: Prim.Type -> Prim.Type) (t1 :: Prim.Type))
+      ((f :: Prim.Type -> Prim.Type) (t :: Prim.Type))
       ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
     Prim.Coerce.Coercible @Prim.Type
-      ((g :: (t :: Prim.Type) -> Prim.Type) (s :: (t :: Prim.Type)))
-      ((g :: (t :: Prim.Type) -> Prim.Type) (b :: (t :: Prim.Type))) =>
-    Data.Newtype.Newtype @Prim.Type (t1 :: Prim.Type) (a :: Prim.Type) =>
-    Data.Newtype.Newtype @(t :: Prim.Type) (s :: (t :: Prim.Type)) (b :: (t :: Prim.Type)) =>
-    ((a :: Prim.Type) -> (t1 :: Prim.Type)) ->
-    ((f :: Prim.Type -> Prim.Type) (t1 :: Prim.Type) ->
-    (g :: (t :: Prim.Type) -> Prim.Type) (s :: (t :: Prim.Type))) ->
+      ((g :: (t0 :: Prim.Type) -> Prim.Type) (s :: (t0 :: Prim.Type)))
+      ((g :: (t0 :: Prim.Type) -> Prim.Type) (b :: (t0 :: Prim.Type))) =>
+    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
+    Data.Newtype.Newtype @(t0 :: Prim.Type) (s :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)) =>
+    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
+    ((f :: Prim.Type -> Prim.Type) (t :: Prim.Type) ->
+    (g :: (t0 :: Prim.Type) -> Prim.Type) (s :: (t0 :: Prim.Type))) ->
     (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    (g :: (t :: Prim.Type) -> Prim.Type) (b :: (t :: Prim.Type))
+    (g :: (t0 :: Prim.Type) -> Prim.Type) (b :: (t0 :: Prim.Type))
 
 Types
 Age :: Prim.Type

@@ -31,7 +31,7 @@ multiple = \first -> \second ->
     _, (One right) -> right
     _, _ -> 0
 
-partial :: forall t. Prim.Partial => Main.Choice t -> t
+partial :: forall t0. Prim.Partial => Main.Choice t0 -> t0
 partial = \{trivial} -> \choice ->
   case choice of
     (One value) -> value

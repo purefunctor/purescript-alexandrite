@@ -20,20 +20,20 @@ Classes
 class forall (input :: Prim.Type) (input1 :: (input :: Prim.Type)) (output :: Prim.Type). Main.Test @(input :: Prim.Type) (input1 :: (input :: Prim.Type)) (output :: Prim.Type)
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: (t :: Prim.Type)) (t3 :: (t1 :: Prim.Type)).
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: (t0 :: Prim.Type)) (t3 :: (t1 :: Prim.Type)).
   Main.Test @Prim.Type
-    (Main.Outer @(t :: Prim.Type) @(t1 :: Prim.Type)
-      (t2 :: (t :: Prim.Type))
+    (Main.Outer @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (t2 :: (t0 :: Prim.Type))
       (t3 :: (t1 :: Prim.Type)))
     Main.ResultA
-instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: (t1 :: Prim.Type))
-  (t4 :: (t2 :: Prim.Type)) (t5 :: (t :: Prim.Type)).
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: (t1 :: Prim.Type))
+  (t4 :: (t2 :: Prim.Type)) (t5 :: (t0 :: Prim.Type)).
   Main.Test @Prim.Type
-    (Main.Outer @Prim.Type @(t :: Prim.Type)
+    (Main.Outer @Prim.Type @(t0 :: Prim.Type)
       (Main.Inner @(t1 :: Prim.Type) @(t2 :: Prim.Type)
         (t3 :: (t1 :: Prim.Type))
         (t4 :: (t2 :: Prim.Type)))
-      (t5 :: (t :: Prim.Type)))
+      (t5 :: (t0 :: Prim.Type)))
     Main.ResultB
 
 Roles

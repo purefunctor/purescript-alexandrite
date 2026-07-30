@@ -5,16 +5,16 @@ expression: report
 ---
 Terms
 Proxy ::
-  forall (t :: Prim.Type) (@a :: (t :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type))
+  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
 coerceProxy ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (a :: (t :: Prim.Type)) (b :: (t1 :: Prim.Type)).
-    Main.Proxy @(t :: Prim.Type) (a :: (t :: Prim.Type)) ->
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t1 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) ->
     Main.Proxy @(t1 :: Prim.Type) (b :: (t1 :: Prim.Type))
 coerceProxyIntString :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
 
 Types
-Proxy :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.Type
+Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
 
 Roles
 Proxy = [Phantom]

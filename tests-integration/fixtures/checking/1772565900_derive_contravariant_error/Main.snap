@@ -21,7 +21,7 @@ Identity = [Representational]
 Producer = [Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
   --> 6:1..6:39
   |
 6 | derive instance Contravariant Identity

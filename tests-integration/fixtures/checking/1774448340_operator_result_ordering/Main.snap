@@ -31,20 +31,20 @@ Types
 Wrap :: Prim.Type -> Prim.Type
 Profunctor :: (Prim.Type -> Prim.Type -> Prim.Type) -> Prim.Constraint
 Optic ::
-  forall (t :: Prim.Type).
-    ((t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type) ->
-    (t :: Prim.Type) ->
-    (t :: Prim.Type) ->
+  forall (t0 :: Prim.Type).
+    ((t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type) ->
+    (t0 :: Prim.Type) ->
+    (t0 :: Prim.Type) ->
     Prim.Type
 Lens :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Optic p s a = (p :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
-  (a :: (t :: Prim.Type))
-  (a :: (t :: Prim.Type)) ->
-(p :: (t :: Prim.Type) -> (t :: Prim.Type) -> Prim.Type)
-  (s :: (t :: Prim.Type))
-  (s :: (t :: Prim.Type))
+type Optic p s a = (p :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
+  (a :: (t0 :: Prim.Type))
+  (a :: (t0 :: Prim.Type)) ->
+(p :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
+  (s :: (t0 :: Prim.Type))
+  (s :: (t0 :: Prim.Type))
 type Lens s a = forall (p :: Prim.Type -> Prim.Type -> Prim.Type).
   Main.Profunctor (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
   Main.Optic @Prim.Type (p :: Prim.Type -> Prim.Type -> Prim.Type) (s :: Prim.Type) (a :: Prim.Type)

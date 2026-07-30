@@ -39,7 +39,7 @@ Outer = [Representational, Representational]
 NestedCaptured = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Triple (t :: Type) Int (t1 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Triple (t0 :: Type) Int (t1 :: Type)
   --> 8:1..8:35
   |
 8 | derive instance Bifunctor Captured

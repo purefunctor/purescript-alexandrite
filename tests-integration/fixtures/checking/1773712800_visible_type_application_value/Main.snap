@@ -9,6 +9,6 @@ const ::
   forall (a :: Prim.Type) (@b :: Prim.Type).
     (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
 testIdentity :: Prim.Int -> Prim.Int
-testConst :: forall (t :: Prim.Type). (t :: Prim.Type) -> Prim.String -> (t :: Prim.Type)
+testConst :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.String -> (t0 :: Prim.Type)
 
 Types

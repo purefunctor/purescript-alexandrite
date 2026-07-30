@@ -7,11 +7,11 @@ Terms
 
 Types
 Add ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
 + ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t :: Prim.Type)
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
 
 Synonyms
-type Add a b = (a :: (t :: Prim.Type))
+type Add a b = (a :: (t0 :: Prim.Type))

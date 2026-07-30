@@ -21,26 +21,26 @@ B :: Prim.Type
 C :: Prim.Type
 TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
 Match3 ::
-  forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
 
 Classes
 class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
   show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
 class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
-class forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: (t :: Prim.Type)) (g :: (t1 :: Prim.Type)) (h :: (t2 :: Prim.Type)). Main.Match3 @(t :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-  (f :: (t :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: (t0 :: Prim.Type)) (g :: (t1 :: Prim.Type)) (h :: (t2 :: Prim.Type)). Main.Match3 @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
+  (f :: (t0 :: Prim.Type))
   (g :: (t1 :: Prim.Type))
   (h :: (t2 :: Prim.Type))
 
 Instances
-instance forall (t :: Prim.Type) (t1 :: (t :: Prim.Type)).
-  Main.TypeEquals @(t :: Prim.Type) (t1 :: (t :: Prim.Type)) (t1 :: (t :: Prim.Type))
-instance forall (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-  Main.TypeEquals @Prim.Type (t :: Prim.Type) (Main.A -> Prim.String) =>
+instance forall (t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)).
+  Main.TypeEquals @(t0 :: Prim.Type) (t1 :: (t0 :: Prim.Type)) (t1 :: (t0 :: Prim.Type))
+instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
+  Main.TypeEquals @Prim.Type (t0 :: Prim.Type) (Main.A -> Prim.String) =>
   Main.TypeEquals @Prim.Type (t1 :: Prim.Type) (Main.B -> Prim.String) =>
   Main.TypeEquals @Prim.Type (t2 :: Prim.Type) (Main.C -> Prim.String) =>
-  Main.Match3 @Prim.Type @Prim.Type @Prim.Type (t :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type)
+  Main.Match3 @Prim.Type @Prim.Type @Prim.Type (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type)
 
 Roles
 A = []
