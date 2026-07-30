@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 9, character: 6 }
+
+```
+      program \a ->
+--    $
+```
+
+```purescript
+((a :: Type) -> (r :: Type)) -> (r :: Type)
+```
+
+
+Hover at Position { line: 11, character: 8 }
+
+```
+        return (function a)
+--      $       $
+```
+
+```purescript
+(b :: Type) -> (r :: Type)
+```
+
+
+Hover at Position { line: 11, character: 16 }
+
+```
+        return (function a)
+--      $       $
+```
+
+```purescript
+(a :: Type) -> (b :: Type)
+```

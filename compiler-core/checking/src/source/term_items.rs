@@ -484,7 +484,8 @@ where
 
     for binder in &instance.binders {
         let kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let text = state.checked.lookup_name(binder.name);
+        let text = toolkit::lookup_name(state, context, binder.name)?
+            .or_else(|| state.bindings.lookup_implicit_text(binder.name));
         let rigid = state.fresh_rigid_named(context.queries, kind, text);
         substitution.insert(binder.name, rigid);
         rigids.push(rigid);

@@ -4,7 +4,7 @@ use lowering::TypeVariableBinding;
 
 use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{ForallBinder, Type, TypeId, normalise, unification};
+use crate::core::{ForallBinder, Type, TypeId, normalise, toolkit, unification};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -199,7 +199,7 @@ where
 
     for binder in &signature.binders {
         let kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let text = state.checked.lookup_name(binder.name);
+        let text = toolkit::lookup_name(state, context, binder.name)?;
         let rigid = state.fresh_rigid_named(context.queries, kind, text);
         substitution.insert(binder.name, rigid);
     }
