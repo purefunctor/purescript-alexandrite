@@ -780,6 +780,12 @@ pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub map: Option<(FileId, TermItemId)>,
     pub bimap: Option<(FileId, TermItemId)>,
+    pub pure: Option<(FileId, TermItemId)>,
+    pub apply: Option<(FileId, TermItemId)>,
+    pub traverse: Option<(FileId, TermItemId)>,
+    pub sequence: Option<(FileId, TermItemId)>,
+    pub bitraverse: Option<(FileId, TermItemId)>,
+    pub bisequence: Option<(FileId, TermItemId)>,
     pub eq: Option<(FileId, TermItemId)>,
     pub eq1: Option<(FileId, TermItemId)>,
     pub compare: Option<(FileId, TermItemId)>,
@@ -794,6 +800,12 @@ impl KnownTermsCore {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
         let map = fetch_known_term(queries, "Data.Functor", "map")?;
         let bimap = fetch_known_term(queries, "Data.Bifunctor", "bimap")?;
+        let pure = fetch_known_term(queries, "Control.Applicative", "pure")?;
+        let apply = fetch_known_term(queries, "Control.Apply", "apply")?;
+        let traverse = fetch_known_term(queries, "Data.Traversable", "traverse")?;
+        let sequence = fetch_known_term(queries, "Data.Traversable", "sequence")?;
+        let bitraverse = fetch_known_term(queries, "Data.Bitraversable", "bitraverse")?;
+        let bisequence = fetch_known_term(queries, "Data.Bitraversable", "bisequence")?;
         let eq = fetch_known_term(queries, "Data.Eq", "eq")?;
         let eq1 = fetch_known_term(queries, "Data.Eq", "eq1")?;
         let compare = fetch_known_term(queries, "Data.Ord", "compare")?;
@@ -805,6 +817,12 @@ impl KnownTermsCore {
             otherwise,
             map,
             bimap,
+            pure,
+            apply,
+            traverse,
+            sequence,
+            bitraverse,
+            bisequence,
             eq,
             eq1,
             compare,

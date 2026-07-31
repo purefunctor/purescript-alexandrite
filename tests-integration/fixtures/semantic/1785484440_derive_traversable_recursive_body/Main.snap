@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Tree :: Prim.Type -> Prim.Type
+data Tree @a
+  | Leaf :: a -> Main.Tree a
+  | Branch :: Main.Tree a -> Main.Tree a -> Main.Tree a
+
+dictionary functorTree :: Data.Functor.Functor Main.Tree where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Tree a -> Main.Tree b
+  map = \function value ->
+    case value of
+      (Leaf field0) -> Leaf @b (function field0)
+      (Branch field0 field1) -> Branch @b
+        (map @Main.Tree {functorTree} @a @b (\element -> function element) field0)
+        (map @Main.Tree {functorTree} @a @b (\element -> function element) field1)
+
+dictionary traversableTree :: Data.Traversable.Traversable Main.Tree where
+  superclass functorDict = functorTree
+  superclass foldableDict = <instance>
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => (a -> m b) -> Main.Tree a -> m (Main.Tree b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Leaf field0) -> map @m {applicativeDict.applyDict.functorDict} @b @(Main.Tree b)
+          (\field0Result -> Leaf @b field0Result)
+          (function field0)
+        (Branch field0 field1) -> apply @m {applicativeDict.applyDict} @(Main.Tree b) @(Main.Tree b)
+          (map @m {applicativeDict.applyDict.functorDict} @(Main.Tree b) @(Main.Tree b -> Main.Tree b)
+            (\field0Result field1Result -> Branch @b field0Result field1Result)
+            (traverse @Main.Tree {traversableTree} @a @b @m {applicativeDict}
+              (\element -> function element)
+              field0))
+          (traverse @Main.Tree {traversableTree} @a @b @m {applicativeDict}
+            (\element -> function element)
+            field1)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => Main.Tree (m a) -> m (Main.Tree a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @Main.Tree {traversableTree} @(m a) @a @m {applicativeDict} (\effect0 -> effect0)
+        value

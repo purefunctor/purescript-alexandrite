@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Identity :: Prim.Type -> Prim.Type
+data Identity @a
+  | Identity :: a -> Main.Identity a
+
+dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Identity a -> Main.Identity b
+  map = \function value ->
+    case value of
+      (Identity field0) -> Identity @b (function field0)
+
+dictionary traversableIdentity :: Data.Traversable.Traversable Main.Identity where
+  superclass functorDict = functorIdentity
+  superclass foldableDict = <instance>
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => (a -> m b) -> Main.Identity a -> m (Main.Identity b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Identity field0) -> map @m {applicativeDict.applyDict.functorDict} @b @(Main.Identity b)
+          (\field0Result -> Identity @b field0Result)
+          (function field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => Main.Identity (m a) -> m (Main.Identity a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @Main.Identity {traversableIdentity} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

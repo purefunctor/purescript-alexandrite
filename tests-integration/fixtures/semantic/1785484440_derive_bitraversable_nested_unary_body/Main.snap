@@ -1,0 +1,65 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Wrap ::
+  forall (k0 :: Prim.Type) (k1 :: Prim.Type).
+    (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Wrap @f @g @a @b
+  | Wrap :: f a -> g b -> Main.Wrap f g a b
+
+dictionary bifunctorWrap ::
+  forall f g.
+  { functorDict :: Data.Functor.Functor f } =>
+  { functorDict1 :: Data.Functor.Functor g } =>
+  Data.Bifunctor.Bifunctor (Main.Wrap @Prim.Type @Prim.Type f g)
+  where
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.Wrap @Prim.Type @Prim.Type f g a c ->
+  Main.Wrap @Prim.Type @Prim.Type f g b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Wrap field0 field1) -> Wrap @Prim.Type @Prim.Type @f @g @b @d
+        (map @f {functorDict} @a @b (\element -> firstFunction element) field0)
+        (map @g {functorDict1} @c @d (\element -> secondFunction element) field1)
+
+dictionary bitraversableWrap ::
+  forall f g.
+  { traversableDict :: Data.Traversable.Traversable f } =>
+  { traversableDict1 :: Data.Traversable.Traversable g } =>
+  Data.Bitraversable.Bitraversable (Main.Wrap @Prim.Type @Prim.Type f g)
+  where
+  superclass bifunctorDict = bifunctorWrap {traversableDict.functorDict} {traversableDict1.functorDict}
+  superclass bifoldableDict = <instance> {traversableDict.foldableDict} {traversableDict1.foldableDict}
+  bitraverse :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
+  (d :: Prim.Type).
+  Control.Applicative.Applicative f1 =>
+  (a -> f1 c) ->
+  (b -> f1 d) ->
+  Main.Wrap @Prim.Type @Prim.Type f g a b ->
+  f1 (Main.Wrap @Prim.Type @Prim.Type f g c d)
+  bitraverse = \{applicativeDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Wrap field0 field1) -> apply @f1 {applicativeDict.applyDict} @(g d) @(Main.Wrap @Prim.Type @Prim.Type f g c d)
+          (map @f1 {applicativeDict.applyDict.functorDict} @(f c) @(g d -> Main.Wrap @Prim.Type @Prim.Type f g c d)
+            (\field0Result field1Result ->
+              Wrap @Prim.Type @Prim.Type @f @g @c @d field0Result field1Result)
+            (traverse @f {traversableDict} @a @c @f1 {applicativeDict}
+              (\element -> firstFunction element)
+              field0))
+          (traverse @g {traversableDict1} @b @d @f1 {applicativeDict}
+            (\element -> secondFunction element)
+            field1)
+  bisequence :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Control.Applicative.Applicative f1 =>
+  Main.Wrap @Prim.Type @Prim.Type f g (f1 a) (f1 b) -> f1 (Main.Wrap @Prim.Type @Prim.Type f g a b)
+  bisequence = \{applicativeDict} ->
+    \value ->
+      bitraverse @(Main.Wrap @Prim.Type @Prim.Type f g) {bitraversableWrap {traversableDict} {traversableDict1}} @f1 @(f1 a) @(f1 b) @a @b {applicativeDict}
+        (\effect0 -> effect0)
+        (\effect1 -> effect1)
+        value

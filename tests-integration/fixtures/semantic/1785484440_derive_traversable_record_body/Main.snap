@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Record :: Prim.Type -> Prim.Type
+data Record @a
+  | Record :: { alpha :: a, fixed :: Prim.Int, zeta :: a } -> Main.Record a
+
+dictionary functorRecord :: Data.Functor.Functor Main.Record where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Record a -> Main.Record b
+  map = \function value ->
+    case value of
+      (Record field0) -> Record @b
+        field0 { alpha = function field0.alpha, zeta = function field0.zeta }
+
+dictionary traversableRecord :: Data.Traversable.Traversable Main.Record where
+  superclass functorDict = functorRecord
+  superclass foldableDict = <instance>
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => (a -> m b) -> Main.Record a -> m (Main.Record b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Record field0) -> map @m {applicativeDict.applyDict.functorDict} @{ alpha :: b, fixed :: Prim.Int, zeta :: b } @(Main.Record b)
+          (\field0Result -> Record @b field0Result)
+          (apply @m {applicativeDict.applyDict} @b @{ alpha :: b, fixed :: Prim.Int, zeta :: b }
+            (map @m {applicativeDict.applyDict.functorDict} @b @(b -> { alpha :: b, fixed :: Prim.Int, zeta :: b })
+              (\recordField0 recordField1 -> field0 { alpha = recordField0, zeta = recordField1 })
+              (function field0.alpha))
+            (function field0.zeta))
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => Main.Record (m a) -> m (Main.Record a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @Main.Record {traversableRecord} @(m a) @a @m {applicativeDict} (\effect0 -> effect0)
+        value

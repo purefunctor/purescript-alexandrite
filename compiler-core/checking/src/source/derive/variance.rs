@@ -30,14 +30,21 @@ impl Variance {
 type ClassReference = (FileId, TypeItemId);
 
 #[derive(Clone, Copy)]
+pub(in crate::source) enum FunctionPolicy {
+    Allow,
+    Reject,
+}
+
+#[derive(Clone, Copy)]
 pub(in crate::source) struct ParameterConfig {
     pub variance: Variance,
     pub unary_class: Option<ClassReference>,
+    pub function_policy: FunctionPolicy,
 }
 
 #[derive(Clone, Copy)]
 pub(in crate::source) enum VarianceConfig {
-    Single(ParameterConfig),
+    Single { parameter: ParameterConfig, binary_class: Option<ClassReference> },
     Pair { first: ParameterConfig, second: ParameterConfig, binary_class: Option<ClassReference> },
 }
 
@@ -60,8 +67,8 @@ pub enum TraversalParameter {
 pub enum TraversalOperation {
     Parameter { parameter: TraversalParameter },
     Function { argument: Option<Box<TraversalOperation>>, result: Option<Box<TraversalOperation>> },
-    Map { argument: Box<TraversalOperation> },
-    Bimap { first: Box<TraversalOperation>, second: Option<Box<TraversalOperation>> },
+    UnaryApplication { argument: Box<TraversalOperation> },
+    BinaryApplication { first: Box<TraversalOperation>, second: Option<Box<TraversalOperation>> },
     Record { fields: Vec<RecordFieldRecipe> },
 }
 
@@ -75,11 +82,12 @@ struct DerivedParameter {
     traversal_parameter: TraversalParameter,
     expected: Variance,
     unary_class: Option<ClassReference>,
+    function_policy: FunctionPolicy,
 }
 
 enum DerivedRigids {
     Invalid,
-    Single(DerivedParameter),
+    Single { parameter: DerivedParameter, binary_class: Option<ClassReference> },
     Pair { first: DerivedParameter, second: DerivedParameter, binary_class: Option<ClassReference> },
 }
 
@@ -91,7 +99,7 @@ impl DerivedRigids {
     fn iter(&self) -> impl Iterator<Item = &DerivedParameter> {
         let (first, second) = match self {
             DerivedRigids::Invalid => (None, None),
-            DerivedRigids::Single(first) => (Some(first), None),
+            DerivedRigids::Single { parameter, .. } => (Some(parameter), None),
             DerivedRigids::Pair { first, second, .. } => (Some(first), Some(second)),
         };
         first.into_iter().chain(second)
@@ -99,8 +107,9 @@ impl DerivedRigids {
 
     fn binary_class(&self) -> Option<ClassReference> {
         match self {
-            DerivedRigids::Pair { binary_class, .. } => *binary_class,
-            DerivedRigids::Invalid | DerivedRigids::Single(_) => None,
+            DerivedRigids::Single { binary_class, .. }
+            | DerivedRigids::Pair { binary_class, .. } => *binary_class,
+            DerivedRigids::Invalid => None,
         }
     }
 }
@@ -178,26 +187,30 @@ where
     }
 
     let rigids = match (config, &names[..]) {
-        (VarianceConfig::Single(parameter), [.., name]) => {
-            DerivedRigids::Single(DerivedParameter {
+        (VarianceConfig::Single { parameter, binary_class }, [.., name]) => DerivedRigids::Single {
+            parameter: DerivedParameter {
                 name: *name,
                 traversal_parameter: TraversalParameter::First,
                 expected: parameter.variance,
                 unary_class: parameter.unary_class,
-            })
-        }
+                function_policy: parameter.function_policy,
+            },
+            binary_class,
+        },
         (VarianceConfig::Pair { first, second, binary_class }, [.., a, b]) => DerivedRigids::Pair {
             first: DerivedParameter {
                 name: *a,
                 traversal_parameter: TraversalParameter::First,
                 expected: first.variance,
                 unary_class: first.unary_class,
+                function_policy: first.function_policy,
             },
             second: DerivedParameter {
                 name: *b,
                 traversal_parameter: TraversalParameter::Second,
                 expected: second.variance,
                 unary_class: second.unary_class,
+                function_policy: second.function_policy,
             },
             binary_class,
         },
@@ -241,6 +254,35 @@ where
         if let Some((argument, result)) =
             toolkit::decompose_function(self.state, self.context, type_id)?
         {
+            // Function results can be transformed pointwise when deriving `Functor`, but an
+            // applicative traversal cannot sequence those results. For example:
+            //
+            //   data Reader a = Reader (Int -> a)
+            //
+            //   traverse :: (a -> m b) -> Reader a -> m (Reader b)
+            //   function :: a -> m b
+            //   program  :: Int -> a
+            //
+            // Applying `function` pointwise produces `Int -> m b`, but reconstructing
+            // `Reader b` inside the applicative requires `m (Int -> b)`. An arbitrary
+            // `Applicative m` cannot exchange the `Int ->` and `m` constructors. `Traversable`
+            // and `Bitraversable` therefore reject function types containing a derived
+            // parameter, while fixed function fields still require no traversal.
+            let mut allowed = true;
+            for parameter in self.rigids.iter() {
+                if matches!(parameter.function_policy, FunctionPolicy::Reject)
+                    && toolkit::contains_rigid(self.state, self.context, type_id, parameter.name)?
+                {
+                    allowed = false;
+                    break;
+                }
+            }
+            *self.valid &= allowed;
+            if !allowed {
+                self.state.insert_error(ErrorKind::CannotDeriveForType { type_id });
+                return Ok(None);
+            }
+
             let argument = self.check(argument, variance.flip())?;
             let result = self.check(result, variance)?;
             if argument.is_some() || result.is_some() {
@@ -324,7 +366,8 @@ where
         }
 
         let argument = self.check(application.argument, variance)?;
-        Ok(argument.map(|argument| TraversalOperation::Map { argument: Box::new(argument) }))
+        Ok(argument
+            .map(|argument| TraversalOperation::UnaryApplication { argument: Box::new(argument) }))
     }
 
     fn check_binary_application(
@@ -366,7 +409,7 @@ where
             if *self.valid && head_is_fixed && first_is_valid && second_is_valid {
                 tools::emit_constraint(self.context, self.state, binary_class, binary_head);
             }
-            return Ok(Some(TraversalOperation::Bimap {
+            return Ok(Some(TraversalOperation::BinaryApplication {
                 first: Box::new(first),
                 second: second.map(Box::new),
             }));
@@ -376,7 +419,7 @@ where
             if *self.valid && head_is_fixed && second_is_valid {
                 self.emit_unary_constraints(application.argument, variance, application.function)?;
             }
-            return Ok(Some(TraversalOperation::Map { argument: Box::new(second) }));
+            return Ok(Some(TraversalOperation::UnaryApplication { argument: Box::new(second) }));
         }
 
         Ok(None)

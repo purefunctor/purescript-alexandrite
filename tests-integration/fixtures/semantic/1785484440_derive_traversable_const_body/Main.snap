@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Const :: forall (k0 :: Prim.Type). Prim.Type -> k0 -> Prim.Type
+data Const @e @a
+  | Const :: e -> Main.Const e a
+
+dictionary functorConst :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b) -> Main.Const @Prim.Type e a -> Main.Const @Prim.Type e b
+  map = \function value ->
+    case value of
+      (Const field0) -> Const @Prim.Type @e @b field0
+
+dictionary traversableConst :: forall e. Data.Traversable.Traversable (Main.Const @Prim.Type e)
+  where
+  superclass functorDict = functorConst
+  superclass foldableDict = <instance>
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.Const @Prim.Type e a -> m (Main.Const @Prim.Type e b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Const field0) -> pure @m {applicativeDict} @(Main.Const @Prim.Type e b)
+          (Const @Prim.Type @e @b field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.Const @Prim.Type e (m a) -> m (Main.Const @Prim.Type e a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.Const @Prim.Type e) {traversableConst} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

@@ -1,0 +1,59 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Nested ::
+  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Nested @p @a @b
+  | Nested :: p a b -> Main.Nested p a b
+
+dictionary bifunctorNested ::
+  forall p.
+  { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
+  Data.Bifunctor.Bifunctor (Main.Nested @Prim.Type @Prim.Type p)
+  where
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.Nested @Prim.Type @Prim.Type p a c ->
+  Main.Nested @Prim.Type @Prim.Type p b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Nested field0) -> Nested @Prim.Type @Prim.Type @p @b @d
+        (bimap @p {bifunctorDict} @a @b @c @d (\element -> firstFunction element)
+          (\element -> secondFunction element)
+          field0)
+
+dictionary bitraversableNested ::
+  forall p.
+  { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
+  Data.Bitraversable.Bitraversable (Main.Nested @Prim.Type @Prim.Type p)
+  where
+  superclass bifunctorDict = bifunctorNested {bitraversableDict.bifunctorDict}
+  superclass bifoldableDict = <instance> {bitraversableDict.bifoldableDict}
+  bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
+  (d :: Prim.Type).
+  Control.Applicative.Applicative f =>
+  (a -> f c) ->
+  (b -> f d) ->
+  Main.Nested @Prim.Type @Prim.Type p a b ->
+  f (Main.Nested @Prim.Type @Prim.Type p c d)
+  bitraverse = \{applicativeDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Nested field0) -> map @f {applicativeDict.applyDict.functorDict} @(p c d) @(Main.Nested @Prim.Type @Prim.Type p c d)
+          (\field0Result -> Nested @Prim.Type @Prim.Type @p @c @d field0Result)
+          (bitraverse @p {bitraversableDict} @f @a @b @c @d {applicativeDict}
+            (\element -> firstFunction element)
+            (\element -> secondFunction element)
+            field0)
+  bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Control.Applicative.Applicative f =>
+  Main.Nested @Prim.Type @Prim.Type p (f a) (f b) -> f (Main.Nested @Prim.Type @Prim.Type p a b)
+  bisequence = \{applicativeDict} ->
+    \value ->
+      bitraverse @(Main.Nested @Prim.Type @Prim.Type p) {bitraversableNested {bitraversableDict}} @f @(f a) @(f b) @a @b {applicativeDict}
+        (\effect0 -> effect0)
+        (\effect1 -> effect1)
+        value

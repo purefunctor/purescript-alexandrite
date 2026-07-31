@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Maybe a -> Main.Maybe b
+  map = \function value ->
+    case value of
+      Nothing -> Nothing @b
+      (Just field0) -> Just @b (function field0)
+
+dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
+  superclass functorDict = functorMaybe
+  superclass foldableDict = <instance>
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => (a -> m b) -> Main.Maybe a -> m (Main.Maybe b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        Nothing -> pure @m {applicativeDict} @(Main.Maybe b) (Nothing @b)
+        (Just field0) -> map @m {applicativeDict.applyDict.functorDict} @b @(Main.Maybe b)
+          (\field0Result -> Just @b field0Result)
+          (function field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => Main.Maybe (m a) -> m (Main.Maybe a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @Main.Maybe {traversableMaybe} @(m a) @a @m {applicativeDict} (\effect0 -> effect0)
+        value

@@ -1,0 +1,63 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data LeftDuplicate :: forall (k0 :: Prim.Type). (k0 -> Prim.Type -> Prim.Type) -> k0 -> Prim.Type
+data LeftDuplicate @p @a
+  | LeftDuplicate :: p a Prim.Int -> Main.LeftDuplicate p a
+
+dictionary functorLeftDuplicate ::
+  forall p.
+  { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
+  Data.Functor.Functor (Main.LeftDuplicate @Prim.Type p)
+  where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b) -> Main.LeftDuplicate @Prim.Type p a -> Main.LeftDuplicate @Prim.Type p b
+  map = \function -> \(LeftDuplicate value) ->
+    LeftDuplicate @Prim.Type @p @b
+      (bimap @p {bifunctorDict} @a @b @Prim.Int @Prim.Int function (\fixed -> fixed) value)
+
+dictionary foldableLeftDuplicate ::
+  forall p.
+  { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
+  Data.Foldable.Foldable (Main.LeftDuplicate @Prim.Type p)
+  where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
+  foldr = \function -> \initial -> \(LeftDuplicate value) ->
+    bifoldr @p {bifoldableDict} @a @Prim.Int @b function (\_ accumulated -> accumulated) initial
+      value
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
+  foldl = \function -> \initial -> \(LeftDuplicate value) ->
+    bifoldl @p {bifoldableDict} @a @Prim.Int @b function (\accumulated _ -> accumulated) initial
+      value
+
+dictionary traversableLeftDuplicate ::
+  forall p.
+  { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
+  Data.Traversable.Traversable (Main.LeftDuplicate @Prim.Type p)
+  where
+  superclass functorDict = functorLeftDuplicate {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableLeftDuplicate {bitraversableDict.bifoldableDict}
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.LeftDuplicate @Prim.Type p a -> m (Main.LeftDuplicate @Prim.Type p b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (LeftDuplicate field0) -> map @m {applicativeDict.applyDict.functorDict} @(p b Prim.Int) @(Main.LeftDuplicate @Prim.Type p b)
+          (\field0Result -> LeftDuplicate @Prim.Type @p @b field0Result)
+          (bitraverse @p {bitraversableDict} @m @a @Prim.Int @b @Prim.Int {applicativeDict}
+            (\element -> function element)
+            (\unchanged -> pure @m {applicativeDict} @Prim.Int unchanged)
+            field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.LeftDuplicate @Prim.Type p (m a) -> m (Main.LeftDuplicate @Prim.Type p a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.LeftDuplicate @Prim.Type p) {traversableLeftDuplicate {bitraversableDict}} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

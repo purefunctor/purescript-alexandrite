@@ -9,7 +9,7 @@ use crate::error::ErrorKind;
 use crate::state::CheckState;
 
 use super::DeriveStrategy;
-use super::variance::{ParameterConfig, Variance, VarianceConfig};
+use super::variance::{FunctionPolicy, ParameterConfig, Variance, VarianceConfig};
 
 pub fn check_derive_traversable<Q>(
     state: &mut CheckState,
@@ -41,8 +41,10 @@ where
     let parameter = ParameterConfig {
         variance: Variance::Covariant,
         unary_class: Some((class_file, class_id)),
+        function_policy: FunctionPolicy::Reject,
     };
-    let config = VarianceConfig::Single(parameter);
+    let config =
+        VarianceConfig::Single { parameter, binary_class: context.known_types.bitraversable };
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,
@@ -82,8 +84,13 @@ where
     let parameter = ParameterConfig {
         variance: Variance::Covariant,
         unary_class: context.known_types.traversable,
+        function_policy: FunctionPolicy::Reject,
     };
-    let config = VarianceConfig::Pair { first: parameter, second: parameter, binary_class: None };
+    let config = VarianceConfig::Pair {
+        first: parameter,
+        second: parameter,
+        binary_class: Some((class_file, class_id)),
+    };
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,
