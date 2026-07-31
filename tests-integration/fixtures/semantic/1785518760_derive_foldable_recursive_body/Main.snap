@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Tree :: Prim.Type -> Prim.Type
+data Tree @a
+  | Leaf :: a -> Main.Tree a
+  | Branch :: Main.Tree a -> Main.Tree a -> Main.Tree a
+
+dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Tree a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Leaf field0) -> function field0 accumulator
+      (Branch field0 field1) -> foldr @Main.Tree {foldableTree} @a @b
+        (\element accumulator -> function element accumulator)
+        (foldr @Main.Tree {foldableTree} @a @b
+          (\element accumulator -> function element accumulator)
+          accumulator
+          field1)
+        field0
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Tree a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Leaf field0) -> function accumulator field0
+      (Branch field0 field1) -> foldl @Main.Tree {foldableTree} @a @b
+        (\accumulator element -> function accumulator element)
+        (foldl @Main.Tree {foldableTree} @a @b
+          (\accumulator element -> function accumulator element)
+          accumulator
+          field0)
+        field1
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Leaf field0) -> function field0
+        (Branch field0 field1) -> append @m {monoidDict.semigroupDict}
+          (foldMap @Main.Tree {foldableTree} @a @m {monoidDict} (\element -> function element)
+            field0)
+          (foldMap @Main.Tree {foldableTree} @a @m {monoidDict} (\element -> function element)
+            field1)

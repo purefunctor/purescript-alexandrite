@@ -100,6 +100,8 @@ where
                 derive_dispatch(context, result.class_file, result.class_id),
                 DeriveDispatch::Functor
                     | DeriveDispatch::Bifunctor
+                    | DeriveDispatch::Foldable
+                    | DeriveDispatch::Bifoldable
                     | DeriveDispatch::Traversable
                     | DeriveDispatch::Bitraversable
             ) && recipe.valid

@@ -15,9 +15,28 @@ dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
       (Pair field0 field1 field2) -> Pair @b @d (firstFunction field0) field1
         (secondFunction field2)
 
+dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
+  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Pair a b -> c
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
+  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Pair a b -> c
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
+  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Pair a b -> m
+  bifoldMap = \{monoidDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Pair field0 field1 field2) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
+          (secondFunction field2)
+
 dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
   superclass bifunctorDict = bifunctorPair
-  superclass bifoldableDict = <instance>
+  superclass bifoldableDict = bifoldablePair
   bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
   (d :: Prim.Type).
   Control.Applicative.Applicative f =>

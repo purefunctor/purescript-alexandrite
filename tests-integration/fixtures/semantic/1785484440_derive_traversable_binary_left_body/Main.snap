@@ -33,6 +33,12 @@ dictionary foldableLeftDuplicate ::
   foldl = \function -> \initial -> \(LeftDuplicate value) ->
     bifoldl @p {bifoldableDict} @a @Prim.Int @b function (\accumulated _ -> accumulated) initial
       value
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.LeftDuplicate @Prim.Type p a -> m
+  foldMap = \{monoidDict} -> \function -> \(LeftDuplicate value) ->
+    bifoldMap @p {bifoldableDict} @m @a @Prim.Int {monoidDict} function
+      (\_ -> mempty @m {monoidDict})
+      value
 
 dictionary traversableLeftDuplicate ::
   forall p.

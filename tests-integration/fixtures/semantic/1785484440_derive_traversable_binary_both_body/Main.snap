@@ -28,6 +28,10 @@ dictionary foldableDuplicate ::
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
   foldl = \function -> \initial -> \(Duplicate value) ->
     bifoldl @p {bifoldableDict} @a @a @b function function initial value
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.Duplicate @Prim.Type p a -> m
+  foldMap = \{monoidDict} -> \function -> \(Duplicate value) ->
+    bifoldMap @p {bifoldableDict} @m @a @a {monoidDict} function function value
 
 dictionary traversableDuplicate ::
   forall p.

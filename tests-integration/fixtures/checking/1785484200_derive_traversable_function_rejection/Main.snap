@@ -21,7 +21,7 @@ Reader = [Representational]
 
 Diagnostics
 error[CannotDeriveForType]: Cannot derive for type: Int -> (t0 :: Type)
-  --> 14:1..14:35
+  --> 16:1..16:35
    |
-14 | derive instance Traversable Reader
+16 | derive instance Traversable Reader
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -15,9 +15,27 @@ dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
       Nothing -> Nothing @b
       (Just field0) -> Just @b (function field0)
 
+dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
+  foldr = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function field0 accumulator
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Maybe a -> b
+  foldl = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function accumulator field0
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        Nothing -> mempty @m {monoidDict}
+        (Just field0) -> function field0
+
 dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
   superclass functorDict = functorMaybe
-  superclass foldableDict = <instance>
+  superclass foldableDict = foldableMaybe
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Maybe a -> m (Main.Maybe b)
   traverse = \{applicativeDict} ->

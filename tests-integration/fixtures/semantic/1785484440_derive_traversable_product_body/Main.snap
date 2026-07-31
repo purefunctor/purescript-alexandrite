@@ -13,9 +13,25 @@ dictionary functorProduct :: Data.Functor.Functor Main.Product where
     case value of
       (Product field0 field1 field2) -> Product @b (function field0) field1 (function field2)
 
+dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Product a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Product field0 field1 field2) -> function field0 (function field2 accumulator)
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Product a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Product field0 field1 field2) -> function (function accumulator field0) field2
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Product a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Product field0 field1 field2) -> append @m {monoidDict.semigroupDict} (function field0)
+          (function field2)
+
 dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
   superclass functorDict = functorProduct
-  superclass foldableDict = <instance>
+  superclass foldableDict = foldableProduct
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Product a -> m (Main.Product b)
   traverse = \{applicativeDict} ->

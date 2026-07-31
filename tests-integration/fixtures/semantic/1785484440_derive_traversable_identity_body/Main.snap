@@ -13,9 +13,24 @@ dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
     case value of
       (Identity field0) -> Identity @b (function field0)
 
+dictionary foldableIdentity :: Data.Foldable.Foldable Main.Identity where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Identity a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Identity field0) -> function field0 accumulator
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Identity a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Identity field0) -> function accumulator field0
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Identity a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Identity field0) -> function field0
+
 dictionary traversableIdentity :: Data.Traversable.Traversable Main.Identity where
   superclass functorDict = functorIdentity
-  superclass foldableDict = <instance>
+  superclass foldableDict = foldableIdentity
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Identity a -> m (Main.Identity b)
   traverse = \{applicativeDict} ->

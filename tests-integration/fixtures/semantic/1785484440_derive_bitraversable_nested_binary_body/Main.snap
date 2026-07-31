@@ -25,13 +25,46 @@ dictionary bifunctorNested ::
           (\element -> secondFunction element)
           field0)
 
+dictionary bifoldableNested ::
+  forall p.
+  { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
+  Data.Bifoldable.Bifoldable (Main.Nested @Prim.Type @Prim.Type p)
+  where
+  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Nested field0) -> bifoldr @p {bifoldableDict} @a @b @c
+        (\element accumulator -> firstFunction element accumulator)
+        (\element accumulator -> secondFunction element accumulator)
+        accumulator
+        field0
+  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Nested field0) -> bifoldl @p {bifoldableDict} @a @b @c
+        (\accumulator element -> firstFunction accumulator element)
+        (\accumulator element -> secondFunction accumulator element)
+        accumulator
+        field0
+  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Nested @Prim.Type @Prim.Type p a b -> m
+  bifoldMap = \{monoidDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Nested field0) -> bifoldMap @p {bifoldableDict} @m @a @b {monoidDict}
+          (\element -> firstFunction element)
+          (\element -> secondFunction element)
+          field0
+
 dictionary bitraversableNested ::
   forall p.
   { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
   Data.Bitraversable.Bitraversable (Main.Nested @Prim.Type @Prim.Type p)
   where
   superclass bifunctorDict = bifunctorNested {bitraversableDict.bifunctorDict}
-  superclass bifoldableDict = <instance> {bitraversableDict.bifoldableDict}
+  superclass bifoldableDict = bifoldableNested {bitraversableDict.bifoldableDict}
   bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
   (d :: Prim.Type).
   Control.Applicative.Applicative f =>

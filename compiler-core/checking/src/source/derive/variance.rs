@@ -255,9 +255,12 @@ where
             toolkit::decompose_function(self.state, self.context, type_id)?
         {
             // Function results can be transformed pointwise when deriving `Functor`, but an
-            // applicative traversal cannot sequence those results. For example:
+            // arbitrary function cannot be folded or traversed structurally. For example:
             //
             //   data Reader a = Reader (Int -> a)
+            //
+            // A fold has no finite collection of `a` values to consume without an `Int`.
+            // An applicative traversal encounters a separate obstruction:
             //
             //   traverse :: (a -> m b) -> Reader a -> m (Reader b)
             //   function :: a -> m b
@@ -265,9 +268,9 @@ where
             //
             // Applying `function` pointwise produces `Int -> m b`, but reconstructing
             // `Reader b` inside the applicative requires `m (Int -> b)`. An arbitrary
-            // `Applicative m` cannot exchange the `Int ->` and `m` constructors. `Traversable`
-            // and `Bitraversable` therefore reject function types containing a derived
-            // parameter, while fixed function fields still require no traversal.
+            // `Applicative m` cannot exchange the `Int ->` and `m` constructors. Fold and
+            // traversal derivation therefore reject function types containing a derived
+            // parameter, while fixed function fields still require no operation.
             let mut allowed = true;
             for parameter in self.rigids.iter() {
                 if matches!(parameter.function_policy, FunctionPolicy::Reject)

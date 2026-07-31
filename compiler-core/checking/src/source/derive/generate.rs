@@ -17,6 +17,7 @@ use super::variance::VarianceRecipe;
 use super::{DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch};
 
 mod eq_ord;
+mod foldable;
 mod functor;
 mod traversable;
 
@@ -41,6 +42,8 @@ where
         | DeriveDispatch::Ord1
         | DeriveDispatch::Functor
         | DeriveDispatch::Bifunctor
+        | DeriveDispatch::Foldable
+        | DeriveDispatch::Bifoldable
         | DeriveDispatch::Traversable
         | DeriveDispatch::Bitraversable => {
             generate_known_instance(state, context, result, dispatch, variance_recipe)
@@ -192,6 +195,26 @@ where
                 )?
                 .into_iter()
                 .collect()
+            }
+            DeriveDispatch::Foldable | DeriveDispatch::Bifoldable => {
+                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let traversal = match dispatch {
+                    DeriveDispatch::Foldable => foldable::TraversalKind::Foldable,
+                    DeriveDispatch::Bifoldable => foldable::TraversalKind::Bifoldable,
+                    _ => unreachable!(),
+                };
+                let Some(members) = foldable::generate_fold_members(
+                    state,
+                    context,
+                    result,
+                    &freshened.arguments,
+                    recipe,
+                    traversal,
+                )?
+                else {
+                    return Ok(None);
+                };
+                members
             }
             DeriveDispatch::Traversable | DeriveDispatch::Bitraversable => {
                 let Some(recipe) = variance_recipe else { return Ok(None) };

@@ -780,6 +780,14 @@ pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub map: Option<(FileId, TermItemId)>,
     pub bimap: Option<(FileId, TermItemId)>,
+    pub foldr: Option<(FileId, TermItemId)>,
+    pub foldl: Option<(FileId, TermItemId)>,
+    pub fold_map: Option<(FileId, TermItemId)>,
+    pub bifoldr: Option<(FileId, TermItemId)>,
+    pub bifoldl: Option<(FileId, TermItemId)>,
+    pub bifold_map: Option<(FileId, TermItemId)>,
+    pub append: Option<(FileId, TermItemId)>,
+    pub mempty: Option<(FileId, TermItemId)>,
     pub pure: Option<(FileId, TermItemId)>,
     pub apply: Option<(FileId, TermItemId)>,
     pub traverse: Option<(FileId, TermItemId)>,
@@ -800,6 +808,14 @@ impl KnownTermsCore {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
         let map = fetch_known_term(queries, "Data.Functor", "map")?;
         let bimap = fetch_known_term(queries, "Data.Bifunctor", "bimap")?;
+        let foldr = fetch_known_term(queries, "Data.Foldable", "foldr")?;
+        let foldl = fetch_known_term(queries, "Data.Foldable", "foldl")?;
+        let fold_map = fetch_known_term(queries, "Data.Foldable", "foldMap")?;
+        let bifoldr = fetch_known_term(queries, "Data.Bifoldable", "bifoldr")?;
+        let bifoldl = fetch_known_term(queries, "Data.Bifoldable", "bifoldl")?;
+        let bifold_map = fetch_known_term(queries, "Data.Bifoldable", "bifoldMap")?;
+        let append = fetch_known_term(queries, "Data.Semigroup", "append")?;
+        let mempty = fetch_known_term(queries, "Data.Monoid", "mempty")?;
         let pure = fetch_known_term(queries, "Control.Applicative", "pure")?;
         let apply = fetch_known_term(queries, "Control.Apply", "apply")?;
         let traverse = fetch_known_term(queries, "Data.Traversable", "traverse")?;
@@ -817,6 +833,14 @@ impl KnownTermsCore {
             otherwise,
             map,
             bimap,
+            foldr,
+            foldl,
+            fold_map,
+            bifoldr,
+            bifoldl,
+            bifold_map,
+            append,
+            mempty,
             pure,
             apply,
             traverse,

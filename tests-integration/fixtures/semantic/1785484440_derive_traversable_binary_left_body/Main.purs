@@ -3,7 +3,8 @@ module Main where
 import Data.Functor (class Functor)
 import Data.Bifunctor (class Bifunctor, bimap)
 import Data.Foldable (class Foldable)
-import Data.Bifoldable (class Bifoldable, bifoldl, bifoldr)
+import Data.Bifoldable (class Bifoldable, bifoldl, bifoldr, bifoldMap)
+import Data.Monoid (mempty)
 import Data.Traversable (class Traversable)
 import Data.Bitraversable (class Bitraversable)
 
@@ -18,5 +19,6 @@ instance Bifoldable p => Foldable (LeftDuplicate p) where
     bifoldr function (\_ accumulated -> accumulated) initial value
   foldl function initial (LeftDuplicate value) =
     bifoldl function (\accumulated _ -> accumulated) initial value
+  foldMap function (LeftDuplicate value) = bifoldMap function (\_ -> mempty) value
 
 derive instance Bitraversable p => Traversable (LeftDuplicate p)

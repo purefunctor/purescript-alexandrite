@@ -26,6 +26,42 @@ dictionary bifunctorWrap ::
         (map @f {functorDict} @a @b (\element -> firstFunction element) field0)
         (map @g {functorDict1} @c @d (\element -> secondFunction element) field1)
 
+dictionary bifoldableWrap ::
+  forall f g.
+  { foldableDict :: Data.Foldable.Foldable f } =>
+  { foldableDict1 :: Data.Foldable.Foldable g } =>
+  Data.Bifoldable.Bifoldable (Main.Wrap @Prim.Type @Prim.Type f g)
+  where
+  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
+        (\element accumulator -> firstFunction element accumulator)
+        (foldr @g {foldableDict1} @b @c (\element accumulator -> secondFunction element accumulator)
+          accumulator
+          field1)
+        field0
+  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
+        (\accumulator element -> secondFunction accumulator element)
+        (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
+          accumulator
+          field0)
+        field1
+  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
+  bifoldMap = \{monoidDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Wrap field0 field1) -> append @m {monoidDict.semigroupDict}
+          (foldMap @f {foldableDict} @a @m {monoidDict} (\element -> firstFunction element) field0)
+          (foldMap @g {foldableDict1} @b @m {monoidDict} (\element -> secondFunction element)
+            field1)
+
 dictionary bitraversableWrap ::
   forall f g.
   { traversableDict :: Data.Traversable.Traversable f } =>
@@ -33,7 +69,7 @@ dictionary bitraversableWrap ::
   Data.Bitraversable.Bitraversable (Main.Wrap @Prim.Type @Prim.Type f g)
   where
   superclass bifunctorDict = bifunctorWrap {traversableDict.functorDict} {traversableDict1.functorDict}
-  superclass bifoldableDict = <instance> {traversableDict.foldableDict} {traversableDict1.foldableDict}
+  superclass bifoldableDict = bifoldableWrap {traversableDict.foldableDict} {traversableDict1.foldableDict}
   bitraverse :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
   (d :: Prim.Type).
   Control.Applicative.Applicative f1 =>

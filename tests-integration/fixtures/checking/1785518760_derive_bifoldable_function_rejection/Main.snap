@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+ReaderPair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) ->
+    (Prim.Int -> (b :: Prim.Type)) ->
+    Main.ReaderPair (a :: Prim.Type) (b :: Prim.Type)
+
+Types
+ReaderPair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifoldable.Bifoldable Main.ReaderPair
+
+Roles
+ReaderPair = [Representational, Representational]
+
+Diagnostics
+error[CannotDeriveForType]: Cannot derive for type: Int -> (t0 :: Type)
+  --> 6:1..6:38
+  |
+6 | derive instance Bifoldable ReaderPair
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

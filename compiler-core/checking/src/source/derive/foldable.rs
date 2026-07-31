@@ -41,9 +41,9 @@ where
     let parameter = ParameterConfig {
         variance: Variance::Covariant,
         unary_class: Some((class_file, class_id)),
-        function_policy: FunctionPolicy::Allow,
+        function_policy: FunctionPolicy::Reject,
     };
-    let config = VarianceConfig::Single { parameter, binary_class: None };
+    let config = VarianceConfig::Single { parameter, binary_class: context.known_types.bifoldable };
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,
@@ -83,9 +83,13 @@ where
     let parameter = ParameterConfig {
         variance: Variance::Covariant,
         unary_class: context.known_types.foldable,
-        function_policy: FunctionPolicy::Allow,
+        function_policy: FunctionPolicy::Reject,
     };
-    let config = VarianceConfig::Pair { first: parameter, second: parameter, binary_class: None };
+    let config = VarianceConfig::Pair {
+        first: parameter,
+        second: parameter,
+        binary_class: Some((class_file, class_id)),
+    };
 
     Ok(Some(DeriveStrategy::VarianceConstraints {
         data_file,

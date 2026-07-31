@@ -16,9 +16,30 @@ dictionary bifunctorEither :: Data.Bifunctor.Bifunctor Main.Either where
       (Left field0) -> Left @b @d (firstFunction field0)
       (Right field0) -> Right @b @d (secondFunction field0)
 
+dictionary bifoldableEither :: Data.Bifoldable.Bifoldable Main.Either where
+  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Either a b -> c
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Left field0) -> firstFunction field0 accumulator
+      (Right field0) -> secondFunction field0 accumulator
+  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
+  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Either a b -> c
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Left field0) -> firstFunction accumulator field0
+      (Right field0) -> secondFunction accumulator field0
+  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Either a b -> m
+  bifoldMap = \{monoidDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Left field0) -> firstFunction field0
+        (Right field0) -> secondFunction field0
+
 dictionary bitraversableEither :: Data.Bitraversable.Bitraversable Main.Either where
   superclass bifunctorDict = bifunctorEither
-  superclass bifoldableDict = <instance>
+  superclass bifoldableDict = bifoldableEither
   bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
   (d :: Prim.Type).
   Control.Applicative.Applicative f =>
