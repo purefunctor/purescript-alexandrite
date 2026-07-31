@@ -583,8 +583,9 @@ where
                 };
                 Ok(Some(self.builder.subtype(folded, self.accumulator_type)?))
             }
-            TraversalOperation::BinaryApplication { first, second } => {
-                self.emit_binary_fold(first, second.as_deref(), value, accumulator, source_type)
+            TraversalOperation::BinaryApplication { arguments } => {
+                let (first, second) = arguments.operations();
+                self.emit_binary_fold(first, second, value, accumulator, source_type)
             }
             TraversalOperation::Record { fields } => {
                 self.emit_record_fold(fields, value, accumulator, source_type)
@@ -648,7 +649,7 @@ where
 
     fn emit_binary_fold(
         &mut self,
-        first: &TraversalOperation,
+        first: Option<&TraversalOperation>,
         second: Option<&TraversalOperation>,
         value: ElaboratedExpression,
         accumulator: Option<ElaboratedExpression>,
@@ -671,8 +672,16 @@ where
             return Ok(None);
         };
 
-        let Some(first_transformer) = self.emit_transformer(first, source_first)? else {
-            return Ok(None);
+        let first_transformer = if let Some(first) = first {
+            let Some(transformer) = self.emit_transformer(first, source_first)? else {
+                return Ok(None);
+            };
+            transformer
+        } else {
+            let Some(transformer) = self.emit_ignoring_transformer(source_first)? else {
+                return Ok(None);
+            };
+            transformer
         };
         let second_transformer = match second {
             Some(second) => {
@@ -689,8 +698,8 @@ where
             }
         };
 
-        // Bifoldable still requires a transformer for an inactive second argument. A
-        // directional fold returns the accumulator unchanged; foldMap returns mempty.
+        // Bifoldable still requires a transformer for an inactive argument. A directional
+        // fold returns the accumulator unchanged; foldMap returns mempty.
         //
         //   newtype LeftDuplicate p a = LeftDuplicate (p a Int)
         //

@@ -37,3 +37,31 @@ dictionary foldableRightNested ::
     bifoldMap @p {bifoldableDict} @m @Prim.Int @a {monoidDict} (\_ -> mempty @m {monoidDict})
       function
       value
+
+dictionary traversableRightNested ::
+  forall p.
+  { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
+  Data.Traversable.Traversable (Main.RightNested @Prim.Type p)
+  where
+  superclass functorDict = functorRightNested {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableRightNested {bitraversableDict.bifoldableDict}
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.RightNested @Prim.Type p a -> m (Main.RightNested @Prim.Type p b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (RightNested field0) -> map @m {applicativeDict.applyDict.functorDict} @(p Prim.Int b) @(Main.RightNested @Prim.Type p b)
+          (\field0Result -> RightNested @Prim.Type @p @b field0Result)
+          (bitraverse @p {bitraversableDict} @m @Prim.Int @a @Prim.Int @b {applicativeDict}
+            (\unchanged -> pure @m {applicativeDict} @Prim.Int unchanged)
+            (\element -> function element)
+            field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.RightNested @Prim.Type p (m a) -> m (Main.RightNested @Prim.Type p a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.RightNested @Prim.Type p) {traversableRightNested {bitraversableDict}} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

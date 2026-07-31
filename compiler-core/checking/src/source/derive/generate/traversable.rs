@@ -698,10 +698,11 @@ where
                 let effect_type = self.effect_type(traversal.target_type);
                 Ok(Some(self.builder.subtype(traversed, effect_type)?))
             }
-            TraversalOperation::BinaryApplication { first, second } => {
+            TraversalOperation::BinaryApplication { arguments } => {
                 // Bitraverse delegates both arguments of a binary type constructor. See
                 // `emit_binary_effect` for the staged construction of its transformers.
-                self.emit_binary_effect(first, second.as_deref(), value, traversal)
+                let (first, second) = arguments.operations();
+                self.emit_binary_effect(first, second, value, traversal)
             }
             TraversalOperation::Record { fields } => {
                 // Record traversal combines the effects of its active field updates.
@@ -744,7 +745,7 @@ where
 
     fn emit_binary_effect(
         &mut self,
-        first: &TraversalOperation,
+        first: Option<&TraversalOperation>,
         second: Option<&TraversalOperation>,
         value: ElaboratedExpression,
         traversal: TraversalContext,
@@ -799,7 +800,8 @@ where
             return Ok(None);
         };
 
-        // Generate the effectful transformation for the first argument.
+        // Generate the effectful transformation for the first argument. If the
+        // derived parameter is absent there, lift the unchanged value with pure.
         //
         // Duplicate and LeftDuplicate
         //
@@ -807,8 +809,16 @@ where
         //   firstTransformer = function
         let first_context =
             TraversalContext { source_type: source_first, target_type: target_first };
-        let Some(first_transformer) = self.emit_transformer(first, first_context)? else {
-            return Ok(None);
+        let first_transformer = if let Some(first) = first {
+            let Some(transformer) = self.emit_transformer(first, first_context)? else {
+                return Ok(None);
+            };
+            transformer
+        } else {
+            let Some(transformer) = self.emit_pure_transformer(first_context)? else {
+                return Ok(None);
+            };
+            transformer
         };
 
         // Generate the effectful transformation for the second argument. If the
@@ -870,8 +880,8 @@ where
         &mut self,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
-        // A binary argument has no operation when it omits the derived parameter.
-        // Bitraverse still needs an effectful transformer, so lift its value with pure.
+        // Bitraverse still needs an effectful transformer for a binary argument that omits
+        // the derived parameter, so lift its value with pure.
         //
         // LeftDuplicate
         //
