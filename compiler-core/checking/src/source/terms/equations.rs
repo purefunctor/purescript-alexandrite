@@ -72,7 +72,7 @@ where
 {
     let required = equations.iter().map(|equation| equation.binders.len()).max().unwrap_or(0);
 
-    let signature::SkolemisedSignature { substitution, constraints, arguments, result } =
+    let signature::SkolemisedSignature { renaming, constraints, arguments, result } =
         signature::expect_term_signature(state, context, expected_type, required)?;
 
     let mut evidences = vec![];
@@ -87,7 +87,7 @@ where
     let mut arguments = ValueEquationPatterns::clone(&signature.arguments);
     instantiate_pattern_arguments(state, context, &mut arguments, equations)?;
 
-    let equations = state.with_implicit(context, &substitution, |state| {
+    let equations = state.with_source_type_renaming(&renaming, |state| {
         check_equations(state, context, origin, &signature, &arguments, equations)
     })?;
 

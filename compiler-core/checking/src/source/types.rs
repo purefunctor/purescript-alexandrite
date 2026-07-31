@@ -16,7 +16,7 @@ use crate::core::{ForallBinder, RowField, Type, TypeId, normalise, toolkit, unif
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TypeHole};
 use crate::source::{operator, synonym};
-use crate::state::CheckState;
+use crate::state::{CheckState, SourceTypeVariableKey};
 use crate::{ExternalQueries, safe_loop};
 
 const MISSING_NAME: SmolStr = SmolStr::new_static("<MissingName>");
@@ -257,38 +257,41 @@ where
 
         lowering::TypeKind::Variable { name, resolution } => match resolution {
             Some(lowering::TypeVariableResolution::Forall(forall)) => {
-                let (n, k) = state
-                    .bindings
-                    .lookup_forall(*forall)
+                let variable = state
+                    .lookup_source_type_variable(context, SourceTypeVariableKey::Forall(*forall))?
                     .expect("invariant violated: KindScope::bind_forall");
 
-                let t = context.intern_rigid(n, state.depth, k);
+                let t = context.intern_rigid(variable.name, state.depth, variable.kind);
 
-                Ok((t, k))
+                Ok((t, variable.kind))
             }
 
             Some(lowering::TypeVariableResolution::Implicit(implicit)) => {
+                let key = SourceTypeVariableKey::Implicit { node: implicit.node, id: implicit.id };
                 if implicit.binding {
                     let n = state.names.fresh();
                     let k = state.fresh_unification(context.queries, context.prim.t);
 
-                    let text = name.clone().map(|text| context.queries.intern_smol_str(text));
+                    if let Some(text) = name {
+                        let text = SmolStr::clone(text);
+                        let text = context.queries.intern_smol_str(text);
+                        state.checked.names.insert(n, text);
+                    }
 
-                    state.bindings.bind_implicit(implicit.node, implicit.id, n, k, text);
+                    state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
                     state.checked.nodes.implicit_bindings.insert((implicit.node, implicit.id), k);
 
                     let t = context.intern_rigid(n, state.depth, k);
 
                     Ok((t, k))
                 } else {
-                    let (n, k) = state
-                        .bindings
-                        .lookup_implicit(implicit.node, implicit.id)
+                    let variable = state
+                        .lookup_source_type_variable(context, key)?
                         .expect("invariant violated: KindScope::bind_implicit");
 
-                    let t = context.intern_rigid(n, state.depth, k);
+                    let t = context.intern_rigid(variable.name, state.depth, variable.kind);
 
-                    Ok((t, k))
+                    Ok((t, variable.kind))
                 }
             }
 
@@ -391,12 +394,10 @@ fn collect_forall_binding<'a>(
     seen: &mut FxHashSet<&'a SmolStr>,
     result: &mut Vec<HoleBinding>,
 ) {
-    let Some(type_id) = state
-        .checked
-        .nodes
-        .lookup_forall_binding(binding_id)
-        .or_else(|| state.bindings.lookup_forall(binding_id).map(|(_, kind)| kind))
-    else {
+    let Some(type_id) = state.checked.nodes.lookup_forall_binding(binding_id).or_else(|| {
+        let key = SourceTypeVariableKey::Forall(binding_id);
+        state.bindings.lookup(key).map(|variable| variable.kind)
+    }) else {
         return;
     };
 
@@ -413,11 +414,11 @@ fn collect_implicit_binding<'a>(
     seen: &mut FxHashSet<&'a SmolStr>,
     result: &mut Vec<HoleBinding>,
 ) {
-    let Some(type_id) = state
-        .checked
-        .nodes
-        .lookup_implicit_binding(node_id, binding_id)
-        .or_else(|| state.bindings.lookup_implicit(node_id, binding_id).map(|(_, kind)| kind))
+    let Some(type_id) =
+        state.checked.nodes.lookup_implicit_binding(node_id, binding_id).or_else(|| {
+            let key = SourceTypeVariableKey::Implicit { node: node_id, id: binding_id };
+            state.bindings.lookup(key).map(|variable| variable.kind)
+        })
     else {
         return;
     };

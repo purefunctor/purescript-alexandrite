@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use itertools::izip;
 use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
-use crate::core::substitute::NameToType;
+use crate::core::substitute::RigidRenaming;
 use crate::core::{KindOrType, RowType, Type, TypeId, normalise, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
@@ -47,7 +49,7 @@ impl Mappings<ElaboratedExpression> {
 
 struct DecodedTraversalMember {
     member: ResolvedMember,
-    substitution: NameToType,
+    renaming: Arc<RigidRenaming>,
     constraints: Vec<TypeId>,
     implementation_type: TypeId,
     function_type: TypeId,
@@ -72,7 +74,7 @@ impl DecodedTraversalMember {
             TraversalKind::Functor => 2,
             TraversalKind::Bifunctor => 3,
         };
-        let signature::SkolemisedSignature { substitution, constraints, arguments, result } =
+        let signature::SkolemisedSignature { renaming, constraints, arguments, result } =
             signature::expect_term_signature(
                 state,
                 context,
@@ -96,7 +98,7 @@ impl DecodedTraversalMember {
         Ok(Some(DecodedTraversalMember {
             implementation_type: member.implementation_type,
             member,
-            substitution,
+            renaming,
             constraints,
             function_type,
             mappings,
@@ -143,7 +145,7 @@ where
             evidences.push(Evidence::Given(state.push_given(constraint)));
         }
 
-        let body = state.with_implicit(context, &member.substitution, |state| {
+        let body = state.with_source_type_renaming(&member.renaming, |state| {
             emit_variance_traversal(state, context, result.derive_id, &member, recipe)
         })?;
         let Some(body) = body else { return Ok(None) };

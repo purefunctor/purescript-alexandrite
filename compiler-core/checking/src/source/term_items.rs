@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
 use crate::core::constraint::ConstraintInScope;
-use crate::core::substitute::{NameToType, SubstituteName};
+use crate::core::substitute::{NameToType, RigidRenaming, SubstituteName};
 use crate::core::{
     CheckedInstance, KindOrType, Type, TypeId, constraint, exhaustive, generalise, normalise,
     signature, toolkit, unification, zonk,
@@ -277,11 +277,11 @@ where
             let FreshenedInstanceRigids {
                 constraints: instance_constraints,
                 arguments: instance_arguments,
-                substitution,
+                renaming,
                 rigids,
             } = freshen_instance_rigids(state, context, instance)?;
 
-            state.with_implicit(context, &substitution, |state| {
+            state.with_source_type_renaming(&renaming, |state| {
                 debug_assert_eq!(instance_constraints.len(), instance.constraints.len());
                 let mut instance_evidences = vec![];
                 for (&constraint, &signature_constraint) in
@@ -467,7 +467,7 @@ fn record_instance_member(
 pub(crate) struct FreshenedInstanceRigids {
     pub(crate) constraints: Vec<TypeId>,
     pub(crate) arguments: Vec<KindOrType>,
-    pub(crate) substitution: NameToType,
+    pub(crate) renaming: Arc<RigidRenaming>,
     pub(crate) rigids: Vec<TypeId>,
 }
 
@@ -479,31 +479,31 @@ pub(crate) fn freshen_instance_rigids<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut substitution = NameToType::default();
+    let mut renaming = RigidRenaming::default();
     let mut rigids = Vec::with_capacity(instance.binders.len());
 
     for binder in &instance.binders {
-        let kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
-        let text = toolkit::lookup_name(state, context, binder.name)?
-            .or_else(|| state.bindings.lookup_implicit_text(binder.name));
+        let kind = renaming.substitute(state, context, binder.kind)?;
+        let text = toolkit::lookup_name(state, context, binder.name)?;
         let rigid = state.fresh_rigid_named(context.queries, kind, text);
-        substitution.insert(binder.name, rigid);
+        renaming.insert(context, binder.name, rigid);
         rigids.push(rigid);
     }
 
     let constraints = instance
         .constraints
         .iter()
-        .map(|&constraint| SubstituteName::many(state, context, &substitution, constraint))
+        .map(|&constraint| renaming.substitute(state, context, constraint))
         .collect::<QueryResult<Vec<_>>>()?;
 
     let arguments = instance
         .arguments
         .iter()
-        .map(|&argument| substitute_kind_or_type(state, context, &substitution, argument))
+        .map(|&argument| substitute_kind_or_type(state, context, &renaming, argument))
         .collect::<QueryResult<Vec<_>>>()?;
 
-    Ok(FreshenedInstanceRigids { constraints, arguments, substitution, rigids })
+    let renaming = Arc::new(renaming);
+    Ok(FreshenedInstanceRigids { constraints, arguments, renaming, rigids })
 }
 
 pub(crate) fn emit_instance_superclass_constraints<Q>(
@@ -593,7 +593,7 @@ where
 fn substitute_kind_or_type<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    bindings: &NameToType,
+    renaming: &RigidRenaming,
     argument: KindOrType,
 ) -> QueryResult<KindOrType>
 where
@@ -601,10 +601,10 @@ where
 {
     Ok(match argument {
         KindOrType::Kind(argument) => {
-            KindOrType::Kind(SubstituteName::many(state, context, bindings, argument)?)
+            KindOrType::Kind(renaming.substitute(state, context, argument)?)
         }
         KindOrType::Type(argument) => {
-            KindOrType::Type(SubstituteName::many(state, context, bindings, argument)?)
+            KindOrType::Type(renaming.substitute(state, context, argument)?)
         }
     })
 }

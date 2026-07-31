@@ -12,7 +12,7 @@ use crate::core::constraint::{CanonicalConstraintId, Canonicals, ConstraintInSco
 use crate::core::exhaustive::{
     ExhaustivenessReport, Pattern, PatternConstructor, PatternId, PatternInterner, PatternKind,
 };
-use crate::core::substitute::{NameToType, SubstituteName};
+use crate::core::substitute::RigidRenaming;
 use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
 use crate::evidence::{EvidenceBinderId, EvidenceVarId};
@@ -87,118 +87,48 @@ impl Unifications {
 /// Tracks type variable bindings during kind inference.
 #[derive(Default)]
 pub struct Bindings {
-    forall: Vec<ForallBinding>,
-    implicit: Vec<ImplicitBinding>,
+    variables: FxHashMap<SourceTypeVariableKey, SourceTypeVariable>,
+    renamings: Vec<Arc<RigidRenaming>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum SourceTypeVariableKey {
+    Forall(lowering::TypeVariableBindingId),
+    Implicit { node: lowering::GraphNodeId, id: lowering::ImplicitBindingId },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ForallBinding {
-    id: lowering::TypeVariableBindingId,
-    name: Name,
-    kind: TypeId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ImplicitBinding {
-    node: lowering::GraphNodeId,
-    id: lowering::ImplicitBindingId,
-    name: Name,
-    kind: TypeId,
-    text: Option<SmolStrId>,
+pub(crate) struct SourceTypeVariable {
+    pub(crate) name: Name,
+    pub(crate) kind: TypeId,
 }
 
 impl Bindings {
-    pub fn bind_forall(&mut self, id: lowering::TypeVariableBindingId, name: Name, kind: TypeId) {
-        self.forall.push(ForallBinding { id, name, kind });
+    fn bind(&mut self, key: SourceTypeVariableKey, name: Name, kind: TypeId) {
+        self.variables.insert(key, SourceTypeVariable { name, kind });
     }
 
-    pub fn lookup_forall(&self, id: lowering::TypeVariableBindingId) -> Option<(Name, TypeId)> {
-        self.forall
-            .iter()
-            .rev()
-            .find(|binding| binding.id == id)
-            .map(|binding| (binding.name, binding.kind))
+    pub(crate) fn bind_forall(
+        &mut self,
+        id: lowering::TypeVariableBindingId,
+        name: Name,
+        kind: TypeId,
+    ) {
+        self.bind(SourceTypeVariableKey::Forall(id), name, kind);
     }
 
-    pub fn bind_implicit(
+    pub(crate) fn bind_implicit(
         &mut self,
         node: lowering::GraphNodeId,
         id: lowering::ImplicitBindingId,
         name: Name,
         kind: TypeId,
-        text: Option<SmolStrId>,
     ) {
-        self.implicit.push(ImplicitBinding { node, id, name, kind, text });
+        self.bind(SourceTypeVariableKey::Implicit { node, id }, name, kind);
     }
 
-    fn bind_implicit_substitution<Q>(
-        state: &mut CheckState,
-        context: &CheckContext<Q>,
-        substitution: &NameToType,
-    ) -> QueryResult<()>
-    where
-        Q: ExternalQueries,
-    {
-        let scope = state.bindings.implicit.len();
-
-        for binding in 0..scope {
-            let ImplicitBinding { node, id, name, kind, text } = state.bindings.implicit[binding];
-            let Some(&replacement) = substitution.get(&name) else { continue };
-
-            let Type::Rigid(name, _, _) = context.lookup_type(replacement) else {
-                unreachable!("invariant violated: expected a rigid variable");
-            };
-
-            let kind = SubstituteName::many(state, context, substitution, kind)?;
-            state.bindings.implicit.push(ImplicitBinding { node, id, name, kind, text });
-        }
-
-        Ok(())
-    }
-
-    fn bind_forall_substitution<Q>(
-        state: &mut CheckState,
-        context: &CheckContext<Q>,
-        substitution: &NameToType,
-    ) -> QueryResult<()>
-    where
-        Q: ExternalQueries,
-    {
-        let scope = state.bindings.forall.len();
-
-        for binding in 0..scope {
-            let ForallBinding { id, name, kind } = state.bindings.forall[binding];
-            let Some(&replacement) = substitution.get(&name) else { continue };
-
-            let Type::Rigid(name, _, _) = context.lookup_type(replacement) else {
-                unreachable!("invariant violated: expected a rigid variable");
-            };
-
-            let kind = SubstituteName::many(state, context, substitution, kind)?;
-            state.bindings.forall.push(ForallBinding { id, name, kind });
-        }
-
-        Ok(())
-    }
-
-    pub fn lookup_implicit(
-        &self,
-        node: lowering::GraphNodeId,
-        id: lowering::ImplicitBindingId,
-    ) -> Option<(Name, TypeId)> {
-        self.implicit
-            .iter()
-            .rev()
-            .find(|binding| binding.node == node && binding.id == id)
-            .map(|binding| (binding.name, binding.kind))
-    }
-
-    pub fn lookup_implicit_text(&self, name: Name) -> Option<SmolStrId> {
-        self.implicit
-            .iter()
-            .rev()
-            .find(|binding| binding.name == name)
-            .and_then(|binding| binding.text)
+    pub(crate) fn lookup(&self, key: SourceTypeVariableKey) -> Option<SourceTypeVariable> {
+        self.variables.get(&key).copied()
     }
 }
 
@@ -388,22 +318,38 @@ impl CheckState {
         result
     }
 
-    pub fn with_implicit<Q, T>(
+    pub(crate) fn lookup_source_type_variable<Q>(
         &mut self,
         context: &CheckContext<Q>,
-        substitution: &NameToType,
-        f: impl FnOnce(&mut CheckState) -> QueryResult<T>,
-    ) -> QueryResult<T>
+        key: SourceTypeVariableKey,
+    ) -> QueryResult<Option<SourceTypeVariable>>
     where
         Q: ExternalQueries,
     {
-        let forall_scope = self.bindings.forall.len();
-        Bindings::bind_forall_substitution(self, context, substitution)?;
-        let scope = self.bindings.implicit.len();
-        Bindings::bind_implicit_substitution(self, context, substitution)?;
+        let Some(mut variable) = self.bindings.lookup(key) else { return Ok(None) };
+
+        if self.bindings.renamings.is_empty() {
+            return Ok(Some(variable));
+        }
+
+        for renaming in Vec::clone(&self.bindings.renamings) {
+            variable.kind = renaming.substitute(self, context, variable.kind)?;
+            if let Some(name) = renaming.replacement_name(variable.name) {
+                variable.name = name;
+            }
+        }
+
+        Ok(Some(variable))
+    }
+
+    pub fn with_source_type_renaming<T>(
+        &mut self,
+        renaming: &Arc<RigidRenaming>,
+        f: impl FnOnce(&mut CheckState) -> QueryResult<T>,
+    ) -> QueryResult<T> {
+        self.bindings.renamings.push(Arc::clone(renaming));
         let result = f(self);
-        self.bindings.implicit.truncate(scope);
-        self.bindings.forall.truncate(forall_scope);
+        self.bindings.renamings.pop();
 
         result
     }

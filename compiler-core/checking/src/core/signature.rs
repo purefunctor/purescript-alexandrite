@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use building_types::QueryResult;
 use itertools::Itertools;
 use lowering::TypeVariableBinding;
 
 use crate::context::CheckContext;
-use crate::core::substitute::{NameToType, SubstituteName};
+use crate::core::substitute::RigidRenaming;
 use crate::core::{ForallBinder, Type, TypeId, normalise, toolkit, unification};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
@@ -17,7 +19,7 @@ pub struct DecomposedSignature {
 }
 
 pub struct SkolemisedSignature {
-    pub substitution: NameToType,
+    pub renaming: Arc<RigidRenaming>,
     pub constraints: Vec<TypeId>,
     pub arguments: Vec<TypeId>,
     pub result: TypeId,
@@ -143,7 +145,7 @@ where
     let signature =
         decompose_signature(state, context, signature_type, DecomposeSignatureMode::Full)?;
 
-    let SkolemisedSignature { substitution, constraints, arguments, result } =
+    let SkolemisedSignature { renaming, constraints, arguments, result } =
         skolemise_decomposed_signature(state, context, signature)?;
 
     let mut remaining = arguments.into_iter();
@@ -152,7 +154,7 @@ where
     let mut result = context.intern_function_iter(remaining, result);
     synthesise_functions(state, context, &mut arguments, &mut result, required)?;
 
-    Ok(SkolemisedSignature { substitution, constraints, arguments, result })
+    Ok(SkolemisedSignature { renaming, constraints, arguments, result })
 }
 
 fn synthesise_functions<Q>(
@@ -195,28 +197,29 @@ fn skolemise_decomposed_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut substitution = NameToType::default();
+    let mut renaming = RigidRenaming::default();
 
     for binder in &signature.binders {
-        let kind = SubstituteName::many(state, context, &substitution, binder.kind)?;
+        let kind = renaming.substitute(state, context, binder.kind)?;
         let text = toolkit::lookup_name(state, context, binder.name)?;
         let rigid = state.fresh_rigid_named(context.queries, kind, text);
-        substitution.insert(binder.name, rigid);
+        renaming.insert(context, binder.name, rigid);
     }
 
     let constraints = signature
         .constraints
         .iter()
-        .map(|&constraint| SubstituteName::many(state, context, &substitution, constraint))
+        .map(|&constraint| renaming.substitute(state, context, constraint))
         .collect::<QueryResult<Vec<_>>>()?;
 
     let arguments = signature
         .arguments
         .iter()
-        .map(|&argument| SubstituteName::many(state, context, &substitution, argument))
+        .map(|&argument| renaming.substitute(state, context, argument))
         .collect::<QueryResult<Vec<_>>>()?;
 
-    let result = SubstituteName::many(state, context, &substitution, signature.result)?;
+    let result = renaming.substitute(state, context, signature.result)?;
+    let renaming = Arc::new(renaming);
 
-    Ok(SkolemisedSignature { substitution, constraints, arguments, result })
+    Ok(SkolemisedSignature { renaming, constraints, arguments, result })
 }
