@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Pair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+Nested ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    Main.Pair (a :: Prim.Type) (b :: Prim.Type) -> Main.Nested (a :: Prim.Type) (b :: Prim.Type)
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Nested :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.Pair
+derive Data.Profunctor.Profunctor Main.Nested
+
+Roles
+Pair = [Representational, Representational]
+Nested = [Representational, Representational]
+
+Diagnostics
+error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
+  --> 10:1..10:34
+   |
+10 | derive instance Profunctor Nested
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

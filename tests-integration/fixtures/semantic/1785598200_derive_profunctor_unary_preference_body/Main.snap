@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Function :: Prim.Type -> Prim.Type -> Prim.Type
+data Function @a @b
+  | Function :: (a -> b) -> Main.Function a b
+
+data NestedRight :: forall (k0 :: Prim.Type). k0 -> Prim.Type -> Prim.Type
+data NestedRight @a @b
+  | NestedRight :: Main.Function Prim.Int b -> Main.NestedRight a b
+
+dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
+  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Function field0) -> Function @a @d \argument ->
+        secondFunction (field0 (firstFunction argument))
+
+dictionary functorFunction :: forall a. Data.Functor.Functor (Main.Function a) where
+  map :: forall (a1 :: Prim.Type) (b :: Prim.Type). (a1 -> b) -> Main.Function a a1 -> Main.Function a b
+  map = \function value ->
+    case value of
+      (Function field0) -> Function @a @b \argument -> function (field0 argument)
+
+dictionary profunctorNestedRight :: Data.Profunctor.Profunctor (Main.NestedRight @Prim.Type) where
+  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.NestedRight @Prim.Type b c -> Main.NestedRight @Prim.Type a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (NestedRight field0) -> NestedRight @Prim.Type @a @d
+        (map @(Main.Function Prim.Int) {functorFunction} @c @d (\element -> secondFunction element)
+          field0)

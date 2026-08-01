@@ -780,6 +780,8 @@ pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub map: Option<(FileId, TermItemId)>,
     pub bimap: Option<(FileId, TermItemId)>,
+    pub cmap: Option<(FileId, TermItemId)>,
+    pub dimap: Option<(FileId, TermItemId)>,
     pub foldr: Option<(FileId, TermItemId)>,
     pub foldl: Option<(FileId, TermItemId)>,
     pub fold_map: Option<(FileId, TermItemId)>,
@@ -808,6 +810,8 @@ impl KnownTermsCore {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
         let map = fetch_known_term(queries, "Data.Functor", "map")?;
         let bimap = fetch_known_term(queries, "Data.Bifunctor", "bimap")?;
+        let cmap = fetch_known_term(queries, "Data.Functor.Contravariant", "cmap")?;
+        let dimap = fetch_known_term(queries, "Data.Profunctor", "dimap")?;
         let foldr = fetch_known_term(queries, "Data.Foldable", "foldr")?;
         let foldl = fetch_known_term(queries, "Data.Foldable", "foldl")?;
         let fold_map = fetch_known_term(queries, "Data.Foldable", "foldMap")?;
@@ -833,6 +837,8 @@ impl KnownTermsCore {
             otherwise,
             map,
             bimap,
+            cmap,
+            dimap,
             foldr,
             foldl,
             fold_map,

@@ -531,7 +531,7 @@ where
                 };
                 Ok(Some(self.builder.subtype(applied, self.accumulator_type)?))
             }
-            TraversalOperation::UnaryApplication { argument } => {
+            TraversalOperation::UnaryApplication { argument, .. } => {
                 let Some((_, source_argument)) = toolkit::decompose_type_application(
                     self.builder.state,
                     self.builder.context,
@@ -583,7 +583,7 @@ where
                 };
                 Ok(Some(self.builder.subtype(folded, self.accumulator_type)?))
             }
-            TraversalOperation::BinaryApplication { arguments } => {
+            TraversalOperation::BinaryApplication { arguments, .. } => {
                 let (first, second) = arguments.operations();
                 self.emit_binary_fold(first, second, value, accumulator, source_type)
             }

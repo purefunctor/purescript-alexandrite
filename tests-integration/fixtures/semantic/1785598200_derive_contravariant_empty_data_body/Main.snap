@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Empty :: forall (k0 :: Prim.Type). k0 -> Prim.Type
+data Empty @a
+
+dictionary contravariantEmpty :: Data.Functor.Contravariant.Contravariant (Main.Empty @Prim.Type)
+  where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a) -> Main.Empty @Prim.Type a -> Main.Empty @Prim.Type b
+  cmap = \function value ->
+    case value of
+      <error>

@@ -16,16 +16,17 @@ use crate::{ExternalQueries, tree};
 use super::variance::VarianceRecipe;
 use super::{DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch};
 
+mod contravariant;
 mod eq_ord;
 mod foldable;
 mod functor;
 mod traversable;
 
-pub(crate) fn generate_instance<Q>(
+pub(super) fn generate_instance<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    variance_recipe: Option<&VarianceRecipe>,
+    recipe: Option<&VarianceRecipe>,
 ) -> QueryResult<Option<tree::TermDeclaration>>
 where
     Q: ExternalQueries,
@@ -42,11 +43,13 @@ where
         | DeriveDispatch::Ord1
         | DeriveDispatch::Functor
         | DeriveDispatch::Bifunctor
+        | DeriveDispatch::Contravariant
+        | DeriveDispatch::Profunctor
         | DeriveDispatch::Foldable
         | DeriveDispatch::Bifoldable
         | DeriveDispatch::Traversable
         | DeriveDispatch::Bitraversable => {
-            generate_known_instance(state, context, result, dispatch, variance_recipe)
+            generate_known_instance(state, context, result, dispatch, recipe)
         }
         _ => Ok(None),
     }
@@ -116,7 +119,7 @@ fn generate_known_instance<Q>(
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
     dispatch: DeriveDispatch,
-    variance_recipe: Option<&VarianceRecipe>,
+    recipe: Option<&VarianceRecipe>,
 ) -> QueryResult<Option<tree::TermDeclaration>>
 where
     Q: ExternalQueries,
@@ -179,7 +182,9 @@ where
             .into_iter()
             .collect(),
             DeriveDispatch::Functor | DeriveDispatch::Bifunctor => {
-                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let Some(recipe) = recipe else {
+                    return Ok(None);
+                };
                 let traversal = match dispatch {
                     DeriveDispatch::Functor => functor::TraversalKind::Functor,
                     DeriveDispatch::Bifunctor => functor::TraversalKind::Bifunctor,
@@ -196,8 +201,30 @@ where
                 .into_iter()
                 .collect()
             }
+            DeriveDispatch::Contravariant | DeriveDispatch::Profunctor => {
+                let Some(recipe) = recipe else {
+                    return Ok(None);
+                };
+                let traversal = match dispatch {
+                    DeriveDispatch::Contravariant => contravariant::TraversalKind::Contravariant,
+                    DeriveDispatch::Profunctor => contravariant::TraversalKind::Profunctor,
+                    _ => unreachable!(),
+                };
+                contravariant::generate_traversal_member(
+                    state,
+                    context,
+                    result,
+                    &freshened.arguments,
+                    recipe,
+                    traversal,
+                )?
+                .into_iter()
+                .collect()
+            }
             DeriveDispatch::Foldable | DeriveDispatch::Bifoldable => {
-                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let Some(recipe) = recipe else {
+                    return Ok(None);
+                };
                 let traversal = match dispatch {
                     DeriveDispatch::Foldable => foldable::TraversalKind::Foldable,
                     DeriveDispatch::Bifoldable => foldable::TraversalKind::Bifoldable,
@@ -217,7 +244,9 @@ where
                 members
             }
             DeriveDispatch::Traversable | DeriveDispatch::Bitraversable => {
-                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let Some(recipe) = recipe else {
+                    return Ok(None);
+                };
                 let traversal = match dispatch {
                     DeriveDispatch::Traversable => traversable::TraversalKind::Traversable,
                     DeriveDispatch::Bitraversable => traversable::TraversalKind::Bitraversable,

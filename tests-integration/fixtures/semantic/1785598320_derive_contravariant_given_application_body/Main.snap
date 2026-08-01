@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Nested :: forall (k0 :: Prim.Type). (k0 -> Prim.Type) -> k0 -> Prim.Type
+data Nested @f @a
+  | Nested :: f a -> Main.Nested f a
+
+dictionary contravariantNested ::
+  forall f.
+  { contravariantDict :: Data.Functor.Contravariant.Contravariant f } =>
+  Data.Functor.Contravariant.Contravariant (Main.Nested @Prim.Type f)
+  where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a) -> Main.Nested @Prim.Type f a -> Main.Nested @Prim.Type f b
+  cmap = \function value ->
+    case value of
+      (Nested field0) -> Nested @Prim.Type @f @b
+        (cmap @f {contravariantDict} @a @b (\element -> function element) field0)

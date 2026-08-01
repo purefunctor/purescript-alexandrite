@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data OptionalPredicate :: Prim.Type -> Prim.Type
+data OptionalPredicate @a
+  | None :: Main.OptionalPredicate a
+  | Some :: (a -> Prim.Boolean) -> Main.OptionalPredicate a
+
+dictionary contravariantOptionalPredicate ::
+  Data.Functor.Contravariant.Contravariant Main.OptionalPredicate
+  where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a) -> Main.OptionalPredicate a -> Main.OptionalPredicate b
+  cmap = \function value ->
+    case value of
+      None -> None @b
+      (Some field0) -> Some @b \argument -> field0 (function argument)

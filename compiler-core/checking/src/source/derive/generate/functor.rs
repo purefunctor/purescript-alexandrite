@@ -325,7 +325,7 @@ where
                 };
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::UnaryApplication { argument } => {
+            TraversalOperation::UnaryApplication { argument, .. } => {
                 // Map delegates traversal of a unary type constructor to its existing
                 // Functor instance. The generator only needs to produce the transformation
                 // that its map implementation applies to each contained value.
@@ -440,7 +440,7 @@ where
                 // Check the specialized result against the target established above.
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::BinaryApplication { arguments } => {
+            TraversalOperation::BinaryApplication { arguments, .. } => {
                 // Bimap lifts transformations through the first and second arguments of a
                 // binary type constructor. See `emit_bimap` for the staged construction.
                 let (first, second) = arguments.operations();

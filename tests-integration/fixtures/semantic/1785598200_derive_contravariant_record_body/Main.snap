@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data PredicateRecord :: Prim.Type -> Prim.Type
+data PredicateRecord @a
+  | PredicateRecord :: { label :: Prim.String, run :: a -> Prim.Boolean } -> Main.PredicateRecord a
+
+dictionary contravariantPredicateRecord ::
+  Data.Functor.Contravariant.Contravariant Main.PredicateRecord
+  where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a) -> Main.PredicateRecord a -> Main.PredicateRecord b
+  cmap = \function value ->
+    case value of
+      (PredicateRecord field0) -> PredicateRecord @b
+        field0 { run = \argument -> field0.run (function argument) }
