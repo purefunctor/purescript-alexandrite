@@ -130,8 +130,11 @@ impl DerivedRigids {
         }
     }
 
-    fn has_contravariant_parameter(&self) -> bool {
-        self.iter().any(|parameter| parameter.expected == Variance::Contravariant)
+    fn supports_contravariant_traversal(&self) -> bool {
+        !matches!(self, DerivedRigids::Invalid)
+            && self
+                .iter()
+                .all(|parameter| matches!(parameter.function_policy, FunctionPolicy::Allow))
     }
 }
 
@@ -342,7 +345,7 @@ where
                 }
 
                 let application = TypeApplication { type_id, function, argument };
-                if self.rigids.has_contravariant_parameter() {
+                if self.rigids.supports_contravariant_traversal() {
                     return self.check_mixed_application(application, variance);
                 }
                 if let Some(binary_class) = self.rigids.binary_class() {

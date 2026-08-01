@@ -44,7 +44,7 @@ error[CannotDeriveForType]: Cannot derive for type: Triple (t0 :: Type) Int (t1 
   |
 8 | derive instance Bifunctor Captured
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Triple (t2 :: Type) Int Boolean
+error[CannotDeriveForType]: Cannot derive for type: Outer (Triple (t2 :: Type) Int Boolean) (t3 :: Type)
   --> 13:1..13:41
    |
 13 | derive instance Bifunctor NestedCaptured

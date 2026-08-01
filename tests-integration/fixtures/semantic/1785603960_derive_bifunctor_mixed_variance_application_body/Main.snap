@@ -28,3 +28,16 @@ dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
     case value of
       (Function field0) -> Function @a @d \argument ->
         secondFunction (field0 (firstFunction argument))
+
+dictionary bifunctorMixed :: Data.Bifunctor.Bifunctor Main.Mixed where
+  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Mixed a c -> Main.Mixed b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Mixed field0) -> Mixed @b @d
+        (dimap @Main.Function {profunctorFunction} @(Main.Predicate b) @(Main.Predicate a) @c @d
+          (\element ->
+            cmap @Main.Predicate {contravariantPredicate} @b @a (\element -> firstFunction element)
+              element)
+          (\element -> secondFunction element)
+          field0)

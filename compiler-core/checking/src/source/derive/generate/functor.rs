@@ -11,7 +11,8 @@ use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::field;
 use crate::source::derive::variance::{
-    ConstructorRecipe, RecordFieldRecipe, TraversalOperation, TraversalParameter, VarianceRecipe,
+    ConstructorRecipe, RecordFieldRecipe, TraversalOperation, TraversalParameter, Variance,
+    VarianceRecipe,
 };
 use crate::source::terms::ElaboratedExpression;
 use crate::state::CheckState;
@@ -325,10 +326,10 @@ where
                 };
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::UnaryApplication { argument, .. } => {
-                // Map delegates traversal of a unary type constructor to its existing
-                // Functor instance. The generator only needs to produce the transformation
-                // that its map implementation applies to each contained value.
+            TraversalOperation::UnaryApplication { argument_variance, argument } => {
+                // A covariant edge delegates to `map`; a contravariant edge reverses the
+                // source-to-target obligation and delegates to `cmap`. The examples below
+                // trace the covariant case.
                 //
                 // NonEmpty
                 //
@@ -386,21 +387,28 @@ where
                 //   transformer :: { item :: a } -> { item :: b }
                 //   transformer = \element ->
                 //     element { item = function element.item }
-                let argument_context = TraversalContext {
-                    source_type: source_argument,
-                    target_type: target_argument,
-                    function_depth,
+                let argument_context = match argument_variance {
+                    Variance::Covariant => TraversalContext {
+                        source_type: source_argument,
+                        target_type: target_argument,
+                        function_depth,
+                    },
+                    Variance::Contravariant => TraversalContext {
+                        source_type: target_argument,
+                        target_type: source_argument,
+                        function_depth,
+                    },
                 };
                 let Some(transformer) = self.emit_transformer(argument, argument_context)? else {
                     return Ok(None);
                 };
 
-                // Resolve the polymorphic, constrained map declaration and specialize it
-                // through application. Applying `transformer` solves the element types;
-                // applying `source` solves the fresh constructor variable, specializing
-                // its wanted Functor evidence.
+                // Resolve the operation selected by the edge variance. Applying
+                // `transformer` solves the element types; applying `source` solves the
+                // fresh constructor variable and specializes the wanted evidence.
                 //
                 //   map :: forall f a b. Functor f => (a -> b) -> f a -> f b
+                //   cmap :: forall f a b. Contravariant f => (b -> a) -> f a -> f b
                 //
                 // NonEmpty
                 //
@@ -426,25 +434,29 @@ where
                 //   map function (Inventory items) =
                 //     Inventory
                 //       (map (\element -> element { item = function element.item }) items)
-                let Some(map) = self.builder.context.known_terms.map else {
+                let operation = match argument_variance {
+                    Variance::Covariant => self.builder.context.known_terms.map,
+                    Variance::Contravariant => self.builder.context.known_terms.cmap,
+                };
+                let Some(operation) = operation else {
                     return Ok(None);
                 };
-                let map = self.builder.term_reference(map)?;
-                let Some(map) = self.builder.apply(map, transformer)? else {
+                let operation = self.builder.term_reference(operation)?;
+                let Some(operation) = self.builder.apply(operation, transformer)? else {
                     return Ok(None);
                 };
-                let Some(mapped) = self.builder.apply(map, value)? else {
+                let Some(mapped) = self.builder.apply(operation, value)? else {
                     return Ok(None);
                 };
 
                 // Check the specialized result against the target established above.
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::BinaryApplication { arguments, .. } => {
-                // Bimap lifts transformations through the first and second arguments of a
-                // binary type constructor. See `emit_bimap` for the staged construction.
+            TraversalOperation::BinaryApplication { first_variance, arguments } => {
+                // Bimap and dimap lift transformations through a binary type constructor.
+                // See `emit_binary_application` for the staged construction.
                 let (first, second) = arguments.operations();
-                self.emit_bimap(first, second, value, traversal)
+                self.emit_binary_application(*first_variance, first, second, value, traversal)
             }
             // Function types require both covariant and contravariant transformations.
             // Given:
@@ -620,11 +632,10 @@ where
         operation: &TraversalOperation,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
-        // Map and bimap require a function that transforms the inside of their source type
-        // into the inside of their target type. Bind one source value, emit its traversal,
-        // and return the resulting lambda to the map or bimap call site. A Parameter
-        // operation eta-expands its mapping expression; nested operations produce a more
-        // involved body.
+        // Each unary or binary traversal operation requires a transformer between its
+        // argument types. The caller has already oriented source and target according to
+        // the edge variance. A Parameter operation eta-expands its mapping expression;
+        // nested operations produce a more involved body.
         //
         //   source :: a
         //   target :: b
@@ -646,13 +657,18 @@ where
         Ok(Some(self.builder.lambda(function, vec![input], body)))
     }
 
-    fn emit_bimap(
+    fn emit_binary_application(
         &mut self,
+        first_variance: Variance,
         first: Option<&TraversalOperation>,
         second: Option<&TraversalOperation>,
         value: ElaboratedExpression,
         traversal: TraversalContext,
     ) -> QueryResult<Option<ElaboratedExpression>> {
+        // A covariant binary edge delegates to `bimap`. A Profunctor edge reverses the
+        // first argument obligation and delegates to `dimap`; its second argument remains
+        // covariant. The examples below trace the Bifunctor case.
+
         // Decompose both arguments of the binary type application.
         //
         //   firstFunction :: a -> c
@@ -728,10 +744,17 @@ where
         //
         //   firstTransformer :: Array a -> Array c
         //   firstTransformer = map firstFunction
-        let first_context = TraversalContext {
-            source_type: source_first,
-            target_type: target_first,
-            function_depth: traversal.function_depth,
+        let first_context = match first_variance {
+            Variance::Covariant => TraversalContext {
+                source_type: source_first,
+                target_type: target_first,
+                function_depth: traversal.function_depth,
+            },
+            Variance::Contravariant => TraversalContext {
+                source_type: target_first,
+                target_type: source_first,
+                function_depth: traversal.function_depth,
+            },
         };
         let first_transformer = if let Some(first) = first {
             let Some(transformer) = self.emit_transformer(first, first_context)? else {
@@ -778,9 +801,8 @@ where
             None => self.emit_identity(second_context)?,
         };
 
-        // Resolve the polymorphic, constrained bimap declaration and specialize it through
-        // application. Applying the source solves the fresh constructor variable and
-        // specializes its wanted Bifunctor evidence.
+        // Resolve the operation selected by the first argument's variance. Applying the
+        // source solves the fresh constructor variable and specializes its wanted evidence.
         //
         //   bimap :: forall f a b c d.
         //     Bifunctor f => (a -> b) -> (c -> d) -> f a c -> f b d
@@ -805,24 +827,28 @@ where
         //         (map firstFunction)
         //         (\record -> record { item = secondFunction record.item })
         //         pair)
-        let Some(bimap) = self.builder.context.known_terms.bimap else {
+        let operation = match first_variance {
+            Variance::Covariant => self.builder.context.known_terms.bimap,
+            Variance::Contravariant => self.builder.context.known_terms.dimap,
+        };
+        let Some(operation) = operation else {
             return Ok(None);
         };
-        let bimap = self.builder.term_reference(bimap)?;
-        let Some(bimap) = self.builder.apply(bimap, first_transformer)? else {
+        let operation = self.builder.term_reference(operation)?;
+        let Some(operation) = self.builder.apply(operation, first_transformer)? else {
             return Ok(None);
         };
-        let Some(bimap) = self.builder.apply(bimap, second_transformer)? else {
+        let Some(operation) = self.builder.apply(operation, second_transformer)? else {
             return Ok(None);
         };
-        let Some(mapped) = self.builder.apply(bimap, value)? else { return Ok(None) };
+        let Some(mapped) = self.builder.apply(operation, value)? else { return Ok(None) };
         Ok(Some(self.builder.subtype(mapped, traversal.target_type)?))
     }
 
     fn emit_identity(&mut self, traversal: TraversalContext) -> QueryResult<ElaboratedExpression> {
-        // Bimap still requires a transformer for an argument that omits the traversed
-        // parameter, so supply identity rather than treating the missing operation as a
-        // missing expression.
+        // Binary operations still require a transformer for an argument that omits the
+        // traversed parameter, so supply identity rather than treating the missing operation
+        // as a missing expression.
         //
         // LeftPair
         //

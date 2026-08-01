@@ -16,3 +16,14 @@ dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Ma
   cmap = \function value ->
     case value of
       (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+
+dictionary functorDoubleNegative :: Data.Functor.Functor Main.DoubleNegative where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.DoubleNegative a -> Main.DoubleNegative b
+  map = \function value ->
+    case value of
+      (DoubleNegative field0) -> DoubleNegative @b
+        (cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate a) @(Main.Predicate b)
+          (\element ->
+            cmap @Main.Predicate {contravariantPredicate} @b @a (\element -> function element)
+              element)
+          field0)

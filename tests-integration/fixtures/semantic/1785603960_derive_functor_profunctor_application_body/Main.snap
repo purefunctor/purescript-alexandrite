@@ -23,4 +23,12 @@ dictionary functorDoubleInput :: Data.Functor.Functor Main.DoubleInput where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.DoubleInput a -> Main.DoubleInput b
   map = \function value ->
     case value of
-      (DoubleInput field0) -> DoubleInput @a field0
+      (DoubleInput field0) -> DoubleInput @b
+        (dimap @Main.Function {profunctorFunction} @(Main.Function b Prim.Int) @(Main.Function a Prim.Int) @Prim.Int @Prim.Int
+          (\element ->
+            dimap @Main.Function {profunctorFunction} @a @b @Prim.Int @Prim.Int
+              (\element -> function element)
+              (\unchanged -> unchanged)
+              element)
+          (\unchanged -> unchanged)
+          field0)

@@ -35,12 +35,12 @@ Roles
 WrapBoth = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
+error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) (t0 :: Type)
   --> 6:1..6:41
   |
 6 | derive instance Bifunctor (WrapBoth f g)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Functor (g :: Type -> Type)
+error[CannotDeriveForType]: Cannot derive for type: (g :: Type -> Type) (t1 :: Type)
   --> 6:1..6:41
   |
 6 | derive instance Bifunctor (WrapBoth f g)
