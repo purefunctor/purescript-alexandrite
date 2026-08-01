@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Predicate :: Prim.Type -> Prim.Type
+data Predicate @a
+  | Predicate :: (a -> Prim.Boolean) -> Main.Predicate a
+
+data Function :: Prim.Type -> Prim.Type -> Prim.Type
+data Function @a @b
+  | Function :: (a -> b) -> Main.Function a b
+
+data Mixed :: Prim.Type -> Prim.Type -> Prim.Type
+data Mixed @a @b
+  | Mixed :: Main.Function (Main.Predicate a) b -> Main.Mixed a b
+
+dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Predicate a -> Main.Predicate b
+  cmap = \function value ->
+    case value of
+      (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+
+dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
+  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Function field0) -> Function @a @d \argument ->
+        secondFunction (field0 (firstFunction argument))
