@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Reader :: forall (@a :: Prim.Type). (Prim.Int -> (a :: Prim.Type)) -> Main.Reader (a :: Prim.Type)
+
+Types
+Reader :: Prim.Type -> Prim.Type
+
+Instances
+instance Data.Foldable.Foldable Main.Reader
+
+Derived
+derive Data.Functor.Functor Main.Reader
+derive Data.Traversable.Traversable Main.Reader
+
+Roles
+Reader = [Representational]
+
+Diagnostics
+error[CannotDeriveForType]: Cannot derive for type: Int -> (t0 :: Type)
+  --> 16:1..16:35
+   |
+16 | derive instance Traversable Reader
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
+  foldr = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function field0 accumulator
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Maybe a -> b
+  foldl = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function accumulator field0
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        Nothing -> mempty @m {monoidDict}
+        (Just field0) -> function field0

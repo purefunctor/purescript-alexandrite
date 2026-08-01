@@ -1,0 +1,95 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Compose ::
+  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
+data Compose @f @g @a
+  | Compose :: f (g a) -> Main.Compose f g a
+
+dictionary functorCompose ::
+  forall f g.
+  { functorDict :: Data.Functor.Functor f } =>
+  { functorDict1 :: Data.Functor.Functor g } =>
+  Data.Functor.Functor (Main.Compose @Prim.Type @Prim.Type f g)
+  where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b) -> Main.Compose @Prim.Type @Prim.Type f g a -> Main.Compose @Prim.Type @Prim.Type f g b
+  map = \function value ->
+    case value of
+      (Compose field0) -> Compose @Prim.Type @Prim.Type @f @g @b
+        (map @f {functorDict} @(g a) @(g b)
+          (\element -> map @g {functorDict1} @a @b (\element -> function element) element)
+          field0)
+
+dictionary foldableCompose ::
+  forall f g.
+  { foldableDict :: Data.Foldable.Foldable f } =>
+  { foldableDict1 :: Data.Foldable.Foldable g } =>
+  Data.Foldable.Foldable (Main.Compose @Prim.Type @Prim.Type f g)
+  where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Compose field0) -> foldr @f {foldableDict} @(g a) @b
+        (\element accumulator ->
+          foldr @g {foldableDict1} @a @b (\element accumulator -> function element accumulator)
+            accumulator
+            element)
+        accumulator
+        field0
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Compose field0) -> foldl @f {foldableDict} @(g a) @b
+        (\accumulator element ->
+          foldl @g {foldableDict1} @a @b (\accumulator element -> function accumulator element)
+            accumulator
+            element)
+        accumulator
+        field0
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.Compose @Prim.Type @Prim.Type f g a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Compose field0) -> foldMap @f {foldableDict} @(g a) @m {monoidDict}
+          (\element ->
+            foldMap @g {foldableDict1} @a @m {monoidDict} (\element -> function element) element)
+          field0
+
+dictionary traversableCompose ::
+  forall f g.
+  { traversableDict :: Data.Traversable.Traversable f } =>
+  { traversableDict1 :: Data.Traversable.Traversable g } =>
+  Data.Traversable.Traversable (Main.Compose @Prim.Type @Prim.Type f g)
+  where
+  superclass functorDict = functorCompose {traversableDict.functorDict} {traversableDict1.functorDict}
+  superclass foldableDict = foldableCompose {traversableDict.foldableDict} {traversableDict1.foldableDict}
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) ->
+  Main.Compose @Prim.Type @Prim.Type f g a ->
+  m (Main.Compose @Prim.Type @Prim.Type f g b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Compose field0) -> map @m {applicativeDict.applyDict.functorDict} @(f (g b)) @(Main.Compose @Prim.Type @Prim.Type f g b)
+          (\field0Result -> Compose @Prim.Type @Prim.Type @f @g @b field0Result)
+          (traverse @f {traversableDict} @(g a) @(g b) @m {applicativeDict}
+            (\element ->
+              traverse @g {traversableDict1} @a @b @m {applicativeDict}
+                (\element -> function element)
+                element)
+            field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.Compose @Prim.Type @Prim.Type f g (m a) -> m (Main.Compose @Prim.Type @Prim.Type f g a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.Compose @Prim.Type @Prim.Type f g) {traversableCompose {traversableDict} {traversableDict1}} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

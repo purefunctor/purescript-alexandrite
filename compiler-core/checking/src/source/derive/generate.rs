@@ -17,7 +17,9 @@ use super::variance::VarianceRecipe;
 use super::{DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch};
 
 mod eq_ord;
+mod foldable;
 mod functor;
+mod traversable;
 
 pub(crate) fn generate_instance<Q>(
     state: &mut CheckState,
@@ -39,7 +41,11 @@ where
         | DeriveDispatch::Ord
         | DeriveDispatch::Ord1
         | DeriveDispatch::Functor
-        | DeriveDispatch::Bifunctor => {
+        | DeriveDispatch::Bifunctor
+        | DeriveDispatch::Foldable
+        | DeriveDispatch::Bifoldable
+        | DeriveDispatch::Traversable
+        | DeriveDispatch::Bitraversable => {
             generate_known_instance(state, context, result, dispatch, variance_recipe)
         }
         _ => Ok(None),
@@ -143,9 +149,11 @@ where
             &freshened.arguments,
         )?;
 
-        let member = match dispatch {
+        let members = match dispatch {
             DeriveDispatch::Eq => {
                 eq_ord::generate_eq_member(state, context, result, &freshened.arguments)?
+                    .into_iter()
+                    .collect()
             }
             DeriveDispatch::Eq1 => generate_delegated_member(
                 state,
@@ -153,9 +161,13 @@ where
                 result,
                 &freshened.arguments,
                 context.known_terms.eq,
-            )?,
+            )?
+            .into_iter()
+            .collect(),
             DeriveDispatch::Ord => {
                 eq_ord::generate_ord_member(state, context, result, &freshened.arguments)?
+                    .into_iter()
+                    .collect()
             }
             DeriveDispatch::Ord1 => generate_delegated_member(
                 state,
@@ -163,7 +175,9 @@ where
                 result,
                 &freshened.arguments,
                 context.known_terms.compare,
-            )?,
+            )?
+            .into_iter()
+            .collect(),
             DeriveDispatch::Functor | DeriveDispatch::Bifunctor => {
                 let Some(recipe) = variance_recipe else { return Ok(None) };
                 let traversal = match dispatch {
@@ -179,20 +193,62 @@ where
                     recipe,
                     traversal,
                 )?
+                .into_iter()
+                .collect()
             }
-            _ => None,
+            DeriveDispatch::Foldable | DeriveDispatch::Bifoldable => {
+                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let traversal = match dispatch {
+                    DeriveDispatch::Foldable => foldable::TraversalKind::Foldable,
+                    DeriveDispatch::Bifoldable => foldable::TraversalKind::Bifoldable,
+                    _ => unreachable!(),
+                };
+                let Some(members) = foldable::generate_fold_members(
+                    state,
+                    context,
+                    result,
+                    &freshened.arguments,
+                    recipe,
+                    traversal,
+                )?
+                else {
+                    return Ok(None);
+                };
+                members
+            }
+            DeriveDispatch::Traversable | DeriveDispatch::Bitraversable => {
+                let Some(recipe) = variance_recipe else { return Ok(None) };
+                let traversal = match dispatch {
+                    DeriveDispatch::Traversable => traversable::TraversalKind::Traversable,
+                    DeriveDispatch::Bitraversable => traversable::TraversalKind::Bitraversable,
+                    _ => unreachable!(),
+                };
+                let Some(members) = traversable::generate_traversal_members(
+                    state,
+                    context,
+                    result,
+                    &freshened.arguments,
+                    recipe,
+                    traversal,
+                )?
+                else {
+                    return Ok(None);
+                };
+                members
+            }
+            _ => vec![],
         };
 
-        let Some(member) = member else {
+        if members.is_empty() {
             return Ok(None);
-        };
+        }
 
         let instance = tree::InstanceDeclaration {
             class: (result.class_file, result.class_id),
             rigid_parameters: Arc::from(freshened.rigids),
             evidences: Arc::from(evidences),
             superclasses: Arc::from(superclasses),
-            implementation: tree::InstanceImplementation::Members(Arc::from([member])),
+            implementation: tree::InstanceImplementation::Members(Arc::from(members)),
         };
         let declaration = tree::TermDeclaration {
             type_id: result.signature,
@@ -229,6 +285,30 @@ where
 
     let file_id = result.class_file;
     let item_id = member.item_id;
+    let Some(implementation_type) = instantiate_class_member_type(
+        state,
+        context,
+        (file_id, item_id),
+        (result.class_file, result.class_id),
+        instance_arguments,
+    )?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(ResolvedMember { file_id, item_id, implementation_type }))
+}
+
+pub(super) fn resolve_known_member<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    result: &DeriveHeadResult,
+    instance_arguments: &[KindOrType],
+    (file_id, item_id): (files::FileId, indexing::TermItemId),
+) -> QueryResult<Option<ResolvedMember>>
+where
+    Q: ExternalQueries,
+{
     let Some(implementation_type) = instantiate_class_member_type(
         state,
         context,

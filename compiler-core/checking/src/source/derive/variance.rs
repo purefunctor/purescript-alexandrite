@@ -6,7 +6,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Name, Type, TypeId, normalise, toolkit};
+use crate::core::{KindOrType, Name, Type, TypeId, constraint, normalise, toolkit};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 
@@ -30,14 +30,21 @@ impl Variance {
 type ClassReference = (FileId, TypeItemId);
 
 #[derive(Clone, Copy)]
+pub(in crate::source) enum FunctionPolicy {
+    Allow,
+    Reject,
+}
+
+#[derive(Clone, Copy)]
 pub(in crate::source) struct ParameterConfig {
     pub variance: Variance,
     pub unary_class: Option<ClassReference>,
+    pub function_policy: FunctionPolicy,
 }
 
 #[derive(Clone, Copy)]
 pub(in crate::source) enum VarianceConfig {
-    Single(ParameterConfig),
+    Single { parameter: ParameterConfig, binary_class: Option<ClassReference> },
     Pair { first: ParameterConfig, second: ParameterConfig, binary_class: Option<ClassReference> },
 }
 
@@ -60,9 +67,25 @@ pub enum TraversalParameter {
 pub enum TraversalOperation {
     Parameter { parameter: TraversalParameter },
     Function { argument: Option<Box<TraversalOperation>>, result: Option<Box<TraversalOperation>> },
-    Map { argument: Box<TraversalOperation> },
-    Bimap { first: Box<TraversalOperation>, second: Option<Box<TraversalOperation>> },
+    UnaryApplication { argument: Box<TraversalOperation> },
+    BinaryApplication { arguments: BinaryApplicationArguments },
     Record { fields: Vec<RecordFieldRecipe> },
+}
+
+pub enum BinaryApplicationArguments {
+    First(Box<TraversalOperation>),
+    Second(Box<TraversalOperation>),
+    Both { first: Box<TraversalOperation>, second: Box<TraversalOperation> },
+}
+
+impl BinaryApplicationArguments {
+    pub fn operations(&self) -> (Option<&TraversalOperation>, Option<&TraversalOperation>) {
+        match self {
+            BinaryApplicationArguments::First(first) => (Some(first), None),
+            BinaryApplicationArguments::Second(second) => (None, Some(second)),
+            BinaryApplicationArguments::Both { first, second } => (Some(first), Some(second)),
+        }
+    }
 }
 
 pub struct RecordFieldRecipe {
@@ -75,11 +98,12 @@ struct DerivedParameter {
     traversal_parameter: TraversalParameter,
     expected: Variance,
     unary_class: Option<ClassReference>,
+    function_policy: FunctionPolicy,
 }
 
 enum DerivedRigids {
     Invalid,
-    Single(DerivedParameter),
+    Single { parameter: DerivedParameter, binary_class: Option<ClassReference> },
     Pair { first: DerivedParameter, second: DerivedParameter, binary_class: Option<ClassReference> },
 }
 
@@ -91,7 +115,7 @@ impl DerivedRigids {
     fn iter(&self) -> impl Iterator<Item = &DerivedParameter> {
         let (first, second) = match self {
             DerivedRigids::Invalid => (None, None),
-            DerivedRigids::Single(first) => (Some(first), None),
+            DerivedRigids::Single { parameter, .. } => (Some(parameter), None),
             DerivedRigids::Pair { first, second, .. } => (Some(first), Some(second)),
         };
         first.into_iter().chain(second)
@@ -99,8 +123,9 @@ impl DerivedRigids {
 
     fn binary_class(&self) -> Option<ClassReference> {
         match self {
-            DerivedRigids::Pair { binary_class, .. } => *binary_class,
-            DerivedRigids::Invalid | DerivedRigids::Single(_) => None,
+            DerivedRigids::Single { binary_class, .. }
+            | DerivedRigids::Pair { binary_class, .. } => *binary_class,
+            DerivedRigids::Invalid => None,
         }
     }
 }
@@ -112,6 +137,7 @@ pub fn generate_variance_constraints<Q>(
     data_id: TypeItemId,
     derived_type: TypeId,
     config: VarianceConfig,
+    available_constraints: &[TypeId],
 ) -> QueryResult<VarianceRecipe>
 where
     Q: ExternalQueries,
@@ -125,8 +151,13 @@ where
             extract_fields_with_rigids(state, context, constructor_t, derived_type, config)?;
         valid &= !matches!(rigids, DerivedRigids::Invalid);
 
-        let mut checker =
-            VarianceFieldChecker { state, context, rigids: &rigids, valid: &mut valid };
+        let mut checker = VarianceFieldChecker {
+            state,
+            context,
+            rigids: &rigids,
+            available_constraints,
+            valid: &mut valid,
+        };
         let mut field_recipes = Vec::with_capacity(fields.len());
         for field in fields {
             let operation = checker.check(field, Variance::Covariant)?;
@@ -178,26 +209,30 @@ where
     }
 
     let rigids = match (config, &names[..]) {
-        (VarianceConfig::Single(parameter), [.., name]) => {
-            DerivedRigids::Single(DerivedParameter {
+        (VarianceConfig::Single { parameter, binary_class }, [.., name]) => DerivedRigids::Single {
+            parameter: DerivedParameter {
                 name: *name,
                 traversal_parameter: TraversalParameter::First,
                 expected: parameter.variance,
                 unary_class: parameter.unary_class,
-            })
-        }
+                function_policy: parameter.function_policy,
+            },
+            binary_class,
+        },
         (VarianceConfig::Pair { first, second, binary_class }, [.., a, b]) => DerivedRigids::Pair {
             first: DerivedParameter {
                 name: *a,
                 traversal_parameter: TraversalParameter::First,
                 expected: first.variance,
                 unary_class: first.unary_class,
+                function_policy: first.function_policy,
             },
             second: DerivedParameter {
                 name: *b,
                 traversal_parameter: TraversalParameter::Second,
                 expected: second.variance,
                 unary_class: second.unary_class,
+                function_policy: second.function_policy,
             },
             binary_class,
         },
@@ -217,6 +252,7 @@ struct VarianceFieldChecker<'state, 'context, 'queries, 'rigids, Q: ExternalQuer
     state: &'state mut CheckState,
     context: &'context CheckContext<'queries, Q>,
     rigids: &'rigids DerivedRigids,
+    available_constraints: &'rigids [TypeId],
     valid: &'state mut bool,
 }
 
@@ -241,6 +277,38 @@ where
         if let Some((argument, result)) =
             toolkit::decompose_function(self.state, self.context, type_id)?
         {
+            // Function results can be transformed pointwise when deriving `Functor`, but an
+            // arbitrary function cannot be folded or traversed structurally. For example:
+            //
+            //   data Reader a = Reader (Int -> a)
+            //
+            // A fold has no finite collection of `a` values to consume without an `Int`.
+            // An applicative traversal encounters a separate obstruction:
+            //
+            //   traverse :: (a -> m b) -> Reader a -> m (Reader b)
+            //   function :: a -> m b
+            //   program  :: Int -> a
+            //
+            // Applying `function` pointwise produces `Int -> m b`, but reconstructing
+            // `Reader b` inside the applicative requires `m (Int -> b)`. An arbitrary
+            // `Applicative m` cannot exchange the `Int ->` and `m` constructors. Fold and
+            // traversal derivation therefore reject function types containing a derived
+            // parameter, while fixed function fields still require no operation.
+            let mut allowed = true;
+            for parameter in self.rigids.iter() {
+                if matches!(parameter.function_policy, FunctionPolicy::Reject)
+                    && toolkit::contains_rigid(self.state, self.context, type_id, parameter.name)?
+                {
+                    allowed = false;
+                    break;
+                }
+            }
+            *self.valid &= allowed;
+            if !allowed {
+                self.state.insert_error(ErrorKind::CannotDeriveForType { type_id });
+                return Ok(None);
+            }
+
             let argument = self.check(argument, variance.flip())?;
             let result = self.check(result, variance)?;
             if argument.is_some() || result.is_some() {
@@ -324,7 +392,8 @@ where
         }
 
         let argument = self.check(application.argument, variance)?;
-        Ok(argument.map(|argument| TraversalOperation::Map { argument: Box::new(argument) }))
+        Ok(argument
+            .map(|argument| TraversalOperation::UnaryApplication { argument: Box::new(argument) }))
     }
 
     fn check_binary_application(
@@ -366,17 +435,38 @@ where
             if *self.valid && head_is_fixed && first_is_valid && second_is_valid {
                 tools::emit_constraint(self.context, self.state, binary_class, binary_head);
             }
-            return Ok(Some(TraversalOperation::Bimap {
-                first: Box::new(first),
-                second: second.map(Box::new),
-            }));
+            let arguments = match second {
+                Some(second) => BinaryApplicationArguments::Both {
+                    first: Box::new(first),
+                    second: Box::new(second),
+                },
+                None => BinaryApplicationArguments::First(Box::new(first)),
+            };
+            return Ok(Some(TraversalOperation::BinaryApplication { arguments }));
         }
 
         if let Some(second) = second {
+            // A right-only occurrence can use either the unary class for the partially
+            // applied constructor or the binary class for its head. Match purs by using
+            // the binary class only when the unary dictionary is unavailable.
+            let binary_available = self.has_instance_head(binary_class, binary_head)?;
+            let unary_available = self.unary_instances_available(
+                application.argument,
+                variance,
+                application.function,
+            )?;
+            if binary_available && !unary_available {
+                if *self.valid && head_is_fixed && second_is_valid {
+                    tools::emit_constraint(self.context, self.state, binary_class, binary_head);
+                }
+                let arguments = BinaryApplicationArguments::Second(Box::new(second));
+                return Ok(Some(TraversalOperation::BinaryApplication { arguments }));
+            }
+
             if *self.valid && head_is_fixed && second_is_valid {
                 self.emit_unary_constraints(application.argument, variance, application.function)?;
             }
-            return Ok(Some(TraversalOperation::Map { argument: Box::new(second) }));
+            return Ok(Some(TraversalOperation::UnaryApplication { argument: Box::new(second) }));
         }
 
         Ok(None)
@@ -411,6 +501,123 @@ where
             }
         }
         Ok(())
+    }
+
+    fn unary_instances_available(
+        &mut self,
+        argument: TypeId,
+        variance: Variance,
+        function: TypeId,
+    ) -> QueryResult<bool> {
+        for parameter in self.rigids.iter() {
+            if variance != parameter.expected
+                || !toolkit::contains_rigid(self.state, self.context, argument, parameter.name)?
+            {
+                continue;
+            }
+
+            let Some(class) = parameter.unary_class else {
+                return Ok(false);
+            };
+            if !self.has_instance_head(class, function)? {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    fn has_instance_head(&mut self, class: ClassReference, argument: TypeId) -> QueryResult<bool> {
+        // Derivation tests constructor-head availability rather than solving the exact
+        // candidate constraint. For example, `Foldable (p Int)` advertises unary traversal
+        // for the head `p`; the emitted wanted still checks the complete application.
+        let (argument_head, _) =
+            toolkit::extract_type_application(self.state, self.context, argument)?;
+
+        let type_heads_equal = |context: &CheckContext<Q>, left: TypeId, right: TypeId| {
+            if left == right {
+                return true;
+            }
+
+            match (context.lookup_type(left), context.lookup_type(right)) {
+                (
+                    Type::Constructor(left_file, left_id),
+                    Type::Constructor(right_file, right_id),
+                ) => left_file == right_file && left_id == right_id,
+                // Generalisation can reconstruct a rigid's kind while preserving the binder
+                // name. Constructor-head availability depends on that binder identity, not
+                // its kind ID.
+                (Type::Rigid(left_name, ..), Type::Rigid(right_name, ..)) => {
+                    left_name == right_name
+                }
+                (Type::Free(left_name), Type::Free(right_name)) => left_name == right_name,
+                _ => false,
+            }
+        };
+
+        let mut available_constraints = Vec::with_capacity(self.available_constraints.len());
+        for &available in self.available_constraints {
+            let Some(available) =
+                constraint::canonical::canonicalise(self.state, self.context, available)?
+            else {
+                continue;
+            };
+            available_constraints.push(available);
+        }
+        let available_constraints = constraint::elaborate::elaborate_superclasses(
+            self.state,
+            self.context,
+            &available_constraints,
+        )?;
+
+        for available in available_constraints {
+            let available = self.state.canonicals[available].clone();
+            if (available.file_id, available.type_id) != class {
+                continue;
+            }
+            let [KindOrType::Type(available_argument)] = available.arguments.as_ref() else {
+                continue;
+            };
+            let (available_head, _) =
+                toolkit::extract_type_application(self.state, self.context, *available_argument)?;
+            if type_heads_equal(self.context, available_head, argument_head) {
+                return Ok(true);
+            }
+        }
+
+        let class_type = self.context.queries.intern_type(Type::Constructor(class.0, class.1));
+        let constraint_type = self.context.intern_application(class_type, argument);
+        let Some(constraint) =
+            constraint::canonical::canonicalise(self.state, self.context, constraint_type)?
+        else {
+            return Ok(false);
+        };
+        let instances =
+            constraint::instances::collect_instance_chains(self.state, self.context, constraint)?;
+        for chain in instances.chains {
+            for candidate in chain {
+                let Some(candidate) = toolkit::instance_info(
+                    self.state,
+                    self.context,
+                    candidate.instance.signature,
+                    class,
+                )?
+                else {
+                    continue;
+                };
+                let [KindOrType::Type(candidate_argument)] = candidate.arguments.as_slice() else {
+                    continue;
+                };
+                let (candidate_head, _) = toolkit::extract_type_application(
+                    self.state,
+                    self.context,
+                    *candidate_argument,
+                )?;
+                if type_heads_equal(self.context, candidate_head, argument_head) {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
     }
 
     fn emit_unary_constraint(&mut self, parameter: &DerivedParameter, function: TypeId) {

@@ -780,6 +780,20 @@ pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub map: Option<(FileId, TermItemId)>,
     pub bimap: Option<(FileId, TermItemId)>,
+    pub foldr: Option<(FileId, TermItemId)>,
+    pub foldl: Option<(FileId, TermItemId)>,
+    pub fold_map: Option<(FileId, TermItemId)>,
+    pub bifoldr: Option<(FileId, TermItemId)>,
+    pub bifoldl: Option<(FileId, TermItemId)>,
+    pub bifold_map: Option<(FileId, TermItemId)>,
+    pub append: Option<(FileId, TermItemId)>,
+    pub mempty: Option<(FileId, TermItemId)>,
+    pub pure: Option<(FileId, TermItemId)>,
+    pub apply: Option<(FileId, TermItemId)>,
+    pub traverse: Option<(FileId, TermItemId)>,
+    pub sequence: Option<(FileId, TermItemId)>,
+    pub bitraverse: Option<(FileId, TermItemId)>,
+    pub bisequence: Option<(FileId, TermItemId)>,
     pub eq: Option<(FileId, TermItemId)>,
     pub eq1: Option<(FileId, TermItemId)>,
     pub compare: Option<(FileId, TermItemId)>,
@@ -794,6 +808,20 @@ impl KnownTermsCore {
         let otherwise = fetch_known_term(queries, "Data.Boolean", "otherwise")?;
         let map = fetch_known_term(queries, "Data.Functor", "map")?;
         let bimap = fetch_known_term(queries, "Data.Bifunctor", "bimap")?;
+        let foldr = fetch_known_term(queries, "Data.Foldable", "foldr")?;
+        let foldl = fetch_known_term(queries, "Data.Foldable", "foldl")?;
+        let fold_map = fetch_known_term(queries, "Data.Foldable", "foldMap")?;
+        let bifoldr = fetch_known_term(queries, "Data.Bifoldable", "bifoldr")?;
+        let bifoldl = fetch_known_term(queries, "Data.Bifoldable", "bifoldl")?;
+        let bifold_map = fetch_known_term(queries, "Data.Bifoldable", "bifoldMap")?;
+        let append = fetch_known_term(queries, "Data.Semigroup", "append")?;
+        let mempty = fetch_known_term(queries, "Data.Monoid", "mempty")?;
+        let pure = fetch_known_term(queries, "Control.Applicative", "pure")?;
+        let apply = fetch_known_term(queries, "Control.Apply", "apply")?;
+        let traverse = fetch_known_term(queries, "Data.Traversable", "traverse")?;
+        let sequence = fetch_known_term(queries, "Data.Traversable", "sequence")?;
+        let bitraverse = fetch_known_term(queries, "Data.Bitraversable", "bitraverse")?;
+        let bisequence = fetch_known_term(queries, "Data.Bitraversable", "bisequence")?;
         let eq = fetch_known_term(queries, "Data.Eq", "eq")?;
         let eq1 = fetch_known_term(queries, "Data.Eq", "eq1")?;
         let compare = fetch_known_term(queries, "Data.Ord", "compare")?;
@@ -805,6 +833,20 @@ impl KnownTermsCore {
             otherwise,
             map,
             bimap,
+            foldr,
+            foldl,
+            fold_map,
+            bifoldr,
+            bifoldl,
+            bifold_map,
+            append,
+            mempty,
+            pure,
+            apply,
+            traverse,
+            sequence,
+            bitraverse,
+            bisequence,
             eq,
             eq1,
             compare,

@@ -95,10 +95,16 @@ where
                 data_id,
                 derived_type,
                 config,
+                &result.constraints,
             )?;
             if matches!(
                 derive_dispatch(context, result.class_file, result.class_id),
-                DeriveDispatch::Functor | DeriveDispatch::Bifunctor
+                DeriveDispatch::Functor
+                    | DeriveDispatch::Bifunctor
+                    | DeriveDispatch::Foldable
+                    | DeriveDispatch::Bifoldable
+                    | DeriveDispatch::Traversable
+                    | DeriveDispatch::Bitraversable
             ) && recipe.valid
             {
                 variance_recipe = Some(recipe);

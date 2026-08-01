@@ -325,7 +325,7 @@ where
                 };
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::Map { argument } => {
+            TraversalOperation::UnaryApplication { argument } => {
                 // Map delegates traversal of a unary type constructor to its existing
                 // Functor instance. The generator only needs to produce the transformation
                 // that its map implementation applies to each contained value.
@@ -440,10 +440,11 @@ where
                 // Check the specialized result against the target established above.
                 Ok(Some(self.builder.subtype(mapped, target_type)?))
             }
-            TraversalOperation::Bimap { first, second } => {
+            TraversalOperation::BinaryApplication { arguments } => {
                 // Bimap lifts transformations through the first and second arguments of a
                 // binary type constructor. See `emit_bimap` for the staged construction.
-                self.emit_bimap(first, second.as_deref(), value, traversal)
+                let (first, second) = arguments.operations();
+                self.emit_bimap(first, second, value, traversal)
             }
             // Function types require both covariant and contravariant transformations.
             // Given:
@@ -647,7 +648,7 @@ where
 
     fn emit_bimap(
         &mut self,
-        first: &TraversalOperation,
+        first: Option<&TraversalOperation>,
         second: Option<&TraversalOperation>,
         value: ElaboratedExpression,
         traversal: TraversalContext,
@@ -712,6 +713,8 @@ where
         };
 
         // Generate the transformation that bimap calls for values in its first argument.
+        // When the traversed parameter does not occur there, bimap still requires an
+        // identity function.
         //
         //   bimap :: (a -> b) -> (c -> d) -> f a c -> f b d
         //   firstTransformer :: sourceFirst -> targetFirst
@@ -730,8 +733,13 @@ where
             target_type: target_first,
             function_depth: traversal.function_depth,
         };
-        let Some(first_transformer) = self.emit_transformer(first, first_context)? else {
-            return Ok(None);
+        let first_transformer = if let Some(first) = first {
+            let Some(transformer) = self.emit_transformer(first, first_context)? else {
+                return Ok(None);
+            };
+            transformer
+        } else {
+            self.emit_identity(first_context)?
         };
 
         // Generate the transformation that bimap calls for values in its second argument.
@@ -812,9 +820,9 @@ where
     }
 
     fn emit_identity(&mut self, traversal: TraversalContext) -> QueryResult<ElaboratedExpression> {
-        // A Bimap operation omits its second operation when the traversed parameter does
-        // not occur in that argument. Bimap still requires a second transformer, so supply
-        // identity rather than treating the missing operation as a missing expression.
+        // Bimap still requires a transformer for an argument that omits the traversed
+        // parameter, so supply identity rather than treating the missing operation as a
+        // missing expression.
         //
         // LeftPair
         //

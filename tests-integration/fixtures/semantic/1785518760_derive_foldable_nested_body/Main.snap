@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Compose ::
+  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
+data Compose @f @g @a
+  | Compose :: f (g a) -> Main.Compose f g a
+
+dictionary foldableCompose ::
+  forall f g.
+  { foldableDict :: Data.Foldable.Foldable f } =>
+  { foldableDict1 :: Data.Foldable.Foldable g } =>
+  Data.Foldable.Foldable (Main.Compose @Prim.Type @Prim.Type f g)
+  where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Compose field0) -> foldr @f {foldableDict} @(g a) @b
+        (\element accumulator ->
+          foldr @g {foldableDict1} @a @b (\element accumulator -> function element accumulator)
+            accumulator
+            element)
+        accumulator
+        field0
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (b -> a -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Compose field0) -> foldl @f {foldableDict} @(g a) @b
+        (\accumulator element ->
+          foldl @g {foldableDict1} @a @b (\accumulator element -> function accumulator element)
+            accumulator
+            element)
+        accumulator
+        field0
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.Compose @Prim.Type @Prim.Type f g a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Compose field0) -> foldMap @f {foldableDict} @(g a) @m {monoidDict}
+          (\element ->
+            foldMap @g {foldableDict1} @a @m {monoidDict} (\element -> function element) element)
+          field0

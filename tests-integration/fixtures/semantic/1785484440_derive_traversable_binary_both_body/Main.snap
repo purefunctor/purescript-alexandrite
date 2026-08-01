@@ -1,0 +1,62 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Duplicate :: forall (k0 :: Prim.Type). (k0 -> k0 -> Prim.Type) -> k0 -> Prim.Type
+data Duplicate @p @a
+  | Duplicate :: p a a -> Main.Duplicate p a
+
+dictionary functorDuplicate ::
+  forall p.
+  { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
+  Data.Functor.Functor (Main.Duplicate @Prim.Type p)
+  where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b) -> Main.Duplicate @Prim.Type p a -> Main.Duplicate @Prim.Type p b
+  map = \function -> \(Duplicate value) ->
+    Duplicate @Prim.Type @p @b (bimap @p {bifunctorDict} @a @b @a @b function function value)
+
+dictionary foldableDuplicate ::
+  forall p.
+  { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
+  Data.Foldable.Foldable (Main.Duplicate @Prim.Type p)
+  where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
+  foldr = \function -> \initial -> \(Duplicate value) ->
+    bifoldr @p {bifoldableDict} @a @a @b function function initial value
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
+  foldl = \function -> \initial -> \(Duplicate value) ->
+    bifoldl @p {bifoldableDict} @a @a @b function function initial value
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.Duplicate @Prim.Type p a -> m
+  foldMap = \{monoidDict} -> \function -> \(Duplicate value) ->
+    bifoldMap @p {bifoldableDict} @m @a @a {monoidDict} function function value
+
+dictionary traversableDuplicate ::
+  forall p.
+  { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
+  Data.Traversable.Traversable (Main.Duplicate @Prim.Type p)
+  where
+  superclass functorDict = functorDuplicate {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableDuplicate {bitraversableDict.bifoldableDict}
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.Duplicate @Prim.Type p a -> m (Main.Duplicate @Prim.Type p b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (Duplicate field0) -> map @m {applicativeDict.applyDict.functorDict} @(p b b) @(Main.Duplicate @Prim.Type p b)
+          (\field0Result -> Duplicate @Prim.Type @p @b field0Result)
+          (bitraverse @p {bitraversableDict} @m @a @a @b @b {applicativeDict}
+            (\element -> function element)
+            (\element -> function element)
+            field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.Duplicate @Prim.Type p (m a) -> m (Main.Duplicate @Prim.Type p a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.Duplicate @Prim.Type p) {traversableDuplicate {bitraversableDict}} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value

@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data RightNested :: forall (k0 :: Prim.Type). (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
+data RightNested @p @a
+  | RightNested :: p Prim.Int a -> Main.RightNested p a
+
+dictionary functorRightNested ::
+  forall p.
+  { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
+  Data.Functor.Functor (Main.RightNested @Prim.Type p)
+  where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  (a -> b) -> Main.RightNested @Prim.Type p a -> Main.RightNested @Prim.Type p b
+  map = \function -> \(RightNested value) ->
+    RightNested @Prim.Type @p @b
+      (bimap @p {bifunctorDict} @Prim.Int @Prim.Int @a @b (\fixed -> fixed) function value)
+
+dictionary foldableRightNested ::
+  forall p.
+  { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
+  Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
+  where
+  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldr = \function -> \initial -> \(RightNested value) ->
+    bifoldr @p {bifoldableDict} @Prim.Int @a @b (\_ accumulated -> accumulated) function initial
+      value
+  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldl = \function -> \initial -> \(RightNested value) ->
+    bifoldl @p {bifoldableDict} @Prim.Int @a @b (\accumulated _ -> accumulated) function initial
+      value
+  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
+  Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
+  foldMap = \{monoidDict} -> \function -> \(RightNested value) ->
+    bifoldMap @p {bifoldableDict} @m @Prim.Int @a {monoidDict} (\_ -> mempty @m {monoidDict})
+      function
+      value
+
+dictionary traversableRightNested ::
+  forall p.
+  { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
+  Data.Traversable.Traversable (Main.RightNested @Prim.Type p)
+  where
+  superclass functorDict = functorRightNested {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableRightNested {bitraversableDict.bifoldableDict}
+  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.RightNested @Prim.Type p a -> m (Main.RightNested @Prim.Type p b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (RightNested field0) -> map @m {applicativeDict.applyDict.functorDict} @(p Prim.Int b) @(Main.RightNested @Prim.Type p b)
+          (\field0Result -> RightNested @Prim.Type @p @b field0Result)
+          (bitraverse @p {bitraversableDict} @m @Prim.Int @a @Prim.Int @b {applicativeDict}
+            (\unchanged -> pure @m {applicativeDict} @Prim.Int unchanged)
+            (\element -> function element)
+            field0)
+  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  Main.RightNested @Prim.Type p (m a) -> m (Main.RightNested @Prim.Type p a)
+  sequence = \{applicativeDict} ->
+    \value ->
+      traverse @(Main.RightNested @Prim.Type p) {traversableRightNested {bitraversableDict}} @(m a) @a @m {applicativeDict}
+        (\effect0 -> effect0)
+        value
