@@ -1061,8 +1061,8 @@ where
     Q: ExternalQueries,
 {
     let on_lowered = |lowered: &lowering::LoweredModule| {
-        if let Some(lowering::TermItemIr::Constructor { arguments }) =
-            lowered.tree.get_term_item(term_id)
+        if let Some(lowering::TermItemKind::Constructor { arguments }) =
+            lowered.tree.get_term_item_kind(term_id)
         {
             arguments.len()
         } else {

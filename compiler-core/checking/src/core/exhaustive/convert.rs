@@ -325,8 +325,8 @@ where
     Q: ExternalQueries,
 {
     let on_lowered = |lowered: &lowering::LoweredModule| {
-        if let Some(lowering::TermItemIr::Operator { resolution, .. }) =
-            lowered.tree.get_term_item(item_id)
+        if let Some(lowering::TermItemKind::Operator { resolution, .. }) =
+            lowered.tree.get_term_item_kind(item_id)
         {
             *resolution
         } else {

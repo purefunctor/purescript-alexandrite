@@ -5,7 +5,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
-use lowering::{TermItemIr, TypeItemIr};
+use lowering::{TermItemKind, TypeItemKind};
 
 use rustc_hash::FxHashMap;
 
@@ -252,8 +252,8 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.tree.get_type_item(type_id).and_then(|item| match item {
-            TypeItemIr::Operator { resolution, .. } => *resolution,
+        lowered.tree.get_type_item_kind(type_id).and_then(|item| match item {
+            TypeItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };
@@ -275,8 +275,8 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.tree.get_term_item(term_id).and_then(|item| match item {
-            TermItemIr::Operator { resolution, .. } => *resolution,
+        lowered.tree.get_term_item_kind(term_id).and_then(|item| match item {
+            TermItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };
@@ -752,15 +752,15 @@ where
     Q: ExternalQueries,
 {
     let type_item = if file_id == context.id {
-        context.lowered.tree.get_type_item(item_id)
+        context.lowered.tree.get_type_item_kind(item_id)
     } else {
         let lowered = context.queries.lowered(file_id)?;
         return Ok(matches!(
-            lowered.tree.get_type_item(item_id),
-            Some(lowering::TypeItemIr::NewtypeGroup { .. })
+            lowered.tree.get_type_item_kind(item_id),
+            Some(lowering::TypeItemKind::Newtype { .. })
         ));
     };
-    Ok(matches!(type_item, Some(lowering::TypeItemIr::NewtypeGroup { .. })))
+    Ok(matches!(type_item, Some(lowering::TypeItemKind::Newtype { .. })))
 }
 
 pub fn extract_type_constructor<Q>(

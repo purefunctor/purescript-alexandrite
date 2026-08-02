@@ -5,8 +5,8 @@ use building_types::QueryResult;
 use files::FileId;
 use indexing::{IndexedTypeItemKind, TermItemId, TypeItemId};
 use lowering::{
-    ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
-    TypeItemIr, TypeVariableBinding,
+    ClassDeclaration, DataDeclaration, LoweringError, NewtypeDeclaration, RecursiveGroup, Scc,
+    TermItemKind, TypeItemKind, TypeSynonymDeclaration, TypeVariableBinding,
 };
 use smol_str::SmolStr;
 
@@ -241,32 +241,32 @@ fn check_type_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.tree.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TypeItemIr::DataGroup { signature, .. } => {
+        TypeItemKind::Data { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::NewtypeGroup { signature, .. } => {
+        TypeItemKind::Newtype { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::SynonymGroup { signature, .. } => {
+        TypeItemKind::Synonym { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::ClassGroup { signature, .. } => {
+        TypeItemKind::Class { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::Foreign { signature, .. } => {
+        TypeItemKind::Foreign { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::Operator { .. } => {}
+        TypeItemKind::Operator { .. } => {}
     }
 
     Ok(())
@@ -295,31 +295,33 @@ fn check_type_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.tree.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TypeItemIr::DataGroup { signature, data, roles } => {
-            let Some(DataIr { variables }) = data else { return Ok(()) };
+        TypeItemKind::Data { signature, declaration, roles } => {
+            let Some(DataDeclaration { variables }) = declaration else { return Ok(()) };
             check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
         }
-        TypeItemIr::NewtypeGroup { signature, newtype, roles } => {
-            let Some(NewtypeIr { variables }) = newtype else { return Ok(()) };
+        TypeItemKind::Newtype { signature, declaration, roles } => {
+            let Some(NewtypeDeclaration { variables }) = declaration else { return Ok(()) };
             check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
         }
-        TypeItemIr::SynonymGroup { signature, synonym, .. } => {
-            let Some(SynonymIr { variables, synonym }) = synonym else { return Ok(()) };
-            check_synonym_equation(state, context, scc, item_id, *signature, variables, *synonym)?;
+        TypeItemKind::Synonym { signature, declaration, .. } => {
+            let Some(TypeSynonymDeclaration { variables, type_ }) = declaration else {
+                return Ok(());
+            };
+            check_synonym_equation(state, context, scc, item_id, *signature, variables, *type_)?;
         }
-        TypeItemIr::ClassGroup { signature, class } => {
-            let Some(class) = class else { return Ok(()) };
-            check_class_equation(state, context, scc, item_id, *signature, class)?;
+        TypeItemKind::Class { signature, declaration } => {
+            let Some(declaration) = declaration else { return Ok(()) };
+            check_class_equation(state, context, scc, item_id, *signature, declaration)?;
         }
-        TypeItemIr::Foreign { roles, .. } => {
+        TypeItemKind::Foreign { roles, .. } => {
             scc.foreign.push((item_id, Arc::clone(roles)));
         }
-        TypeItemIr::Operator { resolution, .. } => {
+        TypeItemKind::Operator { resolution, .. } => {
             check_type_operator(state, context, item_id, *resolution)?;
         }
     }
@@ -468,8 +470,8 @@ where
     let mut constructors = vec![];
 
     for constructor_id in context.indexed.data_constructors(item_id) {
-        let Some(TermItemIr::Constructor { arguments }) =
-            context.lowered.tree.get_term_item(constructor_id)
+        let Some(TermItemKind::Constructor { arguments }) =
+            context.lowered.tree.get_term_item_kind(constructor_id)
         else {
             continue;
         };
@@ -756,12 +758,12 @@ fn check_class_equation<Q>(
     scc: &mut TypeSccState,
     item_id: TypeItemId,
     signature: Option<lowering::TypeId>,
-    class: &ClassIr,
+    declaration: &ClassDeclaration,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
 {
-    let ClassIr { constraints, variables, functional_dependencies } = class;
+    let ClassDeclaration { constraints, variables, functional_dependencies } = declaration;
 
     let parameters = if let Some(signature_id) = signature
         && let Some(signature_kind) = state.checked.lookup_type(item_id)
@@ -837,8 +839,8 @@ where
     let mut members = vec![];
 
     for member_id in context.indexed.class_members(item_id) {
-        let Some(TermItemIr::ClassMember { signature }) =
-            context.lowered.tree.get_term_item(member_id)
+        let Some(TermItemKind::ClassMember { signature }) =
+            context.lowered.tree.get_term_item_kind(member_id)
         else {
             continue;
         };

@@ -328,7 +328,7 @@ pub enum Associativity {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TermItemIr {
+pub enum TermItemKind {
     ClassMember {
         signature: Option<TypeId>,
     },
@@ -355,7 +355,7 @@ pub enum TermItemIr {
         precedence: Option<u8>,
         resolution: Option<(FileId, TermItemId)>,
     },
-    ValueGroup {
+    Value {
         signature: Option<TypeId>,
         equations: Arc<[Equation]>,
     },
@@ -370,47 +370,47 @@ pub enum Role {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DataIr {
+pub struct DataDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct NewtypeIr {
+pub struct NewtypeDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct SynonymIr {
+pub struct TypeSynonymDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
-    pub synonym: Option<TypeId>,
+    pub type_: Option<TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClassIr {
+pub struct ClassDeclaration {
     pub constraints: Arc<[TypeId]>,
     pub variables: Arc<[TypeVariableBinding]>,
     pub functional_dependencies: Arc<[FunctionalDependency]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TypeItemIr {
-    DataGroup {
+pub enum TypeItemKind {
+    Data {
         signature: Option<TypeId>,
-        data: Option<DataIr>,
+        declaration: Option<DataDeclaration>,
         roles: Arc<[Role]>,
     },
-    NewtypeGroup {
+    Newtype {
         signature: Option<TypeId>,
-        newtype: Option<NewtypeIr>,
+        declaration: Option<NewtypeDeclaration>,
         roles: Arc<[Role]>,
     },
-    SynonymGroup {
+    Synonym {
         signature: Option<TypeId>,
-        synonym: Option<SynonymIr>,
+        declaration: Option<TypeSynonymDeclaration>,
     },
-    ClassGroup {
+    Class {
         signature: Option<TypeId>,
-        class: Option<ClassIr>,
+        declaration: Option<ClassDeclaration>,
     },
     Foreign {
         signature: Option<TypeId>,
@@ -434,8 +434,8 @@ pub struct LoweredTree {
     pub(crate) binders: FxHashMap<BinderId, BinderKind>,
     pub(crate) expressions: FxHashMap<ExpressionId, ExpressionKind>,
     pub(crate) types: FxHashMap<TypeId, TypeKind>,
-    pub(crate) term_items: FxHashMap<TermItemId, TermItemIr>,
-    pub(crate) type_items: FxHashMap<TypeItemId, TypeItemIr>,
+    pub(crate) term_items: FxHashMap<TermItemId, TermItemKind>,
+    pub(crate) type_items: FxHashMap<TypeItemId, TypeItemKind>,
 
     pub(crate) do_statements: FxHashMap<DoStatementId, DoStatement>,
     pub(crate) let_binding_groups: Arena<LetBindingNameGroup>,
@@ -493,11 +493,11 @@ impl LoweredTree {
         self.do_statements.get(&id)
     }
 
-    pub fn get_term_item(&self, id: TermItemId) -> Option<&TermItemIr> {
+    pub fn get_term_item_kind(&self, id: TermItemId) -> Option<&TermItemKind> {
         self.term_items.get(&id)
     }
 
-    pub fn get_type_item(&self, id: TypeItemId) -> Option<&TypeItemIr> {
+    pub fn get_type_item_kind(&self, id: TypeItemId) -> Option<&TypeItemKind> {
         self.type_items.get(&id)
     }
 

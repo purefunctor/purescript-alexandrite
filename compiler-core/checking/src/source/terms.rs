@@ -56,12 +56,12 @@ where
     Q: ExternalQueries,
 {
     let is_constructor = if file_id == context.id {
-        let item = context.lowered.tree.get_term_item(term_id);
-        matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
+        let item = context.lowered.tree.get_term_item_kind(term_id);
+        matches!(item, Some(lowering::TermItemKind::Constructor { .. }))
     } else {
         let lowered = context.queries.lowered(file_id)?;
-        let item = lowered.tree.get_term_item(term_id);
-        matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
+        let item = lowered.tree.get_term_item_kind(term_id);
+        matches!(item, Some(lowering::TermItemKind::Constructor { .. }))
     };
 
     let kind = if is_constructor {

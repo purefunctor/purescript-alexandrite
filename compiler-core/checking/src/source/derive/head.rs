@@ -1,7 +1,7 @@
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
-use lowering::TermItemIr;
+use lowering::TermItemKind;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
@@ -30,8 +30,8 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.tree.get_term_item(item_id)?;
-            let TermItemIr::Derive { newtype, constraints, resolution, arguments } = item else {
+            let item = context.lowered.tree.get_term_item_kind(item_id)?;
+            let TermItemKind::Derive { newtype, constraints, resolution, arguments } = item else {
                 return None;
             };
             let resolution = *resolution;

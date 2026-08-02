@@ -3,7 +3,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
-use lowering::TermItemIr;
+use lowering::TermItemKind;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
@@ -61,8 +61,8 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.tree.get_term_item(item_id)?;
-            let TermItemIr::Instance { constraints, resolution, arguments, .. } = item else {
+            let item = context.lowered.tree.get_term_item_kind(item_id)?;
+            let TermItemKind::Instance { constraints, resolution, arguments, .. } = item else {
                 return None;
             };
             let resolution = *resolution;
@@ -217,8 +217,8 @@ where
 {
     for scc in &context.grouped.term_scc {
         for &item_id in scc.as_slice() {
-            let Some(TermItemIr::Instance { members, resolution, .. }) =
-                context.lowered.tree.get_term_item(item_id)
+            let Some(TermItemKind::Instance { members, resolution, .. }) =
+                context.lowered.tree.get_term_item_kind(item_id)
             else {
                 continue;
             };
@@ -620,10 +620,10 @@ where
             continue;
         }
 
-        let item = context.lowered.tree.get_term_item(item_id);
+        let item = context.lowered.tree.get_term_item_kind(item_id);
 
         let resolution = item.and_then(|item| match item {
-            TermItemIr::Operator { resolution, .. } => *resolution,
+            TermItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         });
 
@@ -649,19 +649,19 @@ fn check_term_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.tree.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TermItemIr::Foreign { signature } => {
+        TermItemKind::Foreign { signature } => {
             let Some(signature) = signature else { return Ok(()) };
             let type_id = check_signature_type(state, context, item_id, *signature)?;
             let declaration =
                 tree::TermDeclaration { type_id, kind: tree::TermDeclarationKind::Foreign };
             state.checked.tree.insert_term(item_id, declaration);
         }
-        TermItemIr::ValueGroup { signature, .. } => {
+        TermItemKind::Value { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_type(state, context, item_id, *signature)?;
         }
@@ -694,15 +694,15 @@ fn check_term_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.tree.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TermItemIr::Operator { resolution, .. } => {
+        TermItemKind::Operator { resolution, .. } => {
             check_term_operator(state, context, item_id, *resolution)?;
         }
-        TermItemIr::ValueGroup { signature, equations } => {
+        TermItemKind::Value { signature, equations } => {
             let pending = state.with_implication(|state| {
                 check_value_group(state, context, item_id, *signature, equations)
             })?;

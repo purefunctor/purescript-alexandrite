@@ -263,8 +263,8 @@ impl<'a> ModuleEncoder<'a> {
         type_id: indexing::TypeItemId,
         declaration: &schema::TypeDeclaration,
     ) -> Vec<schema::FunctionalDependency> {
-        let Some(lowering::TypeItemIr::ClassGroup { class: Some(class), .. }) =
-            self.lowered.tree.get_type_item(type_id)
+        let Some(lowering::TypeItemKind::Class { declaration: Some(class), .. }) =
+            self.lowered.tree.get_type_item_kind(type_id)
         else {
             return vec![];
         };
@@ -534,13 +534,13 @@ fn instance_parents(
         parents.insert(parent_type);
     }
 
-    let Some(term_item) = encoder.lowered.tree.get_term_item(term_id) else {
+    let Some(term_item) = encoder.lowered.tree.get_term_item_kind(term_id) else {
         return parents;
     };
 
     let arguments = match term_item {
-        lowering::TermItemIr::Instance { arguments, .. }
-        | lowering::TermItemIr::Derive { arguments, .. } => arguments,
+        lowering::TermItemKind::Instance { arguments, .. }
+        | lowering::TermItemKind::Derive { arguments, .. } => arguments,
         _ => return parents,
     };
 

@@ -27,7 +27,7 @@ use files::FileId;
 use indexing::{TermItemId, TypeItemId};
 use lowering::{
     Associativity, BinderId, BinderKind, ExpressionId, ExpressionKind, IsElement, LoweredModule,
-    OperatorPair, TermItemIr, TermOperatorId, TypeId, TypeItemIr, TypeKind, TypeOperatorId,
+    OperatorPair, TermItemKind, TermOperatorId, TypeId, TypeItemKind, TypeKind, TypeOperatorId,
 };
 use rustc_hash::FxHashMap;
 
@@ -50,8 +50,8 @@ impl ForOperatorId for TermOperatorId {
     }
 
     fn operator_info(lowered: &LoweredModule, id: Self::ItemId) -> Option<(Associativity, u8)> {
-        let Some(TermItemIr::Operator { associativity, precedence, .. }) =
-            lowered.tree.get_term_item(id)
+        let Some(TermItemKind::Operator { associativity, precedence, .. }) =
+            lowered.tree.get_term_item_kind(id)
         else {
             return None;
         };
@@ -67,8 +67,8 @@ impl ForOperatorId for TypeOperatorId {
     }
 
     fn operator_info(lowered: &LoweredModule, id: Self::ItemId) -> Option<(Associativity, u8)> {
-        let Some(TypeItemIr::Operator { associativity, precedence, .. }) =
-            lowered.tree.get_type_item(id)
+        let Some(TypeItemKind::Operator { associativity, precedence, .. }) =
+            lowered.tree.get_type_item_kind(id)
         else {
             return None;
         };
