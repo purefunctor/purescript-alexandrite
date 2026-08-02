@@ -87,8 +87,10 @@ pub struct RowField {
     pub id: TypeId,
 }
 
+/// An application spine argument, classified by whether it came from
+/// [`Type::KindApplication`] or [`Type::Application`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum KindOrType {
+pub enum ApplicationArgument {
     Kind(TypeId),
     Type(TypeId),
 }

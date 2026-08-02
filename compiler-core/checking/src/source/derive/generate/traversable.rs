@@ -6,7 +6,7 @@ use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
 use crate::core::substitute::RigidRenaming;
-use crate::core::{KindOrType, RowType, Type, TypeId, normalise, signature, toolkit};
+use crate::core::{ApplicationArgument, RowType, Type, TypeId, normalise, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::field;
@@ -23,7 +23,7 @@ use super::{
 
 struct InstantiatedDataType {
     type_id: TypeId,
-    constructor_arguments: Vec<KindOrType>,
+    constructor_arguments: Vec<ApplicationArgument>,
 }
 
 #[derive(Clone, Copy)]
@@ -184,7 +184,7 @@ pub(super) fn generate_traversal_members<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
 ) -> QueryResult<Option<Vec<tree::InstanceMember>>>
@@ -260,7 +260,7 @@ fn generate_operation_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     data_file: files::FileId,
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
@@ -305,7 +305,7 @@ fn generate_sequence_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     traversal: TraversalKind,
     operation: (files::FileId, indexing::TermItemId),
     resolution: (files::FileId, indexing::TermItemId),
@@ -355,10 +355,10 @@ where
         let (_, source_arguments) =
             toolkit::extract_all_applications(state, context, *source_type)?;
         let identity_types = match (traversal, source_arguments.as_slice()) {
-            (TraversalKind::Traversable, [.., KindOrType::Type(effect)]) => vec![*effect],
+            (TraversalKind::Traversable, [.., ApplicationArgument::Type(effect)]) => vec![*effect],
             (
                 TraversalKind::Bitraversable,
-                [.., KindOrType::Type(first), KindOrType::Type(second)],
+                [.., ApplicationArgument::Type(first), ApplicationArgument::Type(second)],
             ) => vec![*first, *second],
             _ => return Ok(None),
         };

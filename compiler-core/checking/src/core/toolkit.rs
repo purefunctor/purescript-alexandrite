@@ -13,8 +13,8 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{self, TypeWalker};
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, SmolStrId, Type, TypeId,
-    constraint, normalise, unification,
+    ApplicationArgument, CheckedClass, CheckedSynonym, ForallBinder, Name, Role, SmolStrId, Type,
+    TypeId, constraint, normalise, unification,
 };
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -38,7 +38,7 @@ pub enum InspectMode {
 pub struct InstanceInfo {
     pub binders: Vec<ForallBinder>,
     pub constraints: Vec<TypeId>,
-    pub arguments: Vec<KindOrType>,
+    pub arguments: Vec<ApplicationArgument>,
 }
 
 pub struct NewtypeInner {
@@ -78,7 +78,7 @@ pub fn extract_all_applications<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     mut id: TypeId,
-) -> QueryResult<(TypeId, Vec<KindOrType>)>
+) -> QueryResult<(TypeId, Vec<ApplicationArgument>)>
 where
     Q: ExternalQueries,
 {
@@ -88,11 +88,11 @@ where
         id = normalise::expand(state, context, id)?;
         match context.lookup_type(id) {
             Type::Application(function, argument) => {
-                arguments.push(crate::core::KindOrType::Type(argument));
+                arguments.push(crate::core::ApplicationArgument::Type(argument));
                 id = function;
             }
             Type::KindApplication(function, argument) => {
-                arguments.push(crate::core::KindOrType::Kind(argument));
+                arguments.push(crate::core::ApplicationArgument::Kind(argument));
                 id = function;
             }
             _ => break,
@@ -848,7 +848,9 @@ where
         let replacement = arguments
             .next()
             .map(|argument| match argument {
-                KindOrType::Kind(argument) | KindOrType::Type(argument) => argument,
+                ApplicationArgument::Kind(argument) | ApplicationArgument::Type(argument) => {
+                    argument
+                }
             })
             .unwrap_or_else(|| {
                 let text = state.checked.lookup_name(binder.name);

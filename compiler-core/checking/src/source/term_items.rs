@@ -10,8 +10,8 @@ use crate::context::CheckContext;
 use crate::core::constraint::ConstraintInScope;
 use crate::core::substitute::{NameToType, RigidRenaming, SubstituteName};
 use crate::core::{
-    CheckedInstance, KindOrType, Type, TypeId, constraint, exhaustive, generalise, normalise,
-    signature, toolkit, unification, zonk,
+    ApplicationArgument, CheckedInstance, Type, TypeId, constraint, exhaustive, generalise,
+    normalise, signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::evidence::{Evidence, SuperclassId};
@@ -366,7 +366,7 @@ fn check_instance_member_group<Q>(
     context: &CheckContext<Q>,
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
@@ -468,7 +468,7 @@ fn record_instance_member(
 
 pub(crate) struct FreshenedInstanceRigids {
     pub(crate) constraints: Vec<TypeId>,
-    pub(crate) arguments: Vec<KindOrType>,
+    pub(crate) arguments: Vec<ApplicationArgument>,
     pub(crate) renaming: Arc<RigidRenaming>,
     pub(crate) rigids: Vec<TypeId>,
 }
@@ -513,7 +513,7 @@ pub(crate) fn emit_instance_superclass_constraints<Q>(
     context: &CheckContext<Q>,
     class_file: FileId,
     class_id: TypeItemId,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Vec<tree::InstanceSuperclass>>
 where
     Q: ExternalQueries,
@@ -548,7 +548,7 @@ pub(crate) fn instantiate_class_member_type<Q>(
     context: &CheckContext<Q>,
     (member_file, member_id): (FileId, TermItemId),
     (class_file, class_id): (FileId, TypeItemId),
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<TypeId>>
 where
     Q: ExternalQueries,
@@ -568,7 +568,7 @@ where
     let mut instance_arguments = instance_arguments.iter().copied();
 
     for &binder_id in class_info.kind_binders.iter() {
-        let Some(KindOrType::Kind(argument)) = instance_arguments.next() else {
+        let Some(ApplicationArgument::Kind(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -576,7 +576,7 @@ where
     }
 
     for &binder_id in class_info.type_parameters.iter() {
-        let Some(KindOrType::Type(argument)) = instance_arguments.next() else {
+        let Some(ApplicationArgument::Type(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -596,17 +596,17 @@ fn substitute_kind_or_type<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     renaming: &RigidRenaming,
-    argument: KindOrType,
-) -> QueryResult<KindOrType>
+    argument: ApplicationArgument,
+) -> QueryResult<ApplicationArgument>
 where
     Q: ExternalQueries,
 {
     Ok(match argument {
-        KindOrType::Kind(argument) => {
-            KindOrType::Kind(renaming.substitute(state, context, argument)?)
+        ApplicationArgument::Kind(argument) => {
+            ApplicationArgument::Kind(renaming.substitute(state, context, argument)?)
         }
-        KindOrType::Type(argument) => {
-            KindOrType::Type(renaming.substitute(state, context, argument)?)
+        ApplicationArgument::Type(argument) => {
+            ApplicationArgument::Type(renaming.substitute(state, context, argument)?)
         }
     })
 }

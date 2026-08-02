@@ -14,7 +14,9 @@ use crate::context::CheckContext;
 use crate::core::constraint::{CanonicalConstraint, CanonicalConstraintId};
 use crate::core::fd::{get_all_determined, get_functional_dependencies};
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
-use crate::core::{CheckedInstance, KindOrType, Type, TypeId, constraint, normalise, toolkit};
+use crate::core::{
+    ApplicationArgument, CheckedInstance, Type, TypeId, constraint, normalise, toolkit,
+};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{CheckedModule, ExternalQueries};
@@ -193,7 +195,7 @@ where
     let mut blocking = vec![];
     for &argument in constraint.arguments.iter() {
         let argument = match argument {
-            KindOrType::Kind(id) | KindOrType::Type(id) => id,
+            ApplicationArgument::Kind(id) | ApplicationArgument::Type(id) => id,
         };
         CollectFileReferences::collect(state, context, argument, &mut files, &mut blocking)?;
     }

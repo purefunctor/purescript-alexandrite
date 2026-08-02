@@ -14,7 +14,8 @@ use crate::core::fd::{
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{TypeWalker, WalkAction, walk_type};
 use crate::core::{
-    CheckedInstance, KindOrType, Name, RowField, RowTypeId, Type, TypeId, normalise, toolkit,
+    ApplicationArgument, CheckedInstance, Name, RowField, RowTypeId, Type, TypeId, normalise,
+    toolkit,
 };
 use crate::source::types;
 use crate::state::CheckState;
@@ -567,13 +568,21 @@ where
     let wanted_arguments = wanted
         .arguments
         .iter()
-        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
+        .filter_map(
+            |argument| {
+                if let ApplicationArgument::Type(id) = argument { Some(*id) } else { None }
+            },
+        )
         .collect_vec();
 
     let provided_arguments = provided
         .arguments
         .iter()
-        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
+        .filter_map(
+            |argument| {
+                if let ApplicationArgument::Type(id) = argument { Some(*id) } else { None }
+            },
+        )
         .collect_vec();
 
     match match_instance(
@@ -716,10 +725,14 @@ where
     instances_overlap(state, context, &functional_dependencies, &left_arguments, &right_arguments)
 }
 
-fn type_arguments(arguments: &[KindOrType]) -> Vec<TypeId> {
+fn type_arguments(arguments: &[ApplicationArgument]) -> Vec<TypeId> {
     arguments
         .iter()
-        .filter_map(|argument| if let KindOrType::Type(id) = argument { Some(*id) } else { None })
+        .filter_map(
+            |argument| {
+                if let ApplicationArgument::Type(id) = argument { Some(*id) } else { None }
+            },
+        )
         .collect_vec()
 }
 

@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{KindOrType, Type, TypeId, toolkit};
+use crate::core::{ApplicationArgument, Type, TypeId, toolkit};
 use crate::state::{CheckState, UnificationState};
 use crate::{ExternalQueries, safe_loop};
 
@@ -239,11 +239,11 @@ where
         current = normalise(state, context, current)?;
         match context.lookup_type(current) {
             Type::Application(function, argument) => {
-                arguments.push(KindOrType::Type(argument));
+                arguments.push(ApplicationArgument::Type(argument));
                 current = function;
             }
             Type::KindApplication(function, argument) => {
-                arguments.push(KindOrType::Kind(argument));
+                arguments.push(ApplicationArgument::Kind(argument));
                 current = function;
             }
             _ => break,
@@ -289,7 +289,7 @@ where
             break;
         };
 
-        let Some(KindOrType::Kind(argument)) = arguments.next() else {
+        let Some(ApplicationArgument::Kind(argument)) = arguments.next() else {
             return Ok(id);
         };
 
@@ -301,7 +301,7 @@ where
 
     // Create substitutions for type arguments.
     for parameter in &checked_synonym.parameters {
-        let Some(KindOrType::Type(argument)) = arguments.next() else {
+        let Some(ApplicationArgument::Type(argument)) = arguments.next() else {
             return Ok(id);
         };
         bindings.insert(parameter.name, argument);
@@ -317,8 +317,12 @@ where
     // Reconstruct applications from remaining oversaturated arguments.
     for argument in arguments {
         substituted = match argument {
-            KindOrType::Type(argument) => context.intern_application(substituted, argument),
-            KindOrType::Kind(argument) => context.intern_kind_application(substituted, argument),
+            ApplicationArgument::Type(argument) => {
+                context.intern_application(substituted, argument)
+            }
+            ApplicationArgument::Kind(argument) => {
+                context.intern_kind_application(substituted, argument)
+            }
         };
     }
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{KindOrType, TypeId, signature, toolkit};
+use crate::core::{ApplicationArgument, TypeId, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::term_items::{
@@ -297,7 +297,7 @@ pub(super) fn resolve_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<ResolvedMember>>
 where
     Q: ExternalQueries,
@@ -332,7 +332,7 @@ pub(super) fn resolve_known_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     (file_id, item_id): (files::FileId, indexing::TermItemId),
 ) -> QueryResult<Option<ResolvedMember>>
 where
@@ -356,7 +356,7 @@ fn generate_delegated_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     operation: Option<(files::FileId, indexing::TermItemId)>,
 ) -> QueryResult<Option<tree::InstanceMember>>
 where

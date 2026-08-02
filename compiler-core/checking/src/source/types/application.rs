@@ -2,7 +2,7 @@ use building_types::QueryResult;
 
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Type, TypeId, normalise, unification};
+use crate::core::{ApplicationArgument, Type, TypeId, normalise, unification};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -25,7 +25,7 @@ pub struct Options {
 
 pub enum Records {
     Ignore,
-    Collect(Vec<KindOrType>),
+    Collect(Vec<ApplicationArgument>),
 }
 
 impl Records {
@@ -33,7 +33,7 @@ impl Records {
         Records::Collect(vec![])
     }
 
-    fn push(&mut self, argument: KindOrType) {
+    fn push(&mut self, argument: ApplicationArgument) {
         if let Records::Collect(recorded_arguments) = self {
             recorded_arguments.push(argument);
         }
@@ -88,7 +88,7 @@ where
                 let result_type = context.intern_application(function_type, argument_type);
                 let result_kind = options.normalise(state, context, result_kind)?;
 
-                records.push(KindOrType::Type(argument_type));
+                records.push(ApplicationArgument::Type(argument_type));
                 break Ok(((result_type, result_kind), records));
             }
 
@@ -109,7 +109,7 @@ where
                 let result_type = context.intern_application(function_type, argument_type);
                 let result_kind = options.normalise(state, context, result_kind)?;
 
-                records.push(KindOrType::Type(argument_type));
+                records.push(ApplicationArgument::Type(argument_type));
                 break Ok(((result_type, result_kind), records));
             }
 
@@ -123,7 +123,7 @@ where
                 function_kind =
                     SubstituteName::one(state, context, binder.name, kind_argument, inner_kind)?;
 
-                records.push(KindOrType::Kind(kind_argument));
+                records.push(ApplicationArgument::Kind(kind_argument));
             }
 
             _ => {
@@ -141,7 +141,7 @@ where
                     argument_type,
                 });
 
-                records.push(KindOrType::Type(argument_type));
+                records.push(ApplicationArgument::Type(argument_type));
                 break Ok(((invalid_type, unknown_kind), records));
             }
         }
