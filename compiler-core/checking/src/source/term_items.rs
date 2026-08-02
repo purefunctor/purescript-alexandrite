@@ -616,7 +616,7 @@ where
     Q: ExternalQueries,
 {
     for &item_id in items {
-        if state.checked.terms.contains_key(&item_id) {
+        if state.checked.term_item_types.contains_key(&item_id) {
             continue;
         }
 
@@ -628,7 +628,7 @@ where
         });
 
         let item_type = resolution.and_then(|(file_id, item_id)| {
-            if file_id == context.id { state.checked.lookup_term(item_id) } else { None }
+            if file_id == context.id { state.checked.lookup_term_item_type(item_id) } else { None }
         });
 
         let item_type = if let Some(item_type) = item_type {
@@ -637,7 +637,7 @@ where
             state.fresh_unification(context.queries, context.prim.t)
         };
 
-        state.checked.terms.insert(item_id, item_type);
+        state.checked.term_item_types.insert(item_id, item_type);
     }
 }
 
@@ -681,7 +681,7 @@ where
     Q: ExternalQueries,
 {
     let (checked_kind, _) = types::check_kind(state, context, signature, context.prim.t)?;
-    state.checked.terms.insert(item_id, checked_kind);
+    state.checked.term_item_types.insert(item_id, checked_kind);
     Ok(checked_kind)
 }
 
@@ -742,7 +742,7 @@ where
     Q: ExternalQueries,
 {
     if let Some(signature_id) = signature
-        && let Some(signature_type) = state.checked.lookup_term(item_id)
+        && let Some(signature_type) = state.checked.lookup_term_item_type(item_id)
     {
         let (residuals, evidences, equations) =
             check_value_group_core_check(state, context, signature_id, signature_type, equations)?;
@@ -792,7 +792,7 @@ where
     Q: ExternalQueries,
 {
     let group_type = state.fresh_unification(context.queries, context.prim.t);
-    state.checked.terms.insert(item_id, group_type);
+    state.checked.term_item_types.insert(item_id, group_type);
     let checked_equations =
         equations::infer_value_equations(state, context, group_type, equations)?;
     let exhaustiveness = exhaustive::check_equation_patterns(
@@ -833,7 +833,7 @@ where
     let mut pending = vec![];
 
     for &item_id in items {
-        let Some(marker) = state.checked.terms.get(&item_id).copied() else {
+        let Some(marker) = state.checked.term_item_types.get(&item_id).copied() else {
             continue;
         };
 
@@ -875,7 +875,7 @@ where
     ) in pending
     {
         let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
-        state.checked.terms.insert(item_id, marker);
+        state.checked.term_item_types.insert(item_id, marker);
 
         if recursive && inferred_constraints {
             // Keep constraint evidence consistent with the candidate type used for error recovery.
@@ -967,10 +967,10 @@ where
     let Some((file_id, term_id)) = resolution else { return Ok(()) };
     let operator_type = toolkit::lookup_file_term_operator(state, context, file_id, term_id)?;
 
-    if let Some(item_type) = state.checked.lookup_term(item_id) {
+    if let Some(item_type) = state.checked.lookup_term_item_type(item_id) {
         unification::subtype(state, context, operator_type, item_type)?;
     } else {
-        state.checked.terms.insert(item_id, operator_type);
+        state.checked.term_item_types.insert(item_id, operator_type);
     }
 
     Ok(())

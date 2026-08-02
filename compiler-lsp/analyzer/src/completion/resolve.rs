@@ -113,7 +113,7 @@ fn render_term_signature(
 
     let name = &indexed.items[term_id].name;
     let name = name.as_deref()?;
-    let signature = checked.lookup_term(term_id)?;
+    let signature = checked.lookup_term_item_type(term_id)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
@@ -153,7 +153,7 @@ fn render_type_signature(
 
     let name = &indexed.items[type_id].name;
     let name = name.as_deref()?;
-    let signature = checked.lookup_type(type_id)?;
+    let signature = checked.lookup_type_item_kind(type_id)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())

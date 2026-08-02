@@ -113,10 +113,10 @@ where
     Q: ExternalQueries,
 {
     let kind = if file_id == context.id {
-        state.checked.lookup_type(type_id)
+        state.checked.lookup_type_item_kind(type_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_type(type_id)
+        checked.lookup_type_item_kind(type_id)
     };
 
     if let Some(kind) = kind { Ok(kind) } else { Ok(context.unknown("invalid type item")) }
@@ -132,10 +132,10 @@ where
     Q: ExternalQueries,
 {
     let term = if file_id == context.id {
-        state.checked.lookup_term(term_id)
+        state.checked.lookup_term_item_type(term_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_term(term_id)
+        checked.lookup_term_item_type(term_id)
     };
 
     if let Some(term) = term { Ok(term) } else { Ok(context.unknown("invalid term item")) }
@@ -230,10 +230,10 @@ where
     Q: ExternalQueries,
 {
     let operator_kind = if file_id == context.id {
-        state.checked.lookup_type(type_id)
+        state.checked.lookup_type_item_kind(type_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_type(type_id)
+        checked.lookup_type_item_kind(type_id)
     };
 
     if let Some(operator_kind) = operator_kind {
@@ -299,10 +299,10 @@ where
     Q: ExternalQueries,
 {
     let operator_type = if file_id == context.id {
-        state.checked.lookup_term(term_id)
+        state.checked.lookup_term_item_type(term_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_term(term_id)
+        checked.lookup_term_item_type(term_id)
     };
 
     if let Some(operator_type) = operator_type {

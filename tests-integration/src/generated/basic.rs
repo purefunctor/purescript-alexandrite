@@ -227,7 +227,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     writeln!(out, "Terms").unwrap();
     for (id, IndexedTermItem { name, .. }) in indexed.items.iter_terms() {
         let Some(name) = name else { continue };
-        let Some(kind) = checked.lookup_term(id) else { continue };
+        let Some(kind) = checked.lookup_term_item_type(id) else { continue };
         let mut state = pretty.state();
         let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
@@ -236,7 +236,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     writeln!(out, "\nTypes").unwrap();
     for (id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
-        let Some(kind) = checked.lookup_type(id) else { continue };
+        let Some(kind) = checked.lookup_type_item_kind(id) else { continue };
         let mut state = pretty.state();
         let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
@@ -302,7 +302,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         for member in &class.members {
             let member_id = member.item_id;
             let Some(member_name) = indexed.items[member_id].name.as_deref() else { continue };
-            let Some(member_type) = checked.lookup_term(member_id) else { continue };
+            let Some(member_type) = checked.lookup_term_item_type(member_id) else { continue };
             let signature = state.render_signature(member_name, member_type);
             writeln!(out, "  {signature}").unwrap();
         }

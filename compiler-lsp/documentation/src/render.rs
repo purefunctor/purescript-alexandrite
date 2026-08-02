@@ -298,7 +298,7 @@ impl<'a> ModuleEncoder<'a> {
 
         let name = type_item.name.as_ref().map(|name| name.to_string());
         let documentation = type_documentation.and_then(|t| optional_string(&t.documentation));
-        let signature = self.checked.lookup_type(type_id);
+        let signature = self.checked.lookup_type_item_kind(type_id);
         let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
         let instance_ids = instances.into_iter().collect::<Vec<_>>();
 
@@ -477,7 +477,7 @@ fn term_signature(
         indexing::IndexedTermItemKind::Derive { id } => {
             checked.lookup_derived(*id).map(|instance| instance.signature)
         }
-        _ => checked.lookup_term(term_id),
+        _ => checked.lookup_term_item_type(term_id),
     }
 }
 

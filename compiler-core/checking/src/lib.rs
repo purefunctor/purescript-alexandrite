@@ -56,8 +56,8 @@ pub trait ExternalQueries:
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedModule {
     pub evidence: evidence::Evidences,
-    pub types: FxHashMap<TypeItemId, TypeId>,
-    pub terms: FxHashMap<TermItemId, TypeId>,
+    pub type_item_kinds: FxHashMap<TypeItemId, TypeId>,
+    pub term_item_types: FxHashMap<TermItemId, TypeId>,
     pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
     pub synonyms: FxHashMap<TypeItemId, CheckedSynonym>,
     pub classes: FxHashMap<TypeItemId, CheckedClass>,
@@ -99,12 +99,12 @@ pub struct OperatorBranchTypes {
 }
 
 impl CheckedModule {
-    pub fn lookup_type(&self, id: TypeItemId) -> Option<TypeId> {
-        self.types.get(&id).copied()
+    pub fn lookup_type_item_kind(&self, id: TypeItemId) -> Option<TypeId> {
+        self.type_item_kinds.get(&id).copied()
     }
 
-    pub fn lookup_term(&self, id: TermItemId) -> Option<TypeId> {
-        self.terms.get(&id).copied()
+    pub fn lookup_term_item_type(&self, id: TermItemId) -> Option<TypeId> {
+        self.term_item_types.get(&id).copied()
     }
 
     pub fn lookup_data_declaration(&self, id: TypeItemId) -> Option<CheckedDataDeclaration> {
@@ -254,7 +254,7 @@ fn check_prim(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<Ch
 
     let mut insert_type = |name: &str, id: TypeId| {
         let (_, item_id) = lookup_type(name);
-        checked.types.insert(item_id, id);
+        checked.type_item_kinds.insert(item_id, id);
     };
 
     insert_type("Type", type_core);
@@ -271,7 +271,7 @@ fn check_prim(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<Ch
     insert_type("Row", type_to_type);
 
     let (_, partial_id) = lookup_class("Partial");
-    checked.types.insert(partial_id, constraint_core);
+    checked.type_item_kinds.insert(partial_id, constraint_core);
 
     let mut insert_roles = |name: &str, roles: &[Role]| {
         let (_, item_id) = lookup_type(name);

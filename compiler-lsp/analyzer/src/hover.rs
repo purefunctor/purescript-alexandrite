@@ -309,7 +309,7 @@ fn hover_file_term(
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
-    let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
+    let signature = checked.lookup_term_item_type(term_id).ok_or(AnalyzerError::NonFatal)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();
@@ -338,7 +338,7 @@ fn hover_file_type(
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
-    let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let signature = checked.lookup_type_item_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();

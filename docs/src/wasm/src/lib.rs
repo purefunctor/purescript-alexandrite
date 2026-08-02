@@ -281,14 +281,14 @@ pub fn check(source: &str) -> JsValue {
         let mut terms = Vec::new();
         for (term_id, IndexedTermItem { name, .. }) in indexed.items.iter_terms() {
             let Some(n) = name else { continue };
-            let Some(t) = checked.lookup_term(term_id) else { continue };
+            let Some(t) = checked.lookup_term_item_type(term_id) else { continue };
             terms.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut types = Vec::new();
         for (type_id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
-            let Some(t) = checked.lookup_type(type_id) else { continue };
+            let Some(t) = checked.lookup_type_item_kind(type_id) else { continue };
             types.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 

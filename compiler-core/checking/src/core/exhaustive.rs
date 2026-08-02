@@ -965,10 +965,10 @@ where
     Q: ExternalQueries,
 {
     let constructor_type = if file_id == context.id {
-        state.checked.lookup_term(term_id)
+        state.checked.lookup_term_item_type(term_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_term(term_id)
+        checked.lookup_term_item_type(term_id)
     };
 
     if let Some(constructor_type) = constructor_type {
