@@ -26,8 +26,8 @@ pub type TypeDeclarationId = Idx<TypeDeclaration>;
 pub type LocalDeclarationId = Idx<LocalDeclaration>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct Module {
-    pub(crate) arena: ModuleArena,
+pub struct CheckedTree {
+    pub(crate) arena: CheckedTreeArena,
     terms: ArenaMap<TermItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
     lets: ArenaMap<LetBindingNameGroupId, LocalDeclarationId>,
@@ -35,7 +35,7 @@ pub struct Module {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) struct ModuleArena {
+pub(crate) struct CheckedTreeArena {
     pub(crate) expressions: Arena<Expression>,
     pub(crate) binders: Arena<Binder>,
     pub(crate) terms: Arena<TermDeclaration>,
@@ -371,7 +371,7 @@ pub enum RecordExpressionUpdate {
     Branch { label: SmolStr, updates: Arc<[RecordExpressionUpdate]> },
 }
 
-impl Module {
+impl CheckedTree {
     pub fn allocate_expression(&mut self, expression: Expression) -> ExpressionId {
         self.arena.expressions.alloc(expression)
     }
@@ -434,7 +434,7 @@ impl Module {
     }
 }
 
-impl Index<ExpressionId> for Module {
+impl Index<ExpressionId> for CheckedTree {
     type Output = Expression;
 
     fn index(&self, index: ExpressionId) -> &Expression {
@@ -442,7 +442,7 @@ impl Index<ExpressionId> for Module {
     }
 }
 
-impl Index<BinderId> for Module {
+impl Index<BinderId> for CheckedTree {
     type Output = Binder;
 
     fn index(&self, index: BinderId) -> &Binder {
@@ -450,7 +450,7 @@ impl Index<BinderId> for Module {
     }
 }
 
-impl Index<TermDeclarationId> for Module {
+impl Index<TermDeclarationId> for CheckedTree {
     type Output = TermDeclaration;
 
     fn index(&self, index: TermDeclarationId) -> &TermDeclaration {
@@ -458,7 +458,7 @@ impl Index<TermDeclarationId> for Module {
     }
 }
 
-impl Index<TypeDeclarationId> for Module {
+impl Index<TypeDeclarationId> for CheckedTree {
     type Output = TypeDeclaration;
 
     fn index(&self, index: TypeDeclarationId) -> &TypeDeclaration {
@@ -466,7 +466,7 @@ impl Index<TypeDeclarationId> for Module {
     }
 }
 
-impl Index<LocalDeclarationId> for Module {
+impl Index<LocalDeclarationId> for CheckedTree {
     type Output = LocalDeclaration;
 
     fn index(&self, index: LocalDeclarationId) -> &LocalDeclaration {

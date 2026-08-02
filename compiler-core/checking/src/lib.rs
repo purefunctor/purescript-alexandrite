@@ -65,7 +65,7 @@ pub struct CheckedModule {
     pub derived: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
     pub nodes: CheckedNodes,
-    pub tree: tree::Module,
+    pub tree: tree::CheckedTree,
     pub holes: CheckedHoles,
     pub errors: Vec<CheckingError>,
     pub names: FxHashMap<Name, SmolStrId>,
