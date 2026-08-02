@@ -86,7 +86,7 @@ where
         (u, u)
     };
 
-    let Some(kind) = context.lowered.info.get_type_kind(id) else {
+    let Some(kind) = context.lowered.tree.get_type_kind(id) else {
         return Ok(unknown("missing syntax"));
     };
 

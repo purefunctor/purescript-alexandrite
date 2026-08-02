@@ -56,11 +56,11 @@ where
     Q: ExternalQueries,
 {
     let is_constructor = if file_id == context.id {
-        let item = context.lowered.info.get_term_item(term_id);
+        let item = context.lowered.tree.get_term_item(term_id);
         matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
     } else {
         let lowered = context.queries.lowered(file_id)?;
-        let item = lowered.info.get_term_item(term_id);
+        let item = lowered.tree.get_term_item(term_id);
         matches!(item, Some(lowering::TermItemIr::Constructor { .. }))
     };
 
@@ -208,7 +208,7 @@ where
 {
     let unknown = context.unknown("missing expression");
 
-    let Some(kind) = context.lowered.info.get_expression_kind(expression) else {
+    let Some(kind) = context.lowered.tree.get_expression_kind(expression) else {
         return Ok(allocate_error_expression(state, unknown));
     };
 
@@ -316,7 +316,7 @@ where
 {
     let unknown = context.unknown("missing expression");
 
-    let Some(kind) = context.lowered.info.get_expression_kind(expression) else {
+    let Some(kind) = context.lowered.tree.get_expression_kind(expression) else {
         return Ok(allocate_error_expression(state, unknown));
     };
 

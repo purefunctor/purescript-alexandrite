@@ -47,13 +47,13 @@ pub fn implementation(
         locate::Located::TermOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             hover_file_term(engine, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             hover_file_type(engine, f_id, t_id)
         }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
@@ -180,7 +180,7 @@ fn hover_binder(
     binder_id: lowering::BinderId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -203,7 +203,7 @@ fn hover_expression(
     expression_id: lowering::ExpressionId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
@@ -261,7 +261,7 @@ fn hover_type(
     type_id: lowering::TypeId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         TypeKind::Constructor { resolution, .. } => {

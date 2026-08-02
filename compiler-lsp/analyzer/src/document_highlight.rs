@@ -194,7 +194,7 @@ fn highlight_binder(
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
 
-    let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
 
     if let BinderKind::Constructor { resolution: Some((file_id, term_id)), .. } = kind {
         return highlight_file_term(context, current_file, *file_id, *term_id);
@@ -211,7 +211,7 @@ fn highlight_binder(
             .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
-    for (expr_id, expr_kind) in lowered.info.iter_expression() {
+    for (expr_id, expr_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::Binder(id)), ..
         } = expr_kind
@@ -223,7 +223,7 @@ fn highlight_binder(
         }
     }
 
-    for (pun_id, resolution) in lowered.info.iter_expression_pun() {
+    for (pun_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::Binder(id) = resolution
             && id == binder_id
         {
@@ -242,7 +242,7 @@ fn highlight_expression(
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         ExpressionKind::Constructor { resolution: Some((file_id, term_id)) }
@@ -273,7 +273,7 @@ fn highlight_type(
     type_id: TypeId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         TypeKind::Constructor { resolution: Some((file_id, type_id)) }
@@ -300,7 +300,7 @@ fn highlight_file_term(
 
     let mut highlights = vec![];
 
-    for (expression_id, expression_kind) in lowered.info.iter_expression() {
+    for (expression_id, expression_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Constructor { resolution: Some((f_id, t_id)) }
         | ExpressionKind::OperatorName { resolution: Some((f_id, t_id)) }
         | ExpressionKind::Variable {
@@ -317,7 +317,7 @@ fn highlight_file_term(
         }
     }
 
-    for (binder_id, binder_kind) in lowered.info.iter_binder() {
+    for (binder_id, binder_kind) in lowered.tree.iter_binder() {
         if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
             && (*f_id, *t_id) == (file_id, term_id)
         {
@@ -329,7 +329,7 @@ fn highlight_file_term(
         }
     }
 
-    for (operator_id, f_id, t_id) in lowered.info.iter_term_operator() {
+    for (operator_id, f_id, t_id) in lowered.tree.iter_term_operator() {
         if (f_id, t_id) == (file_id, term_id) {
             highlights.extend(
                 locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
@@ -339,7 +339,7 @@ fn highlight_file_term(
         }
     }
 
-    for (pun_id, resolution) in lowered.info.iter_expression_pun() {
+    for (pun_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::Reference(f_id, t_id) = resolution
             && (f_id, t_id) == (file_id, term_id)
         {
@@ -395,7 +395,7 @@ fn highlight_file_type(
 
     let mut highlights = vec![];
 
-    for (ty_id, ty_kind) in lowered.info.iter_type() {
+    for (ty_id, ty_kind) in lowered.tree.iter_type() {
         if let TypeKind::Constructor { resolution: Some((f_id, t_id)) }
         | TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
             && (*f_id, *t_id) == (file_id, type_id)
@@ -406,7 +406,7 @@ fn highlight_file_type(
         }
     }
 
-    for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
+    for (operator_id, f_id, t_id) in lowered.tree.iter_type_operator() {
         if (f_id, t_id) == (file_id, type_id) {
             highlights.extend(
                 locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
@@ -450,7 +450,7 @@ fn highlight_term_operator(
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
     let (file_id, term_id) =
-        lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+        lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
     highlight_file_term(context, current_file, file_id, term_id)
 }
 
@@ -461,7 +461,7 @@ fn highlight_type_operator(
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
     let (file_id, type_id) =
-        lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+        lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
     highlight_file_type(context, current_file, file_id, type_id)
 }
 
@@ -476,7 +476,7 @@ fn highlight_let(
     let lowered = context.queries().lowered(current_file)?;
 
     let root = parsed.syntax_node();
-    let binding = lowered.info.get_let_binding_group(let_binding_id);
+    let binding = lowered.tree.get_let_binding_group(let_binding_id);
 
     let mut highlights: Vec<DocumentHighlight> = vec![];
 
@@ -498,7 +498,7 @@ fn highlight_let(
         );
     }
 
-    for (expr_id, expr_kind) in lowered.info.iter_expression() {
+    for (expr_id, expr_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::Let(id)), ..
         } = expr_kind
@@ -510,7 +510,7 @@ fn highlight_let(
         }
     }
 
-    for (pun_id, resolution) in lowered.info.iter_expression_pun() {
+    for (pun_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::Let(id) = resolution
             && id == let_binding_id
         {
@@ -540,7 +540,7 @@ fn highlight_binder_pun(
             .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
-    for (expression_id, expression_kind) in lowered.info.iter_expression() {
+    for (expression_id, expression_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::RecordPun(candidate_id)),
         } = expression_kind
@@ -554,7 +554,7 @@ fn highlight_binder_pun(
         }
     }
 
-    for (expression_pun_id, resolution) in lowered.info.iter_expression_pun() {
+    for (expression_pun_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::RecordPun(candidate_id) = resolution
             && candidate_id == pun_id
         {
@@ -575,7 +575,7 @@ fn highlight_expression_pun(
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    match lowered.info.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
+    match lowered.tree.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
         TermVariableResolution::Binder(binder_id) => {
             highlight_binder(context, current_file, binder_id)
         }

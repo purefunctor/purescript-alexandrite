@@ -61,7 +61,7 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.info.get_term_item(item_id)?;
+            let item = context.lowered.tree.get_term_item(item_id)?;
             let TermItemIr::Instance { constraints, resolution, arguments, .. } = item else {
                 return None;
             };
@@ -218,7 +218,7 @@ where
     for scc in &context.grouped.term_scc {
         for &item_id in scc.as_slice() {
             let Some(TermItemIr::Instance { members, resolution, .. }) =
-                context.lowered.info.get_term_item(item_id)
+                context.lowered.tree.get_term_item(item_id)
             else {
                 continue;
             };
@@ -620,7 +620,7 @@ where
             continue;
         }
 
-        let item = context.lowered.info.get_term_item(item_id);
+        let item = context.lowered.tree.get_term_item(item_id);
 
         let resolution = item.and_then(|item| match item {
             TermItemIr::Operator { resolution, .. } => *resolution,
@@ -649,7 +649,7 @@ fn check_term_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item(item_id) else {
         return Ok(());
     };
 
@@ -694,7 +694,7 @@ fn check_term_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item(item_id) else {
         return Ok(());
     };
 

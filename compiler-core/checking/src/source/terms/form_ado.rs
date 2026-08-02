@@ -98,7 +98,7 @@ where
     let mut steps = vec![];
     let mut has_missing_action = false;
     for &statement_id in statement_ids.iter() {
-        let Some(statement) = context.lowered.info.get_do_statement(statement_id) else {
+        let Some(statement) = context.lowered.tree.get_do_statement(statement_id) else {
             continue;
         };
         match statement {

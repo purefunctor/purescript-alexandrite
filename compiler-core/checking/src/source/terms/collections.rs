@@ -47,7 +47,7 @@ fn should_instantiate_record_field<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(kind) = context.lowered.info.get_expression_kind(expression) else {
+    let Some(kind) = context.lowered.tree.get_expression_kind(expression) else {
         return false;
     };
 

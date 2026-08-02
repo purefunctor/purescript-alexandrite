@@ -153,7 +153,7 @@ where
     Q: ExternalQueries,
 {
     for &id in bindings {
-        let Some(name) = context.lowered.info.get_let_binding(id) else {
+        let Some(name) = context.lowered.tree.get_let_binding(id) else {
             continue;
         };
         if let Some(signature_id) = name.signature {
@@ -218,10 +218,10 @@ pub fn check_let_name_binding_core<Q>(
 where
     Q: ExternalQueries,
 {
-    let group = context.lowered.info.get_let_binding_group(id);
+    let group = context.lowered.tree.get_let_binding_group(id);
     let name = context
         .lowered
-        .info
+        .tree
         .get_let_binding(id)
         .expect("invariant violated: let binding group has no lowered binding");
     let name_type = state

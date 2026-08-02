@@ -120,7 +120,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     let lowered = engine.lowered(id).unwrap();
 
     let module = parsed.cst();
-    let info = &lowered.info;
+    let tree = &lowered.tree;
     let graph = &lowered.graph;
 
     let mut out = String::default();
@@ -129,8 +129,8 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     writeln!(out).unwrap();
     writeln!(out, "Expressions:").unwrap();
     writeln!(out).unwrap();
-    for (expression_id, _) in info.iter_expression() {
-        let Some(kind) = info.get_expression_kind(expression_id) else {
+    for (expression_id, _) in tree.iter_expression() {
+        let Some(kind) = tree.get_expression_kind(expression_id) else {
             continue;
         };
         match kind {
@@ -139,7 +139,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                     &content,
                     &stabilized,
                     &module,
-                    info,
+                    tree,
                     &mut out,
                     expression_id,
                     resolution,
@@ -152,7 +152,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                             &content,
                             &stabilized,
                             &module,
-                            info,
+                            tree,
                             &mut out,
                             expression_id,
                             resolution,
@@ -177,8 +177,8 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 
     writeln!(out, "\nTypes:\n").unwrap();
 
-    for (type_id, _) in info.iter_type() {
-        let Some(TypeKind::Variable { resolution, .. }) = info.get_type_kind(type_id) else {
+    for (type_id, _) in tree.iter_type() {
+        let Some(TypeKind::Variable { resolution, .. }) = tree.get_type_kind(type_id) else {
             continue;
         };
 
@@ -391,7 +391,7 @@ fn write_term_resolution(
     content: &str,
     stabilized: &stabilizing::StabilizedModule,
     module: &cst::Module,
-    info: &lowering::LoweringInfo,
+    tree: &lowering::LoweredTree,
     out: &mut String,
     expression_id: lowering::ExpressionId,
     resolution: &Option<TermVariableResolution>,
@@ -408,7 +408,7 @@ fn write_term_resolution(
             writeln!(out, "  -> binder@{}", pos!(content, stabilized, *id)).unwrap();
         }
         Some(TermVariableResolution::Let(let_binding_id)) => {
-            let let_binding = info.get_let_binding_group(*let_binding_id);
+            let let_binding = tree.get_let_binding_group(*let_binding_id);
             if let Some(sig) = let_binding.signature {
                 writeln!(out, "  -> signature@{}", pos!(content, stabilized, sig)).unwrap();
             }

@@ -48,13 +48,13 @@ pub fn implementation(
         locate::Located::TermOperator(operator_id) => {
             let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_term(context, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
             let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_type(context, f_id, t_id)
         }
         locate::Located::TermItem(term_id) => definition_file_term(context, current_file, term_id),
@@ -190,7 +190,7 @@ fn definition_binder(
     binder_id: BinderId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -213,7 +213,7 @@ fn definition_expression(
     let stabilized = engine.stabilized(current_file)?;
     let lowered = engine.lowered(current_file)?;
 
-    let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
@@ -239,7 +239,7 @@ fn definition_expression(
                 TermVariableResolution::Let(binding_id) => {
                     let root = parsed.syntax_node();
 
-                    let binding = lowered.info.get_let_binding_group(*binding_id);
+                    let binding = lowered.tree.get_let_binding_group(*binding_id);
 
                     let signature = binding
                         .signature
@@ -320,7 +320,7 @@ fn definition_type(
     let stabilized = engine.stabilized(current_file)?;
     let lowered = engine.lowered(current_file)?;
 
-    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         TypeKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -390,7 +390,7 @@ fn definition_let_binding(
     let root = parsed.syntax_node();
 
     let uri = common::file_uri(context, file_id)?;
-    let group = lowered.info.get_let_binding_group(let_id);
+    let group = lowered.tree.get_let_binding_group(let_id);
 
     let signature = group.signature.and_then(|signature| stabilized.syntax_ptr(signature));
     let equations = group.equations.iter().filter_map(|&equation| stabilized.syntax_ptr(equation));

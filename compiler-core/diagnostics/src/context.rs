@@ -193,7 +193,7 @@ where
             | ErrorCrumb::InferringAdoApply(id)
             | ErrorCrumb::CheckingAdoLet(id) => self.stabilized.syntax_ptr(*id)?,
             ErrorCrumb::CheckingLetName(id) => {
-                let group = self.lowered.info.get_let_binding_group(*id);
+                let group = self.lowered.tree.get_let_binding_group(*id);
 
                 let signature = group
                     .signature

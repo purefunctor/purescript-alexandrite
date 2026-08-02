@@ -195,12 +195,12 @@ fn locate_node(
             cst::LetBinding::LetBindingSignature(signature) => {
                 let ptr = AstPtr::new(&signature);
                 let id = stabilized.lookup_ptr(&ptr)?;
-                lowered.info.find_let_binding_group_by_signature(id).map(Located::LetBinding)
+                lowered.tree.find_let_binding_group_by_signature(id).map(Located::LetBinding)
             }
             cst::LetBinding::LetBindingEquation(equation) => {
                 let ptr = AstPtr::new(&equation);
                 let id = stabilized.lookup_ptr(&ptr)?;
-                lowered.info.find_let_binding_group_by_equation(id).map(Located::LetBinding)
+                lowered.tree.find_let_binding_group_by_equation(id).map(Located::LetBinding)
             }
         }
     } else if cst::DataConstructor::can_cast(kind) {

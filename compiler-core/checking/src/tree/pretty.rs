@@ -1158,7 +1158,7 @@ where
                 BinderSource::Binder(source) => {
                     let kind = self
                         .lowered
-                        .info
+                        .tree
                         .get_binder_kind(source)
                         .expect("invariant violated: semantic variable binder has no source");
                     let lowering::BinderKind::Variable { variable: Some(variable) } = kind else {
@@ -1412,7 +1412,7 @@ where
                     }
                     VariableResolution::Source(resolution) => match resolution {
                         TermVariableResolution::Binder(binder) => {
-                            let kind = self.lowered.info.get_binder_kind(binder).expect(
+                            let kind = self.lowered.tree.get_binder_kind(binder).expect(
                                 "invariant violated: variable expression binder is missing",
                             );
                             match kind {
@@ -1784,7 +1784,7 @@ where
     }
 
     fn record_pun_name(&self, record_pun: lowering::RecordPunId) -> Option<String> {
-        self.lowered.info.iter_binder().find_map(|(_, kind)| {
+        self.lowered.tree.iter_binder().find_map(|(_, kind)| {
             let lowering::BinderKind::Record { record } = kind else {
                 return None;
             };
@@ -1798,7 +1798,7 @@ where
     }
 
     fn local_declaration_name(&self, source: lowering::LetBindingNameGroupId) -> String {
-        let group = self.lowered.info.get_let_binding_group(source);
+        let group = self.lowered.tree.get_let_binding_group(source);
         group.name.as_ref().map(ToString::to_string).unwrap_or_else(|| {
             let index = source.into_raw().into_u32();
             format!("<let#{index}>")

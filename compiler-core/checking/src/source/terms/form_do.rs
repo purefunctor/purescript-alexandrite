@@ -200,7 +200,7 @@ where
     // are checked inline during the statement checking loop.
     let mut steps = vec![];
     for &statement_id in statement_id.iter() {
-        let Some(statement) = context.lowered.info.get_do_statement(statement_id) else {
+        let Some(statement) = context.lowered.tree.get_do_statement(statement_id) else {
             continue;
         };
         match statement {

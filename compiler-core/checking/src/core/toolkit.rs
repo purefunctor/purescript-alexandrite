@@ -252,7 +252,7 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.info.get_type_item(type_id).and_then(|item| match item {
+        lowered.tree.get_type_item(type_id).and_then(|item| match item {
             TypeItemIr::Operator { resolution, .. } => *resolution,
             _ => None,
         })
@@ -275,7 +275,7 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.info.get_term_item(term_id).and_then(|item| match item {
+        lowered.tree.get_term_item(term_id).and_then(|item| match item {
             TermItemIr::Operator { resolution, .. } => *resolution,
             _ => None,
         })
@@ -752,11 +752,11 @@ where
     Q: ExternalQueries,
 {
     let type_item = if file_id == context.id {
-        context.lowered.info.get_type_item(item_id)
+        context.lowered.tree.get_type_item(item_id)
     } else {
         let lowered = context.queries.lowered(file_id)?;
         return Ok(matches!(
-            lowered.info.get_type_item(item_id),
+            lowered.tree.get_type_item(item_id),
             Some(lowering::TypeItemIr::NewtypeGroup { .. })
         ));
     };

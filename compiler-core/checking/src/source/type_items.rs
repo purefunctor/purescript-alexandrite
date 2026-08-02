@@ -241,7 +241,7 @@ fn check_type_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item(item_id) else {
         return Ok(());
     };
 
@@ -295,7 +295,7 @@ fn check_type_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item(item_id) else {
         return Ok(());
     };
 
@@ -469,7 +469,7 @@ where
 
     for constructor_id in context.indexed.data_constructors(item_id) {
         let Some(TermItemIr::Constructor { arguments }) =
-            context.lowered.info.get_term_item(constructor_id)
+            context.lowered.tree.get_term_item(constructor_id)
         else {
             continue;
         };
@@ -838,7 +838,7 @@ where
 
     for member_id in context.indexed.class_members(item_id) {
         let Some(TermItemIr::ClassMember { signature }) =
-            context.lowered.info.get_term_item(member_id)
+            context.lowered.tree.get_term_item(member_id)
         else {
             continue;
         };

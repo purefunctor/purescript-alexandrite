@@ -81,7 +81,7 @@ pub fn requires_instantiation<Q>(context: &CheckContext<Q>, binder_id: lowering:
 where
     Q: ExternalQueries,
 {
-    let Some(kind) = context.lowered.info.get_binder_kind(binder_id) else {
+    let Some(kind) = context.lowered.tree.get_binder_kind(binder_id) else {
         return false;
     };
     match kind {
@@ -107,7 +107,7 @@ fn type_annotation_requires_instantiation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(kind) = context.lowered.info.get_type_kind(type_id) else {
+    let Some(kind) = context.lowered.tree.get_type_kind(type_id) else {
         return false;
     };
     match kind {
@@ -176,7 +176,7 @@ where
 {
     let unknown = context.unknown("missing binder");
 
-    let Some(kind) = context.lowered.info.get_binder_kind(binder_id) else {
+    let Some(kind) = context.lowered.tree.get_binder_kind(binder_id) else {
         return Ok(allocate_checked_binder(state, binder_id, unknown, tree::BinderKind::Error));
     };
 

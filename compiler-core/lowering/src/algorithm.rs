@@ -25,7 +25,7 @@ use crate::tree::*;
 
 #[derive(Default)]
 pub(crate) struct State {
-    pub(crate) info: LoweringInfo,
+    pub(crate) tree: LoweredTree,
     pub(crate) graph: LoweringGraph,
     pub(crate) nodes: LoweringGraphNodes,
     pub(crate) graph_scope: Option<GraphNodeId>,
@@ -97,23 +97,23 @@ impl State {
     }
 
     fn alloc_let_binding(&mut self, group: LetBindingNameGroup) -> LetBindingNameGroupId {
-        self.info.let_binding.alloc(group)
+        self.tree.let_binding_groups.alloc(group)
     }
 
-    fn associate_binder_info(&mut self, id: BinderId, kind: BinderKind) {
-        self.info.binder_kind.insert(id, kind);
+    fn associate_binder_kind(&mut self, id: BinderId, kind: BinderKind) {
+        self.tree.binders.insert(id, kind);
         let Some(node) = self.graph_scope else { return };
         self.nodes.binder_node.insert(id, node);
     }
 
-    fn associate_expression_info(&mut self, id: ExpressionId, kind: ExpressionKind) {
-        self.info.expression_kind.insert(id, kind);
+    fn associate_expression_kind(&mut self, id: ExpressionId, kind: ExpressionKind) {
+        self.tree.expressions.insert(id, kind);
         let Some(node) = self.graph_scope else { return };
         self.nodes.expression_node.insert(id, node);
     }
 
-    fn associate_type_info(&mut self, id: TypeId, kind: TypeKind) {
-        self.info.type_kind.insert(id, kind);
+    fn associate_type_kind(&mut self, id: TypeId, kind: TypeKind) {
+        self.tree.types.insert(id, kind);
         let Some(node) = self.graph_scope else { return };
         self.nodes.type_node.insert(id, node);
     }
@@ -124,16 +124,16 @@ impl State {
         resolution: Option<TermVariableResolution>,
     ) {
         if let Some(resolution) = resolution {
-            self.info.expression_pun.insert(id, resolution);
+            self.tree.expression_puns.insert(id, resolution);
         }
     }
 
     fn associate_do_statement(&mut self, id: DoStatementId, statement: DoStatement) {
-        self.info.do_statement.insert(id, statement);
+        self.tree.do_statements.insert(id, statement);
     }
 
     fn associate_let_binding_name(&mut self, id: LetBindingNameGroupId, info: LetBindingName) {
-        self.info.let_binding_name.insert(id, info);
+        self.tree.let_binding_names.insert(id, info);
         let Some(node) = self.graph_scope else { return };
         self.nodes.let_node.insert(id, node);
     }
@@ -457,7 +457,7 @@ fn lower_term_item(
             state.finish_implicit_scope();
 
             let kind = TermItemIr::Derive { newtype, constraints, resolution, arguments };
-            state.info.term_item.insert(item_id, kind);
+            state.tree.term_items.insert(item_id, kind);
         }
 
         IndexedTermItemKind::Foreign { id } => {
@@ -469,7 +469,7 @@ fn lower_term_item(
             });
 
             let kind = TermItemIr::Foreign { signature };
-            state.info.term_item.insert(item_id, kind);
+            state.tree.term_items.insert(item_id, kind);
         }
 
         IndexedTermItemKind::Instance { id } => {
@@ -513,7 +513,7 @@ fn lower_term_item(
             };
 
             let kind = TermItemIr::Instance { constraints, resolution, arguments, members };
-            state.info.term_item.insert(item_id, kind);
+            state.tree.term_items.insert(item_id, kind);
         }
 
         IndexedTermItemKind::Operator { id } => {
@@ -552,7 +552,7 @@ fn lower_term_item(
             });
 
             let kind = TermItemIr::Operator { associativity, precedence, resolution };
-            state.info.term_item.insert(item_id, kind);
+            state.tree.term_items.insert(item_id, kind);
         }
 
         IndexedTermItemKind::Value { signature, equations } => {
@@ -582,7 +582,7 @@ fn lower_term_item(
                 .collect();
 
             let kind = TermItemIr::ValueGroup { signature, equations };
-            state.info.term_item.insert(item_id, kind);
+            state.tree.term_items.insert(item_id, kind);
         }
     }
 }
@@ -622,7 +622,7 @@ fn lower_type_item(
             let roles = role.map(|id| lower_roles(context, id)).unwrap_or_default();
 
             let kind = TypeItemIr::DataGroup { signature, data, roles };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
 
             lower_constructors(state, context, item_id);
         }
@@ -655,7 +655,7 @@ fn lower_type_item(
             let roles = role.map(|id| lower_roles(context, id)).unwrap_or_default();
 
             let kind = TypeItemIr::NewtypeGroup { signature, newtype, roles };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
 
             lower_constructors(state, context, item_id);
         }
@@ -692,7 +692,7 @@ fn lower_type_item(
             state.end_synonym();
 
             let kind = TypeItemIr::SynonymGroup { signature, synonym };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
         }
 
         IndexedTypeItemKind::Class { signature, declaration, .. } => {
@@ -745,7 +745,7 @@ fn lower_type_item(
             });
 
             let kind = TypeItemIr::ClassGroup { signature, class };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
 
             lower_class_members(state, context, item_id);
         }
@@ -765,7 +765,7 @@ fn lower_type_item(
             let roles = role.map(|id| lower_roles(context, id)).unwrap_or_default();
 
             let kind = TypeItemIr::Foreign { signature, roles };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
         }
 
         IndexedTypeItemKind::Operator { id } => {
@@ -798,7 +798,7 @@ fn lower_type_item(
             state.end_kind();
 
             let kind = TypeItemIr::Operator { associativity, precedence, resolution };
-            state.info.type_item.insert(item_id, kind);
+            state.tree.type_items.insert(item_id, kind);
         }
     }
 }
@@ -818,7 +818,7 @@ fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
         let arguments = cst.children().map(|t| recursive::lower_type(state, context, &t)).collect();
 
         let kind = TermItemIr::Constructor { arguments };
-        state.info.term_item.insert(item_id, kind);
+        state.tree.term_items.insert(item_id, kind);
     }
 }
 
@@ -837,7 +837,7 @@ fn lower_class_members(state: &mut State, context: &Context, id: TypeItemId) {
         let signature = cst.type_().map(|t| recursive::lower_type(state, context, &t));
 
         let kind = TermItemIr::ClassMember { signature };
-        state.info.term_item.insert(item_id, kind);
+        state.tree.term_items.insert(item_id, kind);
     }
 }
 

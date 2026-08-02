@@ -1062,7 +1062,7 @@ where
 {
     let on_lowered = |lowered: &lowering::LoweredModule| {
         if let Some(lowering::TermItemIr::Constructor { arguments }) =
-            lowered.info.get_term_item(term_id)
+            lowered.tree.get_term_item(term_id)
         {
             arguments.len()
         } else {
@@ -1177,7 +1177,7 @@ where
     let Some(expression_id) = guard.expression else {
         return false;
     };
-    let Some(kind) = context.lowered.info.get_expression_kind(expression_id) else {
+    let Some(kind) = context.lowered.tree.get_expression_kind(expression_id) else {
         return false;
     };
     match kind {
@@ -1193,7 +1193,7 @@ fn is_irrefutable_binder<Q>(context: &CheckContext<Q>, binder_id: lowering::Bind
 where
     Q: ExternalQueries,
 {
-    let Some(kind) = context.lowered.info.get_binder_kind(binder_id) else {
+    let Some(kind) = context.lowered.tree.get_binder_kind(binder_id) else {
         return false;
     };
     match kind {

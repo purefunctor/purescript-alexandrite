@@ -30,7 +30,7 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.info.get_term_item(item_id)?;
+            let item = context.lowered.tree.get_term_item(item_id)?;
             let TermItemIr::Derive { newtype, constraints, resolution, arguments } = item else {
                 return None;
             };

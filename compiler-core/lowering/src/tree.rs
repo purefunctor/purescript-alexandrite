@@ -246,7 +246,7 @@ pub type LetBindingNameGroupId = Idx<LetBindingNameGroup>;
 
 /// Core representation of the let-bound name
 ///
-/// This is stored in [`LoweringInfo`] and can be obtained from the stable
+/// This is stored in [`LoweredTree`] and can be obtained from the stable
 /// ID for any given let-bound name group [`LetBindingNameGroupId`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct LetBindingName {
@@ -430,86 +430,86 @@ pub enum Domain {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct LoweringInfo {
-    pub(crate) binder_kind: FxHashMap<BinderId, BinderKind>,
-    pub(crate) expression_kind: FxHashMap<ExpressionId, ExpressionKind>,
-    pub(crate) type_kind: FxHashMap<TypeId, TypeKind>,
-    pub(crate) term_item: FxHashMap<TermItemId, TermItemIr>,
-    pub(crate) type_item: FxHashMap<TypeItemId, TypeItemIr>,
+pub struct LoweredTree {
+    pub(crate) binders: FxHashMap<BinderId, BinderKind>,
+    pub(crate) expressions: FxHashMap<ExpressionId, ExpressionKind>,
+    pub(crate) types: FxHashMap<TypeId, TypeKind>,
+    pub(crate) term_items: FxHashMap<TermItemId, TermItemIr>,
+    pub(crate) type_items: FxHashMap<TypeItemId, TypeItemIr>,
 
-    pub(crate) do_statement: FxHashMap<DoStatementId, DoStatement>,
-    pub(crate) let_binding: Arena<LetBindingNameGroup>,
-    pub(crate) let_binding_name: ArenaMap<LetBindingNameGroupId, LetBindingName>,
+    pub(crate) do_statements: FxHashMap<DoStatementId, DoStatement>,
+    pub(crate) let_binding_groups: Arena<LetBindingNameGroup>,
+    pub(crate) let_binding_names: ArenaMap<LetBindingNameGroupId, LetBindingName>,
 
-    pub(crate) term_operator: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
-    pub(crate) type_operator: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
-    pub(crate) expression_pun: FxHashMap<RecordPunId, TermVariableResolution>,
+    pub(crate) term_operators: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
+    pub(crate) type_operators: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
+    pub(crate) expression_puns: FxHashMap<RecordPunId, TermVariableResolution>,
 }
 
-impl LoweringInfo {
+impl LoweredTree {
     pub fn iter_binder(&self) -> impl Iterator<Item = (BinderId, &BinderKind)> {
-        self.binder_kind.iter().map(|(k, v)| (*k, v))
+        self.binders.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_expression(&self) -> impl Iterator<Item = (ExpressionId, &ExpressionKind)> {
-        self.expression_kind.iter().map(|(k, v)| (*k, v))
+        self.expressions.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_type(&self) -> impl Iterator<Item = (TypeId, &TypeKind)> {
-        self.type_kind.iter().map(|(k, v)| (*k, v))
+        self.types.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_do_statement(&self) -> impl Iterator<Item = (DoStatementId, &DoStatement)> {
-        self.do_statement.iter().map(|(k, v)| (*k, v))
+        self.do_statements.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_term_operator(&self) -> impl Iterator<Item = (TermOperatorId, FileId, TermItemId)> {
-        self.term_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+        self.term_operators.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
     }
 
     pub fn iter_type_operator(&self) -> impl Iterator<Item = (TypeOperatorId, FileId, TypeItemId)> {
-        self.type_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+        self.type_operators.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
     }
 
     pub fn iter_expression_pun(
         &self,
     ) -> impl Iterator<Item = (RecordPunId, TermVariableResolution)> {
-        self.expression_pun.iter().map(|(k, v)| (*k, *v))
+        self.expression_puns.iter().map(|(k, v)| (*k, *v))
     }
 
     pub fn get_binder_kind(&self, id: BinderId) -> Option<&BinderKind> {
-        self.binder_kind.get(&id)
+        self.binders.get(&id)
     }
 
     pub fn get_expression_kind(&self, id: ExpressionId) -> Option<&ExpressionKind> {
-        self.expression_kind.get(&id)
+        self.expressions.get(&id)
     }
 
     pub fn get_type_kind(&self, id: TypeId) -> Option<&TypeKind> {
-        self.type_kind.get(&id)
+        self.types.get(&id)
     }
 
     pub fn get_do_statement(&self, id: DoStatementId) -> Option<&DoStatement> {
-        self.do_statement.get(&id)
+        self.do_statements.get(&id)
     }
 
     pub fn get_term_item(&self, id: TermItemId) -> Option<&TermItemIr> {
-        self.term_item.get(&id)
+        self.term_items.get(&id)
     }
 
     pub fn get_type_item(&self, id: TypeItemId) -> Option<&TypeItemIr> {
-        self.type_item.get(&id)
+        self.type_items.get(&id)
     }
 
     pub fn get_let_binding_group(&self, id: LetBindingNameGroupId) -> &LetBindingNameGroup {
-        &self.let_binding[id]
+        &self.let_binding_groups[id]
     }
 
     pub fn let_binding_group_for_signature(
         &self,
         signature: crate::source::LetBindingSignatureId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding
+        self.let_binding_groups
             .iter()
             .find_map(|(id, group)| (group.signature == Some(signature)).then_some(id))
     }
@@ -518,32 +518,32 @@ impl LoweringInfo {
         &self,
         equation: crate::source::LetBindingEquationId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding
+        self.let_binding_groups
             .iter()
             .find_map(|(id, group)| group.equations.contains(&equation).then_some(id))
     }
 
     pub fn get_let_binding(&self, id: LetBindingNameGroupId) -> Option<&LetBindingName> {
-        self.let_binding_name.get(id)
+        self.let_binding_names.get(id)
     }
 
     pub fn get_term_operator(&self, id: TermOperatorId) -> Option<(FileId, TermItemId)> {
-        self.term_operator.get(&id).copied()
+        self.term_operators.get(&id).copied()
     }
 
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
-        self.type_operator.get(&id).copied()
+        self.type_operators.get(&id).copied()
     }
 
     pub fn get_expression_pun(&self, id: RecordPunId) -> Option<TermVariableResolution> {
-        self.expression_pun.get(&id).copied()
+        self.expression_puns.get(&id).copied()
     }
 
     pub fn find_let_binding_group_by_signature(
         &self,
         signature_id: LetBindingSignatureId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+        self.let_binding_groups.iter().find_map(|(let_binding_id, let_binding_group)| {
             let_binding_group
                 .signature
                 .is_some_and(|candidate_id| candidate_id == signature_id)
@@ -555,7 +555,7 @@ impl LoweringInfo {
         &self,
         equation_id: LetBindingEquationId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+        self.let_binding_groups.iter().find_map(|(let_binding_id, let_binding_group)| {
             let_binding_group.equations.contains(&equation_id).then_some(let_binding_id)
         })
     }
