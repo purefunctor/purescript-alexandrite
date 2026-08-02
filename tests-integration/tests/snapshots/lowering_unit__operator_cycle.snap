@@ -6,16 +6,16 @@ expression: "(terms, types)"
     [
         Mutual(
             [
-                Idx::<TermItem>(1),
-                Idx::<TermItem>(0),
+                Idx::<IndexedTermItem>(1),
+                Idx::<IndexedTermItem>(0),
             ],
         ),
     ],
     [
         Mutual(
             [
-                Idx::<TypeItem>(1),
-                Idx::<TypeItem>(0),
+                Idx::<IndexedTypeItem>(1),
+                Idx::<IndexedTypeItem>(0),
             ],
         ),
     ],

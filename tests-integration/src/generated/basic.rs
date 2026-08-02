@@ -6,7 +6,7 @@ use checking::core::pretty;
 use checking::{PrettyQueries, core};
 use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};
 use files::FileId;
-use indexing::{ImportKind, TermItem, TypeItem, TypeItemId, TypeItemKind};
+use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
 use lowering::{
     ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
@@ -225,7 +225,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let mut out = String::default();
 
     writeln!(out, "Terms").unwrap();
-    for (id, TermItem { name, .. }) in indexed.items.iter_terms() {
+    for (id, IndexedTermItem { name, .. }) in indexed.items.iter_terms() {
         let Some(name) = name else { continue };
         let Some(kind) = checked.lookup_term(id) else { continue };
         let mut state = pretty.state();
@@ -234,7 +234,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     }
 
     writeln!(out, "\nTypes").unwrap();
-    for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
         let Some(kind) = checked.lookup_type(id) else { continue };
         let mut state = pretty.state();
@@ -245,7 +245,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.synonyms.is_empty() {
         writeln!(out, "\nSynonyms").unwrap();
     }
-    for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
         let Some(definition) = checked.lookup_synonym(id) else { continue };
         let mut state = pretty.state();
@@ -260,7 +260,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.classes.is_empty() {
         writeln!(out, "\nClasses").unwrap();
     }
-    for (id, TypeItem { .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { .. }) in indexed.items.iter_types() {
         let Some(class) = checked.lookup_class(id) else { continue };
         let mut state = pretty.state();
 
@@ -333,10 +333,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.roles.is_empty() {
         writeln!(out, "\nRoles").unwrap();
     }
-    for (id, TypeItem { name, kind, .. }) in indexed.items.iter_types() {
-        let (TypeItemKind::Data { .. }
-        | TypeItemKind::Newtype { .. }
-        | TypeItemKind::Foreign { .. }) = kind
+    for (id, IndexedTypeItem { name, kind, .. }) in indexed.items.iter_types() {
+        let (IndexedTypeItemKind::Data { .. }
+        | IndexedTypeItemKind::Newtype { .. }
+        | IndexedTypeItemKind::Foreign { .. }) = kind
         else {
             continue;
         };

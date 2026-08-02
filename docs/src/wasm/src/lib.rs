@@ -7,7 +7,7 @@ use building_types::QueryProxy;
 use checking::core::pretty;
 use diagnostics::{Diagnostic, DiagnosticsContext, ToDiagnostics};
 use engine::WasmQueryEngine;
-use indexing::{TermItem, TypeItem};
+use indexing::{IndexedTermItem, IndexedTypeItem};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 use web_sys::{js_sys, WorkerGlobalScope};
@@ -279,21 +279,21 @@ pub fn check(source: &str) -> JsValue {
 
         // Extract results
         let mut terms = Vec::new();
-        for (term_id, TermItem { name, .. }) in indexed.items.iter_terms() {
+        for (term_id, IndexedTermItem { name, .. }) in indexed.items.iter_terms() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_term(term_id) else { continue };
             terms.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut types = Vec::new();
-        for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
+        for (type_id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(t) = checked.lookup_type(type_id) else { continue };
             types.push(pretty.render_signature(n.as_str(), t).to_string());
         }
 
         let mut synonyms = Vec::new();
-        for (type_id, TypeItem { name, .. }) in indexed.items.iter_types() {
+        for (type_id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
             let Some(n) = name else { continue };
             let Some(group) = checked.lookup_synonym(type_id) else { continue };
             let mut pretty = pretty.state();

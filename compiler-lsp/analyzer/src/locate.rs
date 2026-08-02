@@ -42,7 +42,8 @@ pub fn value_equation_ranges(
     indexed: &IndexedModule,
     term_id: TermItemId,
 ) -> Option<Vec<Utf8Range>> {
-    let indexing::TermItemKind::Value { signature, equations } = &indexed.items[term_id].kind
+    let indexing::IndexedTermItemKind::Value { signature, equations } =
+        &indexed.items[term_id].kind
     else {
         return None;
     };

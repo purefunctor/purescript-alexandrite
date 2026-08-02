@@ -40,7 +40,10 @@ impl<'a> State<'a> {
         State { source, name, ..Default::default() }
     }
 
-    fn open_term_group(&mut self, name: &Option<SmolStr>) -> Option<(TermItemId, &mut TermItem)> {
+    fn open_term_group(
+        &mut self,
+        name: &Option<SmolStr>,
+    ) -> Option<(TermItemId, &mut IndexedTermItem)> {
         let OpenItemGroup::Term(id) = self.open? else {
             return None;
         };
@@ -51,7 +54,10 @@ impl<'a> State<'a> {
         Some((id, &mut self.items.terms[id]))
     }
 
-    fn open_type_group(&mut self, name: &Option<SmolStr>) -> Option<(TypeItemId, &mut TypeItem)> {
+    fn open_type_group(
+        &mut self,
+        name: &Option<SmolStr>,
+    ) -> Option<(TypeItemId, &mut IndexedTypeItem)> {
         let OpenItemGroup::Type(id) = self.open? else {
             return None;
         };
@@ -62,13 +68,13 @@ impl<'a> State<'a> {
         Some((id, &mut self.items.types[id]))
     }
 
-    fn alloc_term(&mut self, item: TermItem) -> TermItemId {
+    fn alloc_term(&mut self, item: IndexedTermItem) -> TermItemId {
         let id = self.items.terms.alloc(item);
         self.open = Some(OpenItemGroup::Term(id));
         id
     }
 
-    fn alloc_type(&mut self, item: TypeItem) -> TypeItemId {
+    fn alloc_type(&mut self, item: IndexedTypeItem) -> TypeItemId {
         let id = self.items.types.alloc(item);
         self.open = Some(OpenItemGroup::Type(id));
         id
@@ -158,14 +164,14 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Synonym { signature: Some(id), equation: None },
+                    kind: IndexedTypeItemKind::Synonym { signature: Some(id), equation: None },
                     exported: false,
                 },
                 ItemKind::SynonymSignature,
                 |item| {
-                    if let TypeItemKind::Synonym { signature, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Synonym { signature, .. } = &mut item.kind {
                         Some(signature)
                     } else {
                         None
@@ -181,14 +187,14 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Synonym { signature: None, equation: Some(id) },
+                    kind: IndexedTypeItemKind::Synonym { signature: None, equation: Some(id) },
                     exported: false,
                 },
                 ItemKind::SynonymEquation,
                 |item| {
-                    if let TypeItemKind::Synonym { equation, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Synonym { equation, .. } = &mut item.kind {
                         Some(equation)
                     } else {
                         None
@@ -204,9 +210,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Class {
+                    kind: IndexedTypeItemKind::Class {
                         signature: Some(id),
                         declaration: None,
                         members: vec![],
@@ -215,7 +221,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::ClassSignature,
                 |item| {
-                    if let TypeItemKind::Class { signature, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Class { signature, .. } = &mut item.kind {
                         Some(signature)
                     } else {
                         None
@@ -231,9 +237,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Class {
+                    kind: IndexedTypeItemKind::Class {
                         signature: None,
                         declaration: Some(id),
                         members: vec![],
@@ -242,7 +248,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::ClassDeclaration,
                 |item| {
-                    if let TypeItemKind::Class { declaration, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Class { declaration, .. } = &mut item.kind {
                         Some(declaration)
                     } else {
                         None
@@ -253,7 +259,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 for cst in cst.children() {
                     let member_id = stabilized.lookup_cst(&cst).expect_id();
                     let term_id = index_class_member(state, member_id, &cst);
-                    if let TypeItemKind::Class { members, .. } =
+                    if let IndexedTypeItemKind::Class { members, .. } =
                         &mut state.items.types[type_id].kind
                     {
                         members.push(term_id);
@@ -280,9 +286,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Newtype {
+                    kind: IndexedTypeItemKind::Newtype {
                         signature: Some(id),
                         equation: None,
                         role: None,
@@ -292,7 +298,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::NewtypeSignature,
                 |item| {
-                    if let TypeItemKind::Newtype { signature, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Newtype { signature, .. } = &mut item.kind {
                         Some(signature)
                     } else {
                         None
@@ -308,9 +314,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Newtype {
+                    kind: IndexedTypeItemKind::Newtype {
                         signature: None,
                         equation: Some(id),
                         role: None,
@@ -320,7 +326,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::NewtypeEquation,
                 |item| {
-                    if let TypeItemKind::Newtype { equation, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Newtype { equation, .. } = &mut item.kind {
                         Some(equation)
                     } else {
                         None
@@ -330,7 +336,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                if let TypeItemKind::Newtype { constructors, .. } =
+                if let IndexedTypeItemKind::Newtype { constructors, .. } =
                     &mut state.items.types[type_id].kind
                 {
                     constructors.push(term_id);
@@ -346,9 +352,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Data {
+                    kind: IndexedTypeItemKind::Data {
                         signature: Some(id),
                         equation: None,
                         role: None,
@@ -358,7 +364,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::DataSignature,
                 |item| {
-                    if let TypeItemKind::Data { signature, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Data { signature, .. } = &mut item.kind {
                         Some(signature)
                     } else {
                         None
@@ -374,9 +380,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 state,
                 id,
                 token,
-                |name, id| TypeItem {
+                |name, id| IndexedTypeItem {
                     name,
-                    kind: TypeItemKind::Data {
+                    kind: IndexedTypeItemKind::Data {
                         signature: None,
                         equation: Some(id),
                         role: None,
@@ -386,7 +392,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 },
                 ItemKind::DataEquation,
                 |item| {
-                    if let TypeItemKind::Data { equation, .. } = &mut item.kind {
+                    if let IndexedTypeItemKind::Data { equation, .. } = &mut item.kind {
                         Some(equation)
                     } else {
                         None
@@ -396,7 +402,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_data_constructor(state, constructor_id, &cst);
-                if let TypeItemKind::Data { constructors, .. } =
+                if let IndexedTypeItemKind::Data { constructors, .. } =
                     &mut state.items.types[type_id].kind
                 {
                     constructors.push(term_id);
@@ -421,11 +427,11 @@ fn index_value_signature(
     let name = name_from_token(state.source, cst.name_token());
 
     let Some((active_id, active)) = state.open_term_group(&name) else {
-        let kind = TermItemKind::Value { signature: Some(id), equations: vec![] };
-        return state.alloc_term(TermItem { name, kind, exported: false });
+        let kind = IndexedTermItemKind::Value { signature: Some(id), equations: vec![] };
+        return state.alloc_term(IndexedTermItem { name, kind, exported: false });
     };
 
-    if let TermItemKind::Value { signature, .. } = &mut active.kind {
+    if let IndexedTermItemKind::Value { signature, .. } = &mut active.kind {
         if signature.is_some() {
             let kind = ItemKind::ValueSignature(id);
             let existing = ExistingKind::Term(active_id);
@@ -450,11 +456,11 @@ fn index_value_equation(
     let name = name_from_token(state.source, cst.name_token());
 
     let Some((active_id, active)) = state.open_term_group(&name) else {
-        let kind = TermItemKind::Value { signature: None, equations: vec![id] };
-        return state.alloc_term(TermItem { name, kind, exported: false });
+        let kind = IndexedTermItemKind::Value { signature: None, equations: vec![id] };
+        return state.alloc_term(IndexedTermItem { name, kind, exported: false });
     };
 
-    if let TermItemKind::Value { equations, .. } = &mut active.kind {
+    if let IndexedTermItemKind::Value { equations, .. } = &mut active.kind {
         equations.push(id);
     } else {
         let kind = ItemKind::ValueEquation(id);
@@ -477,14 +483,14 @@ fn index_infix(
     let name = name_from_token(state.source, operator_token);
 
     if type_token.is_some() {
-        let kind = TypeItemKind::Operator { id: infix_id };
-        let item = TypeItem { name, kind, exported: false };
+        let kind = IndexedTypeItemKind::Operator { id: infix_id };
+        let item = IndexedTypeItem { name, kind, exported: false };
 
         let type_id = state.alloc_type(item);
         state.pairs.declaration_to_type.push((declaration_id, type_id))
     } else {
-        let kind = TermItemKind::Operator { id: infix_id };
-        let item = TermItem { name, kind, exported: false };
+        let kind = IndexedTermItemKind::Operator { id: infix_id };
+        let item = IndexedTermItem { name, kind, exported: false };
 
         let term_id = state.alloc_term(item);
         state.pairs.declaration_to_term.push((declaration_id, term_id))
@@ -498,9 +504,9 @@ fn index_type_role(state: &mut State, id: TypeRoleId, cst: &cst::TypeRoleDeclara
         return state.errors.push(IndexingError::InvalidRole { id, existing: None });
     };
 
-    if let TypeItemKind::Data { role, .. }
-    | TypeItemKind::Newtype { role, .. }
-    | TypeItemKind::Foreign { role, .. } = &mut active.kind
+    if let IndexedTypeItemKind::Data { role, .. }
+    | IndexedTypeItemKind::Newtype { role, .. }
+    | IndexedTypeItemKind::Foreign { role, .. } = &mut active.kind
     {
         if role.is_some() {
             state.errors.push(IndexingError::InvalidRole { id, existing: Some(active_id) });
@@ -512,8 +518,8 @@ fn index_type_role(state: &mut State, id: TypeRoleId, cst: &cst::TypeRoleDeclara
     }
 }
 
-type Item<T> = fn(Option<SmolStr>, AstId<T>) -> TypeItem;
-type Extract<T> = fn(&mut TypeItem) -> Option<&mut Option<AstId<T>>>;
+type Item<T> = fn(Option<SmolStr>, AstId<T>) -> IndexedTypeItem;
+type Extract<T> = fn(&mut IndexedTypeItem) -> Option<&mut Option<AstId<T>>>;
 type MakeItemKind<T> = fn(AstId<T>) -> ItemKind;
 
 fn index_type_signature<T: AstNode>(
@@ -586,8 +592,8 @@ fn index_data_constructor(
     cst: &cst::DataConstructor,
 ) -> TermItemId {
     let name = name_from_token(state.source, cst.name_token());
-    let kind = TermItemKind::Constructor { id };
-    state.items.terms.alloc(TermItem { name, kind, exported: false })
+    let kind = IndexedTermItemKind::Constructor { id };
+    state.items.terms.alloc(IndexedTermItem { name, kind, exported: false })
 }
 
 fn index_class_member(
@@ -596,8 +602,8 @@ fn index_class_member(
     cst: &cst::ClassMemberStatement,
 ) -> TermItemId {
     let name = name_from_token(state.source, cst.name_token());
-    let kind = TermItemKind::ClassMember { id };
-    state.items.terms.alloc(TermItem { name, kind, exported: false })
+    let kind = IndexedTermItemKind::ClassMember { id };
+    state.items.terms.alloc(IndexedTermItem { name, kind, exported: false })
 }
 
 fn index_foreign_data(
@@ -606,8 +612,8 @@ fn index_foreign_data(
     cst: &cst::ForeignImportDataDeclaration,
 ) -> TypeItemId {
     let name = name_from_token(state.source, cst.name_token());
-    let kind = TypeItemKind::Foreign { id, role: None };
-    state.alloc_type(TypeItem { name, kind, exported: false })
+    let kind = IndexedTypeItemKind::Foreign { id, role: None };
+    state.alloc_type(IndexedTypeItem { name, kind, exported: false })
 }
 
 fn index_foreign_value(
@@ -616,7 +622,11 @@ fn index_foreign_value(
     cst: &cst::ForeignImportValueDeclaration,
 ) -> TermItemId {
     let name = name_from_token(state.source, cst.name_token());
-    state.alloc_term(TermItem { name, kind: TermItemKind::Foreign { id }, exported: false })
+    state.alloc_term(IndexedTermItem {
+        name,
+        kind: IndexedTermItemKind::Foreign { id },
+        exported: false,
+    })
 }
 
 fn index_instance(state: &mut State, id: InstanceId, cst: &cst::InstanceDeclaration) -> TermItemId {
@@ -625,7 +635,11 @@ fn index_instance(state: &mut State, id: InstanceId, cst: &cst::InstanceDeclarat
         let text = token.text(state.source);
         Some(SmolStr::from(text))
     });
-    state.alloc_term(TermItem { name, kind: TermItemKind::Instance { id }, exported: true })
+    state.alloc_term(IndexedTermItem {
+        name,
+        kind: IndexedTermItemKind::Instance { id },
+        exported: true,
+    })
 }
 
 fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -> TermItemId {
@@ -634,7 +648,11 @@ fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -
         let text = token.text(state.source);
         Some(SmolStr::from(text))
     });
-    state.alloc_term(TermItem { name, kind: TermItemKind::Derive { id }, exported: true })
+    state.alloc_term(IndexedTermItem {
+        name,
+        kind: IndexedTermItemKind::Derive { id },
+        exported: true,
+    })
 }
 
 fn validate_items(state: &mut State) {
@@ -843,8 +861,8 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
             item.exported = true;
             if let Some(implicit) = implicit {
                 let constructors: Vec<_> = match &item.kind {
-                    TypeItemKind::Data { constructors, .. }
-                    | TypeItemKind::Newtype { constructors, .. } => constructors.clone(),
+                    IndexedTypeItemKind::Data { constructors, .. }
+                    | IndexedTypeItemKind::Newtype { constructors, .. } => constructors.clone(),
                     _ => vec![],
                 };
 
@@ -872,7 +890,7 @@ fn index_exports(state: &mut State, stabilized: &StabilizedModule, cst: &cst::Ex
                 }
             }
             let members: Vec<_> = match &item.kind {
-                TypeItemKind::Class { members, .. } => members.clone(),
+                IndexedTypeItemKind::Class { members, .. } => members.clone(),
                 _ => vec![],
             };
             for term_id in members {

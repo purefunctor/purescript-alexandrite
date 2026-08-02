@@ -4,14 +4,14 @@ use smol_str::SmolStr;
 use crate::source::*;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TermItem {
+pub struct IndexedTermItem {
     pub name: Option<SmolStr>,
-    pub kind: TermItemKind,
+    pub kind: IndexedTermItemKind,
     pub exported: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TermItemKind {
+pub enum IndexedTermItemKind {
     ClassMember { id: ClassMemberId },
     Constructor { id: DataConstructorId },
     Derive { id: DeriveId },
@@ -21,17 +21,17 @@ pub enum TermItemKind {
     Value { signature: Option<ValueSignatureId>, equations: Vec<ValueEquationId> },
 }
 
-pub type TermItemId = Idx<TermItem>;
+pub type TermItemId = Idx<IndexedTermItem>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TypeItem {
+pub struct IndexedTypeItem {
     pub name: Option<SmolStr>,
-    pub kind: TypeItemKind,
+    pub kind: IndexedTypeItemKind,
     pub exported: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TypeItemKind {
+pub enum IndexedTypeItemKind {
     Data {
         signature: Option<DataSignatureId>,
         equation: Option<DataEquationId>,
@@ -62,4 +62,4 @@ pub enum TypeItemKind {
     },
 }
 
-pub type TypeItemId = Idx<TypeItem>;
+pub type TypeItemId = Idx<IndexedTypeItem>;

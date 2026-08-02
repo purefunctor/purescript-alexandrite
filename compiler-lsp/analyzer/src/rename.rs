@@ -1,6 +1,8 @@
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{
+    ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+};
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use lsp_types::*;
 use syntax::ast::{AstNode, AstPtr};
@@ -409,9 +411,11 @@ fn target_name(
             };
 
             let kind = match item.kind {
-                TermItemKind::Constructor { .. } => NameKind::Upper,
-                TermItemKind::Operator { .. } => NameKind::Operator,
-                TermItemKind::Derive { .. } | TermItemKind::Instance { .. } => return Ok(None),
+                IndexedTermItemKind::Constructor { .. } => NameKind::Upper,
+                IndexedTermItemKind::Operator { .. } => NameKind::Operator,
+                IndexedTermItemKind::Derive { .. } | IndexedTermItemKind::Instance { .. } => {
+                    return Ok(None);
+                }
                 _ => NameKind::Lower,
             };
 
@@ -426,7 +430,7 @@ fn target_name(
             };
 
             let kind = match item.kind {
-                TypeItemKind::Operator { .. } => NameKind::Operator,
+                IndexedTypeItemKind::Operator { .. } => NameKind::Operator,
                 _ => NameKind::Upper,
             };
 

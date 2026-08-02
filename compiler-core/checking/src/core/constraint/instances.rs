@@ -5,7 +5,8 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{
-    DeriveId, IndexedModule, InstanceChainId, InstanceId, TermItemId, TermItemKind, TypeItemId,
+    DeriveId, IndexedModule, IndexedTermItemKind, InstanceChainId, InstanceId, TermItemId,
+    TypeItemId,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -99,12 +100,12 @@ where
     Q: ExternalQueries,
 {
     match context.indexed.items[item_id].kind {
-        TermItemKind::Instance { id } => {
+        IndexedTermItemKind::Instance { id } => {
             let instance = state.checked.lookup_instance(id)?;
             let origin = InstanceCandidateOrigin::Instance(context.id, id);
             Some((origin, instance))
         }
-        TermItemKind::Derive { id } => {
+        IndexedTermItemKind::Derive { id } => {
             let instance = state.checked.lookup_derived(id)?;
             let origin = InstanceCandidateOrigin::Derive(context.id, id);
             Some((origin, instance))
@@ -276,12 +277,14 @@ where
     Q: ExternalQueries,
 {
     context.indexed.items.iter_terms().position(|(_, item)| match (origin, &item.kind) {
-        (InstanceCandidateOrigin::Instance(file_id, origin_id), TermItemKind::Instance { id }) => {
-            file_id == context.id && origin_id == *id
-        }
-        (InstanceCandidateOrigin::Derive(file_id, origin_id), TermItemKind::Derive { id }) => {
-            file_id == context.id && origin_id == *id
-        }
+        (
+            InstanceCandidateOrigin::Instance(file_id, origin_id),
+            IndexedTermItemKind::Instance { id },
+        ) => file_id == context.id && origin_id == *id,
+        (
+            InstanceCandidateOrigin::Derive(file_id, origin_id),
+            IndexedTermItemKind::Derive { id },
+        ) => file_id == context.id && origin_id == *id,
         _ => false,
     })
 }

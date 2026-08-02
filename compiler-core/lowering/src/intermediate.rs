@@ -229,7 +229,7 @@ pub struct WhereExpression {
 
 /// Group of IDs for a let-bound name
 ///
-/// This mirrors the [`indexing::TermItemKind::Value`] pattern for top-level
+/// This mirrors the [`indexing::IndexedTermItemKind::Value`] pattern for top-level
 /// value declarations, where the declaration group is assigned a stable ID.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LetBindingNameGroup {

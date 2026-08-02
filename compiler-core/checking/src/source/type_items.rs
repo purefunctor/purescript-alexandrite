@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, TypeItemKind};
+use indexing::{IndexedTypeItemKind, TermItemId, TypeItemId};
 use lowering::{
     ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
     TypeItemIr, TypeVariableBinding,
@@ -605,8 +605,8 @@ where
         };
 
         let declaration = match &context.indexed.items[item_id].kind {
-            TypeItemKind::Data { .. } => tree::TypeDeclarationKind::Data(data),
-            TypeItemKind::Newtype { .. } => tree::TypeDeclarationKind::Newtype(data),
+            IndexedTypeItemKind::Data { .. } => tree::TypeDeclarationKind::Data(data),
+            IndexedTypeItemKind::Newtype { .. } => tree::TypeDeclarationKind::Newtype(data),
             _ => unreachable!("invariant violated: pending data type is not data or newtype"),
         };
 

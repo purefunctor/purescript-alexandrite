@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use files::FileId;
 use indexing::{
-    EquationSourceId, IndexedModule, TermItem, TermItemId, TermItemKind, TypeItem, TypeItemId,
-    TypeItemKind, TypeRoleId,
+    EquationSourceId, IndexedModule, IndexedTermItem, IndexedTermItemKind, IndexedTypeItem,
+    IndexedTypeItemKind, TermItemId, TypeItemId, TypeRoleId,
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -267,7 +267,7 @@ impl State {
             self.type_edges.insert((current_id, type_id));
 
             if let Some(synonym_id) = self.current_synonym
-                && let TypeItemKind::Synonym { .. } = context.indexed.items[type_id].kind
+                && let IndexedTypeItemKind::Synonym { .. } = context.indexed.items[type_id].kind
             {
                 self.synonym_edges.insert((synonym_id, type_id));
             }
@@ -294,7 +294,7 @@ impl State {
             self.type_edges.insert((current_id, type_id));
 
             if let Some(synonym_id) = self.current_synonym
-                && let TypeItemKind::Synonym { .. } = context.indexed.items[type_id].kind
+                && let IndexedTypeItemKind::Synonym { .. } = context.indexed.items[type_id].kind
             {
                 self.synonym_edges.insert((synonym_id, type_id));
             }
@@ -408,13 +408,18 @@ pub(super) fn lower_module(
     state
 }
 
-fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, item: &TermItem) {
+fn lower_term_item(
+    state: &mut State,
+    context: &Context,
+    item_id: TermItemId,
+    item: &IndexedTermItem,
+) {
     match &item.kind {
-        TermItemKind::ClassMember { .. } => (), // See lower_type_item
+        IndexedTermItemKind::ClassMember { .. } => (), // See lower_type_item
 
-        TermItemKind::Constructor { .. } => (), // See lower_type_item
+        IndexedTermItemKind::Constructor { .. } => (), // See lower_type_item
 
-        TermItemKind::Derive { id } => {
+        IndexedTermItemKind::Derive { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let newtype = cst.as_ref().map(|cst| cst.newtype_token().is_some()).unwrap_or(false);
@@ -455,7 +460,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             state.info.term_item.insert(item_id, kind);
         }
 
-        TermItemKind::Foreign { id } => {
+        IndexedTermItemKind::Foreign { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let signature = cst.and_then(|cst| {
@@ -467,7 +472,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             state.info.term_item.insert(item_id, kind);
         }
 
-        TermItemKind::Instance { id } => {
+        IndexedTermItemKind::Instance { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let resolution = cst.as_ref().and_then(|cst| {
@@ -511,7 +516,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             state.info.term_item.insert(item_id, kind);
         }
 
-        TermItemKind::Operator { id } => {
+        IndexedTermItemKind::Operator { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let associativity = cst.as_ref().and_then(|cst| {
@@ -550,7 +555,7 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
             state.info.term_item.insert(item_id, kind);
         }
 
-        TermItemKind::Value { signature, equations } => {
+        IndexedTermItemKind::Value { signature, equations } => {
             let signature = signature.and_then(|id| {
                 let cst =
                     context.stabilized.ast_ptr(id).and_then(|cst| cst.try_to_node(context.root))?;
@@ -582,9 +587,14 @@ fn lower_term_item(state: &mut State, context: &Context, item_id: TermItemId, it
     }
 }
 
-fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, item: &TypeItem) {
+fn lower_type_item(
+    state: &mut State,
+    context: &Context,
+    item_id: TypeItemId,
+    item: &IndexedTypeItem,
+) {
     match &item.kind {
-        TypeItemKind::Data { signature, equation, role, .. } => {
+        IndexedTypeItemKind::Data { signature, equation, role, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -617,7 +627,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             lower_constructors(state, context, item_id);
         }
 
-        TypeItemKind::Newtype { signature, equation, role, .. } => {
+        IndexedTypeItemKind::Newtype { signature, equation, role, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -650,7 +660,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             lower_constructors(state, context, item_id);
         }
 
-        TypeItemKind::Synonym { signature, equation } => {
+        IndexedTypeItemKind::Synonym { signature, equation } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -685,7 +695,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             state.info.type_item.insert(item_id, kind);
         }
 
-        TypeItemKind::Class { signature, declaration, .. } => {
+        IndexedTypeItemKind::Class { signature, declaration, .. } => {
             state.begin_kind(item_id);
 
             let signature = signature.and_then(|id| {
@@ -740,7 +750,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             lower_class_members(state, context, item_id);
         }
 
-        TypeItemKind::Foreign { id, role } => {
+        IndexedTypeItemKind::Foreign { id, role } => {
             state.begin_kind(item_id);
 
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
@@ -758,7 +768,7 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
             state.info.type_item.insert(item_id, kind);
         }
 
-        TypeItemKind::Operator { id } => {
+        IndexedTypeItemKind::Operator { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let associativity = cst.as_ref().and_then(|cst| {
@@ -795,8 +805,8 @@ fn lower_type_item(state: &mut State, context: &Context, item_id: TypeItemId, it
 
 fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
     for item_id in context.indexed.data_constructors(id) {
-        let TermItemKind::Constructor { id } = context.indexed.items[item_id].kind else {
-            unreachable!("invariant violated: expected TermItemKind::Constructor");
+        let IndexedTermItemKind::Constructor { id } = context.indexed.items[item_id].kind else {
+            unreachable!("invariant violated: expected IndexedTermItemKind::Constructor");
         };
 
         let Some(cst) =
@@ -814,8 +824,8 @@ fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
 
 fn lower_class_members(state: &mut State, context: &Context, id: TypeItemId) {
     for item_id in context.indexed.class_members(id) {
-        let TermItemKind::ClassMember { id } = context.indexed.items[item_id].kind else {
-            unreachable!("invariant violated: expected TermItemKind::ClassMember");
+        let IndexedTermItemKind::ClassMember { id } = context.indexed.items[item_id].kind else {
+            unreachable!("invariant violated: expected IndexedTermItemKind::ClassMember");
         };
 
         let Some(cst) =

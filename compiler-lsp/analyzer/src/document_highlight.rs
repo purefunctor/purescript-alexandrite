@@ -2,7 +2,9 @@ use std::iter;
 
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{ImportItemId, ImportKind, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{
+    ImportItemId, ImportKind, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
@@ -613,25 +615,25 @@ fn term_item_highlights(
     }
 
     match &indexed.items[term_id].kind {
-        TermItemKind::ClassMember { id } => {
+        IndexedTermItemKind::ClassMember { id } => {
             push_name_highlights!(position::class_member_name_range; Some(*id));
         }
-        TermItemKind::Constructor { id } => {
+        IndexedTermItemKind::Constructor { id } => {
             push_name_highlights!(position::data_constructor_name_range; Some(*id));
         }
-        TermItemKind::Derive { id } => {
+        IndexedTermItemKind::Derive { id } => {
             push_name_highlights!(position::declaration_name_range; Some(*id));
         }
-        TermItemKind::Foreign { id } => {
+        IndexedTermItemKind::Foreign { id } => {
             push_name_highlights!(position::declaration_name_range; Some(*id));
         }
-        TermItemKind::Instance { id } => {
+        IndexedTermItemKind::Instance { id } => {
             push_name_highlights!(position::instance_declaration_name_range; Some(*id));
         }
-        TermItemKind::Operator { id } => {
+        IndexedTermItemKind::Operator { id } => {
             push_name_highlights!(position::infix_operator_range; Some(*id));
         }
-        TermItemKind::Value { signature, equations } => {
+        IndexedTermItemKind::Value { signature, equations } => {
             push_name_highlights!(position::declaration_name_range; *signature);
 
             for &equation in equations {
@@ -667,22 +669,22 @@ fn type_item_highlights(
     }
 
     match indexed.items[type_id].kind {
-        TypeItemKind::Data { signature, equation, role, .. } => {
+        IndexedTypeItemKind::Data { signature, equation, role, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, equation, role);
         }
-        TypeItemKind::Newtype { signature, equation, role, .. } => {
+        IndexedTypeItemKind::Newtype { signature, equation, role, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, equation, role);
         }
-        TypeItemKind::Synonym { signature, equation } => {
+        IndexedTypeItemKind::Synonym { signature, equation } => {
             push_name_highlights!(position::declaration_name_range; signature, equation);
         }
-        TypeItemKind::Class { signature, declaration, .. } => {
+        IndexedTypeItemKind::Class { signature, declaration, .. } => {
             push_name_highlights!(position::declaration_name_range; signature, declaration);
         }
-        TypeItemKind::Foreign { id, role } => {
+        IndexedTypeItemKind::Foreign { id, role } => {
             push_name_highlights!(position::declaration_name_range; Some(id), role);
         }
-        TypeItemKind::Operator { id } => {
+        IndexedTypeItemKind::Operator { id } => {
             push_name_highlights!(position::infix_operator_range; Some(id));
         }
     }

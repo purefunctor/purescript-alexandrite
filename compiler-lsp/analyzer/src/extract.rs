@@ -1,5 +1,5 @@
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId};
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::AstNode;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxNodePtr, TextRange};
@@ -111,25 +111,25 @@ impl AnnotationSyntaxRange {
         let item = &indexed.items[term_id];
 
         let range = match &item.kind {
-            TermItemKind::ClassMember { id } => {
+            IndexedTermItemKind::ClassMember { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Constructor { id } => {
+            IndexedTermItemKind::Constructor { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Derive { id } => {
+            IndexedTermItemKind::Derive { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Foreign { id } => {
+            IndexedTermItemKind::Foreign { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Instance { id } => {
+            IndexedTermItemKind::Instance { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Operator { id } => {
+            IndexedTermItemKind::Operator { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TermItemKind::Value { signature, equations } => {
+            IndexedTermItemKind::Value { signature, equations } => {
                 let equation = equations.first().copied();
                 signature_equation_range(&stabilized, &root, signature, &equation)
             }
@@ -151,22 +151,22 @@ impl AnnotationSyntaxRange {
         let item = &indexed.items[type_id];
 
         let range = match &item.kind {
-            TypeItemKind::Data { signature, equation, .. } => {
+            IndexedTypeItemKind::Data { signature, equation, .. } => {
                 signature_equation_range(&stabilized, &root, signature, equation)
             }
-            TypeItemKind::Newtype { signature, equation, .. } => {
+            IndexedTypeItemKind::Newtype { signature, equation, .. } => {
                 signature_equation_range(&stabilized, &root, signature, equation)
             }
-            TypeItemKind::Synonym { signature, equation, .. } => {
+            IndexedTypeItemKind::Synonym { signature, equation, .. } => {
                 signature_equation_range(&stabilized, &root, signature, equation)
             }
-            TypeItemKind::Class { signature, declaration, .. } => {
+            IndexedTypeItemKind::Class { signature, declaration, .. } => {
                 signature_equation_range(&stabilized, &root, signature, declaration)
             }
-            TypeItemKind::Foreign { id, .. } => {
+            IndexedTypeItemKind::Foreign { id, .. } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            TypeItemKind::Operator { id } => {
+            IndexedTypeItemKind::Operator { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
         };

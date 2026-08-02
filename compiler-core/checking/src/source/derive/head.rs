@@ -1,6 +1,6 @@
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId};
+use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
 use lowering::TermItemIr;
 
 use crate::ExternalQueries;
@@ -86,7 +86,7 @@ where
         return Ok(None);
     };
 
-    let TermItemKind::Derive { id: derive_id } = context.indexed.items[item_id].kind else {
+    let IndexedTermItemKind::Derive { id: derive_id } = context.indexed.items[item_id].kind else {
         return Ok(None);
     };
 

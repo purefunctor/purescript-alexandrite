@@ -2,7 +2,9 @@ use std::iter;
 
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{ImportKind, IndexedModule, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{
+    ImportKind, IndexedModule, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+};
 use itertools::Itertools;
 use lsp_types::Range;
 use resolving::ResolvedImport;
@@ -145,7 +147,7 @@ fn term_import_name(
     term_id: TermItemId,
 ) -> Option<String> {
     let term_item = &import_indexed.items[term_id];
-    if matches!(term_item.kind, TermItemKind::Constructor { .. }) {
+    if matches!(term_item.kind, IndexedTermItemKind::Constructor { .. }) {
         let type_id = import_indexed
             .constructor_type(term_id)
             .expect("invariant violated: floating data constructor");
@@ -155,7 +157,7 @@ fn term_import_name(
             return None;
         };
         Some(format!("{type_name}(..)"))
-    } else if matches!(term_item.kind, TermItemKind::Operator { .. }) {
+    } else if matches!(term_item.kind, IndexedTermItemKind::Operator { .. }) {
         Some(format!("({term_name})"))
     } else {
         Some(term_name.to_string())
@@ -168,9 +170,9 @@ fn type_import_name(
     type_id: TypeItemId,
 ) -> Option<String> {
     let type_item = &import_indexed.items[type_id];
-    if matches!(type_item.kind, TypeItemKind::Class { .. }) {
+    if matches!(type_item.kind, IndexedTypeItemKind::Class { .. }) {
         Some(format!("class {type_name}"))
-    } else if matches!(type_item.kind, TypeItemKind::Operator { .. }) {
+    } else if matches!(type_item.kind, IndexedTypeItemKind::Operator { .. }) {
         Some(format!("type ({type_name})"))
     } else {
         Some(type_name.to_string())

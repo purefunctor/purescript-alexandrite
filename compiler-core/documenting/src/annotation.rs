@@ -3,7 +3,9 @@ use stabilizing::StabilizedModule;
 use syntax::ast::AstNode;
 use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr, WalkEvent};
 
-use indexing::{DataConstructorId, TermItem, TermItemKind, TypeItem, TypeItemKind};
+use indexing::{
+    DataConstructorId, IndexedTermItem, IndexedTermItemKind, IndexedTypeItem, IndexedTypeItemKind,
+};
 use parsing::ParsedModule;
 use stabilizing::AstId;
 
@@ -56,28 +58,28 @@ pub fn module_documentation(source: &str, parsed: &ParsedModule) -> String {
 pub fn term_documentation(
     stabilized: &StabilizedModule,
     annotations: &AnnotationIndex,
-    item: &TermItem,
+    item: &IndexedTermItem,
 ) -> String {
     match &item.kind {
-        TermItemKind::ClassMember { id } => {
+        IndexedTermItemKind::ClassMember { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TermItemKind::Constructor { id } => {
+        IndexedTermItemKind::Constructor { id } => {
             data_constructor_item_documentation(stabilized, annotations, *id)
         }
-        TermItemKind::Derive { id } => {
+        IndexedTermItemKind::Derive { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TermItemKind::Foreign { id } => {
+        IndexedTermItemKind::Foreign { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TermItemKind::Instance { id } => {
+        IndexedTermItemKind::Instance { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TermItemKind::Operator { id } => {
+        IndexedTermItemKind::Operator { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TermItemKind::Value { signature, equations } => {
+        IndexedTermItemKind::Value { signature, equations } => {
             let equation = equations.first().copied();
             signature_equation_documentation(stabilized, annotations, signature, &equation)
         }
@@ -87,25 +89,25 @@ pub fn term_documentation(
 pub fn type_documentation(
     stabilized: &StabilizedModule,
     annotations: &AnnotationIndex,
-    item: &TypeItem,
+    item: &IndexedTypeItem,
 ) -> String {
     match &item.kind {
-        TypeItemKind::Data { signature, equation, .. } => {
+        IndexedTypeItemKind::Data { signature, equation, .. } => {
             signature_equation_documentation(stabilized, annotations, signature, equation)
         }
-        TypeItemKind::Newtype { signature, equation, .. } => {
+        IndexedTypeItemKind::Newtype { signature, equation, .. } => {
             signature_equation_documentation(stabilized, annotations, signature, equation)
         }
-        TypeItemKind::Synonym { signature, equation, .. } => {
+        IndexedTypeItemKind::Synonym { signature, equation, .. } => {
             signature_equation_documentation(stabilized, annotations, signature, equation)
         }
-        TypeItemKind::Class { signature, declaration, .. } => {
+        IndexedTypeItemKind::Class { signature, declaration, .. } => {
             signature_equation_documentation(stabilized, annotations, signature, declaration)
         }
-        TypeItemKind::Foreign { id, .. } => {
+        IndexedTypeItemKind::Foreign { id, .. } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        TypeItemKind::Operator { id } => {
+        IndexedTypeItemKind::Operator { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
     }
@@ -218,7 +220,7 @@ fn extract_annotation(text: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use indexing::TermItemKind;
+    use indexing::IndexedTermItemKind;
 
     use super::*;
 
@@ -245,7 +247,7 @@ value = 1
 
         let id = indexed.names.terms.lookup("value").unwrap();
         let item = &indexed.items[id];
-        assert!(matches!(item.kind, TermItemKind::Value { .. }));
+        assert!(matches!(item.kind, IndexedTermItemKind::Value { .. }));
 
         let documentation = term_documentation(&stabilized, &annotations, item);
         assert_eq!(documentation, "Equation documentation.");
@@ -275,7 +277,7 @@ data Maybe a
         let annotations = AnnotationIndex::new(source, &root);
 
         let documentation = indexed.items.iter_terms().filter_map(|(_, item)| {
-            if !matches!(item.kind, TermItemKind::Constructor { .. }) {
+            if !matches!(item.kind, IndexedTermItemKind::Constructor { .. }) {
                 return None;
             }
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId};
+use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
 use lowering::TermItemIr;
 use rustc_hash::FxHashMap;
 
@@ -116,7 +116,8 @@ where
         return Ok(());
     };
 
-    let TermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind else {
+    let IndexedTermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind
+    else {
         return Ok(());
     };
 
@@ -226,7 +227,8 @@ where
                 continue;
             };
 
-            let TermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind
+            let IndexedTermItemKind::Instance { id: instance_id } =
+                context.indexed.items[item_id].kind
             else {
                 continue;
             };
@@ -926,7 +928,8 @@ fn record_value_declaration<Q>(
 ) where
     Q: ExternalQueries,
 {
-    let TermItemKind::Value { equations: sources, .. } = &context.indexed.items[item_id].kind
+    let IndexedTermItemKind::Value { equations: sources, .. } =
+        &context.indexed.items[item_id].kind
     else {
         return;
     };
