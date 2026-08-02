@@ -86,7 +86,7 @@ where
 {
     state.with_error_crumb(ErrorCrumb::CheckingExpression(expression), |state| {
         let checked = check_expression_quiet(state, context, expression, expected)?;
-        state.checked.nodes.expressions.insert(expression, checked.type_id);
+        state.checked.node_types.expressions.insert(expression, checked.type_id);
         Ok(checked)
     })
 }
@@ -260,7 +260,7 @@ where
 {
     state.with_error_crumb(ErrorCrumb::InferringExpression(expression), |state| {
         let inferred = infer_expression_quiet(state, context, expression)?;
-        state.checked.nodes.expressions.insert(expression, inferred.type_id);
+        state.checked.node_types.expressions.insert(expression, inferred.type_id);
         Ok(inferred)
     })
 }
@@ -433,7 +433,7 @@ where
         }
 
         lowering::ExpressionKind::Section => {
-            let type_id = state.checked.nodes.lookup_section(expression);
+            let type_id = state.checked.node_types.lookup_section(expression);
             let binder = state.checked.tree.lookup_section_binder(expression);
             match (type_id, binder) {
                 (Some(type_id), Some(binder)) => {
@@ -565,7 +565,7 @@ fn collect_graph_term_hole_bindings<Q>(
 
                 for (name, binder_id) in binders {
                     if seen.insert(SmolStr::clone(name))
-                        && let Some(type_id) = state.checked.nodes.lookup_binder(*binder_id)
+                        && let Some(type_id) = state.checked.node_types.lookup_binder(*binder_id)
                     {
                         let name = SmolStr::clone(name);
                         result.push(HoleBinding { name, type_id });
@@ -577,7 +577,7 @@ fn collect_graph_term_hole_bindings<Q>(
 
                 for (name, pun_id) in puns {
                     if seen.insert(SmolStr::clone(name))
-                        && let Some(type_id) = state.checked.nodes.lookup_pun(*pun_id)
+                        && let Some(type_id) = state.checked.node_types.lookup_pun(*pun_id)
                     {
                         let name = SmolStr::clone(name);
                         result.push(HoleBinding { name, type_id });
@@ -590,7 +590,7 @@ fn collect_graph_term_hole_bindings<Q>(
 
                 for (name, let_id) in bindings {
                     if seen.insert(SmolStr::clone(name))
-                        && let Some(type_id) = state.checked.nodes.lookup_let(*let_id)
+                        && let Some(type_id) = state.checked.node_types.lookup_let(*let_id)
                     {
                         let name = SmolStr::clone(name);
                         result.push(HoleBinding { name, type_id });

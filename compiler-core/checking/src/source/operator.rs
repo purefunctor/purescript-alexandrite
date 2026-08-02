@@ -391,8 +391,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     ) {
         state
             .checked
-            .nodes
-            .term_operator
+            .node_types
+            .term_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }
@@ -521,8 +521,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
     ) {
         state
             .checked
-            .nodes
-            .type_operator
+            .node_types
+            .type_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }
@@ -614,8 +614,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     ) {
         state
             .checked
-            .nodes
-            .term_operator
+            .node_types
+            .term_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }

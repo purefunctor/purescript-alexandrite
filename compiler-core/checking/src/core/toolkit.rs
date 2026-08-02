@@ -152,17 +152,17 @@ where
     match resolution {
         lowering::TermVariableResolution::Binder(binder_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_binder(binder_id)
             .unwrap_or_else(|| context.unknown("unresolved binder"))),
         lowering::TermVariableResolution::Let(let_binding_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_let(let_binding_id)
             .unwrap_or_else(|| context.unknown("unresolved let"))),
         lowering::TermVariableResolution::RecordPun(pun_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_pun(pun_id)
             .unwrap_or_else(|| context.unknown("unresolved pun"))),
         lowering::TermVariableResolution::Reference(file_id, term_id) => {

@@ -25,7 +25,7 @@ where
 {
     let t = state
         .checked
-        .nodes
+        .node_types
         .lookup_binder(id)
         .unwrap_or_else(|| context.unknown("unresolved binder"));
 
@@ -297,7 +297,7 @@ where
     };
 
     let Some(OperatorBranchTypes { left, right, result }) =
-        state.checked.nodes.lookup_term_operator(operator_id)
+        state.checked.node_types.lookup_term_operator(operator_id)
     else {
         return Ok(state.allocate_wildcard(t));
     };

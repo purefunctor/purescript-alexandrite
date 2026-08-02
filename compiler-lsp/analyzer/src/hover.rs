@@ -189,7 +189,7 @@ fn hover_binder(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let binder_type = checked.nodes.lookup_binder(binder_id);
+            let binder_type = checked.node_types.lookup_binder(binder_id);
             let binder_type = binder_type.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, binder_type)
@@ -234,7 +234,7 @@ fn hover_expression(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let expression_type = checked.nodes.lookup_expression(expression_id);
+            let expression_type = checked.node_types.lookup_expression(expression_id);
             let expression_type = expression_type.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, expression_type)
@@ -249,7 +249,7 @@ fn hover_let(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let let_type = checked.nodes.lookup_let(let_binding_id);
+    let let_type = checked.node_types.lookup_let(let_binding_id);
     let let_type = let_type.ok_or(AnalyzerError::NonFatal)?;
 
     hover_checked_type(engine, current_file, let_type)
@@ -271,7 +271,7 @@ fn hover_type(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let type_kind = checked.nodes.lookup_type(type_id);
+            let type_kind = checked.node_types.lookup_type_kind(type_id);
             let type_kind = type_kind.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, type_kind)
@@ -372,7 +372,7 @@ fn hover_pun(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let pun_type = checked.nodes.lookup_pun(pun_id);
+    let pun_type = checked.node_types.lookup_pun(pun_id);
     let pun_type = pun_type.ok_or(AnalyzerError::NonFatal)?;
 
     hover_checked_type(engine, current_file, pun_type)

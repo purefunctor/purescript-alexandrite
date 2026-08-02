@@ -232,7 +232,7 @@ where
                     tree::BinderKind::Error,
                 ));
             };
-            state.checked.nodes.binders.insert(binder_id, inferred_type);
+            state.checked.node_types.binders.insert(binder_id, inferred_type);
             return Ok(elaborated);
         }
 
@@ -450,7 +450,7 @@ where
                 ));
             };
             let elaborated = binder_core(state, context, *parenthesized, mode)?;
-            state.checked.nodes.binders.insert(binder_id, elaborated.type_id);
+            state.checked.node_types.binders.insert(binder_id, elaborated.type_id);
             return Ok(elaborated);
         }
     };
@@ -464,7 +464,7 @@ fn allocate_checked_binder(
     type_id: TypeId,
     kind: tree::BinderKind,
 ) -> ElaboratedBinder {
-    state.checked.nodes.binders.insert(source, type_id);
+    state.checked.node_types.binders.insert(source, type_id);
     let binder = match kind {
         tree::BinderKind::Error => state.allocate_error_binder(source, type_id),
         kind => state.allocate_binder(source, type_id, kind),
@@ -574,7 +574,7 @@ where
             })
         }
         PatternItem::Pun(pun_id) => {
-            state.checked.nodes.puns.insert(pun_id, expected_type);
+            state.checked.node_types.puns.insert(pun_id, expected_type);
             Ok(tree::RecordBinderField::Pun { label: SmolStr::clone(label) })
         }
     }
@@ -607,7 +607,7 @@ where
             lowering::BinderRecordItem::RecordPun { id, name } => {
                 let Some(label) = name else { continue };
                 let field_type = state.fresh_unification(context.queries, context.prim.t);
-                state.checked.nodes.puns.insert(*id, field_type);
+                state.checked.node_types.puns.insert(*id, field_type);
                 fields.push(RowField { label: SmolStr::clone(label), id: field_type });
                 checked_fields.push(tree::RecordBinderField::Pun { label: SmolStr::clone(label) });
             }
@@ -618,7 +618,7 @@ where
     let row_type = context.intern_row(fields, Some(row_tail));
     let record_type = context.intern_application(context.prim.record, row_type);
 
-    state.checked.nodes.binders.insert(binder_id, record_type);
+    state.checked.node_types.binders.insert(binder_id, record_type);
     Ok((record_type, checked_fields.into()))
 }
 
@@ -716,6 +716,6 @@ where
         }
     }
 
-    state.checked.nodes.binders.insert(binder_id, expected_type);
+    state.checked.node_types.binders.insert(binder_id, expected_type);
     Ok((expected_type, checked_fields.into()))
 }

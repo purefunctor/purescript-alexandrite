@@ -299,7 +299,7 @@ where
         (field_type, inferred.expression)
     };
 
-    state.checked.nodes.puns.insert(pun, id);
+    state.checked.node_types.puns.insert(pun, id);
 
     let checked =
         tree::RecordExpressionField::Pun { source: pun, label: SmolStr::clone(&label), expression };

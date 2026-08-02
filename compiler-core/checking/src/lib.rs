@@ -64,7 +64,7 @@ pub struct CheckedModule {
     pub instances: FxHashMap<InstanceId, CheckedInstance>,
     pub derived: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
-    pub nodes: CheckedNodes,
+    pub node_types: CheckedNodeTypes,
     pub tree: tree::CheckedTree,
     pub holes: CheckedHoles,
     pub errors: Vec<CheckingError>,
@@ -77,9 +77,10 @@ pub struct CheckedHoles {
     pub types: FxHashMap<lowering::TypeId, TypeHole>,
 }
 
+/// Checked types and kinds keyed by stable node IDs from lowering.
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct CheckedNodes {
-    pub types: FxHashMap<lowering::TypeId, TypeId>,
+pub struct CheckedNodeTypes {
+    pub type_kinds: FxHashMap<lowering::TypeId, TypeId>,
     pub expressions: FxHashMap<lowering::ExpressionId, TypeId>,
     pub binders: FxHashMap<lowering::BinderId, TypeId>,
     pub lets: FxHashMap<lowering::LetBindingNameGroupId, TypeId>,
@@ -87,8 +88,8 @@ pub struct CheckedNodes {
     pub sections: FxHashMap<lowering::ExpressionId, TypeId>,
     pub forall_bindings: FxHashMap<lowering::TypeVariableBindingId, TypeId>,
     pub implicit_bindings: FxHashMap<(lowering::GraphNodeId, lowering::ImplicitBindingId), TypeId>,
-    pub term_operator: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
-    pub type_operator: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
+    pub term_operators: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
+    pub type_operators: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,13 +145,13 @@ impl CheckedModule {
     }
 }
 
-impl CheckedNodes {
+impl CheckedNodeTypes {
     pub fn lookup_expression(&self, id: lowering::ExpressionId) -> Option<TypeId> {
         self.expressions.get(&id).copied()
     }
 
-    pub fn lookup_type(&self, id: lowering::TypeId) -> Option<TypeId> {
-        self.types.get(&id).copied()
+    pub fn lookup_type_kind(&self, id: lowering::TypeId) -> Option<TypeId> {
+        self.type_kinds.get(&id).copied()
     }
 
     pub fn lookup_binder(&self, id: lowering::BinderId) -> Option<TypeId> {
@@ -185,14 +186,14 @@ impl CheckedNodes {
         &self,
         id: lowering::TypeOperatorId,
     ) -> Option<OperatorBranchTypes> {
-        self.type_operator.get(&id).copied()
+        self.type_operators.get(&id).copied()
     }
 
     pub fn lookup_term_operator(
         &self,
         id: lowering::TermOperatorId,
     ) -> Option<OperatorBranchTypes> {
-        self.term_operator.get(&id).copied()
+        self.term_operators.get(&id).copied()
     }
 }
 

@@ -158,10 +158,10 @@ where
         };
         if let Some(signature_id) = name.signature {
             let (name_type, _) = types::check_kind(state, context, signature_id, context.prim.t)?;
-            state.checked.nodes.lets.insert(id, name_type);
+            state.checked.node_types.lets.insert(id, name_type);
         } else {
             let name_type = state.fresh_unification(context.queries, context.prim.t);
-            state.checked.nodes.lets.insert(id, name_type);
+            state.checked.node_types.lets.insert(id, name_type);
         }
     }
 
@@ -226,7 +226,7 @@ where
         .expect("invariant violated: let binding group has no lowered binding");
     let name_type = state
         .checked
-        .nodes
+        .node_types
         .lookup_let(id)
         .expect("invariant violated: let binding has no preallocated type");
 
