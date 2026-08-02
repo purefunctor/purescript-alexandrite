@@ -113,7 +113,7 @@ fn render_term_signature(
 
     let name = &indexed.items[term_id].name;
     let name = name.as_deref()?;
-    let signature = checked.lookup_term(term_id)?;
+    let signature = checked.lookup_term_item_type(term_id)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
@@ -153,7 +153,7 @@ fn render_type_signature(
 
     let name = &indexed.items[type_id].name;
     let name = name.as_deref()?;
-    let signature = checked.lookup_type(type_id)?;
+    let signature = checked.lookup_type_item_kind(type_id)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     Some(pretty.render_signature(name, signature).to_string())
@@ -166,7 +166,7 @@ fn resolve_binder(
     mut item: CompletionItem,
 ) -> CompletionItem {
     if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
-        checked.nodes.lookup_binder(binder_id)
+        checked.node_types.lookup_binder(binder_id)
     }) {
         item.detail = Some(signature);
     }
@@ -181,7 +181,7 @@ fn resolve_let(
     mut item: CompletionItem,
 ) -> CompletionItem {
     if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
-        checked.nodes.lookup_let(let_id)
+        checked.node_types.lookup_let(let_id)
     }) {
         item.detail = Some(signature);
     }
@@ -196,7 +196,7 @@ fn resolve_record_pun(
     mut item: CompletionItem,
 ) -> CompletionItem {
     if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
-        checked.nodes.lookup_pun(pun_id)
+        checked.node_types.lookup_pun(pun_id)
     }) {
         item.detail = Some(signature);
     }
@@ -211,7 +211,7 @@ fn resolve_forall_type_variable(
     mut item: CompletionItem,
 ) -> CompletionItem {
     if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
-        checked.nodes.lookup_forall_binding(binding_id)
+        checked.node_types.lookup_forall_binding(binding_id)
     }) {
         item.detail = Some(signature);
     }
@@ -227,7 +227,7 @@ fn resolve_implicit_type_variable(
     mut item: CompletionItem,
 ) -> CompletionItem {
     if let Some(signature) = render_local_signature(engine, file_id, &item.label, |checked| {
-        checked.nodes.lookup_implicit_binding(node_id, binding_id)
+        checked.node_types.lookup_implicit_binding(node_id, binding_id)
     }) {
         item.detail = Some(signature);
     }

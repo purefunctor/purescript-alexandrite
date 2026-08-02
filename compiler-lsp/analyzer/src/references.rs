@@ -48,13 +48,13 @@ pub fn implementation(
         locate::Located::TermOperator(operator_id) => {
             let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_term(context, current_file, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
             let lowered = context.queries().lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_type(context, current_file, f_id, t_id)
         }
         locate::Located::TermItem(term_id) => {
@@ -209,7 +209,7 @@ fn references_binder(
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
 
-    let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         lowering::BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -218,7 +218,7 @@ fn references_binder(
         lowering::BinderKind::Named { .. } | lowering::BinderKind::Variable { .. } => {
             let mut locations = vec![];
 
-            for (expression_id, expression_kind) in lowered.info.iter_expression() {
+            for (expression_id, expression_kind) in lowered.tree.iter_expression() {
                 if let ExpressionKind::Variable {
                     resolution: Some(TermVariableResolution::Binder(candidate_id)),
                 } = expression_kind
@@ -231,7 +231,7 @@ fn references_binder(
                 }
             }
 
-            for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+            for (expression_id, resolution) in lowered.tree.iter_expression_pun() {
                 if let TermVariableResolution::Binder(resolution_id) = resolution
                     && resolution_id == binder_id
                 {
@@ -254,7 +254,7 @@ fn references_expression(
     expression_id: ExpressionId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -291,7 +291,7 @@ fn references_type(
     type_id: TypeId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         TypeKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -339,7 +339,7 @@ fn references_file_term(
         let stabilized = engine.stabilized(candidate_id)?;
         let lowered = engine.lowered(candidate_id)?;
 
-        for (expr_id, expr_kind) in lowered.info.iter_expression() {
+        for (expr_id, expr_kind) in lowered.tree.iter_expression() {
             if let ExpressionKind::Constructor { resolution: Some((f_id, t_id)) } = expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
@@ -363,7 +363,7 @@ fn references_file_term(
             }
         }
 
-        for (binder_id, binder_kind) in lowered.info.iter_binder() {
+        for (binder_id, binder_kind) in lowered.tree.iter_binder() {
             if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
@@ -373,7 +373,7 @@ fn references_file_term(
             }
         }
 
-        for (operator_id, f_id, t_id) in lowered.info.iter_term_operator() {
+        for (operator_id, f_id, t_id) in lowered.tree.iter_term_operator() {
             if (f_id, t_id) == (file_id, term_id) {
                 let range = id_range(context, &content, &parsed, &stabilized, operator_id)
                     .ok_or(AnalyzerError::NonFatal)?;
@@ -404,7 +404,7 @@ fn references_file_type(
         let stabilized = engine.stabilized(candidate_id)?;
         let lowered = engine.lowered(candidate_id)?;
 
-        for (ty_id, ty_kind) in lowered.info.iter_type() {
+        for (ty_id, ty_kind) in lowered.tree.iter_type() {
             if let TypeKind::Constructor { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
@@ -421,7 +421,7 @@ fn references_file_type(
             }
         }
 
-        for (operator_id, f_id, t_id) in lowered.info.iter_type_operator() {
+        for (operator_id, f_id, t_id) in lowered.tree.iter_type_operator() {
             if (f_id, t_id) == (file_id, type_id) {
                 let range = id_range(context, &content, &parsed, &stabilized, operator_id)
                     .ok_or(AnalyzerError::NonFatal)?;
@@ -529,7 +529,7 @@ fn references_let(
 
     let mut locations = vec![];
 
-    for (expression_id, expression_kind) in lowered.info.iter_expression() {
+    for (expression_id, expression_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::Let(candidate_id)),
             ..
@@ -543,7 +543,7 @@ fn references_let(
         }
     }
 
-    for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+    for (expression_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::Let(resolution_id) = resolution
             && resolution_id == let_id
         {
@@ -573,7 +573,7 @@ fn references_binder_pun(
 
     let mut locations = vec![];
 
-    for (expression_id, expression_kind) in lowered.info.iter_expression() {
+    for (expression_id, expression_kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::Variable {
             resolution: Some(TermVariableResolution::RecordPun(candidate_id)),
         } = expression_kind
@@ -586,7 +586,7 @@ fn references_binder_pun(
         }
     }
 
-    for (expression_id, resolution) in lowered.info.iter_expression_pun() {
+    for (expression_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::RecordPun(resolution_id) = resolution
             && resolution_id == pun_id
         {
@@ -606,7 +606,7 @@ fn references_expression_pun(
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let lowered = context.queries().lowered(current_file)?;
-    match lowered.info.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
+    match lowered.tree.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)? {
         TermVariableResolution::Binder(binder_id) => {
             references_binder(context, current_file, binder_id)
         }

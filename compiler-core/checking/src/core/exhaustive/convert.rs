@@ -25,11 +25,11 @@ where
 {
     let t = state
         .checked
-        .nodes
+        .node_types
         .lookup_binder(id)
         .unwrap_or_else(|| context.unknown("unresolved binder"));
 
-    let Some(kind) = context.lowered.info.get_binder_kind(id) else {
+    let Some(kind) = context.lowered.tree.get_binder_kind(id) else {
         return Ok(state.allocate_wildcard(t));
     };
 
@@ -284,7 +284,7 @@ fn convert_operator_branch<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some((file_id, item_id)) = context.lowered.info.get_term_operator(operator_id) else {
+    let Some((file_id, item_id)) = context.lowered.tree.get_term_operator(operator_id) else {
         return Ok(state.allocate_wildcard(t));
     };
 
@@ -297,7 +297,7 @@ where
     };
 
     let Some(OperatorBranchTypes { left, right, result }) =
-        state.checked.nodes.lookup_term_operator(operator_id)
+        state.checked.node_types.lookup_term_operator(operator_id)
     else {
         return Ok(state.allocate_wildcard(t));
     };
@@ -325,8 +325,8 @@ where
     Q: ExternalQueries,
 {
     let on_lowered = |lowered: &lowering::LoweredModule| {
-        if let Some(lowering::TermItemIr::Operator { resolution, .. }) =
-            lowered.info.get_term_item(item_id)
+        if let Some(lowering::TermItemKind::Operator { resolution, .. }) =
+            lowered.tree.get_term_item_kind(item_id)
         {
             *resolution
         } else {

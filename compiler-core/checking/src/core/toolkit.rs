@@ -5,7 +5,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{TermItemId, TypeItemId};
-use lowering::{TermItemIr, TypeItemIr};
+use lowering::{TermItemKind, TypeItemKind};
 
 use rustc_hash::FxHashMap;
 
@@ -13,8 +13,8 @@ use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
 use crate::core::walk::{self, TypeWalker};
 use crate::core::{
-    CheckedClass, CheckedSynonym, ForallBinder, KindOrType, Name, Role, SmolStrId, Type, TypeId,
-    constraint, normalise, unification,
+    ApplicationArgument, CheckedClass, CheckedSynonym, ForallBinder, Name, Role, SmolStrId, Type,
+    TypeId, constraint, normalise, unification,
 };
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -38,7 +38,7 @@ pub enum InspectMode {
 pub struct InstanceInfo {
     pub binders: Vec<ForallBinder>,
     pub constraints: Vec<TypeId>,
-    pub arguments: Vec<KindOrType>,
+    pub arguments: Vec<ApplicationArgument>,
 }
 
 pub struct NewtypeInner {
@@ -78,7 +78,7 @@ pub fn extract_all_applications<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     mut id: TypeId,
-) -> QueryResult<(TypeId, Vec<KindOrType>)>
+) -> QueryResult<(TypeId, Vec<ApplicationArgument>)>
 where
     Q: ExternalQueries,
 {
@@ -88,11 +88,11 @@ where
         id = normalise::expand(state, context, id)?;
         match context.lookup_type(id) {
             Type::Application(function, argument) => {
-                arguments.push(crate::core::KindOrType::Type(argument));
+                arguments.push(crate::core::ApplicationArgument::Type(argument));
                 id = function;
             }
             Type::KindApplication(function, argument) => {
-                arguments.push(crate::core::KindOrType::Kind(argument));
+                arguments.push(crate::core::ApplicationArgument::Kind(argument));
                 id = function;
             }
             _ => break,
@@ -113,10 +113,10 @@ where
     Q: ExternalQueries,
 {
     let kind = if file_id == context.id {
-        state.checked.lookup_type(type_id)
+        state.checked.lookup_type_item_kind(type_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_type(type_id)
+        checked.lookup_type_item_kind(type_id)
     };
 
     if let Some(kind) = kind { Ok(kind) } else { Ok(context.unknown("invalid type item")) }
@@ -132,10 +132,10 @@ where
     Q: ExternalQueries,
 {
     let term = if file_id == context.id {
-        state.checked.lookup_term(term_id)
+        state.checked.lookup_term_item_type(term_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_term(term_id)
+        checked.lookup_term_item_type(term_id)
     };
 
     if let Some(term) = term { Ok(term) } else { Ok(context.unknown("invalid term item")) }
@@ -152,17 +152,17 @@ where
     match resolution {
         lowering::TermVariableResolution::Binder(binder_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_binder(binder_id)
             .unwrap_or_else(|| context.unknown("unresolved binder"))),
         lowering::TermVariableResolution::Let(let_binding_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_let(let_binding_id)
             .unwrap_or_else(|| context.unknown("unresolved let"))),
         lowering::TermVariableResolution::RecordPun(pun_id) => Ok(state
             .checked
-            .nodes
+            .node_types
             .lookup_pun(pun_id)
             .unwrap_or_else(|| context.unknown("unresolved pun"))),
         lowering::TermVariableResolution::Reference(file_id, term_id) => {
@@ -230,10 +230,10 @@ where
     Q: ExternalQueries,
 {
     let operator_kind = if file_id == context.id {
-        state.checked.lookup_type(type_id)
+        state.checked.lookup_type_item_kind(type_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_type(type_id)
+        checked.lookup_type_item_kind(type_id)
     };
 
     if let Some(operator_kind) = operator_kind {
@@ -252,8 +252,8 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.info.get_type_item(type_id).and_then(|item| match item {
-            TypeItemIr::Operator { resolution, .. } => *resolution,
+        lowered.tree.get_type_item_kind(type_id).and_then(|item| match item {
+            TypeItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };
@@ -275,8 +275,8 @@ where
     Q: ExternalQueries,
 {
     let resolve = |lowered: &lowering::LoweredModule| {
-        lowered.info.get_term_item(term_id).and_then(|item| match item {
-            TermItemIr::Operator { resolution, .. } => *resolution,
+        lowered.tree.get_term_item_kind(term_id).and_then(|item| match item {
+            TermItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         })
     };
@@ -299,10 +299,10 @@ where
     Q: ExternalQueries,
 {
     let operator_type = if file_id == context.id {
-        state.checked.lookup_term(term_id)
+        state.checked.lookup_term_item_type(term_id)
     } else {
         let checked = context.checked_dependency(file_id)?;
-        checked.lookup_term(term_id)
+        checked.lookup_term_item_type(term_id)
     };
 
     if let Some(operator_type) = operator_type {
@@ -752,15 +752,15 @@ where
     Q: ExternalQueries,
 {
     let type_item = if file_id == context.id {
-        context.lowered.info.get_type_item(item_id)
+        context.lowered.tree.get_type_item_kind(item_id)
     } else {
         let lowered = context.queries.lowered(file_id)?;
         return Ok(matches!(
-            lowered.info.get_type_item(item_id),
-            Some(lowering::TypeItemIr::NewtypeGroup { .. })
+            lowered.tree.get_type_item_kind(item_id),
+            Some(lowering::TypeItemKind::Newtype { .. })
         ));
     };
-    Ok(matches!(type_item, Some(lowering::TypeItemIr::NewtypeGroup { .. })))
+    Ok(matches!(type_item, Some(lowering::TypeItemKind::Newtype { .. })))
 }
 
 pub fn extract_type_constructor<Q>(
@@ -848,7 +848,9 @@ where
         let replacement = arguments
             .next()
             .map(|argument| match argument {
-                KindOrType::Kind(argument) | KindOrType::Type(argument) => argument,
+                ApplicationArgument::Kind(argument) | ApplicationArgument::Type(argument) => {
+                    argument
+                }
             })
             .unwrap_or_else(|| {
                 let text = state.checked.lookup_name(binder.name);

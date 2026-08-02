@@ -3,15 +3,17 @@ use smol_str::SmolStr;
 
 use crate::source::*;
 
+/// A term item assembled from the source declarations that share its module-level identity.
 #[derive(Debug, PartialEq, Eq)]
-pub struct TermItem {
+pub struct IndexedTermItem {
     pub name: Option<SmolStr>,
-    pub kind: TermItemKind,
+    pub kind: IndexedTermItemKind,
     pub exported: bool,
 }
 
+/// The source declarations grouped into an [`IndexedTermItem`].
 #[derive(Debug, PartialEq, Eq)]
-pub enum TermItemKind {
+pub enum IndexedTermItemKind {
     ClassMember { id: ClassMemberId },
     Constructor { id: DataConstructorId },
     Derive { id: DeriveId },
@@ -21,17 +23,20 @@ pub enum TermItemKind {
     Value { signature: Option<ValueSignatureId>, equations: Vec<ValueEquationId> },
 }
 
-pub type TermItemId = Idx<TermItem>;
+/// A module-local term identity preserved by later compiler representations.
+pub type TermItemId = Idx<IndexedTermItem>;
 
+/// A type item assembled from the source declarations that share its module-level identity.
 #[derive(Debug, PartialEq, Eq)]
-pub struct TypeItem {
+pub struct IndexedTypeItem {
     pub name: Option<SmolStr>,
-    pub kind: TypeItemKind,
+    pub kind: IndexedTypeItemKind,
     pub exported: bool,
 }
 
+/// The source declarations grouped into an [`IndexedTypeItem`].
 #[derive(Debug, PartialEq, Eq)]
-pub enum TypeItemKind {
+pub enum IndexedTypeItemKind {
     Data {
         signature: Option<DataSignatureId>,
         equation: Option<DataEquationId>,
@@ -62,4 +67,5 @@ pub enum TypeItemKind {
     },
 }
 
-pub type TypeItemId = Idx<TypeItem>;
+/// A module-local type identity preserved by later compiler representations.
+pub type TypeItemId = Idx<IndexedTypeItem>;

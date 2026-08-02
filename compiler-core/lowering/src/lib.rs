@@ -4,18 +4,18 @@ mod recover;
 mod algorithm;
 
 pub mod error;
-pub mod intermediate;
 pub mod scope;
 pub mod source;
+pub mod tree;
 
 use std::hash::Hash;
 use std::slice;
 use std::sync::Arc;
 
 pub use error::*;
-pub use intermediate::*;
 pub use scope::*;
 pub use source::*;
+pub use tree::*;
 
 use files::FileId;
 use indexing::{IndexedModule, TermItemId, TypeItemId};
@@ -28,7 +28,7 @@ use syntax::cst;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct LoweredModule {
-    pub info: LoweringInfo,
+    pub tree: LoweredTree,
     pub graph: LoweringGraph,
     pub nodes: LoweringGraphNodes,
     pub term_edges: FxHashSet<(TermItemId, TermItemId)>,
@@ -78,7 +78,7 @@ pub fn lower_module(
     resolved: &ResolvedModule,
 ) -> LoweredModule {
     let algorithm::State {
-        info,
+        tree,
         graph,
         nodes,
         term_edges,
@@ -89,7 +89,7 @@ pub fn lower_module(
         ..
     } = algorithm::lower_module(file_id, source, module, prim, stabilized, indexed, resolved);
 
-    LoweredModule { info, graph, nodes, term_edges, type_edges, kind_edges, synonym_edges, errors }
+    LoweredModule { tree, graph, nodes, term_edges, type_edges, kind_edges, synonym_edges, errors }
 }
 
 pub fn group_module(indexed: &IndexedModule, lowered: &LoweredModule) -> GroupedModule {

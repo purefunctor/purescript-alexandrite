@@ -56,16 +56,16 @@ pub trait ExternalQueries:
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CheckedModule {
     pub evidence: evidence::Evidences,
-    pub types: FxHashMap<TypeItemId, TypeId>,
-    pub terms: FxHashMap<TermItemId, TypeId>,
+    pub type_item_kinds: FxHashMap<TypeItemId, TypeId>,
+    pub term_item_types: FxHashMap<TermItemId, TypeId>,
     pub data_declarations: FxHashMap<TypeItemId, CheckedDataDeclaration>,
     pub synonyms: FxHashMap<TypeItemId, CheckedSynonym>,
     pub classes: FxHashMap<TypeItemId, CheckedClass>,
     pub instances: FxHashMap<InstanceId, CheckedInstance>,
-    pub derived: FxHashMap<DeriveId, CheckedInstance>,
+    pub derived_instances: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
-    pub nodes: CheckedNodes,
-    pub tree: tree::Module,
+    pub node_types: CheckedNodeTypes,
+    pub tree: tree::CheckedTree,
     pub holes: CheckedHoles,
     pub errors: Vec<CheckingError>,
     pub names: FxHashMap<Name, SmolStrId>,
@@ -77,9 +77,10 @@ pub struct CheckedHoles {
     pub types: FxHashMap<lowering::TypeId, TypeHole>,
 }
 
+/// Checked types and kinds keyed by stable node IDs from lowering.
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct CheckedNodes {
-    pub types: FxHashMap<lowering::TypeId, TypeId>,
+pub struct CheckedNodeTypes {
+    pub type_kinds: FxHashMap<lowering::TypeId, TypeId>,
     pub expressions: FxHashMap<lowering::ExpressionId, TypeId>,
     pub binders: FxHashMap<lowering::BinderId, TypeId>,
     pub lets: FxHashMap<lowering::LetBindingNameGroupId, TypeId>,
@@ -87,8 +88,8 @@ pub struct CheckedNodes {
     pub sections: FxHashMap<lowering::ExpressionId, TypeId>,
     pub forall_bindings: FxHashMap<lowering::TypeVariableBindingId, TypeId>,
     pub implicit_bindings: FxHashMap<(lowering::GraphNodeId, lowering::ImplicitBindingId), TypeId>,
-    pub term_operator: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
-    pub type_operator: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
+    pub term_operators: FxHashMap<lowering::TermOperatorId, OperatorBranchTypes>,
+    pub type_operators: FxHashMap<lowering::TypeOperatorId, OperatorBranchTypes>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,12 +100,12 @@ pub struct OperatorBranchTypes {
 }
 
 impl CheckedModule {
-    pub fn lookup_type(&self, id: TypeItemId) -> Option<TypeId> {
-        self.types.get(&id).copied()
+    pub fn lookup_type_item_kind(&self, id: TypeItemId) -> Option<TypeId> {
+        self.type_item_kinds.get(&id).copied()
     }
 
-    pub fn lookup_term(&self, id: TermItemId) -> Option<TypeId> {
-        self.terms.get(&id).copied()
+    pub fn lookup_term_item_type(&self, id: TermItemId) -> Option<TypeId> {
+        self.term_item_types.get(&id).copied()
     }
 
     pub fn lookup_data_declaration(&self, id: TypeItemId) -> Option<CheckedDataDeclaration> {
@@ -123,8 +124,8 @@ impl CheckedModule {
         self.instances.get(&id).cloned()
     }
 
-    pub fn lookup_derived(&self, id: DeriveId) -> Option<CheckedInstance> {
-        self.derived.get(&id).cloned()
+    pub fn lookup_derived_instance(&self, id: DeriveId) -> Option<CheckedInstance> {
+        self.derived_instances.get(&id).cloned()
     }
 
     pub fn lookup_roles(&self, id: TypeItemId) -> Option<Arc<[Role]>> {
@@ -144,13 +145,13 @@ impl CheckedModule {
     }
 }
 
-impl CheckedNodes {
+impl CheckedNodeTypes {
     pub fn lookup_expression(&self, id: lowering::ExpressionId) -> Option<TypeId> {
         self.expressions.get(&id).copied()
     }
 
-    pub fn lookup_type(&self, id: lowering::TypeId) -> Option<TypeId> {
-        self.types.get(&id).copied()
+    pub fn lookup_type_kind(&self, id: lowering::TypeId) -> Option<TypeId> {
+        self.type_kinds.get(&id).copied()
     }
 
     pub fn lookup_binder(&self, id: lowering::BinderId) -> Option<TypeId> {
@@ -185,14 +186,14 @@ impl CheckedNodes {
         &self,
         id: lowering::TypeOperatorId,
     ) -> Option<OperatorBranchTypes> {
-        self.type_operator.get(&id).copied()
+        self.type_operators.get(&id).copied()
     }
 
     pub fn lookup_term_operator(
         &self,
         id: lowering::TermOperatorId,
     ) -> Option<OperatorBranchTypes> {
-        self.term_operator.get(&id).copied()
+        self.term_operators.get(&id).copied()
     }
 }
 
@@ -254,7 +255,7 @@ fn check_prim(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<Ch
 
     let mut insert_type = |name: &str, id: TypeId| {
         let (_, item_id) = lookup_type(name);
-        checked.types.insert(item_id, id);
+        checked.type_item_kinds.insert(item_id, id);
     };
 
     insert_type("Type", type_core);
@@ -271,7 +272,7 @@ fn check_prim(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<Ch
     insert_type("Row", type_to_type);
 
     let (_, partial_id) = lookup_class("Partial");
-    checked.types.insert(partial_id, constraint_core);
+    checked.type_item_kinds.insert(partial_id, constraint_core);
 
     let mut insert_roles = |name: &str, roles: &[Role]| {
         let (_, item_id) = lookup_type(name);

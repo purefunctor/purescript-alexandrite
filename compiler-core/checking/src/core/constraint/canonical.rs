@@ -12,7 +12,7 @@ use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{KindOrType, Type, TypeId, normalise, toolkit, zonk};
+use crate::core::{ApplicationArgument, Type, TypeId, normalise, toolkit, zonk};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -21,7 +21,7 @@ use crate::{ExternalQueries, safe_loop};
 pub struct CanonicalConstraint {
     pub file_id: FileId,
     pub type_id: TypeItemId,
-    pub arguments: Arc<[KindOrType]>,
+    pub arguments: Arc<[ApplicationArgument]>,
 }
 
 impl CanonicalConstraint {
@@ -29,8 +29,8 @@ impl CanonicalConstraint {
         self.arguments
             .iter()
             .filter_map(|argument| match argument {
-                KindOrType::Type(argument) => Some(*argument),
-                KindOrType::Kind(_) => None,
+                ApplicationArgument::Type(argument) => Some(*argument),
+                ApplicationArgument::Kind(_) => None,
             })
             .collect_array()
     }
@@ -60,8 +60,12 @@ impl Canonicals {
 
         for &argument in arguments.iter() {
             constraint = match argument {
-                KindOrType::Kind(argument) => context.intern_kind_application(constraint, argument),
-                KindOrType::Type(argument) => context.intern_application(constraint, argument),
+                ApplicationArgument::Kind(argument) => {
+                    context.intern_kind_application(constraint, argument)
+                }
+                ApplicationArgument::Type(argument) => {
+                    context.intern_application(constraint, argument)
+                }
             };
         }
 
@@ -125,8 +129,12 @@ where
 {
     let canonical = state.canonicals[id].clone();
     let arguments = canonical.arguments.iter().map(|&argument| match argument {
-        KindOrType::Kind(argument) => zonk::zonk(state, context, argument).map(KindOrType::Kind),
-        KindOrType::Type(argument) => zonk::zonk(state, context, argument).map(KindOrType::Type),
+        ApplicationArgument::Kind(argument) => {
+            zonk::zonk(state, context, argument).map(ApplicationArgument::Kind)
+        }
+        ApplicationArgument::Type(argument) => {
+            zonk::zonk(state, context, argument).map(ApplicationArgument::Type)
+        }
     });
 
     let arguments = arguments.collect::<QueryResult<Arc<[_]>>>()?;
@@ -148,11 +156,11 @@ where
 
     let canonical = state.canonicals[id].clone();
     let arguments = canonical.arguments.iter().copied().map(|argument| match argument {
-        KindOrType::Kind(argument) => {
-            substitute_type(state, context, substitution, argument).map(KindOrType::Kind)
+        ApplicationArgument::Kind(argument) => {
+            substitute_type(state, context, substitution, argument).map(ApplicationArgument::Kind)
         }
-        KindOrType::Type(argument) => {
-            substitute_type(state, context, substitution, argument).map(KindOrType::Type)
+        ApplicationArgument::Type(argument) => {
+            substitute_type(state, context, substitution, argument).map(ApplicationArgument::Type)
         }
     });
 

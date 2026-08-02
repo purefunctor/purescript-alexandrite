@@ -27,7 +27,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::fd::{compute_closure, get_functional_dependencies};
-use crate::core::{KindOrType, TypeId, unification};
+use crate::core::{ApplicationArgument, TypeId, unification};
 use crate::error::{CheckingError, ErrorKind};
 use crate::evidence::{Evidence, EvidenceId, EvidenceVarId};
 use crate::implication::{GivenConstraint, ImplicationId, Patterns, WantedConstraint};
@@ -143,7 +143,7 @@ where
     }
 
     let arguments = arguments.iter().filter_map(|argument| {
-        if let KindOrType::Type(argument) = argument { Some(*argument) } else { None }
+        if let ApplicationArgument::Type(argument) = argument { Some(*argument) } else { None }
     });
 
     let arguments = arguments.collect_vec();

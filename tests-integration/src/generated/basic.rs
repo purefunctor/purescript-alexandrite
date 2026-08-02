@@ -6,7 +6,7 @@ use checking::core::pretty;
 use checking::{PrettyQueries, core};
 use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};
 use files::FileId;
-use indexing::{ImportKind, TermItem, TypeItem, TypeItemId, TypeItemKind};
+use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
 use lowering::{
     ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
@@ -120,7 +120,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     let lowered = engine.lowered(id).unwrap();
 
     let module = parsed.cst();
-    let info = &lowered.info;
+    let tree = &lowered.tree;
     let graph = &lowered.graph;
 
     let mut out = String::default();
@@ -129,8 +129,8 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     writeln!(out).unwrap();
     writeln!(out, "Expressions:").unwrap();
     writeln!(out).unwrap();
-    for (expression_id, _) in info.iter_expression() {
-        let Some(kind) = info.get_expression_kind(expression_id) else {
+    for (expression_id, _) in tree.iter_expression() {
+        let Some(kind) = tree.get_expression_kind(expression_id) else {
             continue;
         };
         match kind {
@@ -139,7 +139,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                     &content,
                     &stabilized,
                     &module,
-                    info,
+                    tree,
                     &mut out,
                     expression_id,
                     resolution,
@@ -152,7 +152,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                             &content,
                             &stabilized,
                             &module,
-                            info,
+                            tree,
                             &mut out,
                             expression_id,
                             resolution,
@@ -177,8 +177,8 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 
     writeln!(out, "\nTypes:\n").unwrap();
 
-    for (type_id, _) in info.iter_type() {
-        let Some(TypeKind::Variable { resolution, .. }) = info.get_type_kind(type_id) else {
+    for (type_id, _) in tree.iter_type() {
+        let Some(TypeKind::Variable { resolution, .. }) = tree.get_type_kind(type_id) else {
             continue;
         };
 
@@ -225,18 +225,18 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let mut out = String::default();
 
     writeln!(out, "Terms").unwrap();
-    for (id, TermItem { name, .. }) in indexed.items.iter_terms() {
+    for (id, IndexedTermItem { name, .. }) in indexed.items.iter_terms() {
         let Some(name) = name else { continue };
-        let Some(kind) = checked.lookup_term(id) else { continue };
+        let Some(kind) = checked.lookup_term_item_type(id) else { continue };
         let mut state = pretty.state();
         let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
     }
 
     writeln!(out, "\nTypes").unwrap();
-    for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
-        let Some(kind) = checked.lookup_type(id) else { continue };
+        let Some(kind) = checked.lookup_type_item_kind(id) else { continue };
         let mut state = pretty.state();
         let signature = state.render_signature(name, kind);
         writeln!(out, "{signature}").unwrap();
@@ -245,11 +245,11 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.synonyms.is_empty() {
         writeln!(out, "\nSynonyms").unwrap();
     }
-    for (id, TypeItem { name, .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { name, .. }) in indexed.items.iter_types() {
         let Some(name) = name else { continue };
         let Some(definition) = checked.lookup_synonym(id) else { continue };
         let mut state = pretty.state();
-        let replacement = state.render(definition.synonym);
+        let replacement = state.render(definition.expansion);
         let binders =
             definition.parameters.iter().map(|b| state.display_name(b.name)).collect_vec();
         let binders_formatted =
@@ -260,7 +260,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.classes.is_empty() {
         writeln!(out, "\nClasses").unwrap();
     }
-    for (id, TypeItem { .. }) in indexed.items.iter_types() {
+    for (id, IndexedTypeItem { .. }) in indexed.items.iter_types() {
         let Some(class) = checked.lookup_class(id) else { continue };
         let mut state = pretty.state();
 
@@ -302,7 +302,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         for member in &class.members {
             let member_id = member.item_id;
             let Some(member_name) = indexed.items[member_id].name.as_deref() else { continue };
-            let Some(member_type) = checked.lookup_term(member_id) else { continue };
+            let Some(member_type) = checked.lookup_term_item_type(member_id) else { continue };
             let signature = state.render_signature(member_name, member_type);
             writeln!(out, "  {signature}").unwrap();
         }
@@ -319,10 +319,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         writeln!(out, "instance {canonical}").unwrap();
     }
 
-    if !checked.derived.is_empty() {
+    if !checked.derived_instances.is_empty() {
         writeln!(out, "\nDerived").unwrap();
     }
-    let mut derived_entries: Vec<_> = checked.derived.iter().collect();
+    let mut derived_entries: Vec<_> = checked.derived_instances.iter().collect();
     derived_entries.sort_by_key(|(id, _)| *id);
     for (_derive_id, instance) in derived_entries {
         let mut state = pretty.state();
@@ -333,10 +333,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     if !checked.roles.is_empty() {
         writeln!(out, "\nRoles").unwrap();
     }
-    for (id, TypeItem { name, kind, .. }) in indexed.items.iter_types() {
-        let (TypeItemKind::Data { .. }
-        | TypeItemKind::Newtype { .. }
-        | TypeItemKind::Foreign { .. }) = kind
+    for (id, IndexedTypeItem { name, kind, .. }) in indexed.items.iter_types() {
+        let (IndexedTypeItemKind::Data { .. }
+        | IndexedTypeItemKind::Newtype { .. }
+        | IndexedTypeItemKind::Foreign { .. }) = kind
         else {
             continue;
         };
@@ -391,7 +391,7 @@ fn write_term_resolution(
     content: &str,
     stabilized: &stabilizing::StabilizedModule,
     module: &cst::Module,
-    info: &lowering::LoweringInfo,
+    tree: &lowering::LoweredTree,
     out: &mut String,
     expression_id: lowering::ExpressionId,
     resolution: &Option<TermVariableResolution>,
@@ -408,7 +408,7 @@ fn write_term_resolution(
             writeln!(out, "  -> binder@{}", pos!(content, stabilized, *id)).unwrap();
         }
         Some(TermVariableResolution::Let(let_binding_id)) => {
-            let let_binding = info.get_let_binding_group(*let_binding_id);
+            let let_binding = tree.get_let_binding_group(*let_binding_id);
             if let Some(sig) = let_binding.signature {
                 writeln!(out, "  -> signature@{}", pos!(content, stabilized, sig)).unwrap();
             }

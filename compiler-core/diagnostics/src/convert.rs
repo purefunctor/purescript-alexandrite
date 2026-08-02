@@ -1,6 +1,6 @@
 use checking::error::{CheckingError, ErrorKind};
 use checking::holes::HoleBinding;
-use indexing::{IndexingError, TypeItemKind};
+use indexing::{IndexedTypeItemKind, IndexingError};
 use itertools::Itertools;
 use lowering::LoweringError;
 use resolving::ResolvingError;
@@ -107,9 +107,15 @@ where
 {
     let spans = group.iter().filter_map(|id| {
         let ptr = match context.indexed.items[*id].kind {
-            TypeItemKind::Synonym { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Data { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
-            TypeItemKind::Newtype { equation, .. } => context.stabilized.syntax_ptr(equation?)?,
+            IndexedTypeItemKind::Synonym { equation, .. } => {
+                context.stabilized.syntax_ptr(equation?)?
+            }
+            IndexedTypeItemKind::Data { equation, .. } => {
+                context.stabilized.syntax_ptr(equation?)?
+            }
+            IndexedTypeItemKind::Newtype { equation, .. } => {
+                context.stabilized.syntax_ptr(equation?)?
+            }
             _ => return None,
         };
         context.span_from_syntax_ptr(&ptr)

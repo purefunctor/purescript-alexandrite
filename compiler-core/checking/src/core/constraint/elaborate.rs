@@ -12,7 +12,7 @@ use crate::context::CheckContext;
 use crate::core::constraint::canonical::CanonicalConstraint;
 use crate::core::constraint::{CanonicalConstraintId, canonical, compiler};
 use crate::core::substitute::{NameToType, SubstituteName};
-use crate::core::{CheckedClass, KindOrType, Name, Type, TypeId, normalise, toolkit};
+use crate::core::{ApplicationArgument, CheckedClass, Name, Type, TypeId, normalise, toolkit};
 use crate::evidence::{Evidence, EvidenceId, Evidences, SuperclassId};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
@@ -157,7 +157,7 @@ where
 pub(crate) fn superclass_substitutions<Q>(
     context: &CheckContext<Q>,
     class: &CheckedClass,
-    arguments: &[KindOrType],
+    arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<NameToType>>
 where
     Q: ExternalQueries,
@@ -166,7 +166,7 @@ where
     let mut arguments = arguments.iter().copied();
 
     for &binder_id in class.kind_binders.iter() {
-        let Some(KindOrType::Kind(argument)) = arguments.next() else {
+        let Some(ApplicationArgument::Kind(argument)) = arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -174,7 +174,7 @@ where
     }
 
     for &binder_id in class.type_parameters.iter() {
-        let Some(KindOrType::Type(argument)) = arguments.next() else {
+        let Some(ApplicationArgument::Type(argument)) = arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -207,8 +207,11 @@ where
             return None;
         }
 
-        let (kind @ KindOrType::Kind(_), left @ KindOrType::Type(_), right @ KindOrType::Type(_)) =
-            arguments.iter().copied().collect_tuple()?
+        let (
+            kind @ ApplicationArgument::Kind(_),
+            left @ ApplicationArgument::Type(_),
+            right @ ApplicationArgument::Type(_),
+        ) = arguments.iter().copied().collect_tuple()?
         else {
             return None;
         };

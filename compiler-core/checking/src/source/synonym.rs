@@ -30,7 +30,7 @@ where
     Q: ExternalQueries,
 {
     let Some(lowering::TypeKind::Constructor { resolution }) =
-        context.lowered.info.get_type_kind(function)
+        context.lowered.tree.get_type_kind(function)
     else {
         return Ok(None);
     };

@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, TypeItemKind};
+use indexing::{IndexedTypeItemKind, TermItemId, TypeItemId};
 use lowering::{
-    ClassIr, DataIr, LoweringError, NewtypeIr, RecursiveGroup, Scc, SynonymIr, TermItemIr,
-    TypeItemIr, TypeVariableBinding,
+    ClassDeclaration, DataDeclaration, LoweringError, NewtypeDeclaration, RecursiveGroup, Scc,
+    TermItemKind, TypeItemKind, TypeSynonymDeclaration, TypeVariableBinding,
 };
 use smol_str::SmolStr;
 
@@ -151,11 +151,11 @@ where
     Q: ExternalQueries,
 {
     for &item_id in items {
-        if state.checked.types.contains_key(&item_id) {
+        if state.checked.type_item_kinds.contains_key(&item_id) {
             continue;
         }
         let kind = state.fresh_unification(context.queries, context.prim.t);
-        state.checked.types.insert(item_id, kind);
+        state.checked.type_item_kinds.insert(item_id, kind);
     }
 }
 
@@ -170,7 +170,7 @@ where
     let mut pending = Vec::with_capacity(items.len());
 
     for &item_id in items {
-        let Some(kind) = state.checked.types.get(&item_id).copied() else {
+        let Some(kind) = state.checked.type_item_kinds.get(&item_id).copied() else {
             continue;
         };
 
@@ -182,7 +182,7 @@ where
 
     for (item_id, kind, unsolved) in pending {
         let kind = generalise::generalise_unsolved(state, context, kind, &unsolved)?;
-        state.checked.types.insert(item_id, kind);
+        state.checked.type_item_kinds.insert(item_id, kind);
     }
 
     Ok(())
@@ -230,7 +230,7 @@ fn populate_skipped_items<Q>(
 {
     let unknown = context.unknown("invalid recursive type");
     let skipped = items.iter().map(|item| (*item, unknown));
-    state.checked.types.extend(skipped);
+    state.checked.type_item_kinds.extend(skipped);
 }
 
 fn check_type_signature<Q>(
@@ -241,32 +241,32 @@ fn check_type_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TypeItemIr::DataGroup { signature, .. } => {
+        TypeItemKind::Data { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::NewtypeGroup { signature, .. } => {
+        TypeItemKind::Newtype { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::SynonymGroup { signature, .. } => {
+        TypeItemKind::Synonym { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::ClassGroup { signature, .. } => {
+        TypeItemKind::Class { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::Foreign { signature, .. } => {
+        TypeItemKind::Foreign { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_kind(state, context, item_id, *signature)?;
         }
-        TypeItemIr::Operator { .. } => {}
+        TypeItemKind::Operator { .. } => {}
     }
 
     Ok(())
@@ -282,7 +282,7 @@ where
     Q: ExternalQueries,
 {
     let (checked_kind, _) = types::check_kind(state, context, signature, context.prim.t)?;
-    state.checked.types.insert(item_id, checked_kind);
+    state.checked.type_item_kinds.insert(item_id, checked_kind);
     Ok(())
 }
 
@@ -295,31 +295,33 @@ fn check_type_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_type_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_type_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TypeItemIr::DataGroup { signature, data, roles } => {
-            let Some(DataIr { variables }) = data else { return Ok(()) };
+        TypeItemKind::Data { signature, declaration, roles } => {
+            let Some(DataDeclaration { variables }) = declaration else { return Ok(()) };
             check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
         }
-        TypeItemIr::NewtypeGroup { signature, newtype, roles } => {
-            let Some(NewtypeIr { variables }) = newtype else { return Ok(()) };
+        TypeItemKind::Newtype { signature, declaration, roles } => {
+            let Some(NewtypeDeclaration { variables }) = declaration else { return Ok(()) };
             check_data_equation(state, context, scc, item_id, *signature, variables, roles)?;
         }
-        TypeItemIr::SynonymGroup { signature, synonym, .. } => {
-            let Some(SynonymIr { variables, synonym }) = synonym else { return Ok(()) };
-            check_synonym_equation(state, context, scc, item_id, *signature, variables, *synonym)?;
+        TypeItemKind::Synonym { signature, declaration, .. } => {
+            let Some(TypeSynonymDeclaration { variables, type_ }) = declaration else {
+                return Ok(());
+            };
+            check_synonym_equation(state, context, scc, item_id, *signature, variables, *type_)?;
         }
-        TypeItemIr::ClassGroup { signature, class } => {
-            let Some(class) = class else { return Ok(()) };
-            check_class_equation(state, context, scc, item_id, *signature, class)?;
+        TypeItemKind::Class { signature, declaration } => {
+            let Some(declaration) = declaration else { return Ok(()) };
+            check_class_equation(state, context, scc, item_id, *signature, declaration)?;
         }
-        TypeItemIr::Foreign { roles, .. } => {
+        TypeItemKind::Foreign { roles, .. } => {
             scc.foreign.push((item_id, Arc::clone(roles)));
         }
-        TypeItemIr::Operator { resolution, .. } => {
+        TypeItemKind::Operator { resolution, .. } => {
             check_type_operator(state, context, item_id, *resolution)?;
         }
     }
@@ -340,7 +342,7 @@ where
     Q: ExternalQueries,
 {
     let parameters = if let Some(signature_id) = signature
-        && let Some(signature_kind) = state.checked.lookup_type(item_id)
+        && let Some(signature_kind) = state.checked.lookup_type_item_kind(item_id)
     {
         check_data_equation_check(state, context, (signature_id, signature_kind), variables)?
     } else {
@@ -385,7 +387,7 @@ where
         let kind = resolve_type_variable_binding(state, context, signature_kind, equation_binding)?;
 
         let name = state.names.fresh();
-        state.checked.nodes.forall_bindings.insert(equation_binding.id, kind);
+        state.checked.node_types.forall_bindings.insert(equation_binding.id, kind);
         state.bindings.bind_forall(equation_binding.id, name, kind);
 
         let text = if let Some(name) = &equation_binding.name {
@@ -448,10 +450,10 @@ where
     let kinds = bindings.iter().map(|binder| binder.kind);
     let inferred = context.intern_function_iter(kinds, context.prim.t);
 
-    if let Some(expected) = state.checked.lookup_type(item_id) {
+    if let Some(expected) = state.checked.lookup_type_item_kind(item_id) {
         unification::subtype(state, context, inferred, expected)?;
     } else {
-        state.checked.types.insert(item_id, inferred);
+        state.checked.type_item_kinds.insert(item_id, inferred);
     }
 
     Ok(bindings)
@@ -468,8 +470,8 @@ where
     let mut constructors = vec![];
 
     for constructor_id in context.indexed.data_constructors(item_id) {
-        let Some(TermItemIr::Constructor { arguments }) =
-            context.lowered.info.get_term_item(constructor_id)
+        let Some(TermItemKind::Constructor { arguments }) =
+            context.lowered.tree.get_term_item_kind(constructor_id)
         else {
             continue;
         };
@@ -501,7 +503,7 @@ where
         // constructor_kind should have already been generalised by the
         // finalise_binding_group function. The kind signature is used
         // as the source of truth for constructing kind applications.
-        let Some(constructor_kind) = state.checked.types.get(&item_id).copied() else {
+        let Some(constructor_kind) = state.checked.type_item_kinds.get(&item_id).copied() else {
             continue;
         };
 
@@ -583,7 +585,7 @@ where
                 result = context.intern_forall(binder_id, result);
             }
 
-            state.checked.terms.insert(constructor_id, result);
+            state.checked.term_item_types.insert(constructor_id, result);
 
             let constructor = tree::DataConstructor { arguments: Arc::from(arguments) };
             let declaration = tree::TermDeclaration {
@@ -605,8 +607,8 @@ where
         };
 
         let declaration = match &context.indexed.items[item_id].kind {
-            TypeItemKind::Data { .. } => tree::TypeDeclarationKind::Data(data),
-            TypeItemKind::Newtype { .. } => tree::TypeDeclarationKind::Newtype(data),
+            IndexedTypeItemKind::Data { .. } => tree::TypeDeclarationKind::Data(data),
+            IndexedTypeItemKind::Newtype { .. } => tree::TypeDeclarationKind::Newtype(data),
             _ => unreachable!("invariant violated: pending data type is not data or newtype"),
         };
 
@@ -641,7 +643,7 @@ where
     }
 
     for (item_id, declared_roles) in mem::take(&mut scc.foreign) {
-        let Some(kind) = state.checked.lookup_type(item_id) else {
+        let Some(kind) = state.checked.lookup_type_item_kind(item_id) else {
             continue;
         };
 
@@ -674,7 +676,7 @@ where
     Q: ExternalQueries,
 {
     let (parameters, result) = if let Some(signature_id) = signature
-        && let Some(signature_kind) = state.checked.lookup_type(item_id)
+        && let Some(signature_kind) = state.checked.lookup_type_item_kind(item_id)
     {
         check_synonym_equation_check(state, context, bindings, (signature_id, signature_kind))?
     } else {
@@ -722,10 +724,10 @@ where
     let result = state.fresh_unification(context.queries, context.prim.t);
     let inferred = context.intern_function_iter(kinds, result);
 
-    if let Some(expected) = state.checked.lookup_type(item_id) {
+    if let Some(expected) = state.checked.lookup_type_item_kind(item_id) {
         unification::subtype(state, context, inferred, expected)?;
     } else {
-        state.checked.types.insert(item_id, inferred);
+        state.checked.type_item_kinds.insert(item_id, inferred);
     }
 
     Ok((bindings, result))
@@ -740,11 +742,11 @@ where
     Q: ExternalQueries,
 {
     for (item_id, PendingSynonymType { parameters, synonym }) in mem::take(&mut scc.synonym) {
-        let Some(kind) = state.checked.lookup_type(item_id) else {
+        let Some(kind) = state.checked.lookup_type_item_kind(item_id) else {
             continue;
         };
         let synonym = zonk::zonk(state, context, synonym)?;
-        let synonym = CheckedSynonym { kind, parameters, synonym };
+        let synonym = CheckedSynonym { kind, parameters, expansion: synonym };
         state.checked.synonyms.insert(item_id, synonym);
     }
     Ok(())
@@ -756,15 +758,15 @@ fn check_class_equation<Q>(
     scc: &mut TypeSccState,
     item_id: TypeItemId,
     signature: Option<lowering::TypeId>,
-    class: &ClassIr,
+    declaration: &ClassDeclaration,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
 {
-    let ClassIr { constraints, variables, functional_dependencies } = class;
+    let ClassDeclaration { constraints, variables, functional_dependencies } = declaration;
 
     let parameters = if let Some(signature_id) = signature
-        && let Some(signature_kind) = state.checked.lookup_type(item_id)
+        && let Some(signature_kind) = state.checked.lookup_type_item_kind(item_id)
     {
         check_class_equation_check(state, context, variables, (signature_id, signature_kind))?
     } else {
@@ -817,10 +819,10 @@ where
     let kinds = bindings.iter().map(|binder| binder.kind);
     let inferred = context.intern_function_iter(kinds, context.prim.constraint);
 
-    if let Some(expected) = state.checked.lookup_type(item_id) {
+    if let Some(expected) = state.checked.lookup_type_item_kind(item_id) {
         unification::subtype(state, context, inferred, expected)?;
     } else {
-        state.checked.types.insert(item_id, inferred);
+        state.checked.type_item_kinds.insert(item_id, inferred);
     }
 
     Ok(bindings)
@@ -837,8 +839,8 @@ where
     let mut members = vec![];
 
     for member_id in context.indexed.class_members(item_id) {
-        let Some(TermItemIr::ClassMember { signature }) =
-            context.lowered.info.get_term_item(member_id)
+        let Some(TermItemKind::ClassMember { signature }) =
+            context.lowered.tree.get_term_item_kind(member_id)
         else {
             continue;
         };
@@ -864,7 +866,7 @@ where
         let PendingClassType { parameters, superclasses, functional_dependencies, members } =
             pending;
 
-        let Some(class_kind) = state.checked.types.get(&item_id).copied() else {
+        let Some(class_kind) = state.checked.type_item_kinds.get(&item_id).copied() else {
             continue;
         };
 
@@ -957,7 +959,7 @@ where
                 selector_type = context.intern_forall(*kind_binder, selector_type);
             }
 
-            state.checked.terms.insert(member_id, selector_type);
+            state.checked.term_item_types.insert(member_id, selector_type);
             checked_members.push(CheckedClassMember { item_id: member_id, field_type });
             semantic_members.push(tree::ClassMember { source: member_id, field_type });
         }
@@ -1003,10 +1005,10 @@ where
     let Some((file_id, type_id)) = resolution else { return Ok(()) };
     let operator_kind = toolkit::lookup_file_type_operator(state, context, file_id, type_id)?;
 
-    if let Some(item_kind) = state.checked.lookup_type(item_id) {
+    if let Some(item_kind) = state.checked.lookup_type_item_kind(item_id) {
         unification::subtype(state, context, operator_kind, item_kind)?;
     } else {
-        state.checked.types.insert(item_id, operator_kind);
+        state.checked.type_item_kinds.insert(item_id, operator_kind);
     }
 
     Ok(())

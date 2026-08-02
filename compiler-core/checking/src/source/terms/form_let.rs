@@ -153,15 +153,15 @@ where
     Q: ExternalQueries,
 {
     for &id in bindings {
-        let Some(name) = context.lowered.info.get_let_binding(id) else {
+        let Some(name) = context.lowered.tree.get_let_binding(id) else {
             continue;
         };
         if let Some(signature_id) = name.signature {
             let (name_type, _) = types::check_kind(state, context, signature_id, context.prim.t)?;
-            state.checked.nodes.lets.insert(id, name_type);
+            state.checked.node_types.lets.insert(id, name_type);
         } else {
             let name_type = state.fresh_unification(context.queries, context.prim.t);
-            state.checked.nodes.lets.insert(id, name_type);
+            state.checked.node_types.lets.insert(id, name_type);
         }
     }
 
@@ -218,15 +218,15 @@ pub fn check_let_name_binding_core<Q>(
 where
     Q: ExternalQueries,
 {
-    let group = context.lowered.info.get_let_binding_group(id);
+    let group = context.lowered.tree.get_let_binding_group(id);
     let name = context
         .lowered
-        .info
+        .tree
         .get_let_binding(id)
         .expect("invariant violated: let binding group has no lowered binding");
     let name_type = state
         .checked
-        .nodes
+        .node_types
         .lookup_let(id)
         .expect("invariant violated: let binding has no preallocated type");
 

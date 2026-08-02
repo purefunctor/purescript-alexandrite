@@ -6,7 +6,7 @@ use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
 use crate::core::substitute::RigidRenaming;
-use crate::core::{KindOrType, RowType, Type, TypeId, normalise, signature, toolkit};
+use crate::core::{ApplicationArgument, RowType, Type, TypeId, normalise, signature, toolkit};
 use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::field;
@@ -22,7 +22,7 @@ use super::{DeriveHeadResult, DeriveStrategy, ResolvedMember, generated_member, 
 
 struct InstantiatedDataType {
     type_id: TypeId,
-    constructor_arguments: Vec<KindOrType>,
+    constructor_arguments: Vec<ApplicationArgument>,
 }
 
 #[derive(Clone, Copy)]
@@ -120,7 +120,7 @@ pub(super) fn generate_traversal_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
 ) -> QueryResult<Option<tree::InstanceMember>>

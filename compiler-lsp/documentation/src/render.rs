@@ -78,7 +78,7 @@ impl<'a> TypeEncoder<'a> {
     ) -> Result<schema::TypeSynonymEquation, Error> {
         self.names.reset();
         let binders = self.encode_forall_binder_values(synonym.parameters)?;
-        let expansion = self.encode_type(synonym.synonym)?;
+        let expansion = self.encode_type(synonym.expansion)?;
         Ok(schema::TypeSynonymEquation { binders, expansion })
     }
 
@@ -263,8 +263,8 @@ impl<'a> ModuleEncoder<'a> {
         type_id: indexing::TypeItemId,
         declaration: &schema::TypeDeclaration,
     ) -> Vec<schema::FunctionalDependency> {
-        let Some(lowering::TypeItemIr::ClassGroup { class: Some(class), .. }) =
-            self.lowered.info.get_type_item(type_id)
+        let Some(lowering::TypeItemKind::Class { declaration: Some(class), .. }) =
+            self.lowered.tree.get_type_item_kind(type_id)
         else {
             return vec![];
         };
@@ -298,12 +298,12 @@ impl<'a> ModuleEncoder<'a> {
 
         let name = type_item.name.as_ref().map(|name| name.to_string());
         let documentation = type_documentation.and_then(|t| optional_string(&t.documentation));
-        let signature = self.checked.lookup_type(type_id);
+        let signature = self.checked.lookup_type_item_kind(type_id);
         let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
         let instance_ids = instances.into_iter().collect::<Vec<_>>();
 
         let form = match &type_item.kind {
-            indexing::TypeItemKind::Data { constructors, .. } => {
+            indexing::IndexedTypeItemKind::Data { constructors, .. } => {
                 let declaration = self.checked.lookup_data_declaration(type_id);
                 let declaration = if let Some(declaration) = declaration {
                     let type_parameters = declaration.type_parameters.iter().copied();
@@ -317,7 +317,7 @@ impl<'a> ModuleEncoder<'a> {
 
                 schema::TypeItemForm::Data { signature, declaration, constructors, instances }
             }
-            indexing::TypeItemKind::Newtype { constructors, .. } => {
+            indexing::IndexedTypeItemKind::Newtype { constructors, .. } => {
                 let declaration = self.checked.lookup_data_declaration(type_id);
                 let declaration = if let Some(declaration) = declaration {
                     let type_parameters = declaration.type_parameters.iter().copied();
@@ -331,7 +331,7 @@ impl<'a> ModuleEncoder<'a> {
 
                 schema::TypeItemForm::Newtype { signature, declaration, constructors, instances }
             }
-            indexing::TypeItemKind::Synonym { .. } => {
+            indexing::IndexedTypeItemKind::Synonym { .. } => {
                 let equation = if let Some(synonym) = self.checked.lookup_synonym(type_id) {
                     Some(self.type_encoder.encode_synonym_equation(synonym)?)
                 } else {
@@ -342,7 +342,7 @@ impl<'a> ModuleEncoder<'a> {
 
                 schema::TypeItemForm::Synonym { signature, equation, instances }
             }
-            indexing::TypeItemKind::Class { members, .. } => {
+            indexing::IndexedTypeItemKind::Class { members, .. } => {
                 let (declaration, superclasses, functional_dependencies) =
                     if let Some(class) = self.checked.lookup_class(type_id) {
                         let (declaration, superclasses) =
@@ -366,12 +366,14 @@ impl<'a> ModuleEncoder<'a> {
                     instances,
                 }
             }
-            indexing::TypeItemKind::Foreign { .. } => {
+            indexing::IndexedTypeItemKind::Foreign { .. } => {
                 let instances = self.encode_term_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Foreign { signature, instances }
             }
-            indexing::TypeItemKind::Operator { .. } => schema::TypeItemForm::Operator { signature },
+            indexing::IndexedTypeItemKind::Operator { .. } => {
+                schema::TypeItemForm::Operator { signature }
+            }
         };
 
         Ok(schema::TypeItem { name, documentation, form })
@@ -439,11 +441,11 @@ fn optional_string(value: &str) -> Option<String> {
 fn collect_constructors_members(encoder: &ModuleEncoder<'_>, nested_terms: &mut NestedTerms) {
     for (_, type_item) in encoder.indexed.items.iter_types() {
         match &type_item.kind {
-            indexing::TypeItemKind::Data { constructors, .. }
-            | indexing::TypeItemKind::Newtype { constructors, .. } => {
+            indexing::IndexedTypeItemKind::Data { constructors, .. }
+            | indexing::IndexedTypeItemKind::Newtype { constructors, .. } => {
                 nested_terms.extend(constructors.iter().copied());
             }
-            indexing::TypeItemKind::Class { members, .. } => {
+            indexing::IndexedTypeItemKind::Class { members, .. } => {
                 nested_terms.extend(members.iter().copied());
             }
             _ => {}
@@ -451,31 +453,31 @@ fn collect_constructors_members(encoder: &ModuleEncoder<'_>, nested_terms: &mut 
     }
 }
 
-fn term_kind(kind: &indexing::TermItemKind) -> schema::TermKind {
+fn term_kind(kind: &indexing::IndexedTermItemKind) -> schema::TermKind {
     match kind {
-        indexing::TermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
-        indexing::TermItemKind::Constructor { .. } => schema::TermKind::Constructor,
-        indexing::TermItemKind::Derive { .. } => schema::TermKind::Derive,
-        indexing::TermItemKind::Foreign { .. } => schema::TermKind::Foreign,
-        indexing::TermItemKind::Instance { .. } => schema::TermKind::Instance,
-        indexing::TermItemKind::Operator { .. } => schema::TermKind::Operator,
-        indexing::TermItemKind::Value { .. } => schema::TermKind::Value,
+        indexing::IndexedTermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
+        indexing::IndexedTermItemKind::Constructor { .. } => schema::TermKind::Constructor,
+        indexing::IndexedTermItemKind::Derive { .. } => schema::TermKind::Derive,
+        indexing::IndexedTermItemKind::Foreign { .. } => schema::TermKind::Foreign,
+        indexing::IndexedTermItemKind::Instance { .. } => schema::TermKind::Instance,
+        indexing::IndexedTermItemKind::Operator { .. } => schema::TermKind::Operator,
+        indexing::IndexedTermItemKind::Value { .. } => schema::TermKind::Value,
     }
 }
 
 fn term_signature(
     term_id: indexing::TermItemId,
-    term_item: &indexing::TermItem,
+    term_item: &indexing::IndexedTermItem,
     checked: &checking::CheckedModule,
 ) -> Option<checking::TypeId> {
     match &term_item.kind {
-        indexing::TermItemKind::Instance { id } => {
+        indexing::IndexedTermItemKind::Instance { id } => {
             checked.lookup_instance(*id).map(|instance| instance.signature)
         }
-        indexing::TermItemKind::Derive { id } => {
-            checked.lookup_derived(*id).map(|instance| instance.signature)
+        indexing::IndexedTermItemKind::Derive { id } => {
+            checked.lookup_derived_instance(*id).map(|instance| instance.signature)
         }
-        _ => checked.lookup_term(term_id),
+        _ => checked.lookup_term_item_type(term_id),
     }
 }
 
@@ -492,7 +494,8 @@ fn collect_instances_of(
     for (term_id, term_item) in encoder.indexed.items.iter_terms() {
         if !matches!(
             term_item.kind,
-            indexing::TermItemKind::Instance { .. } | indexing::TermItemKind::Derive { .. }
+            indexing::IndexedTermItemKind::Instance { .. }
+                | indexing::IndexedTermItemKind::Derive { .. }
         ) {
             continue;
         }
@@ -514,13 +517,15 @@ fn collect_instances_of(
 fn instance_parents(
     encoder: &ModuleEncoder<'_>,
     term_id: indexing::TermItemId,
-    term_item: &indexing::TermItem,
+    term_item: &indexing::IndexedTermItem,
 ) -> InstanceParents {
     let mut parents = InstanceParents::new();
 
     let checked_instance = match &term_item.kind {
-        indexing::TermItemKind::Instance { id } => encoder.checked.lookup_instance(*id),
-        indexing::TermItemKind::Derive { id } => encoder.checked.lookup_derived(*id),
+        indexing::IndexedTermItemKind::Instance { id } => encoder.checked.lookup_instance(*id),
+        indexing::IndexedTermItemKind::Derive { id } => {
+            encoder.checked.lookup_derived_instance(*id)
+        }
         _ => None,
     };
 
@@ -531,13 +536,13 @@ fn instance_parents(
         parents.insert(parent_type);
     }
 
-    let Some(term_item) = encoder.lowered.info.get_term_item(term_id) else {
+    let Some(term_item) = encoder.lowered.tree.get_term_item_kind(term_id) else {
         return parents;
     };
 
     let arguments = match term_item {
-        lowering::TermItemIr::Instance { arguments, .. }
-        | lowering::TermItemIr::Derive { arguments, .. } => arguments,
+        lowering::TermItemKind::Instance { arguments, .. }
+        | lowering::TermItemKind::Derive { arguments, .. } => arguments,
         _ => return parents,
     };
 
@@ -553,7 +558,7 @@ fn collect_instance_type_parents(
     parents: &mut InstanceParents,
     type_id: lowering::TypeId,
 ) {
-    let Some(kind) = encoder.lowered.info.get_type_kind(type_id) else { return };
+    let Some(kind) = encoder.lowered.tree.get_type_kind(type_id) else { return };
 
     match kind {
         lowering::TypeKind::Constructor { resolution } => {
@@ -638,9 +643,9 @@ fn collect_instance_type_parents(
 fn instance_type_parent(encoder: &ModuleEncoder<'_>, type_id: indexing::TypeItemId) -> bool {
     matches!(
         encoder.indexed.items[type_id].kind,
-        indexing::TypeItemKind::Data { .. }
-            | indexing::TypeItemKind::Newtype { .. }
-            | indexing::TypeItemKind::Synonym { .. }
-            | indexing::TypeItemKind::Foreign { .. }
+        indexing::IndexedTypeItemKind::Data { .. }
+            | indexing::IndexedTypeItemKind::Newtype { .. }
+            | indexing::IndexedTypeItemKind::Synonym { .. }
+            | indexing::IndexedTypeItemKind::Foreign { .. }
     )
 }

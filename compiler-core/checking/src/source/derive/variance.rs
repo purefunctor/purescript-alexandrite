@@ -6,7 +6,7 @@ use smol_str::SmolStr;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Name, Type, TypeId, constraint, normalise, toolkit};
+use crate::core::{ApplicationArgument, Name, Type, TypeId, constraint, normalise, toolkit};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 
@@ -202,7 +202,9 @@ where
         let replacement = arguments
             .next()
             .map(|argument| match argument {
-                KindOrType::Kind(argument) | KindOrType::Type(argument) => argument,
+                ApplicationArgument::Kind(argument) | ApplicationArgument::Type(argument) => {
+                    argument
+                }
             })
             .unwrap_or_else(|| {
                 let rigid = state.fresh_rigid(context.queries, binder.kind);
@@ -824,7 +826,7 @@ where
         if (available.file_id, available.type_id) != class {
             continue;
         }
-        let [KindOrType::Type(available_argument)] = available.arguments.as_ref() else {
+        let [ApplicationArgument::Type(available_argument)] = available.arguments.as_ref() else {
             continue;
         };
         let (available_head, _) =
@@ -848,7 +850,8 @@ where
             else {
                 continue;
             };
-            let [KindOrType::Type(candidate_argument)] = candidate.arguments.as_slice() else {
+            let [ApplicationArgument::Type(candidate_argument)] = candidate.arguments.as_slice()
+            else {
                 continue;
             };
             let (candidate_head, _) =

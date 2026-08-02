@@ -2,7 +2,7 @@ use building_types::QueryResult;
 use smol_str::format_smolstr;
 
 use crate::context::CheckContext;
-use crate::core::{KindOrType, TypeId, toolkit};
+use crate::core::{ApplicationArgument, TypeId, toolkit};
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::{field, tools};
 use crate::source::terms::ElaboratedExpression;
@@ -31,7 +31,7 @@ fn resolve_comparison_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<ComparisonMember>>
 where
     Q: ExternalQueries,
@@ -39,7 +39,7 @@ where
     let DeriveStrategy::FieldConstraints { data_file, data_id, .. } = result.strategy else {
         return Ok(None);
     };
-    let Some(KindOrType::Type(derived_type)) = instance_arguments.last() else {
+    let Some(ApplicationArgument::Type(derived_type)) = instance_arguments.last() else {
         return Ok(None);
     };
 
@@ -83,7 +83,7 @@ pub(super) fn generate_eq_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
@@ -115,7 +115,7 @@ pub(super) fn generate_ord_member<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,

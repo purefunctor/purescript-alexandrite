@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId};
-use lowering::TermItemIr;
+use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
+use lowering::TermItemKind;
 use rustc_hash::FxHashMap;
 
 use crate::context::CheckContext;
 use crate::core::constraint::ConstraintInScope;
 use crate::core::substitute::{NameToType, RigidRenaming, SubstituteName};
 use crate::core::{
-    CheckedInstance, KindOrType, Type, TypeId, constraint, exhaustive, generalise, normalise,
-    signature, toolkit, unification, zonk,
+    ApplicationArgument, CheckedInstance, Type, TypeId, constraint, exhaustive, generalise,
+    normalise, signature, toolkit, unification, zonk,
 };
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::evidence::{Evidence, SuperclassId};
@@ -61,8 +61,8 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.info.get_term_item(item_id)?;
-            let TermItemIr::Instance { constraints, resolution, arguments, .. } = item else {
+            let item = context.lowered.tree.get_term_item_kind(item_id)?;
+            let TermItemKind::Instance { constraints, resolution, arguments, .. } = item else {
                 return None;
             };
             let resolution = *resolution;
@@ -116,7 +116,8 @@ where
         return Ok(());
     };
 
-    let TermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind else {
+    let IndexedTermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind
+    else {
         return Ok(());
     };
 
@@ -216,8 +217,8 @@ where
 {
     for scc in &context.grouped.term_scc {
         for &item_id in scc.as_slice() {
-            let Some(TermItemIr::Instance { members, resolution, .. }) =
-                context.lowered.info.get_term_item(item_id)
+            let Some(TermItemKind::Instance { members, resolution, .. }) =
+                context.lowered.tree.get_term_item_kind(item_id)
             else {
                 continue;
             };
@@ -226,7 +227,8 @@ where
                 continue;
             };
 
-            let TermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind
+            let IndexedTermItemKind::Instance { id: instance_id } =
+                context.indexed.items[item_id].kind
             else {
                 continue;
             };
@@ -364,7 +366,7 @@ fn check_instance_member_group<Q>(
     context: &CheckContext<Q>,
     member: &lowering::InstanceMemberGroup,
     (class_file, class_id): (FileId, TypeItemId),
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
@@ -466,7 +468,7 @@ fn record_instance_member(
 
 pub(crate) struct FreshenedInstanceRigids {
     pub(crate) constraints: Vec<TypeId>,
-    pub(crate) arguments: Vec<KindOrType>,
+    pub(crate) arguments: Vec<ApplicationArgument>,
     pub(crate) renaming: Arc<RigidRenaming>,
     pub(crate) rigids: Vec<TypeId>,
 }
@@ -511,7 +513,7 @@ pub(crate) fn emit_instance_superclass_constraints<Q>(
     context: &CheckContext<Q>,
     class_file: FileId,
     class_id: TypeItemId,
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Vec<tree::InstanceSuperclass>>
 where
     Q: ExternalQueries,
@@ -546,7 +548,7 @@ pub(crate) fn instantiate_class_member_type<Q>(
     context: &CheckContext<Q>,
     (member_file, member_id): (FileId, TermItemId),
     (class_file, class_id): (FileId, TypeItemId),
-    instance_arguments: &[KindOrType],
+    instance_arguments: &[ApplicationArgument],
 ) -> QueryResult<Option<TypeId>>
 where
     Q: ExternalQueries,
@@ -566,7 +568,7 @@ where
     let mut instance_arguments = instance_arguments.iter().copied();
 
     for &binder_id in class_info.kind_binders.iter() {
-        let Some(KindOrType::Kind(argument)) = instance_arguments.next() else {
+        let Some(ApplicationArgument::Kind(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -574,7 +576,7 @@ where
     }
 
     for &binder_id in class_info.type_parameters.iter() {
-        let Some(KindOrType::Type(argument)) = instance_arguments.next() else {
+        let Some(ApplicationArgument::Type(argument)) = instance_arguments.next() else {
             return Ok(None);
         };
         let binder = context.lookup_forall_binder(binder_id);
@@ -594,17 +596,17 @@ fn substitute_kind_or_type<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     renaming: &RigidRenaming,
-    argument: KindOrType,
-) -> QueryResult<KindOrType>
+    argument: ApplicationArgument,
+) -> QueryResult<ApplicationArgument>
 where
     Q: ExternalQueries,
 {
     Ok(match argument {
-        KindOrType::Kind(argument) => {
-            KindOrType::Kind(renaming.substitute(state, context, argument)?)
+        ApplicationArgument::Kind(argument) => {
+            ApplicationArgument::Kind(renaming.substitute(state, context, argument)?)
         }
-        KindOrType::Type(argument) => {
-            KindOrType::Type(renaming.substitute(state, context, argument)?)
+        ApplicationArgument::Type(argument) => {
+            ApplicationArgument::Type(renaming.substitute(state, context, argument)?)
         }
     })
 }
@@ -614,19 +616,19 @@ where
     Q: ExternalQueries,
 {
     for &item_id in items {
-        if state.checked.terms.contains_key(&item_id) {
+        if state.checked.term_item_types.contains_key(&item_id) {
             continue;
         }
 
-        let item = context.lowered.info.get_term_item(item_id);
+        let item = context.lowered.tree.get_term_item_kind(item_id);
 
         let resolution = item.and_then(|item| match item {
-            TermItemIr::Operator { resolution, .. } => *resolution,
+            TermItemKind::Operator { resolution, .. } => *resolution,
             _ => None,
         });
 
         let item_type = resolution.and_then(|(file_id, item_id)| {
-            if file_id == context.id { state.checked.lookup_term(item_id) } else { None }
+            if file_id == context.id { state.checked.lookup_term_item_type(item_id) } else { None }
         });
 
         let item_type = if let Some(item_type) = item_type {
@@ -635,7 +637,7 @@ where
             state.fresh_unification(context.queries, context.prim.t)
         };
 
-        state.checked.terms.insert(item_id, item_type);
+        state.checked.term_item_types.insert(item_id, item_type);
     }
 }
 
@@ -647,19 +649,19 @@ fn check_term_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TermItemIr::Foreign { signature } => {
+        TermItemKind::Foreign { signature } => {
             let Some(signature) = signature else { return Ok(()) };
             let type_id = check_signature_type(state, context, item_id, *signature)?;
             let declaration =
                 tree::TermDeclaration { type_id, kind: tree::TermDeclarationKind::Foreign };
             state.checked.tree.insert_term(item_id, declaration);
         }
-        TermItemIr::ValueGroup { signature, .. } => {
+        TermItemKind::Value { signature, .. } => {
             let Some(signature) = signature else { return Ok(()) };
             check_signature_type(state, context, item_id, *signature)?;
         }
@@ -679,7 +681,7 @@ where
     Q: ExternalQueries,
 {
     let (checked_kind, _) = types::check_kind(state, context, signature, context.prim.t)?;
-    state.checked.terms.insert(item_id, checked_kind);
+    state.checked.term_item_types.insert(item_id, checked_kind);
     Ok(checked_kind)
 }
 
@@ -692,15 +694,15 @@ fn check_term_equation<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some(item) = context.lowered.info.get_term_item(item_id) else {
+    let Some(item) = context.lowered.tree.get_term_item_kind(item_id) else {
         return Ok(());
     };
 
     match item {
-        TermItemIr::Operator { resolution, .. } => {
+        TermItemKind::Operator { resolution, .. } => {
             check_term_operator(state, context, item_id, *resolution)?;
         }
-        TermItemIr::ValueGroup { signature, equations } => {
+        TermItemKind::Value { signature, equations } => {
             let pending = state.with_implication(|state| {
                 check_value_group(state, context, item_id, *signature, equations)
             })?;
@@ -740,7 +742,7 @@ where
     Q: ExternalQueries,
 {
     if let Some(signature_id) = signature
-        && let Some(signature_type) = state.checked.lookup_term(item_id)
+        && let Some(signature_type) = state.checked.lookup_term_item_type(item_id)
     {
         let (residuals, evidences, equations) =
             check_value_group_core_check(state, context, signature_id, signature_type, equations)?;
@@ -790,7 +792,7 @@ where
     Q: ExternalQueries,
 {
     let group_type = state.fresh_unification(context.queries, context.prim.t);
-    state.checked.terms.insert(item_id, group_type);
+    state.checked.term_item_types.insert(item_id, group_type);
     let checked_equations =
         equations::infer_value_equations(state, context, group_type, equations)?;
     let exhaustiveness = exhaustive::check_equation_patterns(
@@ -831,7 +833,7 @@ where
     let mut pending = vec![];
 
     for &item_id in items {
-        let Some(marker) = state.checked.terms.get(&item_id).copied() else {
+        let Some(marker) = state.checked.term_item_types.get(&item_id).copied() else {
             continue;
         };
 
@@ -873,7 +875,7 @@ where
     ) in pending
     {
         let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
-        state.checked.terms.insert(item_id, marker);
+        state.checked.term_item_types.insert(item_id, marker);
 
         if recursive && inferred_constraints {
             // Keep constraint evidence consistent with the candidate type used for error recovery.
@@ -926,7 +928,8 @@ fn record_value_declaration<Q>(
 ) where
     Q: ExternalQueries,
 {
-    let TermItemKind::Value { equations: sources, .. } = &context.indexed.items[item_id].kind
+    let IndexedTermItemKind::Value { equations: sources, .. } =
+        &context.indexed.items[item_id].kind
     else {
         return;
     };
@@ -964,10 +967,10 @@ where
     let Some((file_id, term_id)) = resolution else { return Ok(()) };
     let operator_type = toolkit::lookup_file_term_operator(state, context, file_id, term_id)?;
 
-    if let Some(item_type) = state.checked.lookup_term(item_id) {
+    if let Some(item_type) = state.checked.lookup_term_item_type(item_id) {
         unification::subtype(state, context, operator_type, item_type)?;
     } else {
-        state.checked.terms.insert(item_id, operator_type);
+        state.checked.term_item_types.insert(item_id, operator_type);
     }
 
     Ok(())

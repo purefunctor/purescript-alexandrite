@@ -27,7 +27,7 @@ use files::FileId;
 use indexing::{TermItemId, TypeItemId};
 use lowering::{
     Associativity, BinderId, BinderKind, ExpressionId, ExpressionKind, IsElement, LoweredModule,
-    OperatorPair, TermItemIr, TermOperatorId, TypeId, TypeItemIr, TypeKind, TypeOperatorId,
+    OperatorPair, TermItemKind, TermOperatorId, TypeId, TypeItemKind, TypeKind, TypeOperatorId,
 };
 use rustc_hash::FxHashMap;
 
@@ -46,12 +46,12 @@ impl ForOperatorId for TermOperatorId {
     type ItemId = TermItemId;
 
     fn resolve_operator(lowered: &LoweredModule, id: Self) -> Option<(FileId, Self::ItemId)> {
-        lowered.info.get_term_operator(id)
+        lowered.tree.get_term_operator(id)
     }
 
     fn operator_info(lowered: &LoweredModule, id: Self::ItemId) -> Option<(Associativity, u8)> {
-        let Some(TermItemIr::Operator { associativity, precedence, .. }) =
-            lowered.info.get_term_item(id)
+        let Some(TermItemKind::Operator { associativity, precedence, .. }) =
+            lowered.tree.get_term_item_kind(id)
         else {
             return None;
         };
@@ -63,12 +63,12 @@ impl ForOperatorId for TypeOperatorId {
     type ItemId = TypeItemId;
 
     fn resolve_operator(lowered: &LoweredModule, id: Self) -> Option<(FileId, Self::ItemId)> {
-        lowered.info.get_type_operator(id)
+        lowered.tree.get_type_operator(id)
     }
 
     fn operator_info(lowered: &LoweredModule, id: Self::ItemId) -> Option<(Associativity, u8)> {
-        let Some(TypeItemIr::Operator { associativity, precedence, .. }) =
-            lowered.info.get_type_item(id)
+        let Some(TypeItemKind::Operator { associativity, precedence, .. }) =
+            lowered.tree.get_type_item_kind(id)
         else {
             return None;
         };
@@ -238,21 +238,21 @@ pub fn bracketed(
     lowered: &LoweredModule,
 ) -> QueryResult<Bracketed> {
     let mut binders = FxHashMap::default();
-    for (id, kind) in lowered.info.iter_binder() {
+    for (id, kind) in lowered.tree.iter_binder() {
         if let BinderKind::OperatorChain { head, tail } = kind {
             binders.insert(id, bracket(queries, lowered, *head, tail));
         }
     }
 
     let mut expressions = FxHashMap::default();
-    for (id, kind) in lowered.info.iter_expression() {
+    for (id, kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::OperatorChain { head, tail } = kind {
             expressions.insert(id, bracket(queries, lowered, *head, tail));
         }
     }
 
     let mut types = FxHashMap::default();
-    for (id, kind) in lowered.info.iter_type() {
+    for (id, kind) in lowered.tree.iter_type() {
         if let TypeKind::OperatorChain { head, tail } = kind {
             types.insert(id, bracket(queries, lowered, *head, tail));
         }

@@ -1,8 +1,8 @@
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{
-    ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedImport, IndexedModule, TermItemId,
-    TermItemKind, TypeItemId, TypeItemKind,
+    ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedImport, IndexedModule,
+    IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
 };
 use smol_str::SmolStr;
 
@@ -242,7 +242,7 @@ fn resolve_exports(state: &mut State, indexed: &IndexedModule, file: FileId) {
 
 fn export_class_members(state: &mut State, indexed: &IndexedModule, file: FileId) {
     for (type_id, type_item) in indexed.items.iter_types() {
-        if !matches!(type_item.kind, TypeItemKind::Class { .. }) {
+        if !matches!(type_item.kind, IndexedTypeItemKind::Class { .. }) {
             continue;
         }
         for member_term_id in indexed.class_members(type_id) {
@@ -350,7 +350,10 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
         let item = &indexed.items[id];
         // Instances cannot be referred to directly by their given name yet.
         // They're simply assumed to exist in a global context for coherence.
-        if matches!(item.kind, TermItemKind::Instance { .. } | TermItemKind::Derive { .. }) {
+        if matches!(
+            item.kind,
+            IndexedTermItemKind::Instance { .. } | IndexedTermItemKind::Derive { .. }
+        ) {
             return None;
         }
         Some((name, file, id))
@@ -362,7 +365,7 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
     });
 
     let (local_class_items, local_type_items): (Vec<_>, Vec<_>) =
-        local_types.partition(|(_, _, _, kind)| matches!(kind, TypeItemKind::Class { .. }));
+        local_types.partition(|(_, _, _, kind)| matches!(kind, IndexedTypeItemKind::Class { .. }));
 
     let local_types = local_type_items.into_iter().map(|(name, file, id, _)| (name, file, id));
     let local_classes = local_class_items.into_iter().map(|(name, file, id, _)| (name, file, id));
@@ -373,7 +376,10 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
 
     let exported_terms = indexed.names.terms.iter().filter_map(|(name, id)| {
         let item = &indexed.items[id];
-        if matches!(item.kind, TermItemKind::Instance { .. } | TermItemKind::Derive { .. }) {
+        if matches!(
+            item.kind,
+            IndexedTermItemKind::Instance { .. } | IndexedTermItemKind::Derive { .. }
+        ) {
             return None;
         }
         if matches!(indexed.kind, ExportKind::Explicit) && !item.exported {
@@ -390,8 +396,8 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
         Some((name, file, id, ExportSource::Local, &item.kind))
     });
 
-    let (exported_class_items, exported_type_items): (Vec<_>, Vec<_>) =
-        exported_types.partition(|(_, _, _, _, kind)| matches!(kind, TypeItemKind::Class { .. }));
+    let (exported_class_items, exported_type_items): (Vec<_>, Vec<_>) = exported_types
+        .partition(|(_, _, _, _, kind)| matches!(kind, IndexedTypeItemKind::Class { .. }));
 
     let exported_types =
         exported_type_items.into_iter().map(|(name, file, id, source, _)| (name, file, id, source));

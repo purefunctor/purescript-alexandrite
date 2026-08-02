@@ -138,12 +138,12 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
                 cst::LetBinding::LetBindingSignature(signature) => {
                     let ptr = AstPtr::new(&signature);
                     let id = self.stabilized.lookup_ptr(&ptr)?;
-                    lowered.info.find_let_binding_group_by_signature(id)
+                    lowered.tree.find_let_binding_group_by_signature(id)
                 }
                 cst::LetBinding::LetBindingEquation(equation) => {
                     let ptr = AstPtr::new(&equation);
                     let id = self.stabilized.lookup_ptr(&ptr)?;
-                    lowered.info.find_let_binding_group_by_equation(id)
+                    lowered.tree.find_let_binding_group_by_equation(id)
                 }
             }?;
 

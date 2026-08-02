@@ -5,13 +5,13 @@ expression: "(terms, types)"
 (
     [
         Base(
-            Idx::<TermItem>(2),
+            Idx::<IndexedTermItem>(2),
         ),
         Base(
-            Idx::<TermItem>(1),
+            Idx::<IndexedTermItem>(1),
         ),
         Base(
-            Idx::<TermItem>(0),
+            Idx::<IndexedTermItem>(0),
         ),
     ],
     [],

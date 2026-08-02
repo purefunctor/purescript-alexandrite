@@ -6,15 +6,15 @@ expression: groups.cycle_errors
     RecursiveSynonym(
         RecursiveGroup {
             group: [
-                Idx::<TypeItem>(1),
-                Idx::<TypeItem>(0),
+                Idx::<IndexedTypeItem>(1),
+                Idx::<IndexedTypeItem>(0),
             ],
         },
     ),
     RecursiveSynonym(
         RecursiveGroup {
             group: [
-                Idx::<TypeItem>(2),
+                Idx::<IndexedTypeItem>(2),
             ],
         },
     ),

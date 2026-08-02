@@ -5,7 +5,7 @@ use indexing::TypeItemId;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::substitute::SubstituteName;
-use crate::core::{KindOrType, Type, TypeId, normalise, toolkit};
+use crate::core::{ApplicationArgument, Type, TypeId, normalise, toolkit};
 use crate::state::CheckState;
 
 use super::tools;
@@ -53,7 +53,7 @@ pub fn instantiate_constructor_fields<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     constructor_t: TypeId,
-    arguments: &[KindOrType],
+    arguments: &[ApplicationArgument],
 ) -> QueryResult<Vec<TypeId>>
 where
     Q: ExternalQueries,
@@ -71,7 +71,9 @@ where
         let replacement = arguments
             .next()
             .map(|argument| match argument {
-                KindOrType::Kind(argument) | KindOrType::Type(argument) => argument,
+                ApplicationArgument::Kind(argument) | ApplicationArgument::Type(argument) => {
+                    argument
+                }
             })
             .unwrap_or_else(|| state.fresh_rigid(context.queries, binder.kind));
         current = SubstituteName::one(state, context, binder.name, replacement, inner)?;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId, TypeItemKind};
+use indexing::{IndexedTypeItemKind, TermItemId, TypeItemId};
 use rustc_hash::FxHashMap;
 
 use crate::ExternalQueries;
@@ -93,7 +93,9 @@ where
 
     let kind = &context.indexed.items[data_id].kind;
     match kind {
-        TypeItemKind::Data { .. } | TypeItemKind::Newtype { .. } => Ok(Some((data_file, data_id))),
+        IndexedTypeItemKind::Data { .. } | IndexedTypeItemKind::Newtype { .. } => {
+            Ok(Some((data_file, data_id)))
+        }
         _ => Ok(None),
     }
 }

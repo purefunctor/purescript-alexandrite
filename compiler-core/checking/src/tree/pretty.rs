@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItem, TermItemKind, TypeItem};
+use indexing::{IndexedTermItem, IndexedTermItemKind, IndexedTypeItem};
 use lowering::TermVariableResolution;
 use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
@@ -220,7 +220,7 @@ where
     fn module(&mut self) -> QueryResult<Doc<'arena>> {
         let mut declarations = vec![];
 
-        for (type_id, TypeItem { name, .. }) in self.indexed.items.iter_types() {
+        for (type_id, IndexedTypeItem { name, .. }) in self.indexed.items.iter_types() {
             let Some(name) = name else { continue };
             let Some(declaration_id) = self.checked.tree.lookup_type_declaration(type_id) else {
                 continue;
@@ -248,13 +248,13 @@ where
         }
 
         let mut term_names = PrettyNames::new();
-        for (_, TermItem { name, .. }) in self.indexed.items.iter_terms() {
+        for (_, IndexedTermItem { name, .. }) in self.indexed.items.iter_terms() {
             if let Some(name) = name {
                 term_names.allocate_display_name(SmolStr::clone(name));
             }
         }
 
-        for (term_id, TermItem { name, .. }) in self.indexed.items.iter_terms() {
+        for (term_id, IndexedTermItem { name, .. }) in self.indexed.items.iter_terms() {
             let Some(declaration_id) = self.checked.tree.lookup_term(term_id) else {
                 continue;
             };
@@ -337,7 +337,8 @@ where
         let mut declaration = head;
         let constructors = self.indexed.data_constructors(type_id);
         for (&declaration_id, constructor_id) in data.constructors.iter().zip(constructors) {
-            let TermItem { name: constructor_name, .. } = &self.indexed.items[constructor_id];
+            let IndexedTermItem { name: constructor_name, .. } =
+                &self.indexed.items[constructor_id];
             let Some(constructor_name) = constructor_name else { continue };
             let constructor = &self.checked.tree[declaration_id];
             let TermDeclarationKind::Constructor(constructor) = &constructor.kind else {
@@ -413,7 +414,7 @@ where
 
         let mut field_names = PrettyNames::new();
         for member_id in self.indexed.class_members(type_id) {
-            let TermItem { name: Some(name), .. } = &self.indexed.items[member_id] else {
+            let IndexedTermItem { name: Some(name), .. } = &self.indexed.items[member_id] else {
                 continue;
             };
             field_names.allocate_display_name(SmolStr::clone(name));
@@ -428,7 +429,8 @@ where
         }
 
         for member in class.members.iter() {
-            let TermItem { name: Some(name), .. } = &self.indexed.items[member.source] else {
+            let IndexedTermItem { name: Some(name), .. } = &self.indexed.items[member.source]
+            else {
                 continue;
             };
             let field_type = self.type_pretty.render(member.field_type);
@@ -1156,7 +1158,7 @@ where
                 BinderSource::Binder(source) => {
                     let kind = self
                         .lowered
-                        .info
+                        .tree
                         .get_binder_kind(source)
                         .expect("invariant violated: semantic variable binder has no source");
                     let lowering::BinderKind::Variable { variable: Some(variable) } = kind else {
@@ -1410,7 +1412,7 @@ where
                     }
                     VariableResolution::Source(resolution) => match resolution {
                         TermVariableResolution::Binder(binder) => {
-                            let kind = self.lowered.info.get_binder_kind(binder).expect(
+                            let kind = self.lowered.tree.get_binder_kind(binder).expect(
                                 "invariant violated: variable expression binder is missing",
                             );
                             match kind {
@@ -1645,12 +1647,13 @@ where
         let term_id = term_items.find_map(|(term_id, item)| {
             let matches = match (&item.kind, origin) {
                 (
-                    TermItemKind::Instance { id },
+                    IndexedTermItemKind::Instance { id },
                     InstanceCandidateOrigin::Instance(_, origin_id),
                 ) => *id == origin_id,
-                (TermItemKind::Derive { id }, InstanceCandidateOrigin::Derive(_, origin_id)) => {
-                    *id == origin_id
-                }
+                (
+                    IndexedTermItemKind::Derive { id },
+                    InstanceCandidateOrigin::Derive(_, origin_id),
+                ) => *id == origin_id,
                 (_, _) => false,
             };
             matches.then_some(term_id)
@@ -1781,7 +1784,7 @@ where
     }
 
     fn record_pun_name(&self, record_pun: lowering::RecordPunId) -> Option<String> {
-        self.lowered.info.iter_binder().find_map(|(_, kind)| {
+        self.lowered.tree.iter_binder().find_map(|(_, kind)| {
             let lowering::BinderKind::Record { record } = kind else {
                 return None;
             };
@@ -1795,7 +1798,7 @@ where
     }
 
     fn local_declaration_name(&self, source: lowering::LetBindingNameGroupId) -> String {
-        let group = self.lowered.info.get_let_binding_group(source);
+        let group = self.lowered.tree.get_let_binding_group(source);
         group.name.as_ref().map(ToString::to_string).unwrap_or_else(|| {
             let index = source.into_raw().into_u32();
             format!("<let#{index}>")

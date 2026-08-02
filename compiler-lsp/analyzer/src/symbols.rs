@@ -1,33 +1,35 @@
 use std::sync::Arc;
 
 use building_types::QueryProxy;
-use indexing::{TermItemKind, TypeItemKind};
+use indexing::{IndexedTermItemKind, IndexedTypeItemKind};
 use lsp_types::*;
 use radix_trie::Trie;
 
 use crate::{AnalyzerContext, AnalyzerError, common};
 
-fn term_symbol_kind(kind: &TermItemKind) -> SymbolKind {
+fn term_symbol_kind(kind: &IndexedTermItemKind) -> SymbolKind {
     match kind {
-        TermItemKind::Constructor { .. } => SymbolKind::CONSTRUCTOR,
-        TermItemKind::ClassMember { .. } => SymbolKind::METHOD,
-        TermItemKind::Operator { .. } => SymbolKind::OPERATOR,
-        TermItemKind::Value { .. }
-        | TermItemKind::Foreign { .. }
-        | TermItemKind::Derive { .. }
-        | TermItemKind::Instance { .. } => SymbolKind::FUNCTION,
+        IndexedTermItemKind::Constructor { .. } => SymbolKind::CONSTRUCTOR,
+        IndexedTermItemKind::ClassMember { .. } => SymbolKind::METHOD,
+        IndexedTermItemKind::Operator { .. } => SymbolKind::OPERATOR,
+        IndexedTermItemKind::Value { .. }
+        | IndexedTermItemKind::Foreign { .. }
+        | IndexedTermItemKind::Derive { .. }
+        | IndexedTermItemKind::Instance { .. } => SymbolKind::FUNCTION,
     }
 }
 
-fn type_symbol_kind(kind: &TypeItemKind) -> SymbolKind {
+fn type_symbol_kind(kind: &IndexedTypeItemKind) -> SymbolKind {
     match kind {
         // Note: type classes are partitioned out of `iter_types()` and exposed via `iter_classes()`.
         // Keep this arm for exhaustiveness in case that invariant changes.
-        TypeItemKind::Class { .. } => SymbolKind::INTERFACE,
-        TypeItemKind::Operator { .. } => SymbolKind::OPERATOR,
-        TypeItemKind::Data { .. } => SymbolKind::ENUM,
-        TypeItemKind::Synonym { .. } => SymbolKind::TYPE_PARAMETER,
-        TypeItemKind::Newtype { .. } | TypeItemKind::Foreign { .. } => SymbolKind::STRUCT,
+        IndexedTypeItemKind::Class { .. } => SymbolKind::INTERFACE,
+        IndexedTypeItemKind::Operator { .. } => SymbolKind::OPERATOR,
+        IndexedTypeItemKind::Data { .. } => SymbolKind::ENUM,
+        IndexedTypeItemKind::Synonym { .. } => SymbolKind::TYPE_PARAMETER,
+        IndexedTypeItemKind::Newtype { .. } | IndexedTypeItemKind::Foreign { .. } => {
+            SymbolKind::STRUCT
+        }
     }
 }
 

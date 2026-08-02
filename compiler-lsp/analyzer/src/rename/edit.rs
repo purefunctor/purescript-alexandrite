@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{
-    ImplicitItems, ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind,
-    TypeSelection,
+    ImplicitItems, ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
+    TypeItemId, TypeSelection,
 };
 use lsp_types::*;
 use stabilizing::AstId;
@@ -324,25 +324,25 @@ where
         let indexed = self.context.queries().indexed(file_id)?;
 
         match &indexed.items[term_id].kind {
-            TermItemKind::ClassMember { id } => {
+            IndexedTermItemKind::ClassMember { id } => {
                 push_name_edits!(self, file_id, new_name, position::class_member_name_range; Some(*id));
             }
-            TermItemKind::Constructor { id } => {
+            IndexedTermItemKind::Constructor { id } => {
                 push_name_edits!(self, file_id, new_name, position::data_constructor_name_range; Some(*id));
             }
-            TermItemKind::Derive { id } => {
+            IndexedTermItemKind::Derive { id } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(*id));
             }
-            TermItemKind::Foreign { id } => {
+            IndexedTermItemKind::Foreign { id } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(*id));
             }
-            TermItemKind::Instance { id } => {
+            IndexedTermItemKind::Instance { id } => {
                 push_name_edits!(self, file_id, new_name, position::instance_declaration_name_range; Some(*id));
             }
-            TermItemKind::Operator { id } => {
+            IndexedTermItemKind::Operator { id } => {
                 push_name_edits!(self, file_id, new_name, position::infix_operator_range; Some(*id));
             }
-            TermItemKind::Value { signature, equations } => {
+            IndexedTermItemKind::Value { signature, equations } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; *signature);
 
                 for &equation in equations {
@@ -363,22 +363,22 @@ where
         let indexed = self.context.queries().indexed(file_id)?;
 
         match indexed.items[type_id].kind {
-            TypeItemKind::Data { signature, equation, role, .. } => {
+            IndexedTypeItemKind::Data { signature, equation, role, .. } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; signature, equation, role);
             }
-            TypeItemKind::Newtype { signature, equation, role, .. } => {
+            IndexedTypeItemKind::Newtype { signature, equation, role, .. } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; signature, equation, role);
             }
-            TypeItemKind::Synonym { signature, equation } => {
+            IndexedTypeItemKind::Synonym { signature, equation } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; signature, equation);
             }
-            TypeItemKind::Class { signature, declaration, .. } => {
+            IndexedTypeItemKind::Class { signature, declaration, .. } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; signature, declaration);
             }
-            TypeItemKind::Foreign { id, role } => {
+            IndexedTypeItemKind::Foreign { id, role } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(id), role);
             }
-            TypeItemKind::Operator { id } => {
+            IndexedTypeItemKind::Operator { id } => {
                 push_name_edits!(self, file_id, new_name, position::infix_operator_range; Some(id));
             }
         }

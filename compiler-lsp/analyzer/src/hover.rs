@@ -47,13 +47,13 @@ pub fn implementation(
         locate::Located::TermOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             hover_file_term(engine, f_id, t_id)
         }
         locate::Located::TypeOperator(operator_id) => {
             let lowered = engine.lowered(current_file)?;
             let (f_id, t_id) =
-                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             hover_file_type(engine, f_id, t_id)
         }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
@@ -180,7 +180,7 @@ fn hover_binder(
     binder_id: lowering::BinderId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
     match kind {
         BinderKind::Constructor { resolution, .. } => {
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
@@ -189,7 +189,7 @@ fn hover_binder(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let binder_type = checked.nodes.lookup_binder(binder_id);
+            let binder_type = checked.node_types.lookup_binder(binder_id);
             let binder_type = binder_type.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, binder_type)
@@ -203,7 +203,7 @@ fn hover_expression(
     expression_id: lowering::ExpressionId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         ExpressionKind::Constructor { resolution, .. } => {
@@ -234,7 +234,7 @@ fn hover_expression(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let expression_type = checked.nodes.lookup_expression(expression_id);
+            let expression_type = checked.node_types.lookup_expression(expression_id);
             let expression_type = expression_type.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, expression_type)
@@ -249,7 +249,7 @@ fn hover_let(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let let_type = checked.nodes.lookup_let(let_binding_id);
+    let let_type = checked.node_types.lookup_let(let_binding_id);
     let let_type = let_type.ok_or(AnalyzerError::NonFatal)?;
 
     hover_checked_type(engine, current_file, let_type)
@@ -261,7 +261,7 @@ fn hover_type(
     type_id: lowering::TypeId,
 ) -> Result<Option<Hover>, AnalyzerError> {
     let lowered = engine.lowered(current_file)?;
-    let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     match kind {
         TypeKind::Constructor { resolution, .. } => {
@@ -271,7 +271,7 @@ fn hover_type(
         _ => {
             let checked = engine.checked(current_file)?;
 
-            let type_kind = checked.nodes.lookup_type(type_id);
+            let type_kind = checked.node_types.lookup_type_kind(type_id);
             let type_kind = type_kind.ok_or(AnalyzerError::NonFatal)?;
 
             hover_checked_type(engine, current_file, type_kind)
@@ -309,7 +309,7 @@ fn hover_file_term(
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[term_id].name { name } else { "<unknown>" };
-    let signature = checked.lookup_term(term_id).ok_or(AnalyzerError::NonFatal)?;
+    let signature = checked.lookup_term_item_type(term_id).ok_or(AnalyzerError::NonFatal)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();
@@ -338,7 +338,7 @@ fn hover_file_type(
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
 
     let name = if let Some(name) = &indexed.items[type_id].name { name } else { "<unknown>" };
-    let signature = checked.lookup_type(type_id).ok_or(AnalyzerError::NonFatal)?;
+    let signature = checked.lookup_type_item_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render_signature(name, signature).to_string();
@@ -372,7 +372,7 @@ fn hover_pun(
 ) -> Result<Option<Hover>, AnalyzerError> {
     let checked = engine.checked(current_file)?;
 
-    let pun_type = checked.nodes.lookup_pun(pun_id);
+    let pun_type = checked.node_types.lookup_pun(pun_id);
     let pun_type = pun_type.ok_or(AnalyzerError::NonFatal)?;
 
     hover_checked_type(engine, current_file, pun_type)

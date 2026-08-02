@@ -45,23 +45,23 @@ where
 {
     macro_rules! zonk_type_map {
         ($field:ident) => {
-            for (node_id, type_id) in mem::take(&mut state.checked.nodes.$field) {
+            for (node_id, type_id) in mem::take(&mut state.checked.node_types.$field) {
                 let type_id = zonk(state, context, type_id)?;
-                state.checked.nodes.$field.insert(node_id, type_id);
+                state.checked.node_types.$field.insert(node_id, type_id);
             }
         };
     }
 
     macro_rules! zonk_operator_map {
         ($field:ident) => {
-            for (node_id, branch_types) in mem::take(&mut state.checked.nodes.$field) {
+            for (node_id, branch_types) in mem::take(&mut state.checked.node_types.$field) {
                 let branch_types = zonk_operator_branch(state, context, branch_types)?;
-                state.checked.nodes.$field.insert(node_id, branch_types);
+                state.checked.node_types.$field.insert(node_id, branch_types);
             }
         };
     }
 
-    zonk_type_map!(types);
+    zonk_type_map!(type_kinds);
     zonk_type_map!(expressions);
     zonk_type_map!(binders);
     zonk_type_map!(lets);
@@ -69,8 +69,8 @@ where
     zonk_type_map!(sections);
     zonk_type_map!(forall_bindings);
     zonk_type_map!(implicit_bindings);
-    zonk_operator_map!(term_operator);
-    zonk_operator_map!(type_operator);
+    zonk_operator_map!(term_operators);
+    zonk_operator_map!(type_operators);
 
     Ok(())
 }

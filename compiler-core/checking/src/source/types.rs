@@ -36,7 +36,7 @@ where
     state.with_error_crumb(ErrorCrumb::CheckingKind(source_type), |state| {
         let (inferred_type, inferred_kind) =
             check_kind_core(state, context, source_type, expected_kind)?;
-        state.checked.nodes.types.insert(source_type, inferred_kind);
+        state.checked.node_types.type_kinds.insert(source_type, inferred_kind);
         Ok((inferred_type, inferred_kind))
     })
 }
@@ -68,7 +68,7 @@ where
 {
     state.with_error_crumb(ErrorCrumb::InferringKind(source_type), |state| {
         let (inferred_type, inferred_kind) = infer_kind_core(state, context, source_type)?;
-        state.checked.nodes.types.insert(source_type, inferred_kind);
+        state.checked.node_types.type_kinds.insert(source_type, inferred_kind);
         Ok((inferred_type, inferred_kind))
     })
 }
@@ -86,7 +86,7 @@ where
         (u, u)
     };
 
-    let Some(kind) = context.lowered.info.get_type_kind(id) else {
+    let Some(kind) = context.lowered.tree.get_type_kind(id) else {
         return Ok(unknown("missing syntax"));
     };
 
@@ -279,7 +279,11 @@ where
                     }
 
                     state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
-                    state.checked.nodes.implicit_bindings.insert((implicit.node, implicit.id), k);
+                    state
+                        .checked
+                        .node_types
+                        .implicit_bindings
+                        .insert((implicit.node, implicit.id), k);
 
                     let t = context.intern_rigid(n, state.depth, k);
 
@@ -394,7 +398,7 @@ fn collect_forall_binding<'a>(
     seen: &mut FxHashSet<&'a SmolStr>,
     result: &mut Vec<HoleBinding>,
 ) {
-    let Some(type_id) = state.checked.nodes.lookup_forall_binding(binding_id).or_else(|| {
+    let Some(type_id) = state.checked.node_types.lookup_forall_binding(binding_id).or_else(|| {
         let key = SourceTypeVariableKey::Forall(binding_id);
         state.bindings.lookup(key).map(|variable| variable.kind)
     }) else {
@@ -415,7 +419,7 @@ fn collect_implicit_binding<'a>(
     result: &mut Vec<HoleBinding>,
 ) {
     let Some(type_id) =
-        state.checked.nodes.lookup_implicit_binding(node_id, binding_id).or_else(|| {
+        state.checked.node_types.lookup_implicit_binding(node_id, binding_id).or_else(|| {
             let key = SourceTypeVariableKey::Implicit { node: node_id, id: binding_id };
             state.bindings.lookup(key).map(|variable| variable.kind)
         })
@@ -488,7 +492,7 @@ where
     let text = context.queries.intern_smol_str(text);
 
     state.checked.names.insert(name, text);
-    state.checked.nodes.forall_bindings.insert(binding.id, kind);
+    state.checked.node_types.forall_bindings.insert(binding.id, kind);
     state.bindings.bind_forall(binding.id, name, kind);
     Ok(ForallBinder { visible, name, kind })
 }

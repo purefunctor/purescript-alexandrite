@@ -1,4 +1,8 @@
-//! Types of intermediate representations.
+//! The lowered source tree, keyed by stable IDs derived from the CST.
+//!
+//! Lowering attaches semantic shape and name resolution while preserving missing or
+//! malformed children with [`Option`]. The later `checking::tree` arena tree contains
+//! checked and elaborated nodes.
 use std::sync::Arc;
 
 use files::FileId;
@@ -229,7 +233,7 @@ pub struct WhereExpression {
 
 /// Group of IDs for a let-bound name
 ///
-/// This mirrors the [`indexing::TermItemKind::Value`] pattern for top-level
+/// This mirrors the [`indexing::IndexedTermItemKind::Value`] pattern for top-level
 /// value declarations, where the declaration group is assigned a stable ID.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LetBindingNameGroup {
@@ -242,7 +246,7 @@ pub type LetBindingNameGroupId = Idx<LetBindingNameGroup>;
 
 /// Core representation of the let-bound name
 ///
-/// This is stored in [`LoweringInfo`] and can be obtained from the stable
+/// This is stored in [`LoweredTree`] and can be obtained from the stable
 /// ID for any given let-bound name group [`LetBindingNameGroupId`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct LetBindingName {
@@ -323,8 +327,9 @@ pub enum Associativity {
     Right,
 }
 
+/// The lowered semantic contents associated with an indexed term item.
 #[derive(Debug, PartialEq, Eq)]
-pub enum TermItemIr {
+pub enum TermItemKind {
     ClassMember {
         signature: Option<TypeId>,
     },
@@ -351,7 +356,7 @@ pub enum TermItemIr {
         precedence: Option<u8>,
         resolution: Option<(FileId, TermItemId)>,
     },
-    ValueGroup {
+    Value {
         signature: Option<TypeId>,
         equations: Arc<[Equation]>,
     },
@@ -366,47 +371,48 @@ pub enum Role {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DataIr {
+pub struct DataDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct NewtypeIr {
+pub struct NewtypeDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct SynonymIr {
+pub struct TypeSynonymDeclaration {
     pub variables: Arc<[TypeVariableBinding]>,
-    pub synonym: Option<TypeId>,
+    pub type_: Option<TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClassIr {
+pub struct ClassDeclaration {
     pub constraints: Arc<[TypeId]>,
     pub variables: Arc<[TypeVariableBinding]>,
     pub functional_dependencies: Arc<[FunctionalDependency]>,
 }
 
+/// The lowered semantic contents associated with an indexed type item.
 #[derive(Debug, PartialEq, Eq)]
-pub enum TypeItemIr {
-    DataGroup {
+pub enum TypeItemKind {
+    Data {
         signature: Option<TypeId>,
-        data: Option<DataIr>,
+        declaration: Option<DataDeclaration>,
         roles: Arc<[Role]>,
     },
-    NewtypeGroup {
+    Newtype {
         signature: Option<TypeId>,
-        newtype: Option<NewtypeIr>,
+        declaration: Option<NewtypeDeclaration>,
         roles: Arc<[Role]>,
     },
-    SynonymGroup {
+    Synonym {
         signature: Option<TypeId>,
-        synonym: Option<SynonymIr>,
+        declaration: Option<TypeSynonymDeclaration>,
     },
-    ClassGroup {
+    Class {
         signature: Option<TypeId>,
-        class: Option<ClassIr>,
+        declaration: Option<ClassDeclaration>,
     },
     Foreign {
         signature: Option<TypeId>,
@@ -425,87 +431,92 @@ pub enum Domain {
     Type,
 }
 
+/// Semantic structure and resolutions attached to stable source identities.
+///
+/// Unlike the arena-owned nodes in `checking::tree`, these maps retain the IDs
+/// established from concrete syntax so editor queries can relate semantics back
+/// to source nodes directly.
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct LoweringInfo {
-    pub(crate) binder_kind: FxHashMap<BinderId, BinderKind>,
-    pub(crate) expression_kind: FxHashMap<ExpressionId, ExpressionKind>,
-    pub(crate) type_kind: FxHashMap<TypeId, TypeKind>,
-    pub(crate) term_item: FxHashMap<TermItemId, TermItemIr>,
-    pub(crate) type_item: FxHashMap<TypeItemId, TypeItemIr>,
+pub struct LoweredTree {
+    pub(crate) binders: FxHashMap<BinderId, BinderKind>,
+    pub(crate) expressions: FxHashMap<ExpressionId, ExpressionKind>,
+    pub(crate) types: FxHashMap<TypeId, TypeKind>,
+    pub(crate) term_items: FxHashMap<TermItemId, TermItemKind>,
+    pub(crate) type_items: FxHashMap<TypeItemId, TypeItemKind>,
 
-    pub(crate) do_statement: FxHashMap<DoStatementId, DoStatement>,
-    pub(crate) let_binding: Arena<LetBindingNameGroup>,
-    pub(crate) let_binding_name: ArenaMap<LetBindingNameGroupId, LetBindingName>,
+    pub(crate) do_statements: FxHashMap<DoStatementId, DoStatement>,
+    pub(crate) let_binding_groups: Arena<LetBindingNameGroup>,
+    pub(crate) let_binding_names: ArenaMap<LetBindingNameGroupId, LetBindingName>,
 
-    pub(crate) term_operator: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
-    pub(crate) type_operator: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
-    pub(crate) expression_pun: FxHashMap<RecordPunId, TermVariableResolution>,
+    pub(crate) term_operators: FxHashMap<TermOperatorId, (FileId, TermItemId)>,
+    pub(crate) type_operators: FxHashMap<TypeOperatorId, (FileId, TypeItemId)>,
+    pub(crate) expression_puns: FxHashMap<RecordPunId, TermVariableResolution>,
 }
 
-impl LoweringInfo {
+impl LoweredTree {
     pub fn iter_binder(&self) -> impl Iterator<Item = (BinderId, &BinderKind)> {
-        self.binder_kind.iter().map(|(k, v)| (*k, v))
+        self.binders.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_expression(&self) -> impl Iterator<Item = (ExpressionId, &ExpressionKind)> {
-        self.expression_kind.iter().map(|(k, v)| (*k, v))
+        self.expressions.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_type(&self) -> impl Iterator<Item = (TypeId, &TypeKind)> {
-        self.type_kind.iter().map(|(k, v)| (*k, v))
+        self.types.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_do_statement(&self) -> impl Iterator<Item = (DoStatementId, &DoStatement)> {
-        self.do_statement.iter().map(|(k, v)| (*k, v))
+        self.do_statements.iter().map(|(k, v)| (*k, v))
     }
 
     pub fn iter_term_operator(&self) -> impl Iterator<Item = (TermOperatorId, FileId, TermItemId)> {
-        self.term_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+        self.term_operators.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
     }
 
     pub fn iter_type_operator(&self) -> impl Iterator<Item = (TypeOperatorId, FileId, TypeItemId)> {
-        self.type_operator.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
+        self.type_operators.iter().map(|(o_id, (f_id, t_id))| (*o_id, *f_id, *t_id))
     }
 
     pub fn iter_expression_pun(
         &self,
     ) -> impl Iterator<Item = (RecordPunId, TermVariableResolution)> {
-        self.expression_pun.iter().map(|(k, v)| (*k, *v))
+        self.expression_puns.iter().map(|(k, v)| (*k, *v))
     }
 
     pub fn get_binder_kind(&self, id: BinderId) -> Option<&BinderKind> {
-        self.binder_kind.get(&id)
+        self.binders.get(&id)
     }
 
     pub fn get_expression_kind(&self, id: ExpressionId) -> Option<&ExpressionKind> {
-        self.expression_kind.get(&id)
+        self.expressions.get(&id)
     }
 
     pub fn get_type_kind(&self, id: TypeId) -> Option<&TypeKind> {
-        self.type_kind.get(&id)
+        self.types.get(&id)
     }
 
     pub fn get_do_statement(&self, id: DoStatementId) -> Option<&DoStatement> {
-        self.do_statement.get(&id)
+        self.do_statements.get(&id)
     }
 
-    pub fn get_term_item(&self, id: TermItemId) -> Option<&TermItemIr> {
-        self.term_item.get(&id)
+    pub fn get_term_item_kind(&self, id: TermItemId) -> Option<&TermItemKind> {
+        self.term_items.get(&id)
     }
 
-    pub fn get_type_item(&self, id: TypeItemId) -> Option<&TypeItemIr> {
-        self.type_item.get(&id)
+    pub fn get_type_item_kind(&self, id: TypeItemId) -> Option<&TypeItemKind> {
+        self.type_items.get(&id)
     }
 
     pub fn get_let_binding_group(&self, id: LetBindingNameGroupId) -> &LetBindingNameGroup {
-        &self.let_binding[id]
+        &self.let_binding_groups[id]
     }
 
     pub fn let_binding_group_for_signature(
         &self,
         signature: crate::source::LetBindingSignatureId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding
+        self.let_binding_groups
             .iter()
             .find_map(|(id, group)| (group.signature == Some(signature)).then_some(id))
     }
@@ -514,32 +525,32 @@ impl LoweringInfo {
         &self,
         equation: crate::source::LetBindingEquationId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding
+        self.let_binding_groups
             .iter()
             .find_map(|(id, group)| group.equations.contains(&equation).then_some(id))
     }
 
     pub fn get_let_binding(&self, id: LetBindingNameGroupId) -> Option<&LetBindingName> {
-        self.let_binding_name.get(id)
+        self.let_binding_names.get(id)
     }
 
     pub fn get_term_operator(&self, id: TermOperatorId) -> Option<(FileId, TermItemId)> {
-        self.term_operator.get(&id).copied()
+        self.term_operators.get(&id).copied()
     }
 
     pub fn get_type_operator(&self, id: TypeOperatorId) -> Option<(FileId, TypeItemId)> {
-        self.type_operator.get(&id).copied()
+        self.type_operators.get(&id).copied()
     }
 
     pub fn get_expression_pun(&self, id: RecordPunId) -> Option<TermVariableResolution> {
-        self.expression_pun.get(&id).copied()
+        self.expression_puns.get(&id).copied()
     }
 
     pub fn find_let_binding_group_by_signature(
         &self,
         signature_id: LetBindingSignatureId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+        self.let_binding_groups.iter().find_map(|(let_binding_id, let_binding_group)| {
             let_binding_group
                 .signature
                 .is_some_and(|candidate_id| candidate_id == signature_id)
@@ -551,7 +562,7 @@ impl LoweringInfo {
         &self,
         equation_id: LetBindingEquationId,
     ) -> Option<LetBindingNameGroupId> {
-        self.let_binding.iter().find_map(|(let_binding_id, let_binding_group)| {
+        self.let_binding_groups.iter().find_map(|(let_binding_id, let_binding_group)| {
             let_binding_group.equations.contains(&equation_id).then_some(let_binding_id)
         })
     }

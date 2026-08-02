@@ -1,7 +1,7 @@
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TermItemKind, TypeItemId};
-use lowering::TermItemIr;
+use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
+use lowering::TermItemKind;
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
@@ -30,8 +30,8 @@ where
         let items = scc.as_slice();
 
         let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.info.get_term_item(item_id)?;
-            let TermItemIr::Derive { newtype, constraints, resolution, arguments } = item else {
+            let item = context.lowered.tree.get_term_item_kind(item_id)?;
+            let TermItemKind::Derive { newtype, constraints, resolution, arguments } = item else {
                 return None;
             };
             let resolution = *resolution;
@@ -86,7 +86,7 @@ where
         return Ok(None);
     };
 
-    let TermItemKind::Derive { id: derive_id } = context.indexed.items[item_id].kind else {
+    let IndexedTermItemKind::Derive { id: derive_id } = context.indexed.items[item_id].kind else {
         return Ok(None);
     };
 
@@ -283,7 +283,7 @@ where
     let matchable = toolkit::freshen_instance_signature(state, context, signature)?;
 
     let checked = CheckedInstance { resolution, signature, matchable };
-    state.checked.derived.insert(derive_id, checked);
+    state.checked.derived_instances.insert(derive_id, checked);
 
     Ok(strategy.map(|strategy| DeriveHeadResult {
         derive_id,

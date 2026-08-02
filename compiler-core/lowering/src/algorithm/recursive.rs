@@ -84,7 +84,7 @@ fn child_token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
 pub(crate) fn lower_binder(state: &mut State, context: &Context, cst: &cst::Binder) -> BinderId {
     let id = context.stabilized.lookup_cst(cst).expect_id();
     let kind = lower_binder_kind(state, context, cst, id);
-    state.associate_binder_info(id, kind);
+    state.associate_binder_kind(id, kind);
     id
 }
 
@@ -211,7 +211,7 @@ pub(crate) fn lower_expression(
 ) -> ExpressionId {
     let id = context.stabilized.lookup_cst(cst).expect_id();
     let kind = lower_expression_kind(state, context, cst);
-    state.associate_expression_info(id, kind);
+    state.associate_expression_kind(id, kind);
     id
 }
 
@@ -789,7 +789,7 @@ fn lower_equation_chunk(
     for &id in &groups {
         state.current_let_binding = Some(id);
 
-        let let_binding = &state.info.let_binding[id];
+        let let_binding = &state.tree.let_binding_groups[id];
         let signature = let_binding.signature;
         let equations = Arc::clone(&let_binding.equations);
 
@@ -959,7 +959,7 @@ fn lower_record_updates(
 pub(crate) fn lower_type(state: &mut State, context: &Context, cst: &cst::Type) -> TypeId {
     let id = context.stabilized.lookup_cst(cst).expect_id();
     let kind = lower_type_kind(state, context, cst, id);
-    state.associate_type_info(id, kind);
+    state.associate_type_kind(id, kind);
     id
 }
 
@@ -1143,7 +1143,7 @@ pub(crate) fn lower_forall(state: &mut State, context: &Context, cst: &cst::Type
             .collect();
         let inner = f.type_().map(|cst| lower_forall(state, context, &cst));
         let kind = TypeKind::Forall { bindings, inner };
-        state.associate_type_info(id, kind);
+        state.associate_type_kind(id, kind);
         id
     } else {
         lower_type(state, context, cst)
@@ -1168,7 +1168,7 @@ fn lower_term_operator(
         return None;
     };
 
-    state.info.term_operator.insert(id, (file_id, term_id));
+    state.tree.term_operators.insert(id, (file_id, term_id));
 
     Some(id)
 }
@@ -1191,7 +1191,7 @@ fn lower_type_operator(
         return None;
     };
 
-    state.info.type_operator.insert(id, (file_id, type_id));
+    state.tree.type_operators.insert(id, (file_id, type_id));
 
     Some(id)
 }

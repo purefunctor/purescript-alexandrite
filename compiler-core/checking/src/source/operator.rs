@@ -305,7 +305,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         context: &CheckContext<Q>,
         id: Self::OperatorId,
     ) -> Option<(FileId, Self::ItemId)> {
-        context.lowered.info.get_term_operator(id)
+        context.lowered.tree.get_term_operator(id)
     }
 
     fn lookup_item(
@@ -391,8 +391,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     ) {
         state
             .checked
-            .nodes
-            .term_operator
+            .node_types
+            .term_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }
@@ -416,7 +416,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
         context: &CheckContext<Q>,
         id: Self::OperatorId,
     ) -> Option<(FileId, Self::ItemId)> {
-        context.lowered.info.get_type_operator(id)
+        context.lowered.tree.get_type_operator(id)
     }
 
     fn lookup_item(
@@ -521,8 +521,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
     ) {
         state
             .checked
-            .nodes
-            .type_operator
+            .node_types
+            .type_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }
@@ -546,7 +546,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
         context: &CheckContext<Q>,
         id: Self::OperatorId,
     ) -> Option<(FileId, Self::ItemId)> {
-        context.lowered.info.get_term_operator(id)
+        context.lowered.tree.get_term_operator(id)
     }
 
     fn lookup_item(
@@ -614,8 +614,8 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::BinderId {
     ) {
         state
             .checked
-            .nodes
-            .term_operator
+            .node_types
+            .term_operators
             .insert(operator_id, OperatorBranchTypes { left, right, result });
     }
 }

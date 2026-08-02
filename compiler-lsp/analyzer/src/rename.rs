@@ -1,6 +1,8 @@
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{ImportId, ImportItemId, TermItemId, TermItemKind, TypeItemId, TypeItemKind};
+use indexing::{
+    ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+};
 use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use lsp_types::*;
 use syntax::ast::{AstNode, AstPtr};
@@ -230,7 +232,7 @@ fn rename_target(
         }
         locate::Located::ImportItem(import_id) => import_target(context, current_file, import_id)?,
         locate::Located::Binder(binder_id) => {
-            let kind = lowered.info.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+            let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
 
             let BinderKind::Constructor { resolution: Some((file_id, term_id)), .. } = kind else {
                 return Err(AnalyzerError::NonFatal);
@@ -240,7 +242,7 @@ fn rename_target(
         }
         locate::Located::Expression(expression_id) => {
             let kind =
-                lowered.info.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
             let resolution = match kind {
                 ExpressionKind::Constructor { resolution: Some(resolution) }
@@ -254,7 +256,7 @@ fn rename_target(
             RenameTarget::Term(resolution.0, resolution.1)
         }
         locate::Located::Type(type_id) => {
-            let kind = lowered.info.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
+            let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
 
             let resolution = match kind {
                 TypeKind::Constructor { resolution: Some(resolution) }
@@ -266,13 +268,13 @@ fn rename_target(
         }
         locate::Located::TermOperator(operator_id) => {
             let (file_id, term_id) =
-                lowered.info.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_term_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
 
             RenameTarget::Term(file_id, term_id)
         }
         locate::Located::TypeOperator(operator_id) => {
             let (file_id, type_id) =
-                lowered.info.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
+                lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
 
             RenameTarget::Type(file_id, type_id)
         }
@@ -409,9 +411,11 @@ fn target_name(
             };
 
             let kind = match item.kind {
-                TermItemKind::Constructor { .. } => NameKind::Upper,
-                TermItemKind::Operator { .. } => NameKind::Operator,
-                TermItemKind::Derive { .. } | TermItemKind::Instance { .. } => return Ok(None),
+                IndexedTermItemKind::Constructor { .. } => NameKind::Upper,
+                IndexedTermItemKind::Operator { .. } => NameKind::Operator,
+                IndexedTermItemKind::Derive { .. } | IndexedTermItemKind::Instance { .. } => {
+                    return Ok(None);
+                }
                 _ => NameKind::Lower,
             };
 
@@ -426,7 +430,7 @@ fn target_name(
             };
 
             let kind = match item.kind {
-                TypeItemKind::Operator { .. } => NameKind::Operator,
+                IndexedTypeItemKind::Operator { .. } => NameKind::Operator,
                 _ => NameKind::Upper,
             };
 

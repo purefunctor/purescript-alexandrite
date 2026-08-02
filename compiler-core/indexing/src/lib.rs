@@ -63,8 +63,8 @@ impl IndexedModule {
 
     pub fn data_constructors(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
         let constructors = match &self.items[id].kind {
-            TypeItemKind::Data { constructors, .. }
-            | TypeItemKind::Newtype { constructors, .. } => constructors.as_slice(),
+            IndexedTypeItemKind::Data { constructors, .. }
+            | IndexedTypeItemKind::Newtype { constructors, .. } => constructors.as_slice(),
             _ => &[],
         };
 
@@ -83,7 +83,7 @@ impl IndexedModule {
 
     pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
         let members = match &self.items[id].kind {
-            TypeItemKind::Class { members, .. } => members.as_slice(),
+            IndexedTypeItemKind::Class { members, .. } => members.as_slice(),
             _ => &[],
         };
 
@@ -174,32 +174,32 @@ pub enum TypeSelection {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedItems {
-    terms: Arena<TermItem>,
-    types: Arena<TypeItem>,
+    terms: Arena<IndexedTermItem>,
+    types: Arena<IndexedTypeItem>,
 }
 
 impl IndexedItems {
-    pub fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, &TermItem)> {
+    pub fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, &IndexedTermItem)> {
         self.terms.iter()
     }
 
-    pub fn iter_types(&self) -> impl Iterator<Item = (TypeItemId, &TypeItem)> {
+    pub fn iter_types(&self) -> impl Iterator<Item = (TypeItemId, &IndexedTypeItem)> {
         self.types.iter()
     }
 }
 
 impl ops::Index<TermItemId> for IndexedItems {
-    type Output = TermItem;
+    type Output = IndexedTermItem;
 
-    fn index(&self, index: TermItemId) -> &TermItem {
+    fn index(&self, index: TermItemId) -> &IndexedTermItem {
         &self.terms[index]
     }
 }
 
 impl ops::Index<TypeItemId> for IndexedItems {
-    type Output = TypeItem;
+    type Output = IndexedTypeItem;
 
-    fn index(&self, index: TypeItemId) -> &TypeItem {
+    fn index(&self, index: TypeItemId) -> &IndexedTypeItem {
         &self.types[index]
     }
 }

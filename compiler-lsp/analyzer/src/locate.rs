@@ -42,7 +42,8 @@ pub fn value_equation_ranges(
     indexed: &IndexedModule,
     term_id: TermItemId,
 ) -> Option<Vec<Utf8Range>> {
-    let indexing::TermItemKind::Value { signature, equations } = &indexed.items[term_id].kind
+    let indexing::IndexedTermItemKind::Value { signature, equations } =
+        &indexed.items[term_id].kind
     else {
         return None;
     };
@@ -194,12 +195,12 @@ fn locate_node(
             cst::LetBinding::LetBindingSignature(signature) => {
                 let ptr = AstPtr::new(&signature);
                 let id = stabilized.lookup_ptr(&ptr)?;
-                lowered.info.find_let_binding_group_by_signature(id).map(Located::LetBinding)
+                lowered.tree.find_let_binding_group_by_signature(id).map(Located::LetBinding)
             }
             cst::LetBinding::LetBindingEquation(equation) => {
                 let ptr = AstPtr::new(&equation);
                 let id = stabilized.lookup_ptr(&ptr)?;
-                lowered.info.find_let_binding_group_by_equation(id).map(Located::LetBinding)
+                lowered.tree.find_let_binding_group_by_equation(id).map(Located::LetBinding)
             }
         }
     } else if cst::DataConstructor::can_cast(kind) {
