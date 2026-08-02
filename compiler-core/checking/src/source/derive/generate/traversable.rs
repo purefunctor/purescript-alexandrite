@@ -227,19 +227,10 @@ where
                 instance_arguments,
                 recipe,
                 traversal,
-                resolution,
             )?
         } else if resolution == sequence {
             sequence_generated = true;
-            generate_sequence_member(
-                state,
-                context,
-                result,
-                instance_arguments,
-                traversal,
-                operation,
-                resolution,
-            )?
+            generate_sequence_member(state, context, result, instance_arguments, traversal)?
         } else {
             return Ok(None);
         };
@@ -262,7 +253,6 @@ fn generate_operation_member<Q>(
     instance_arguments: &[ApplicationArgument],
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
-    resolution: (files::FileId, indexing::TermItemId),
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
@@ -270,6 +260,11 @@ where
     let DeriveStrategy::VarianceConstraints { data_file, .. } = result.strategy else {
         return Ok(None);
     };
+    let resolution = match traversal {
+        TraversalKind::Traversable => context.known_terms.traverse,
+        TraversalKind::Bitraversable => context.known_terms.bitraverse,
+    };
+    let Some(resolution) = resolution else { return Ok(None) };
 
     state.with_implication(|state| {
         let Some(member) =
@@ -309,12 +304,20 @@ fn generate_sequence_member<Q>(
     result: &DeriveHeadResult,
     instance_arguments: &[ApplicationArgument],
     traversal: TraversalKind,
-    operation: (files::FileId, indexing::TermItemId),
-    resolution: (files::FileId, indexing::TermItemId),
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
 {
+    let (operation, resolution) = match traversal {
+        TraversalKind::Traversable => (context.known_terms.traverse, context.known_terms.sequence),
+        TraversalKind::Bitraversable => {
+            (context.known_terms.bitraverse, context.known_terms.bisequence)
+        }
+    };
+    let (Some(operation), Some(resolution)) = (operation, resolution) else {
+        return Ok(None);
+    };
+
     state.with_implication(|state| {
         let Some(member) =
             resolve_known_member(state, context, result, instance_arguments, resolution)?
