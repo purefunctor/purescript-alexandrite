@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Predicate ::
+  forall (@a :: Prim.Type). ((a :: Prim.Type) -> Prim.Boolean) -> Main.Predicate (a :: Prim.Type)
+DoubleNegative ::
+  forall (@a :: Prim.Type).
+    Main.Predicate (Main.Predicate (a :: Prim.Type)) -> Main.DoubleNegative (a :: Prim.Type)
+
+Types
+Predicate :: Prim.Type -> Prim.Type
+DoubleNegative :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.DoubleNegative
+
+Roles
+Predicate = [Representational]
+DoubleNegative = [Representational]
+
+Diagnostics
+error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
+  --> 9:1..9:45
+  |
+9 | derive instance Contravariant DoubleNegative
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

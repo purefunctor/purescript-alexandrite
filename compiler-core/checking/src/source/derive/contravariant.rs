@@ -80,17 +80,15 @@ where
         return Ok(None);
     };
 
-    let contravariant = context.known_types.contravariant;
-    let functor = context.known_types.functor;
     let config = VarianceConfig::Pair {
         first: ParameterConfig {
             variance: Variance::Contravariant,
-            unary_class: contravariant,
+            unary_class: context.known_types.contravariant,
             function_policy: FunctionPolicy::Allow,
         },
         second: ParameterConfig {
             variance: Variance::Covariant,
-            unary_class: functor,
+            unary_class: context.known_types.functor,
             function_policy: FunctionPolicy::Allow,
         },
         binary_class: None,

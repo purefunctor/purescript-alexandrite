@@ -629,7 +629,7 @@ where
                 let effect_type = self.effect_type(traversal.target_type);
                 Ok(Some(self.builder.subtype(mapped, effect_type)?))
             }
-            TraversalOperation::UnaryApplication { argument } => {
+            TraversalOperation::UnaryApplication { argument, .. } => {
                 // Traverse delegates a unary type constructor to its Traversable instance.
                 // Supply the effectful transformation between its applied source and target.
                 //
@@ -698,7 +698,7 @@ where
                 let effect_type = self.effect_type(traversal.target_type);
                 Ok(Some(self.builder.subtype(traversed, effect_type)?))
             }
-            TraversalOperation::BinaryApplication { arguments } => {
+            TraversalOperation::BinaryApplication { arguments, .. } => {
                 // Bitraverse delegates both arguments of a binary type constructor. See
                 // `emit_binary_effect` for the staged construction of its transformers.
                 let (first, second) = arguments.operations();

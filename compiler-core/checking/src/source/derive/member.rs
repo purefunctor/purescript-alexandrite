@@ -6,10 +6,7 @@ use crate::core::Type;
 use crate::error::ErrorCrumb;
 use crate::state::CheckState;
 
-use super::{
-    DeriveDispatch, DeriveHeadResult, DeriveStrategy, derive_dispatch, field, generate, tools,
-    variance,
-};
+use super::{DeriveHeadResult, DeriveStrategy, field, generate, tools, variance};
 
 pub fn check_derive_members<Q>(
     state: &mut CheckState,
@@ -97,18 +94,7 @@ where
                 config,
                 &result.constraints,
             )?;
-            if matches!(
-                derive_dispatch(context, result.class_file, result.class_id),
-                DeriveDispatch::Functor
-                    | DeriveDispatch::Bifunctor
-                    | DeriveDispatch::Foldable
-                    | DeriveDispatch::Bifoldable
-                    | DeriveDispatch::Traversable
-                    | DeriveDispatch::Bitraversable
-            ) && recipe.valid
-            {
-                variance_recipe = Some(recipe);
-            }
+            variance_recipe = recipe.valid.then_some(recipe);
         }
     }
 

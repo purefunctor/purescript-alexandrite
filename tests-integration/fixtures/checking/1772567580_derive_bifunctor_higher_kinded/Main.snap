@@ -60,12 +60,12 @@ WrapBoth = [Representational, Representational, Nominal, Nominal]
 WrapBothNoConstraint = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
+error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) (t0 :: Type)
   --> 10:1..10:53
    |
 10 | derive instance Bifunctor (WrapBothNoConstraint f g)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Functor (g :: Type -> Type)
+error[CannotDeriveForType]: Cannot derive for type: (g :: Type -> Type) (t1 :: Type)
   --> 10:1..10:53
    |
 10 | derive instance Bifunctor (WrapBothNoConstraint f g)

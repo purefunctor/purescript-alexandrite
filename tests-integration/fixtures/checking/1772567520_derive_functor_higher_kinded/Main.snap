@@ -32,7 +32,7 @@ Wrap = [Representational, Nominal]
 WrapNoFunctor = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
+error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) (t0 :: Type)
   --> 9:1..9:42
   |
 9 | derive instance Functor (WrapNoFunctor f)

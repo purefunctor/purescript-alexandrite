@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Box :: Prim.Type -> Prim.Type
+data Box @a
+  | Box :: a -> Main.Box a
+
+data BoxedPredicate :: Prim.Type -> Prim.Type
+data BoxedPredicate @a
+  | BoxedPredicate :: Main.Box (a -> Prim.Boolean) -> Main.BoxedPredicate a
+
+dictionary functorBox :: Data.Functor.Functor Main.Box where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Box a -> Main.Box b
+  map = \function value ->
+    case value of
+      (Box field0) -> Box @b (function field0)
+
+dictionary contravariantBoxedPredicate ::
+  Data.Functor.Contravariant.Contravariant Main.BoxedPredicate
+  where
+  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.BoxedPredicate a -> Main.BoxedPredicate b
+  cmap = \function value ->
+    case value of
+      (BoxedPredicate field0) -> BoxedPredicate @b
+        (map @Main.Box {functorBox} @(a -> Prim.Boolean) @(b -> Prim.Boolean)
+          (\element -> \argument -> element (function argument))
+          field0)

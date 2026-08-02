@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Function :: Prim.Type -> Prim.Type -> Prim.Type
+data Function @a @b
+  | Function :: (a -> b) -> Main.Function a b
+
+data DoubleInput :: Prim.Type -> Prim.Type
+data DoubleInput @a
+  | DoubleInput :: Main.Function (Main.Function a Prim.Int) Prim.Int -> Main.DoubleInput a
+
+dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
+  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Function field0) -> Function @a @d \argument ->
+        secondFunction (field0 (firstFunction argument))
+
+dictionary functorDoubleInput :: Data.Functor.Functor Main.DoubleInput where
+  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.DoubleInput a -> Main.DoubleInput b
+  map = \function value ->
+    case value of
+      (DoubleInput field0) -> DoubleInput @b
+        (dimap @Main.Function {profunctorFunction} @(Main.Function b Prim.Int) @(Main.Function a Prim.Int) @Prim.Int @Prim.Int
+          (\element ->
+            dimap @Main.Function {profunctorFunction} @a @b @Prim.Int @Prim.Int
+              (\element -> function element)
+              (\unchanged -> unchanged)
+              element)
+          (\unchanged -> unchanged)
+          field0)

@@ -34,17 +34,12 @@ Wrapped = [Representational, Representational]
 Wrong = [Representational, Nominal, Phantom]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (f :: Type -> Type) ((t0 :: Type) -> Int)
+error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) ((t0 :: Type) -> Int)
   --> 7:1..7:42
   |
 7 | derive instance Contravariant (Wrapped f)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: (f1 :: Type -> Type) (t1 :: Type)
-  --> 10:1..10:37
-   |
-10 | derive instance Profunctor (Wrong f)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t1 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: (f1 :: Type -> Type) (t1 :: Type)
   --> 10:1..10:37
    |
 10 | derive instance Profunctor (Wrong f)

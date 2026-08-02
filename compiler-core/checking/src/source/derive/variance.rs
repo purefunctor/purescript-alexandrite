@@ -67,8 +67,9 @@ pub enum TraversalParameter {
 pub enum TraversalOperation {
     Parameter { parameter: TraversalParameter },
     Function { argument: Option<Box<TraversalOperation>>, result: Option<Box<TraversalOperation>> },
-    UnaryApplication { argument: Box<TraversalOperation> },
-    BinaryApplication { arguments: BinaryApplicationArguments },
+    UnaryApplication { argument_variance: Variance, argument: Box<TraversalOperation> },
+    // Bifunctor and Profunctor are covariant in their second argument.
+    BinaryApplication { first_variance: Variance, arguments: BinaryApplicationArguments },
     Record { fields: Vec<RecordFieldRecipe> },
 }
 
@@ -127,6 +128,13 @@ impl DerivedRigids {
             | DerivedRigids::Pair { binary_class, .. } => *binary_class,
             DerivedRigids::Invalid => None,
         }
+    }
+
+    fn supports_contravariant_traversal(&self) -> bool {
+        !matches!(self, DerivedRigids::Invalid)
+            && self
+                .iter()
+                .all(|parameter| matches!(parameter.function_policy, FunctionPolicy::Allow))
     }
 }
 
@@ -337,10 +345,17 @@ where
                 }
 
                 let application = TypeApplication { type_id, function, argument };
-                if let Some(binary_class) = self.rigids.binary_class() {
-                    return self.check_binary_application(application, variance, binary_class);
+                if self.rigids.supports_contravariant_traversal() {
+                    return self.check_mixed_application(application, variance);
                 }
-                return self.check_unary_application(application, variance);
+                if let Some(binary_class) = self.rigids.binary_class() {
+                    return self.check_configured_binary_application(
+                        application,
+                        variance,
+                        binary_class,
+                    );
+                }
+                return self.check_configured_unary_application(application, variance);
             }
             Type::KindApplication(_, argument) => {
                 return self.check(argument, variance);
@@ -367,7 +382,7 @@ where
         Ok(None)
     }
 
-    fn check_unary_application(
+    fn check_configured_unary_application(
         &mut self,
         application: TypeApplication,
         variance: Variance,
@@ -392,11 +407,13 @@ where
         }
 
         let argument = self.check(application.argument, variance)?;
-        Ok(argument
-            .map(|argument| TraversalOperation::UnaryApplication { argument: Box::new(argument) }))
+        Ok(argument.map(|argument| TraversalOperation::UnaryApplication {
+            argument_variance: Variance::Covariant,
+            argument: Box::new(argument),
+        }))
     }
 
-    fn check_binary_application(
+    fn check_configured_binary_application(
         &mut self,
         application: TypeApplication,
         variance: Variance,
@@ -405,7 +422,7 @@ where
         let Some((binary_head, first_type)) =
             toolkit::decompose_type_application(self.state, self.context, application.function)?
         else {
-            return self.check_unary_application(application, variance);
+            return self.check_configured_unary_application(application, variance);
         };
 
         let mut head_is_fixed = true;
@@ -442,7 +459,10 @@ where
                 },
                 None => BinaryApplicationArguments::First(Box::new(first)),
             };
-            return Ok(Some(TraversalOperation::BinaryApplication { arguments }));
+            return Ok(Some(TraversalOperation::BinaryApplication {
+                first_variance: Variance::Covariant,
+                arguments,
+            }));
         }
 
         if let Some(second) = second {
@@ -460,13 +480,19 @@ where
                     tools::emit_constraint(self.context, self.state, binary_class, binary_head);
                 }
                 let arguments = BinaryApplicationArguments::Second(Box::new(second));
-                return Ok(Some(TraversalOperation::BinaryApplication { arguments }));
+                return Ok(Some(TraversalOperation::BinaryApplication {
+                    first_variance: Variance::Covariant,
+                    arguments,
+                }));
             }
 
             if *self.valid && head_is_fixed && second_is_valid {
                 self.emit_unary_constraints(application.argument, variance, application.function)?;
             }
-            return Ok(Some(TraversalOperation::UnaryApplication { argument: Box::new(second) }));
+            return Ok(Some(TraversalOperation::UnaryApplication {
+                argument_variance: Variance::Covariant,
+                argument: Box::new(second),
+            }));
         }
 
         Ok(None)
@@ -527,97 +553,7 @@ where
     }
 
     fn has_instance_head(&mut self, class: ClassReference, argument: TypeId) -> QueryResult<bool> {
-        // Derivation tests constructor-head availability rather than solving the exact
-        // candidate constraint. For example, `Foldable (p Int)` advertises unary traversal
-        // for the head `p`; the emitted wanted still checks the complete application.
-        let (argument_head, _) =
-            toolkit::extract_type_application(self.state, self.context, argument)?;
-
-        let type_heads_equal = |context: &CheckContext<Q>, left: TypeId, right: TypeId| {
-            if left == right {
-                return true;
-            }
-
-            match (context.lookup_type(left), context.lookup_type(right)) {
-                (
-                    Type::Constructor(left_file, left_id),
-                    Type::Constructor(right_file, right_id),
-                ) => left_file == right_file && left_id == right_id,
-                // Generalisation can reconstruct a rigid's kind while preserving the binder
-                // name. Constructor-head availability depends on that binder identity, not
-                // its kind ID.
-                (Type::Rigid(left_name, ..), Type::Rigid(right_name, ..)) => {
-                    left_name == right_name
-                }
-                (Type::Free(left_name), Type::Free(right_name)) => left_name == right_name,
-                _ => false,
-            }
-        };
-
-        let mut available_constraints = Vec::with_capacity(self.available_constraints.len());
-        for &available in self.available_constraints {
-            let Some(available) =
-                constraint::canonical::canonicalise(self.state, self.context, available)?
-            else {
-                continue;
-            };
-            available_constraints.push(available);
-        }
-        let available_constraints = constraint::elaborate::elaborate_superclasses(
-            self.state,
-            self.context,
-            &available_constraints,
-        )?;
-
-        for available in available_constraints {
-            let available = self.state.canonicals[available].clone();
-            if (available.file_id, available.type_id) != class {
-                continue;
-            }
-            let [KindOrType::Type(available_argument)] = available.arguments.as_ref() else {
-                continue;
-            };
-            let (available_head, _) =
-                toolkit::extract_type_application(self.state, self.context, *available_argument)?;
-            if type_heads_equal(self.context, available_head, argument_head) {
-                return Ok(true);
-            }
-        }
-
-        let class_type = self.context.queries.intern_type(Type::Constructor(class.0, class.1));
-        let constraint_type = self.context.intern_application(class_type, argument);
-        let Some(constraint) =
-            constraint::canonical::canonicalise(self.state, self.context, constraint_type)?
-        else {
-            return Ok(false);
-        };
-        let instances =
-            constraint::instances::collect_instance_chains(self.state, self.context, constraint)?;
-        for chain in instances.chains {
-            for candidate in chain {
-                let Some(candidate) = toolkit::instance_info(
-                    self.state,
-                    self.context,
-                    candidate.instance.signature,
-                    class,
-                )?
-                else {
-                    continue;
-                };
-                let [KindOrType::Type(candidate_argument)] = candidate.arguments.as_slice() else {
-                    continue;
-                };
-                let (candidate_head, _) = toolkit::extract_type_application(
-                    self.state,
-                    self.context,
-                    *candidate_argument,
-                )?;
-                if type_heads_equal(self.context, candidate_head, argument_head) {
-                    return Ok(true);
-                }
-            }
-        }
-        Ok(false)
+        has_instance_head(self.state, self.context, self.available_constraints, class, argument)
     }
 
     fn emit_unary_constraint(&mut self, parameter: &DerivedParameter, function: TypeId) {
@@ -628,6 +564,301 @@ where
             *self.valid = false;
         }
     }
+}
+
+impl<Q> VarianceFieldChecker<'_, '_, '_, '_, Q>
+where
+    Q: ExternalQueries,
+{
+    fn check_mixed_application(
+        &mut self,
+        application: TypeApplication,
+        variance: Variance,
+    ) -> QueryResult<Option<TraversalOperation>> {
+        let Some((binary_head, first_type)) =
+            toolkit::decompose_type_application(self.state, self.context, application.function)?
+        else {
+            return self.check_mixed_unary_application(application, variance);
+        };
+
+        if self.contains_parameter(binary_head)? {
+            self.reject(application.type_id);
+            return Ok(None);
+        }
+
+        // Match upstream's instance-driven priority. Once an edge class is available, a
+        // variance error beneath that edge is final rather than a reason to try the next class.
+        if let Some(bifunctor) = self.context.known_types.bifunctor
+            && has_instance_head(
+                self.state,
+                self.context,
+                self.available_constraints,
+                bifunctor,
+                binary_head,
+            )?
+        {
+            return self.check_mixed_binary_application(
+                application,
+                binary_head,
+                first_type,
+                variance,
+                Variance::Covariant,
+                bifunctor,
+            );
+        }
+
+        if let Some(profunctor) = self.context.known_types.profunctor
+            && has_instance_head(
+                self.state,
+                self.context,
+                self.available_constraints,
+                profunctor,
+                binary_head,
+            )?
+        {
+            return self.check_mixed_binary_application(
+                application,
+                binary_head,
+                first_type,
+                variance,
+                Variance::Contravariant,
+                profunctor,
+            );
+        }
+
+        if self.contains_parameter(first_type)? {
+            self.reject(application.type_id);
+            return Ok(None);
+        }
+
+        self.check_mixed_unary_application(application, variance)
+    }
+
+    fn check_mixed_unary_application(
+        &mut self,
+        application: TypeApplication,
+        variance: Variance,
+    ) -> QueryResult<Option<TraversalOperation>> {
+        let function_mentions_parameter = self.contains_parameter(application.function)?;
+        let argument_mentions_parameter = self.contains_parameter(application.argument)?;
+        if function_mentions_parameter {
+            self.reject(application.type_id);
+            return Ok(None);
+        }
+        if !argument_mentions_parameter {
+            return Ok(None);
+        }
+
+        if let Some(functor) = self.context.known_types.functor
+            && has_instance_head(
+                self.state,
+                self.context,
+                self.available_constraints,
+                functor,
+                application.function,
+            )?
+        {
+            let argument = self.check(application.argument, variance)?;
+            if let Some(argument) = argument {
+                if *self.valid {
+                    tools::emit_constraint(self.context, self.state, functor, application.function);
+                }
+                return Ok(Some(TraversalOperation::UnaryApplication {
+                    argument_variance: Variance::Covariant,
+                    argument: Box::new(argument),
+                }));
+            }
+            return Ok(None);
+        }
+
+        if let Some(contravariant) = self.context.known_types.contravariant
+            && has_instance_head(
+                self.state,
+                self.context,
+                self.available_constraints,
+                contravariant,
+                application.function,
+            )?
+        {
+            let argument = self.check(application.argument, variance.flip())?;
+            if let Some(argument) = argument {
+                if *self.valid {
+                    tools::emit_constraint(
+                        self.context,
+                        self.state,
+                        contravariant,
+                        application.function,
+                    );
+                }
+                return Ok(Some(TraversalOperation::UnaryApplication {
+                    argument_variance: Variance::Contravariant,
+                    argument: Box::new(argument),
+                }));
+            }
+            return Ok(None);
+        }
+
+        self.reject(application.type_id);
+        Ok(None)
+    }
+
+    fn check_mixed_binary_application(
+        &mut self,
+        application: TypeApplication,
+        binary_head: TypeId,
+        first_type: TypeId,
+        variance: Variance,
+        first_variance: Variance,
+        class: ClassReference,
+    ) -> QueryResult<Option<TraversalOperation>> {
+        let first_type_variance = match first_variance {
+            Variance::Covariant => variance,
+            Variance::Contravariant => variance.flip(),
+        };
+        let first = self.check(first_type, first_type_variance)?;
+        let second = self.check(application.argument, variance)?;
+
+        // A right-only binary occurrence uses the simpler partially applied Functor when
+        // available. The recipe must record that choice because generation must call `map`
+        // rather than the binary operation selected above.
+        if first.is_none()
+            && second.is_some()
+            && let Some(functor) = self.context.known_types.functor
+            && has_instance_head(
+                self.state,
+                self.context,
+                self.available_constraints,
+                functor,
+                application.function,
+            )?
+        {
+            if *self.valid {
+                tools::emit_constraint(self.context, self.state, functor, application.function);
+            }
+            let Some(second) = second else {
+                unreachable!("right-only traversal requires a second operation")
+            };
+            return Ok(Some(TraversalOperation::UnaryApplication {
+                argument_variance: Variance::Covariant,
+                argument: Box::new(second),
+            }));
+        }
+
+        let arguments = match (first, second) {
+            (Some(first), Some(second)) => BinaryApplicationArguments::Both {
+                first: Box::new(first),
+                second: Box::new(second),
+            },
+            (Some(first), None) => BinaryApplicationArguments::First(Box::new(first)),
+            (None, Some(second)) => BinaryApplicationArguments::Second(Box::new(second)),
+            (None, None) => return Ok(None),
+        };
+
+        if *self.valid {
+            tools::emit_constraint(self.context, self.state, class, binary_head);
+        }
+        Ok(Some(TraversalOperation::BinaryApplication { first_variance, arguments }))
+    }
+
+    fn contains_parameter(&mut self, type_id: TypeId) -> QueryResult<bool> {
+        for parameter in self.rigids.iter() {
+            if toolkit::contains_rigid(self.state, self.context, type_id, parameter.name)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn reject(&mut self, type_id: TypeId) {
+        self.state.insert_error(ErrorKind::CannotDeriveForType { type_id });
+        *self.valid = false;
+    }
+}
+
+fn has_instance_head<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    available_constraints: &[TypeId],
+    class: ClassReference,
+    argument: TypeId,
+) -> QueryResult<bool>
+where
+    Q: ExternalQueries,
+{
+    // Derivation tests constructor-head availability rather than solving the exact
+    // candidate constraint. For example, `Foldable (p Int)` advertises unary traversal
+    // for the head `p`; the emitted wanted still checks the complete application.
+    let (argument_head, _) = toolkit::extract_type_application(state, context, argument)?;
+
+    let type_heads_equal = |context: &CheckContext<Q>, left: TypeId, right: TypeId| {
+        if left == right {
+            return true;
+        }
+
+        match (context.lookup_type(left), context.lookup_type(right)) {
+            (Type::Constructor(left_file, left_id), Type::Constructor(right_file, right_id)) => {
+                left_file == right_file && left_id == right_id
+            }
+            // Generalisation can reconstruct a rigid's kind while preserving the binder
+            // name. Constructor-head availability depends on that binder identity, not
+            // its kind ID.
+            (Type::Rigid(left_name, ..), Type::Rigid(right_name, ..)) => left_name == right_name,
+            (Type::Free(left_name), Type::Free(right_name)) => left_name == right_name,
+            _ => false,
+        }
+    };
+
+    let mut canonical_constraints = Vec::with_capacity(available_constraints.len());
+    for &available in available_constraints {
+        let Some(available) = constraint::canonical::canonicalise(state, context, available)?
+        else {
+            continue;
+        };
+        canonical_constraints.push(available);
+    }
+    let canonical_constraints =
+        constraint::elaborate::elaborate_superclasses(state, context, &canonical_constraints)?;
+
+    for available in canonical_constraints {
+        let available = state.canonicals[available].clone();
+        if (available.file_id, available.type_id) != class {
+            continue;
+        }
+        let [KindOrType::Type(available_argument)] = available.arguments.as_ref() else {
+            continue;
+        };
+        let (available_head, _) =
+            toolkit::extract_type_application(state, context, *available_argument)?;
+        if type_heads_equal(context, available_head, argument_head) {
+            return Ok(true);
+        }
+    }
+
+    let class_type = context.queries.intern_type(Type::Constructor(class.0, class.1));
+    let constraint_type = context.intern_application(class_type, argument);
+    let Some(constraint) = constraint::canonical::canonicalise(state, context, constraint_type)?
+    else {
+        return Ok(false);
+    };
+    let instances = constraint::instances::collect_instance_chains(state, context, constraint)?;
+    for chain in instances.chains {
+        for candidate in chain {
+            let Some(candidate) =
+                toolkit::instance_info(state, context, candidate.instance.signature, class)?
+            else {
+                continue;
+            };
+            let [KindOrType::Type(candidate_argument)] = candidate.arguments.as_slice() else {
+                continue;
+            };
+            let (candidate_head, _) =
+                toolkit::extract_type_application(state, context, *candidate_argument)?;
+            if type_heads_equal(context, candidate_head, argument_head) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn emit_variance_error(

@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Nested ::
+  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Nested @p @a @b
+  | Nested :: p a b -> Main.Nested p a b
+
+dictionary profunctorNested ::
+  forall p.
+  { profunctorDict :: Data.Profunctor.Profunctor p } =>
+  Data.Profunctor.Profunctor (Main.Nested @Prim.Type @Prim.Type p)
+  where
+  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  (a -> b) ->
+  (c -> d) ->
+  Main.Nested @Prim.Type @Prim.Type p b c ->
+  Main.Nested @Prim.Type @Prim.Type p a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Nested field0) -> Nested @Prim.Type @Prim.Type @p @a @d
+        (dimap @p {profunctorDict} @a @b @c @d (\element -> firstFunction element)
+          (\element -> secondFunction element)
+          field0)
