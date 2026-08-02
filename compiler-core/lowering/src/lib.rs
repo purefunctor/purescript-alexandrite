@@ -4,18 +4,18 @@ mod recover;
 mod algorithm;
 
 pub mod error;
-pub mod intermediate;
 pub mod scope;
 pub mod source;
+pub mod tree;
 
 use std::hash::Hash;
 use std::slice;
 use std::sync::Arc;
 
 pub use error::*;
-pub use intermediate::*;
 pub use scope::*;
 pub use source::*;
+pub use tree::*;
 
 use files::FileId;
 use indexing::{IndexedModule, TermItemId, TypeItemId};

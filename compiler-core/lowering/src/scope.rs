@@ -4,11 +4,11 @@
 //! a novel take on name resolution which allow resolution semantics to be
 //! represented independent of the language using graphs and graph traversals.
 //!
-//! The scope graph is built during lowering from the CST to the intermediate
-//! representation. Local name resolution is also performed eagerly, which
-//! enriches the IR with resolution information that simplifies associating
-//! information to resolved nodes. For instance, knowing the type of a variable
-//! can be as easy as obtaining the type of a [`BinderId`].
+//! The scope graph is built while constructing the lowered source tree from the
+//! CST. Local name resolution is performed eagerly and attached to that tree,
+//! which simplifies associating information with resolved nodes. For instance,
+//! knowing the type of a variable can be as easy as obtaining the type of a
+//! [`BinderId`].
 //!
 //! [scope graph]: https://pl.ewi.tudelft.nl/research/projects/scope-graphs/
 use std::collections::VecDeque;
@@ -21,8 +21,8 @@ use la_arena::{Arena, Idx, RawIdx};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smol_str::SmolStr;
 
-use crate::intermediate::LetBindingNameGroupId;
 use crate::source::*;
+use crate::tree::LetBindingNameGroupId;
 
 /// The result of resolving a term variable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

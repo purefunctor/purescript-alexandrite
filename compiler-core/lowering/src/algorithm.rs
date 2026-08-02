@@ -19,9 +19,9 @@ use syntax::ast::AstNode;
 use syntax::cst;
 
 use crate::error::*;
-use crate::intermediate::*;
 use crate::scope::*;
 use crate::source::*;
+use crate::tree::*;
 
 #[derive(Default)]
 pub(crate) struct State {

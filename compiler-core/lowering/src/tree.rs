@@ -1,4 +1,8 @@
-//! Types of intermediate representations.
+//! The lowered source tree, keyed by stable IDs derived from the CST.
+//!
+//! Lowering attaches semantic shape and name resolution while preserving missing or
+//! malformed children with [`Option`]. The later `checking::tree` arena tree contains
+//! checked and elaborated nodes.
 use std::sync::Arc;
 
 use files::FileId;
