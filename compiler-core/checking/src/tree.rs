@@ -1,3 +1,8 @@
+//! The checked semantic tree produced by type checking and elaboration.
+//!
+//! Nodes in this tree have complete checked structure and arena-local identities.
+//! Their source provenance refers back to stable identities in `lowering::tree`.
+
 pub mod pretty;
 
 use std::ops::Index;

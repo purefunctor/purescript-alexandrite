@@ -327,6 +327,7 @@ pub enum Associativity {
     Right,
 }
 
+/// The lowered semantic contents associated with an indexed term item.
 #[derive(Debug, PartialEq, Eq)]
 pub enum TermItemKind {
     ClassMember {
@@ -392,6 +393,7 @@ pub struct ClassDeclaration {
     pub functional_dependencies: Arc<[FunctionalDependency]>,
 }
 
+/// The lowered semantic contents associated with an indexed type item.
 #[derive(Debug, PartialEq, Eq)]
 pub enum TypeItemKind {
     Data {
@@ -429,6 +431,11 @@ pub enum Domain {
     Type,
 }
 
+/// Semantic structure and resolutions attached to stable source identities.
+///
+/// Unlike the arena-owned nodes in `checking::tree`, these maps retain the IDs
+/// established from concrete syntax so editor queries can relate semantics back
+/// to source nodes directly.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct LoweredTree {
     pub(crate) binders: FxHashMap<BinderId, BinderKind>,

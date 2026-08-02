@@ -3,6 +3,7 @@ use smol_str::SmolStr;
 
 use crate::source::*;
 
+/// A term item assembled from the source declarations that share its module-level identity.
 #[derive(Debug, PartialEq, Eq)]
 pub struct IndexedTermItem {
     pub name: Option<SmolStr>,
@@ -10,6 +11,7 @@ pub struct IndexedTermItem {
     pub exported: bool,
 }
 
+/// The source declarations grouped into an [`IndexedTermItem`].
 #[derive(Debug, PartialEq, Eq)]
 pub enum IndexedTermItemKind {
     ClassMember { id: ClassMemberId },
@@ -21,8 +23,10 @@ pub enum IndexedTermItemKind {
     Value { signature: Option<ValueSignatureId>, equations: Vec<ValueEquationId> },
 }
 
+/// A module-local term identity preserved by later compiler representations.
 pub type TermItemId = Idx<IndexedTermItem>;
 
+/// A type item assembled from the source declarations that share its module-level identity.
 #[derive(Debug, PartialEq, Eq)]
 pub struct IndexedTypeItem {
     pub name: Option<SmolStr>,
@@ -30,6 +34,7 @@ pub struct IndexedTypeItem {
     pub exported: bool,
 }
 
+/// The source declarations grouped into an [`IndexedTypeItem`].
 #[derive(Debug, PartialEq, Eq)]
 pub enum IndexedTypeItemKind {
     Data {
@@ -62,4 +67,5 @@ pub enum IndexedTypeItemKind {
     },
 }
 
+/// A module-local type identity preserved by later compiler representations.
 pub type TypeItemId = Idx<IndexedTypeItem>;
