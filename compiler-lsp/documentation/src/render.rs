@@ -78,7 +78,7 @@ impl<'a> TypeEncoder<'a> {
     ) -> Result<schema::TypeSynonymEquation, Error> {
         self.names.reset();
         let binders = self.encode_forall_binder_values(synonym.parameters)?;
-        let expansion = self.encode_type(synonym.synonym)?;
+        let expansion = self.encode_type(synonym.expansion)?;
         Ok(schema::TypeSynonymEquation { binders, expansion })
     }
 

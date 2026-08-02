@@ -249,7 +249,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         let Some(name) = name else { continue };
         let Some(definition) = checked.lookup_synonym(id) else { continue };
         let mut state = pretty.state();
-        let replacement = state.render(definition.synonym);
+        let replacement = state.render(definition.expansion);
         let binders =
             definition.parameters.iter().map(|b| state.display_name(b.name)).collect_vec();
         let binders_formatted =

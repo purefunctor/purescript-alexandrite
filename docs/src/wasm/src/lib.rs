@@ -297,7 +297,7 @@ pub fn check(source: &str) -> JsValue {
             let Some(n) = name else { continue };
             let Some(group) = checked.lookup_synonym(type_id) else { continue };
             let mut pretty = pretty.state();
-            let expansion = pretty.render(group.synonym);
+            let expansion = pretty.render(group.expansion);
             let parameters = group
                 .parameters
                 .iter()

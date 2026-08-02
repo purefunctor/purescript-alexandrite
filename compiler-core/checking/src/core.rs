@@ -102,7 +102,7 @@ pub struct CheckedDataDeclaration {
 pub struct CheckedSynonym {
     pub kind: TypeId,
     pub parameters: Vec<ForallBinder>,
-    pub synonym: TypeId,
+    pub expansion: TypeId,
 }
 
 /// Represents a checked class declaration.

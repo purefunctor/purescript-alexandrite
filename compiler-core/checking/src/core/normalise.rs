@@ -309,9 +309,9 @@ where
 
     // Apply the substitutions if there are any.
     let mut substituted = if bindings.is_empty() {
-        checked_synonym.synonym
+        checked_synonym.expansion
     } else {
-        SubstituteName::many(state, context, &bindings, checked_synonym.synonym)?
+        SubstituteName::many(state, context, &bindings, checked_synonym.expansion)?
     };
 
     // Reconstruct applications from remaining oversaturated arguments.
