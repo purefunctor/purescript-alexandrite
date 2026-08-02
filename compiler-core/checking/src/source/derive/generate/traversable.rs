@@ -191,7 +191,7 @@ pub(super) fn generate_traversal_members<Q>(
 where
     Q: ExternalQueries,
 {
-    let DeriveStrategy::VarianceConstraints { data_file, .. } = result.strategy else {
+    let DeriveStrategy::VarianceConstraints { .. } = result.strategy else {
         return Ok(None);
     };
     let (operation, sequence) = match traversal {
@@ -225,7 +225,6 @@ where
                 context,
                 result,
                 instance_arguments,
-                data_file,
                 recipe,
                 traversal,
                 resolution,
@@ -261,7 +260,6 @@ fn generate_operation_member<Q>(
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
     instance_arguments: &[ApplicationArgument],
-    data_file: files::FileId,
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
     resolution: (files::FileId, indexing::TermItemId),
@@ -269,6 +267,10 @@ fn generate_operation_member<Q>(
 where
     Q: ExternalQueries,
 {
+    let DeriveStrategy::VarianceConstraints { data_file, .. } = result.strategy else {
+        return Ok(None);
+    };
+
     state.with_implication(|state| {
         let Some(member) =
             resolve_known_member(state, context, result, instance_arguments, resolution)?

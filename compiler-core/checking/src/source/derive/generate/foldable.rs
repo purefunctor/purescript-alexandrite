@@ -163,7 +163,7 @@ pub(super) fn generate_fold_members<Q>(
 where
     Q: ExternalQueries,
 {
-    let DeriveStrategy::VarianceConstraints { data_file, .. } = result.strategy else {
+    let DeriveStrategy::VarianceConstraints { .. } = result.strategy else {
         return Ok(None);
     };
     let operations = match traversal {
@@ -202,11 +202,9 @@ where
                 context,
                 result,
                 instance_arguments,
-                data_file,
                 recipe,
                 traversal,
                 FoldOperation::Right,
-                resolution,
             )?
         } else if resolution == foldl {
             foldl_generated = true;
@@ -215,11 +213,9 @@ where
                 context,
                 result,
                 instance_arguments,
-                data_file,
                 recipe,
                 traversal,
                 FoldOperation::Left,
-                resolution,
             )?
         } else if resolution == fold_map {
             fold_map_generated = true;
@@ -228,11 +224,9 @@ where
                 context,
                 result,
                 instance_arguments,
-                data_file,
                 recipe,
                 traversal,
                 FoldOperation::Map,
-                resolution,
             )?
         } else {
             return Ok(None);
@@ -254,15 +248,26 @@ fn generate_fold_member<Q>(
     context: &CheckContext<Q>,
     result: &DeriveHeadResult,
     instance_arguments: &[ApplicationArgument],
-    data_file: files::FileId,
     recipe: &VarianceRecipe,
     traversal: TraversalKind,
     operation: FoldOperation,
-    resolution: (files::FileId, indexing::TermItemId),
 ) -> QueryResult<Option<tree::InstanceMember>>
 where
     Q: ExternalQueries,
 {
+    let DeriveStrategy::VarianceConstraints { data_file, .. } = result.strategy else {
+        return Ok(None);
+    };
+    let resolution = match (traversal, operation) {
+        (TraversalKind::Foldable, FoldOperation::Right) => context.known_terms.foldr,
+        (TraversalKind::Foldable, FoldOperation::Left) => context.known_terms.foldl,
+        (TraversalKind::Foldable, FoldOperation::Map) => context.known_terms.fold_map,
+        (TraversalKind::Bifoldable, FoldOperation::Right) => context.known_terms.bifoldr,
+        (TraversalKind::Bifoldable, FoldOperation::Left) => context.known_terms.bifoldl,
+        (TraversalKind::Bifoldable, FoldOperation::Map) => context.known_terms.bifold_map,
+    };
+    let Some(resolution) = resolution else { return Ok(None) };
+
     state.with_implication(|state| {
         let Some(member) =
             resolve_known_member(state, context, result, instance_arguments, resolution)?

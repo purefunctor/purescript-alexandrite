@@ -200,8 +200,7 @@ fn classify_contextual_keyword(token: &SyntaxToken) -> Option<TokenClassificatio
 }
 
 fn classify_name(token: &SyntaxToken) -> Option<TokenClassification> {
-    let mut ancestors = token.parent_ancestors();
-    while let Some(node) = ancestors.next() {
+    for node in token.parent_ancestors() {
         let classification = match node.kind() {
             SyntaxKind::ERROR => return classify_unresolved_name(token),
             SyntaxKind::Qualifier | SyntaxKind::ModuleName => TokenClassification::new(NAMESPACE),
