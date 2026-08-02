@@ -319,10 +319,10 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         writeln!(out, "instance {canonical}").unwrap();
     }
 
-    if !checked.derived.is_empty() {
+    if !checked.derived_instances.is_empty() {
         writeln!(out, "\nDerived").unwrap();
     }
-    let mut derived_entries: Vec<_> = checked.derived.iter().collect();
+    let mut derived_entries: Vec<_> = checked.derived_instances.iter().collect();
     derived_entries.sort_by_key(|(id, _)| *id);
     for (_derive_id, instance) in derived_entries {
         let mut state = pretty.state();

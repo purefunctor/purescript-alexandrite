@@ -106,7 +106,7 @@ where
             Some((origin, instance))
         }
         IndexedTermItemKind::Derive { id } => {
-            let instance = state.checked.lookup_derived(id)?;
+            let instance = state.checked.lookup_derived_instance(id)?;
             let origin = InstanceCandidateOrigin::Derive(context.id, id);
             Some((origin, instance))
         }
@@ -329,7 +329,7 @@ fn collect_instances_from_checked(
         });
 
     let derived = checked
-        .derived
+        .derived_instances
         .iter()
         .filter(|(_, instance)| instance.resolution == (class_file, class_id))
         .map(|(&id, &instance)| {

@@ -475,7 +475,7 @@ fn term_signature(
             checked.lookup_instance(*id).map(|instance| instance.signature)
         }
         indexing::IndexedTermItemKind::Derive { id } => {
-            checked.lookup_derived(*id).map(|instance| instance.signature)
+            checked.lookup_derived_instance(*id).map(|instance| instance.signature)
         }
         _ => checked.lookup_term_item_type(term_id),
     }
@@ -523,7 +523,9 @@ fn instance_parents(
 
     let checked_instance = match &term_item.kind {
         indexing::IndexedTermItemKind::Instance { id } => encoder.checked.lookup_instance(*id),
-        indexing::IndexedTermItemKind::Derive { id } => encoder.checked.lookup_derived(*id),
+        indexing::IndexedTermItemKind::Derive { id } => {
+            encoder.checked.lookup_derived_instance(*id)
+        }
         _ => None,
     };
 

@@ -62,7 +62,7 @@ pub struct CheckedModule {
     pub synonyms: FxHashMap<TypeItemId, CheckedSynonym>,
     pub classes: FxHashMap<TypeItemId, CheckedClass>,
     pub instances: FxHashMap<InstanceId, CheckedInstance>,
-    pub derived: FxHashMap<DeriveId, CheckedInstance>,
+    pub derived_instances: FxHashMap<DeriveId, CheckedInstance>,
     pub roles: FxHashMap<TypeItemId, Arc<[Role]>>,
     pub node_types: CheckedNodeTypes,
     pub tree: tree::CheckedTree,
@@ -124,8 +124,8 @@ impl CheckedModule {
         self.instances.get(&id).cloned()
     }
 
-    pub fn lookup_derived(&self, id: DeriveId) -> Option<CheckedInstance> {
-        self.derived.get(&id).cloned()
+    pub fn lookup_derived_instance(&self, id: DeriveId) -> Option<CheckedInstance> {
+        self.derived_instances.get(&id).cloned()
     }
 
     pub fn lookup_roles(&self, id: TypeItemId) -> Option<Arc<[Role]>> {

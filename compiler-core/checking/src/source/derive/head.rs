@@ -283,7 +283,7 @@ where
     let matchable = toolkit::freshen_instance_signature(state, context, signature)?;
 
     let checked = CheckedInstance { resolution, signature, matchable };
-    state.checked.derived.insert(derive_id, checked);
+    state.checked.derived_instances.insert(derive_id, checked);
 
     Ok(strategy.map(|strategy| DeriveHeadResult {
         derive_id,
