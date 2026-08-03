@@ -6,6 +6,7 @@ use indexing::{
     ImplicitItems, ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
     TypeItemId, TypeSelection,
 };
+use lowering::{BinderId, LetBindingNameGroupId, RecordPunId};
 use lsp_types::*;
 use stabilizing::AstId;
 use syntax::ast::AstNode;
@@ -221,6 +222,66 @@ where
     }
 }
 
+fn binder_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+
+    if let Some(binder) = cst::BinderVariable::cast(node.clone()) {
+        let token = binder.name_token()?;
+        return position::text_range_to_utf8_range(content, token.text_range());
+    }
+
+    let binder = cst::BinderNamed::cast(node)?;
+    let token = binder.name_token()?;
+    position::text_range_to_utf8_range(content, token.text_range())
+}
+
+fn let_binding_signature_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let signature = cst::LetBindingSignature::cast(node)?;
+    let token = signature.name_token()?;
+    position::text_range_to_utf8_range(content, token.text_range())
+}
+
+fn let_binding_equation_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let equation = cst::LetBindingEquation::cast(node)?;
+    let token = equation.name_token()?;
+    position::text_range_to_utf8_range(content, token.text_range())
+}
+
+fn record_field_has_name(content: &str, field: &cst::RecordField, name: &str) -> bool {
+    field.name().and_then(|name| name.text()).is_some_and(|token| token.text(content) == name)
+}
+
+fn record_field_replacement_range(field: &cst::RecordField) -> Option<TextRange> {
+    let start = field.name()?.text()?.text_range().start();
+    let end = field.syntax().text_range().end();
+    Some(TextRange::new(start, end))
+}
+
+fn record_field_can_collapse(content: &str, field: &cst::RecordField, value: &SyntaxToken) -> bool {
+    let Some(label) = field.name().and_then(|name| name.text()) else {
+        return false;
+    };
+
+    let separator_range = TextRange::new(label.text_range().end(), value.text_range().start());
+    let trailing_range =
+        TextRange::new(value.text_range().end(), field.syntax().text_range().end());
+    let separator = &content[separator_range];
+    let trailing = &content[trailing_range];
+
+    separator.strip_prefix(':').is_some_and(|trivia| trivia.chars().all(char::is_whitespace))
+        && trailing.chars().all(char::is_whitespace)
+}
+
 impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
     Host: AnalyzerHost,
@@ -238,19 +299,21 @@ where
                 continue;
             }
 
-            let range = self.reference_name_range(file_id, location.range, name_kind)?;
-            self.push_protocol_edit(file_id, range, new_name)?;
+            let (range, new_text) =
+                self.reference_name_edit(file_id, location.range, name_kind, new_name)?;
+            self.push_protocol_edit(file_id, range, &new_text)?;
         }
 
         Ok(())
     }
 
-    fn reference_name_range(
+    fn reference_name_edit(
         &self,
         file_id: FileId,
         range: Range,
         name_kind: NameKind,
-    ) -> Result<Range, AnalyzerError> {
+        new_name: &str,
+    ) -> Result<(Range, String), AnalyzerError> {
         let content = self.context.queries().content(file_id);
         let position = position::protocol_position_to_utf8(
             &content,
@@ -268,18 +331,85 @@ where
             TokenAtOffset::None => return Err(AnalyzerError::NonFatal),
             TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(left, right) => {
-                if Self::qualified_name_token(&right, name_kind).is_some() { right } else { left }
+                if Self::qualified_name_token(&right, name_kind).is_some()
+                    || Self::record_pun(&right, name_kind).is_some()
+                {
+                    right
+                } else {
+                    left
+                }
             }
         };
 
-        let token = Self::qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
+        if matches!(name_kind, NameKind::Lower)
+            && let Some(pun) = Self::record_pun(&token, name_kind)
+        {
+            let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
+            let old_name = name.syntax().text(&content);
+            let range = position::text_range_to_protocol(
+                &content,
+                name.syntax().text_range(),
+                self.context.position_encoding(),
+            )
+            .ok_or(AnalyzerError::NonFatal)?;
 
-        position::text_range_to_protocol(
+            return Ok((range, format!("{old_name}: {new_name}")));
+        }
+
+        if let Some(field) = Self::collapsible_record_field(&token, &content, name_kind, new_name) {
+            let text_range =
+                record_field_replacement_range(&field).ok_or(AnalyzerError::NonFatal)?;
+            let range = position::text_range_to_protocol(
+                &content,
+                text_range,
+                self.context.position_encoding(),
+            )
+            .ok_or(AnalyzerError::NonFatal)?;
+
+            return Ok((range, new_name.to_string()));
+        }
+
+        let token = Self::qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
+        let range = position::text_range_to_protocol(
             &content,
             token.text_range(),
             self.context.position_encoding(),
         )
-        .ok_or(AnalyzerError::NonFatal)
+        .ok_or(AnalyzerError::NonFatal)?;
+
+        Ok((range, new_name.to_string()))
+    }
+
+    fn record_pun(token: &SyntaxToken, name_kind: NameKind) -> Option<cst::RecordPun> {
+        if !matches!(name_kind, NameKind::Lower) {
+            return None;
+        }
+
+        token.parent_ancestors().find_map(cst::RecordPun::cast)
+    }
+
+    fn collapsible_record_field(
+        token: &SyntaxToken,
+        content: &str,
+        name_kind: NameKind,
+        new_name: &str,
+    ) -> Option<cst::RecordField> {
+        if !matches!(name_kind, NameKind::Lower) {
+            return None;
+        }
+
+        let qualified = token.parent_ancestors().find_map(cst::QualifiedName::cast)?;
+        if qualified.qualifier().is_some() {
+            return None;
+        }
+
+        let field = token.parent_ancestors().find_map(cst::RecordField::cast)?;
+        field.expression()?;
+        let value = qualified.lower()?;
+
+        (record_field_has_name(content, &field, new_name)
+            && record_field_can_collapse(content, &field, &value))
+        .then_some(field)
     }
 
     fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
@@ -310,9 +440,98 @@ where
             RenameTarget::Type(file_id, type_id) => {
                 self.type_declaration_edits(file_id, type_id, new_name)
             }
+            RenameTarget::Binder(file_id, binder_id) => {
+                self.binder_declaration_edit(file_id, binder_id, new_name)
+            }
+            RenameTarget::LetBinding(file_id, binding_id) => {
+                self.let_binding_declaration_edits(file_id, binding_id, new_name)
+            }
+            RenameTarget::RecordPun(file_id, pun_id) => {
+                self.record_pun_declaration_edit(file_id, pun_id, new_name)
+            }
             RenameTarget::Qualifier(_, _) => Ok(()),
             RenameTarget::Module(_) => Ok(()),
         }
+    }
+
+    fn binder_declaration_edit(
+        &mut self,
+        file_id: FileId,
+        binder_id: BinderId,
+        new_name: &str,
+    ) -> Result<(), AnalyzerError> {
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
+        let root = parsed.syntax_node();
+        let stabilized = self.context.queries().stabilized(file_id)?;
+
+        let ptr = stabilized.syntax_ptr(binder_id).ok_or(AnalyzerError::NonFatal)?;
+        let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+
+        if let Some(variable) = cst::BinderVariable::cast(node.clone())
+            && let Some(field) = node.ancestors().find_map(cst::RecordField::cast)
+            && let Some(binder) = field.binder()
+            && let Some(value) = variable.name_token()
+            && binder.syntax().text_range() == node.text_range()
+            && record_field_has_name(&content, &field, new_name)
+            && record_field_can_collapse(&content, &field, &value)
+        {
+            let range = record_field_replacement_range(&field).ok_or(AnalyzerError::NonFatal)?;
+            return self.push_text_range_edit(file_id, range, new_name);
+        }
+
+        self.push_name_edit(file_id, Some(binder_id), binder_name_range, new_name)
+    }
+
+    fn let_binding_declaration_edits(
+        &mut self,
+        file_id: FileId,
+        binding_id: LetBindingNameGroupId,
+        new_name: &str,
+    ) -> Result<(), AnalyzerError> {
+        let lowered = self.context.queries().lowered(file_id)?;
+        let binding = lowered.tree.get_let_binding_group(binding_id);
+
+        push_name_edits!(
+            self,
+            file_id,
+            new_name,
+            let_binding_signature_name_range;
+            binding.signature,
+        );
+
+        for &equation in binding.equations.iter() {
+            push_name_edits!(
+                self,
+                file_id,
+                new_name,
+                let_binding_equation_name_range;
+                Some(equation),
+            );
+        }
+
+        Ok(())
+    }
+
+    fn record_pun_declaration_edit(
+        &mut self,
+        file_id: FileId,
+        pun_id: RecordPunId,
+        new_name: &str,
+    ) -> Result<(), AnalyzerError> {
+        let content = self.context.queries().content(file_id);
+        let (parsed, _) = self.context.queries().parsed(file_id)?;
+        let root = parsed.syntax_node();
+        let stabilized = self.context.queries().stabilized(file_id)?;
+
+        let ptr = stabilized.syntax_ptr(pun_id).ok_or(AnalyzerError::NonFatal)?;
+        let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+        let pun = cst::RecordPun::cast(node).ok_or(AnalyzerError::NonFatal)?;
+        let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
+        let old_name = name.syntax().text(&content);
+        let new_text = format!("{old_name}: {new_name}");
+
+        self.push_text_range_edit(file_id, name.syntax().text_range(), &new_text)
     }
 
     fn term_declaration_edits(
@@ -460,8 +679,11 @@ where
                         }
                     }
                 }
-                RenameTarget::Qualifier(_, _) => {}
-                RenameTarget::Module(_) => {}
+                RenameTarget::Binder(_, _)
+                | RenameTarget::LetBinding(_, _)
+                | RenameTarget::RecordPun(_, _)
+                | RenameTarget::Qualifier(_, _)
+                | RenameTarget::Module(_) => {}
             }
         }
 
@@ -557,8 +779,11 @@ where
                     }
                 }
             }
-            RenameTarget::Qualifier(_, _) => {}
-            RenameTarget::Module(_) => {}
+            RenameTarget::Binder(_, _)
+            | RenameTarget::LetBinding(_, _)
+            | RenameTarget::RecordPun(_, _)
+            | RenameTarget::Qualifier(_, _)
+            | RenameTarget::Module(_) => {}
         }
 
         Ok(())

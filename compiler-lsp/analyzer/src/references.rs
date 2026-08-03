@@ -364,6 +364,16 @@ fn references_file_term(
             }
         }
 
+        for (pun_id, resolution) in lowered.tree.iter_expression_pun() {
+            if let TermVariableResolution::Reference(f_id, t_id) = resolution
+                && (f_id, t_id) == (file_id, term_id)
+            {
+                let range = id_range(context, &content, &parsed, &stabilized, pun_id)
+                    .ok_or(AnalyzerError::NonFatal)?;
+                locations.push(Location { uri: uri.clone(), range });
+            }
+        }
+
         for (binder_id, binder_kind) in lowered.tree.iter_binder() {
             if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
                 && (*f_id, *t_id) == (file_id, term_id)

@@ -1,0 +1,298 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 7, character: 15 }
+
+```
+renameArgument argument =
+--             /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -5,10 +5,10 @@
+
+ data Maybe a = Just a | Nothing
+
+-renameArgument argument =
++renameArgument renamed =
+ --             /
+-  let shadowed = argument
+-  in argument
++  let shadowed = renamed
++  in renamed
+ --   ?
+
+ renameLet input =
+```
+
+
+PrepareRename at Position { line: 10, character: 5 }
+
+```
+  in argument
+--   ?
+```
+
+10:5..10:13 argument
+
+
+Rename at Position { line: 17, character: 5 }
+
+```
+  in local (Just input)
+--   /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -12,10 +12,10 @@
+ --   ?
+
+ renameLet input =
+-  let local :: Maybe Int -> Int
+-      local (Just item) = item
+-      local Nothing = input
+-  in local (Just input)
++  let renamed :: Maybe Int -> Int
++      renamed (Just item) = item
++      renamed Nothing = input
++  in renamed (Just input)
+ --   /
+
+ renameNamed whole@(Just item) = whole
+```
+
+
+Rename at Position { line: 20, character: 12 }
+
+```
+renameNamed whole@(Just item) = whole
+--          /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -18,7 +18,7 @@
+   in local (Just input)
+ --   /
+
+-renameNamed whole@(Just item) = whole
++renameNamed renamed@(Just item) = renamed
+ --          /
+
+ renamePun { field } = field
+```
+
+
+Rename at Position { line: 23, character: 12 }
+
+```
+renamePun { field } = field
+--          /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -21,7 +21,7 @@
+ renameNamed whole@(Just item) = whole
+ --          /
+
+-renamePun { field } = field
++renamePun { field: renamed } = renamed
+ --          /
+
+ punReference value = { value }
+```
+
+
+Rename at Position { line: 26, character: 23 }
+
+```
+punReference value = { value }
+--                     /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -24,7 +24,7 @@
+ renamePun { field } = field
+ --          /
+
+-punReference value = { value }
++punReference renamed = { value: renamed }
+ --                     /
+
+ renamePun' { renamed: original } = original
+```
+
+
+Rename at Position { line: 29, character: 22 }
+
+```
+renamePun' { renamed: original } = original
+--                    /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -27,7 +27,7 @@
+ punReference value = { value }
+ --                     /
+
+-renamePun' { renamed: original } = original
++renamePun' { renamed } = renamed
+ --                    /
+
+ punReference' original = { renamed: original }
+```
+
+
+Rename at Position { line: 32, character: 36 }
+
+```
+punReference' original = { renamed: original }
+--                                  /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -30,7 +30,7 @@
+ renamePun' { renamed: original } = original
+ --                    /
+
+-punReference' original = { renamed: original }
++punReference' renamed = { renamed }
+ --                                  /
+
+ topLevel = 1
+```
+
+
+Rename at Position { line: 37, character: 16 }
+
+```
+topLevelPun = { topLevel }
+--              /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -33,9 +33,9 @@
+ punReference' original = { renamed: original }
+ --                                  /
+
+-topLevel = 1
++renamed = 1
+
+-topLevelPun = { topLevel }
++topLevelPun = { topLevel: renamed }
+ --              /
+
+ importedPun = { imported }
+```
+
+
+Rename at Position { line: 40, character: 16 }
+
+```
+importedPun = { imported }
+--              /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,5 +1,5 @@
+ module Lib where
+
+-imported = 1
++renamed = 1
+
+ qualified = 2
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Lib (imported)
++import Lib (renamed)
+ import Lib as Lib
+
+ data Maybe a = Just a | Nothing
+@@ -38,7 +38,7 @@
+ topLevelPun = { topLevel }
+ --              /
+
+-importedPun = { imported }
++importedPun = { imported: renamed }
+ --              /
+
+ qualifiedField = { renamed: Lib.qualified }
+```
+
+
+Rename at Position { line: 43, character: 32 }
+
+```
+qualifiedField = { renamed: Lib.qualified }
+--                              /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -2,4 +2,4 @@
+
+ imported = 1
+
+-qualified = 2
++renamed = 2
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -41,7 +41,7 @@
+ importedPun = { imported }
+ --              /
+
+-qualifiedField = { renamed: Lib.qualified }
++qualifiedField = { renamed: Lib.renamed }
+ --                              /
+
+ commentedBinder { renamed: {- keep -} original } = original
+```
+
+
+Rename at Position { line: 46, character: 38 }
+
+```
+commentedBinder { renamed: {- keep -} original } = original
+--                                    /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -44,5 +44,5 @@
+ qualifiedField = { renamed: Lib.qualified }
+ --                              /
+
+-commentedBinder { renamed: {- keep -} original } = original
++commentedBinder { renamed: {- keep -} renamed } = renamed
+ --                                    /
+```
