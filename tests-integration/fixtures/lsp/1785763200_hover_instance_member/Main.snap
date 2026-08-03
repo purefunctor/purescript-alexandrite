@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 7, character: 3 }
+
+```
+  map :: forall a b. (a -> b) -> Continuation r a -> Continuation r b
+-- $
+```
+
+<empty>
+
+
+Hover at Position { line: 9, character: 3 }
+
+```
+  map function (Continuation program) =
+-- $
+```
+
+<empty>
+
+
+Hover at Position { line: 16, character: 3 }
+
+```
+value = 42
+-- $
+```
+
+```purescript
+value :: Int
+```
