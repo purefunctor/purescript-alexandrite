@@ -188,15 +188,18 @@ topLevelPun = { topLevel }
 ```diff
 --- Main.purs
 +++ Main.purs
-@@ -33,7 +33,7 @@
+@@ -33,9 +33,9 @@
  punReference' original = { renamed: original }
  --                                  /
 
 -topLevel = 1
 +renamed = 1
 
- topLevelPun = { topLevel }
+-topLevelPun = { topLevel }
++topLevelPun = { topLevel: renamed }
  --              /
+
+ importedPun = { imported }
 ```
 
 
@@ -230,6 +233,15 @@ importedPun = { imported }
  import Lib as Lib
 
  data Maybe a = Just a | Nothing
+@@ -38,7 +38,7 @@
+ topLevelPun = { topLevel }
+ --              /
+
+-importedPun = { imported }
++importedPun = { imported: renamed }
+ --              /
+
+ qualifiedField = { renamed: Lib.qualified }
 ```
 
 
@@ -259,7 +271,7 @@ qualifiedField = { renamed: Lib.qualified }
  --              /
 
 -qualifiedField = { renamed: Lib.qualified }
-+qualifiedField = { renamed }
++qualifiedField = { renamed: Lib.renamed }
  --                              /
 
  commentedBinder { renamed: {- keep -} original } = original
@@ -281,6 +293,6 @@ commentedBinder { renamed: {- keep -} original } = original
  --                              /
 
 -commentedBinder { renamed: {- keep -} original } = original
-+commentedBinder { renamed } = renamed
++commentedBinder { renamed: {- keep -} renamed } = renamed
  --                                    /
 ```

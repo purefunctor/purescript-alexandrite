@@ -267,6 +267,21 @@ fn record_field_replacement_range(field: &cst::RecordField) -> Option<TextRange>
     Some(TextRange::new(start, end))
 }
 
+fn record_field_can_collapse(content: &str, field: &cst::RecordField, value: &SyntaxToken) -> bool {
+    let Some(label) = field.name().and_then(|name| name.text()) else {
+        return false;
+    };
+
+    let separator_range = TextRange::new(label.text_range().end(), value.text_range().start());
+    let trailing_range =
+        TextRange::new(value.text_range().end(), field.syntax().text_range().end());
+    let separator = &content[separator_range];
+    let trailing = &content[trailing_range];
+
+    separator.strip_prefix(':').is_some_and(|trivia| trivia.chars().all(char::is_whitespace))
+        && trailing.chars().all(char::is_whitespace)
+}
+
 impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
 where
     Host: AnalyzerHost,
@@ -384,13 +399,17 @@ where
         }
 
         let qualified = token.parent_ancestors().find_map(cst::QualifiedName::cast)?;
-        let field = token.parent_ancestors().find_map(cst::RecordField::cast)?;
-        let expression = field.expression()?;
+        if qualified.qualifier().is_some() {
+            return None;
+        }
 
-        let expression_text = expression.syntax().text(content);
-        let qualified_text = qualified.syntax().text(content);
-        let direct_reference = expression_text.trim() == qualified_text;
-        (direct_reference && record_field_has_name(content, &field, new_name)).then_some(field)
+        let field = token.parent_ancestors().find_map(cst::RecordField::cast)?;
+        field.expression()?;
+        let value = qualified.lower()?;
+
+        (record_field_has_name(content, &field, new_name)
+            && record_field_can_collapse(content, &field, &value))
+        .then_some(field)
     }
 
     fn qualified_name_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
@@ -449,11 +468,13 @@ where
         let ptr = stabilized.syntax_ptr(binder_id).ok_or(AnalyzerError::NonFatal)?;
         let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
 
-        if cst::BinderVariable::cast(node.clone()).is_some()
+        if let Some(variable) = cst::BinderVariable::cast(node.clone())
             && let Some(field) = node.ancestors().find_map(cst::RecordField::cast)
             && let Some(binder) = field.binder()
+            && let Some(value) = variable.name_token()
             && binder.syntax().text_range() == node.text_range()
             && record_field_has_name(&content, &field, new_name)
+            && record_field_can_collapse(&content, &field, &value)
         {
             let range = record_field_replacement_range(&field).ok_or(AnalyzerError::NonFatal)?;
             return self.push_text_range_edit(file_id, range, new_name);
