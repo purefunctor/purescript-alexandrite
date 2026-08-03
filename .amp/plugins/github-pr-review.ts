@@ -1,13 +1,7 @@
 // @amp-agent-mode {"key":"alexandrite-review","label":"PR review"}
 // Repository-scoped owner for the Alexandrite GitHub review webhook.
 
-import type {
-  Agent,
-  PluginAPI,
-  PluginThread,
-  WebhookEvent,
-  WebhookHandlerContext,
-} from "@ampcode/plugin";
+import type { PluginAPI, PluginThread, WebhookEvent, WebhookHandlerContext } from "@ampcode/plugin";
 import { createHmac, createSign, timingSafeEqual } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 
@@ -16,13 +10,7 @@ const reviewAuthor = "purefunctor";
 const botLogin = "purefunctor[bot]";
 const markerNamespace = "amp-pr-review-state";
 const stateVersion = 2;
-const handledActions = new Set([
-  "opened",
-  "reopened",
-  "synchronize",
-  "edited",
-  "ready_for_review",
-]);
+const handledActions = new Set(["opened", "reopened", "synchronize", "edited", "ready_for_review"]);
 const apiVersion = "2022-11-28";
 const requestTimeoutMs = 10_000;
 const dispatchStaleMs = 2 * 60 * 1000;
@@ -36,12 +24,7 @@ interface PullRequestPayload {
   action: string;
   number: number;
   repository: { full_name: string };
-  pull_request: {
-    html_url: string;
-    state: string;
-    user: { login: string };
-    head: { sha: string };
-  };
+  pull_request: { html_url: string; state: string; user: { login: string }; head: { sha: string } };
 }
 interface PullRequest {
   number: number;
@@ -118,7 +101,7 @@ function completedMarker(head: string): string {
 function parseState(comment: IssueComment): ClaimState | null {
   if (!isBot(comment.user) || typeof comment.body !== "string") return null;
   const match = comment.body.match(
-    /^<!-- amp-pr-review-state v=(\d+) head=([0-9a-f]{40}) status=(dispatching|running)(?: thread=([A-Za-z0-9_-]+))? -->$/m,
+    /^<!-- amp-pr-review-state v=(\d+) head=([0-9a-f]{40}) status=(dispatching|running)(?: thread=([A-Za-z0-9_-]+))? -->$/m
   );
   if (match === null || Number(match[1]) !== stateVersion) return null;
   if ((match[3] === "running") !== (match[4] !== undefined)) return null;
@@ -150,7 +133,7 @@ function parsePayload(event: WebhookEvent): PullRequestPayload | null {
     pullRequest?.user?.login !== reviewAuthor ||
     typeof pullRequest.html_url !== "string" ||
     !/^https:\/\/github\.com\/purefunctor\/purescript-alexandrite\/pull\/\d+$/.test(
-      pullRequest.html_url,
+      pullRequest.html_url
     ) ||
     !isCommitSha(pullRequest.head?.sha)
   )
@@ -184,20 +167,19 @@ Return exactly one JSON report and no other text between <review-report> and </r
 Use passed, failed, or not-run; LEFT only for deleted lines.`;
 }
 
-async function createReviewThread(
-  amp: PluginAPI,
-  reviewer: Agent,
-  number: number,
-  head: string,
-): Promise<string> {
+async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<string> {
   const prompt = reviewPrompt(number, head);
-  const thread = await reviewer.createThread({ executor: "orb" });
-  await thread.appendUserMessage({ type: "user-message", content: prompt });
-  const threadId = thread.id;
-  const labelResult =
-    await amp.$`amp threads label ${threadId} ci-review-agent`;
-  if (labelResult.exitCode !== 0)
-    throw new Error(`Could not label review thread ${threadId}.`);
+  const result =
+    await amp.$`amp --orb-execute --execute ${prompt} --no-archive-after-execute --project ${repository} --mode alexandrite-review --features fast`;
+  if (result.exitCode !== 0) {
+    const details = result.stderr.trim().slice(0, 1_000);
+    throw new Error(`Review thread dispatch failed with exit code ${result.exitCode}: ${details}`);
+  }
+  const threadId = result.stdout.match(/\/threads\/(T-[0-9a-f-]+)\s*$/)?.[1];
+  if (threadId === undefined)
+    throw new Error("Review thread dispatch did not return a thread URL.");
+  const labelResult = await amp.$`amp threads label ${threadId} ci-review-agent`;
+  if (labelResult.exitCode !== 0) throw new Error(`Could not label review thread ${threadId}.`);
   return threadId;
 }
 
@@ -215,22 +197,17 @@ export default async function (amp: PluginAPI) {
   amp.registerAgentMode({
     key: "alexandrite-review",
     label: "PR review",
-    description:
-      "Review an Alexandrite pull request with GPT-5.6 Sol at xhigh effort.",
+    description: "Review an Alexandrite pull request with GPT-5.6 Sol at xhigh effort.",
     color: "#2563eb",
     agent: reviewer.definition,
   });
-  if (
-    amp.system.executor.kind !== "remote" ||
-    amp.system.workspaceRoot === null
-  )
-    return;
+  if (amp.system.executor.kind !== "remote" || amp.system.workspaceRoot === null) return;
 
   const root = amp.helpers.filePathFromURI(amp.system.workspaceRoot);
   const credentials = await readCredentials(root);
   if (credentials === null) {
     amp.logger.log(
-      "GitHub PR review owner credentials are absent; webhook initialization skipped.",
+      "GitHub PR review owner credentials are absent; webhook initialization skipped."
     );
     return;
   }
@@ -238,14 +215,13 @@ export default async function (amp: PluginAPI) {
   const registration = await amp.createWebhook({
     key: "github-pr-review",
     headers: ["x-github-event", "x-github-delivery", "x-hub-signature-256"],
-    handler: async (event, context) =>
-      handleDelivery(amp, reviewer, event, context, credentials),
+    handler: async (event, context) => handleDelivery(amp, event, context, credentials),
   });
   const webhookUrlPath = `${root}/.git/amp-github-pr-review-webhook-url`;
   await writeFile(webhookUrlPath, `${registration.url}\n`, { mode: 0o600 });
   await chmod(webhookUrlPath, 0o600);
-  void reconcileOpenClaims(amp, reviewer, credentials).catch((error) =>
-    amp.logger.log("PR review reconciliation failed.", error),
+  void reconcileOpenClaims(amp, credentials).catch((error) =>
+    amp.logger.log("PR review reconciliation failed.", error)
   );
 }
 
@@ -259,9 +235,7 @@ async function readCredentials(root: string): Promise<Credentials | null> {
     return {
       appId: appId.trim(),
       privateKey,
-      webhookSecret: webhookSecret.endsWith("\n")
-        ? webhookSecret.slice(0, -1)
-        : webhookSecret,
+      webhookSecret: webhookSecret.endsWith("\n") ? webhookSecret.slice(0, -1) : webhookSecret,
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -271,73 +245,54 @@ async function readCredentials(root: string): Promise<Credentials | null> {
 
 async function handleDelivery(
   amp: PluginAPI,
-  reviewer: Agent,
   event: WebhookEvent,
   context: WebhookHandlerContext,
-  credentials: Credentials,
+  credentials: Credentials
 ) {
   if (!verifySignature(event, credentials.webhookSecret)) {
     context.logger.log("Ignored a GitHub delivery with an invalid signature.");
     return;
   }
   const payload = parsePayload(event);
-  if (
-    payload === null ||
-    !handledActions.has(payload.action) ||
-    context.signal.aborted
-  )
-    return;
+  if (payload === null || !handledActions.has(payload.action) || context.signal.aborted) return;
   notificationThread = context.thread;
   const token = await createInstallationToken(credentials, context.signal);
   if (context.signal.aborted) return;
   await reconcilePullRequest(
     amp,
-    reviewer,
     credentials,
     token,
     payload.number,
     payload.pull_request.head.sha,
-    context.signal,
+    context.signal
   );
-  void reconcileOpenClaims(amp, reviewer, credentials).catch((error) =>
-    amp.logger.log("PR review reconciliation failed.", error),
+  void reconcileOpenClaims(amp, credentials).catch((error) =>
+    amp.logger.log("PR review reconciliation failed.", error)
   );
 }
 
-async function reconcileOpenClaims(
-  amp: PluginAPI,
-  reviewer: Agent,
-  credentials: Credentials,
-) {
+async function reconcileOpenClaims(amp: PluginAPI, credentials: Credentials) {
   const token = await createInstallationToken(credentials);
   const pulls = await githubPaginatedRequest<PullRequest>(
     token,
-    `/repos/${repository}/pulls?state=open`,
+    `/repos/${repository}/pulls?state=open`
   );
   for (const pull of pulls) {
     if (pull.user.login !== reviewAuthor) continue;
     const comments = await listIssueComments(pull.number, token);
     if (comments.some((comment) => parseState(comment) !== null)) {
-      await reconcilePullRequest(
-        amp,
-        reviewer,
-        credentials,
-        token,
-        pull.number,
-        pull.head.sha,
-      );
+      await reconcilePullRequest(amp, credentials, token, pull.number, pull.head.sha);
     }
   }
 }
 
 async function reconcilePullRequest(
   amp: PluginAPI,
-  reviewer: Agent,
   credentials: Credentials,
   token: string,
   number: number,
   expectedHead: string,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ) {
   const lock = `${number}:${expectedHead}`;
   if (locks.has(lock) || signal?.aborted) return;
@@ -349,7 +304,7 @@ async function reconcilePullRequest(
       (comment) =>
         isBot(comment.user) &&
         comment.body?.includes(markerNamespace) === true &&
-        parseState(comment) === null,
+        parseState(comment) === null
     );
     for (const comment of malformedClaims) {
       if (!signal?.aborted) await deleteIssueComment(comment.id, token, signal);
@@ -357,16 +312,14 @@ async function reconcilePullRequest(
     const claims = comments
       .map((comment) => ({ comment, state: parseState(comment) }))
       .filter(
-        (entry): entry is { comment: IssueComment; state: ClaimState } =>
-          entry.state !== null,
+        (entry): entry is { comment: IssueComment; state: ClaimState } => entry.state !== null
       );
     for (const entry of claims) {
       const stale =
         pull.state !== "open" ||
         pull.user.login !== reviewAuthor ||
         entry.state.head !== pull.head.sha;
-      if (stale && !signal?.aborted)
-        await deleteIssueComment(entry.comment.id, token, signal);
+      if (stale && !signal?.aborted) await deleteIssueComment(entry.comment.id, token, signal);
     }
     if (
       pull.state !== "open" ||
@@ -389,7 +342,7 @@ async function reconcilePullRequest(
         number,
         expectedHead,
         active.comment.id,
-        active.state.threadId!,
+        active.state.threadId!
       );
       return;
     }
@@ -408,7 +361,7 @@ async function reconcilePullRequest(
           body: `${stateMarker({ version: 2, head: expectedHead, status: "dispatching" })}\nAutomated review dispatching.`,
         }),
         signal,
-      },
+      }
     );
     if (signal?.aborted) {
       await deleteIssueComment(claim.id, token);
@@ -416,22 +369,18 @@ async function reconcilePullRequest(
     }
     let threadId: string;
     try {
-      threadId = await createReviewThread(amp, reviewer, number, expectedHead);
+      threadId = await createReviewThread(amp, number, expectedHead);
     } catch (error) {
       await deleteIssueComment(claim.id, token);
       throw error;
     }
-    await githubRequest(
-      token,
-      `/repos/${repository}/issues/comments/${claim.id}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          body: `${stateMarker({ version: 2, head: expectedHead, status: "running", threadId })}\nAutomated review running.`,
-        }),
-        signal,
-      },
-    );
+    await githubRequest(token, `/repos/${repository}/issues/comments/${claim.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        body: `${stateMarker({ version: 2, head: expectedHead, status: "running", threadId })}\nAutomated review running.`,
+      }),
+      signal,
+    });
     ensureMonitor(amp, threadId, credentials, number, expectedHead, claim.id);
   } finally {
     locks.delete(lock);
@@ -444,7 +393,7 @@ async function resumeThread(
   number: number,
   head: string,
   claimId: number,
-  threadId: string,
+  threadId: string
 ) {
   if (!/^T-[0-9a-f-]+$/.test(threadId)) {
     const token = await createInstallationToken(credentials);
@@ -462,18 +411,13 @@ function ensureMonitor(
   credentials: Credentials,
   number: number,
   head: string,
-  claimId: number,
+  claimId: number
 ) {
   const key = `${claimId}:${threadId}`;
   if (monitors.has(key)) return;
-  const monitor = monitorThread(
-    amp,
-    threadId,
-    credentials,
-    number,
-    head,
-    claimId,
-  ).finally(() => monitors.delete(key));
+  const monitor = monitorThread(amp, threadId, credentials, number, head, claimId).finally(() =>
+    monitors.delete(key)
+  );
   monitors.set(key, monitor);
 }
 
@@ -483,16 +427,13 @@ async function monitorThread(
   credentials: Credentials,
   number: number,
   head: string,
-  claimId: number,
+  claimId: number
 ) {
   let lease: { unsubscribe(): void } | undefined;
   try {
     lease = await amp.system.executor.keepAlive();
   } catch (error) {
-    amp.logger.log(
-      "Could not keep the owner orb awake; continuing with durable recovery.",
-      error,
-    );
+    amp.logger.log("Could not keep the owner orb awake; continuing with durable recovery.", error);
   }
   try {
     for (;;) {
@@ -502,37 +443,23 @@ async function monitorThread(
           await new Promise((resolve) => setTimeout(resolve, 5_000));
           continue;
         }
-        await finishReview(
-          amp,
-          response,
-          credentials,
-          number,
-          head,
-          claimId,
-          threadId,
-        );
+        await finishReview(amp, response, credentials, number, head, claimId, threadId);
         return;
       } catch (error) {
         if (error instanceof TerminalReviewError) {
           const token = await createInstallationToken(credentials);
           await deleteIssueComment(claimId, token);
-          amp.logger.log(
-            "Discarded a deterministic invalid review result.",
-            error,
-          );
+          amp.logger.log("Discarded a deterministic invalid review result.", error);
           return;
         }
-        amp.logger.log(
-          "Automated review monitor will retry durable completion.",
-          error,
-        );
+        amp.logger.log("Automated review monitor will retry durable completion.", error);
         await new Promise((resolve) => setTimeout(resolve, 5_000));
       }
     }
   } catch (error) {
     amp.logger.log(
       "Automated review monitor stopped; durable reconciliation will resume it.",
-      error,
+      error
     );
   } finally {
     lease?.unsubscribe();
@@ -541,11 +468,10 @@ async function monitorThread(
 
 async function readCompletedResponse(
   amp: PluginAPI,
-  threadId: string,
+  threadId: string
 ): Promise<ReviewResponse | null> {
   const result = await amp.$`amp threads export ${threadId}`;
-  if (result.exitCode !== 0)
-    throw new Error(`Could not export review thread ${threadId}.`);
+  if (result.exitCode !== 0) throw new Error(`Could not export review thread ${threadId}.`);
   const value = JSON.parse(result.stdout) as { messages?: unknown };
   if (!Array.isArray(value.messages))
     throw new Error(`Review thread ${threadId} has an invalid export.`);
@@ -575,7 +501,7 @@ async function finishReview(
   number: number,
   head: string,
   claimId: number,
-  threadId: string,
+  threadId: string
 ) {
   const report = parseReviewReport(response);
   const token = await createInstallationToken(credentials);
@@ -584,11 +510,7 @@ async function finishReview(
     return;
   }
   let pull = await getPullRequest(number, token);
-  if (
-    pull.state !== "open" ||
-    pull.head.sha !== head ||
-    report.headSha !== head
-  ) {
+  if (pull.state !== "open" || pull.head.sha !== head || report.headSha !== head) {
     await deleteIssueComment(claimId, token);
     return;
   }
@@ -597,7 +519,7 @@ async function finishReview(
   for (const finding of report.findings)
     if (!isValidFinding(finding, locations))
       throw new TerminalReviewError(
-        `Finding is not on a changed hunk line: ${finding.path}:${finding.line}.`,
+        `Finding is not on a changed hunk line: ${finding.path}:${finding.line}.`
       );
   pull = await getPullRequest(number, token);
   if (pull.state !== "open" || pull.head.sha !== head) {
@@ -637,16 +559,12 @@ async function finishReview(
 function parseReviewReport(message: ReviewResponse): ReviewReport {
   try {
     const textBlocks = message.content.filter(
-      (block) => block.type === "text" && typeof block.text === "string",
+      (block) => block.type === "text" && typeof block.text === "string"
     );
     const text = textBlocks.map((block) => block.text).join("\n");
-    const matches = [
-      ...text.matchAll(/<review-report>\s*([\s\S]*?)\s*<\/review-report>/g),
-    ];
+    const matches = [...text.matchAll(/<review-report>\s*([\s\S]*?)\s*<\/review-report>/g)];
     if (matches.length !== 1)
-      throw new Error(
-        "Review thread did not return exactly one structured report.",
-      );
+      throw new Error("Review thread did not return exactly one structured report.");
     const value = JSON.parse(matches[0][1]) as Partial<ReviewReport>;
     if (
       !isCommitSha(value.headSha) ||
@@ -671,20 +589,13 @@ function parseReviewReport(message: ReviewResponse): ReviewReport {
     };
   } catch (error) {
     if (error instanceof TerminalReviewError) throw error;
-    throw new TerminalReviewError(
-      "Review thread returned an invalid structured report.",
-      {
-        cause: error,
-      },
-    );
+    throw new TerminalReviewError("Review thread returned an invalid structured report.", {
+      cause: error,
+    });
   }
 }
 
-function boundedText(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-): value is string {
+function boundedText(value: unknown, minimum: number, maximum: number): value is string {
   return (
     typeof value === "string" &&
     value.trim().length >= minimum &&
@@ -697,9 +608,7 @@ function isValidCheck(value: unknown): value is ReviewCheck {
   const check = value as Partial<ReviewCheck>;
   return (
     boundedText(check.name, 1, 500) &&
-    (check.result === "passed" ||
-      check.result === "failed" ||
-      check.result === "not-run") &&
+    (check.result === "passed" || check.result === "failed" || check.result === "not-run") &&
     boundedText(check.details, 1, 1_000)
   );
 }
@@ -718,9 +627,7 @@ function isWellFormedFinding(value: unknown): value is ReviewFinding {
   );
 }
 
-function collectChangedLines(
-  files: PullRequestFile[],
-): Map<string, Set<string>> {
+function collectChangedLines(files: PullRequestFile[]): Map<string, Set<string>> {
   const locations = new Map<string, Set<string>>();
   for (const file of files) {
     if (file.patch === undefined || !file.patch.includes("@@")) continue;
@@ -755,85 +662,56 @@ function collectChangedLines(
   return locations;
 }
 
-function isValidFinding(
-  finding: ReviewFinding,
-  locations: Map<string, Set<string>>,
-): boolean {
-  return (
-    locations.get(finding.path)?.has(`${finding.side}:${finding.line}`) === true
-  );
+function isValidFinding(finding: ReviewFinding, locations: Map<string, Set<string>>): boolean {
+  return locations.get(finding.path)?.has(`${finding.side}:${finding.line}`) === true;
 }
-function formatSummary(
-  head: string,
-  report: ReviewReport,
-  threadId: string,
-): string {
+function formatSummary(head: string, report: ReviewReport, threadId: string): string {
   const checks =
     report.checks.length === 0
       ? "- No checks were reported."
       : report.checks
           .map(
-            (check) =>
-              `- **${check.result}:** \`${check.name.trim()}\` — ${check.details.trim()}`,
+            (check) => `- **${check.result}:** \`${check.name.trim()}\` — ${check.details.trim()}`
           )
           .join("\n");
   const body = `${completedMarker(head)}\n## Automated review\n\nReviewed commit \`${head.slice(0, 12)}\` in [Amp thread \`${threadId}\`](https://ampcode.com/threads/${threadId}).\n\n${report.summary}\n\n**Inline findings:** ${report.findings.length}\n\n### Checks\n${checks}`;
-  if (body.length > 16_000)
-    throw new TerminalReviewError("Formatted review summary is too large.");
+  if (body.length > 16_000) throw new TerminalReviewError("Formatted review summary is too large.");
   return body;
 }
 
 async function getPullRequest(
   number: number,
   token: string,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<PullRequest> {
-  return githubRequest(token, `/repos/${repository}/pulls/${number}`, {
-    signal,
-  });
+  return githubRequest(token, `/repos/${repository}/pulls/${number}`, { signal });
 }
 async function listIssueComments(
   number: number,
   token: string,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<IssueComment[]> {
-  return githubPaginatedRequest(
-    token,
-    `/repos/${repository}/issues/${number}/comments`,
-    signal,
-  );
+  return githubPaginatedRequest(token, `/repos/${repository}/issues/${number}/comments`, signal);
 }
-async function listPullRequestFiles(
-  number: number,
-  token: string,
-): Promise<PullRequestFile[]> {
-  return githubPaginatedRequest(
-    token,
-    `/repos/${repository}/pulls/${number}/files`,
-  );
+async function listPullRequestFiles(number: number, token: string): Promise<PullRequestFile[]> {
+  return githubPaginatedRequest(token, `/repos/${repository}/pulls/${number}/files`);
 }
 async function completedReviewExists(
   number: number,
   head: string,
   token: string,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<boolean> {
   const reviews = await githubPaginatedRequest<PullRequestReview>(
     token,
     `/repos/${repository}/pulls/${number}/reviews`,
-    signal,
+    signal
   );
   return reviews.some(
-    (review) =>
-      isBot(review.user) &&
-      review.body?.includes(completedMarker(head)) === true,
+    (review) => isBot(review.user) && review.body?.includes(completedMarker(head)) === true
   );
 }
-async function deleteIssueComment(
-  id: number,
-  token: string,
-  signal?: AbortSignal,
-) {
+async function deleteIssueComment(id: number, token: string, signal?: AbortSignal) {
   await githubRequest(token, `/repos/${repository}/issues/comments/${id}`, {
     method: "DELETE",
     signal,
@@ -843,7 +721,7 @@ async function deleteIssueComment(
 async function githubPaginatedRequest<T>(
   token: string,
   path: string,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<T[]> {
   const values: T[] = [];
   for (let page = 1; ; page += 1) {
@@ -851,7 +729,7 @@ async function githubPaginatedRequest<T>(
     const pageValues = await githubRequest<T[]>(
       token,
       `${path}${separator}per_page=100&page=${page}`,
-      { signal },
+      { signal }
     );
     values.push(...pageValues);
     if (pageValues.length < 100) return values;
@@ -859,7 +737,7 @@ async function githubPaginatedRequest<T>(
 }
 async function createInstallationToken(
   credentials: Credentials,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<string> {
   if (
     cachedInstallationToken !== null &&
@@ -871,7 +749,7 @@ async function createInstallationToken(
   const installation = await githubRequest<{ id: number }>(
     jwt,
     `/repos/${repository}/installation`,
-    { signal },
+    { signal }
   );
   const access = await githubRequest<{ token: string; expires_at: string }>(
     jwt,
@@ -880,30 +758,19 @@ async function createInstallationToken(
       method: "POST",
       body: JSON.stringify({
         repositories: ["purescript-alexandrite"],
-        permissions: {
-          contents: "read",
-          issues: "write",
-          pull_requests: "write",
-        },
+        permissions: { contents: "read", issues: "write", pull_requests: "write" },
       }),
       signal,
-    },
+    }
   );
-  cachedInstallationToken = {
-    token: access.token,
-    expiresAt: Date.parse(access.expires_at),
-  };
+  cachedInstallationToken = { token: access.token, expiresAt: Date.parse(access.expires_at) };
   return access.token;
 }
 function createAppJwt(credentials: Credentials): string {
   const now = Math.floor(Date.now() / 1_000);
   const header = encodeBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const payload = encodeBase64Url(
-    JSON.stringify({
-      iat: now - 60,
-      exp: now + 9 * 60,
-      iss: Number(credentials.appId),
-    }),
+    JSON.stringify({ iat: now - 60, exp: now + 9 * 60, iss: Number(credentials.appId) })
   );
   const unsigned = `${header}.${payload}`;
   const signer = createSign("RSA-SHA256");
@@ -917,16 +784,13 @@ function encodeBase64Url(value: string): string {
 async function githubRequest<T = unknown>(
   token: string,
   path: string,
-  init: RequestInit = {},
+  init: RequestInit = {}
 ): Promise<T> {
   const method = init.method ?? "GET";
   const attempts = method === "GET" ? 3 : 1;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const timeout = AbortSignal.timeout(requestTimeoutMs);
-    const signal =
-      init.signal === undefined
-        ? timeout
-        : AbortSignal.any([init.signal, timeout]);
+    const signal = init.signal === undefined ? timeout : AbortSignal.any([init.signal, timeout]);
     try {
       const response = await fetch(`https://api.github.com${path}`, {
         ...init,
@@ -943,13 +807,8 @@ async function githubRequest<T = unknown>(
         if (response.status === 204) return undefined as T;
         return (await response.json()) as T;
       }
-      if (
-        attempt === attempts ||
-        (response.status !== 429 && response.status < 500)
-      )
-        throw new Error(
-          `GitHub API ${method} ${path} failed with ${response.status}.`,
-        );
+      if (attempt === attempts || (response.status !== 429 && response.status < 500))
+        throw new Error(`GitHub API ${method} ${path} failed with ${response.status}.`);
     } catch (error) {
       if (attempt === attempts || init.signal?.aborted) throw error;
     }
