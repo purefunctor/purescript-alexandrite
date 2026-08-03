@@ -50,11 +50,17 @@ fn caret_marker(line: &str, start_col: u32, end_col: Option<u32>) -> String {
     let start = start_col.min(line_len);
     let end = end_col.unwrap_or(line_len).min(line_len);
 
+    let indentation = line
+        .chars()
+        .take(start as usize)
+        .map(|character| if character == '\t' { '\t' } else { ' ' });
+    let indentation = indentation.collect::<String>();
+
     if end <= start {
-        format!("{}^", " ".repeat(start as usize))
+        format!("{indentation}^")
     } else {
         let tilde_count = (end - start).saturating_sub(1) as usize;
-        format!("{}^{}", " ".repeat(start as usize), "~".repeat(tilde_count))
+        format!("{indentation}^{}", "~".repeat(tilde_count))
     }
 }
 
@@ -248,4 +254,16 @@ pub fn to_lsp_diagnostic(
         tags: None,
         data: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::caret_marker;
+
+    #[test]
+    fn caret_marker_preserves_tabs_before_span() {
+        let marker = caret_marker("\t  value", 3, Some(8));
+
+        assert_eq!(marker, "\t  ^~~~~");
+    }
 }
