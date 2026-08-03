@@ -33,7 +33,7 @@ Hover at Position { line: 10, character: 3 }
 ```
 
 ```purescript
-execute :: forall (@a :: Type). Alpha (a :: Type) => (a :: Type) -> Int
+execute :: forall (@a :: Type). Beta (a :: Type) => (a :: Type) -> Int
 ```
 
 
@@ -44,4 +44,4 @@ GotoDefinition at Position { line: 10, character: 5 }
 -- $ @
 ```
 
-file:///tests-integration/fixtures/lsp/1785768000_qualified_instance_member_collision/Alpha.purs @ 3:2..3:21
+file:///tests-integration/fixtures/lsp/1785768000_qualified_instance_member_collision/Beta.purs @ 3:2..3:21
