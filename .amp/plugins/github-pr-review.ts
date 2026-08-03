@@ -347,7 +347,11 @@ async function reconcilePullRequest(
       signal?.aborted
     )
       return;
+    const currentClaims = claims.filter((entry) => entry.state.head === expectedHead);
     if (await completedReviewExists(number, expectedHead, token, signal)) {
+      const checkRuns = await findReviewCheckRuns(number, expectedHead, token, signal);
+      if (currentClaims.length > 0 && checkRuns.length === 0)
+        await ensureReviewCheckRun(number, expectedHead, token, signal);
       await completeReviewCheckRuns(
         number,
         expectedHead,
@@ -355,12 +359,11 @@ async function reconcilePullRequest(
         "The automated pull-request review was published.",
         token
       );
-      for (const entry of claims)
-        if (entry.state.head === expectedHead)
-          await deleteIssueComment(entry.comment.id, token, signal);
+      for (const entry of currentClaims)
+        await deleteIssueComment(entry.comment.id, token, signal);
       return;
     }
-    const active = claims.find((entry) => entry.state.head === expectedHead);
+    const active = currentClaims[0];
     if (active?.state.status === "dispatch-failed") {
       await completeReviewCheckRuns(
         number,
@@ -373,6 +376,7 @@ async function reconcilePullRequest(
       return;
     }
     if (active?.state.status === "running") {
+      await ensureReviewCheckRun(number, expectedHead, token, signal);
       await resumeThread(
         amp,
         credentials,
@@ -778,7 +782,7 @@ function reviewCheckExternalId(number: number, head: string): string {
   return `alexandrite-review:${number}:${head}`;
 }
 
-async function findActiveReviewCheckRuns(
+async function findReviewCheckRuns(
   number: number,
   head: string,
   token: string,
@@ -791,9 +795,17 @@ async function findActiveReviewCheckRuns(
     { signal }
   );
   const externalId = reviewCheckExternalId(number, head);
-  return response.check_runs.filter(
-    (checkRun) => checkRun.external_id === externalId && checkRun.status !== "completed"
-  );
+  return response.check_runs.filter((checkRun) => checkRun.external_id === externalId);
+}
+
+async function findActiveReviewCheckRuns(
+  number: number,
+  head: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<ReviewCheckRun[]> {
+  const checkRuns = await findReviewCheckRuns(number, head, token, signal);
+  return checkRuns.filter((checkRun) => checkRun.status !== "completed");
 }
 
 async function ensureReviewCheckRun(
