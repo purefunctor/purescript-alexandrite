@@ -1,0 +1,83 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 4, character: 15 }
+
+```
+renameArgument argument =
+--             /
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 7, character: 5 }
+
+```
+  in argument
+--   ?
+```
+
+<empty>
+
+
+Rename at Position { line: 14, character: 5 }
+
+```
+  in local (Just input)
+--   /
+```
+
+<empty>
+
+
+Rename at Position { line: 17, character: 12 }
+
+```
+renameNamed whole@(Just item) = whole
+--          /
+```
+
+<empty>
+
+
+Rename at Position { line: 20, character: 12 }
+
+```
+renamePun { field } = field
+--          /
+```
+
+<empty>
+
+
+Rename at Position { line: 23, character: 23 }
+
+```
+punReference value = { value }
+--                     /
+```
+
+<empty>
+
+
+Rename at Position { line: 26, character: 22 }
+
+```
+renamePun' { renamed: original } = original
+--                    /
+```
+
+<empty>
+
+
+Rename at Position { line: 29, character: 36 }
+
+```
+punReference' original = { renamed: original }
+--                                  /
+```
+
+<empty>

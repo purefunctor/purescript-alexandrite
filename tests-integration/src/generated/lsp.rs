@@ -18,7 +18,8 @@ use lsp_types::{
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use similar::TextDiff;
-use syntax::{SyntaxKind, TokenAtOffset};
+use syntax::ast::AstNode;
+use syntax::{SyntaxKind, TokenAtOffset, cst};
 use tabled::Table;
 use tabled::settings::{Padding, Style};
 
@@ -630,6 +631,9 @@ fn rename_target_name(
 
     if token.parent().kind() == SyntaxKind::Qualifier {
         return Some("Renamed".to_string());
+    }
+    if token.parent_ancestors().any(|node| cst::RecordPun::can_cast(node.kind())) {
+        return Some("renamed".to_string());
     }
 
     match token.kind() {
