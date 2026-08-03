@@ -85,6 +85,7 @@ pub enum Located {
     ExpressionPun(RecordPunId),
     TermOperator(TermOperatorId),
     TypeOperator(TypeOperatorId),
+    InstanceMember(FileId, TermItemId),
     TermItem(TermItemId),
     TypeItem(TypeItemId),
     LetBinding(LetBindingNameGroupId),
@@ -213,6 +214,11 @@ fn locate_node(
         let id = stabilized.lookup_ptr(&ptr)?;
         let id = indexed.pairs.class_member_to_term(id)?;
         Some(Located::TermItem(id))
+    } else if cst::InstanceMemberStatement::can_cast(kind) {
+        let ptr = ptr.cast()?;
+        let id = stabilized.lookup_ptr(&ptr)?;
+        let (file_id, term_id) = lowered.tree.find_instance_member_resolution(id)?;
+        Some(Located::InstanceMember(file_id, term_id))
     } else {
         None
     }

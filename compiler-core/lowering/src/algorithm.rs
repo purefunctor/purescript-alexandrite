@@ -860,10 +860,13 @@ fn lower_instance_statements(
 
     let mut in_scope: IndexMap<_, _, FxBuildHasher> = IndexMap::default();
     for (name, mut children) in children.into_iter() {
+        let mut statements = vec![];
         let mut signature = None;
         let mut equations = vec![];
 
         if let Some(statement) = children.next() {
+            let id = context.stabilized.lookup_cst(&statement).expect_id();
+            statements.push(id);
             match statement {
                 cst::InstanceMemberStatement::InstanceSignatureStatement(cst) => {
                     let id = context.stabilized.lookup_cst(&cst).expect_id();
@@ -877,6 +880,8 @@ fn lower_instance_statements(
         }
 
         children.for_each(|statement| {
+            let id = context.stabilized.lookup_cst(&statement).expect_id();
+            statements.push(id);
             if let cst::InstanceMemberStatement::InstanceEquationStatement(cst) = statement {
                 let id = context.stabilized.lookup_cst(&cst).expect_id();
                 equations.push(id);
@@ -884,16 +889,17 @@ fn lower_instance_statements(
         });
 
         if let Some(name) = name {
-            in_scope.insert(name, (signature, equations));
+            in_scope.insert(name, (statements, signature, equations));
         }
     }
 
     in_scope
         .into_iter()
-        .map(|(name, (signature, equations))| {
+        .map(|(name, (statements, signature, equations))| {
             // Resolve the class member using the class type ID
             let resolution = class_resolution
                 .and_then(|(_, class_id)| context.resolved.lookup_class_member(class_id, &name));
+            let statements: Arc<[InstanceMemberId]> = Arc::from(statements);
 
             state.with_scope(|state| {
                 state.push_forall_scope();
@@ -915,7 +921,12 @@ fn lower_instance_statements(
                         ))
                     })
                     .collect();
-                InstanceMemberGroup { resolution, signature, equations }
+                InstanceMemberGroup {
+                    statements: statements.clone(),
+                    resolution,
+                    signature,
+                    equations,
+                }
             })
         })
         .collect()

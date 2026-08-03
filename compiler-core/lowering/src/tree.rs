@@ -312,6 +312,7 @@ pub struct InfixPair<T> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct InstanceMemberGroup {
+    pub statements: Arc<[InstanceMemberId]>,
     pub resolution: Option<(FileId, TermItemId)>,
     pub signature: Option<TypeId>,
     pub equations: Arc<[Equation]>,
@@ -564,6 +565,19 @@ impl LoweredTree {
     ) -> Option<LetBindingNameGroupId> {
         self.let_binding_groups.iter().find_map(|(let_binding_id, let_binding_group)| {
             let_binding_group.equations.contains(&equation_id).then_some(let_binding_id)
+        })
+    }
+
+    pub fn find_instance_member_resolution(
+        &self,
+        statement_id: InstanceMemberId,
+    ) -> Option<(FileId, TermItemId)> {
+        self.term_items.values().find_map(|item| {
+            let TermItemKind::Instance { members, .. } = item else {
+                return None;
+            };
+            let member = members.iter().find(|member| member.statements.contains(&statement_id))?;
+            member.resolution
         })
     }
 }

@@ -10,7 +10,15 @@ Hover at Position { line: 7, character: 3 }
 -- $
 ```
 
-<empty>
+```purescript
+map ::
+  forall (@f :: Type -> Type).
+    Functor (f :: Type -> Type) =>
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
+```
 
 
 Hover at Position { line: 9, character: 3 }
@@ -20,7 +28,15 @@ Hover at Position { line: 9, character: 3 }
 -- $
 ```
 
-<empty>
+```purescript
+map ::
+  forall (@f :: Type -> Type).
+    Functor (f :: Type -> Type) =>
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
+```
 
 
 Hover at Position { line: 16, character: 3 }

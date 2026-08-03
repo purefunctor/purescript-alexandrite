@@ -62,7 +62,9 @@ pub fn implementation(
         locate::Located::TypeOperator(operator_id) => {
             highlight_type_operator(context, current_file, operator_id)
         }
-        locate::Located::ModuleName(_) | locate::Located::Nothing => Ok(None),
+        locate::Located::ModuleName(_)
+        | locate::Located::InstanceMember(_, _)
+        | locate::Located::Nothing => Ok(None),
     }
 }
 
