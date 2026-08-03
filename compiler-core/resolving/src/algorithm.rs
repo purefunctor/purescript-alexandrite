@@ -134,13 +134,15 @@ fn resolve_import(
     }
 
     // Copy class members AFTER kind adjustments so hidden types are properly filtered
-    for (_, _, type_id, import_kind) in resolved.iter_classes() {
+    for (_, class_file, type_id, import_kind) in resolved.iter_classes() {
         if matches!(import_kind, ImportKind::Hidden) {
             continue;
         }
-        for (member_name, member_file, member_id) in import_resolved.class.class_members(type_id) {
+        for (member_name, member_file, member_id) in
+            import_resolved.class.class_members(class_file, type_id)
+        {
             let member_name = SmolStr::clone(member_name);
-            class_members.insert(type_id, member_name, member_file, member_id);
+            class_members.insert(class_file, type_id, member_name, member_file, member_id);
         }
     }
 
@@ -249,7 +251,7 @@ fn export_class_members(state: &mut State, indexed: &IndexedModule, file: FileId
             let member_item = &indexed.items[member_term_id];
             if let Some(name) = &member_item.name {
                 let name = SmolStr::clone(name);
-                state.class.insert(type_id, name, file, member_term_id);
+                state.class.insert(file, type_id, name, file, member_term_id);
             }
         }
     }

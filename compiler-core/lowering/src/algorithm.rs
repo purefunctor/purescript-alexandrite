@@ -860,10 +860,13 @@ fn lower_instance_statements(
 
     let mut in_scope: IndexMap<_, _, FxBuildHasher> = IndexMap::default();
     for (name, mut children) in children.into_iter() {
+        let mut statements = vec![];
         let mut signature = None;
         let mut equations = vec![];
 
         if let Some(statement) = children.next() {
+            let id = context.stabilized.lookup_cst(&statement).expect_id();
+            statements.push(id);
             match statement {
                 cst::InstanceMemberStatement::InstanceSignatureStatement(cst) => {
                     let id = context.stabilized.lookup_cst(&cst).expect_id();
@@ -877,6 +880,8 @@ fn lower_instance_statements(
         }
 
         children.for_each(|statement| {
+            let id = context.stabilized.lookup_cst(&statement).expect_id();
+            statements.push(id);
             if let cst::InstanceMemberStatement::InstanceEquationStatement(cst) = statement {
                 let id = context.stabilized.lookup_cst(&cst).expect_id();
                 equations.push(id);
@@ -884,41 +889,41 @@ fn lower_instance_statements(
         });
 
         if let Some(name) = name {
-            in_scope.insert(name, (signature, equations));
+            in_scope.insert(name, (statements, signature, equations));
         }
     }
 
-    in_scope
-        .into_iter()
-        .map(|(name, (signature, equations))| {
-            // Resolve the class member using the class type ID
-            let resolution = class_resolution
-                .and_then(|(_, class_id)| context.resolved.lookup_class_member(class_id, &name));
+    let member_groups = in_scope.into_iter().map(|(name, (statements, signature, equations))| {
+        // Resolve the class member using the class type ID
+        let resolution = class_resolution.and_then(|(class_file, class_id)| {
+            context.resolved.lookup_class_member(class_file, class_id, &name)
+        });
+        let statements: Arc<[InstanceMemberId]> = Arc::from(statements);
 
-            state.with_scope(|state| {
-                state.push_forall_scope();
-                let signature = signature.and_then(|id| {
+        state.with_scope(|state| {
+            state.push_forall_scope();
+            let signature = signature.and_then(|id| {
+                let cst = context.stabilized.ast_ptr(id)?.try_to_node(context.root)?;
+                cst.type_().map(|t| recursive::lower_forall(state, context, &t))
+            });
+            let equations = equations
+                .iter()
+                .filter_map(|&id| {
                     let cst = context.stabilized.ast_ptr(id)?.try_to_node(context.root)?;
-                    cst.type_().map(|t| recursive::lower_forall(state, context, &t))
-                });
-                let equations = equations
-                    .iter()
-                    .filter_map(|&id| {
-                        let cst = context.stabilized.ast_ptr(id)?.try_to_node(context.root)?;
-                        Some(recursive::lower_equation_like(
-                            state,
-                            context,
-                            Some(EquationSourceId::Instance(id)),
-                            cst,
-                            cst::InstanceEquationStatement::function_binders,
-                            cst::InstanceEquationStatement::guarded_expression,
-                        ))
-                    })
-                    .collect();
-                InstanceMemberGroup { resolution, signature, equations }
-            })
+                    Some(recursive::lower_equation_like(
+                        state,
+                        context,
+                        Some(EquationSourceId::Instance(id)),
+                        cst,
+                        cst::InstanceEquationStatement::function_binders,
+                        cst::InstanceEquationStatement::guarded_expression,
+                    ))
+                })
+                .collect();
+            InstanceMemberGroup { statements: statements.clone(), resolution, signature, equations }
         })
-        .collect()
+    });
+    member_groups.collect()
 }
 
 fn lower_roles(context: &Context, id: TypeRoleId) -> Arc<[Role]> {

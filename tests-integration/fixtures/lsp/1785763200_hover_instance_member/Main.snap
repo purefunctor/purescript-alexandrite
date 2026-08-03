@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 7, character: 3 }
+
+```
+  map :: forall a b. (a -> b) -> Continuation r a -> Continuation r b
+-- $
+```
+
+```purescript
+map ::
+  forall (@f :: Type -> Type).
+    Functor (f :: Type -> Type) =>
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
+```
+
+
+Hover at Position { line: 9, character: 3 }
+
+```
+  map function (Continuation program) =
+-- $
+```
+
+```purescript
+map ::
+  forall (@f :: Type -> Type).
+    Functor (f :: Type -> Type) =>
+    (forall (a :: Type) (b :: Type).
+      ((a :: Type) -> (b :: Type)) ->
+      (f :: Type -> Type) (a :: Type) ->
+      (f :: Type -> Type) (b :: Type))
+```
+
+
+Hover at Position { line: 16, character: 3 }
+
+```
+value = 42
+-- $
+```
+
+```purescript
+value :: Int
+```

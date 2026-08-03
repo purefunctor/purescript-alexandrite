@@ -14,6 +14,7 @@ pub type LetBindingId = AstId<cst::LetBindingPattern>;
 pub type LetBindingSignatureId = AstId<cst::LetBindingSignature>;
 pub type LetBindingEquationId = AstId<cst::LetBindingEquation>;
 
+pub type InstanceMemberId = AstId<cst::InstanceMemberStatement>;
 pub type InstanceSignatureId = AstId<cst::InstanceSignatureStatement>;
 pub type InstanceEquationId = AstId<cst::InstanceEquationStatement>;
 

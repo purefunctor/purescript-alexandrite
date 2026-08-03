@@ -17,37 +17,46 @@ pub trait ExternalQueries:
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResolvedClassMembers {
-    members: FxHashMap<(TypeItemId, SmolStr), (FileId, TermItemId)>,
+    members: FxHashMap<(FileId, TypeItemId, SmolStr), (FileId, TermItemId)>,
 }
 
 impl ResolvedClassMembers {
     pub fn insert(
         &mut self,
+        class_file: FileId,
         class_id: TypeItemId,
         name: SmolStr,
-        file: FileId,
+        member_file: FileId,
         term_id: TermItemId,
     ) {
-        self.members.insert((class_id, name), (file, term_id));
+        self.members.insert((class_file, class_id, name), (member_file, term_id));
     }
 
-    pub fn lookup(&self, class_id: TypeItemId, name: &str) -> Option<(FileId, TermItemId)> {
-        let key = &(class_id, SmolStr::new(name));
+    pub fn lookup(
+        &self,
+        class_file: FileId,
+        class_id: TypeItemId,
+        name: &str,
+    ) -> Option<(FileId, TermItemId)> {
+        let key = &(class_file, class_id, SmolStr::new(name));
         self.members.get(key).copied()
     }
 
     pub fn class_members(
         &self,
+        class_file: FileId,
         class_id: TypeItemId,
     ) -> impl Iterator<Item = (&SmolStr, FileId, TermItemId)> + '_ {
         self.members
             .iter()
-            .filter(move |((type_id, _), _)| *type_id == class_id)
-            .map(|((_, name), (file, id))| (name, *file, *id))
+            .filter(move |((file_id, type_id, _), _)| {
+                *file_id == class_file && *type_id == class_id
+            })
+            .map(|((_, _, name), (file, id))| (name, *file, *id))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (TypeItemId, &SmolStr, FileId, TermItemId)> + '_ {
-        self.members.iter().map(|((class_id, name), (file, id))| (*class_id, name, *file, *id))
+        self.members.iter().map(|((_, class_id, name), (file, id))| (*class_id, name, *file, *id))
     }
 }
 
@@ -197,10 +206,11 @@ impl ResolvedModule {
 
     pub fn lookup_class_member(
         &self,
+        class_file: FileId,
         class_id: TypeItemId,
         name: &str,
     ) -> Option<(FileId, TermItemId)> {
-        self.class.lookup(class_id, name)
+        self.class.lookup(class_file, class_id, name)
     }
 
     pub fn is_term_in_scope(

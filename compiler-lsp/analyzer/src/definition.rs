@@ -57,6 +57,9 @@ pub fn implementation(
                 lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_type(context, f_id, t_id)
         }
+        locate::Located::InstanceMember(file_id, term_id) => {
+            definition_file_term(context, file_id, term_id)
+        }
         locate::Located::TermItem(term_id) => definition_file_term(context, current_file, term_id),
         locate::Located::TypeItem(type_id) => definition_file_type(context, current_file, type_id),
         locate::Located::LetBinding(let_id) => {

@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 6, character: 3 }
+
+```
+  execute value = value
+-- $ @
+```
+
+```purescript
+execute :: forall (@a :: Type). Alpha (a :: Type) => (a :: Type) -> Int
+```
+
+
+GotoDefinition at Position { line: 6, character: 5 }
+
+```
+  execute value = value
+-- $ @
+```
+
+file:///tests-integration/fixtures/lsp/1785768000_qualified_instance_member_collision/Alpha.purs @ 3:2..3:21
+
+
+Hover at Position { line: 10, character: 3 }
+
+```
+  execute value = value
+-- $ @
+```
+
+```purescript
+execute :: forall (@a :: Type). Beta (a :: Type) => (a :: Type) -> Int
+```
+
+
+GotoDefinition at Position { line: 10, character: 5 }
+
+```
+  execute value = value
+-- $ @
+```
+
+file:///tests-integration/fixtures/lsp/1785768000_qualified_instance_member_collision/Beta.purs @ 3:2..3:21
