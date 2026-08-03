@@ -49,12 +49,17 @@ fn caret_marker(line: &str, start_col: u32, end_col: Option<u32>) -> String {
     let line_len = line.chars().count() as u32;
     let start = start_col.min(line_len);
     let end = end_col.unwrap_or(line_len).min(line_len);
+    let indentation = line
+        .chars()
+        .take(start as usize)
+        .map(|character| if character == '\t' { '\t' } else { ' ' });
+    let indentation = indentation.collect::<String>();
 
     if end <= start {
-        format!("{}^", " ".repeat(start as usize))
+        format!("{indentation}^")
     } else {
         let tilde_count = (end - start).saturating_sub(1) as usize;
-        format!("{}^{}", " ".repeat(start as usize), "~".repeat(tilde_count))
+        format!("{indentation}^{}", "~".repeat(tilde_count))
     }
 }
 
@@ -248,4 +253,22 @@ pub fn to_lsp_diagnostic(
         tags: None,
         data: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rustc_caret_preserves_tabs_in_indentation() {
+        let content = "\t  value";
+        let diagnostic = Diagnostic::error("Test", "message", Span::new(3, 8), "test");
+
+        let rendered = format_rustc(&[diagnostic], content);
+
+        assert_eq!(
+            rendered,
+            "error[Test]: message\n  --> 1:4..1:9\n  |\n1 | \t  value\n  | \t  ^~~~~\n"
+        );
+    }
 }
