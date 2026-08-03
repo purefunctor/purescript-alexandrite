@@ -231,7 +231,7 @@ async function monitorThread(amp: PluginAPI, threadId: string, credentials: Cred
 					await new Promise((resolve) => setTimeout(resolve, 5_000))
 					continue
 				}
-				await finishReview(amp, response, credentials, number, head, claimId)
+				await finishReview(amp, response, credentials, number, head, claimId, threadId)
 				return
 			} catch (error) {
 				if (error instanceof TerminalReviewError) {
@@ -265,7 +265,7 @@ async function readCompletedResponse(amp: PluginAPI, threadId: string): Promise<
 	return { content: response.content }
 }
 
-async function finishReview(amp: PluginAPI, response: ReviewResponse, credentials: Credentials, number: number, head: string, claimId: number) {
+async function finishReview(amp: PluginAPI, response: ReviewResponse, credentials: Credentials, number: number, head: string, claimId: number, threadId: string) {
 	const report = parseReviewReport(response)
 	const token = await createInstallationToken(credentials)
 	if (await completedReviewExists(number, head, token)) { await deleteIssueComment(claimId, token); return }
@@ -276,7 +276,7 @@ async function finishReview(amp: PluginAPI, response: ReviewResponse, credential
 	for (const finding of report.findings) if (!isValidFinding(finding, locations)) throw new TerminalReviewError(`Finding is not on a changed hunk line: ${finding.path}:${finding.line}.`)
 	pull = await getPullRequest(number, token)
 	if (pull.state !== 'open' || pull.head.sha !== head) { await deleteIssueComment(claimId, token); return }
-	const body = formatSummary(head, report)
+	const body = formatSummary(head, report, threadId)
 	try {
 		await githubRequest(token, `/repos/${repository}/pulls/${number}/reviews`, { method: 'POST', body: JSON.stringify({ event: 'COMMENT', commit_id: head, body, comments: report.findings.map((finding) => ({ path: finding.path, line: finding.line, side: finding.side, body: finding.body })) }) })
 	} catch (error) {
@@ -333,7 +333,7 @@ function collectChangedLines(files: PullRequestFile[]): Map<string, Set<string>>
 }
 
 function isValidFinding(finding: ReviewFinding, locations: Map<string, Set<string>>): boolean { return locations.get(finding.path)?.has(`${finding.side}:${finding.line}`) === true }
-function formatSummary(head: string, report: ReviewReport): string { const checks = report.checks.length === 0 ? '- No checks were reported.' : report.checks.map((check) => `- **${check.result}:** \`${check.name.trim()}\` — ${check.details.trim()}`).join('\n'); const body = `${completedMarker(head)}\n## Automated review\n\nReviewed commit \`${head.slice(0, 12)}\`.\n\n${report.summary}\n\n**Inline findings:** ${report.findings.length}\n\n### Checks\n${checks}`; if (body.length > 16_000) throw new TerminalReviewError('Formatted review summary is too large.'); return body }
+function formatSummary(head: string, report: ReviewReport, threadId: string): string { const checks = report.checks.length === 0 ? '- No checks were reported.' : report.checks.map((check) => `- **${check.result}:** \`${check.name.trim()}\` — ${check.details.trim()}`).join('\n'); const body = `${completedMarker(head)}\n## Automated review\n\nReviewed commit \`${head.slice(0, 12)}\` in [Amp thread \`${threadId}\`](https://ampcode.com/threads/${threadId}).\n\n${report.summary}\n\n**Inline findings:** ${report.findings.length}\n\n### Checks\n${checks}`; if (body.length > 16_000) throw new TerminalReviewError('Formatted review summary is too large.'); return body }
 
 async function getPullRequest(number: number, token: string, signal?: AbortSignal): Promise<PullRequest> { return githubRequest(token, `/repos/${repository}/pulls/${number}`, { signal }) }
 async function listIssueComments(number: number, token: string, signal?: AbortSignal): Promise<IssueComment[]> { return githubPaginatedRequest(token, `/repos/${repository}/issues/${number}/comments`, signal) }
