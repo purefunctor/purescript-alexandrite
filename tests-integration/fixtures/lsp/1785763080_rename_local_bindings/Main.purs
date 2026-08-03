@@ -1,5 +1,8 @@
 module Main where
 
+import Lib (imported)
+import Lib as Lib
+
 data Maybe a = Just a | Nothing
 
 renameArgument argument =
@@ -29,3 +32,17 @@ renamePun' { renamed: original } = original
 
 punReference' original = { renamed: original }
 --                                  /
+
+topLevel = 1
+
+topLevelPun = { topLevel }
+--              /
+
+importedPun = { imported }
+--              /
+
+qualifiedField = { renamed: Lib.qualified }
+--                              /
+
+commentedBinder { renamed: {- keep -} original } = original
+--                                    /
