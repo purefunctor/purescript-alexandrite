@@ -10,7 +10,24 @@ renameArgument argument =
 --             /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -2,10 +2,10 @@
+
+ data Maybe a = Just a | Nothing
+
+-renameArgument argument =
++renameArgument renamed =
+ --             /
+-  let shadowed = argument
+-  in argument
++  let shadowed = renamed
++  in renamed
+ --   ?
+
+ renameLet input =
+```
 
 
 PrepareRename at Position { line: 7, character: 5 }
@@ -20,7 +37,7 @@ PrepareRename at Position { line: 7, character: 5 }
 --   ?
 ```
 
-<empty>
+7:5..7:13 argument
 
 
 Rename at Position { line: 14, character: 5 }
@@ -30,7 +47,25 @@ Rename at Position { line: 14, character: 5 }
 --   /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -9,10 +9,10 @@
+ --   ?
+
+ renameLet input =
+-  let local :: Maybe Int -> Int
+-      local (Just item) = item
+-      local Nothing = input
+-  in local (Just input)
++  let renamed :: Maybe Int -> Int
++      renamed (Just item) = item
++      renamed Nothing = input
++  in renamed (Just input)
+ --   /
+
+ renameNamed whole@(Just item) = whole
+```
 
 
 Rename at Position { line: 17, character: 12 }
@@ -40,7 +75,19 @@ renameNamed whole@(Just item) = whole
 --          /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -15,7 +15,7 @@
+   in local (Just input)
+ --   /
+
+-renameNamed whole@(Just item) = whole
++renameNamed renamed@(Just item) = renamed
+ --          /
+
+ renamePun { field } = field
+```
 
 
 Rename at Position { line: 20, character: 12 }
@@ -50,7 +97,19 @@ renamePun { field } = field
 --          /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -18,7 +18,7 @@
+ renameNamed whole@(Just item) = whole
+ --          /
+
+-renamePun { field } = field
++renamePun { field: renamed } = renamed
+ --          /
+
+ punReference value = { value }
+```
 
 
 Rename at Position { line: 23, character: 23 }
@@ -60,7 +119,19 @@ punReference value = { value }
 --                     /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -21,7 +21,7 @@
+ renamePun { field } = field
+ --          /
+
+-punReference value = { value }
++punReference renamed = { value: renamed }
+ --                     /
+
+ renamePun' { renamed: original } = original
+```
 
 
 Rename at Position { line: 26, character: 22 }
@@ -70,7 +141,19 @@ renamePun' { renamed: original } = original
 --                    /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -24,7 +24,7 @@
+ punReference value = { value }
+ --                     /
+
+-renamePun' { renamed: original } = original
++renamePun' { renamed } = renamed
+ --                    /
+
+ punReference' original = { renamed: original }
+```
 
 
 Rename at Position { line: 29, character: 36 }
@@ -80,4 +163,14 @@ punReference' original = { renamed: original }
 --                                  /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -27,5 +27,5 @@
+ renamePun' { renamed: original } = original
+ --                    /
+
+-punReference' original = { renamed: original }
++punReference' renamed = { renamed }
+ --                                  /
+```

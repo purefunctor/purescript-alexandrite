@@ -3,7 +3,10 @@ use files::FileId;
 use indexing::{
     ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
 };
-use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
+use lowering::{
+    BinderId, BinderKind, ExpressionKind, LetBindingNameGroupId, RecordPunId,
+    TermVariableResolution, TypeKind,
+};
 use lsp_types::*;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::{SyntaxToken, TextRange, TextSize, TokenAtOffset, cst};
@@ -16,6 +19,9 @@ mod edit;
 enum RenameTarget {
     Term(FileId, TermItemId),
     Type(FileId, TypeItemId),
+    Binder(FileId, BinderId),
+    LetBinding(FileId, LetBindingNameGroupId),
+    RecordPun(FileId, RecordPunId),
     Qualifier(FileId, ImportId),
     Module(FileId),
 }
@@ -25,6 +31,9 @@ impl RenameTarget {
         match self {
             RenameTarget::Term(file_id, _)
             | RenameTarget::Type(file_id, _)
+            | RenameTarget::Binder(file_id, _)
+            | RenameTarget::LetBinding(file_id, _)
+            | RenameTarget::RecordPun(file_id, _)
             | RenameTarget::Qualifier(file_id, _)
             | RenameTarget::Module(file_id) => file_id,
         }
@@ -77,6 +86,13 @@ pub fn implementation(
             edits.collect_references(locations, name_kind, &new_name)?;
             edits.collect_declaration(target, &new_name)?;
             edits.collect_item_surfaces(target, &old_name, &new_name)?;
+        }
+        RenameTarget::Binder(_, _)
+        | RenameTarget::LetBinding(_, _)
+        | RenameTarget::RecordPun(_, _) => {
+            let locations = references::implementation(context, uri, position)?.unwrap_or_default();
+            edits.collect_references(locations, name_kind, &new_name)?;
+            edits.collect_declaration(target, &new_name)?;
         }
     }
 
@@ -234,26 +250,31 @@ fn rename_target(
         locate::Located::Binder(binder_id) => {
             let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
 
-            let BinderKind::Constructor { resolution: Some((file_id, term_id)), .. } = kind else {
-                return Err(AnalyzerError::NonFatal);
-            };
-
-            RenameTarget::Term(*file_id, *term_id)
+            match kind {
+                BinderKind::Constructor { resolution: Some((file_id, term_id)), .. } => {
+                    RenameTarget::Term(*file_id, *term_id)
+                }
+                BinderKind::Variable { variable: Some(_) }
+                | BinderKind::Named { named: Some(_), .. } => {
+                    RenameTarget::Binder(current_file, binder_id)
+                }
+                _ => return Err(AnalyzerError::NonFatal),
+            }
         }
         locate::Located::Expression(expression_id) => {
             let kind =
                 lowered.tree.get_expression_kind(expression_id).ok_or(AnalyzerError::NonFatal)?;
 
-            let resolution = match kind {
+            match kind {
                 ExpressionKind::Constructor { resolution: Some(resolution) }
-                | ExpressionKind::OperatorName { resolution: Some(resolution) } => *resolution,
-                ExpressionKind::Variable {
-                    resolution: Some(TermVariableResolution::Reference(file_id, term_id)),
-                } => (*file_id, *term_id),
+                | ExpressionKind::OperatorName { resolution: Some(resolution) } => {
+                    RenameTarget::Term(resolution.0, resolution.1)
+                }
+                ExpressionKind::Variable { resolution: Some(resolution) } => {
+                    target_from_term_resolution(current_file, *resolution)
+                }
                 _ => return Err(AnalyzerError::NonFatal),
-            };
-
-            RenameTarget::Term(resolution.0, resolution.1)
+            }
         }
         locate::Located::Type(type_id) => {
             let kind = lowered.tree.get_type_kind(type_id).ok_or(AnalyzerError::NonFatal)?;
@@ -280,10 +301,33 @@ fn rename_target(
         }
         locate::Located::TermItem(term_id) => RenameTarget::Term(current_file, term_id),
         locate::Located::TypeItem(type_id) => RenameTarget::Type(current_file, type_id),
+        locate::Located::LetBinding(binding_id) => {
+            RenameTarget::LetBinding(current_file, binding_id)
+        }
+        locate::Located::BinderPun(pun_id) => RenameTarget::RecordPun(current_file, pun_id),
+        locate::Located::ExpressionPun(pun_id) => {
+            let resolution =
+                lowered.tree.get_expression_pun(pun_id).ok_or(AnalyzerError::NonFatal)?;
+            target_from_term_resolution(current_file, resolution)
+        }
         _ => return Err(AnalyzerError::NonFatal),
     };
 
     Ok(target)
+}
+
+fn target_from_term_resolution(
+    current_file: FileId,
+    resolution: TermVariableResolution,
+) -> RenameTarget {
+    match resolution {
+        TermVariableResolution::Binder(binder_id) => RenameTarget::Binder(current_file, binder_id),
+        TermVariableResolution::Let(binding_id) => {
+            RenameTarget::LetBinding(current_file, binding_id)
+        }
+        TermVariableResolution::RecordPun(pun_id) => RenameTarget::RecordPun(current_file, pun_id),
+        TermVariableResolution::Reference(file_id, term_id) => RenameTarget::Term(file_id, term_id),
+    }
 }
 
 fn module_target(
@@ -435,6 +479,36 @@ fn target_name(
             };
 
             Some((name.to_string(), kind))
+        }
+        RenameTarget::Binder(file_id, binder_id) => {
+            let lowered = context.queries().lowered(file_id)?;
+            let kind = lowered.tree.get_binder_kind(binder_id).ok_or(AnalyzerError::NonFatal)?;
+
+            let name = match kind {
+                BinderKind::Variable { variable } => variable.as_ref(),
+                BinderKind::Named { named, .. } => named.as_ref(),
+                _ => None,
+            };
+
+            name.map(|name| (name.to_string(), NameKind::Lower))
+        }
+        RenameTarget::LetBinding(file_id, binding_id) => {
+            let lowered = context.queries().lowered(file_id)?;
+            let binding = lowered.tree.get_let_binding_group(binding_id);
+            binding.name.as_ref().map(|name| (name.to_string(), NameKind::Lower))
+        }
+        RenameTarget::RecordPun(file_id, pun_id) => {
+            let content = context.queries().content(file_id);
+            let (parsed, _) = context.queries().parsed(file_id)?;
+            let stabilized = context.queries().stabilized(file_id)?;
+
+            let root = parsed.syntax_node();
+            let ptr = stabilized.syntax_ptr(pun_id).ok_or(AnalyzerError::NonFatal)?;
+            let node = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+            let pun = cst::RecordPun::cast(node).ok_or(AnalyzerError::NonFatal)?;
+            let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
+
+            Some((name.syntax().text(&content).to_string(), NameKind::Lower))
         }
         RenameTarget::Qualifier(file_id, import_id) => {
             let indexed = context.queries().indexed(file_id)?;
