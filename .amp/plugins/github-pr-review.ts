@@ -10,10 +10,18 @@ const reviewAuthor = "purefunctor";
 const botLogin = "purefunctor[bot]";
 const markerNamespace = "amp-pr-review-state";
 const stateVersion = 2;
-const handledActions = new Set(["opened", "reopened", "synchronize", "edited", "ready_for_review"]);
+const handledActions = new Set([
+  "opened",
+  "reopened",
+  "synchronize",
+  "edited",
+  "ready_for_review",
+  "closed",
+]);
 const apiVersion = "2022-11-28";
 const requestTimeoutMs = 10_000;
 const dispatchStaleMs = 2 * 60 * 1000;
+const reviewCheckName = "Automated review";
 
 interface Credentials {
   appId: string;
@@ -71,11 +79,19 @@ interface PullRequestReview {
 interface ClaimState {
   version: 2;
   head: string;
-  status: "dispatching" | "running";
+  status: "dispatching" | "running" | "dispatch-failed";
   threadId?: string;
 }
 interface ReviewResponse {
   content: Array<{ type?: unknown; text?: unknown }>;
+}
+interface ReviewCheckRun {
+  id: number;
+  external_id: string;
+  status: "queued" | "in_progress" | "completed";
+}
+interface CheckRunsResponse {
+  check_runs: ReviewCheckRun[];
 }
 
 class TerminalReviewError extends Error {}
@@ -101,7 +117,7 @@ function completedMarker(head: string): string {
 function parseState(comment: IssueComment): ClaimState | null {
   if (!isBot(comment.user) || typeof comment.body !== "string") return null;
   const match = comment.body.match(
-    /^<!-- amp-pr-review-state v=(\d+) head=([0-9a-f]{40}) status=(dispatching|running)(?: thread=([A-Za-z0-9_-]+))? -->$/m
+    /^<!-- amp-pr-review-state v=(\d+) head=([0-9a-f]{40}) status=(dispatching|running|dispatch-failed)(?: thread=([A-Za-z0-9_-]+))? -->$/m
   );
   if (match === null || Number(match[1]) !== stateVersion) return null;
   if ((match[3] === "running") !== (match[4] !== undefined)) return null;
@@ -319,7 +335,10 @@ async function reconcilePullRequest(
         pull.state !== "open" ||
         pull.user.login !== reviewAuthor ||
         entry.state.head !== pull.head.sha;
-      if (stale && !signal?.aborted) await deleteIssueComment(entry.comment.id, token, signal);
+      if (stale && !signal?.aborted) {
+        await cancelReviewCheckRuns(number, entry.state.head, token, signal);
+        await deleteIssueComment(entry.comment.id, token, signal);
+      }
     }
     if (
       pull.state !== "open" ||
@@ -329,12 +348,30 @@ async function reconcilePullRequest(
     )
       return;
     if (await completedReviewExists(number, expectedHead, token, signal)) {
+      await completeReviewCheckRuns(
+        number,
+        expectedHead,
+        "success",
+        "The automated pull-request review was published.",
+        token
+      );
       for (const entry of claims)
         if (entry.state.head === expectedHead)
           await deleteIssueComment(entry.comment.id, token, signal);
       return;
     }
     const active = claims.find((entry) => entry.state.head === expectedHead);
+    if (active?.state.status === "dispatch-failed") {
+      await completeReviewCheckRuns(
+        number,
+        expectedHead,
+        "failure",
+        "Review dispatch failed.",
+        token
+      );
+      await deleteIssueComment(active.comment.id, token, signal);
+      return;
+    }
     if (active?.state.status === "running") {
       await resumeThread(
         amp,
@@ -349,6 +386,7 @@ async function reconcilePullRequest(
     if (active?.state.status === "dispatching") {
       const claimAge = Date.now() - Date.parse(active.comment.created_at ?? "");
       if (Number.isFinite(claimAge) && claimAge <= dispatchStaleMs) return;
+      await cancelReviewCheckRuns(number, expectedHead, token, signal);
       await deleteIssueComment(active.comment.id, token, signal);
     }
     if (signal?.aborted) return;
@@ -367,10 +405,24 @@ async function reconcilePullRequest(
       await deleteIssueComment(claim.id, token);
       return;
     }
+    const checkRun = await ensureReviewCheckRun(number, expectedHead, token, signal);
     let threadId: string;
     try {
       threadId = await createReviewThread(amp, number, expectedHead);
     } catch (error) {
+      await githubRequest(token, `/repos/${repository}/issues/comments/${claim.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          body: `${stateMarker({ version: 2, head: expectedHead, status: "dispatch-failed" })}\nAutomated review dispatch failed.`,
+        }),
+      });
+      await completeReviewCheckRuns(
+        number,
+        expectedHead,
+        "failure",
+        "Review dispatch failed.",
+        token
+      );
       await deleteIssueComment(claim.id, token);
       throw error;
     }
@@ -379,9 +431,13 @@ async function reconcilePullRequest(
       body: JSON.stringify({
         body: `${stateMarker({ version: 2, head: expectedHead, status: "running", threadId })}\nAutomated review running.`,
       }),
-      signal,
     });
     ensureMonitor(amp, threadId, credentials, number, expectedHead, claim.id);
+    try {
+      await updateRunningReviewCheckRun(checkRun.id, number, threadId, token, signal);
+    } catch (error) {
+      amp.logger.log("Could not add review thread details to the check run.", error);
+    }
   } finally {
     locks.delete(lock);
   }
@@ -448,6 +504,13 @@ async function monitorThread(
       } catch (error) {
         if (error instanceof TerminalReviewError) {
           const token = await createInstallationToken(credentials);
+          await completeReviewCheckRuns(
+            number,
+            head,
+            "failure",
+            "The reviewer returned an invalid result.",
+            token
+          );
           await deleteIssueComment(claimId, token);
           amp.logger.log("Discarded a deterministic invalid review result.", error);
           return;
@@ -504,13 +567,24 @@ async function finishReview(
   threadId: string
 ) {
   const report = parseReviewReport(response);
+  if (report.headSha !== head)
+    throw new TerminalReviewError("Review result does not match the requested revision.");
   const token = await createInstallationToken(credentials);
   if (await completedReviewExists(number, head, token)) {
+    await completeReviewCheckRuns(
+      number,
+      head,
+      "success",
+      formatCheckSummary(report),
+      token,
+      threadId
+    );
     await deleteIssueComment(claimId, token);
     return;
   }
   let pull = await getPullRequest(number, token);
-  if (pull.state !== "open" || pull.head.sha !== head || report.headSha !== head) {
+  if (pull.state !== "open" || pull.head.sha !== head) {
+    await cancelReviewCheckRuns(number, head, token);
     await deleteIssueComment(claimId, token);
     return;
   }
@@ -523,6 +597,7 @@ async function finishReview(
       );
   pull = await getPullRequest(number, token);
   if (pull.state !== "open" || pull.head.sha !== head) {
+    await cancelReviewCheckRuns(number, head, token);
     await deleteIssueComment(claimId, token);
     return;
   }
@@ -546,6 +621,14 @@ async function finishReview(
     if (!(await completedReviewExists(number, head, token))) throw error;
   }
   if (await completedReviewExists(number, head, token)) {
+    await completeReviewCheckRuns(
+      number,
+      head,
+      "success",
+      formatCheckSummary(report),
+      token,
+      threadId
+    );
     await deleteIssueComment(claimId, token);
     await notificationThread?.appendUserMessage({
       type: "user-message",
@@ -679,6 +762,151 @@ function formatSummary(head: string, report: ReviewReport, threadId: string): st
   return body;
 }
 
+function formatCheckSummary(report: ReviewReport): string {
+  const checks =
+    report.checks.length === 0
+      ? "- No checks were reported."
+      : report.checks
+          .map(
+            (check) => `- **${check.result}:** \`${check.name.trim()}\` — ${check.details.trim()}`
+          )
+          .join("\n");
+  return `${report.summary}\n\n**Inline findings:** ${report.findings.length}\n\n### Checks\n${checks}`;
+}
+
+function reviewCheckExternalId(number: number, head: string): string {
+  return `alexandrite-review:${number}:${head}`;
+}
+
+async function findActiveReviewCheckRuns(
+  number: number,
+  head: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<ReviewCheckRun[]> {
+  const name = encodeURIComponent(reviewCheckName);
+  const response = await githubRequest<CheckRunsResponse>(
+    token,
+    `/repos/${repository}/commits/${head}/check-runs?check_name=${name}&filter=all&per_page=100`,
+    { signal }
+  );
+  const externalId = reviewCheckExternalId(number, head);
+  return response.check_runs.filter(
+    (checkRun) => checkRun.external_id === externalId && checkRun.status !== "completed"
+  );
+}
+
+async function ensureReviewCheckRun(
+  number: number,
+  head: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<ReviewCheckRun> {
+  const existing = await findActiveReviewCheckRuns(number, head, token, signal);
+  const [checkRun, ...duplicates] = existing;
+  for (const duplicate of duplicates)
+    await completeReviewCheckRun(
+      duplicate.id,
+      "cancelled",
+      "A duplicate automated review superseded this check run.",
+      token
+    );
+  if (checkRun !== undefined) return checkRun;
+  return githubRequest<ReviewCheckRun>(token, `/repos/${repository}/check-runs`, {
+    method: "POST",
+    body: JSON.stringify({
+      name: reviewCheckName,
+      head_sha: head,
+      status: "in_progress",
+      external_id: reviewCheckExternalId(number, head),
+      details_url: `https://github.com/${repository}/pull/${number}`,
+      output: {
+        title: "Automated review running",
+        summary: `Reviewing pull request #${number} at commit \`${head.slice(0, 12)}\`.`,
+      },
+    }),
+    signal,
+  });
+}
+
+async function updateRunningReviewCheckRun(
+  id: number,
+  number: number,
+  threadId: string,
+  token: string,
+  signal?: AbortSignal
+) {
+  await githubRequest(token, `/repos/${repository}/check-runs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      details_url: `https://ampcode.com/threads/${threadId}`,
+      output: {
+        title: "Automated review running",
+        summary: `Reviewing pull request #${number} in Amp thread \`${threadId}\`.`,
+      },
+    }),
+    signal,
+  });
+}
+
+async function completeReviewCheckRun(
+  id: number,
+  conclusion: "success" | "failure" | "cancelled",
+  summary: string,
+  token: string,
+  threadId?: string
+) {
+  await githubRequest(token, `/repos/${repository}/check-runs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: "completed",
+      conclusion,
+      completed_at: new Date().toISOString(),
+      ...(threadId === undefined
+        ? {}
+        : { details_url: `https://ampcode.com/threads/${threadId}` }),
+      output: {
+        title:
+          conclusion === "success"
+            ? "Automated review completed"
+            : conclusion === "cancelled"
+              ? "Automated review superseded"
+              : "Automated review failed",
+        summary,
+      },
+    }),
+  });
+}
+
+async function completeReviewCheckRuns(
+  number: number,
+  head: string,
+  conclusion: "success" | "failure",
+  summary: string,
+  token: string,
+  threadId?: string
+) {
+  const checkRuns = await findActiveReviewCheckRuns(number, head, token);
+  for (const checkRun of checkRuns)
+    await completeReviewCheckRun(checkRun.id, conclusion, summary, token, threadId);
+}
+
+async function cancelReviewCheckRuns(
+  number: number,
+  head: string,
+  token: string,
+  signal?: AbortSignal
+) {
+  const checkRuns = await findActiveReviewCheckRuns(number, head, token, signal);
+  for (const checkRun of checkRuns)
+    await completeReviewCheckRun(
+      checkRun.id,
+      "cancelled",
+      "A newer pull-request revision superseded this review.",
+      token
+    );
+}
+
 async function getPullRequest(
   number: number,
   token: string,
@@ -712,10 +940,14 @@ async function completedReviewExists(
   );
 }
 async function deleteIssueComment(id: number, token: string, signal?: AbortSignal) {
-  await githubRequest(token, `/repos/${repository}/issues/comments/${id}`, {
-    method: "DELETE",
-    signal,
-  });
+  try {
+    await githubRequest(token, `/repos/${repository}/issues/comments/${id}`, {
+      method: "DELETE",
+      signal,
+    });
+  } catch (error) {
+    if (!(error instanceof GitHubRequestError) || error.status !== 404) throw error;
+  }
 }
 
 async function githubPaginatedRequest<T>(
@@ -758,7 +990,12 @@ async function createInstallationToken(
       method: "POST",
       body: JSON.stringify({
         repositories: ["purescript-alexandrite"],
-        permissions: { contents: "read", issues: "write", pull_requests: "write" },
+        permissions: {
+          checks: "write",
+          contents: "read",
+          issues: "write",
+          pull_requests: "write",
+        },
       }),
       signal,
     }
@@ -779,6 +1016,15 @@ function createAppJwt(credentials: Credentials): string {
 }
 function encodeBase64Url(value: string): string {
   return Buffer.from(value).toString("base64url");
+}
+
+class GitHubRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+  }
 }
 
 async function githubRequest<T = unknown>(
@@ -808,7 +1054,10 @@ async function githubRequest<T = unknown>(
         return (await response.json()) as T;
       }
       if (attempt === attempts || (response.status !== 429 && response.status < 500))
-        throw new Error(`GitHub API ${method} ${path} failed with ${response.status}.`);
+        throw new GitHubRequestError(
+          `GitHub API ${method} ${path} failed with ${response.status}.`,
+          response.status
+        );
     } catch (error) {
       if (attempt === attempts || init.signal?.aborted) throw error;
     }
