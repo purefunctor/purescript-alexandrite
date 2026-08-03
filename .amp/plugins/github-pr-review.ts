@@ -1,7 +1,7 @@
 // @amp-agent-mode {"key":"alexandrite-review","label":"PR review"}
 // Repository-scoped owner for the Alexandrite GitHub review webhook.
 
-import type { PluginAPI, PluginThread, ThreadAssistantMessage, WebhookEvent, WebhookHandlerContext } from '@ampcode/plugin'
+import type { PluginAPI, PluginThread, WebhookEvent, WebhookHandlerContext } from '@ampcode/plugin'
 import { createHmac, createSign, timingSafeEqual } from 'node:crypto'
 import { chmod, readFile, writeFile } from 'node:fs/promises'
 
@@ -26,6 +26,7 @@ interface GitHubActor { login?: string; type?: string }
 interface IssueComment { id: number; body?: string; created_at?: string; user?: GitHubActor }
 interface PullRequestReview { id: number; body?: string; user?: GitHubActor }
 interface ClaimState { version: 2; head: string; status: 'dispatching' | 'running'; threadId?: string }
+interface ReviewResponse { content: Array<{ type?: unknown; text?: unknown }> }
 
 class TerminalReviewError extends Error {}
 
@@ -87,7 +88,7 @@ Return exactly one JSON report and no other text between <review-report> and </r
 Use passed, failed, or not-run; LEFT only for deleted lines.`
 }
 
-async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<PluginThread> {
+async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<string> {
 	const prompt = reviewPrompt(number, head)
 	const result = await amp.$`amp --orb-execute --execute ${prompt} --no-archive-after-execute --project ${repository} --mode alexandrite-review`
 	if (result.exitCode !== 0) {
@@ -96,7 +97,7 @@ async function createReviewThread(amp: PluginAPI, number: number, head: string):
 	}
 	const threadId = result.stdout.match(/\/threads\/(T-[0-9a-f-]+)\s*$/)?.[1]
 	if (threadId === undefined) throw new Error('Review thread dispatch did not return a thread URL.')
-	return amp.threads.get(threadId as `T-${string}`)
+	return threadId
 }
 
 export default async function (amp: PluginAPI) {
@@ -185,57 +186,38 @@ async function reconcilePullRequest(amp: PluginAPI, credentials: Credentials, to
 		if (signal?.aborted) return
 		const claim = await githubRequest<{ id: number }>(token, `/repos/${repository}/issues/${number}/comments`, { method: 'POST', body: JSON.stringify({ body: `${stateMarker({ version: 2, head: expectedHead, status: 'dispatching' })}\nAutomated review dispatching.` }), signal })
 		if (signal?.aborted) { await deleteIssueComment(claim.id, token); return }
-		let thread: PluginThread
+		let threadId: string
 		try {
-			thread = await createReviewThread(amp, number, expectedHead)
+			threadId = await createReviewThread(amp, number, expectedHead)
 		} catch (error) {
 			await deleteIssueComment(claim.id, token)
 			throw error
 		}
-		await githubRequest(token, `/repos/${repository}/issues/comments/${claim.id}`, { method: 'PATCH', body: JSON.stringify({ body: `${stateMarker({ version: 2, head: expectedHead, status: 'running', threadId: thread.id })}\nAutomated review running.` }), signal })
-		ensureMonitor(amp, thread, credentials, number, expectedHead, claim.id)
+		await githubRequest(token, `/repos/${repository}/issues/comments/${claim.id}`, { method: 'PATCH', body: JSON.stringify({ body: `${stateMarker({ version: 2, head: expectedHead, status: 'running', threadId })}\nAutomated review running.` }), signal })
+		ensureMonitor(amp, threadId, credentials, number, expectedHead, claim.id)
 	} finally { locks.delete(lock) }
 }
 
 async function resumeThread(amp: PluginAPI, credentials: Credentials, number: number, head: string, claimId: number, threadId: string) {
-	let thread: PluginThread
-	try {
-		if (!/^T-[0-9a-f-]+$/.test(threadId)) throw new Error('Invalid review thread ID.')
-		thread = amp.threads.get(threadId as `T-${string}`)
-	} catch (error) {
+	if (!/^T-[0-9a-f-]+$/.test(threadId)) {
 		const token = await createInstallationToken(credentials)
 		await deleteIssueComment(claimId, token)
-		amp.logger.log(`Discarded unrecoverable review thread ${threadId}.`, error)
+		amp.logger.log(`Discarded invalid review thread ID ${threadId}.`)
 		return
 	}
 
-	try {
-		const messages = await thread.messages({ full: true, from: 'end', limit: 20 })
-		const state = await thread.state.get()
-		if (state === 'error') {
-			const token = await createInstallationToken(credentials)
-			await deleteIssueComment(claimId, token)
-			return
-		}
-		ensureMonitor(amp, thread, credentials, number, head, claimId)
-		if (messages.length === 0) {
-			await thread.appendUserMessage({ type: 'user-message', content: reviewPrompt(number, head) })
-		}
-	} catch (error) {
-		amp.logger.log(`Could not resume review thread ${threadId}; the durable claim was preserved.`, error)
-	}
+	ensureMonitor(amp, threadId, credentials, number, head, claimId)
 }
 
-function ensureMonitor(amp: PluginAPI, thread: PluginThread, credentials: Credentials, number: number, head: string, claimId: number) {
-	const key = `${claimId}:${thread.id}`
+function ensureMonitor(amp: PluginAPI, threadId: string, credentials: Credentials, number: number, head: string, claimId: number) {
+	const key = `${claimId}:${threadId}`
 	if (monitors.has(key)) return
-	const monitor = monitorThread(amp, thread, credentials, number, head, claimId).finally(() => monitors.delete(key))
+	const monitor = monitorThread(amp, threadId, credentials, number, head, claimId).finally(() => monitors.delete(key))
 	monitors.set(key, monitor)
 }
 
-async function monitorThread(amp: PluginAPI, thread: PluginThread, credentials: Credentials, number: number, head: string, claimId: number) {
+async function monitorThread(amp: PluginAPI, threadId: string, credentials: Credentials, number: number, head: string, claimId: number) {
 	let lease: { unsubscribe(): void } | undefined
-	let response = settleResponse(thread.waitForResponse({ timeoutMs: 30 * 60 * 1000 }))
 	try {
 		lease = await amp.system.executor.keepAlive()
 	} catch (error) {
@@ -244,21 +226,12 @@ async function monitorThread(amp: PluginAPI, thread: PluginThread, credentials: 
 	try {
 		for (;;) {
 			try {
-				const messages = await thread.messages({ full: true, from: 'end', limit: 20 })
-				const state = await thread.state.get()
-				if (state === 'error') {
-					const token = await createInstallationToken(credentials)
-					await deleteIssueComment(claimId, token)
-					return
+				const response = await readCompletedResponse(amp, threadId)
+				if (response === null) {
+					await new Promise((resolve) => setTimeout(resolve, 5_000))
+					continue
 				}
-				const latestAssistant = messages.findLast((message) => message.role === 'assistant')
-				if (state === 'idle' && latestAssistant?.role === 'assistant') {
-					await finishReview(amp, latestAssistant, credentials, number, head, claimId)
-					return
-				}
-				const settled = await response
-				if (settled.error !== undefined) throw settled.error
-				await finishReview(amp, settled.message, credentials, number, head, claimId)
+				await finishReview(amp, response, credentials, number, head, claimId)
 				return
 			} catch (error) {
 				if (error instanceof TerminalReviewError) {
@@ -269,7 +242,6 @@ async function monitorThread(amp: PluginAPI, thread: PluginThread, credentials: 
 				}
 				amp.logger.log('Automated review monitor will retry durable completion.', error)
 				await new Promise((resolve) => setTimeout(resolve, 5_000))
-				response = settleResponse(thread.waitForResponse({ timeoutMs: 30 * 60 * 1000 }))
 			}
 		}
 	} catch (error) {
@@ -278,11 +250,22 @@ async function monitorThread(amp: PluginAPI, thread: PluginThread, credentials: 
 	finally { lease?.unsubscribe() }
 }
 
-function settleResponse(response: Promise<ThreadAssistantMessage>): Promise<{ message: ThreadAssistantMessage; error?: never } | { message?: never; error: unknown }> {
-	return response.then((message) => ({ message }), (error: unknown) => ({ error }))
+async function readCompletedResponse(amp: PluginAPI, threadId: string): Promise<ReviewResponse | null> {
+	const result = await amp.$`amp threads export ${threadId}`
+	if (result.exitCode !== 0) throw new Error(`Could not export review thread ${threadId}.`)
+	const value = JSON.parse(result.stdout) as { messages?: unknown }
+	if (!Array.isArray(value.messages)) throw new Error(`Review thread ${threadId} has an invalid export.`)
+	const response = value.messages.findLast((message) => {
+		if (typeof message !== 'object' || message === null) return false
+		const candidate = message as { role?: unknown; state?: { type?: unknown }; meta?: { openAIResponsePhase?: unknown } }
+		return candidate.role === 'assistant' && candidate.state?.type === 'complete' && candidate.meta?.openAIResponsePhase === 'final_answer'
+	}) as { content?: unknown } | undefined
+	if (response === undefined) return null
+	if (!Array.isArray(response.content)) throw new Error(`Review thread ${threadId} returned invalid content.`)
+	return { content: response.content }
 }
 
-async function finishReview(amp: PluginAPI, response: ThreadAssistantMessage, credentials: Credentials, number: number, head: string, claimId: number) {
+async function finishReview(amp: PluginAPI, response: ReviewResponse, credentials: Credentials, number: number, head: string, claimId: number) {
 	const report = parseReviewReport(response)
 	const token = await createInstallationToken(credentials)
 	if (await completedReviewExists(number, head, token)) { await deleteIssueComment(claimId, token); return }
@@ -310,9 +293,10 @@ async function finishReview(amp: PluginAPI, response: ThreadAssistantMessage, cr
 	}
 }
 
-function parseReviewReport(message: ThreadAssistantMessage): ReviewReport {
+function parseReviewReport(message: ReviewResponse): ReviewReport {
 	try {
-		const text = message.content.filter((block) => block.type === 'text').map((block) => block.text).join('\n')
+		const textBlocks = message.content.filter((block) => block.type === 'text' && typeof block.text === 'string')
+		const text = textBlocks.map((block) => block.text).join('\n')
 		const matches = [...text.matchAll(/<review-report>\s*([\s\S]*?)\s*<\/review-report>/g)]
 		if (matches.length !== 1) throw new Error('Review thread did not return exactly one structured report.')
 		const value = JSON.parse(matches[0][1]) as Partial<ReviewReport>
