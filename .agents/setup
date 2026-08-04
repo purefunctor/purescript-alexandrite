@@ -8,6 +8,7 @@ fi
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 
 rustup toolchain install stable --profile minimal --component clippy,rustfmt
+rustup target add --toolchain stable wasm32-unknown-unknown
 rustup toolchain install nightly --profile minimal --component rustfmt
 rustup default stable
 
