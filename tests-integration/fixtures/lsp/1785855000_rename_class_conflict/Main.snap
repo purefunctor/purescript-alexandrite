@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 5, character: 6 }
+
+```
+class Original a where
+--    /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -3,6 +3,6 @@
+ class Renamed a where
+   renamedMember :: a
+
+-class Original a where
++class Renamed a where
+ --    /
+   originalMember :: a
+```

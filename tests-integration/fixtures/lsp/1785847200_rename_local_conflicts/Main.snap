@@ -1,0 +1,282 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 2, character: 24 }
+
+```
+captureRenamedReference original = (\renamed -> original) 0
+--                      /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-captureRenamedReference original = (\renamed -> original) 0
++captureRenamedReference renamed = (\renamed -> renamed) 0
+ --                      /
+
+ captureExistingReference renamed =
+```
+
+
+Rename at Position { line: 6, character: 8 }
+
+```
+  let original = 0
+--      /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -4,9 +4,9 @@
+ --                      /
+
+ captureExistingReference renamed =
+-  let original = 0
++  let renamed = 0
+ --      /
+-  in renamed + original
++  in renamed + renamed
+
+ captureLetReference original =
+ --                    /
+```
+
+
+Rename at Position { line: 10, character: 22 }
+
+```
+captureLetReference original =
+--                    /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -8,10 +8,10 @@
+ --      /
+   in renamed + original
+
+-captureLetReference original =
++captureLetReference renamed =
+ --                    /
+   let renamed = 0
+-  in original + renamed
++  in renamed + renamed
+
+ capturePunReference { renamed } =
+   let original = 0
+```
+
+
+Rename at Position { line: 16, character: 8 }
+
+```
+  let original = 0
+--      /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -14,9 +14,9 @@
+   in original + renamed
+
+ capturePunReference { renamed } =
+-  let original = 0
++  let renamed = 0
+ --      /
+-  in renamed + original
++  in renamed + renamed
+
+ captureNamedBinder original@{ renamed } = original
+ --                 /
+```
+
+
+Rename at Position { line: 20, character: 19 }
+
+```
+captureNamedBinder original@{ renamed } = original
+--                 /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -18,7 +18,7 @@
+ --      /
+   in renamed + original
+
+-captureNamedBinder original@{ renamed } = original
++captureNamedBinder renamed@{ renamed } = renamed
+ --                 /
+
+ captureRecordPun renamed { original } = original
+```
+
+
+Rename at Position { line: 23, character: 28 }
+
+```
+captureRecordPun renamed { original } = original
+--                          /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -21,7 +21,7 @@
+ captureNamedBinder original@{ renamed } = original
+ --                 /
+
+-captureRecordPun renamed { original } = original
++captureRecordPun renamed { original: renamed } = renamed
+ --                          /
+
+ preserveNestedReference original = (\renamed -> renamed) original
+```
+
+
+Rename at Position { line: 26, character: 24 }
+
+```
+preserveNestedReference original = (\renamed -> renamed) original
+--                      /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -24,7 +24,7 @@
+ captureRecordPun renamed { original } = original
+ --                          /
+
+-preserveNestedReference original = (\renamed -> renamed) original
++preserveNestedReference renamed = (\renamed -> renamed) renamed
+ --                      /
+
+ rejectUnusedParent renamed =
+```
+
+
+Rename at Position { line: 30, character: 8 }
+
+```
+  let original = 0
+--      /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -28,9 +28,9 @@
+ --                      /
+
+ rejectUnusedParent renamed =
+-  let original = 0
++  let renamed = 0
+ --      /
+-  in original
++  in renamed
+
+ captureLambda renamed = (\original -> renamed + original) 0
+ --                        /
+```
+
+
+Rename at Position { line: 34, character: 26 }
+
+```
+captureLambda renamed = (\original -> renamed + original) 0
+--                        /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -32,7 +32,7 @@
+ --      /
+   in original
+
+-captureLambda renamed = (\original -> renamed + original) 0
++captureLambda renamed = (\renamed -> renamed + renamed) 0
+ --                        /
+
+ captureCase renamed value = case value of original -> renamed + original
+```
+
+
+Rename at Position { line: 37, character: 42 }
+
+```
+captureCase renamed value = case value of original -> renamed + original
+--                                        /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -35,7 +35,7 @@
+ captureLambda renamed = (\original -> renamed + original) 0
+ --                        /
+
+-captureCase renamed value = case value of original -> renamed + original
++captureCase renamed value = case value of renamed -> renamed + renamed
+ --                                        /
+
+ captureDo renamed = do
+```
+
+
+Rename at Position { line: 41, character: 2 }
+
+```
+  original <- renamed
+--/
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -39,9 +39,9 @@
+ --                                        /
+
+ captureDo renamed = do
+-  original <- renamed
++  renamed <- renamed
+ --/
+-  original
++  renamed
+
+ captureAdo renamed = ado
+   original <- renamed
+```
+
+
+Rename at Position { line: 46, character: 2 }
+
+```
+  original <- renamed
+--/
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -44,6 +44,6 @@
+   original
+
+ captureAdo renamed = ado
+-  original <- renamed
++  renamed <- renamed
+ --/
+-  in original
++  in renamed
+```

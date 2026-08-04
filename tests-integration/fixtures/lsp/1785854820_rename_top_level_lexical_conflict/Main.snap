@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 4, character: 18 }
+
+```
+capture renamed = original
+--                /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-original = 1
++renamed = 1
+
+-capture renamed = original
++capture renamed = renamed
+ --                /
+```

@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 4, character: 3 }
+
+```
+original = renamed
+-- /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -2,7 +2,7 @@
+
+ import Lib (renamed, Renamed)
+
+-original = renamed
++renamed = renamed
+ -- /
+
+ data Original = Original Renamed
+```
+
+
+Rename at Position { line: 7, character: 5 }
+
+```
+data Original = Original Renamed
+--   /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -5,7 +5,7 @@
+ original = renamed
+ -- /
+
+-data Original = Original Renamed
++data Renamed = Original Renamed
+ --   /
+
+ localConflict original = renamed + original
+```
+
+
+Rename at Position { line: 10, character: 14 }
+
+```
+localConflict original = renamed + original
+--            /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -8,5 +8,5 @@
+ data Original = Original Renamed
+ --   /
+
+-localConflict original = renamed + original
++localConflict renamed = renamed + renamed
+ --            /
+```

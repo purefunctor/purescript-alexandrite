@@ -1,0 +1,65 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 4, character: 3 }
+
+```
+original = renamed
+-- /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -2,7 +2,7 @@
+
+ renamed = 1
+
+-original = renamed
++renamed = renamed
+ -- /
+
+ data Renamed = Renamed
+```
+
+
+Rename at Position { line: 9, character: 5 }
+
+```
+data Original = Original
+--   /          /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -7,5 +7,5 @@
+
+ data Renamed = Renamed
+
+-data Original = Original
++data Renamed = Original
+ --   /          /
+```
+
+
+Rename at Position { line: 9, character: 16 }
+
+```
+data Original = Original
+--   /          /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -7,5 +7,5 @@
+
+ data Renamed = Renamed
+
+-data Original = Original
++data Original = Renamed
+ --   /          /
+```

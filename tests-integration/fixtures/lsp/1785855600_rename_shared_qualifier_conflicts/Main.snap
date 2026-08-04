@@ -1,0 +1,77 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 5, character: 16 }
+
+```
+term = Shared.original
+--              /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,5 +1,5 @@
+ module Lib where
+
+-original = 1
++renamed = 1
+
+ data Original = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+ module Main where
+
+-import Lib (original, Original) as Shared
++import Lib (renamed, Original) as Shared
+ import Other (renamed, Renamed) as Shared
+
+-term = Shared.original
++term = Shared.renamed
+ --              /
+
+ type Example = Shared.Original
+```
+
+
+Rename at Position { line: 8, character: 25 }
+
+```
+type Example = Shared.Original
+--                       /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -2,4 +2,4 @@
+
+ original = 1
+
+-data Original = Original
++data Renamed = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,10 +1,10 @@
+ module Main where
+
+-import Lib (original, Original) as Shared
++import Lib (original, Renamed) as Shared
+ import Other (renamed, Renamed) as Shared
+
+ term = Shared.original
+ --              /
+
+-type Example = Shared.Original
++type Example = Shared.Renamed
+ --                       /
+```
