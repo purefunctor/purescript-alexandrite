@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+parenthesized :: forall (t0 :: Prim.Type). Prim.Partial => (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+typed :: forall (t0 :: Prim.Type). Prim.Partial => (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+
+Types
+
+Diagnostics
+warning[MissingPatterns]: Pattern match is not exhaustive. Missing: _
+  --> 3:1..4:15
+  |
+3 | parenthesized x
+  | ^~~~~~~~~~~~~~~
+warning[MissingPatterns]: Pattern match is not exhaustive. Missing: _
+  --> 6:1..7:26
+  |
+6 | typed x
+  | ^~~~~~~
