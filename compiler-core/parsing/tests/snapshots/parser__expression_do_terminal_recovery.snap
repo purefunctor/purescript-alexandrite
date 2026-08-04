@@ -1,0 +1,55 @@
+---
+source: compiler-core/parsing/tests/parser.rs
+assertion_line: 10
+expression: "(node.debug(&content), errors)"
+---
+(
+    Module@0..49
+      ModuleHeader@0..17
+        MODULE@0..6 "module"
+        Annotation@6..7
+          TEXT@6..7 " "
+        ModuleName@7..11
+          UPPER@7..11 "Test"
+        Annotation@11..12
+          TEXT@11..12 " "
+        WHERE@12..17 "where"
+      LAYOUT_START@17..17 ""
+      ModuleStatements@17..49
+        ValueEquation@17..49
+          Annotation@17..19
+            TEXT@17..19 "\n\n"
+          LOWER@19..23 "test"
+          Unconditional@23..49
+            Annotation@23..24
+              TEXT@23..24 " "
+            EQUAL@24..25 "="
+            WhereExpression@25..49
+              ExpressionDo@25..49
+                Annotation@25..26
+                  TEXT@25..26 " "
+                DO@26..28 "do"
+                DoStatements@28..49
+                  LAYOUT_START@28..28 ""
+                  DoStatementBind@28..46
+                    BinderVariable@28..36
+                      Annotation@28..31
+                        TEXT@28..31 "\n  "
+                      LOWER@31..36 "value"
+                    Annotation@36..37
+                      TEXT@36..37 " "
+                    LEFT_ARROW@37..39 "<-"
+                    ExpressionVariable@39..46
+                      Annotation@39..40
+                        TEXT@39..40 " "
+                      QualifiedName@40..46
+                        LOWER@40..46 "action"
+                  Annotation@46..49
+                    TEXT@46..49 "\n  "
+                  LAYOUT_SEPARATOR@49..49 ""
+                  LAYOUT_END@49..49 ""
+      LAYOUT_END@49..49 ""
+      END_OF_FILE@49..49 ""
+    ,
+    [],
+)

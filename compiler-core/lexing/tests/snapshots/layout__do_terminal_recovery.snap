@@ -1,0 +1,8 @@
+---
+source: compiler-core/lexing/tests/layout.rs
+assertion_line: 43
+expression: "print_tokens(&lexed, &tokens)"
+---
+test = do{
+  action;}
+  <eof>

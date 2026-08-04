@@ -2,6 +2,7 @@ use test_each_file::test_each_file;
 
 test_each_file! { in "./compiler-core/parsing/tests/parser" => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
+    let content = content.strip_suffix("<eof>\n").unwrap_or(&content);
     let lexed = lexing::lex(&content);
     let tokens = lexing::layout(&lexed);
     let (parsed, errors) = parsing::parse(&lexed, &tokens);
@@ -11,6 +12,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" => |content: &str| {
 
 test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
+    let content = content.strip_suffix("<eof>\n").unwrap_or(&content);
     let lexed = lexing::lex(&content);
     let tokens = lexing::layout(&lexed);
     let (parsed, _) = parsing::parse(&lexed, &tokens);
@@ -20,6 +22,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |cont
 
 test_each_file! { in "./compiler-core/parsing/tests/parser" as stability => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
+    let content = content.strip_suffix("<eof>\n").unwrap_or(&content);
     let lexed = lexing::lex(&content);
     for index in 0..lexed.len() - 1 {
         let partial = lexed.text_in_range(0..index + 1);

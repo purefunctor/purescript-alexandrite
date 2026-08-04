@@ -131,6 +131,13 @@ impl<'t> Parser<'t> {
         self.nth(1) == kind
     }
 
+    fn at_terminal_layout_separator(&self) -> bool {
+        self.at(SyntaxKind::LAYOUT_SEPARATOR)
+            && self.tokens[self.index + 1..]
+                .iter()
+                .all(|kind| matches!(kind, SyntaxKind::LAYOUT_END | SyntaxKind::END_OF_FILE))
+    }
+
     fn nth_at(&self, index: usize, kind: SyntaxKind) -> bool {
         self.nth(index) == kind
     }

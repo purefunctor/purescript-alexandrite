@@ -73,7 +73,16 @@ impl<'s> Layout<'s> {
     }
 
     pub(super) fn finish(mut self) -> Vec<SyntaxKind> {
-        while let Some((_, delimiter)) = self.stack.pop() {
+        let eof = self.lexed.info(self.index);
+        let dangling_qualifier = eof.annotation < eof.qualifier;
+        while let Some((position, delimiter)) = self.stack.pop() {
+            if delimiter == Delimiter::Do
+                && !dangling_qualifier
+                && eof.position.line > position.line
+                && eof.position.column == position.column
+            {
+                self.output.push(SyntaxKind::LAYOUT_SEPARATOR);
+            }
             if delimiter.is_indented() {
                 self.output.push(SyntaxKind::LAYOUT_END);
             }

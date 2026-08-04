@@ -299,6 +299,9 @@ fn do_statements(p: &mut Parser) {
         do_statement(p);
         recover_until_end(p, "Unexpected tokens in do statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
+            if p.at_terminal_layout_separator() {
+                p.annotate();
+            }
             p.expect(SyntaxKind::LAYOUT_SEPARATOR);
         }
     }

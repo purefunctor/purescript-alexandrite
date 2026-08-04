@@ -1,0 +1,7 @@
+---
+source: compiler-core/lexing/tests/layout.rs
+expression: "print_tokens(&lexed, &tokens)"
+---
+test = Effect.do{
+  action;}
+  <eof>

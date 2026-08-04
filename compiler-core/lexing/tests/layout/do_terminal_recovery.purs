@@ -1,0 +1,3 @@
+test = do
+  action
+  <eof>
