@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+CompletionAtEndOfFile at Position { line: 4, character: 0 }
+
+```
+
+-- completion eof
+```
+
+╭─────────┬────────────────┬─────────────────────┬─────────────┬───────────────┬─────────────┬─────────────────────────╮
+│  label  │  label_detail  │  label_description  │  sort_text  │  filter_text  │  text_edit  │  additional_text_edits  │
+╰─────────┴────────────────┴─────────────────────┴─────────────┴───────────────┴─────────────┴─────────────────────────╯

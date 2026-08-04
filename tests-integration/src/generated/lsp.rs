@@ -98,12 +98,55 @@ fn cursor_marker_line(line: &str) -> bool {
 
 enum Request {
     Cursor(Position, CursorKind),
+    CompletionAtEndOfFile { position: Position, analysis_content: String },
     SemanticTokens,
     WorkspaceSymbols(String),
 }
 
+const COMPLETION_EOF_DIRECTIVE: &str = "-- completion eof";
 const SEMANTIC_TOKENS_DIRECTIVE: &str = "-- semantic tokens";
 const WORKSPACE_SYMBOLS_DIRECTIVE: &str = "-- #";
+
+fn extract_completion_eof_requests(content: &str) -> Vec<(usize, Request)> {
+    let mut requests = vec![];
+
+    for (index, _) in content.match_indices(COMPLETION_EOF_DIRECTIVE) {
+        let directive_end = index + COMPLETION_EOF_DIRECTIVE.len();
+        let line_end = content[directive_end..]
+            .find('\n')
+            .map_or(content.len(), |offset| directive_end + offset);
+        let directive_line =
+            content[index..line_end].strip_suffix('\r').unwrap_or(&content[index..line_end]);
+        if directive_line != COMPLETION_EOF_DIRECTIVE
+            || (index > 0 && !content[..index].ends_with('\n'))
+        {
+            continue;
+        }
+
+        let preceding_line_end =
+            index.checked_sub(1).expect("EOF completion needs a preceding line");
+        let has_carriage_return =
+            preceding_line_end > 0 && content.as_bytes()[preceding_line_end - 1] == b'\r';
+        let preceding_line_end = preceding_line_end - usize::from(has_carriage_return);
+        let analysis_content = content[..preceding_line_end].to_string();
+        let utf8_position = analyzer::position::offset_to_utf8_position(
+            &analysis_content,
+            TextSize::new(analysis_content.len() as u32),
+        )
+        .expect("truncated source EOF is a valid position");
+        let position = analyzer::position::utf8_position_to_protocol(
+            &analysis_content,
+            utf8_position,
+            PositionEncoding::Utf16,
+        )
+        .expect("truncated source EOF has a UTF-16 position");
+
+        let request = Request::CompletionAtEndOfFile { position, analysis_content };
+        requests.push((index, request));
+    }
+
+    requests
+}
 
 fn extract_cursors(content: &str) -> Vec<(usize, Request)> {
     let line_index = LineIndex::new(content);
@@ -160,6 +203,7 @@ fn extract_semantic_tokens_requests(content: &str) -> Vec<(usize, Request)> {
 
 fn extract_requests(content: &str) -> Vec<Request> {
     let mut requests = extract_cursors(content);
+    requests.extend(extract_completion_eof_requests(content));
     requests.extend(extract_semantic_tokens_requests(content));
     requests.extend(extract_workspace_symbol_queries(content));
     requests.sort_by_key(|(index, _)| *index);
@@ -215,6 +259,32 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
                     *cursor,
                     uri,
                 );
+            }
+            Request::CompletionAtEndOfFile { position, analysis_content } => {
+                writeln!(result, "CompletionAtEndOfFile at {position:?}\n").unwrap();
+
+                let directive_line = line_index.line(position.line + 1);
+                if let Some(directive_line) = directive_line {
+                    let source_line = line_index.line(position.line).unwrap();
+                    writeln!(result, "```").unwrap();
+                    write!(result, "{}", &content[source_line]).unwrap();
+                    write!(result, "{}", &content[directive_line]).unwrap();
+                    writeln!(result, "```").unwrap();
+                }
+                writeln!(result).unwrap();
+
+                suggestions_cache = SuggestionsCache::default();
+                engine.set_content(id, analysis_content.clone());
+                dispatch_cursor(
+                    &mut result,
+                    engine,
+                    files,
+                    &mut suggestions_cache,
+                    *position,
+                    CursorKind::Completion,
+                    uri,
+                );
+                engine.set_content(id, content.clone());
             }
             Request::WorkspaceSymbols(query) => {
                 writeln!(result, "WorkspaceSymbols query {query:?}\n").unwrap();
@@ -730,4 +800,29 @@ fn redact_paths(mut result: String) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Position, Request, extract_completion_eof_requests};
+
+    #[test]
+    fn completion_eof_uses_truncated_source_and_utf16_position() {
+        let content = "module Main where\n  😀\n-- completion eof\nignored";
+        let requests = extract_completion_eof_requests(content);
+        let [(_, Request::CompletionAtEndOfFile { position, analysis_content })] =
+            requests.as_slice()
+        else {
+            panic!("expected one EOF completion request");
+        };
+
+        assert_eq!(analysis_content, "module Main where\n  😀");
+        assert_eq!(*position, Position::new(1, 4));
+    }
+
+    #[test]
+    fn completion_eof_directive_requires_an_exact_line() {
+        let content = "source\n-- completion eof trailing\n";
+        assert!(extract_completion_eof_requests(content).is_empty());
+    }
 }
