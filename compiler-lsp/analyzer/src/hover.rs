@@ -41,6 +41,9 @@ pub fn implementation(
         locate::Located::Expression(expression_id) => {
             hover_expression(engine, current_file, expression_id)
         }
+        locate::Located::RecordAccessLabel(label_id) => {
+            hover_record_access_label(engine, current_file, label_id)
+        }
         locate::Located::Type(type_id) => hover_type(engine, current_file, type_id),
         locate::Located::BinderPun(pun_id) => hover_pun(engine, current_file, pun_id),
         locate::Located::ExpressionPun(pun_id) => hover_pun(engine, current_file, pun_id),
@@ -243,6 +246,17 @@ fn hover_expression(
             hover_checked_type(engine, current_file, expression_type)
         }
     }
+}
+
+fn hover_record_access_label(
+    engine: &impl AnalyzerQueries,
+    current_file: FileId,
+    label_id: lowering::RecordAccessLabelId,
+) -> Result<Option<Hover>, AnalyzerError> {
+    let checked = engine.checked(current_file)?;
+    let label_type = checked.node_types.lookup_record_access_label(label_id);
+    let label_type = label_type.ok_or(AnalyzerError::NonFatal)?;
+    hover_checked_type(engine, current_file, label_type)
 }
 
 fn hover_let(

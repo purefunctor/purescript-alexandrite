@@ -350,29 +350,33 @@ pub fn infer_record_access<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     record: lowering::ExpressionId,
-    labels: &[SmolStr],
+    labels: &[lowering::RecordAccessLabel],
 ) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let record = super::infer_expression(state, context, record)?;
     let mut current_type = record.type_id;
+    let mut checked_labels = Vec::with_capacity(labels.len());
 
     for label in labels.iter() {
-        let label = SmolStr::clone(label);
+        let name = SmolStr::clone(&label.name);
 
         let field_type = state.fresh_unification(context.queries, context.prim.t);
         let tail_type = state.fresh_unification(context.queries, context.prim.row_type);
 
-        let row_type = context.intern_row([RowField { label, id: field_type }], Some(tail_type));
+        let field = RowField { label: SmolStr::clone(&name), id: field_type };
+        let row_type = context.intern_row([field], Some(tail_type));
         let record_type = context.intern_application(context.prim.record, row_type);
 
         unification::subtype(state, context, current_type, record_type)?;
+        state.checked.node_types.record_access_labels.insert(label.id, field_type);
         current_type = field_type;
+        checked_labels.push(name);
     }
 
-    let kind =
-        tree::ExpressionKind::RecordAccess { record: record.expression, labels: Arc::from(labels) };
+    let labels = Arc::from(checked_labels);
+    let kind = tree::ExpressionKind::RecordAccess { record: record.expression, labels };
     Ok(super::allocate_expression(state, current_type, kind))
 }
 

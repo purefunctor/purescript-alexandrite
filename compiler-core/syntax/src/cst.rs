@@ -214,7 +214,7 @@ create_cst_enum!(LetBinding | LetBindingPattern | LetBindingSignature | LetBindi
 
 create_cst_enum!(RecordItem | RecordField | RecordPun);
 
-create_cst_struct!(RecordUpdates);
+create_cst_struct!(RecordAccessLabel, RecordUpdates);
 
 create_cst_enum!(RecordUpdate | RecordUpdateLeaf | RecordUpdateBranch);
 
@@ -935,7 +935,17 @@ has_child!(
 
 has_children!(
     ExpressionRecordAccess
-    | children() -> LabelName
+    | children() -> RecordAccessLabel
+);
+
+has_token!(
+    RecordAccessLabel
+    | period() -> PERIOD
+);
+
+has_child!(
+    RecordAccessLabel
+    | name() -> LabelName
 );
 
 has_child!(

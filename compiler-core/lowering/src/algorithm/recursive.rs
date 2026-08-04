@@ -566,8 +566,10 @@ fn lower_expression_kind(
             let labels = cst
                 .children()
                 .map(|cst| {
-                    let token = cst.text()?;
-                    Some(string_text(context.source, token))
+                    let id = context.stabilized.lookup_cst(&cst).expect_id();
+                    let token = cst.name()?.text()?;
+                    let name = string_text(context.source, token);
+                    Some(RecordAccessLabel { id, name })
                 })
                 .collect();
             ExpressionKind::RecordAccess { record, labels }

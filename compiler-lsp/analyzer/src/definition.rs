@@ -67,6 +67,7 @@ pub fn implementation(
         }
         locate::Located::BinderPun(_) => Ok(None),
         locate::Located::ExpressionPun(_) => Ok(None),
+        locate::Located::RecordAccessLabel(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
 }

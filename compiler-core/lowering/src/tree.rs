@@ -76,6 +76,12 @@ pub enum ExpressionRecordItem {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct RecordAccessLabel {
+    pub id: RecordAccessLabelId,
+    pub name: SmolStr,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
     Typed {
         expression: Option<ExpressionId>,
@@ -164,7 +170,7 @@ pub enum ExpressionKind {
     },
     RecordAccess {
         record: Option<ExpressionId>,
-        labels: Option<Arc<[SmolStr]>>,
+        labels: Option<Arc<[RecordAccessLabel]>>,
     },
     RecordUpdate {
         record: Option<ExpressionId>,

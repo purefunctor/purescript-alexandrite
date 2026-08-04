@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 5, character: 16 }
+
+```
+access = record.nested.value
+--              $      $
+```
+
+```purescript
+{ value :: Int }
+```
+
+
+Hover at Position { line: 5, character: 23 }
+
+```
+access = record.nested.value
+--              $      $
+```
+
+```purescript
+Int
+```

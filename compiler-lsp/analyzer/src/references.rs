@@ -69,6 +69,7 @@ pub fn implementation(
             references_expression_pun(context, current_file, pun_id)
         }
         locate::Located::InstanceMember(_, _) => Ok(None),
+        locate::Located::RecordAccessLabel(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
 }

@@ -1,9 +1,9 @@
 ---
 source: compiler-core/parsing/tests/parser.rs
-expression: "(node, errors)"
+expression: "(node.debug(&content), errors)"
 ---
 (
-    Module@0..273
+    Module@0..294
       ModuleHeader@0..35
         MODULE@0..6 "module"
         Annotation@6..7
@@ -14,7 +14,7 @@ expression: "(node, errors)"
           TEXT@29..30 " "
         WHERE@30..35 "where"
       LAYOUT_START@35..35 ""
-      ModuleStatements@35..272
+      ModuleStatements@35..293
         ValueEquation@35..56
           Annotation@35..37
             TEXT@35..37 "\n\n"
@@ -30,9 +30,10 @@ expression: "(node, errors)"
                     TEXT@45..46 " "
                   QualifiedName@46..52
                     LOWER@46..52 "record"
-                PERIOD@52..53 "."
-                LabelName@53..56
-                  TEXT@53..56 "foo"
+                RecordAccessLabel@52..56
+                  PERIOD@52..53 "."
+                  LabelName@53..56
+                    TEXT@53..56 "foo"
         LAYOUT_SEPARATOR@56..56 ""
         ValueEquation@56..80
           Annotation@56..57
@@ -49,139 +50,173 @@ expression: "(node, errors)"
                     TEXT@65..66 " "
                   QualifiedName@66..72
                     LOWER@66..72 "record"
-                PERIOD@72..73 "."
-                LabelName@73..76
-                  TEXT@73..76 "foo"
-                PERIOD@76..77 "."
-                LabelName@77..80
-                  TEXT@77..80 "bar"
+                RecordAccessLabel@72..76
+                  PERIOD@72..73 "."
+                  LabelName@73..76
+                    TEXT@73..76 "foo"
+                RecordAccessLabel@76..80
+                  PERIOD@76..77 "."
+                  LabelName@77..80
+                    TEXT@77..80 "bar"
         LAYOUT_SEPARATOR@80..80 ""
-        ValueEquation@80..105
+        ValueEquation@80..101
           Annotation@80..82
             TEXT@80..82 "\n\n"
-          LOWER@82..89 "keyword"
-          Unconditional@89..105
+          LOWER@82..89 "section"
+          Unconditional@89..101
             Annotation@89..90
               TEXT@89..90 " "
             EQUAL@90..91 "="
-            WhereExpression@91..105
-              ExpressionRecordAccess@91..105
-                ExpressionVariable@91..98
+            WhereExpression@91..101
+              ExpressionRecordAccess@91..101
+                ExpressionSection@91..93
                   Annotation@91..92
                     TEXT@91..92 " "
-                  QualifiedName@92..98
-                    LOWER@92..98 "record"
-                PERIOD@98..99 "."
-                LabelName@99..105
-                  TEXT@99..105 "forall"
-        LAYOUT_SEPARATOR@105..105 ""
-        ValueEquation@105..136
-          Annotation@105..106
-            TEXT@105..106 "\n"
-          LOWER@106..113 "keyword"
-          Unconditional@113..136
-            Annotation@113..114
-              TEXT@113..114 " "
-            EQUAL@114..115 "="
-            WhereExpression@115..136
-              ExpressionRecordAccess@115..136
-                ExpressionVariable@115..122
-                  Annotation@115..116
-                    TEXT@115..116 " "
-                  QualifiedName@116..122
-                    LOWER@116..122 "record"
-                PERIOD@122..123 "."
-                LabelName@123..129
-                  TEXT@123..129 "forall"
-                PERIOD@129..130 "."
-                LabelName@130..136
-                  TEXT@130..136 "forall"
-        LAYOUT_SEPARATOR@136..136 ""
-        ValueEquation@136..161
-          Annotation@136..138
-            TEXT@136..138 "\n\n"
-          LOWER@138..144 "string"
-          Unconditional@144..161
-            Annotation@144..145
-              TEXT@144..145 " "
-            EQUAL@145..146 "="
-            WhereExpression@146..161
-              ExpressionRecordAccess@146..161
-                ExpressionVariable@146..153
-                  Annotation@146..147
-                    TEXT@146..147 " "
-                  QualifiedName@147..153
-                    LOWER@147..153 "record"
-                PERIOD@153..154 "."
-                LabelName@154..161
-                  TEXT@154..161 "\"error\""
-        LAYOUT_SEPARATOR@161..161 ""
-        ValueEquation@161..193
-          Annotation@161..162
-            TEXT@161..162 "\n"
-          LOWER@162..168 "string"
-          Unconditional@168..193
-            Annotation@168..169
-              TEXT@168..169 " "
-            EQUAL@169..170 "="
-            WhereExpression@170..193
-              ExpressionRecordAccess@170..193
-                ExpressionVariable@170..177
-                  Annotation@170..171
-                    TEXT@170..171 " "
-                  QualifiedName@171..177
-                    LOWER@171..177 "record"
-                PERIOD@177..178 "."
-                LabelName@178..185
-                  TEXT@178..185 "\"error\""
-                PERIOD@185..186 "."
-                LabelName@186..193
-                  TEXT@186..193 "\"error\""
-        LAYOUT_SEPARATOR@193..193 ""
-        ValueEquation@193..226
-          Annotation@193..195
-            TEXT@193..195 "\n\n"
-          LOWER@195..205 "raw_string"
-          Unconditional@205..226
-            Annotation@205..206
-              TEXT@205..206 " "
-            EQUAL@206..207 "="
-            WhereExpression@207..226
-              ExpressionRecordAccess@207..226
-                ExpressionVariable@207..214
-                  Annotation@207..208
-                    TEXT@207..208 " "
-                  QualifiedName@208..214
-                    LOWER@208..214 "record"
-                PERIOD@214..215 "."
-                LabelName@215..226
-                  TEXT@215..226 "\"\"\"error\"\"\""
-        LAYOUT_SEPARATOR@226..226 ""
-        ValueEquation@226..272
-          Annotation@226..227
-            TEXT@226..227 "\n"
-          LOWER@227..237 "raw_string"
-          Unconditional@237..272
-            Annotation@237..238
-              TEXT@237..238 " "
-            EQUAL@238..239 "="
-            WhereExpression@239..272
-              ExpressionRecordAccess@239..272
-                ExpressionVariable@239..246
-                  Annotation@239..240
-                    TEXT@239..240 " "
-                  QualifiedName@240..246
-                    LOWER@240..246 "record"
-                PERIOD@246..247 "."
-                LabelName@247..258
-                  TEXT@247..258 "\"\"\"error\"\"\""
-                PERIOD@258..259 "."
-                LabelName@259..272
-                  TEXT@259..272 "\"\"\"\"error\"\"\"\""
-      LAYOUT_END@272..272 ""
-      Annotation@272..273
-        TEXT@272..273 "\n"
-      END_OF_FILE@273..273 ""
+                  UNDERSCORE@92..93 "_"
+                RecordAccessLabel@93..97
+                  PERIOD@93..94 "."
+                  LabelName@94..97
+                    TEXT@94..97 "foo"
+                RecordAccessLabel@97..101
+                  PERIOD@97..98 "."
+                  LabelName@98..101
+                    TEXT@98..101 "bar"
+        LAYOUT_SEPARATOR@101..101 ""
+        ValueEquation@101..126
+          Annotation@101..103
+            TEXT@101..103 "\n\n"
+          LOWER@103..110 "keyword"
+          Unconditional@110..126
+            Annotation@110..111
+              TEXT@110..111 " "
+            EQUAL@111..112 "="
+            WhereExpression@112..126
+              ExpressionRecordAccess@112..126
+                ExpressionVariable@112..119
+                  Annotation@112..113
+                    TEXT@112..113 " "
+                  QualifiedName@113..119
+                    LOWER@113..119 "record"
+                RecordAccessLabel@119..126
+                  PERIOD@119..120 "."
+                  LabelName@120..126
+                    TEXT@120..126 "forall"
+        LAYOUT_SEPARATOR@126..126 ""
+        ValueEquation@126..157
+          Annotation@126..127
+            TEXT@126..127 "\n"
+          LOWER@127..134 "keyword"
+          Unconditional@134..157
+            Annotation@134..135
+              TEXT@134..135 " "
+            EQUAL@135..136 "="
+            WhereExpression@136..157
+              ExpressionRecordAccess@136..157
+                ExpressionVariable@136..143
+                  Annotation@136..137
+                    TEXT@136..137 " "
+                  QualifiedName@137..143
+                    LOWER@137..143 "record"
+                RecordAccessLabel@143..150
+                  PERIOD@143..144 "."
+                  LabelName@144..150
+                    TEXT@144..150 "forall"
+                RecordAccessLabel@150..157
+                  PERIOD@150..151 "."
+                  LabelName@151..157
+                    TEXT@151..157 "forall"
+        LAYOUT_SEPARATOR@157..157 ""
+        ValueEquation@157..182
+          Annotation@157..159
+            TEXT@157..159 "\n\n"
+          LOWER@159..165 "string"
+          Unconditional@165..182
+            Annotation@165..166
+              TEXT@165..166 " "
+            EQUAL@166..167 "="
+            WhereExpression@167..182
+              ExpressionRecordAccess@167..182
+                ExpressionVariable@167..174
+                  Annotation@167..168
+                    TEXT@167..168 " "
+                  QualifiedName@168..174
+                    LOWER@168..174 "record"
+                RecordAccessLabel@174..182
+                  PERIOD@174..175 "."
+                  LabelName@175..182
+                    TEXT@175..182 "\"error\""
+        LAYOUT_SEPARATOR@182..182 ""
+        ValueEquation@182..214
+          Annotation@182..183
+            TEXT@182..183 "\n"
+          LOWER@183..189 "string"
+          Unconditional@189..214
+            Annotation@189..190
+              TEXT@189..190 " "
+            EQUAL@190..191 "="
+            WhereExpression@191..214
+              ExpressionRecordAccess@191..214
+                ExpressionVariable@191..198
+                  Annotation@191..192
+                    TEXT@191..192 " "
+                  QualifiedName@192..198
+                    LOWER@192..198 "record"
+                RecordAccessLabel@198..206
+                  PERIOD@198..199 "."
+                  LabelName@199..206
+                    TEXT@199..206 "\"error\""
+                RecordAccessLabel@206..214
+                  PERIOD@206..207 "."
+                  LabelName@207..214
+                    TEXT@207..214 "\"error\""
+        LAYOUT_SEPARATOR@214..214 ""
+        ValueEquation@214..247
+          Annotation@214..216
+            TEXT@214..216 "\n\n"
+          LOWER@216..226 "raw_string"
+          Unconditional@226..247
+            Annotation@226..227
+              TEXT@226..227 " "
+            EQUAL@227..228 "="
+            WhereExpression@228..247
+              ExpressionRecordAccess@228..247
+                ExpressionVariable@228..235
+                  Annotation@228..229
+                    TEXT@228..229 " "
+                  QualifiedName@229..235
+                    LOWER@229..235 "record"
+                RecordAccessLabel@235..247
+                  PERIOD@235..236 "."
+                  LabelName@236..247
+                    TEXT@236..247 "\"\"\"error\"\"\""
+        LAYOUT_SEPARATOR@247..247 ""
+        ValueEquation@247..293
+          Annotation@247..248
+            TEXT@247..248 "\n"
+          LOWER@248..258 "raw_string"
+          Unconditional@258..293
+            Annotation@258..259
+              TEXT@258..259 " "
+            EQUAL@259..260 "="
+            WhereExpression@260..293
+              ExpressionRecordAccess@260..293
+                ExpressionVariable@260..267
+                  Annotation@260..261
+                    TEXT@260..261 " "
+                  QualifiedName@261..267
+                    LOWER@261..267 "record"
+                RecordAccessLabel@267..279
+                  PERIOD@267..268 "."
+                  LabelName@268..279
+                    TEXT@268..279 "\"\"\"error\"\"\""
+                RecordAccessLabel@279..293
+                  PERIOD@279..280 "."
+                  LabelName@280..293
+                    TEXT@280..293 "\"\"\"\"error\"\"\"\""
+      LAYOUT_END@293..293 ""
+      Annotation@293..294
+        TEXT@293..294 "\n"
+      END_OF_FILE@294..294 ""
     ,
     [],
 )
