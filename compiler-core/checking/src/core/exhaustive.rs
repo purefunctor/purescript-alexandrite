@@ -1177,6 +1177,16 @@ where
     let Some(expression_id) = guard.expression else {
         return false;
     };
+    is_trivially_true_expression(context, expression_id)
+}
+
+fn is_trivially_true_expression<Q>(
+    context: &CheckContext<Q>,
+    expression_id: lowering::ExpressionId,
+) -> bool
+where
+    Q: ExternalQueries,
+{
     let Some(kind) = context.lowered.tree.get_expression_kind(expression_id) else {
         return false;
     };
@@ -1185,6 +1195,10 @@ where
         lowering::ExpressionKind::Variable {
             resolution: Some(lowering::TermVariableResolution::Reference(file_id, term_id)),
         } => context.known_terms.otherwise == Some((*file_id, *term_id)),
+        lowering::ExpressionKind::Parenthesized { parenthesized: Some(expression_id) }
+        | lowering::ExpressionKind::Typed { expression: Some(expression_id), .. } => {
+            is_trivially_true_expression(context, *expression_id)
+        }
         _ => false,
     }
 }

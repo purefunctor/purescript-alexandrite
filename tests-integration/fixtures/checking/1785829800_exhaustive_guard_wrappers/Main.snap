@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+parenthesized :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+typed :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+
+Types
