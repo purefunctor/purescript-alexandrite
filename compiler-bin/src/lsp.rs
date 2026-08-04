@@ -12,7 +12,7 @@ use std::{env, fs, mem, process};
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
 use analyzer::symbols::WorkspaceSymbolsCache;
-use analyzer::{AnalyzerContext, AnalyzerHost};
+use analyzer::{AnalyzerCapabilities, AnalyzerContext, AnalyzerHost};
 use async_lsp::client_monitor::ClientProcessMonitorLayer;
 use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::panic::CatchUnwindLayer;
@@ -32,7 +32,7 @@ use tempfile::TempDir;
 use tokio::task;
 use tower::ServiceBuilder;
 
-use crate::lsp::capabilities::negotiate_position_encoding;
+use crate::lsp::capabilities::{negotiate_analyzer_capabilities, negotiate_position_encoding};
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 use crate::walk;
 
@@ -73,6 +73,7 @@ pub struct State {
 
     pub root: Option<PathBuf>,
     pub position_encoding: PositionEncoding,
+    pub analyzer_capabilities: AnalyzerCapabilities,
 }
 
 impl State {
@@ -92,6 +93,7 @@ impl State {
 
         let root = None;
         let position_encoding = PositionEncoding::Utf16;
+        let analyzer_capabilities = AnalyzerCapabilities::default();
 
         State {
             config,
@@ -102,6 +104,7 @@ impl State {
             suggestions_cache,
             root,
             position_encoding,
+            analyzer_capabilities,
         }
     }
 
@@ -116,6 +119,7 @@ impl State {
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
             suggestions_cache: Arc::clone(&self.suggestions_cache),
             position_encoding: self.position_encoding,
+            analyzer_capabilities: self.analyzer_capabilities,
         };
         task::spawn_blocking(move || f(snapshot))
     }
@@ -138,6 +142,7 @@ struct StateSnapshot {
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
     position_encoding: PositionEncoding,
+    analyzer_capabilities: AnalyzerCapabilities,
 }
 
 impl StateSnapshot {
@@ -147,7 +152,8 @@ impl StateSnapshot {
     ) -> T {
         let files = self.files.read();
         let host = LspAnalyzerHost { queries: &self.engine, files };
-        let context = AnalyzerContext::new(&host, self.position_encoding);
+        let context =
+            AnalyzerContext::new(&host, self.position_encoding, self.analyzer_capabilities);
         f(&context)
     }
 }
@@ -230,6 +236,7 @@ fn initialize(
 ) -> impl Future<Output = Result<InitializeResult, ResponseError>> + use<> {
     let position_encoding = negotiate_position_encoding(&p.initialize_params);
     state.position_encoding = position_encoding;
+    state.analyzer_capabilities = negotiate_analyzer_capabilities(&p.initialize_params);
 
     state.root = p
         .initialize_params

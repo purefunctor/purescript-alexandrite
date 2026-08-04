@@ -10,6 +10,8 @@ class Original a where
 --    /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -22,3 +24,5 @@ class Original a where
  --    /
    originalMember :: a
 ```
+
+Without change annotations: Rename rejected: Cannot rename `Original` to `Renamed` because it would change name resolution

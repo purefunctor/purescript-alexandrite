@@ -2,19 +2,19 @@ pub mod render;
 
 use std::fmt::Write;
 
-use analyzer::AnalyzerHost;
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
+use analyzer::{AnalyzerCapabilities, AnalyzerHost};
 use building::QueryEngine;
 use files::{FileId, Files};
 use itertools::Itertools;
 use line_index::{LineIndex, TextSize};
 use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
-    CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
+    CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse, DocumentChanges,
     DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, Position, PrepareRenameResponse, Range, SemanticTokens,
-    SymbolInformation, TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
+    LanguageString, Location, MarkedString, OneOf, Position, PrepareRenameResponse, Range,
+    SemanticTokens, SymbolInformation, TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use similar::TextDiff;
@@ -239,7 +239,8 @@ fn dispatch_semantic_tokens(
 ) {
     let encoding = PositionEncoding::Utf16;
     let host = IntegrationAnalyzerHost { queries: engine, files };
-    let context = analyzer::AnalyzerContext::new(&host, encoding);
+    let capabilities = AnalyzerCapabilities::default().with_change_annotations();
+    let context = analyzer::AnalyzerContext::new(&host, encoding, capabilities);
     let Ok(Some(SemanticTokens { data, .. })) =
         analyzer::semantic_tokens::implementation(&context, uri)
     else {
@@ -329,8 +330,61 @@ fn render_workspace_edit(edit: WorkspaceEdit) -> Vec<String> {
     result
 }
 
+fn assert_rename_annotations(edit: &WorkspaceEdit) {
+    let Some(annotations) = edit.change_annotations.as_ref() else { return };
+    assert!(edit.changes.is_none(), "annotated rename edits must not also use changes");
+    assert!(!annotations.is_empty(), "annotated rename edits must define an annotation");
+    assert!(
+        annotations.values().all(|annotation| annotation.needs_confirmation == Some(true)),
+        "rename change annotations must require confirmation"
+    );
+
+    let Some(DocumentChanges::Edits(documents)) = edit.document_changes.as_ref() else {
+        panic!("annotated rename edits must use text document edits");
+    };
+    assert!(!documents.is_empty(), "annotated rename edits must edit a document");
+    for document in documents {
+        assert!(!document.edits.is_empty(), "annotated rename documents must contain an edit");
+        for edit in &document.edits {
+            let OneOf::Right(edit) = edit else {
+                panic!("every edit in an annotated rename must reference an annotation");
+            };
+            assert!(
+                annotations.contains_key(&edit.annotation_id),
+                "annotated rename edit references an unknown annotation"
+            );
+        }
+    }
+}
+
 fn render_rename_edit(edit: WorkspaceEdit, files: &Files, encoding: PositionEncoding) -> String {
-    let Some(changes) = edit.changes else { return String::new() };
+    assert_rename_annotations(&edit);
+    let annotation = edit.change_annotations.and_then(|annotations| {
+        annotations.into_values().next().map(|annotation| {
+            let confirmation = if annotation.needs_confirmation == Some(true) {
+                " (confirmation required)"
+            } else {
+                ""
+            };
+            format!("{}{}", annotation.label, confirmation)
+        })
+    });
+
+    let changes = if let Some(changes) = edit.changes {
+        changes
+    } else if let Some(DocumentChanges::Edits(documents)) = edit.document_changes {
+        let documents = documents.into_iter().map(|document| {
+            let edits = document.edits.into_iter().map(|edit| match edit {
+                OneOf::Left(edit) => edit,
+                OneOf::Right(edit) => edit.text_edit,
+            });
+            let edits = edits.collect();
+            (document.text_document.uri, edits)
+        });
+        documents.collect()
+    } else {
+        return String::new();
+    };
 
     let mut changes = changes.into_iter().collect::<Vec<_>>();
     changes.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
@@ -353,7 +407,8 @@ fn render_rename_edit(edit: WorkspaceEdit, files: &Files, encoding: PositionEnco
         format!("```diff\n{diff}\n```")
     });
 
-    rendered.join("\n\n")
+    let rendered = rendered.join("\n\n");
+    if let Some(annotation) = annotation { format!("{annotation}\n\n{rendered}") } else { rendered }
 }
 
 fn apply_text_edits(content: &str, edits: Vec<TextEdit>, encoding: PositionEncoding) -> String {
@@ -426,7 +481,8 @@ fn dispatch_cursor(
 ) {
     let encoding = PositionEncoding::Utf16;
     let host = IntegrationAnalyzerHost { queries: engine, files };
-    let context = analyzer::AnalyzerContext::new(&host, encoding);
+    let capabilities = AnalyzerCapabilities::default().with_change_annotations();
+    let context = analyzer::AnalyzerContext::new(&host, encoding, capabilities);
 
     match cursor {
         CursorKind::GotoDefinition => {
@@ -564,11 +620,26 @@ fn dispatch_cursor(
                 return;
             };
             let host = IntegrationAnalyzerHost { queries: engine, files };
-            let context = analyzer::AnalyzerContext::new(&host, encoding);
-            let response = analyzer::rename::implementation(&context, uri, position, new_name);
+            let capabilities = AnalyzerCapabilities::default().with_change_annotations();
+            let context = analyzer::AnalyzerContext::new(&host, encoding, capabilities);
+            let response =
+                analyzer::rename::implementation(&context, uri.clone(), position, new_name.clone());
             if let Ok(Some(edit)) = response {
+                let annotated = edit.change_annotations.is_some();
                 let edit = render_rename_edit(edit, files, encoding);
                 writeln!(result, "{edit}").unwrap();
+                if annotated {
+                    let context = analyzer::AnalyzerContext::new(
+                        &host,
+                        encoding,
+                        AnalyzerCapabilities::default(),
+                    );
+                    let response =
+                        analyzer::rename::implementation(&context, uri, position, new_name);
+                    if let Err(error) = response {
+                        writeln!(result, "\nWithout change annotations: {error}").unwrap();
+                    }
+                }
             } else {
                 writeln!(result, "<empty>").unwrap();
             }
@@ -659,7 +730,8 @@ fn dispatch_workspace_symbols(
 ) {
     let encoding = PositionEncoding::Utf16;
     let host = IntegrationAnalyzerHost { queries: engine, files };
-    let context = analyzer::AnalyzerContext::new(&host, encoding);
+    let capabilities = AnalyzerCapabilities::default().with_change_annotations();
+    let context = analyzer::AnalyzerContext::new(&host, encoding, capabilities);
 
     match analyzer::symbols::workspace(&context, cache, query) {
         Ok(Some(WorkspaceSymbolResponse::Flat(symbols))) => {

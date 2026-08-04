@@ -10,6 +10,8 @@ captureRenamedReference original = (\renamed -> original) 0
 --                      /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -23,6 +25,8 @@ captureRenamedReference original = (\renamed -> original) 0
  captureExistingReference renamed =
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 6, character: 8 }
 
@@ -30,6 +34,8 @@ Rename at Position { line: 6, character: 8 }
   let original = 0
 --      /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -48,6 +54,8 @@ Rename at Position { line: 6, character: 8 }
  --                    /
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 10, character: 22 }
 
@@ -55,6 +63,8 @@ Rename at Position { line: 10, character: 22 }
 captureLetReference original =
 --                    /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -74,6 +84,8 @@ captureLetReference original =
    let original = 0
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 16, character: 8 }
 
@@ -81,6 +93,8 @@ Rename at Position { line: 16, character: 8 }
   let original = 0
 --      /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -99,6 +113,8 @@ Rename at Position { line: 16, character: 8 }
  --                 /
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 20, character: 19 }
 
@@ -106,6 +122,8 @@ Rename at Position { line: 20, character: 19 }
 captureNamedBinder original@{ renamed } = original
 --                 /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -121,6 +139,8 @@ captureNamedBinder original@{ renamed } = original
  captureRecordPun renamed { original } = original
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 23, character: 28 }
 
@@ -128,6 +148,8 @@ Rename at Position { line: 23, character: 28 }
 captureRecordPun renamed { original } = original
 --                          /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -142,6 +164,8 @@ captureRecordPun renamed { original } = original
 
  preserveNestedReference original = (\renamed -> renamed) original
 ```
+
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
 
 
 Rename at Position { line: 26, character: 24 }
@@ -173,6 +197,8 @@ Rename at Position { line: 30, character: 8 }
 --      /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -190,6 +216,8 @@ Rename at Position { line: 30, character: 8 }
  --                        /
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 34, character: 26 }
 
@@ -197,6 +225,8 @@ Rename at Position { line: 34, character: 26 }
 captureLambda renamed = (\original -> renamed + original) 0
 --                        /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -212,6 +242,8 @@ captureLambda renamed = (\original -> renamed + original) 0
  captureCase renamed value = case value of original -> renamed + original
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 37, character: 42 }
 
@@ -219,6 +251,8 @@ Rename at Position { line: 37, character: 42 }
 captureCase renamed value = case value of original -> renamed + original
 --                                        /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -234,6 +268,8 @@ captureCase renamed value = case value of original -> renamed + original
  captureDo renamed = do
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 41, character: 2 }
 
@@ -241,6 +277,8 @@ Rename at Position { line: 41, character: 2 }
   original <- renamed
 --/
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -259,6 +297,8 @@ Rename at Position { line: 41, character: 2 }
    original <- renamed
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 46, character: 2 }
 
@@ -266,6 +306,8 @@ Rename at Position { line: 46, character: 2 }
   original <- renamed
 --/
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -280,3 +322,5 @@ Rename at Position { line: 46, character: 2 }
 -  in original
 +  in renamed
 ```
+
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution

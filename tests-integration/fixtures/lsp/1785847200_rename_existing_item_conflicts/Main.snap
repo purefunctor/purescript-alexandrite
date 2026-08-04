@@ -10,6 +10,8 @@ original = renamed
 -- /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -24,6 +26,8 @@ original = renamed
  data Renamed = Renamed
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 9, character: 5 }
 
@@ -31,6 +35,8 @@ Rename at Position { line: 9, character: 5 }
 data Original = Original
 --   /          /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -44,6 +50,8 @@ data Original = Original
  --   /          /
 ```
 
+Without change annotations: Rename rejected: Cannot rename `Original` to `Renamed` because it would change name resolution
+
 
 Rename at Position { line: 9, character: 16 }
 
@@ -51,6 +59,8 @@ Rename at Position { line: 9, character: 16 }
 data Original = Original
 --   /          /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -63,3 +73,5 @@ data Original = Original
 +data Original = Renamed
  --   /          /
 ```
+
+Without change annotations: Rename rejected: Cannot rename `Original` to `Renamed` because it would change name resolution

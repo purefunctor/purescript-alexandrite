@@ -10,6 +10,8 @@ capture renamed = original
 --                /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -23,3 +25,5 @@ capture renamed = original
 +capture renamed = renamed
  --                /
 ```
+
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution

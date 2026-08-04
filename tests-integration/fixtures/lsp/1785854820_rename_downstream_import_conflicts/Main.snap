@@ -10,6 +10,8 @@ term = original + renamed
 --     /
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Lib.purs
 +++ Lib.purs
@@ -39,6 +41,8 @@ term = original + renamed
  type Example = Original
 ```
 
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 8, character: 15 }
 
@@ -46,6 +50,8 @@ Rename at Position { line: 8, character: 15 }
 type Example = Original
 --             /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Lib.purs
@@ -75,3 +81,5 @@ type Example = Original
 +type Example = Renamed
  --             /
 ```
+
+Without change annotations: Rename rejected: Cannot rename `Original` to `Renamed` because it would change name resolution

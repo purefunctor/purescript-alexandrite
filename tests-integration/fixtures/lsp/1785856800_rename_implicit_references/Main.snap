@@ -10,6 +10,8 @@ map function value = function value
 --/
 ```
 
+Rename may change name resolution (confirmation required)
+
 ```diff
 --- Main.purs
 +++ Main.purs
@@ -23,6 +25,8 @@ map function value = function value
  topLevelMap = ado
 ```
 
+Without change annotations: Rename rejected: Cannot rename `map` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 9, character: 9 }
 
@@ -30,6 +34,8 @@ Rename at Position { line: 9, character: 9 }
 localMap map = ado
 --       /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -45,6 +51,8 @@ localMap map = ado
    in value
 ```
 
+Without change annotations: Rename rejected: Cannot rename `map` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 14, character: 10 }
 
@@ -52,6 +60,8 @@ Rename at Position { line: 14, character: 10 }
 localBind bind = do
 --        /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -67,6 +77,8 @@ localBind bind = do
    value
 ```
 
+Without change annotations: Rename rejected: Cannot rename `bind` to `renamed` because it would change name resolution
+
 
 Rename at Position { line: 19, character: 12 }
 
@@ -74,6 +86,8 @@ Rename at Position { line: 19, character: 12 }
 localNegate negate value = -value
 --          /
 ```
+
+Rename may change name resolution (confirmation required)
 
 ```diff
 --- Main.purs
@@ -86,3 +100,5 @@ localNegate negate value = -value
 +localNegate renamed value = -value
  --          /
 ```
+
+Without change annotations: Rename rejected: Cannot rename `negate` to `renamed` because it would change name resolution

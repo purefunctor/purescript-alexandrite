@@ -994,7 +994,10 @@ where
         }
     }
 
-    pub(super) fn finish(mut self) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
+    pub(super) fn finish(
+        mut self,
+        conflicts: bool,
+    ) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
         self.edits.sort_by_key(|(file_id, edit)| {
             (
                 file_id.into_raw().into_u32(),
@@ -1010,6 +1013,10 @@ where
             return Ok(None);
         }
 
+        if conflicts {
+            return self.finish_annotated();
+        }
+
         let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::default();
         for (file_id, edit) in self.edits {
             let uri = common::file_uri(self.context, file_id)?;
@@ -1017,5 +1024,35 @@ where
         }
 
         Ok(Some(WorkspaceEdit { changes: Some(changes), ..WorkspaceEdit::default() }))
+    }
+
+    fn finish_annotated(self) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
+        let annotation_id = "rename-conflict".to_string();
+        let mut documents: HashMap<Url, Vec<OneOf<TextEdit, AnnotatedTextEdit>>> =
+            HashMap::default();
+        for (file_id, edit) in self.edits {
+            let uri = common::file_uri(self.context, file_id)?;
+            let edit = AnnotatedTextEdit { text_edit: edit, annotation_id: annotation_id.clone() };
+            documents.entry(uri).or_default().push(OneOf::Right(edit));
+        }
+
+        let documents = documents.into_iter().map(|(uri, edits)| TextDocumentEdit {
+            text_document: OptionalVersionedTextDocumentIdentifier { uri, version: None },
+            edits,
+        });
+        let documents = documents.collect();
+
+        let annotation = ChangeAnnotation {
+            label: "Rename may change name resolution".to_string(),
+            needs_confirmation: Some(true),
+            description: Some("The rename may change name resolution".to_string()),
+        };
+        let change_annotations = HashMap::from([(annotation_id, annotation)]);
+
+        Ok(Some(WorkspaceEdit {
+            document_changes: Some(DocumentChanges::Edits(documents)),
+            change_annotations: Some(change_annotations),
+            ..WorkspaceEdit::default()
+        }))
     }
 }

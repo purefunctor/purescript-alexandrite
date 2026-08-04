@@ -1,5 +1,31 @@
+use analyzer::AnalyzerCapabilities;
 use analyzer::position::PositionEncoding;
 use lsp_types::{InitializeParams, PositionEncodingKind};
+
+pub fn negotiate_analyzer_capabilities(params: &InitializeParams) -> AnalyzerCapabilities {
+    let workspace_edit = params
+        .capabilities
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.workspace_edit.as_ref());
+    let honors_rename_annotations = params
+        .capabilities
+        .text_document
+        .as_ref()
+        .and_then(|text_document| text_document.rename.as_ref())
+        .is_some_and(|rename| rename.honors_change_annotations == Some(true));
+    let change_annotations = workspace_edit.is_some_and(|workspace_edit| {
+        workspace_edit.document_changes == Some(true)
+            && workspace_edit.change_annotation_support.is_some()
+            && honors_rename_annotations
+    });
+
+    if change_annotations {
+        AnalyzerCapabilities::default().with_change_annotations()
+    } else {
+        AnalyzerCapabilities::default()
+    }
+}
 
 pub fn negotiate_position_encoding(params: &InitializeParams) -> PositionEncoding {
     let Some(encodings) = params
