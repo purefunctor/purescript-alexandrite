@@ -1,7 +1,8 @@
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{
-    ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+    ImportId, ImportItemId, ImportKind, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
+    TypeItemId,
 };
 use lowering::{
     BinderId, BinderKind, ExpressionKind, LetBindingNameGroupId, RecordPunId,
@@ -73,6 +74,14 @@ pub fn implementation(
         return Err(AnalyzerError::RenameRejected(message));
     }
 
+    let conflicts = rename_conflicts(context, target, &new_name)?;
+    if conflicts && !context.capabilities().has_change_annotations() {
+        let message = format!(
+            "Cannot rename `{old_name}` to `{new_name}` because it would change name resolution"
+        );
+        return Err(AnalyzerError::RenameRejected(message));
+    }
+
     let mut edits = edit::RenameEdits::new(context);
     match target {
         RenameTarget::Qualifier(file_id, import_id) => {
@@ -96,7 +105,324 @@ pub fn implementation(
         }
     }
 
-    edits.finish()
+    edits.finish(conflicts)
+}
+
+fn rename_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    target: RenameTarget,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    match target {
+        RenameTarget::Term(file_id, term_id) => {
+            term_item_conflicts(context, file_id, term_id, new_name)
+        }
+        RenameTarget::Type(file_id, type_id) => {
+            type_item_conflicts(context, file_id, type_id, new_name)
+        }
+        RenameTarget::Binder(file_id, binder_id) => {
+            let target = TermVariableResolution::Binder(binder_id);
+            local_rename_conflicts(context, file_id, target, new_name)
+        }
+        RenameTarget::LetBinding(file_id, binding_id) => {
+            let target = TermVariableResolution::Let(binding_id);
+            local_rename_conflicts(context, file_id, target, new_name)
+        }
+        RenameTarget::RecordPun(file_id, pun_id) => {
+            let target = TermVariableResolution::RecordPun(pun_id);
+            local_rename_conflicts(context, file_id, target, new_name)
+        }
+        RenameTarget::Qualifier(_, _) | RenameTarget::Module(_) => Ok(false),
+    }
+}
+
+fn term_item_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    target_file: FileId,
+    target_term: TermItemId,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    if term_item_conflicts_in_file(context, target_file, target_file, target_term, new_name)? {
+        return Ok(true);
+    }
+
+    for file_id in context.active_files() {
+        if file_id != target_file
+            && term_item_conflicts_in_file(context, file_id, target_file, target_term, new_name)?
+        {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn term_item_conflicts_in_file(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    target_file: FileId,
+    target_term: TermItemId,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    let prim_id = context.queries().prim_id();
+    let prim = context.queries().resolved(prim_id)?;
+    let resolved = context.queries().resolved(file_id)?;
+
+    let target_unqualified = if file_id == target_file {
+        true
+    } else {
+        let mut imports = resolved.unqualified.values().flatten();
+        imports.any(|import| import.contains_term(target_file, target_term))
+    };
+    if target_unqualified {
+        let candidate = resolved.lookup_term(&prim, None, new_name);
+        if candidate.is_some_and(|candidate| candidate != (target_file, target_term)) {
+            return Ok(true);
+        }
+    }
+
+    let qualified_targets = resolved.qualified.iter().filter_map(|(qualifier, imports)| {
+        imports
+            .iter()
+            .any(|import| import.contains_term(target_file, target_term))
+            .then_some(qualifier.as_str())
+    });
+    let qualified_targets = qualified_targets.collect::<Vec<_>>();
+    for qualifier in &qualified_targets {
+        let candidate = resolved.lookup_term(&prim, Some(qualifier), new_name);
+        if candidate.is_some_and(|candidate| candidate != (target_file, target_term)) {
+            return Ok(true);
+        }
+    }
+
+    if (target_unqualified || !qualified_targets.is_empty())
+        && implicit_term_reference_conflicts(context, file_id, target_file, target_term)?
+    {
+        return Ok(true);
+    }
+
+    if target_unqualified {
+        term_reference_conflicts(context, file_id, target_file, target_term, new_name)
+    } else {
+        Ok(false)
+    }
+}
+
+fn implicit_term_reference_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    target_file: FileId,
+    target_term: TermItemId,
+) -> Result<bool, AnalyzerError> {
+    let lowered = context.queries().lowered(file_id)?;
+    let target = TermVariableResolution::Reference(target_file, target_term);
+    let mut expressions = lowered.tree.iter_expression();
+    Ok(expressions.any(|(_, kind)| expression_has_implicit_resolution(kind, target)))
+}
+
+fn term_reference_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    target_file: FileId,
+    target_term: TermItemId,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    let lowered = context.queries().lowered(file_id)?;
+    let target = TermVariableResolution::Reference(target_file, target_term);
+
+    for (expression_id, kind) in lowered.tree.iter_expression() {
+        let ExpressionKind::Variable { resolution: Some(current) } = kind else { continue };
+        if *current != target || !expression_is_unqualified(context, file_id, expression_id)? {
+            continue;
+        }
+        let Some(node) = lowered.nodes.expression_node(expression_id) else { continue };
+        if lowered.graph.resolve_term(node, new_name).is_some() {
+            return Ok(true);
+        }
+    }
+
+    for (pun_id, current) in lowered.tree.iter_expression_pun() {
+        if current != target {
+            continue;
+        }
+        let Some(node) = lowered.nodes.record_pun_node(pun_id) else { continue };
+        if lowered.graph.resolve_term(node, new_name).is_some() {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn expression_is_unqualified(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    expression_id: lowering::ExpressionId,
+) -> Result<bool, AnalyzerError> {
+    let (parsed, _) = context.queries().parsed(file_id)?;
+    let stabilized = context.queries().stabilized(file_id)?;
+    let root = parsed.syntax_node();
+    let pointer = stabilized.syntax_ptr(expression_id).ok_or(AnalyzerError::NonFatal)?;
+    let node = pointer.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
+    let expression = cst::Expression::cast(node).ok_or(AnalyzerError::NonFatal)?;
+
+    let cst::Expression::ExpressionVariable(variable) = expression else { return Ok(false) };
+    Ok(variable.name().is_some_and(|name| name.qualifier().is_none()))
+}
+
+fn type_item_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    target_file: FileId,
+    target_type: TypeItemId,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    if type_item_conflicts_in_file(context, target_file, target_file, target_type, new_name)? {
+        return Ok(true);
+    }
+
+    for file_id in context.active_files() {
+        if file_id != target_file
+            && type_item_conflicts_in_file(context, file_id, target_file, target_type, new_name)?
+        {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn type_item_conflicts_in_file(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    target_file: FileId,
+    target_type: TypeItemId,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    let prim_id = context.queries().prim_id();
+    let prim = context.queries().resolved(prim_id)?;
+    let resolved = context.queries().resolved(file_id)?;
+
+    let import_contains_target = |import: &resolving::ResolvedImport| {
+        let types = import.iter_types();
+        let classes = import.iter_classes();
+        types.chain(classes).any(|(_, imported_file, imported_type, kind)| {
+            kind != ImportKind::Hidden
+                && (imported_file, imported_type) == (target_file, target_type)
+        })
+    };
+    let target_unqualified = if file_id == target_file {
+        true
+    } else {
+        let mut imports = resolved.unqualified.values().flatten();
+        imports.any(&import_contains_target)
+    };
+    if target_unqualified {
+        let candidate = resolved
+            .lookup_type(&prim, None, new_name)
+            .or_else(|| resolved.lookup_class(&prim, None, new_name));
+        if candidate.is_some_and(|candidate| candidate != (target_file, target_type)) {
+            return Ok(true);
+        }
+    }
+
+    for (qualifier, imports) in &resolved.qualified {
+        if imports.iter().any(&import_contains_target) {
+            let candidate = resolved
+                .lookup_type(&prim, Some(qualifier), new_name)
+                .or_else(|| resolved.lookup_class(&prim, Some(qualifier), new_name));
+            if candidate.is_some_and(|candidate| candidate != (target_file, target_type)) {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+fn local_rename_conflicts(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    target: TermVariableResolution,
+    new_name: &str,
+) -> Result<bool, AnalyzerError> {
+    let lowered = context.queries().lowered(file_id)?;
+    let Some(target_node) = lowered.nodes.term_node(target) else { return Ok(false) };
+
+    if lowered.graph.resolve_term(target_node, new_name).is_some() {
+        return Ok(true);
+    }
+
+    let prim_id = context.queries().prim_id();
+    let prim = context.queries().resolved(prim_id)?;
+    let resolved = context.queries().resolved(file_id)?;
+    if resolved.lookup_term(&prim, None, new_name).is_some() {
+        return Ok(true);
+    }
+
+    for (expression_id, kind) in lowered.tree.iter_expression() {
+        if expression_has_implicit_resolution(kind, target) {
+            return Ok(true);
+        }
+        let ExpressionKind::Variable { resolution: Some(current) } = kind else { continue };
+        let Some(node) = lowered.nodes.expression_node(expression_id) else { continue };
+        if resolution_changes(&lowered, node, target_node, target, *current, new_name) {
+            return Ok(true);
+        }
+    }
+
+    for (pun_id, current) in lowered.tree.iter_expression_pun() {
+        let Some(node) = lowered.nodes.record_pun_node(pun_id) else { continue };
+        if resolution_changes(&lowered, node, target_node, target, current, new_name) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn expression_has_implicit_resolution(
+    kind: &ExpressionKind,
+    target: TermVariableResolution,
+) -> bool {
+    match kind {
+        ExpressionKind::Negate { negate, .. } => *negate == Some(target),
+        ExpressionKind::Do { bind, discard, .. } => {
+            *bind == Some(target) || *discard == Some(target)
+        }
+        ExpressionKind::Ado { map, apply, pure, .. } => {
+            *map == Some(target) || *apply == Some(target) || *pure == Some(target)
+        }
+        _ => false,
+    }
+}
+
+fn resolution_changes(
+    lowered: &lowering::LoweredModule,
+    node: lowering::GraphNodeId,
+    target_node: lowering::GraphNodeId,
+    target: TermVariableResolution,
+    current: TermVariableResolution,
+    new_name: &str,
+) -> bool {
+    let Some(candidate) = lowered.graph.resolve_term(node, new_name) else { return false };
+    let Some(candidate_node) = lowered.nodes.term_node(candidate) else { return false };
+
+    let mut scopes = lowered.graph.traverse(node).map(|(node, _)| node);
+    let target_position = scopes.position(|node| node == target_node);
+    let mut scopes = lowered.graph.traverse(node).map(|(node, _)| node);
+    let candidate_position = scopes.position(|node| node == candidate_node);
+    let Some((target_position, candidate_position)) = target_position.zip(candidate_position)
+    else {
+        return false;
+    };
+
+    if current == target {
+        candidate_position <= target_position
+    } else if current == candidate {
+        target_position <= candidate_position
+    } else {
+        false
+    }
 }
 
 pub fn prepare(
@@ -508,7 +834,8 @@ fn target_name(
             let pun = cst::RecordPun::cast(node).ok_or(AnalyzerError::NonFatal)?;
             let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
 
-            Some((name.syntax().text(&content).to_string(), NameKind::Lower))
+            let name = name.syntax().text(&content);
+            Some((name.trim().to_string(), NameKind::Lower))
         }
         RenameTarget::Qualifier(file_id, import_id) => {
             let indexed = context.queries().indexed(file_id)?;

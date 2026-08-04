@@ -126,6 +126,8 @@ impl State {
         if let Some(resolution) = resolution {
             self.tree.expression_puns.insert(id, resolution);
         }
+        let Some(node) = self.graph_scope else { return };
+        self.nodes.record_pun_node.insert(id, node);
     }
 
     fn associate_do_statement(&mut self, id: DoStatementId, statement: DoStatement) {
@@ -152,6 +154,7 @@ impl State {
 
         let name = SmolStr::from(name);
         puns.insert(name, id);
+        self.nodes.record_pun_node.insert(id, node);
     }
 
     fn insert_bound_variable(&mut self, name: &str, id: TypeVariableBindingId) {

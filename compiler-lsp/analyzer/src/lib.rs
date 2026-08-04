@@ -15,5 +15,5 @@ pub mod rename;
 pub mod semantic_tokens;
 pub mod symbols;
 
-pub use context::{AnalyzerContext, AnalyzerHost, AnalyzerQueries};
+pub use context::{AnalyzerCapabilities, AnalyzerContext, AnalyzerHost, AnalyzerQueries};
 pub use error::AnalyzerError;

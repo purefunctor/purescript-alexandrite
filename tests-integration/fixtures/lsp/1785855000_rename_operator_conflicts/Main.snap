@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 8, character: 21 }
+
+```
+infixl 5 original as <?>
+--                   /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -6,7 +6,7 @@
+
+ original left right = left
+
+-infixl 5 original as <?>
++infixl 5 original as <~>
+ --                   /
+
+ type Renamed = Int
+```
+
+Without change annotations: Rename rejected: Cannot rename `<?>` to `<~>` because it would change name resolution
+
+
+Rename at Position { line: 17, character: 26 }
+
+```
+infixl 5 type Original as :+:
+--                        /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -15,5 +15,5 @@
+
+ type Original = Int
+
+-infixl 5 type Original as :+:
++infixl 5 type Original as <~>
+ --                        /
+```
+
+Without change annotations: Rename rejected: Cannot rename `:+:` to `<~>` because it would change name resolution

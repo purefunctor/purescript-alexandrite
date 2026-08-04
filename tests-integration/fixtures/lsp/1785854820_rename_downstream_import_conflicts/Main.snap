@@ -1,0 +1,85 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 5, character: 7 }
+
+```
+term = original + renamed
+--     /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,5 +1,5 @@
+ module Lib where
+
+-original = 1
++renamed = 1
+
+ data Original = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,9 +1,9 @@
+ module Main where
+
+-import Lib (original, Original)
++import Lib (renamed, Original)
+ import Other (renamed, Renamed)
+
+-term = original + renamed
++term = renamed + renamed
+ --     /
+
+ type Example = Original
+```
+
+Without change annotations: Rename rejected: Cannot rename `original` to `renamed` because it would change name resolution
+
+
+Rename at Position { line: 8, character: 15 }
+
+```
+type Example = Original
+--             /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -2,4 +2,4 @@
+
+ original = 1
+
+-data Original = Original
++data Renamed = Original
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,10 +1,10 @@
+ module Main where
+
+-import Lib (original, Original)
++import Lib (original, Renamed)
+ import Other (renamed, Renamed)
+
+ term = original + renamed
+ --     /
+
+-type Example = Original
++type Example = Renamed
+ --             /
+```
+
+Without change annotations: Rename rejected: Cannot rename `Original` to `Renamed` because it would change name resolution

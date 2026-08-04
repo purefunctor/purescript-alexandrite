@@ -43,14 +43,35 @@ pub trait AnalyzerHost {
     fn is_editable(&self, file_id: FileId) -> bool;
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct AnalyzerCapabilities {
+    change_annotations: bool,
+}
+
+impl AnalyzerCapabilities {
+    pub fn with_change_annotations(mut self) -> AnalyzerCapabilities {
+        self.change_annotations = true;
+        self
+    }
+
+    pub fn has_change_annotations(self) -> bool {
+        self.change_annotations
+    }
+}
+
 pub struct AnalyzerContext<'a, Host> {
     host: &'a Host,
     position_encoding: PositionEncoding,
+    capabilities: AnalyzerCapabilities,
 }
 
 impl<'a, Host: AnalyzerHost> AnalyzerContext<'a, Host> {
-    pub fn new(host: &'a Host, position_encoding: PositionEncoding) -> AnalyzerContext<'a, Host> {
-        AnalyzerContext { host, position_encoding }
+    pub fn new(
+        host: &'a Host,
+        position_encoding: PositionEncoding,
+        capabilities: AnalyzerCapabilities,
+    ) -> AnalyzerContext<'a, Host> {
+        AnalyzerContext { host, position_encoding, capabilities }
     }
 
     pub fn queries(&self) -> &Host::Queries {
@@ -75,5 +96,9 @@ impl<'a, Host: AnalyzerHost> AnalyzerContext<'a, Host> {
 
     pub fn position_encoding(&self) -> PositionEncoding {
         self.position_encoding
+    }
+
+    pub fn capabilities(&self) -> AnalyzerCapabilities {
+        self.capabilities
     }
 }

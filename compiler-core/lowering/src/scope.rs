@@ -158,6 +158,20 @@ impl LoweringGraph {
         let queue = VecDeque::from([id]);
         GraphIter { inner, queue }
     }
+
+    pub fn resolve_term(&self, id: GraphNodeId, name: &str) -> Option<TermVariableResolution> {
+        let mut scopes = self.traverse(id);
+        scopes.find_map(|(_, graph)| match graph {
+            GraphNode::Binder { binders, puns, .. } => binders
+                .get(name)
+                .map(|id| TermVariableResolution::Binder(*id))
+                .or_else(|| puns.get(name).map(|id| TermVariableResolution::RecordPun(*id))),
+            GraphNode::Let { bindings, .. } => {
+                bindings.get(name).map(|id| TermVariableResolution::Let(*id))
+            }
+            GraphNode::Forall { .. } | GraphNode::Implicit { .. } => None,
+        })
+    }
 }
 
 impl ops::Index<GraphNodeId> for LoweringGraph {
@@ -172,6 +186,7 @@ impl ops::Index<GraphNodeId> for LoweringGraph {
 pub struct LoweringGraphNodes {
     pub(crate) binder_node: FxHashMap<BinderId, GraphNodeId>,
     pub(crate) expression_node: FxHashMap<ExpressionId, GraphNodeId>,
+    pub(crate) record_pun_node: FxHashMap<RecordPunId, GraphNodeId>,
     pub(crate) type_node: FxHashMap<TypeId, GraphNodeId>,
     pub(crate) let_node: FxHashMap<LetBindingNameGroupId, GraphNodeId>,
 }
@@ -185,12 +200,25 @@ impl LoweringGraphNodes {
         self.expression_node.get(&id).copied()
     }
 
+    pub fn record_pun_node(&self, id: RecordPunId) -> Option<GraphNodeId> {
+        self.record_pun_node.get(&id).copied()
+    }
+
     pub fn type_node(&self, id: TypeId) -> Option<GraphNodeId> {
         self.type_node.get(&id).copied()
     }
 
     pub fn let_node(&self, id: LetBindingNameGroupId) -> Option<GraphNodeId> {
         self.let_node.get(&id).copied()
+    }
+
+    pub fn term_node(&self, resolution: TermVariableResolution) -> Option<GraphNodeId> {
+        match resolution {
+            TermVariableResolution::Binder(id) => self.binder_node(id),
+            TermVariableResolution::Let(id) => self.let_node(id),
+            TermVariableResolution::RecordPun(id) => self.record_pun_node(id),
+            TermVariableResolution::Reference(_, _) => None,
+        }
     }
 }
 

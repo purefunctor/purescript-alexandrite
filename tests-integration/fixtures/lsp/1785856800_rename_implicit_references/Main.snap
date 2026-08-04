@@ -1,0 +1,104 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 2, character: 2 }
+
+```
+map function value = function value
+--/
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-map function value = function value
++renamed function value = function value
+ --/
+
+ topLevelMap = ado
+```
+
+Without change annotations: Rename rejected: Cannot rename `map` to `renamed` because it would change name resolution
+
+
+Rename at Position { line: 9, character: 9 }
+
+```
+localMap map = ado
+--       /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -7,7 +7,7 @@
+   value <- [1]
+   in value
+
+-localMap map = ado
++localMap renamed = ado
+ --       /
+   value <- [1]
+   in value
+```
+
+Without change annotations: Rename rejected: Cannot rename `map` to `renamed` because it would change name resolution
+
+
+Rename at Position { line: 14, character: 10 }
+
+```
+localBind bind = do
+--        /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -12,7 +12,7 @@
+   value <- [1]
+   in value
+
+-localBind bind = do
++localBind renamed = do
+ --        /
+   value <- [1]
+   value
+```
+
+Without change annotations: Rename rejected: Cannot rename `bind` to `renamed` because it would change name resolution
+
+
+Rename at Position { line: 19, character: 12 }
+
+```
+localNegate negate value = -value
+--          /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -17,5 +17,5 @@
+   value <- [1]
+   value
+
+-localNegate negate value = -value
++localNegate renamed value = -value
+ --          /
+```
+
+Without change annotations: Rename rejected: Cannot rename `negate` to `renamed` because it would change name resolution
