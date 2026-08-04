@@ -39,7 +39,7 @@ recordAccessSectionUpdate :: forall t0 t1 t2 t3. { a :: t0 | t1 } -> { a :: { b 
 recordAccessSectionUpdate = \v116 -> v116 { a = \v120 -> v120.b }
 
 concreteRecordUpdateSection :: forall t0. t0 -> { a :: t0 }
-concreteRecordUpdateSection = \v131 -> { a: 1 } { a = v131 }
+concreteRecordUpdateSection = \v132 -> { a: 1 } { a = v132 }
 
 map :: forall a b. (a -> b) -> Prim.Array a -> Prim.Array b
 map = \f -> \x -> []

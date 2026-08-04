@@ -402,8 +402,11 @@ fn expression_7(p: &mut Parser) {
     let mut i = 0;
 
     expression_atom(p);
-    while p.eat(SyntaxKind::PERIOD) && !p.at_eof() {
+    while p.at(SyntaxKind::PERIOD) && !p.at_eof() {
+        let mut label = p.start();
+        p.expect(SyntaxKind::PERIOD);
         names::label(p);
+        label.end(p, SyntaxKind::RecordAccessLabel);
         i += 1;
     }
 

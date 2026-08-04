@@ -5,8 +5,8 @@ use std::iter;
 use files::FileId;
 use indexing::{ImportItemId, IndexedModule, TermItemId, TypeItemId};
 use lowering::{
-    BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordPunId, TermOperatorId,
-    TypeId, TypeOperatorId,
+    BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordAccessLabelId, RecordPunId,
+    TermOperatorId, TypeId, TypeOperatorId,
 };
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::{AstNode, AstPtr};
@@ -80,6 +80,7 @@ pub enum Located {
     ImportItem(ImportItemId),
     Binder(BinderId),
     Expression(ExpressionId),
+    RecordAccessLabel(RecordAccessLabelId),
     Type(TypeId),
     BinderPun(RecordPunId),
     ExpressionPun(RecordPunId),
@@ -153,6 +154,10 @@ fn locate_node(
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
         Some(Located::Binder(id))
+    } else if cst::RecordAccessLabel::can_cast(kind) {
+        let ptr = ptr.cast()?;
+        let id = stabilized.lookup_ptr(&ptr)?;
+        Some(Located::RecordAccessLabel(id))
     } else if cst::Expression::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;

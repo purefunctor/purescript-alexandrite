@@ -228,6 +228,7 @@ pub enum SyntaxKind {
     DoStatementLet,
     DoStatementDiscard,
 
+    RecordAccessLabel,
     RecordField,
     RecordPun,
     RecordUpdates,

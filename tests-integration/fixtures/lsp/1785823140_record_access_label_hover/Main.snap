@@ -11,7 +11,7 @@ access = record.nested.value
 ```
 
 ```purescript
-Int
+{ value :: Int }
 ```
 
 

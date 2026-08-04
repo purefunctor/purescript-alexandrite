@@ -85,6 +85,7 @@ pub struct CheckedNodeTypes {
     pub binders: FxHashMap<lowering::BinderId, TypeId>,
     pub lets: FxHashMap<lowering::LetBindingNameGroupId, TypeId>,
     pub puns: FxHashMap<lowering::RecordPunId, TypeId>,
+    pub record_access_labels: FxHashMap<lowering::RecordAccessLabelId, TypeId>,
     pub sections: FxHashMap<lowering::ExpressionId, TypeId>,
     pub forall_bindings: FxHashMap<lowering::TypeVariableBindingId, TypeId>,
     pub implicit_bindings: FxHashMap<(lowering::GraphNodeId, lowering::ImplicitBindingId), TypeId>,
@@ -164,6 +165,10 @@ impl CheckedNodeTypes {
 
     pub fn lookup_pun(&self, id: lowering::RecordPunId) -> Option<TypeId> {
         self.puns.get(&id).copied()
+    }
+
+    pub fn lookup_record_access_label(&self, id: lowering::RecordAccessLabelId) -> Option<TypeId> {
+        self.record_access_labels.get(&id).copied()
     }
 
     pub fn lookup_section(&self, id: lowering::ExpressionId) -> Option<TypeId> {
