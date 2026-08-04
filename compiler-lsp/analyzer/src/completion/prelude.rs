@@ -111,6 +111,16 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         token.parent_ancestors().find_map(|node| self.scope_node_for_syntax(lowered, node))
     }
 
+    fn scope_node_for_binders(
+        &self,
+        lowered: &LoweredModule,
+        mut binders: impl Iterator<Item = cst::Binder>,
+    ) -> Option<GraphNodeId> {
+        let binder = binders.next()?;
+        let id = self.stabilized.lookup_ptr(&AstPtr::new(&binder))?;
+        lowered.nodes.binder_node(id)
+    }
+
     fn scope_node_for_syntax(
         &self,
         lowered: &LoweredModule,
@@ -131,23 +141,38 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             let ptr = ptr.cast()?;
             let id = self.stabilized.lookup_ptr(&ptr)?;
             lowered.nodes.type_node(id)
+        } else if cst::ValueEquation::can_cast(kind) {
+            let equation = cst::ValueEquation::cast(node)?;
+            let binders = equation.function_binders()?.children();
+            self.scope_node_for_binders(lowered, binders)
+        } else if cst::InstanceEquationStatement::can_cast(kind) {
+            let equation = cst::InstanceEquationStatement::cast(node)?;
+            let binders = equation.function_binders()?.children();
+            self.scope_node_for_binders(lowered, binders)
+        } else if cst::CaseBranch::can_cast(kind) {
+            let branch = cst::CaseBranch::cast(node)?;
+            let binders = branch.binders()?.children();
+            self.scope_node_for_binders(lowered, binders)
         } else if cst::LetBinding::can_cast(kind) {
             let binding = cst::LetBinding::cast(node)?;
-            let id = match binding {
+            match binding {
                 cst::LetBinding::LetBindingPattern(_) => None,
                 cst::LetBinding::LetBindingSignature(signature) => {
                     let ptr = AstPtr::new(&signature);
                     let id = self.stabilized.lookup_ptr(&ptr)?;
-                    lowered.tree.find_let_binding_group_by_signature(id)
+                    let id = lowered.tree.find_let_binding_group_by_signature(id)?;
+                    lowered.nodes.let_node(id)
                 }
-                cst::LetBinding::LetBindingEquation(equation) => {
-                    let ptr = AstPtr::new(&equation);
-                    let id = self.stabilized.lookup_ptr(&ptr)?;
-                    lowered.tree.find_let_binding_group_by_equation(id)
-                }
-            }?;
-
-            lowered.nodes.let_node(id)
+                cst::LetBinding::LetBindingEquation(equation) => equation
+                    .function_binders()
+                    .and_then(|binders| self.scope_node_for_binders(lowered, binders.children()))
+                    .or_else(|| {
+                        let ptr = AstPtr::new(&equation);
+                        let id = self.stabilized.lookup_ptr(&ptr)?;
+                        let id = lowered.tree.find_let_binding_group_by_equation(id)?;
+                        lowered.nodes.let_node(id)
+                    }),
+            }
         } else {
             None
         }
