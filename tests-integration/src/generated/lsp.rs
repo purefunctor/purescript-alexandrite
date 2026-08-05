@@ -98,12 +98,40 @@ fn cursor_marker_line(line: &str) -> bool {
 
 enum Request {
     Cursor(Position, CursorKind),
+    CompletionAtEndOfFile { position: Position, content: String },
     SemanticTokens,
     WorkspaceSymbols(String),
 }
 
+const COMPLETION_EOF_DIRECTIVE: &str = "-- completion eof";
 const SEMANTIC_TOKENS_DIRECTIVE: &str = "-- semantic tokens";
 const WORKSPACE_SYMBOLS_DIRECTIVE: &str = "-- #";
+
+fn extract_completion_eof_requests(content: &str) -> Vec<(usize, Request)> {
+    content
+        .match_indices(COMPLETION_EOF_DIRECTIVE)
+        .filter_map(|(index, directive)| {
+            let line = content
+                .get(index..content[index..].find('\n').map_or(content.len(), |end| index + end))?;
+            if line != directive || (index > 0 && !content[..index].ends_with('\n')) {
+                return None;
+            }
+
+            let end = index.checked_sub(1)?;
+            let content = content[..end].strip_suffix('\r').unwrap_or(&content[..end]).to_string();
+            let position = analyzer::position::offset_to_utf8_position(
+                &content,
+                TextSize::new(content.len() as u32),
+            )?;
+            let position = analyzer::position::utf8_position_to_protocol(
+                &content,
+                position,
+                PositionEncoding::Utf16,
+            )?;
+            Some((index, Request::CompletionAtEndOfFile { position, content }))
+        })
+        .collect()
+}
 
 fn extract_cursors(content: &str) -> Vec<(usize, Request)> {
     let line_index = LineIndex::new(content);
@@ -160,6 +188,7 @@ fn extract_semantic_tokens_requests(content: &str) -> Vec<(usize, Request)> {
 
 fn extract_requests(content: &str) -> Vec<Request> {
     let mut requests = extract_cursors(content);
+    requests.extend(extract_completion_eof_requests(content));
     requests.extend(extract_semantic_tokens_requests(content));
     requests.extend(extract_workspace_symbol_queries(content));
     requests.sort_by_key(|(index, _)| *index);
@@ -215,6 +244,21 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
                     *cursor,
                     uri,
                 );
+            }
+            Request::CompletionAtEndOfFile { position, content: partial } => {
+                writeln!(result, "CompletionAtEndOfFile at {position:?}\n").unwrap();
+                suggestions_cache = SuggestionsCache::default();
+                engine.set_content(id, partial.clone());
+                dispatch_cursor(
+                    &mut result,
+                    engine,
+                    files,
+                    &mut suggestions_cache,
+                    *position,
+                    CursorKind::Completion,
+                    uri,
+                );
+                engine.set_content(id, content.clone());
             }
             Request::WorkspaceSymbols(query) => {
                 writeln!(result, "WorkspaceSymbols query {query:?}\n").unwrap();
