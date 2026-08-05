@@ -90,6 +90,11 @@ Preserve type variable names in instance members       # Missing category
 * Use `cargo nextest run -p <crate-name>` for unit tests in compiler-core crates.
 * Use `cargo nextest run -p <crate-name> <test_name>` for focused unit tests.
 
+### Snapshots
+* Never edit `.snap` files by hand. Regenerate them through the test or snapshot-acceptance command that owns them.
+* Use `just t <category> [filters...] --accept` to accept integration-test snapshots, or `cargo insta` for crates not covered by `just t`.
+* Inspect every generated `.snap` diff and commit only changes that directly describe the intended behaviour.
+
 ### Integration tests
 * Use `just t checking [filters...]` for type checker integration tests.
 * Use `just t lowering [filters...]` for lowering integration tests.
