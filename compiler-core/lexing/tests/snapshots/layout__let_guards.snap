@@ -1,7 +1,6 @@
 ---
 source: compiler-core/lexing/tests/layout.rs
-expression: source
-snapshot_kind: text
+expression: "print_tokens(&lexed, &tokens)"
 ---
 module Test where{
 
@@ -22,7 +21,7 @@ test = do{
       , baz =
         42
       | otherwise = 100};
-  foo};
+  foo;};
 
 test = ado{
   let{
@@ -31,5 +30,5 @@ test = ado{
       , baz =
         42
       | otherwise = 100};
-  foo}}
+  foo;}}
 <eof>

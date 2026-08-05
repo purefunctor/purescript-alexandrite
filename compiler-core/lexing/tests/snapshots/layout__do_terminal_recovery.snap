@@ -2,10 +2,7 @@
 source: compiler-core/lexing/tests/layout.rs
 expression: "print_tokens(&lexed, &tokens)"
 ---
-module Test where{
-
-test =
-  do{
-    do{ do{
-        foo;};};} where{ bar = baz}}
-<eof>
+main = do{
+  action1;
+  action2;}
+  <eof>

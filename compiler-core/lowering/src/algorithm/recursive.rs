@@ -699,8 +699,15 @@ fn lower_pattern_chunk(
     let source = context.stabilized.lookup_cst(pattern).expect_id();
     let where_expression =
         pattern.where_expression().map(|cst| lower_where_expression(state, context, &cst));
-    state.push_binder_scope();
-    let binder = pattern.binder().map(|cst| lower_binder(state, context, &cst));
+    let binder = if pattern.where_expression().and_then(|cst| cst.expression()).is_some() {
+        state.push_binder_scope();
+        pattern.binder().map(|cst| lower_binder(state, context, &cst))
+    } else {
+        state.with_scope(|state| {
+            state.push_binder_scope();
+            pattern.binder().map(|cst| lower_binder(state, context, &cst))
+        })
+    };
     LetBindingChunk::Pattern { source, binder, where_expression }
 }
 
@@ -876,8 +883,15 @@ fn lower_do_statement(
     let statement = match cst {
         cst::DoStatement::DoStatementBind(cst) => {
             let expression = cst.expression().map(|cst| lower_expression(state, context, &cst));
-            state.push_binder_scope();
-            let binder = cst.binder().map(|cst| lower_binder(state, context, &cst));
+            let binder = if expression.is_some() {
+                state.push_binder_scope();
+                cst.binder().map(|cst| lower_binder(state, context, &cst))
+            } else {
+                state.with_scope(|state| {
+                    state.push_binder_scope();
+                    cst.binder().map(|cst| lower_binder(state, context, &cst))
+                })
+            };
             DoStatement::Bind { binder, expression }
         }
         cst::DoStatement::DoStatementLet(cst) => {

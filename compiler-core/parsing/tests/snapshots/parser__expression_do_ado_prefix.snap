@@ -1,6 +1,6 @@
 ---
 source: compiler-core/parsing/tests/parser.rs
-expression: "(node, errors)"
+expression: "(node.debug(&content), errors)"
 ---
 (
     Module@0..104
@@ -45,6 +45,7 @@ expression: "(node, errors)"
                             TEXT@58..59 " "
                           QualifiedName@59..63
                             LOWER@59..63 "unit"
+                  LAYOUT_SEPARATOR@63..63 ""
                   LAYOUT_END@63..63 ""
         LAYOUT_SEPARATOR@63..63 ""
         ValueEquation@63..103
@@ -77,6 +78,7 @@ expression: "(node, errors)"
                             TEXT@88..89 " "
                           QualifiedName@89..93
                             LOWER@89..93 "unit"
+                  LAYOUT_SEPARATOR@93..93 ""
                   LAYOUT_END@93..93 ""
                 Annotation@93..96
                   TEXT@93..96 "\n  "

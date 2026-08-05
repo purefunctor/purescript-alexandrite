@@ -298,9 +298,16 @@ fn do_statements(p: &mut Parser) {
     while p.at_in(DO_STATEMENT_START) && !p.at_eof() {
         do_statement(p);
         recover_until_end(p, "Unexpected tokens in do statement");
-        if !p.at(SyntaxKind::LAYOUT_END) {
-            p.expect(SyntaxKind::LAYOUT_SEPARATOR);
+        if p.at_terminal_layout_separator() {
+            p.annotate();
         }
+        p.expect(SyntaxKind::LAYOUT_SEPARATOR);
+    }
+    if p.at(SyntaxKind::LAYOUT_SEPARATOR) && p.at_next(SyntaxKind::LAYOUT_END) {
+        if p.at_terminal_layout_separator() {
+            p.annotate();
+        }
+        p.expect(SyntaxKind::LAYOUT_SEPARATOR);
     }
     p.expect(SyntaxKind::LAYOUT_END);
     m.end(p, SyntaxKind::DoStatements);

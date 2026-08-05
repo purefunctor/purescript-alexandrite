@@ -1,16 +1,15 @@
 ---
 source: compiler-core/lexing/tests/layout.rs
-expression: source
-snapshot_kind: text
+expression: "print_tokens(&lexed, &tokens)"
 ---
 module Test where{
 
 example1 = do{
-  foo bar}
+  foo bar;}
   <|> baz;
 
 example2 = do{
-  foo bar}
+  foo bar;}
   `wat` baz;
 
 example3 =

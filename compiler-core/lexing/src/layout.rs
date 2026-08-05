@@ -74,6 +74,9 @@ impl<'s> Layout<'s> {
 
     pub(super) fn finish(mut self) -> Vec<SyntaxKind> {
         while let Some((_, delimiter)) = self.stack.pop() {
+            if matches!(delimiter, Delimiter::Do | Delimiter::Ado) {
+                self.output.push(SyntaxKind::LAYOUT_SEPARATOR);
+            }
             if delimiter.is_indented() {
                 self.output.push(SyntaxKind::LAYOUT_END);
             }
@@ -153,6 +156,14 @@ impl<'l, 's> Insert<'l, 's> {
                         self.pop_stack();
                         self.pop_stack();
                         self.insert_end();
+                        self.insert_separator();
+                        self.insert_end();
+                        self.insert_token(self.token);
+                    }
+                    [.., (_, Delimiter::Ado)] => {
+                        collapse.commit(self.layout);
+                        self.pop_stack();
+                        self.insert_separator();
                         self.insert_end();
                         self.insert_token(self.token);
                     }
@@ -501,18 +512,14 @@ impl<'l, 's> Insert<'l, 's> {
 
     fn collapse(&self, predicate: impl Fn(&Self, Position, Delimiter) -> bool) -> Collapse {
         let mut stack_len = self.layout.stack.len();
-        let mut end_tokens = 0;
         for (position, delimiter) in self.layout.stack.iter().rev() {
             if predicate(self, *position, *delimiter) {
                 stack_len = stack_len.saturating_sub(1);
-                if delimiter.is_indented() {
-                    end_tokens += 1;
-                }
             } else {
                 break;
             }
         }
-        Collapse { stack_len, end_tokens }
+        Collapse { stack_len }
     }
 
     fn collapse_and_commit(&mut self, predicate: impl Fn(&Self, Position, Delimiter) -> bool) {
@@ -566,7 +573,6 @@ impl<'l, 's> Insert<'l, 's> {
 
 struct Collapse {
     stack_len: usize,
-    end_tokens: usize,
 }
 
 impl Collapse {
@@ -575,10 +581,15 @@ impl Collapse {
     }
 
     fn commit(self, machine: &mut Layout) {
-        machine.stack.truncate(self.stack_len);
-        for _ in 0..self.end_tokens {
-            machine.output.push(SyntaxKind::LAYOUT_END);
+        for (_, delimiter) in machine.stack[self.stack_len..].iter().rev() {
+            if matches!(delimiter, Delimiter::Do | Delimiter::Ado) {
+                machine.output.push(SyntaxKind::LAYOUT_SEPARATOR);
+            }
+            if delimiter.is_indented() {
+                machine.output.push(SyntaxKind::LAYOUT_END);
+            }
         }
+        machine.stack.truncate(self.stack_len);
     }
 }
 

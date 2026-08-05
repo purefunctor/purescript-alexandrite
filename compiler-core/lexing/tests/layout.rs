@@ -37,6 +37,8 @@ fn print_tokens(lexed: &Lexed, tokens: &[SyntaxKind]) -> String {
 }
 
 test_each_file! { in "./compiler-core/lexing/tests/layout" => |content: &str| {
+    let fixture = content.trim_end_matches(['\n', '\r']);
+    let content = fixture.strip_suffix("<eof>").unwrap_or(content);
     let lexed = lexing::lex(content);
     let tokens = lexing::layout(&lexed);
     insta::assert_snapshot!(print_tokens(&lexed, &tokens));

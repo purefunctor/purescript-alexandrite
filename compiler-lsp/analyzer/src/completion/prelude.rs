@@ -111,6 +111,88 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         token.parent_ancestors().find_map(|node| self.scope_node_for_syntax(lowered, node))
     }
 
+    fn scope_node_for_do_statements(
+        &self,
+        lowered: &LoweredModule,
+        statements: cst::DoStatements,
+    ) -> Option<GraphNodeId> {
+        let parent = statements.syntax().parent()?;
+        if !cst::ExpressionDo::can_cast(parent.kind()) {
+            return None;
+        }
+
+        let layout_end = statements.syntax().children_with_tokens().last()?.into_token()?;
+        let layout_separator = layout_end.prev_sibling_or_token()?.into_token()?;
+        let last_statement = statements.children().last()?;
+        let statement_end: usize = last_statement.syntax().text_range().end().into();
+        let offset: usize = self.offset.into();
+        let preceding_trivia = self.content.get(statement_end..offset)?;
+        if layout_end.kind() != SyntaxKind::LAYOUT_END
+            || layout_separator.kind() != SyntaxKind::LAYOUT_SEPARATOR
+            || layout_separator.text_range().start() != self.offset
+            || !preceding_trivia.contains('\n')
+        {
+            return None;
+        }
+
+        let scopes = statements
+            .children()
+            .filter_map(|statement| self.scope_node_for_do_statement(lowered, statement));
+        scopes.last()
+    }
+
+    fn scope_node_for_do_statement(
+        &self,
+        lowered: &LoweredModule,
+        statement: cst::DoStatement,
+    ) -> Option<GraphNodeId> {
+        match statement {
+            cst::DoStatement::DoStatementBind(statement) => {
+                statement.expression()?;
+                self.scope_node_for_binder(lowered, statement.binder()?)
+            }
+            cst::DoStatement::DoStatementLet(statement) => {
+                let scopes = statement
+                    .statements()?
+                    .children()
+                    .filter_map(|binding| self.scope_node_for_let_binding(lowered, binding));
+                scopes.last()
+            }
+            cst::DoStatement::DoStatementDiscard(_) => None,
+        }
+    }
+
+    fn scope_node_for_binder(
+        &self,
+        lowered: &LoweredModule,
+        binder: cst::Binder,
+    ) -> Option<GraphNodeId> {
+        let id = self.stabilized.lookup_ptr(&AstPtr::new(&binder))?;
+        lowered.nodes.binder_node(id)
+    }
+
+    fn scope_node_for_let_binding(
+        &self,
+        lowered: &LoweredModule,
+        binding: cst::LetBinding,
+    ) -> Option<GraphNodeId> {
+        let id = match binding {
+            cst::LetBinding::LetBindingPattern(binding) => {
+                binding.where_expression()?.expression()?;
+                return self.scope_node_for_binder(lowered, binding.binder()?);
+            }
+            cst::LetBinding::LetBindingSignature(signature) => {
+                let id = self.stabilized.lookup_ptr(&AstPtr::new(&signature))?;
+                lowered.tree.find_let_binding_group_by_signature(id)?
+            }
+            cst::LetBinding::LetBindingEquation(equation) => {
+                let id = self.stabilized.lookup_ptr(&AstPtr::new(&equation))?;
+                lowered.tree.find_let_binding_group_by_equation(id)?
+            }
+        };
+        lowered.nodes.let_node(id)
+    }
+
     fn scope_node_for_syntax(
         &self,
         lowered: &LoweredModule,
@@ -119,7 +201,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         let kind = node.kind();
         let ptr = SyntaxNodePtr::new(&node);
 
-        if cst::Binder::can_cast(kind) {
+        if cst::DoStatements::can_cast(kind) {
+            let statements = cst::DoStatements::cast(node)?;
+            self.scope_node_for_do_statements(lowered, statements)
+        } else if cst::Binder::can_cast(kind) {
             let ptr = ptr.cast()?;
             let id = self.stabilized.lookup_ptr(&ptr)?;
             lowered.nodes.binder_node(id)

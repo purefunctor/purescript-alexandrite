@@ -1,7 +1,6 @@
 ---
 source: compiler-core/lexing/tests/layout.rs
-expression: source
-snapshot_kind: text
+expression: "print_tokens(&lexed, &tokens)"
 ---
 module Test where{
 
@@ -37,7 +36,7 @@ test = a `case _ of{ x | unit # \_ -> true, true -> const}` b;
 
 test = case a of{
   12 | do{ that;
-          that}   -> this
+          that;}   -> this
      | otherwise -> this};
 
 test a b = [ case _ of{

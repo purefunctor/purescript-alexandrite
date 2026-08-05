@@ -1,7 +1,6 @@
 ---
 source: compiler-core/lexing/tests/layout.rs
-expression: source
-snapshot_kind: text
+expression: "print_tokens(&lexed, &tokens)"
 ---
 module Test where{
 
@@ -9,8 +8,8 @@ foo = do{
   if true then
     false
   else if false then do{
-    that}
+    that;}
     else do{
-     what};
-  that}}
+     what;};
+  that;}}
 <eof>

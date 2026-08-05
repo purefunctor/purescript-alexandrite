@@ -17,3 +17,8 @@ finalLet = do
 missingDoAction = do
   value <-
   pure value
+
+missingPatternBinding =
+  let
+    [value] =
+  in pure value

@@ -113,12 +113,11 @@ fn extract_completion_eof_requests(content: &str) -> Vec<(usize, Request)> {
         .filter_map(|(index, directive)| {
             let line = content
                 .get(index..content[index..].find('\n').map_or(content.len(), |end| index + end))?;
-            if line != directive || (index > 0 && !content[..index].ends_with('\n')) {
+            if line.strip_suffix('\r').unwrap_or(line) != directive {
                 return None;
             }
 
-            let end = index.checked_sub(1)?;
-            let content = content[..end].strip_suffix('\r').unwrap_or(&content[..end]).to_string();
+            let content = content[..index].to_string();
             let position = analyzer::position::offset_to_utf8_position(
                 &content,
                 TextSize::new(content.len() as u32),

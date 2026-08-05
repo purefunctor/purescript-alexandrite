@@ -1,7 +1,6 @@
 ---
 source: compiler-core/lexing/tests/layout.rs
-expression: source
-snapshot_kind: text
+expression: "print_tokens(&lexed, &tokens)"
 ---
 module Test where{
 
@@ -9,10 +8,10 @@ test = case foo of{
   Nothing -> a
     where{ a = 12};
   Just a -> do{
-    what}}
+    what;}}
   where{
     foo = bar};
 
-test = case f of{ Foo -> do{ that}
+test = case f of{ Foo -> do{ that;}
                         where{ foo = 12}}}
 <eof>

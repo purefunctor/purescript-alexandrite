@@ -1,6 +1,6 @@
 ---
 source: compiler-core/parsing/tests/parser.rs
-expression: "(node, errors)"
+expression: "(node.debug(&content), errors)"
 ---
 (
     Module@0..55
@@ -14,21 +14,21 @@ expression: "(node, errors)"
           TEXT@19..20 " "
         WHERE@20..25 "where"
       LAYOUT_START@25..25 ""
-      ModuleStatements@25..54
-        ValueEquation@25..54
+      ModuleStatements@25..55
+        ValueEquation@25..55
           Annotation@25..27
             TEXT@25..27 "\n\n"
           LOWER@27..31 "main"
-          Unconditional@31..54
+          Unconditional@31..55
             Annotation@31..32
               TEXT@31..32 " "
             EQUAL@32..33 "="
-            WhereExpression@33..54
-              ExpressionDo@33..54
+            WhereExpression@33..55
+              ExpressionDo@33..55
                 Annotation@33..34
                   TEXT@33..34 " "
                 DO@34..36 "do"
-                DoStatements@36..54
+                DoStatements@36..55
                   LAYOUT_START@36..36 ""
                   DoStatementBind@36..54
                     BinderVariable@36..43
@@ -49,10 +49,11 @@ expression: "(node, errors)"
                           Annotation@51..52
                             TEXT@51..52 " "
                           INTEGER@52..54 "42"
-                  LAYOUT_END@54..54 ""
-      LAYOUT_END@54..54 ""
-      Annotation@54..55
-        TEXT@54..55 "\n"
+                  Annotation@54..55
+                    TEXT@54..55 "\n"
+                  LAYOUT_SEPARATOR@55..55 ""
+                  LAYOUT_END@55..55 ""
+      LAYOUT_END@55..55 ""
       END_OF_FILE@55..55 ""
     ,
     [],

@@ -24,4 +24,11 @@ finalLet =
     <error>
 
 missingDoAction :: forall t0. t0
-missingDoAction = <error> \value -> pure @?21 value
+missingDoAction = <error> \value -> pure @?[missing expression] <error>
+
+missingPatternBinding :: Main.Effect ?[missing expression]
+missingPatternBinding =
+  let
+    <error-binding>
+  in
+    pure @?[missing expression] <error>
