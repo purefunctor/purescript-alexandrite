@@ -89,16 +89,16 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         let lowered = self.language.queries().lowered(self.current_file)?;
         let root = self.parsed.syntax_node();
 
-        let scope_node = match root.token_at_offset(self.offset) {
-            TokenAtOffset::None => None,
-            TokenAtOffset::Single(token) => self.scope_node_for_token(&lowered, token),
+        let token = match root.token_at_offset(self.offset) {
+            TokenAtOffset::None => return Ok(None),
+            TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(left, right) => {
-                let left = self.scope_node_for_token(&lowered, left);
-                let right = self.scope_node_for_token(&lowered, right);
-
-                if left == right { left } else { right.or(left) }
+                let left_annotation =
+                    left.parent_ancestors().any(|node| node.kind() == SyntaxKind::Annotation);
+                if left_annotation { right } else { left }
             }
         };
+        let scope_node = self.scope_node_for_token(&lowered, token);
 
         Ok(scope_node)
     }
@@ -158,8 +158,8 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         lowered: &LoweredModule,
         binder: cst::Binder,
     ) -> Option<GraphNodeId> {
-        let id = self.stabilized.lookup_ptr(&AstPtr::new(&binder))?;
-        lowered.nodes.binder_node(id)
+        let binder_id = self.stabilized.lookup_ptr(&AstPtr::new(&binder))?;
+        lowered.nodes.binder_node(binder_id)
     }
 
     fn scope_node_for_let_binding(
@@ -167,20 +167,115 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         lowered: &LoweredModule,
         binding: &cst::LetBinding,
     ) -> Option<GraphNodeId> {
-        let id = match binding {
+        let let_binding_group_id = match binding {
             cst::LetBinding::LetBindingPattern(binding) => {
                 return self.scope_node_for_binder(lowered, binding.binder()?);
             }
             cst::LetBinding::LetBindingSignature(signature) => {
-                let id = self.stabilized.lookup_ptr(&AstPtr::new(signature))?;
-                lowered.tree.find_let_binding_group_by_signature(id)?
+                let signature_id = self.stabilized.lookup_ptr(&AstPtr::new(signature))?;
+                lowered.tree.find_let_binding_group_by_signature(signature_id)?
             }
             cst::LetBinding::LetBindingEquation(equation) => {
-                let id = self.stabilized.lookup_ptr(&AstPtr::new(equation))?;
-                lowered.tree.find_let_binding_group_by_equation(id)?
+                let equation_id = self.stabilized.lookup_ptr(&AstPtr::new(equation))?;
+                lowered.tree.find_let_binding_group_by_equation(equation_id)?
             }
         };
-        lowered.nodes.let_node(id)
+        lowered.nodes.let_node(let_binding_group_id)
+    }
+
+    fn scope_node_for_where_expression(
+        &self,
+        lowered: &LoweredModule,
+        expression: cst::WhereExpression,
+    ) -> Option<GraphNodeId> {
+        let bindings = expression.bindings()?;
+        if self.cursor_within_node(bindings.syntax()) {
+            return None;
+        }
+
+        let scopes = bindings
+            .children()
+            .filter_map(|binding| self.scope_node_for_let_binding(lowered, &binding));
+        scopes.last()
+    }
+
+    fn scope_node_before_pattern_binding(
+        &self,
+        lowered: &LoweredModule,
+        pattern: &cst::LetBindingPattern,
+    ) -> Option<GraphNodeId> {
+        let statements = cst::LetBindingStatements::cast(pattern.syntax().parent()?)?;
+        let preceding =
+            statements.children().take_while(|binding| binding.syntax() != pattern.syntax());
+        let scopes =
+            preceding.filter_map(|binding| self.scope_node_for_let_binding(lowered, &binding));
+        scopes.last()
+    }
+
+    fn scope_node_for_pattern_binding(
+        &self,
+        lowered: &LoweredModule,
+        pattern: &cst::LetBindingPattern,
+    ) -> Option<GraphNodeId> {
+        if !self.cursor_follows_rhs_delimiter(pattern.syntax()) {
+            return None;
+        }
+        if let Some(expression) = pattern.where_expression() {
+            if let Some(scope) = self.scope_node_for_where_expression(lowered, expression) {
+                return Some(scope);
+            }
+        }
+        self.scope_node_before_pattern_binding(lowered, pattern)
+    }
+
+    fn cursor_follows_rhs_delimiter(&self, node: &SyntaxNode) -> bool {
+        let mut tokens = node.children_with_tokens().filter_map(|element| element.into_token());
+        let delimiter = tokens
+            .find(|token| matches!(token.kind(), SyntaxKind::EQUAL | SyntaxKind::RIGHT_ARROW));
+        delimiter.is_some_and(|delimiter| delimiter.text_range().end() <= self.offset)
+    }
+
+    fn scope_node_for_unconditional(
+        &self,
+        lowered: &LoweredModule,
+        unconditional: cst::Unconditional,
+    ) -> Option<GraphNodeId> {
+        if !self.cursor_follows_rhs_delimiter(unconditional.syntax()) {
+            return None;
+        }
+        self.scope_node_for_where_expression(lowered, unconditional.where_expression()?)
+    }
+
+    fn scope_node_for_pattern_guarded(
+        &self,
+        lowered: &LoweredModule,
+        guarded: cst::PatternGuarded,
+    ) -> Option<GraphNodeId> {
+        if !self.cursor_follows_rhs_delimiter(guarded.syntax()) {
+            return None;
+        }
+        if let Some(expression) = guarded.where_expression() {
+            if let Some(scope) = self.scope_node_for_where_expression(lowered, expression) {
+                return Some(scope);
+            }
+        }
+
+        let scopes = guarded.children().filter_map(|guard| match guard {
+            cst::PatternGuard::PatternGuardBinder(guard) => {
+                self.scope_node_for_binder(lowered, guard.binder()?)
+            }
+            cst::PatternGuard::PatternGuardExpression(_) => None,
+        });
+        scopes.last()
+    }
+
+    fn cursor_within_node(&self, node: &SyntaxNode) -> bool {
+        let range = node.text_range();
+        range.start() <= self.offset && self.offset <= range.end()
+    }
+
+    fn cursor_within_guarded_expression(&self, guarded: &cst::GuardedExpression) -> bool {
+        self.cursor_within_node(guarded.syntax())
     }
 
     fn scope_node_for_syntax(
@@ -206,30 +301,57 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             let ptr = ptr.cast()?;
             let id = self.stabilized.lookup_ptr(&ptr)?;
             lowered.nodes.type_node(id)
+        } else if cst::WhereExpression::can_cast(kind) {
+            let expression = cst::WhereExpression::cast(node)?;
+            self.scope_node_for_where_expression(lowered, expression)
+        } else if cst::Unconditional::can_cast(kind) {
+            let unconditional = cst::Unconditional::cast(node)?;
+            self.scope_node_for_unconditional(lowered, unconditional)
+        } else if cst::PatternGuarded::can_cast(kind) {
+            let guarded = cst::PatternGuarded::cast(node)?;
+            self.scope_node_for_pattern_guarded(lowered, guarded)
         } else if cst::ValueEquation::can_cast(kind) {
             let equation = cst::ValueEquation::cast(node)?;
+            let guarded = equation.guarded_expression()?;
+            if !self.cursor_within_guarded_expression(&guarded) {
+                return None;
+            }
             let binder = equation.function_binders()?.children().next()?;
             self.scope_node_for_binder(lowered, binder)
         } else if cst::InstanceEquationStatement::can_cast(kind) {
             let equation = cst::InstanceEquationStatement::cast(node)?;
+            let guarded = equation.guarded_expression()?;
+            if !self.cursor_within_guarded_expression(&guarded) {
+                return None;
+            }
             let binder = equation.function_binders()?.children().next()?;
             self.scope_node_for_binder(lowered, binder)
         } else if cst::CaseBranch::can_cast(kind) {
             let branch = cst::CaseBranch::cast(node)?;
+            let guarded = branch.guarded_expression()?;
+            if !self.cursor_within_guarded_expression(&guarded) {
+                return None;
+            }
             let binder = branch.binders()?.children().next()?;
             self.scope_node_for_binder(lowered, binder)
         } else if cst::LetBinding::can_cast(kind) {
             let binding = cst::LetBinding::cast(node)?;
             match &binding {
-                cst::LetBinding::LetBindingPattern(_) => None,
+                cst::LetBinding::LetBindingPattern(pattern) => {
+                    self.scope_node_for_pattern_binding(lowered, pattern)
+                }
                 cst::LetBinding::LetBindingSignature(_) => {
                     self.scope_node_for_let_binding(lowered, &binding)
                 }
-                cst::LetBinding::LetBindingEquation(equation) => equation
-                    .function_binders()
-                    .and_then(|binders| binders.children().next())
-                    .and_then(|binder| self.scope_node_for_binder(lowered, binder))
-                    .or_else(|| self.scope_node_for_let_binding(lowered, &binding)),
+                cst::LetBinding::LetBindingEquation(equation) => {
+                    let function_scope = equation
+                        .guarded_expression()
+                        .filter(|guarded| self.cursor_within_guarded_expression(guarded))
+                        .and_then(|_| equation.function_binders())
+                        .and_then(|binders| binders.children().next())
+                        .and_then(|binder| self.scope_node_for_binder(lowered, binder));
+                    function_scope.or_else(|| self.scope_node_for_let_binding(lowered, &binding))
+                }
             }
         } else {
             None
