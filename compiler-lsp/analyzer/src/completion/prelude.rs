@@ -8,7 +8,8 @@ use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::{
-    SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize, TokenAtOffset, cst,
+    SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize, TokenAtOffset,
+    WalkEvent, cst,
 };
 
 use crate::position::{PositionEncoding, Utf8Position};
@@ -29,6 +30,11 @@ pub struct CompletionContext<'c, 'a, Host> {
     pub text: CursorText,
     pub range: Option<Range>,
     pub offset: TextSize,
+}
+
+enum CursorScopeRecovery {
+    StatementContinuation(TextSize),
+    AdoResult(TextSize),
 }
 
 impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
@@ -98,9 +104,102 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
                 if left_annotation { right } else { left }
             }
         };
-        let scope_node = self.scope_node_for_token(&lowered, token);
+
+        if let Some(scope_node) = self.scope_node_for_cursor_recovery(&lowered, &root) {
+            return Ok(Some(scope_node));
+        }
+
+        let annotation = Self::token_is_annotation(&token);
+        let mut scope_node = self.scope_node_for_token(&lowered, token.clone());
+        if scope_node.is_none() && annotation && self.annotation_starts_on_cursor_line(&token) {
+            let preceding = self.preceding_source_token(&root);
+            scope_node = preceding.and_then(|token| self.scope_node_for_token(&lowered, token));
+        }
 
         Ok(scope_node)
+    }
+
+    fn token_is_annotation(token: &SyntaxToken) -> bool {
+        token.parent_ancestors().any(|node| node.kind() == SyntaxKind::Annotation)
+    }
+
+    fn annotation_starts_on_cursor_line(&self, token: &SyntaxToken) -> bool {
+        let start: usize = token.text_range().start().into();
+        let end: usize = self.offset.into();
+        let Some(prefix) = self.content.get(start..end) else { return false };
+        !prefix.contains('\n') && !prefix.contains('\r')
+    }
+
+    fn preceding_source_token(&self, root: &SyntaxNode) -> Option<SyntaxToken> {
+        let tokens = root.preorder_with_tokens().filter_map(|event| match event {
+            WalkEvent::Enter(element) => element.into_token(),
+            WalkEvent::Leave(_) => None,
+        });
+        let tokens = tokens.filter(|token| {
+            token.text_range().end() <= self.offset
+                && !token.kind().is_layout_token()
+                && token.kind() != SyntaxKind::END_OF_FILE
+                && !Self::token_is_annotation(token)
+        });
+        tokens.last()
+    }
+
+    fn cursor_scope_recovery(&self) -> Option<CursorScopeRecovery> {
+        let end: usize = self.offset.into();
+        let source = self.content.get(..end)?;
+        let lexed = lexing::lex(source);
+        let tokens = lexing::layout(&lexed);
+        let (parsed, _) = parsing::parse(&lexed, &tokens);
+        let root = parsed.syntax_node();
+        let statements = root.preorder().filter_map(|event| match event {
+            WalkEvent::Enter(node) => cst::DoStatements::cast(node),
+            WalkEvent::Leave(_) => None,
+        });
+        let statements = statements.filter(|statements| self.has_terminal_separator(statements));
+        let statement_starts =
+            statements.map(|statements| statements.syntax().text_range().start());
+        if let Some(start) = statement_starts.last() {
+            return Some(CursorScopeRecovery::StatementContinuation(start));
+        }
+
+        let expressions = root.preorder().filter_map(|event| match event {
+            WalkEvent::Enter(node) => cst::ExpressionAdo::cast(node),
+            WalkEvent::Leave(_) => None,
+        });
+        let expressions = expressions.filter(|expression| {
+            expression.expression().is_none()
+                && self.cursor_follows_token(expression.syntax(), SyntaxKind::IN)
+        });
+        let expression_starts =
+            expressions.map(|expression| expression.syntax().text_range().start());
+        expression_starts.last().map(CursorScopeRecovery::AdoResult)
+    }
+
+    fn scope_node_for_cursor_recovery(
+        &self,
+        lowered: &LoweredModule,
+        root: &SyntaxNode,
+    ) -> Option<GraphNodeId> {
+        match self.cursor_scope_recovery()? {
+            CursorScopeRecovery::StatementContinuation(start) => {
+                let mut statements = root.preorder().filter_map(|event| match event {
+                    WalkEvent::Enter(node) => cst::DoStatements::cast(node),
+                    WalkEvent::Leave(_) => None,
+                });
+                let statements = statements
+                    .find(|statements| statements.syntax().text_range().start() == start)?;
+                self.scope_node_after_statements(lowered, statements)
+            }
+            CursorScopeRecovery::AdoResult(start) => {
+                let mut expressions = root.preorder().filter_map(|event| match event {
+                    WalkEvent::Enter(node) => cst::ExpressionAdo::cast(node),
+                    WalkEvent::Leave(_) => None,
+                });
+                let expression = expressions
+                    .find(|expression| expression.syntax().text_range().start() == start)?;
+                self.scope_node_for_ado_result(lowered, expression)
+            }
+        }
     }
 
     fn scope_node_for_token(
@@ -116,21 +215,48 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         lowered: &LoweredModule,
         statements: cst::DoStatements,
     ) -> Option<GraphNodeId> {
-        cst::ExpressionDo::cast(statements.syntax().parent()?)?;
-
-        let layout_end = statements.syntax().children_with_tokens().last()?.into_token()?;
-        let layout_separator = layout_end.prev_sibling_or_token()?.into_token()?;
-        if layout_end.kind() != SyntaxKind::LAYOUT_END
-            || layout_separator.kind() != SyntaxKind::LAYOUT_SEPARATOR
-            || layout_separator.text_range().start() != self.offset
-        {
+        if !self.has_terminal_separator(&statements) {
             return None;
         }
+        self.scope_node_after_statements(lowered, statements)
+    }
+
+    fn has_terminal_separator(&self, statements: &cst::DoStatements) -> bool {
+        let Some(layout_end) = statements
+            .syntax()
+            .children_with_tokens()
+            .last()
+            .and_then(|element| element.into_token())
+        else {
+            return false;
+        };
+        let Some(layout_separator) =
+            layout_end.prev_sibling_or_token().and_then(|element| element.into_token())
+        else {
+            return false;
+        };
+        layout_end.kind() == SyntaxKind::LAYOUT_END
+            && layout_separator.kind() == SyntaxKind::LAYOUT_SEPARATOR
+            && layout_separator.text_range().start() == self.offset
+    }
+
+    fn scope_node_after_statements(
+        &self,
+        lowered: &LoweredModule,
+        statements: cst::DoStatements,
+    ) -> Option<GraphNodeId> {
+        let parent = statements.syntax().parent()?;
+        let expression = cst::Expression::cast(parent.clone())?;
+        if cst::ExpressionAdo::cast(parent.clone()).is_some() {
+            return self.scope_node_for_expression(lowered, expression);
+        }
+        cst::ExpressionDo::cast(parent)?;
 
         let scopes = statements
             .children()
+            .filter(|statement| statement.syntax().text_range().end() <= self.offset)
             .filter_map(|statement| self.scope_node_for_do_statement(lowered, &statement));
-        scopes.last()
+        scopes.last().or_else(|| self.scope_node_for_expression(lowered, expression))
     }
 
     fn scope_node_for_do_statement(
@@ -140,17 +266,68 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
     ) -> Option<GraphNodeId> {
         match statement {
             cst::DoStatement::DoStatementBind(statement) => {
+                statement.expression()?;
                 self.scope_node_for_binder(lowered, statement.binder()?)
             }
             cst::DoStatement::DoStatementLet(statement) => {
                 let scopes = statement
                     .statements()?
                     .children()
-                    .filter_map(|binding| self.scope_node_for_let_binding(lowered, &binding));
+                    .filter_map(|binding| self.scope_node_for_do_let_binding(lowered, &binding));
                 scopes.last()
             }
             cst::DoStatement::DoStatementDiscard(_) => None,
         }
+    }
+
+    fn scope_node_for_do_let_binding(
+        &self,
+        lowered: &LoweredModule,
+        binding: &cst::LetBinding,
+    ) -> Option<GraphNodeId> {
+        if let cst::LetBinding::LetBindingPattern(pattern) = binding {
+            pattern.where_expression()?.expression()?;
+        }
+        self.scope_node_for_let_binding(lowered, binding)
+    }
+
+    fn scope_node_for_expression(
+        &self,
+        lowered: &LoweredModule,
+        expression: cst::Expression,
+    ) -> Option<GraphNodeId> {
+        let expression_id = self.stabilized.lookup_ptr(&AstPtr::new(&expression))?;
+        lowered.nodes.expression_node(expression_id)
+    }
+
+    fn scope_node_for_ado_expression(
+        &self,
+        lowered: &LoweredModule,
+        expression: cst::ExpressionAdo,
+    ) -> Option<GraphNodeId> {
+        if self.cursor_follows_token(expression.syntax(), SyntaxKind::IN) {
+            return self.scope_node_for_ado_result(lowered, expression);
+        }
+
+        let expression = cst::Expression::cast(expression.syntax().clone())?;
+        self.scope_node_for_expression(lowered, expression)
+    }
+
+    fn scope_node_for_ado_result(
+        &self,
+        lowered: &LoweredModule,
+        expression: cst::ExpressionAdo,
+    ) -> Option<GraphNodeId> {
+        let statements = expression.statements();
+        let statements = statements.into_iter().flat_map(|statements| statements.children());
+        let scopes = statements
+            .filter(|statement| statement.syntax().text_range().end() <= self.offset)
+            .filter_map(|statement| self.scope_node_for_do_statement(lowered, &statement));
+        let scope = scopes.last();
+        scope.or_else(|| {
+            let expression = cst::Expression::cast(expression.syntax().clone())?;
+            self.scope_node_for_expression(lowered, expression)
+        })
     }
 
     fn scope_node_for_binder(
@@ -235,6 +412,12 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         delimiter.is_some_and(|delimiter| delimiter.text_range().end() <= self.offset)
     }
 
+    fn cursor_follows_token(&self, node: &SyntaxNode, kind: SyntaxKind) -> bool {
+        let mut tokens = node.children_with_tokens().filter_map(|element| element.into_token());
+        let token = tokens.find(|token| token.kind() == kind);
+        token.is_some_and(|token| token.text_range().end() <= self.offset)
+    }
+
     fn scope_node_for_unconditional(
         &self,
         lowered: &LoweredModule,
@@ -293,6 +476,9 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             let ptr = ptr.cast()?;
             let id = self.stabilized.lookup_ptr(&ptr)?;
             lowered.nodes.binder_node(id)
+        } else if cst::ExpressionAdo::can_cast(kind) {
+            let expression = cst::ExpressionAdo::cast(node)?;
+            self.scope_node_for_ado_expression(lowered, expression)
         } else if cst::Expression::can_cast(kind) {
             let ptr = ptr.cast()?;
             let id = self.stabilized.lookup_ptr(&ptr)?;

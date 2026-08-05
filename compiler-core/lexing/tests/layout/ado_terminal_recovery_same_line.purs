@@ -1,0 +1,1 @@
+test = ado action<eof>

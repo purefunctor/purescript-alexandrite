@@ -73,13 +73,13 @@ impl<'s> Layout<'s> {
     }
 
     pub(super) fn finish(mut self) -> Vec<SyntaxKind> {
-        let eof = self.lexed.info(self.index);
-        let dangling_qualifier = eof.annotation < eof.qualifier;
+        let end_of_file = self.lexed.info(self.index);
+        let dangling_qualifier = end_of_file.annotation < end_of_file.qualifier;
         while let Some((position, delimiter)) = self.stack.pop() {
-            if delimiter == Delimiter::Do
+            if matches!(delimiter, Delimiter::Do | Delimiter::Ado)
                 && !dangling_qualifier
-                && eof.position.line > position.line
-                && eof.position.column == position.column
+                && end_of_file.position.line > position.line
+                && end_of_file.position.column == position.column
             {
                 self.output.push(SyntaxKind::LAYOUT_SEPARATOR);
             }

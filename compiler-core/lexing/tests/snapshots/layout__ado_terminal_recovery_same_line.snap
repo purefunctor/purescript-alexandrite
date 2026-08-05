@@ -2,6 +2,4 @@
 source: compiler-core/lexing/tests/layout.rs
 expression: "print_tokens(&lexed, &tokens)"
 ---
-test = ado{
-  action;}
-  <eof>
+test = ado{ action}<eof>
