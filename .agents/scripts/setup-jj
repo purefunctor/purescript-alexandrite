@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-signing_key=$(/usr/bin/git config --system user.signingkey || true)
-user_name=$(git config user.name || true)
-user_email=$(git config user.email || true)
-
-if [[ -z "$signing_key" ]]; then
-  signing_key=${AMP_USER_EMAIL:-}
-fi
+signing_key=
+for ((attempt = 0; attempt < 100; attempt++)); do
+  signing_key=$(/usr/bin/git config --system user.signingkey || true)
+  signing_key=${signing_key:-${AMP_USER_EMAIL:-}}
+  [[ -n "$signing_key" ]] && break
+  sleep 0.1
+done
 if [[ -z "$signing_key" ]]; then
   echo "AMP_USE_JJ requires an Orb SSH signing key." >&2
   exit 1
 fi
+
+user_name=$(git config user.name || true)
+user_email=$(git config user.email || true)
+
 if ! github_login=$(gh api user --jq .login); then
   echo "AMP_USE_JJ requires an authenticated GitHub CLI session." >&2
   exit 1
