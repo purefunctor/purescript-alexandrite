@@ -342,6 +342,11 @@ impl ToDiagnostics for CheckingError {
                     format!("Instance member type mismatch: expected '{expected}', got '{actual}'"),
                 )
             }
+            ErrorKind::MissingInstanceMembers { .. } => (
+                Severity::Warning,
+                "MissingInstanceMembers",
+                "Instance is missing class members".to_string(),
+            ),
             ErrorKind::InvalidTypeApplication { function_type, function_kind, argument_type } => {
                 let function_type = render_type(*function_type);
                 let function_kind = render_type(*function_kind);
@@ -497,6 +502,12 @@ impl ToDiagnostics for CheckingError {
                 let trivia = format!("The inferred type was: {inferred}");
                 diagnostic = diagnostic.with_trivia(trivia);
                 diagnostic = diagnostic.with_trivia("Try adding a type signature.");
+            }
+            ErrorKind::MissingInstanceMembers { members } => {
+                for member in members.iter() {
+                    let trivia = format!("{member} is not implemented");
+                    diagnostic = diagnostic.with_trivia(trivia);
+                }
             }
             _ => {}
         }

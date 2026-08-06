@@ -301,6 +301,7 @@ where
         | ErrorKind::InvalidFinalBind
         | ErrorKind::InvalidFinalLet
         | ErrorKind::InstanceHeadMismatch { .. }
+        | ErrorKind::MissingInstanceMembers { .. }
         | ErrorKind::InvalidNewtypeDeriveSkolemArguments
         | ErrorKind::PartialSynonymApplication { .. }
         | ErrorKind::RecursiveSynonymExpansion { .. }
