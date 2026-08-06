@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+renderCompact ::
+  forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+renderVerbose ::
+  forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+
+Types
+Render :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Render (a :: Prim.Type)
+  render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+  renderCompact ::
+  forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+  renderVerbose ::
+  forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+
+Instances
+instance Main.Render Prim.Int
