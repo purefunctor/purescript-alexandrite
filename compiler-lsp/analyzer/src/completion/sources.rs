@@ -7,13 +7,15 @@ use lsp_types::*;
 use resolving::ResolvedModule;
 use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
+use syntax::ast::AstNode;
+use syntax::cst;
 
 use crate::AnalyzerError;
 
 use super::edit;
 use super::filter::PerfectSegmentFuzzy;
 use super::item::CompletionItemSpec;
-use super::prelude::{CompletionContext, CompletionSource, Filter};
+use super::prelude::{CompletionContext, CompletionSource, CursorText, Filter};
 use super::resolve::CompletionResolveData;
 
 fn module_name(
@@ -23,6 +25,86 @@ fn module_name(
     let content = context.language.queries().content(file_id);
     let (parsed, _) = context.language.queries().parsed(file_id)?;
     Ok(parsed.module_name(&content).map(|name| name.to_string()))
+}
+
+pub struct ImportClasses;
+
+impl CompletionSource for ImportClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(import_file) = context.import_file_at_cursor() else {
+            return Ok(());
+        };
+
+        let resolved = context.language.queries().resolved(import_file)?;
+        let description = module_name(context, import_file)?;
+        let occupied_names = context
+            .parsed
+            .cst()
+            .imports()
+            .into_iter()
+            .flat_map(|imports| imports.children())
+            .filter_map(|statement| statement.import_list())
+            .find(|list| {
+                let range = list.syntax().text_range();
+                range.start() <= context.offset && context.offset <= range.end()
+            })
+            .into_iter()
+            .flat_map(|list| list.children())
+            .filter(|item| {
+                let range = item.syntax().text_range();
+                !(range.start() <= context.offset && context.offset <= range.end())
+            })
+            .filter_map(|item| match item {
+                cst::ImportItem::ImportClass(item) => item.name_token(),
+                cst::ImportItem::ImportType(item) => item.name_token(),
+                cst::ImportItem::ImportValue(_)
+                | cst::ImportItem::ImportOperator(_)
+                | cst::ImportItem::ImportTypeOperator(_) => None,
+            })
+            .map(|token| SmolStr::new(token.text(context.content)));
+        let occupied_names = occupied_names.collect::<FxHashSet<_>>();
+        let source = resolved.exports.iter_classes();
+        let source = source.filter(|(name, _, _)| filter.matches(name));
+        let source = source.filter(|(name, _, _)| !occupied_names.contains(*name));
+
+        for (name, file_id, type_id) in source {
+            let mut item = CompletionItemSpec::new(
+                name.to_string(),
+                context.range,
+                CompletionItemKind::STRUCT,
+                CompletionResolveData::TypeItem(file_id, type_id),
+            );
+
+            if let Some(description) = &description {
+                item.label_description(description.clone());
+            }
+            if let CursorText::ImportClassBoundary { name_range, insert_space, .. } = &context.text
+            {
+                if let Some(range) = name_range {
+                    item.edit_text(String::new());
+                    item.additional_text_edits(vec![TextEdit {
+                        range: *range,
+                        new_text: name.to_string(),
+                    }]);
+                } else if *insert_space {
+                    item.edit_text(format!(" {name}"));
+                }
+                item.sort_text(name.to_string());
+                item.filter_text(name.to_string());
+            }
+
+            items.push(item.build());
+        }
+
+        Ok(())
+    }
 }
 
 /// Yields the qualified names of imports.

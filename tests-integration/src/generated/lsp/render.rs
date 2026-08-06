@@ -88,13 +88,17 @@ fn display_completion_text_edit(edit: &Option<CompletionTextEdit>) -> String {
     if let Some(edit) = edit {
         match edit {
             CompletionTextEdit::Edit(edit) => {
+                let new_text = edit
+                    .new_text
+                    .strip_prefix(' ')
+                    .map_or_else(|| edit.new_text.trim().to_string(), |text| format!("␠{text}"));
                 format!(
                     "{}:{}..{}:{}\n{}",
                     edit.range.start.line,
                     edit.range.start.character,
                     edit.range.end.line,
                     edit.range.end.character,
-                    edit.new_text.trim()
+                    new_text
                 )
             }
             CompletionTextEdit::InsertAndReplace(_) => {

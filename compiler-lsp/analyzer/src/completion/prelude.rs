@@ -11,7 +11,7 @@ use syntax::{
     SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize, TokenAtOffset, cst,
 };
 
-use crate::position::{PositionEncoding, Utf8Position};
+use crate::position::PositionEncoding;
 use crate::{AnalyzerContext, AnalyzerError, position};
 
 pub struct CompletionContext<'c, 'a, Host> {
@@ -66,6 +66,27 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
 
     pub fn collect_types(&self) -> bool {
         matches!(self.semantics, CursorSemantics::Type)
+    }
+
+    pub fn collect_import_classes(&self) -> bool {
+        matches!(self.semantics, CursorSemantics::ImportClass)
+    }
+
+    pub fn import_file_at_cursor(&self) -> Option<FileId> {
+        let root = self.parsed.syntax_node();
+        let token = match root.token_at_offset(self.offset) {
+            TokenAtOffset::None => return None,
+            TokenAtOffset::Single(token) => token,
+            TokenAtOffset::Between(left, right) => {
+                let left_is_import_class =
+                    left.parent_ancestors().any(|node| cst::ImportClass::can_cast(node.kind()));
+                if left_is_import_class { left } else { right }
+            }
+        };
+
+        let statement = token.parent_ancestors().find_map(cst::ImportStatement::cast)?;
+        let module_name = statement.module_name()?.syntax().text(self.content);
+        self.language.queries().module_file(&module_name)
     }
 
     pub fn collect_implicit_prim(&self) -> bool {
@@ -176,6 +197,7 @@ pub enum CursorSemantics {
     Term,
     Type,
     Module,
+    ImportClass,
     General,
     Comment,
 }
@@ -183,7 +205,7 @@ pub enum CursorSemantics {
 const COMPLETION_MARKER: &str = "Z'PureScript'Z";
 
 impl CursorSemantics {
-    pub fn new(content: &str, position: Utf8Position) -> CursorSemantics {
+    pub fn new(content: &str, offset: TextSize, token: &SyntaxToken) -> CursorSemantics {
         // We insert a placeholder identifier at the current position of the
         // text cursor. This is done as an effort to produce as valid of a
         // parse tree as possible before we perform further analysis.
@@ -199,9 +221,14 @@ impl CursorSemantics {
         //
         // component = Halogen.Z'PureScript'Z
 
-        let Some(offset) = position::utf8_position_to_offset(content, position) else {
-            return CursorSemantics::General;
-        };
+        let at_import_class_keyword = token.kind() == SyntaxKind::CLASS
+            && token.text_range().end() == offset
+            && token.parent_ancestors().any(|node| {
+                cst::ImportClass::can_cast(node.kind()) || cst::ImportList::can_cast(node.kind())
+            });
+        if at_import_class_keyword {
+            return CursorSemantics::ImportClass;
+        }
 
         let (left, right) = content.split_at(offset.into());
         let source = format!("{left}{COMPLETION_MARKER}{right}");
@@ -239,6 +266,8 @@ impl CursorSemantics {
                     Some(CursorSemantics::Term)
                 } else if cst::Type::can_cast(kind) || cst::ExpressionTypeArgument::can_cast(kind) {
                     Some(CursorSemantics::Type)
+                } else if cst::ImportClass::can_cast(kind) {
+                    Some(CursorSemantics::ImportClass)
                 } else if cst::ImportStatement::can_cast(kind) {
                     Some(CursorSemantics::Module)
                 } else {
@@ -251,6 +280,7 @@ impl CursorSemantics {
 
 #[derive(Debug)]
 pub enum CursorText {
+    ImportClassBoundary { name: Option<SmolStr>, name_range: Option<Range>, insert_space: bool },
     None,
     Prefix(SmolStr),
     Name(SmolStr),
@@ -261,12 +291,79 @@ impl CursorText {
     pub fn new(
         content: &str,
         token: &SyntaxToken,
+        offset: TextSize,
         encoding: PositionEncoding,
     ) -> (CursorText, Option<Range>) {
         CursorText::of_qualified(content, token, encoding)
             .or_else(|| CursorText::of_qualifier(content, token, encoding))
+            .or_else(|| CursorText::of_import_class(content, token, offset, encoding))
             .or_else(|| CursorText::of_module_name(content, token, encoding))
             .unwrap_or((CursorText::None, None))
+    }
+
+    fn of_import_class(
+        content: &str,
+        token: &SyntaxToken,
+        offset: TextSize,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
+        token.parent_ancestors().find_map(|node| {
+            let import = cst::ImportClass::cast(node.clone());
+            if import.is_none()
+                && token.kind() == SyntaxKind::CLASS
+                && token.text_range().end() == offset
+                && cst::ImportList::can_cast(node.kind())
+            {
+                let range = TextRange::new(offset, offset);
+                let range = position::text_range_to_protocol(content, range, encoding)?;
+                let text = CursorText::ImportClassBoundary {
+                    name: None,
+                    name_range: None,
+                    insert_space: true,
+                };
+                return Some((text, Some(range)));
+            }
+            let import = import?;
+            let name_token = import.name_token();
+            let name_start = name_token.as_ref().map(|token| token.text_range().start());
+
+            if name_start.is_none_or(|name_start| offset <= name_start) {
+                let class_boundary =
+                    token.kind() == SyntaxKind::CLASS && token.text_range().end() == offset;
+                let trivia =
+                    name_start.map(|name_start| &content[TextRange::new(offset, name_start)]);
+                let replace_inline = trivia.is_some_and(|trivia| {
+                    !trivia.contains(['\n', '\r']) && trivia.chars().all(char::is_whitespace)
+                });
+                let end = if replace_inline {
+                    name_token.as_ref().map(|token| token.text_range().end()).unwrap_or(offset)
+                } else {
+                    offset
+                };
+                let range = TextRange::new(offset, end);
+                let range = position::text_range_to_protocol(content, range, encoding)?;
+                let name_range = if replace_inline {
+                    None
+                } else {
+                    name_token.as_ref().and_then(|token| {
+                        let range = token.text_range();
+                        position::text_range_to_protocol(content, range, encoding)
+                    })
+                };
+                let name = name_token.map(|token| SmolStr::new(token.text(content)));
+                let text = CursorText::ImportClassBoundary {
+                    name,
+                    name_range,
+                    insert_space: class_boundary,
+                };
+                return Some((text, Some(range)));
+            }
+
+            let token = name_token?;
+            let name = SmolStr::new(token.text(content));
+            let range = position::text_range_to_protocol(content, token.text_range(), encoding)?;
+            Some((CursorText::Name(name), Some(range)))
+        })
     }
 
     fn of_qualified(

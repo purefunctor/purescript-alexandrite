@@ -91,5 +91,6 @@ create_setters!(
     label_description -> String,
     edit_text -> String,
     sort_text -> String,
+    filter_text -> String,
     additional_text_edits -> Vec<TextEdit>,
 );

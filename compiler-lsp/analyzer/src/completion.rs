@@ -15,9 +15,10 @@ use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, 
 use radix_trie::Trie;
 use smol_str::SmolStr;
 use sources::{
-    ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes, QualifiedModules,
-    QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes, QualifiedTypesSuggestions,
-    ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes, WorkspaceModules,
+    ImportClasses, ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes,
+    QualifiedModules, QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes,
+    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes,
+    WorkspaceModules,
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
@@ -70,8 +71,8 @@ pub fn implementation(
         }
     };
 
-    let semantics = CursorSemantics::new(&content, position);
-    let (text, range) = CursorText::new(&content, &token, encoding);
+    let semantics = CursorSemantics::new(&content, offset, &token);
+    let (text, range) = CursorText::new(&content, &token, offset, encoding);
 
     let stabilized = engine.stabilized(current_file)?;
     let resolved = engine.resolved(current_file)?;
@@ -106,11 +107,22 @@ fn collect(
     let into = &mut items;
 
     match &context.text {
+        CursorText::ImportClassBoundary { name, .. } if context.collect_import_classes() => {
+            if let Some(name) = name {
+                ImportClasses.collect_into(context, FuzzyMatch(name), into)?;
+            } else {
+                ImportClasses.collect_into(context, NoFilter, into)?;
+            }
+        }
+        CursorText::ImportClassBoundary { .. } => {}
         CursorText::None => {
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, NoFilter, into)?;
-            } else {
+            } else if !context.collect_import_classes() {
                 QualifiedModules.collect_into(context, NoFilter, into)?;
+            }
+            if context.collect_import_classes() {
+                ImportClasses.collect_into(context, NoFilter, into)?;
             }
             if context.collect_terms() {
                 ScopeTerms.collect_into(context, NoFilter, into)?;
@@ -128,7 +140,7 @@ fn collect(
 
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, StartsWith(p), into)?;
-            } else {
+            } else if !context.collect_import_classes() {
                 QualifiedModules.collect_into(context, StartsWith(p), into)?;
             }
             if context.collect_terms() {
@@ -138,22 +150,27 @@ fn collect(
                 QualifiedTypes(p).collect_into(context, NoFilter, into)?;
             }
 
-            let query = format!("prefix:{p}");
-            let suggestions =
-                get_or_populate_suggestions(cache, &query, context, Some(p), NoFilter)?;
+            if context.collect_terms() || context.collect_types() {
+                let query = format!("prefix:{p}");
+                let suggestions =
+                    get_or_populate_suggestions(cache, &query, context, Some(p), NoFilter)?;
 
-            if context.collect_terms() && !context.has_qualified_import(p) {
-                items.extend(suggestions.qualified_terms.iter().cloned());
-            }
-            if context.collect_types() && !context.has_qualified_import(p) {
-                items.extend(suggestions.qualified_types.iter().cloned());
+                if context.collect_terms() && !context.has_qualified_import(p) {
+                    items.extend(suggestions.qualified_terms.iter().cloned());
+                }
+                if context.collect_types() && !context.has_qualified_import(p) {
+                    items.extend(suggestions.qualified_types.iter().cloned());
+                }
             }
         }
         CursorText::Name(n) => {
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, StartsWith(n), into)?;
-            } else {
+            } else if !context.collect_import_classes() {
                 QualifiedModules.collect_into(context, StartsWith(n), into)?;
+            }
+            if context.collect_import_classes() {
+                ImportClasses.collect_into(context, FuzzyMatch(n), into)?;
             }
             if context.collect_terms() {
                 ScopeTerms.collect_into(context, FuzzyMatch(n), into)?;
@@ -172,44 +189,53 @@ fn collect(
                 }
             }
 
-            let query = format!("name:{n}");
-            let suggestions =
-                get_or_populate_suggestions(cache, &query, context, None, StartsWith(n))?;
+            if context.collect_terms() || context.collect_types() {
+                let query = format!("name:{n}");
+                let suggestions =
+                    get_or_populate_suggestions(cache, &query, context, None, StartsWith(n))?;
 
-            if context.collect_terms() {
-                items.extend(suggestions.terms.iter().cloned());
-            }
-
-            if context.collect_types() {
-                items.extend(suggestions.types.iter().cloned());
+                if context.collect_terms() {
+                    items.extend(suggestions.terms.iter().cloned());
+                }
+                if context.collect_types() {
+                    items.extend(suggestions.types.iter().cloned());
+                }
             }
         }
-        CursorText::Both(p, n) => {
-            let t: SmolStr = p.chars().chain(n.chars()).collect();
-            let p = p.trim_end_matches('.');
+        CursorText::Both(prefix, name) => {
+            let combined_name = prefix.chars().chain(name.chars());
+            let combined_name: SmolStr = combined_name.collect();
+            let prefix = prefix.trim_end_matches('.');
 
             if context.collect_modules() {
-                WorkspaceModules.collect_into(context, StartsWith(&t), into)?;
-            } else {
-                QualifiedModules.collect_into(context, StartsWith(&t), into)?;
+                WorkspaceModules.collect_into(context, StartsWith(&combined_name), into)?;
+            } else if !context.collect_import_classes() {
+                QualifiedModules.collect_into(context, StartsWith(&combined_name), into)?;
             }
             if context.collect_terms() {
-                QualifiedTerms(p).collect_into(context, FuzzyMatch(n), into)?;
+                QualifiedTerms(prefix).collect_into(context, FuzzyMatch(name), into)?;
             }
             if context.collect_types() {
-                QualifiedTypes(p).collect_into(context, FuzzyMatch(n), into)?;
+                QualifiedTypes(prefix).collect_into(context, FuzzyMatch(name), into)?;
             }
 
-            let query = format!("both:{t}");
-            let suggestions =
-                get_or_populate_suggestions(cache, &query, context, Some(p), FuzzyMatch(n))?;
+            if context.collect_terms() || context.collect_types() {
+                let query = format!("both:{combined_name}");
+                let suggestions = get_or_populate_suggestions(
+                    cache,
+                    &query,
+                    context,
+                    Some(prefix),
+                    FuzzyMatch(name),
+                )?;
 
-            if context.collect_terms() && !context.has_qualified_import(p) {
-                items.extend(suggestions.qualified_terms.iter().cloned());
-            }
+                if context.collect_terms() && !context.has_qualified_import(prefix) {
+                    items.extend(suggestions.qualified_terms.iter().cloned());
+                }
 
-            if context.collect_types() && !context.has_qualified_import(p) {
-                items.extend(suggestions.qualified_types.iter().cloned());
+                if context.collect_types() && !context.has_qualified_import(prefix) {
+                    items.extend(suggestions.qualified_types.iter().cloned());
+                }
             }
         }
     }

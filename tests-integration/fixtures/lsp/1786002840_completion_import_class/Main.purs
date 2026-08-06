@@ -1,5 +1,11 @@
 module Main where
 
+import Lib (class)
+--               ^
+
+import Lib (class Foldable)
+--               ^
+
 import Lib (class Fu)
 --                  ^
 
