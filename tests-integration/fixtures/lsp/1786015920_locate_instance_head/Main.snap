@@ -1,0 +1,195 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 4, character: 6 }
+
+```
+class Functor f
+--    $ @ %
+```
+
+```purescript
+Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+```
+
+
+GotoDefinition at Position { line: 4, character: 8 }
+
+```
+class Functor f
+--    $ @ %
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 4:0..4:15
+
+
+References at Position { line: 4, character: 10 }
+
+```
+class Functor f
+--    $ @ %
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 12:36..12:43
+
+
+Hover at Position { line: 9, character: 9 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 9, character: 10 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 7:28..9:25
+
+
+References at Position { line: 9, character: 11 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+
+
+
+DocumentHighlight at Position { line: 9, character: 12 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+<empty>
+
+
+Rename at Position { line: 9, character: 13 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 9, character: 14 }
+
+```
+instance Functor Identity
+--       $@%&/?
+```
+
+<empty>
+
+
+Hover at Position { line: 16, character: 16 }
+
+```
+derive instance Functor Derived
+--              $@%
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 16, character: 17 }
+
+```
+derive instance Functor Derived
+--              $@%
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 16:0..16:31
+
+
+References at Position { line: 16, character: 18 }
+
+```
+derive instance Functor Derived
+--              $@%
+```
+
+
+
+
+Hover at Position { line: 21, character: 24 }
+
+```
+derive newtype instance Functor Wrapper
+--                      $@%
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 21, character: 25 }
+
+```
+derive newtype instance Functor Wrapper
+--                      $@%
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 21:0..21:39
+
+
+References at Position { line: 21, character: 26 }
+
+```
+derive newtype instance Functor Wrapper
+--                      $@%
+```
+
+
+
+
+Hover at Position { line: 29, character: 18 }
+
+```
+else instance Lib.ImportedFunctor ChainSecond
+--                $@%/
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 29, character: 19 }
+
+```
+else instance Lib.ImportedFunctor ChainSecond
+--                $@%/
+```
+
+file:///tests-integration/fixtures/lsp/1786015920_locate_instance_head/Main.purs @ 26:30..29:45
+
+
+References at Position { line: 29, character: 20 }
+
+```
+else instance Lib.ImportedFunctor ChainSecond
+--                $@%/
+```
+
+
+
+
+Rename at Position { line: 29, character: 21 }
+
+```
+else instance Lib.ImportedFunctor ChainSecond
+--                $@%/
+```
+
+<empty>
