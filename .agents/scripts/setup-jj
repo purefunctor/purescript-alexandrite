@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+signing_key=$(/usr/bin/git config --system user.signingkey || true)
+user_name=$(git config user.name || true)
+user_email=$(git config user.email || true)
+
+if [[ -z "$user_name" || -z "$user_email" ]]; then
+  echo "AMP_USE_JJ requires Git user.name and user.email configuration." >&2
+  exit 1
+fi
+if [[ -z "$signing_key" ]]; then
+  echo "AMP_USE_JJ requires an Orb SSH signing key." >&2
+  exit 1
+fi
+if ! github_login=$(gh api user --jq .login); then
+  echo "AMP_USE_JJ requires an authenticated GitHub CLI session." >&2
+  exit 1
+fi
+if ! public_signing_keys=$( \
+  gh api "users/${github_login}/ssh_signing_keys" --jq '.[].key'
+); then
+  echo "Could not load public SSH signing keys from GitHub." >&2
+  exit 1
+fi
+if [[ -z "$public_signing_keys" ]]; then
+  echo "AMP_USE_JJ requires a public SSH signing key configured on GitHub." >&2
+  exit 1
+fi
+
+if [[ ! -x "$HOME/.nix-profile/bin/nix" ]]; then
+  curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install \
+    | sh -s -- --no-daemon --yes --no-channel-add --no-modify-profile
+fi
+
+. "$HOME/.nix-profile/etc/profile.d/nix.sh"
+
+nix_config_directory="${XDG_CONFIG_HOME:-$HOME/.config}/nix"
+nix_config="$nix_config_directory/nix.conf"
+install -d -m 700 "$nix_config_directory"
+touch "$nix_config"
+chmod 600 "$nix_config"
+if ! grep -qxF 'experimental-features = nix-command flakes' "$nix_config"; then
+  printf '%s\n' 'experimental-features = nix-command flakes' >> "$nix_config"
+fi
+
+nix_profile="$HOME/.local/state/nix/profiles/amp-jj"
+nixpkgs_revision=445d861c6d31b4af0c79d8d4be2331f762a361d7
+nixpkgs_url="tarball+https://github.com/NixOS/nixpkgs/archive/${nixpkgs_revision}.tar.gz"
+install -d -m 700 "$(dirname "$nix_profile")"
+nix_packages=()
+[[ -x "$nix_profile/bin/git" ]] || nix_packages+=("${nixpkgs_url}#git")
+[[ -x "$nix_profile/bin/jj" ]] || nix_packages+=("${nixpkgs_url}#jujutsu")
+if (( ${#nix_packages[@]} > 0 )); then
+  nix profile add \
+    --profile "$nix_profile" \
+    "${nix_packages[@]}"
+fi
+
+install -d -m 700 "$HOME/.local/bin"
+ln -sfn "$nix_profile/bin/git" "$HOME/.local/bin/git"
+ln -sfn "$nix_profile/bin/jj" "$HOME/.local/bin/jj"
+ln -sfn "$HOME/.nix-profile/bin/nix" "$HOME/.local/bin/nix"
+export PATH="$HOME/.local/bin:$PATH"
+hash -r
+
+cat > "$HOME/.local/bin/jj-amp-sign-commit" <<'EOF'
+#!/bin/sh
+set -eu
+
+if [ "$#" -eq 6 ] \
+  && [ "$1" = "-Y" ] \
+  && [ "$2" = "sign" ] \
+  && [ "$3" = "-f" ] \
+  && [ -f "$4" ] \
+  && [ "$5" = "-n" ] \
+  && [ "$6" = "git" ]; then
+  signing_key=$(cat -- "$4")
+  umask 077
+  signing_buffer=$(mktemp)
+  signature_file="${signing_buffer}.sig"
+  trap 'rm -f -- "$signing_buffer" "$signature_file"' EXIT HUP INT TERM
+  cat > "$signing_buffer"
+  amp-sign-commit -Y sign -n git -f "$signing_key" "$signing_buffer"
+  cat -- "$signature_file"
+  rm -f -- "$signing_buffer" "$signature_file"
+  trap - EXIT HUP INT TERM
+  exit 0
+fi
+
+if [ "$#" -ge 2 ] && [ "$1" = "-Y" ] && [ "$2" = "sign" ]; then
+  exec amp-sign-commit "$@"
+fi
+
+exec ssh-keygen "$@"
+EOF
+chmod 700 "$HOME/.local/bin/jj-amp-sign-commit"
+
+signing_program="$HOME/.local/bin/jj-amp-sign-commit"
+jj config set --user user.name "$user_name"
+jj config set --user user.email "$user_email"
+jj config set --user signing.backend ssh
+jj config set --user signing.key "$signing_key"
+jj config set --user signing.backends.ssh.program "$signing_program"
+jj config set --user signing.behavior own
+
+allowed_signers="$HOME/.config/git/allowed_signers"
+install -d -m 700 "$(dirname "$allowed_signers")"
+allowed_signers_temporary=$(mktemp "${allowed_signers}.XXXXXX")
+trap 'rm -f -- "$allowed_signers_temporary"' EXIT HUP INT TERM
+printf '%s\n' "$public_signing_keys" \
+  | awk -v principal="$user_email" '{ print principal, $0 }' \
+  > "$allowed_signers_temporary"
+chmod 600 "$allowed_signers_temporary"
+mv -f -- "$allowed_signers_temporary" "$allowed_signers"
+trap - EXIT HUP INT TERM
+jj config set --user signing.backends.ssh.allowed-signers "$allowed_signers"
+git config --global --replace-all gpg.format ssh
+git config --global --replace-all gpg.ssh.program "$signing_program"
+git config --global --replace-all gpg.ssh.allowedSignersFile "$allowed_signers"
+git config --global --replace-all user.signingkey "$signing_key"
+git config --global --replace-all commit.gpgSign true
+
+if [[ "$(git rev-parse --is-shallow-repository)" == true ]]; then
+  git fetch --unshallow --tags
+fi
+
+if ! jj root >/dev/null 2>&1; then
+  jj git init --colocate .
+fi

@@ -19,3 +19,7 @@ if ! command -v cargo-binstall >/dev/null 2>&1; then
 fi
 
 cargo binstall --no-confirm just cargo-nextest cargo-insta
+
+if [[ -n "${AMP_USE_JJ:-}" ]]; then
+  .agents/scripts/setup-jj
+fi
