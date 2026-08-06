@@ -134,10 +134,29 @@ pub(super) fn type_import_item(
         |import| {
             import
                 .lookup_type(type_name)
-                .or_else(|| import.lookup_class(type_name))
                 .and_then(|(f, t, k)| if (f, t) == (file_id, type_id) { Some(k) } else { None })
         },
         |import_indexed| type_import_name(import_indexed, type_name, type_id),
+    )
+}
+
+pub(super) fn class_import_item(
+    context: &CompletionContext<impl crate::AnalyzerHost>,
+    module_name: &str,
+    class_name: &str,
+    file_id: FileId,
+    class_id: TypeItemId,
+) -> (Option<String>, Option<Range>) {
+    import_item(
+        context,
+        module_name,
+        file_id,
+        |import| {
+            import
+                .lookup_class(class_name)
+                .and_then(|(f, t, k)| if (f, t) == (file_id, class_id) { Some(k) } else { None })
+        },
+        |import_indexed| type_import_name(import_indexed, class_name, class_id),
     )
 }
 

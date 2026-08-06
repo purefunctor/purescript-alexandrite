@@ -15,10 +15,11 @@ use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, 
 use radix_trie::Trie;
 use smol_str::SmolStr;
 use sources::{
-    ImportClasses, ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes,
+    ImportClasses, ImportedClasses, ImportedTerms, ImportedTypes, LocalClasses, LocalTerms,
+    LocalTypes, PrimClasses, PrimTerms, PrimTypes, QualifiedClasses, QualifiedClassesSuggestions,
     QualifiedModules, QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes,
-    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes,
-    WorkspaceModules,
+    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedClasses, SuggestedTerms,
+    SuggestedTypes, WorkspaceModules,
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
@@ -28,8 +29,10 @@ use crate::{AnalyzerContext, AnalyzerError, position};
 pub struct SuggestionsCacheEntry {
     pub terms: Vec<CompletionItem>,
     pub types: Vec<CompletionItem>,
+    pub classes: Vec<CompletionItem>,
     pub qualified_terms: Vec<CompletionItem>,
     pub qualified_types: Vec<CompletionItem>,
+    pub qualified_classes: Vec<CompletionItem>,
 }
 
 pub type SuggestionsCache = Trie<String, Arc<SuggestionsCacheEntry>>;
@@ -134,6 +137,10 @@ fn collect(
                 LocalTypes.collect_into(context, NoFilter, into)?;
                 ImportedTypes.collect_into(context, NoFilter, into)?;
             }
+            if context.collect_classes() {
+                LocalClasses.collect_into(context, NoFilter, into)?;
+                ImportedClasses.collect_into(context, NoFilter, into)?;
+            }
         }
         CursorText::Prefix(p) => {
             let p = p.trim_end_matches('.');
@@ -149,6 +156,9 @@ fn collect(
             if context.collect_types() {
                 QualifiedTypes(p).collect_into(context, NoFilter, into)?;
             }
+            if context.collect_classes() {
+                QualifiedClasses(p).collect_into(context, NoFilter, into)?;
+            }
 
             let query = format!("prefix:{p}");
             let suggestions =
@@ -159,6 +169,9 @@ fn collect(
             }
             if context.collect_types() && !context.has_qualified_import(p) {
                 items.extend(suggestions.qualified_types.iter().cloned());
+            }
+            if context.collect_classes() && !context.has_qualified_import(p) {
+                items.extend(suggestions.qualified_classes.iter().cloned());
             }
         }
         CursorText::Name(n) => {
@@ -183,6 +196,13 @@ fn collect(
                     PrimTypes.collect_into(context, FuzzyMatch(n), into)?;
                 }
             }
+            if context.collect_classes() {
+                LocalClasses.collect_into(context, FuzzyMatch(n), into)?;
+                ImportedClasses.collect_into(context, FuzzyMatch(n), into)?;
+                if context.collect_implicit_prim() {
+                    PrimClasses.collect_into(context, FuzzyMatch(n), into)?;
+                }
+            }
 
             let query = format!("name:{n}");
             let suggestions =
@@ -194,6 +214,9 @@ fn collect(
 
             if context.collect_types() {
                 items.extend(suggestions.types.iter().cloned());
+            }
+            if context.collect_classes() {
+                items.extend(suggestions.classes.iter().cloned());
             }
         }
         CursorText::Both(p, n) => {
@@ -211,6 +234,9 @@ fn collect(
             if context.collect_types() {
                 QualifiedTypes(p).collect_into(context, FuzzyMatch(n), into)?;
             }
+            if context.collect_classes() {
+                QualifiedClasses(p).collect_into(context, FuzzyMatch(n), into)?;
+            }
 
             let query = format!("both:{t}");
             let suggestions =
@@ -222,6 +248,9 @@ fn collect(
 
             if context.collect_types() && !context.has_qualified_import(p) {
                 items.extend(suggestions.qualified_types.iter().cloned());
+            }
+            if context.collect_classes() && !context.has_qualified_import(p) {
+                items.extend(suggestions.qualified_classes.iter().cloned());
             }
         }
     }
@@ -270,9 +299,15 @@ fn get_or_populate_suggestions<F: Filter>(
             filter,
             &mut suggestions.qualified_types,
         )?;
+        QualifiedClassesSuggestions(prefix).collect_into(
+            context,
+            filter,
+            &mut suggestions.qualified_classes,
+        )?;
     } else {
         SuggestedTerms.collect_into(context, filter, &mut suggestions.terms)?;
         SuggestedTypes.collect_into(context, filter, &mut suggestions.types)?;
+        SuggestedClasses.collect_into(context, filter, &mut suggestions.classes)?;
     }
 
     let key = query.to_string();
@@ -292,11 +327,38 @@ where
     F: Filter,
 {
     SuggestionsCacheEntry {
-        terms: collect_entries(&cached.terms, filter, prefix, context),
-        types: collect_entries(&cached.types, filter, prefix, context),
-        qualified_terms: collect_entries(&cached.qualified_terms, filter, prefix, context),
-        qualified_types: collect_entries(&cached.qualified_types, filter, prefix, context),
+        terms: collect_entries(&cached.terms, filter, prefix, context, ImportNamespace::Term),
+        types: collect_entries(&cached.types, filter, prefix, context, ImportNamespace::Type),
+        classes: collect_entries(&cached.classes, filter, prefix, context, ImportNamespace::Class),
+        qualified_terms: collect_entries(
+            &cached.qualified_terms,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Term,
+        ),
+        qualified_types: collect_entries(
+            &cached.qualified_types,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Type,
+        ),
+        qualified_classes: collect_entries(
+            &cached.qualified_classes,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Class,
+        ),
     }
+}
+
+#[derive(Clone, Copy)]
+enum ImportNamespace {
+    Term,
+    Type,
+    Class,
 }
 
 fn collect_entries<F>(
@@ -304,6 +366,7 @@ fn collect_entries<F>(
     filter: &F,
     prefix: Option<&str>,
     context: &CompletionContext<impl crate::AnalyzerHost>,
+    namespace: ImportNamespace,
 ) -> Vec<CompletionItem>
 where
     F: Filter,
@@ -313,10 +376,10 @@ where
             return false;
         }
         if item.additional_text_edits.is_some() {
-            let has_import = match item.kind {
-                Some(CompletionItemKind::VALUE) => context.has_term_import(prefix, &item.label),
-                Some(CompletionItemKind::STRUCT) => context.has_type_import(prefix, &item.label),
-                _ => false,
+            let has_import = match namespace {
+                ImportNamespace::Term => context.has_term_import(prefix, &item.label),
+                ImportNamespace::Type => context.has_type_import(prefix, &item.label),
+                ImportNamespace::Class => context.has_class_import(prefix, &item.label),
             };
             if has_import {
                 return false;

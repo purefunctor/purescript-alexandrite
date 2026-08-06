@@ -342,6 +342,9 @@ impl CompletionSource for LocalTerms {
 /// Yields types defined in the current module.
 pub struct LocalTypes;
 
+/// Yields classes defined in the current module.
+pub struct LocalClasses;
+
 impl CompletionSource for LocalTypes {
     type T = ();
 
@@ -367,6 +370,19 @@ impl CompletionSource for LocalTypes {
             items.push(item.build())
         }
 
+        Ok(())
+    }
+}
+
+impl CompletionSource for LocalClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
         let source = context.resolved.locals.iter_classes();
         let source = source.filter(move |(name, _, _)| filter.matches(name));
 
@@ -431,6 +447,9 @@ impl CompletionSource for ImportedTerms {
 /// Yields types from unqualified imports.
 pub struct ImportedTypes;
 
+/// Yields classes from unqualified imports.
+pub struct ImportedClasses;
+
 impl CompletionSource for ImportedTypes {
     type T = ();
 
@@ -446,14 +465,14 @@ impl CompletionSource for ImportedTypes {
             let source = import.iter_types().filter(move |(name, _, _, kind)| {
                 filter.matches(name) && !matches!(kind, ImportKind::Hidden)
             });
-            for (name, f, t, _) in source {
-                let description = module_name(context, f)?;
+            for (name, file_id, type_id, _) in source {
+                let description = module_name(context, file_id)?;
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
                     context.range,
                     CompletionItemKind::STRUCT,
-                    CompletionResolveData::TypeItem(f, t),
+                    CompletionResolveData::TypeItem(file_id, type_id),
                 );
 
                 if let Some(description) = description {
@@ -462,18 +481,35 @@ impl CompletionSource for ImportedTypes {
 
                 items.push(item.build())
             }
+        }
 
+        Ok(())
+    }
+}
+
+impl CompletionSource for ImportedClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let source = context.resolved.unqualified.values().flatten();
+
+        for import in source {
             let source = import.iter_classes().filter(move |(name, _, _, kind)| {
                 filter.matches(name) && !matches!(kind, ImportKind::Hidden)
             });
-            for (name, f, t, _) in source {
-                let description = module_name(context, f)?;
+            for (name, file_id, type_id, _) in source {
+                let description = module_name(context, file_id)?;
 
                 let mut item = CompletionItemSpec::new(
                     name.to_string(),
                     context.range,
                     CompletionItemKind::STRUCT,
-                    CompletionResolveData::TypeItem(f, t),
+                    CompletionResolveData::TypeItem(file_id, type_id),
                 );
 
                 if let Some(description) = description {
@@ -535,6 +571,9 @@ impl CompletionSource for QualifiedTerms<'_> {
 /// Yields types from qualified imports.
 pub struct QualifiedTypes<'a>(pub &'a str);
 
+/// Yields classes from qualified imports.
+pub struct QualifiedClasses<'a>(pub &'a str);
+
 impl CompletionSource for QualifiedTypes<'_> {
     type T = ();
 
@@ -570,7 +609,26 @@ impl CompletionSource for QualifiedTypes<'_> {
 
                 items.push(item.build())
             }
+        }
 
+        Ok(())
+    }
+}
+
+impl CompletionSource for QualifiedClasses<'_> {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let Some(imports) = context.resolved.qualified.get(self.0) else {
+            return Ok(());
+        };
+
+        for import in imports {
             let source = import.iter_classes().filter(|(name, _, _, kind)| {
                 filter.matches(name) && !matches!(kind, ImportKind::Hidden)
             });
@@ -604,11 +662,16 @@ pub struct SuggestedTerms;
 /// Yields suggestions for types.
 pub struct SuggestedTypes;
 
+/// Yields suggestions for classes.
+pub struct SuggestedClasses;
+
 trait SuggestionsHelper {
     type ItemId;
 
-    fn exports(resolved: &ResolvedModule)
-    -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)>;
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)>;
 
     fn candidate(
         &self,
@@ -623,7 +686,10 @@ trait SuggestionsHelper {
 impl SuggestionsHelper for SuggestedTerms {
     type ItemId = TermItemId;
 
-    fn exports(resolved: &ResolvedModule) -> impl Iterator<Item = (&SmolStr, FileId, TermItemId)> {
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, TermItemId)> {
         resolved.exports.iter_terms()
     }
 
@@ -673,10 +739,11 @@ impl SuggestionsHelper for SuggestedTerms {
 impl SuggestionsHelper for SuggestedTypes {
     type ItemId = TypeItemId;
 
-    fn exports(
-        resolved: &ResolvedModule,
-    ) -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)> {
-        resolved.exports.iter_types().chain(resolved.exports.iter_classes())
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_types()
     }
 
     fn candidate(
@@ -697,29 +764,77 @@ impl SuggestionsHelper for SuggestedTypes {
             return Ok(None);
         };
 
-        let mut item = CompletionItemSpec::new(
-            name.to_string(),
-            context.range,
-            CompletionItemKind::STRUCT,
-            CompletionResolveData::TypeItem(file_id, item_id),
-        );
+        let import_edit = edit::type_import_item(context, &module_name, name, file_id, item_id);
+        let item =
+            suggested_type_candidate(context, name, &module_name, file_id, item_id, import_edit);
 
-        let (import_text, import_range) =
-            edit::type_import_item(context, &module_name, name, file_id, item_id);
+        Ok(Some(item))
+    }
+}
 
-        let range_new_text =
-            import_range.or_else(|| context.insert_import_range()).zip(import_text);
+impl SuggestionsHelper for SuggestedClasses {
+    type ItemId = TypeItemId;
 
-        item.label_detail(format!(" (import {module_name})"));
-        item.label_description(module_name.to_string());
-        item.sort_text(format!("{module_name}.{name}"));
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_classes()
+    }
 
-        if let Some((range, new_text)) = range_new_text {
-            item.additional_text_edits(vec![TextEdit { range, new_text }]);
+    fn candidate(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        name: &SmolStr,
+        import_id: FileId,
+        file_id: FileId,
+        item_id: Self::ItemId,
+    ) -> Result<Option<CompletionItem>, AnalyzerError> {
+        assert_eq!(import_id, file_id);
+
+        if context.has_class_import(None, name) {
+            return Ok(None);
         }
 
-        Ok(Some(item.build()))
+        let Some(module_name) = module_name(context, file_id)? else {
+            return Ok(None);
+        };
+
+        let import_edit = edit::class_import_item(context, &module_name, name, file_id, item_id);
+        let item =
+            suggested_type_candidate(context, name, &module_name, file_id, item_id, import_edit);
+
+        Ok(Some(item))
     }
+}
+
+fn suggested_type_candidate(
+    context: &CompletionContext<impl crate::AnalyzerHost>,
+    name: &SmolStr,
+    module_name: &str,
+    file_id: FileId,
+    item_id: TypeItemId,
+    import_edit: (Option<String>, Option<Range>),
+) -> CompletionItem {
+    let mut item = CompletionItemSpec::new(
+        name.to_string(),
+        context.range,
+        CompletionItemKind::STRUCT,
+        CompletionResolveData::TypeItem(file_id, item_id),
+    );
+
+    let (import_text, import_range) = import_edit;
+    let range_new_text = import_range.or_else(|| context.insert_import_range()).zip(import_text);
+
+    item.label_detail(format!(" (import {module_name})"));
+    item.label_description(module_name.to_string());
+    item.sort_text(format!("{module_name}.{name}"));
+
+    if let Some((range, new_text)) = range_new_text {
+        item.additional_text_edits(vec![TextEdit { range, new_text }]);
+    }
+
+    item.build()
 }
 
 fn suggestions_candidates<T: SuggestionsHelper>(
@@ -744,7 +859,8 @@ fn suggestions_candidates<T: SuggestionsHelper>(
     for import_id in file_ids {
         let resolved = context.language.queries().resolved(import_id)?;
 
-        let source = T::exports(&resolved)
+        let source = this
+            .exports(&resolved)
             .filter(|(name, file_id, _)| filter.matches(name) && *file_id == import_id);
 
         for (name, file_id, item_id) in source {
@@ -771,6 +887,19 @@ impl CompletionSource for SuggestedTerms {
 }
 
 impl CompletionSource for SuggestedTypes {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        suggestions_candidates(self, context, filter, items)
+    }
+}
+
+impl CompletionSource for SuggestedClasses {
     type T = ();
 
     fn collect_into<F: Filter>(
@@ -821,6 +950,9 @@ impl CompletionSource for PrimTerms {
 /// Yields types for implicit Prim.
 pub struct PrimTypes;
 
+/// Yields classes for implicit Prim.
+pub struct PrimClasses;
+
 impl CompletionSource for PrimTypes {
     type T = ();
 
@@ -849,6 +981,19 @@ impl CompletionSource for PrimTypes {
             items.push(item.build())
         }
 
+        Ok(())
+    }
+}
+
+impl CompletionSource for PrimClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
         let source = context
             .prim_resolved
             .exports
@@ -878,12 +1023,16 @@ pub struct QualifiedTermsSuggestions<'a>(pub &'a str);
 /// Yields suggestions for qualified types.
 pub struct QualifiedTypesSuggestions<'a>(pub &'a str);
 
+/// Yields suggestions for qualified classes.
+pub struct QualifiedClassesSuggestions<'a>(pub &'a str);
+
 impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
     type ItemId = TermItemId;
 
-    fn exports(
-        resolved: &ResolvedModule,
-    ) -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)> {
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)> {
         resolved.exports.iter_terms()
     }
 
@@ -924,10 +1073,11 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
 impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
     type ItemId = TypeItemId;
 
-    fn exports(
-        resolved: &ResolvedModule,
-    ) -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)> {
-        resolved.exports.iter_types().chain(resolved.exports.iter_classes())
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_types()
     }
 
     fn candidate(
@@ -942,26 +1092,67 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
             return Ok(None);
         };
 
-        let mut item = CompletionItemSpec::new(
-            name.to_string(),
-            context.range,
-            CompletionItemKind::STRUCT,
-            CompletionResolveData::TypeItem(file_id, item_id),
-        );
+        let item = qualified_type_candidate(context, self.0, name, &module_name, file_id, item_id);
 
-        item.label_detail(format!(" (import {module_name} as {})", self.0));
-        item.label_description(module_name.to_string());
-
-        item.edit_text(format!("{}.{name}", self.0));
-        item.sort_text(format!("{module_name}.{name}"));
-
-        if let Some(range) = context.insert_import_range() {
-            let new_text = format!("import {module_name} as {}\n", self.0);
-            item.additional_text_edits(vec![TextEdit { range, new_text }]);
-        }
-
-        Ok(Some(item.build()))
+        Ok(Some(item))
     }
+}
+
+impl SuggestionsHelper for QualifiedClassesSuggestions<'_> {
+    type ItemId = TypeItemId;
+
+    fn exports<'a>(
+        &self,
+        resolved: &'a ResolvedModule,
+    ) -> impl Iterator<Item = (&'a SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_classes()
+    }
+
+    fn candidate(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        name: &SmolStr,
+        import_id: FileId,
+        file_id: FileId,
+        item_id: Self::ItemId,
+    ) -> Result<Option<CompletionItem>, AnalyzerError> {
+        let Some(module_name) = module_name(context, import_id)? else {
+            return Ok(None);
+        };
+
+        let item = qualified_type_candidate(context, self.0, name, &module_name, file_id, item_id);
+
+        Ok(Some(item))
+    }
+}
+
+fn qualified_type_candidate(
+    context: &CompletionContext<impl crate::AnalyzerHost>,
+    qualifier: &str,
+    name: &SmolStr,
+    module_name: &str,
+    file_id: FileId,
+    item_id: TypeItemId,
+) -> CompletionItem {
+    let mut item = CompletionItemSpec::new(
+        name.to_string(),
+        context.range,
+        CompletionItemKind::STRUCT,
+        CompletionResolveData::TypeItem(file_id, item_id),
+    );
+
+    item.label_detail(format!(" (import {module_name} as {qualifier})"));
+    item.label_description(module_name.to_string());
+
+    item.edit_text(format!("{qualifier}.{name}"));
+    item.sort_text(format!("{module_name}.{name}"));
+
+    if let Some(range) = context.insert_import_range() {
+        let new_text = format!("import {module_name} as {qualifier}\n");
+        item.additional_text_edits(vec![TextEdit { range, new_text }]);
+    }
+
+    item.build()
 }
 
 fn suggestions_candidates_qualified<T: SuggestionsHelper>(
@@ -991,7 +1182,7 @@ fn suggestions_candidates_qualified<T: SuggestionsHelper>(
             continue;
         }
 
-        let source = T::exports(&resolved).filter(|(name, _, _)| filter.matches(name));
+        let source = this.exports(&resolved).filter(|(name, _, _)| filter.matches(name));
 
         for (name, file_id, item_id) in source {
             if let Some(item) = this.candidate(context, name, import_id, file_id, item_id)? {
@@ -1017,6 +1208,19 @@ impl CompletionSource for QualifiedTermsSuggestions<'_> {
 }
 
 impl CompletionSource for QualifiedTypesSuggestions<'_> {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        suggestions_candidates_qualified(self, self.0, context, filter, items)
+    }
+}
+
+impl CompletionSource for QualifiedClassesSuggestions<'_> {
     type T = ();
 
     fn collect_into<F: Filter>(
