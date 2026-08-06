@@ -5,16 +5,25 @@ signing_key=$(/usr/bin/git config --system user.signingkey || true)
 user_name=$(git config user.name || true)
 user_email=$(git config user.email || true)
 
-if [[ -z "$user_name" || -z "$user_email" ]]; then
-  echo "AMP_USE_JJ requires Git user.name and user.email configuration." >&2
-  exit 1
-fi
 if [[ -z "$signing_key" ]]; then
   echo "AMP_USE_JJ requires an Orb SSH signing key." >&2
   exit 1
 fi
 if ! github_login=$(gh api user --jq .login); then
   echo "AMP_USE_JJ requires an authenticated GitHub CLI session." >&2
+  exit 1
+fi
+if [[ -z "$user_name" ]]; then
+  user_name=$(gh api user --jq '.name // .login')
+fi
+if [[ -z "$user_email" ]]; then
+  user_email=${AMP_USER_EMAIL:-}
+fi
+if [[ -z "$user_email" ]]; then
+  user_email=$(gh api user --jq '.email // empty')
+fi
+if [[ -z "$user_name" || -z "$user_email" ]]; then
+  echo "AMP_USE_JJ requires an Orb or Git user identity." >&2
   exit 1
 fi
 if ! public_signing_keys=$( \
