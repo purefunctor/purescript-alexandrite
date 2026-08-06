@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Completion at Position { line: 2, character: 14 }
@@ -13,11 +13,11 @@ type Step1 = M
 ╭─────────┬────────────────────────┬─────────────────────┬────────────────────┬───────────────┬──────────────┬───────────────────────────────╮
 │  label  │  label_detail          │  label_description  │  sort_text         │  filter_text  │  text_edit   │  additional_text_edits        │
 ├─────────┼────────────────────────┼─────────────────────┼────────────────────┼───────────────┼──────────────┼───────────────────────────────┤
-│  Mul    │   (import Prim.Int)    │  Prim.Int           │  Prim.Int.Mul      │  Mul          │  2:13..2:14  │  1:0..1:0                     │
-│         │                        │                     │                    │               │  Mul         │  import Prim.Int (class Mul)  │
-├─────────┼────────────────────────┼─────────────────────┼────────────────────┼───────────────┼──────────────┼───────────────────────────────┤
 │  Maybe  │   (import Data.Maybe)  │  Data.Maybe         │  Data.Maybe.Maybe  │  Maybe        │  2:13..2:14  │  1:0..1:0                     │
 │         │                        │                     │                    │               │  Maybe       │  import Data.Maybe (Maybe)    │
+├─────────┼────────────────────────┼─────────────────────┼────────────────────┼───────────────┼──────────────┼───────────────────────────────┤
+│  Mul    │   (import Prim.Int)    │  Prim.Int           │  Prim.Int.Mul      │  Mul          │  2:13..2:14  │  1:0..1:0                     │
+│         │                        │                     │                    │               │  Mul         │  import Prim.Int (class Mul)  │
 ╰─────────┴────────────────────────┴─────────────────────┴────────────────────┴───────────────┴──────────────┴───────────────────────────────╯
 
 
@@ -178,15 +178,6 @@ type Qual1 = Data.Maybe.
 ╭──────────────┬──────────────────────────────────────────┬─────────────────────┬─────────────────────────────┬─────────────────────────┬─────────────────────────┬───────────────────────────────────────╮
 │  label       │  label_detail                            │  label_description  │  sort_text                  │  filter_text            │  text_edit              │  additional_text_edits                │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Cons        │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Cons           │  Data.Maybe.Cons        │  26:13..26:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Cons        │  import Prim.Symbol as Data.Maybe     │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Append      │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Append         │  Data.Maybe.Append      │  26:13..26:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Append      │  import Prim.Symbol as Data.Maybe     │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Compare     │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Compare        │  Data.Maybe.Compare     │  26:13..26:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Compare     │  import Prim.Symbol as Data.Maybe     │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Text        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Text        │  Data.Maybe.Text        │  26:13..26:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Text        │  import Prim.TypeError as Data.Maybe  │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
@@ -205,14 +196,23 @@ type Qual1 = Data.Maybe.
 │  Doc         │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Doc         │  Data.Maybe.Doc         │  26:13..26:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Doc         │  import Prim.TypeError as Data.Maybe  │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Maybe       │   (import Data.Maybe as Data.Maybe)      │  Data.Maybe         │  Data.Maybe.Maybe           │  Data.Maybe.Maybe       │  26:13..26:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Maybe       │  import Data.Maybe as Data.Maybe      │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Cons        │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Cons           │  Data.Maybe.Cons        │  26:13..26:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Cons        │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Append      │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Append         │  Data.Maybe.Append      │  26:13..26:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Append      │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Compare     │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Compare        │  Data.Maybe.Compare     │  26:13..26:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Compare     │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Fail        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Fail        │  Data.Maybe.Fail        │  26:13..26:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Fail        │  import Prim.TypeError as Data.Maybe  │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Warn        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Warn        │  Data.Maybe.Warn        │  26:13..26:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Warn        │  import Prim.TypeError as Data.Maybe  │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Maybe       │   (import Data.Maybe as Data.Maybe)      │  Data.Maybe         │  Data.Maybe.Maybe           │  Data.Maybe.Maybe       │  26:13..26:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Maybe       │  import Data.Maybe as Data.Maybe      │
 ╰──────────────┴──────────────────────────────────────────┴─────────────────────┴─────────────────────────────┴─────────────────────────┴─────────────────────────┴───────────────────────────────────────╯
 
 
@@ -225,15 +225,6 @@ type Qual2 = Data.Maybe.
 
 ╭──────────────┬──────────────────────────────────────────┬─────────────────────┬─────────────────────────────┬─────────────────────────┬─────────────────────────┬───────────────────────────────────────╮
 │  label       │  label_detail                            │  label_description  │  sort_text                  │  filter_text            │  text_edit              │  additional_text_edits                │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Cons        │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Cons           │  Data.Maybe.Cons        │  29:13..29:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Cons        │  import Prim.Symbol as Data.Maybe     │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Append      │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Append         │  Data.Maybe.Append      │  29:13..29:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Append      │  import Prim.Symbol as Data.Maybe     │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Compare     │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Compare        │  Data.Maybe.Compare     │  29:13..29:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Compare     │  import Prim.Symbol as Data.Maybe     │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Text        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Text        │  Data.Maybe.Text        │  29:13..29:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Text        │  import Prim.TypeError as Data.Maybe  │
@@ -253,12 +244,21 @@ type Qual2 = Data.Maybe.
 │  Doc         │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Doc         │  Data.Maybe.Doc         │  29:13..29:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Doc         │  import Prim.TypeError as Data.Maybe  │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Maybe       │   (import Data.Maybe as Data.Maybe)      │  Data.Maybe         │  Data.Maybe.Maybe           │  Data.Maybe.Maybe       │  29:13..29:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Maybe       │  import Data.Maybe as Data.Maybe      │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Cons        │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Cons           │  Data.Maybe.Cons        │  29:13..29:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Cons        │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Append      │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Append         │  Data.Maybe.Append      │  29:13..29:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Append      │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
+│  Compare     │   (import Prim.Symbol as Data.Maybe)     │  Prim.Symbol        │  Prim.Symbol.Compare        │  Data.Maybe.Compare     │  29:13..29:24           │  1:0..1:0                             │
+│              │                                          │                     │                             │                         │  Data.Maybe.Compare     │  import Prim.Symbol as Data.Maybe     │
+├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Fail        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Fail        │  Data.Maybe.Fail        │  29:13..29:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Fail        │  import Prim.TypeError as Data.Maybe  │
 ├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
 │  Warn        │   (import Prim.TypeError as Data.Maybe)  │  Prim.TypeError     │  Prim.TypeError.Warn        │  Data.Maybe.Warn        │  29:13..29:24           │  1:0..1:0                             │
 │              │                                          │                     │                             │                         │  Data.Maybe.Warn        │  import Prim.TypeError as Data.Maybe  │
-├──────────────┼──────────────────────────────────────────┼─────────────────────┼─────────────────────────────┼─────────────────────────┼─────────────────────────┼───────────────────────────────────────┤
-│  Maybe       │   (import Data.Maybe as Data.Maybe)      │  Data.Maybe         │  Data.Maybe.Maybe           │  Data.Maybe.Maybe       │  29:13..29:24           │  1:0..1:0                             │
-│              │                                          │                     │                             │                         │  Data.Maybe.Maybe       │  import Data.Maybe as Data.Maybe      │
 ╰──────────────┴──────────────────────────────────────────┴─────────────────────┴─────────────────────────────┴─────────────────────────┴─────────────────────────┴───────────────────────────────────────╯

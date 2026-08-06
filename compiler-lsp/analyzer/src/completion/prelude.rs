@@ -72,6 +72,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         matches!(self.semantics, CursorSemantics::Type)
     }
 
+    pub fn collect_classes(&self) -> bool {
+        matches!(self.semantics, CursorSemantics::Type | CursorSemantics::InstanceClass)
+    }
+
     pub fn collect_implicit_prim(&self) -> bool {
         self.resolved.unqualified.values().flatten().all(|import| import.file != self.prim_id)
     }
@@ -86,7 +90,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
 
     pub fn has_type_import(&self, qualifier: Option<&str>, name: &str) -> bool {
         self.resolved.lookup_type(self.prim_resolved, qualifier, name).is_some()
-            || self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
+    }
+
+    pub fn has_class_import(&self, qualifier: Option<&str>, name: &str) -> bool {
+        self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
     }
 
     pub fn scope_node(&self) -> Result<Option<GraphNodeId>, AnalyzerError> {
@@ -179,6 +186,7 @@ pub trait Filter: Copy {
 pub enum CursorSemantics {
     Term,
     Type,
+    InstanceClass,
     Module,
     ImportClass,
     General,
@@ -244,6 +252,8 @@ impl CursorSemantics {
                     Some(CursorSemantics::Term)
                 } else if cst::Type::can_cast(kind) || cst::ExpressionTypeArgument::can_cast(kind) {
                     Some(CursorSemantics::Type)
+                } else if cst::InstanceHead::can_cast(kind) {
+                    Some(CursorSemantics::InstanceClass)
                 } else if cst::ImportClass::can_cast(kind) {
                     Some(CursorSemantics::ImportClass)
                 } else if cst::ImportStatement::can_cast(kind) {
