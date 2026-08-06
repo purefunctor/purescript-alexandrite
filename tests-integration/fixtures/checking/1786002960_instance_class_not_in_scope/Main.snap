@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Value :: Main.Value
+
+Types
+Value :: Prim.Type
+
+Roles
+Value = []
