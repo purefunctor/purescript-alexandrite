@@ -15,9 +15,10 @@ use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, 
 use radix_trie::Trie;
 use smol_str::SmolStr;
 use sources::{
-    ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes, QualifiedModules,
-    QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes, QualifiedTypesSuggestions,
-    ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes, WorkspaceModules,
+    ImportClasses, ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes,
+    QualifiedModules, QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes,
+    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes,
+    WorkspaceModules,
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
@@ -104,6 +105,17 @@ fn collect(
 ) -> Result<Vec<CompletionItem>, AnalyzerError> {
     let mut items = vec![];
     let into = &mut items;
+
+    if context.collect_import_classes() {
+        match &context.text {
+            CursorText::None => ImportClasses.collect_into(context, NoFilter, into)?,
+            CursorText::Name(name) => {
+                ImportClasses.collect_into(context, StartsWith(name), into)?;
+            }
+            CursorText::Prefix(_) | CursorText::Both(_, _) => {}
+        }
+        return Ok(items);
+    }
 
     match &context.text {
         CursorText::None => {

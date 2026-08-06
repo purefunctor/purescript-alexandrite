@@ -60,6 +60,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         matches!(self.semantics, CursorSemantics::Module)
     }
 
+    pub fn collect_import_classes(&self) -> bool {
+        matches!(self.semantics, CursorSemantics::ImportClass)
+    }
+
     pub fn collect_terms(&self) -> bool {
         matches!(self.semantics, CursorSemantics::Term)
     }
@@ -176,6 +180,7 @@ pub enum CursorSemantics {
     Term,
     Type,
     Module,
+    ImportClass,
     General,
     Comment,
 }
@@ -239,6 +244,8 @@ impl CursorSemantics {
                     Some(CursorSemantics::Term)
                 } else if cst::Type::can_cast(kind) || cst::ExpressionTypeArgument::can_cast(kind) {
                     Some(CursorSemantics::Type)
+                } else if cst::ImportClass::can_cast(kind) {
+                    Some(CursorSemantics::ImportClass)
                 } else if cst::ImportStatement::can_cast(kind) {
                     Some(CursorSemantics::Module)
                 } else {
@@ -265,8 +272,25 @@ impl CursorText {
     ) -> (CursorText, Option<Range>) {
         CursorText::of_qualified(content, token, encoding)
             .or_else(|| CursorText::of_qualifier(content, token, encoding))
+            .or_else(|| CursorText::of_import_class(content, token, encoding))
             .or_else(|| CursorText::of_module_name(content, token, encoding))
             .unwrap_or((CursorText::None, None))
+    }
+
+    fn of_import_class(
+        content: &str,
+        token: &SyntaxToken,
+        encoding: PositionEncoding,
+    ) -> Option<(CursorText, Option<Range>)> {
+        token.parent_ancestors().find_map(|node| {
+            let import_class = cst::ImportClass::cast(node)?;
+            let token = import_class.name_token()?;
+            let name = token.text(content).into();
+            let range = token.text_range();
+            let range = position::text_range_to_protocol(content, range, encoding)?;
+
+            Some((CursorText::Name(name), Some(range)))
+        })
     }
 
     fn of_qualified(

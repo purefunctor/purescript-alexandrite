@@ -7,6 +7,8 @@ use lsp_types::*;
 use resolving::ResolvedModule;
 use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
+use syntax::ast::AstNode;
+use syntax::{TokenAtOffset, cst};
 
 use crate::AnalyzerError;
 
@@ -23,6 +25,56 @@ fn module_name(
     let content = context.language.queries().content(file_id);
     let (parsed, _) = context.language.queries().parsed(file_id)?;
     Ok(parsed.module_name(&content).map(|name| name.to_string()))
+}
+
+/// Yields classes exported by the module of the current import statement.
+pub struct ImportClasses;
+
+impl CompletionSource for ImportClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let root = context.parsed.syntax_node();
+        let statement = match root.token_at_offset(context.offset) {
+            TokenAtOffset::None => None,
+            TokenAtOffset::Single(token) => {
+                token.parent_ancestors().find_map(cst::ImportStatement::cast)
+            }
+            TokenAtOffset::Between(left, right) => right
+                .parent_ancestors()
+                .find_map(cst::ImportStatement::cast)
+                .or_else(|| left.parent_ancestors().find_map(cst::ImportStatement::cast)),
+        };
+        let Some(statement) = statement else { return Ok(()) };
+        let Some(module_name) = statement.module_name() else { return Ok(()) };
+        let module_name = module_name.syntax().text(context.content).to_string();
+        let Some(import_file) = context.language.queries().module_file(&module_name) else {
+            return Ok(());
+        };
+
+        let resolved = context.language.queries().resolved(import_file)?;
+        let source = resolved.exports.iter_classes();
+        let source = source.filter(move |(name, _, _)| filter.matches(name));
+
+        for (name, file_id, type_id) in source {
+            let mut item = CompletionItemSpec::new(
+                name.to_string(),
+                context.range,
+                CompletionItemKind::STRUCT,
+                CompletionResolveData::TypeItem(file_id, type_id),
+            );
+
+            item.label_description(module_name.clone());
+            items.push(item.build());
+        }
+
+        Ok(())
+    }
 }
 
 /// Yields the qualified names of imports.
