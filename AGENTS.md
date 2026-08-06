@@ -101,6 +101,8 @@ Preserve type variable names in instance members       # Missing category
 * Use `just t resolving [filters...]` for resolver integration tests.
 * Use `just t lsp [filters...]` for LSP integration tests.
 
+Filtered fixture runs are useful while iterating, but they are not sufficient before pushing. Before pushing a change that affects integration tests, run `just t <category>` without fixture filters for every affected category and confirm that the entire category passes with no pending snapshots.
+
 ### Formatting
 * Use `just format` for formatting with import granularity. This requires nightly Rust.
 * Use `just fix` to apply clippy fixes and format when a broader cleanup is appropriate.
