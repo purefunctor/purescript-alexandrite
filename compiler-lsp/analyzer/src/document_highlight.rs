@@ -62,6 +62,9 @@ pub fn implementation(
         locate::Located::TypeOperator(operator_id) => {
             highlight_type_operator(context, current_file, operator_id)
         }
+        locate::Located::InstanceHead(file_id, type_id) => {
+            highlight_file_type(context, current_file, file_id, type_id)
+        }
         locate::Located::ModuleName(_)
         | locate::Located::InstanceMember(_, _)
         | locate::Located::RecordAccessLabel(_)
@@ -417,6 +420,18 @@ fn highlight_file_type(
                 }),
             );
         }
+    }
+
+    let ranges = locate::instance_head_ranges(
+        &content,
+        &parsed,
+        &stabilized,
+        &indexed,
+        &lowered,
+        (file_id, type_id),
+    );
+    for range in ranges {
+        highlights.extend(document_highlight(&content, context.position_encoding(), range));
     }
 
     for imports in resolved.unqualified.values().chain(resolved.qualified.values()) {

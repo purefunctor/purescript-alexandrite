@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 101
+assertion_line: 134
 expression: report
 ---
 DocumentHighlight at Position { line: 2, character: 12 }
@@ -132,6 +132,7 @@ class LocalClass a where
 ```
 
 20:6..20:16
+28:28..28:38
 53:42..53:52
 
 
@@ -263,6 +264,7 @@ foreign import localClassUse :: forall a. LocalClass a => a -> a
 ```
 
 20:6..20:16
+28:28..28:38
 53:42..53:52
 
 

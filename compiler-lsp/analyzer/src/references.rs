@@ -57,6 +57,9 @@ pub fn implementation(
                 lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_type(context, current_file, f_id, t_id)
         }
+        locate::Located::InstanceHead(file_id, type_id) => {
+            references_file_type(context, current_file, file_id, type_id)
+        }
         locate::Located::TermItem(term_id) => {
             references_file_term(context, current_file, current_file, term_id)
         }
@@ -414,6 +417,7 @@ fn references_file_type(
         let (parsed, _) = engine.parsed(candidate_id)?;
 
         let stabilized = engine.stabilized(candidate_id)?;
+        let indexed = engine.indexed(candidate_id)?;
         let lowered = engine.lowered(candidate_id)?;
 
         for (ty_id, ty_kind) in lowered.tree.iter_type() {
@@ -439,6 +443,21 @@ fn references_file_type(
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
+        }
+
+        let ranges = locate::instance_head_ranges(
+            &content,
+            &parsed,
+            &stabilized,
+            &indexed,
+            &lowered,
+            (file_id, type_id),
+        );
+        for range in ranges {
+            let range =
+                position::utf8_range_to_protocol(&content, range, context.position_encoding())
+                    .ok_or(AnalyzerError::NonFatal)?;
+            locations.push(Location { uri: uri.clone(), range });
         }
     }
 
