@@ -321,9 +321,38 @@ where
                     }
                 }
 
+                let mut suppress_missing_member_warning = false;
+                if members.is_empty() {
+                    for &constraint in &instance_constraints {
+                        let Some(canonical) =
+                            constraint::canonical::canonicalise(state, context, constraint)?
+                        else {
+                            continue;
+                        };
+                        if constraint::compiler::is_fail_constraint(state, context, canonical) {
+                            suppress_missing_member_warning = true;
+                            break;
+                        }
+                    }
+                }
+
                 if let Some(class) =
                     toolkit::lookup_file_class(state, context, class_file, class_id)?
                 {
+                    let indexed = context.queries.indexed(class_file)?;
+                    let missing_members = class.members.iter().filter_map(|member| {
+                        let implemented = checked_members.iter().any(|implementation| {
+                            implementation.resolution == (class_file, member.item_id)
+                        });
+                        if implemented { None } else { indexed.items[member.item_id].name.clone() }
+                    });
+                    let missing_members = missing_members.collect::<Arc<[_]>>();
+                    if !missing_members.is_empty() && !suppress_missing_member_warning {
+                        state.insert_error(ErrorKind::MissingInstanceMembers {
+                            members: missing_members,
+                        });
+                    }
+
                     let positions = class
                         .members
                         .iter()
