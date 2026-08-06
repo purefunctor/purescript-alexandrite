@@ -146,6 +146,20 @@ where
         self.span_from_syntax_node(node.syntax())
     }
 
+    pub(crate) fn span_from_ast_ptr_child<N, C>(
+        &self,
+        ptr: &AstPtr<N>,
+        child: impl FnOnce(&N) -> Option<C>,
+    ) -> Option<Span>
+    where
+        N: AstNode,
+        C: AstNode,
+    {
+        let node = ptr.try_to_node(self.root)?;
+        let child = child(&node)?;
+        self.span_from_syntax_node(child.syntax())
+    }
+
     fn span_from_syntax_node(&self, node: &SyntaxNode) -> Option<Span> {
         let range = significant_ranges(node)?;
         Some(Span::new(range.start().into(), range.end().into()))
