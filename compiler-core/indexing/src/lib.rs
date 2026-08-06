@@ -255,7 +255,9 @@ impl IndexedImport {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedPairs {
+    derive_to_term: Vec<(DeriveId, TermItemId)>,
     instance_chain: Vec<(InstanceChainId, InstanceId)>,
+    instance_to_term: Vec<(InstanceId, TermItemId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
     declaration_to_term: Vec<(DeclarationId, TermItemId)>,
@@ -265,6 +267,20 @@ pub struct IndexedPairs {
 }
 
 impl IndexedPairs {
+    pub fn derive_to_term(&self, id: DeriveId) -> Option<TermItemId> {
+        self.derive_to_term.iter().find_map(
+            move |(derive_id, term_id)| {
+                if *derive_id == id { Some(*term_id) } else { None }
+            },
+        )
+    }
+
+    pub fn instance_to_term(&self, id: InstanceId) -> Option<TermItemId> {
+        self.instance_to_term.iter().find_map(move |(instance_id, term_id)| {
+            if *instance_id == id { Some(*term_id) } else { None }
+        })
+    }
+
     pub fn declaration_to_term(&self, id: DeclarationId) -> Option<TermItemId> {
         self.declaration_to_term.iter().find_map(move |(declaration_id, term_id)| {
             if *declaration_id == id { Some(*term_id) } else { None }

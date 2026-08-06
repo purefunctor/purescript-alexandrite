@@ -148,6 +148,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                 let instance_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_instance(state, instance_id, &cst);
                 state.pairs.instance_chain.push((chain_id, instance_id));
+                state.pairs.instance_to_term.push((instance_id, term_id));
                 state.pairs.declaration_to_term.push((declaration_id, term_id));
                 if let Some(cst) = cst.instance_statements() {
                     for cst in cst.children() {
@@ -414,6 +415,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
         cst::Declaration::DeriveDeclaration(cst) => {
             let id = stabilized.lookup_cst(cst).expect_id();
             let term_id = index_derive(state, id, cst);
+            state.pairs.derive_to_term.push((id, term_id));
             state.pairs.declaration_to_term.push((declaration_id, term_id));
         }
     }
