@@ -411,6 +411,24 @@ pub(super) fn lower_module(
     state
 }
 
+fn lower_instance_class_reference(
+    state: &mut State,
+    context: &Context,
+    head: &cst::InstanceHead,
+) -> Option<(FileId, TypeItemId)> {
+    let qualified = head.qualified()?;
+    let (qualifier, name) =
+        recursive::lower_qualified_name(context.source, &qualified, cst::QualifiedName::upper)?;
+    let resolution = state.resolve_class_reference(context, qualifier.as_deref(), &name);
+
+    if resolution.is_none() {
+        let id = context.stabilized.lookup_cst(head).expect_id();
+        state.errors.push(LoweringError::NotInScope(NotInScope::TypeClass { id }));
+    }
+
+    resolution
+}
+
 fn lower_term_item(
     state: &mut State,
     context: &Context,
@@ -429,13 +447,7 @@ fn lower_term_item(
 
             let resolution = cst.as_ref().and_then(|cst| {
                 let head = cst.instance_head()?;
-                let qualified = head.qualified()?;
-                let (qualifier, name) = recursive::lower_qualified_name(
-                    context.source,
-                    &qualified,
-                    cst::QualifiedName::upper,
-                )?;
-                state.resolve_class_reference(context, qualifier.as_deref(), &name)
+                lower_instance_class_reference(state, context, &head)
             });
 
             state.push_implicit_scope();
@@ -480,13 +492,7 @@ fn lower_term_item(
 
             let resolution = cst.as_ref().and_then(|cst| {
                 let head = cst.instance_head()?;
-                let qualified = head.qualified()?;
-                let (qualifier, name) = recursive::lower_qualified_name(
-                    context.source,
-                    &qualified,
-                    cst::QualifiedName::upper,
-                )?;
-                state.resolve_class_reference(context, qualifier.as_deref(), &name)
+                lower_instance_class_reference(state, context, &head)
             });
 
             state.push_implicit_scope();

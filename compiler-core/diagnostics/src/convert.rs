@@ -5,6 +5,7 @@ use itertools::Itertools;
 use lowering::LoweringError;
 use resolving::ResolvingError;
 use syntax::ast::AstNode;
+use syntax::cst;
 
 use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity};
 
@@ -29,6 +30,9 @@ impl ToDiagnostics for LoweringError {
                         (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::ExprOperatorName { id } => {
+                        (context.stabilized.syntax_ptr(*id), None)
+                    }
+                    lowering::NotInScope::TypeClass { id } => {
                         (context.stabilized.syntax_ptr(*id), None)
                     }
                     lowering::NotInScope::TypeConstructor { id } => {
@@ -67,7 +71,15 @@ impl ToDiagnostics for LoweringError {
                 };
 
                 let Some(ptr) = ptr else { return vec![] };
-                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
+                let span = match not_in_scope {
+                    lowering::NotInScope::TypeClass { id } => {
+                        context.stabilized.ast_ptr(*id).and_then(|ptr| {
+                            context.span_from_ast_ptr_child(&ptr, cst::InstanceHead::qualified)
+                        })
+                    }
+                    _ => context.span_from_syntax_ptr(&ptr),
+                };
+                let Some(span) = span else { return vec![] };
 
                 let message = if let Some(name) = name {
                     format!("'{name}' is not in scope")
