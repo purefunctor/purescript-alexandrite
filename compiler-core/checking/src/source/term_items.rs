@@ -4,7 +4,7 @@ use building_types::QueryResult;
 use files::FileId;
 use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
 use lowering::TermItemKind;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::ConstraintInScope;
@@ -321,9 +321,48 @@ where
                     }
                 }
 
+                let mut has_fail_constraint = false;
+                if members.is_empty() {
+                    for &constraint in &instance_constraints {
+                        let Some(canonical) =
+                            constraint::canonical::canonicalise(state, context, constraint)?
+                        else {
+                            continue;
+                        };
+                        if constraint::compiler::is_fail_constraint(state, context, canonical) {
+                            has_fail_constraint = true;
+                            break;
+                        }
+                    }
+                }
+
                 if let Some(class) =
                     toolkit::lookup_file_class(state, context, class_file, class_id)?
                 {
+                    let implemented_members = members.iter().filter_map(|member| {
+                        if member.equations.is_empty() {
+                            return None;
+                        }
+
+                        let (member_file, member_id) = member.resolution?;
+                        (member_file == class_file).then_some(member_id)
+                    });
+                    let implemented_members = implemented_members.collect::<FxHashSet<_>>();
+                    let class_indexed = context.queries.indexed(class_file)?;
+                    let missing_members = class.members.iter().filter_map(|member| {
+                        if implemented_members.contains(&member.item_id) {
+                            return None;
+                        }
+
+                        class_indexed.items[member.item_id].name.clone()
+                    });
+                    let missing_members = missing_members.collect::<Arc<[_]>>();
+                    if !has_fail_constraint && !missing_members.is_empty() {
+                        state.insert_error(ErrorKind::MissingClassMember {
+                            members: missing_members,
+                        });
+                    }
+
                     let positions = class
                         .members
                         .iter()
@@ -331,8 +370,9 @@ where
                         .map(|(position, member)| (member.item_id, position));
                     let positions = positions.collect::<FxHashMap<_, _>>();
                     checked_members.sort_by_key(|member| {
-                        if member.resolution.0 == class_file {
-                            positions.get(&member.resolution.1).copied().unwrap_or(usize::MAX)
+                        let (member_file, member_id) = member.resolution;
+                        if member_file == class_file {
+                            positions.get(&member_id).copied().unwrap_or(usize::MAX)
                         } else {
                             usize::MAX
                         }

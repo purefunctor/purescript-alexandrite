@@ -350,6 +350,14 @@ impl ToDiagnostics for CheckingError {
                     format!("Instance member type mismatch: expected '{expected}', got '{actual}'"),
                 )
             }
+            ErrorKind::MissingClassMember { members } => {
+                let members = members.iter().join(", ");
+                (
+                    Severity::Error,
+                    "MissingClassMember",
+                    format!("The following type class members have not been implemented: {members}"),
+                )
+            }
             ErrorKind::InvalidTypeApplication { function_type, function_kind, argument_type } => {
                 let function_type = render_type(*function_type);
                 let function_kind = render_type(*function_kind);

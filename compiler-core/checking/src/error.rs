@@ -94,6 +94,9 @@ pub enum ErrorKind {
         expected: TypeId,
         actual: TypeId,
     },
+    MissingClassMember {
+        members: Arc<[SmolStr]>,
+    },
     InvalidTypeApplication {
         function_type: TypeId,
         function_kind: TypeId,

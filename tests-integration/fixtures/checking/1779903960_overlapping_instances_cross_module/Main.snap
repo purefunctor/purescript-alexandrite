@@ -24,3 +24,8 @@ error[OverlappingInstances]: Overlapping type class instances found for: C X Y
   | ^~~~~~~~~~~~~~~~~~~~~
   trivia: forall (t0 :: Type). C X (t0 :: Type) is matching
   trivia: C X Y is matching
+error[MissingClassMember]: The following type class members have not been implemented: test
+  --> 7:1..7:22
+  |
+7 | instance cxy :: C X Y
+  | ^~~~~~~~~~~~~~~~~~~~~

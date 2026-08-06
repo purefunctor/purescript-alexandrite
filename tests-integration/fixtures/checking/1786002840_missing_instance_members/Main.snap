@@ -12,6 +12,8 @@ renderVerbose ::
 
 Types
 Render :: Prim.Type -> Prim.Constraint
+Unreachable :: Prim.Type
+PartiallyUnreachable :: Prim.Type
 
 Classes
 class forall (a :: Prim.Type). Main.Render (a :: Prim.Type)
@@ -23,3 +25,22 @@ class forall (a :: Prim.Type). Main.Render (a :: Prim.Type)
 
 Instances
 instance Main.Render Prim.Int
+instance Prim.TypeError.Fail (Prim.TypeError.Text "unreachable") => Main.Render Main.Unreachable
+instance Prim.TypeError.Fail (Prim.TypeError.Text "partially unreachable") =>
+Main.Render Main.PartiallyUnreachable
+
+Roles
+Unreachable = []
+PartiallyUnreachable = []
+
+Diagnostics
+error[MissingClassMember]: The following type class members have not been implemented: renderVerbose
+  --> 10:1..14:33
+   |
+10 | instance Render Int where
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~
+error[MissingClassMember]: The following type class members have not been implemented: renderCompact, renderVerbose
+  --> 22:1..23:36
+   |
+22 | instance Fail (Text "partially unreachable") => Render PartiallyUnreachable where
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
