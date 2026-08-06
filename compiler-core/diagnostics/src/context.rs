@@ -146,6 +146,13 @@ where
         self.span_from_syntax_node(node.syntax())
     }
 
+    pub fn span_from_instance_head(&self, id: lowering::InstanceHeadId) -> Option<Span> {
+        let ptr = self.stabilized.ast_ptr(id)?;
+        let head = ptr.try_to_node(self.root)?;
+        let qualified = head.qualified()?;
+        self.span_from_syntax_node(qualified.syntax())
+    }
+
     fn span_from_syntax_node(&self, node: &SyntaxNode) -> Option<Span> {
         let range = significant_ranges(node)?;
         Some(Span::new(range.start().into(), range.end().into()))

@@ -87,6 +87,7 @@ pub enum Located {
     TermOperator(TermOperatorId),
     TypeOperator(TypeOperatorId),
     InstanceMember(FileId, TermItemId),
+    InstanceHead(FileId, TypeItemId),
     TermItem(TermItemId),
     TypeItem(TypeItemId),
     LetBinding(LetBindingNameGroupId),
@@ -189,6 +190,13 @@ fn locate_node(
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
         Some(Located::TypeOperator(id))
+    } else if cst::InstanceHead::can_cast(kind) {
+        let instance_head_ptr = ptr.cast()?;
+        let instance_head_id = stabilized.lookup_ptr(&instance_head_ptr)?;
+        match lowered.tree.get_instance_head(instance_head_id)? {
+            Some((file_id, type_id)) => Some(Located::InstanceHead(file_id, type_id)),
+            None => Some(Located::Nothing),
+        }
     } else if cst::Declaration::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;

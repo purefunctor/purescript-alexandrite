@@ -9,7 +9,6 @@ use indexing::{
     IndexedTypeItemKind, TermItemId, TypeItemId, TypeRoleId,
 };
 use indexmap::IndexMap;
-use itertools::Itertools;
 use petgraph::prelude::DiGraphMap;
 use resolving::ResolvedModule;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
@@ -426,17 +425,8 @@ fn lower_term_item(
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
             let newtype = cst.as_ref().map(|cst| cst.newtype_token().is_some()).unwrap_or(false);
-
-            let resolution = cst.as_ref().and_then(|cst| {
-                let head = cst.instance_head()?;
-                let qualified = head.qualified()?;
-                let (qualifier, name) = recursive::lower_qualified_name(
-                    context.source,
-                    &qualified,
-                    cst::QualifiedName::upper,
-                )?;
-                state.resolve_class_reference(context, qualifier.as_deref(), &name)
-            });
+            let resolution = cst.as_ref().and_then(|cst| cst.instance_head());
+            let resolution = resolution.and_then(|head| lower_instance_head(state, context, &head));
 
             state.push_implicit_scope();
             let arguments = recover! {
@@ -477,17 +467,8 @@ fn lower_term_item(
 
         IndexedTermItemKind::Instance { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
-
-            let resolution = cst.as_ref().and_then(|cst| {
-                let head = cst.instance_head()?;
-                let qualified = head.qualified()?;
-                let (qualifier, name) = recursive::lower_qualified_name(
-                    context.source,
-                    &qualified,
-                    cst::QualifiedName::upper,
-                )?;
-                state.resolve_class_reference(context, qualifier.as_deref(), &name)
-            });
+            let resolution = cst.as_ref().and_then(|cst| cst.instance_head());
+            let resolution = resolution.and_then(|head| lower_instance_head(state, context, &head));
 
             state.push_implicit_scope();
             let arguments = recover! {
@@ -588,6 +569,23 @@ fn lower_term_item(
             state.tree.term_items.insert(item_id, kind);
         }
     }
+}
+
+fn lower_instance_head(
+    state: &mut State,
+    context: &Context,
+    head: &cst::InstanceHead,
+) -> Option<(FileId, TypeItemId)> {
+    let id = context.stabilized.lookup_cst(head).expect_id();
+    let qualified = head.qualified()?;
+    let (qualifier, name) =
+        recursive::lower_qualified_name(context.source, &qualified, cst::QualifiedName::upper)?;
+    let resolution = state.resolve_class_reference(context, qualifier.as_deref(), &name);
+    state.tree.instance_heads.insert(id, resolution);
+    if resolution.is_none() {
+        state.errors.push(LoweringError::NotInScope(NotInScope::InstanceHead { id }));
+    }
+    resolution
 }
 
 fn lower_type_item(
@@ -850,49 +848,34 @@ fn lower_instance_statements(
     cst: &cst::InstanceStatements,
     class_resolution: Option<(FileId, TypeItemId)>,
 ) -> Arc<[InstanceMemberGroup]> {
-    let children = cst.children().chunk_by(|statement| match statement {
-        cst::InstanceMemberStatement::InstanceSignatureStatement(s) => s.name_token().map(|t| {
-            let text = t.text(context.source);
-            SmolStr::from(text)
-        }),
-        cst::InstanceMemberStatement::InstanceEquationStatement(e) => e.name_token().map(|t| {
-            let text = t.text(context.source);
-            SmolStr::from(text)
-        }),
-    });
+    let mut in_scope: IndexMap<SmolStr, (Vec<_>, Option<_>, Vec<_>), FxBuildHasher> =
+        IndexMap::default();
+    for statement in cst.children() {
+        let name = match &statement {
+            cst::InstanceMemberStatement::InstanceSignatureStatement(statement) => {
+                statement.name_token()
+            }
+            cst::InstanceMemberStatement::InstanceEquationStatement(statement) => {
+                statement.name_token()
+            }
+        };
+        let Some(name) = name else { continue };
+        let name = SmolStr::from(name.text(context.source));
+        let (statements, signature, equations) = in_scope.entry(name).or_default();
 
-    let mut in_scope: IndexMap<_, _, FxBuildHasher> = IndexMap::default();
-    for (name, mut children) in children.into_iter() {
-        let mut statements = vec![];
-        let mut signature = None;
-        let mut equations = vec![];
-
-        if let Some(statement) = children.next() {
-            let id = context.stabilized.lookup_cst(&statement).expect_id();
-            statements.push(id);
-            match statement {
-                cst::InstanceMemberStatement::InstanceSignatureStatement(cst) => {
-                    let id = context.stabilized.lookup_cst(&cst).expect_id();
-                    signature = Some(id);
-                }
-                cst::InstanceMemberStatement::InstanceEquationStatement(cst) => {
-                    let id = context.stabilized.lookup_cst(&cst).expect_id();
-                    equations.push(id);
+        let id = context.stabilized.lookup_cst(&statement).expect_id();
+        statements.push(id);
+        match statement {
+            cst::InstanceMemberStatement::InstanceSignatureStatement(statement) => {
+                let id = context.stabilized.lookup_cst(&statement).expect_id();
+                if signature.is_none() {
+                    *signature = Some(id);
                 }
             }
-        }
-
-        children.for_each(|statement| {
-            let id = context.stabilized.lookup_cst(&statement).expect_id();
-            statements.push(id);
-            if let cst::InstanceMemberStatement::InstanceEquationStatement(cst) = statement {
-                let id = context.stabilized.lookup_cst(&cst).expect_id();
+            cst::InstanceMemberStatement::InstanceEquationStatement(statement) => {
+                let id = context.stabilized.lookup_cst(&statement).expect_id();
                 equations.push(id);
             }
-        });
-
-        if let Some(name) = name {
-            in_scope.insert(name, (statements, signature, equations));
         }
     }
 

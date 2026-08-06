@@ -20,6 +20,7 @@ mod edit;
 enum RenameTarget {
     Term(FileId, TermItemId),
     Type(FileId, TypeItemId),
+    Class(FileId, TypeItemId),
     Binder(FileId, BinderId),
     LetBinding(FileId, LetBindingNameGroupId),
     RecordPun(FileId, RecordPunId),
@@ -32,6 +33,7 @@ impl RenameTarget {
         match self {
             RenameTarget::Term(file_id, _)
             | RenameTarget::Type(file_id, _)
+            | RenameTarget::Class(file_id, _)
             | RenameTarget::Binder(file_id, _)
             | RenameTarget::LetBinding(file_id, _)
             | RenameTarget::RecordPun(file_id, _)
@@ -90,7 +92,7 @@ pub fn implementation(
         RenameTarget::Module(file_id) => {
             edits.collect_module(file_id, &new_name)?;
         }
-        RenameTarget::Term(_, _) | RenameTarget::Type(_, _) => {
+        RenameTarget::Term(_, _) | RenameTarget::Type(_, _) | RenameTarget::Class(_, _) => {
             let locations = references::implementation(context, uri, position)?.unwrap_or_default();
             edits.collect_references(locations, name_kind, &new_name)?;
             edits.collect_declaration(target, &new_name)?;
@@ -118,7 +120,10 @@ fn rename_conflicts(
             term_item_conflicts(context, file_id, term_id, new_name)
         }
         RenameTarget::Type(file_id, type_id) => {
-            type_item_conflicts(context, file_id, type_id, new_name)
+            type_item_conflicts(context, file_id, type_id, new_name, false)
+        }
+        RenameTarget::Class(file_id, type_id) => {
+            type_item_conflicts(context, file_id, type_id, new_name, true)
         }
         RenameTarget::Binder(file_id, binder_id) => {
             let target = TermVariableResolution::Binder(binder_id);
@@ -275,14 +280,23 @@ fn type_item_conflicts(
     target_file: FileId,
     target_type: TypeItemId,
     new_name: &str,
+    class: bool,
 ) -> Result<bool, AnalyzerError> {
-    if type_item_conflicts_in_file(context, target_file, target_file, target_type, new_name)? {
+    if type_item_conflicts_in_file(context, target_file, target_file, target_type, new_name, class)?
+    {
         return Ok(true);
     }
 
     for file_id in context.active_files() {
         if file_id != target_file
-            && type_item_conflicts_in_file(context, file_id, target_file, target_type, new_name)?
+            && type_item_conflicts_in_file(
+                context,
+                file_id,
+                target_file,
+                target_type,
+                new_name,
+                class,
+            )?
         {
             return Ok(true);
         }
@@ -297,18 +311,26 @@ fn type_item_conflicts_in_file(
     target_file: FileId,
     target_type: TypeItemId,
     new_name: &str,
+    class: bool,
 ) -> Result<bool, AnalyzerError> {
     let prim_id = context.queries().prim_id();
     let prim = context.queries().resolved(prim_id)?;
     let resolved = context.queries().resolved(file_id)?;
 
     let import_contains_target = |import: &resolving::ResolvedImport| {
-        let types = import.iter_types();
-        let classes = import.iter_classes();
-        types.chain(classes).any(|(_, imported_file, imported_type, kind)| {
+        let is_target = |(_, imported_file, imported_type, kind)| {
             kind != ImportKind::Hidden
                 && (imported_file, imported_type) == (target_file, target_type)
-        })
+        };
+        if class {
+            let mut classes = import.iter_classes();
+            classes.any(is_target)
+        } else {
+            let types = import.iter_types();
+            let classes = import.iter_classes();
+            let mut types_and_classes = types.chain(classes);
+            types_and_classes.any(is_target)
+        }
     };
     let target_unqualified = if file_id == target_file {
         true
@@ -317,9 +339,16 @@ fn type_item_conflicts_in_file(
         imports.any(&import_contains_target)
     };
     if target_unqualified {
-        let candidate = resolved
-            .lookup_type(&prim, None, new_name)
-            .or_else(|| resolved.lookup_class(&prim, None, new_name));
+        if class && file_id == target_file && resolved.locals.lookup_type(new_name).is_some() {
+            return Ok(true);
+        }
+        let candidate = if class {
+            resolved.lookup_class(&prim, None, new_name)
+        } else {
+            resolved
+                .lookup_type(&prim, None, new_name)
+                .or_else(|| resolved.lookup_class(&prim, None, new_name))
+        };
         if candidate.is_some_and(|candidate| candidate != (target_file, target_type)) {
             return Ok(true);
         }
@@ -327,9 +356,13 @@ fn type_item_conflicts_in_file(
 
     for (qualifier, imports) in &resolved.qualified {
         if imports.iter().any(&import_contains_target) {
-            let candidate = resolved
-                .lookup_type(&prim, Some(qualifier), new_name)
-                .or_else(|| resolved.lookup_class(&prim, Some(qualifier), new_name));
+            let candidate = if class {
+                resolved.lookup_class(&prim, Some(qualifier), new_name)
+            } else {
+                resolved
+                    .lookup_type(&prim, Some(qualifier), new_name)
+                    .or_else(|| resolved.lookup_class(&prim, Some(qualifier), new_name))
+            };
             if candidate.is_some_and(|candidate| candidate != (target_file, target_type)) {
                 return Ok(true);
             }
@@ -611,7 +644,7 @@ fn rename_target(
                 _ => return Err(AnalyzerError::NonFatal),
             };
 
-            RenameTarget::Type(resolution.0, resolution.1)
+            type_or_class_target(context, resolution.0, resolution.1)?
         }
         locate::Located::TermOperator(operator_id) => {
             let (file_id, term_id) =
@@ -625,8 +658,9 @@ fn rename_target(
 
             RenameTarget::Type(file_id, type_id)
         }
+        locate::Located::InstanceHead(file_id, type_id) => RenameTarget::Class(file_id, type_id),
         locate::Located::TermItem(term_id) => RenameTarget::Term(current_file, term_id),
-        locate::Located::TypeItem(type_id) => RenameTarget::Type(current_file, type_id),
+        locate::Located::TypeItem(type_id) => type_or_class_target(context, current_file, type_id)?,
         locate::Located::LetBinding(binding_id) => {
             RenameTarget::LetBinding(current_file, binding_id)
         }
@@ -640,6 +674,20 @@ fn rename_target(
     };
 
     Ok(target)
+}
+
+fn type_or_class_target(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    file_id: FileId,
+    type_id: TypeItemId,
+) -> Result<RenameTarget, AnalyzerError> {
+    let indexed = context.queries().indexed(file_id)?;
+    let item = &indexed.items[type_id];
+    if matches!(item.kind, IndexedTypeItemKind::Class { .. }) {
+        Ok(RenameTarget::Class(file_id, type_id))
+    } else {
+        Ok(RenameTarget::Type(file_id, type_id))
+    }
 }
 
 fn target_from_term_resolution(
@@ -725,7 +773,7 @@ fn import_target(
                 .or_else(|| resolved.exports.lookup_type(name))
                 .ok_or(AnalyzerError::NonFatal)?;
 
-            RenameTarget::Type(file_id, type_id)
+            type_or_class_target(context, file_id, type_id)?
         }
         cst::ImportItem::ImportType(item) => {
             let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
@@ -736,7 +784,7 @@ fn import_target(
                 .or_else(|| resolved.exports.lookup_class(name))
                 .ok_or(AnalyzerError::NonFatal)?;
 
-            RenameTarget::Type(file_id, type_id)
+            type_or_class_target(context, file_id, type_id)?
         }
         cst::ImportItem::ImportOperator(item) => {
             let name = item.name_token().ok_or(AnalyzerError::NonFatal)?.text(&content);
@@ -791,7 +839,7 @@ fn target_name(
 
             Some((name.to_string(), kind))
         }
-        RenameTarget::Type(file_id, type_id) => {
+        RenameTarget::Type(file_id, type_id) | RenameTarget::Class(file_id, type_id) => {
             let indexed = context.queries().indexed(file_id)?;
             let item = &indexed.items[type_id];
 

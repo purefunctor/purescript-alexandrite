@@ -1,6 +1,6 @@
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
+use indexing::{ImportId, ImportItemId, ImportKind, IndexedTypeItemKind, TermItemId, TypeItemId};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermVariableResolution, TypeId, TypeKind,
@@ -56,6 +56,9 @@ pub fn implementation(
             let (f_id, t_id) =
                 lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             references_file_type(context, current_file, f_id, t_id)
+        }
+        locate::Located::InstanceHead(file_id, type_id) => {
+            references_file_type(context, current_file, file_id, type_id)
         }
         locate::Located::TermItem(term_id) => {
             references_file_term(context, current_file, current_file, term_id)
@@ -404,7 +407,16 @@ fn references_file_type(
     type_id: TypeItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let engine = context.queries();
-    let candidates = probe_type_references(context, current_file, file_id, type_id)?;
+    let indexed = engine.indexed(file_id)?;
+    let type_item = &indexed.items[type_id];
+    let candidates = if file_id == engine.prim_id()
+        && matches!(type_item.kind, IndexedTypeItemKind::Class { .. })
+    {
+        let active_files = context.active_files();
+        active_files.collect::<FxHashSet<_>>()
+    } else {
+        probe_type_references(context, current_file, file_id, type_id)?
+    };
 
     let mut locations = vec![];
     for candidate_id in candidates {
@@ -437,6 +449,25 @@ fn references_file_type(
             if (f_id, t_id) == (file_id, type_id) {
                 let range = id_range(context, &content, &parsed, &stabilized, operator_id)
                     .ok_or(AnalyzerError::NonFatal)?;
+                locations.push(Location { uri: uri.clone(), range });
+            }
+        }
+
+        for (instance_head_id, resolution) in lowered.tree.iter_instance_head() {
+            if resolution == Some((file_id, type_id)) {
+                let instance_head_ptr =
+                    stabilized.syntax_ptr(instance_head_id).ok_or(AnalyzerError::NonFatal)?;
+                let head = instance_head_ptr
+                    .try_to_node(&parsed.syntax_node())
+                    .ok_or(AnalyzerError::NonFatal)?;
+                let head = cst::InstanceHead::cast(head).ok_or(AnalyzerError::NonFatal)?;
+                let qualified = head.qualified().ok_or(AnalyzerError::NonFatal)?;
+                let range = position::text_range_to_protocol(
+                    &content,
+                    qualified.syntax().text_range(),
+                    context.position_encoding(),
+                )
+                .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
         }

@@ -21,6 +21,13 @@ impl ToDiagnostics for LoweringError {
     {
         match self {
             LoweringError::NotInScope(not_in_scope) => {
+                if let lowering::NotInScope::InstanceHead { id } = not_in_scope {
+                    let Some(span) = context.span_from_instance_head(*id) else { return vec![] };
+                    let text = context.text_of(span).trim();
+                    let message = format!("'{text}' is not in scope");
+                    return vec![Diagnostic::error("NotInScope", message, span, "lowering")];
+                }
+
                 let (ptr, name) = match not_in_scope {
                     lowering::NotInScope::ExprConstructor { id } => {
                         (context.stabilized.syntax_ptr(*id), None)
@@ -64,6 +71,7 @@ impl ToDiagnostics for LoweringError {
                     lowering::NotInScope::TypeOperator { id } => {
                         (context.stabilized.syntax_ptr(*id), None)
                     }
+                    lowering::NotInScope::InstanceHead { .. } => unreachable!(),
                 };
 
                 let Some(ptr) = ptr else { return vec![] };

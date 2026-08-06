@@ -1,0 +1,204 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 13, character: 6 }
+
+```
+class Example a where
+--    /
+```
+
+Rename may change name resolution (confirmation required)
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -11,7 +11,7 @@
+
+ data Renamed
+
+-class Example a where
++class Renamed a where
+ --    /
+   example :: a
+
+```
+
+Without change annotations: Rename rejected: Cannot rename `Example` to `Renamed` because it would change name resolution
+
+
+GotoDefinition at Position { line: 17, character: 9 }
+
+```
+instance Functor Box where
+--       @$%
+```
+
+file:///tests-integration/fixtures/lsp/1786002960_instance_head_language_features/Lib.purs @ 2:0..3:43
+
+
+Hover at Position { line: 17, character: 10 }
+
+```
+instance Functor Box where
+--       @$%
+```
+
+```purescript
+Functor :: (Type -> Type) -> Constraint
+```
+
+
+References at Position { line: 17, character: 11 }
+
+```
+instance Functor Box where
+--       @$%
+```
+
+file:///tests-integration/fixtures/lsp/1786002960_instance_head_language_features/Main.purs @ 17:9..17:16
+
+
+GotoDefinition at Position { line: 21, character: 9 }
+
+```
+instance Fu Box
+--       @ ^
+```
+
+<empty>
+
+
+Completion at Position { line: 21, character: 11 }
+
+```
+instance Fu Box
+--       @ ^
+```
+
+╭───────────┬────────────────┬─────────────────────┬─────────────┬───────────────┬───────────────┬─────────────────────────╮
+│  label    │  label_detail  │  label_description  │  sort_text  │  filter_text  │  text_edit    │  additional_text_edits  │
+├───────────┼────────────────┼─────────────────────┼─────────────┼───────────────┼───────────────┼─────────────────────────┤
+│  Functor  │   ...          │  Lib                │  Functor    │  Functor      │  21:9..21:11  │  ...                    │
+│           │                │                     │             │               │  Functor      │                         │
+╰───────────┴────────────────┴─────────────────────┴─────────────┴───────────────┴───────────────┴─────────────────────────╯
+
+
+Completion at Position { line: 24, character: 13 }
+
+```
+instance L.Fu Box
+--           ^
+```
+
+╭───────────┬────────────────┬─────────────────────┬─────────────┬───────────────┬───────────────┬─────────────────────────╮
+│  label    │  label_detail  │  label_description  │  sort_text  │  filter_text  │  text_edit    │  additional_text_edits  │
+├───────────┼────────────────┼─────────────────────┼─────────────┼───────────────┼───────────────┼─────────────────────────┤
+│  Functor  │   ...          │  Lib                │  L.Functor  │  L.Functor    │  24:9..24:13  │  ...                    │
+│           │                │                     │             │               │  L.Functor    │                         │
+╰───────────┴────────────────┴─────────────────────┴─────────────┴───────────────┴───────────────┴─────────────────────────╯
+
+
+Completion at Position { line: 27, character: 13 }
+
+```
+instance Coll Box
+--           ^
+```
+
+╭─────────────┬─────────────────┬─────────────────────┬─────────────────┬───────────────┬───────────────┬───────────────────────────────────────────────────────────────╮
+│  label      │  label_detail   │  label_description  │  sort_text      │  filter_text  │  text_edit    │  additional_text_edits                                        │
+├─────────────┼─────────────────┼─────────────────────┼─────────────────┼───────────────┼───────────────┼───────────────────────────────────────────────────────────────┤
+│  Collision  │   (import Lib)  │  Lib                │  Lib.Collision  │  Collision    │  27:9..27:13  │  2:0..2:42                                                    │
+│             │                 │                     │                 │               │  Collision    │  import Lib (class Functor, class Original, class Collision)  │
+╰─────────────┴─────────────────┴─────────────────────┴─────────────────┴───────────────┴───────────────┴───────────────────────────────────────────────────────────────╯
+
+
+Completion at Position { line: 30, character: 12 }
+
+```
+instance Hid Box
+--          ^
+```
+
+╭─────────┬────────────────┬─────────────────────┬─────────────┬───────────────┬─────────────┬─────────────────────────╮
+│  label  │  label_detail  │  label_description  │  sort_text  │  filter_text  │  text_edit  │  additional_text_edits  │
+╰─────────┴────────────────┴─────────────────────┴─────────────┴───────────────┴─────────────┴─────────────────────────╯
+
+
+References at Position { line: 33, character: 9 }
+
+```
+instance Partial
+--       %
+```
+
+file:///tests-integration/fixtures/lsp/1786002960_instance_head_language_features/Main.purs @ 36:34..36:46
+file:///tests-integration/fixtures/lsp/1786002960_instance_head_language_features/Main.purs @ 33:9..33:16
+file:///tests-integration/fixtures/lsp/1786002960_instance_head_language_features/Lib.purs @ 11:9..11:16
+
+
+CompletionApplied at Position { line: 38, character: 17 }
+
+```
+instance Prim.Par
+--               *
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -36,7 +36,7 @@
+
+ foreign import requiresPartial :: Prim.Partial => Int
+
+-instance Prim.Par
++instance Prim.Partial
+ --               *
+
+ instance Original Box
+```
+
+
+Rename at Position { line: 41, character: 9 }
+
+```
+instance Original Box
+--       /
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -6,7 +6,7 @@
+ class Collision f where
+   collide :: forall a. f a -> a
+
+-class Original f where
++class Renamed f where
+   original :: forall a. f a -> a
+
+ instance Partial
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-import Lib (class Functor, class Original)
++import Lib (class Functor, class Renamed)
+ import Lib as L
+ import Lib as FunctorModule
+ import HiddenLib hiding (class Hidden)
+@@ -39,5 +39,5 @@
+ instance Prim.Par
+ --               *
+
+-instance Original Box
++instance Renamed Box
+ --       /
+```

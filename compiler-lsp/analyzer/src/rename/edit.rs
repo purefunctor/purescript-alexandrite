@@ -437,7 +437,7 @@ where
             RenameTarget::Term(file_id, term_id) => {
                 self.term_declaration_edits(file_id, term_id, new_name)
             }
-            RenameTarget::Type(file_id, type_id) => {
+            RenameTarget::Type(file_id, type_id) | RenameTarget::Class(file_id, type_id) => {
                 self.type_declaration_edits(file_id, type_id, new_name)
             }
             RenameTarget::Binder(file_id, binder_id) => {
@@ -667,13 +667,25 @@ where
                     )?;
                 }
                 RenameTarget::Type(target_file, target_type) => {
-                    let imported_types = import.iter_types().chain(import.iter_classes()).filter(
-                        |(_, file_id, type_id, _)| {
-                            (*file_id, *type_id) == (target_file, target_type)
-                        },
-                    );
+                    let types = import.iter_types();
+                    let classes = import.iter_classes();
+                    let imported_types = types.chain(classes).filter(|(_, file_id, type_id, _)| {
+                        (*file_id, *type_id) == (target_file, target_type)
+                    });
 
                     for (name, _, _, _) in imported_types {
+                        if let Some((import_item_id, _)) = indexed_import.types.get(name) {
+                            self.push_import_item_edit(file_id, *import_item_id, new_name)?;
+                        }
+                    }
+                }
+                RenameTarget::Class(target_file, target_type) => {
+                    let imported_classes =
+                        import.iter_classes().filter(|(_, file_id, type_id, _)| {
+                            (*file_id, *type_id) == (target_file, target_type)
+                        });
+
+                    for (name, _, _, _) in imported_classes {
                         if let Some((import_item_id, _)) = indexed_import.types.get(name) {
                             self.push_import_item_edit(file_id, *import_item_id, new_name)?;
                         }
@@ -775,6 +787,15 @@ where
                         .or_else(|| resolved.exports.lookup_class(&export.name));
 
                     if exported_type == Some((target_file, target_type)) {
+                        self.push_export_item_edit(file_id, export.id, new_name)?;
+                    }
+                }
+            }
+            RenameTarget::Class(target_file, target_type) => {
+                for export in &indexed.exports.types {
+                    let exported_class = resolved.exports.lookup_class(&export.name);
+
+                    if exported_class == Some((target_file, target_type)) {
                         self.push_export_item_edit(file_id, export.id, new_name)?;
                     }
                 }

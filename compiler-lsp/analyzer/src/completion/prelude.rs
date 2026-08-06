@@ -72,6 +72,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
         matches!(self.semantics, CursorSemantics::ImportClass)
     }
 
+    pub fn collect_instance_classes(&self) -> bool {
+        matches!(self.semantics, CursorSemantics::InstanceClass)
+    }
+
     pub fn import_file_at_cursor(&self) -> Option<FileId> {
         let root = self.parsed.syntax_node();
         let token = match root.token_at_offset(self.offset) {
@@ -104,6 +108,10 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
     pub fn has_type_import(&self, qualifier: Option<&str>, name: &str) -> bool {
         self.resolved.lookup_type(self.prim_resolved, qualifier, name).is_some()
             || self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
+    }
+
+    pub fn has_class_import(&self, qualifier: Option<&str>, name: &str) -> bool {
+        self.resolved.lookup_class(self.prim_resolved, qualifier, name).is_some()
     }
 
     pub fn scope_node(&self) -> Result<Option<GraphNodeId>, AnalyzerError> {
@@ -198,6 +206,7 @@ pub enum CursorSemantics {
     Type,
     Module,
     ImportClass,
+    InstanceClass,
     General,
     Comment,
 }
@@ -266,6 +275,8 @@ impl CursorSemantics {
                     Some(CursorSemantics::Term)
                 } else if cst::Type::can_cast(kind) || cst::ExpressionTypeArgument::can_cast(kind) {
                     Some(CursorSemantics::Type)
+                } else if cst::InstanceHead::can_cast(kind) {
+                    Some(CursorSemantics::InstanceClass)
                 } else if cst::ImportClass::can_cast(kind) {
                     Some(CursorSemantics::ImportClass)
                 } else if cst::ImportStatement::can_cast(kind) {

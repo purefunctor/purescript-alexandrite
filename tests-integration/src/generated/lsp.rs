@@ -11,10 +11,11 @@ use itertools::Itertools;
 use line_index::{LineIndex, TextSize};
 use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
-    CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse, DocumentChanges,
-    DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, OneOf, Position, PrepareRenameResponse, Range,
-    SemanticTokens, SymbolInformation, TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
+    CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse,
+    CompletionTextEdit, DocumentChanges, DocumentHighlight, DocumentSymbolResponse,
+    GotoDefinitionResponse, HoverContents, LanguageString, Location, MarkedString, OneOf, Position,
+    PrepareRenameResponse, Range, SemanticTokens, SymbolInformation, TextEdit, Url, WorkspaceEdit,
+    WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use similar::TextDiff;
@@ -59,6 +60,7 @@ enum CursorKind {
     Hover,
     Completion,
     CompletionCached,
+    CompletionApplied,
     References,
     Rename,
     PrepareRename,
@@ -68,7 +70,7 @@ enum CursorKind {
 }
 
 impl CursorKind {
-    const CHARACTERS: &[char] = &['@', '$', '^', '~', '%', '/', '?', '!', '&', '.'];
+    const CHARACTERS: &[char] = &['@', '$', '^', '~', '*', '%', '/', '?', '!', '&', '.'];
 
     fn parse(text: &str) -> Option<CursorKind> {
         match text {
@@ -76,6 +78,7 @@ impl CursorKind {
             "$" => Some(CursorKind::Hover),
             "^" => Some(CursorKind::Completion),
             "~" => Some(CursorKind::CompletionCached),
+            "*" => Some(CursorKind::CompletionApplied),
             "%" => Some(CursorKind::References),
             "/" => Some(CursorKind::Rename),
             "?" => Some(CursorKind::PrepareRename),
@@ -560,9 +563,9 @@ fn dispatch_cursor(
                 writeln!(result, "<empty>").unwrap();
             }
         }
-        CursorKind::Completion | CursorKind::CompletionCached => {
+        CursorKind::Completion | CursorKind::CompletionCached | CursorKind::CompletionApplied => {
             if let Ok(Some(response)) =
-                analyzer::completion::implementation(&context, cache, uri, position)
+                analyzer::completion::implementation(&context, cache, uri.clone(), position)
             {
                 match response {
                     CompletionResponse::Array(items)
@@ -573,6 +576,34 @@ fn dispatch_cursor(
                                 analyzer::completion::resolve::implementation(engine, item).ok()
                             })
                             .collect();
+
+                        if matches!(cursor, CursorKind::CompletionApplied) {
+                            let [item] = items.as_slice() else {
+                                writeln!(result, "<expected one completion item>").unwrap();
+                                return;
+                            };
+                            let Some(CompletionTextEdit::Edit(edit)) = item.text_edit.clone()
+                            else {
+                                writeln!(result, "<completion item has no text edit>").unwrap();
+                                return;
+                            };
+                            let mut edits = item.additional_text_edits.clone().unwrap_or_default();
+                            edits.push(edit);
+
+                            let file_id = files
+                                .id(uri.as_str())
+                                .expect("completion edit references a loaded file");
+                            let content = engine.content(file_id);
+                            let changed = apply_text_edits(&content, edits, encoding);
+                            let diff = TextDiff::from_lines(content.as_ref(), changed.as_str());
+                            let diff =
+                                diff.unified_diff().header("Main.purs", "Main.purs").to_string();
+                            let mut diff =
+                                diff.lines().map(|line| if line == " " { "" } else { line });
+                            let diff = diff.join("\n");
+                            writeln!(result, "```diff\n{diff}\n```").unwrap();
+                            return;
+                        }
 
                         let has_values =
                             items.iter().any(|item| item.kind == Some(CompletionItemKind::VALUE));
@@ -626,6 +657,20 @@ fn dispatch_cursor(
                 analyzer::rename::implementation(&context, uri.clone(), position, new_name.clone());
             if let Ok(Some(edit)) = response {
                 let annotated = edit.change_annotations.is_some();
+                if !annotated {
+                    let context = analyzer::AnalyzerContext::new(
+                        &host,
+                        encoding,
+                        AnalyzerCapabilities::default(),
+                    );
+                    let plain_edit = analyzer::rename::implementation(
+                        &context,
+                        uri.clone(),
+                        position,
+                        new_name.clone(),
+                    );
+                    assert_eq!(plain_edit.ok().flatten(), Some(edit.clone()));
+                }
                 let edit = render_rename_edit(edit, files, encoding);
                 writeln!(result, "{edit}").unwrap();
                 if annotated {

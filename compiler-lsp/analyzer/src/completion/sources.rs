@@ -417,6 +417,35 @@ impl CompletionSource for LocalTypes {
     }
 }
 
+pub struct LocalClasses;
+
+impl CompletionSource for LocalClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let source = context.resolved.locals.iter_classes();
+        let source = source.filter(move |(name, _, _)| filter.matches(name));
+
+        for (name, file_id, type_id) in source {
+            let mut item = CompletionItemSpec::new(
+                name.to_string(),
+                context.range,
+                CompletionItemKind::STRUCT,
+                CompletionResolveData::TypeItem(file_id, type_id),
+            );
+            item.label_description("Local".to_string());
+            items.push(item.build())
+        }
+
+        Ok(())
+    }
+}
+
 /// Yields terms from unqualified imports.
 pub struct ImportedTerms;
 
@@ -510,6 +539,41 @@ impl CompletionSource for ImportedTypes {
                     item.label_description(description);
                 }
 
+                items.push(item.build())
+            }
+        }
+
+        Ok(())
+    }
+}
+
+pub struct ImportedClasses;
+
+impl CompletionSource for ImportedClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let source = context.resolved.unqualified.values().flatten();
+        for import in source {
+            let classes = import.iter_classes().filter(move |(name, _, _, kind)| {
+                filter.matches(name) && !matches!(kind, ImportKind::Hidden)
+            });
+            for (name, file_id, type_id, _) in classes {
+                let description = module_name(context, file_id)?;
+                let mut item = CompletionItemSpec::new(
+                    name.to_string(),
+                    context.range,
+                    CompletionItemKind::STRUCT,
+                    CompletionResolveData::TypeItem(file_id, type_id),
+                );
+                if let Some(description) = description {
+                    item.label_description(description);
+                }
                 items.push(item.build())
             }
         }
@@ -628,11 +692,74 @@ impl CompletionSource for QualifiedTypes<'_> {
     }
 }
 
+pub struct QualifiedClasses<'a> {
+    pub qualifier: &'a str,
+}
+
+impl CompletionSource for QualifiedClasses<'_> {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        if self.qualifier == "Prim" && !context.resolved.qualified.contains_key(self.qualifier) {
+            let classes = context
+                .prim_resolved
+                .exports
+                .iter_classes()
+                .filter(|(name, _, _)| filter.matches(name));
+            for (name, file_id, type_id) in classes {
+                let mut item = CompletionItemSpec::new(
+                    name.to_string(),
+                    context.range,
+                    CompletionItemKind::STRUCT,
+                    CompletionResolveData::TypeItem(file_id, type_id),
+                );
+                item.edit_text(format!("Prim.{name}"));
+                item.label_description("Prim".to_string());
+                items.push(item.build());
+            }
+            return Ok(());
+        }
+
+        let Some(imports) = context.resolved.qualified.get(self.qualifier) else {
+            return Ok(());
+        };
+
+        for import in imports {
+            let classes = import.iter_classes().filter(|(name, _, _, kind)| {
+                filter.matches(name) && !matches!(kind, ImportKind::Hidden)
+            });
+            for (name, file_id, type_id, _) in classes {
+                let description = module_name(context, file_id)?;
+                let mut item = CompletionItemSpec::new(
+                    name.to_string(),
+                    context.range,
+                    CompletionItemKind::STRUCT,
+                    CompletionResolveData::TypeItem(file_id, type_id),
+                );
+                item.edit_text(format!("{}.{name}", self.qualifier));
+                if let Some(description) = description {
+                    item.label_description(description);
+                }
+                items.push(item.build())
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Yields suggestions for terms.
 pub struct SuggestedTerms;
 
 /// Yields suggestions for types.
 pub struct SuggestedTypes;
+
+pub struct SuggestedClasses;
 
 trait SuggestionsHelper {
     type ItemId;
@@ -752,6 +879,56 @@ impl SuggestionsHelper for SuggestedTypes {
     }
 }
 
+impl SuggestionsHelper for SuggestedClasses {
+    type ItemId = TypeItemId;
+
+    fn exports(
+        resolved: &ResolvedModule,
+    ) -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_classes()
+    }
+
+    fn candidate(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        name: &SmolStr,
+        import_id: FileId,
+        file_id: FileId,
+        item_id: Self::ItemId,
+    ) -> Result<Option<CompletionItem>, AnalyzerError> {
+        assert_eq!(import_id, file_id);
+
+        if context.has_class_import(None, name) {
+            return Ok(None);
+        }
+
+        let Some(module_name) = module_name(context, file_id)? else {
+            return Ok(None);
+        };
+
+        let mut item = CompletionItemSpec::new(
+            name.to_string(),
+            context.range,
+            CompletionItemKind::STRUCT,
+            CompletionResolveData::TypeItem(file_id, item_id),
+        );
+
+        let (import_text, import_range) =
+            edit::type_import_item(context, &module_name, name, file_id, item_id);
+        let range = import_range.or_else(|| context.insert_import_range());
+        let Some((range, new_text)) = range.zip(import_text) else {
+            return Ok(None);
+        };
+
+        item.label_detail(format!(" (import {module_name})"));
+        item.label_description(module_name.to_string());
+        item.sort_text(format!("{module_name}.{name}"));
+        item.additional_text_edits(vec![TextEdit { range, new_text }]);
+
+        Ok(Some(item.build()))
+    }
+}
+
 fn suggestions_candidates<T: SuggestionsHelper>(
     this: &T,
     context: &CompletionContext<impl crate::AnalyzerHost>,
@@ -801,6 +978,19 @@ impl CompletionSource for SuggestedTerms {
 }
 
 impl CompletionSource for SuggestedTypes {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        suggestions_candidates(self, context, filter, items)
+    }
+}
+
+impl CompletionSource for SuggestedClasses {
     type T = ();
 
     fn collect_into<F: Filter>(
@@ -902,11 +1092,47 @@ impl CompletionSource for PrimTypes {
     }
 }
 
+pub struct PrimClasses;
+
+impl CompletionSource for PrimClasses {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        let source = context
+            .prim_resolved
+            .exports
+            .iter_classes()
+            .filter(move |(name, _, _)| filter.matches(name));
+
+        for (name, file_id, type_id) in source {
+            let mut item = CompletionItemSpec::new(
+                name.to_string(),
+                context.range,
+                CompletionItemKind::STRUCT,
+                CompletionResolveData::TypeItem(file_id, type_id),
+            );
+            item.label_description("Prim".to_string());
+            items.push(item.build())
+        }
+
+        Ok(())
+    }
+}
+
 /// Yields suggestions for qualified terms.
 pub struct QualifiedTermsSuggestions<'a>(pub &'a str);
 
 /// Yields suggestions for qualified types.
 pub struct QualifiedTypesSuggestions<'a>(pub &'a str);
+
+pub struct QualifiedClassesSuggestions<'a> {
+    pub qualifier: &'a str,
+}
 
 impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
     type ItemId = TermItemId;
@@ -994,6 +1220,28 @@ impl SuggestionsHelper for QualifiedTypesSuggestions<'_> {
     }
 }
 
+impl SuggestionsHelper for QualifiedClassesSuggestions<'_> {
+    type ItemId = TypeItemId;
+
+    fn exports(
+        resolved: &ResolvedModule,
+    ) -> impl Iterator<Item = (&SmolStr, FileId, Self::ItemId)> {
+        resolved.exports.iter_classes()
+    }
+
+    fn candidate(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        name: &SmolStr,
+        import_id: FileId,
+        file_id: FileId,
+        item_id: Self::ItemId,
+    ) -> Result<Option<CompletionItem>, AnalyzerError> {
+        QualifiedTypesSuggestions(self.qualifier)
+            .candidate(context, name, import_id, file_id, item_id)
+    }
+}
+
 fn suggestions_candidates_qualified<T: SuggestionsHelper>(
     this: &T,
     prefix: &str,
@@ -1056,6 +1304,22 @@ impl CompletionSource for QualifiedTypesSuggestions<'_> {
         items: &mut Vec<CompletionItem>,
     ) -> Result<Self::T, AnalyzerError> {
         suggestions_candidates_qualified(self, self.0, context, filter, items)
+    }
+}
+
+impl CompletionSource for QualifiedClassesSuggestions<'_> {
+    type T = ();
+
+    fn collect_into<F: Filter>(
+        &self,
+        context: &CompletionContext<impl crate::AnalyzerHost>,
+        filter: F,
+        items: &mut Vec<CompletionItem>,
+    ) -> Result<Self::T, AnalyzerError> {
+        if self.qualifier == "Prim" {
+            return Ok(());
+        }
+        suggestions_candidates_qualified(self, self.qualifier, context, filter, items)
     }
 }
 

@@ -19,6 +19,7 @@ pub enum NotInScope {
     TypeConstructor { id: AstId<cst::TypeConstructor> },
     TypeVariable { id: AstId<cst::TypeVariable> },
     TypeOperatorName { id: AstId<cst::TypeOperatorName> },
+    InstanceHead { id: AstId<cst::InstanceHead> },
     DoFn { kind: DoFn, id: AstId<cst::ExpressionDo> },
     AdoFn { kind: AdoFn, id: AstId<cst::ExpressionAdo> },
     NegateFn { id: AstId<cst::ExpressionNegate> },

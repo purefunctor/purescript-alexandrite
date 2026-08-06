@@ -15,10 +15,11 @@ use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, 
 use radix_trie::Trie;
 use smol_str::SmolStr;
 use sources::{
-    ImportClasses, ImportedTerms, ImportedTypes, LocalTerms, LocalTypes, PrimTerms, PrimTypes,
+    ImportClasses, ImportedClasses, ImportedTerms, ImportedTypes, LocalClasses, LocalTerms,
+    LocalTypes, PrimClasses, PrimTerms, PrimTypes, QualifiedClasses, QualifiedClassesSuggestions,
     QualifiedModules, QualifiedTerms, QualifiedTermsSuggestions, QualifiedTypes,
-    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedTerms, SuggestedTypes,
-    WorkspaceModules,
+    QualifiedTypesSuggestions, ScopeTerms, ScopeTypes, SuggestedClasses, SuggestedTerms,
+    SuggestedTypes, WorkspaceModules,
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
@@ -28,8 +29,10 @@ use crate::{AnalyzerContext, AnalyzerError, position};
 pub struct SuggestionsCacheEntry {
     pub terms: Vec<CompletionItem>,
     pub types: Vec<CompletionItem>,
+    pub classes: Vec<CompletionItem>,
     pub qualified_terms: Vec<CompletionItem>,
     pub qualified_types: Vec<CompletionItem>,
+    pub qualified_classes: Vec<CompletionItem>,
 }
 
 pub type SuggestionsCache = Trie<String, Arc<SuggestionsCacheEntry>>;
@@ -118,7 +121,7 @@ fn collect(
         CursorText::None => {
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, NoFilter, into)?;
-            } else if !context.collect_import_classes() {
+            } else if !context.collect_import_classes() && !context.collect_instance_classes() {
                 QualifiedModules.collect_into(context, NoFilter, into)?;
             }
             if context.collect_import_classes() {
@@ -134,13 +137,17 @@ fn collect(
                 LocalTypes.collect_into(context, NoFilter, into)?;
                 ImportedTypes.collect_into(context, NoFilter, into)?;
             }
+            if context.collect_instance_classes() {
+                LocalClasses.collect_into(context, NoFilter, into)?;
+                ImportedClasses.collect_into(context, NoFilter, into)?;
+            }
         }
         CursorText::Prefix(p) => {
             let p = p.trim_end_matches('.');
 
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, StartsWith(p), into)?;
-            } else if !context.collect_import_classes() {
+            } else if !context.collect_import_classes() && !context.collect_instance_classes() {
                 QualifiedModules.collect_into(context, StartsWith(p), into)?;
             }
             if context.collect_terms() {
@@ -149,8 +156,14 @@ fn collect(
             if context.collect_types() {
                 QualifiedTypes(p).collect_into(context, NoFilter, into)?;
             }
+            if context.collect_instance_classes() {
+                QualifiedClasses { qualifier: p }.collect_into(context, NoFilter, into)?;
+            }
 
-            if context.collect_terms() || context.collect_types() {
+            if context.collect_terms()
+                || context.collect_types()
+                || context.collect_instance_classes()
+            {
                 let query = format!("prefix:{p}");
                 let suggestions =
                     get_or_populate_suggestions(cache, &query, context, Some(p), NoFilter)?;
@@ -161,12 +174,15 @@ fn collect(
                 if context.collect_types() && !context.has_qualified_import(p) {
                     items.extend(suggestions.qualified_types.iter().cloned());
                 }
+                if context.collect_instance_classes() && !context.has_qualified_import(p) {
+                    items.extend(suggestions.qualified_classes.iter().cloned());
+                }
             }
         }
         CursorText::Name(n) => {
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, StartsWith(n), into)?;
-            } else if !context.collect_import_classes() {
+            } else if !context.collect_import_classes() && !context.collect_instance_classes() {
                 QualifiedModules.collect_into(context, StartsWith(n), into)?;
             }
             if context.collect_import_classes() {
@@ -188,8 +204,18 @@ fn collect(
                     PrimTypes.collect_into(context, FuzzyMatch(n), into)?;
                 }
             }
+            if context.collect_instance_classes() {
+                LocalClasses.collect_into(context, FuzzyMatch(n), into)?;
+                ImportedClasses.collect_into(context, FuzzyMatch(n), into)?;
+                if context.collect_implicit_prim() {
+                    PrimClasses.collect_into(context, FuzzyMatch(n), into)?;
+                }
+            }
 
-            if context.collect_terms() || context.collect_types() {
+            if context.collect_terms()
+                || context.collect_types()
+                || context.collect_instance_classes()
+            {
                 let query = format!("name:{n}");
                 let suggestions =
                     get_or_populate_suggestions(cache, &query, context, None, StartsWith(n))?;
@@ -200,6 +226,9 @@ fn collect(
                 if context.collect_types() {
                     items.extend(suggestions.types.iter().cloned());
                 }
+                if context.collect_instance_classes() {
+                    items.extend(suggestions.classes.iter().cloned());
+                }
             }
         }
         CursorText::Both(prefix, name) => {
@@ -209,7 +238,7 @@ fn collect(
 
             if context.collect_modules() {
                 WorkspaceModules.collect_into(context, StartsWith(&combined_name), into)?;
-            } else if !context.collect_import_classes() {
+            } else if !context.collect_import_classes() && !context.collect_instance_classes() {
                 QualifiedModules.collect_into(context, StartsWith(&combined_name), into)?;
             }
             if context.collect_terms() {
@@ -218,8 +247,18 @@ fn collect(
             if context.collect_types() {
                 QualifiedTypes(prefix).collect_into(context, FuzzyMatch(name), into)?;
             }
+            if context.collect_instance_classes() {
+                QualifiedClasses { qualifier: prefix }.collect_into(
+                    context,
+                    FuzzyMatch(name),
+                    into,
+                )?;
+            }
 
-            if context.collect_terms() || context.collect_types() {
+            if context.collect_terms()
+                || context.collect_types()
+                || context.collect_instance_classes()
+            {
                 let query = format!("both:{combined_name}");
                 let suggestions = get_or_populate_suggestions(
                     cache,
@@ -236,6 +275,9 @@ fn collect(
                 if context.collect_types() && !context.has_qualified_import(prefix) {
                     items.extend(suggestions.qualified_types.iter().cloned());
                 }
+                if context.collect_instance_classes() && !context.has_qualified_import(prefix) {
+                    items.extend(suggestions.qualified_classes.iter().cloned());
+                }
             }
         }
     }
@@ -250,7 +292,7 @@ fn get_or_populate_suggestions<F: Filter>(
     prefix: Option<&str>,
     filter: F,
 ) -> Result<Arc<SuggestionsCacheEntry>, AnalyzerError> {
-    let query = query.to_lowercase();
+    let query = format!("{:?}:{}", context.current_file, query.to_lowercase());
 
     if let Some(cached) = cache.get(&query) {
         tracing::debug!("Found exact match for '{query}'");
@@ -284,9 +326,15 @@ fn get_or_populate_suggestions<F: Filter>(
             filter,
             &mut suggestions.qualified_types,
         )?;
+        QualifiedClassesSuggestions { qualifier: prefix }.collect_into(
+            context,
+            filter,
+            &mut suggestions.qualified_classes,
+        )?;
     } else {
         SuggestedTerms.collect_into(context, filter, &mut suggestions.terms)?;
         SuggestedTypes.collect_into(context, filter, &mut suggestions.types)?;
+        SuggestedClasses.collect_into(context, filter, &mut suggestions.classes)?;
     }
 
     let key = query.to_string();
@@ -306,11 +354,38 @@ where
     F: Filter,
 {
     SuggestionsCacheEntry {
-        terms: collect_entries(&cached.terms, filter, prefix, context),
-        types: collect_entries(&cached.types, filter, prefix, context),
-        qualified_terms: collect_entries(&cached.qualified_terms, filter, prefix, context),
-        qualified_types: collect_entries(&cached.qualified_types, filter, prefix, context),
+        terms: collect_entries(&cached.terms, filter, prefix, context, ImportNamespace::Term),
+        types: collect_entries(&cached.types, filter, prefix, context, ImportNamespace::Type),
+        classes: collect_entries(&cached.classes, filter, prefix, context, ImportNamespace::Class),
+        qualified_terms: collect_entries(
+            &cached.qualified_terms,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Term,
+        ),
+        qualified_types: collect_entries(
+            &cached.qualified_types,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Type,
+        ),
+        qualified_classes: collect_entries(
+            &cached.qualified_classes,
+            filter,
+            prefix,
+            context,
+            ImportNamespace::Class,
+        ),
     }
+}
+
+#[derive(Clone, Copy)]
+enum ImportNamespace {
+    Term,
+    Type,
+    Class,
 }
 
 fn collect_entries<F>(
@@ -318,6 +393,7 @@ fn collect_entries<F>(
     filter: &F,
     prefix: Option<&str>,
     context: &CompletionContext<impl crate::AnalyzerHost>,
+    namespace: ImportNamespace,
 ) -> Vec<CompletionItem>
 where
     F: Filter,
@@ -327,10 +403,10 @@ where
             return false;
         }
         if item.additional_text_edits.is_some() {
-            let has_import = match item.kind {
-                Some(CompletionItemKind::VALUE) => context.has_term_import(prefix, &item.label),
-                Some(CompletionItemKind::STRUCT) => context.has_type_import(prefix, &item.label),
-                _ => false,
+            let has_import = match namespace {
+                ImportNamespace::Term => context.has_term_import(prefix, &item.label),
+                ImportNamespace::Type => context.has_type_import(prefix, &item.label),
+                ImportNamespace::Class => context.has_class_import(prefix, &item.label),
             };
             if has_import {
                 return false;

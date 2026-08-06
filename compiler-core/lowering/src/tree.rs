@@ -448,6 +448,7 @@ pub struct LoweredTree {
     pub(crate) binders: FxHashMap<BinderId, BinderKind>,
     pub(crate) expressions: FxHashMap<ExpressionId, ExpressionKind>,
     pub(crate) types: FxHashMap<TypeId, TypeKind>,
+    pub(crate) instance_heads: FxHashMap<InstanceHeadId, Option<(FileId, TypeItemId)>>,
     pub(crate) term_items: FxHashMap<TermItemId, TermItemKind>,
     pub(crate) type_items: FxHashMap<TypeItemId, TypeItemKind>,
 
@@ -471,6 +472,12 @@ impl LoweredTree {
 
     pub fn iter_type(&self) -> impl Iterator<Item = (TypeId, &TypeKind)> {
         self.types.iter().map(|(k, v)| (*k, v))
+    }
+
+    pub fn iter_instance_head(
+        &self,
+    ) -> impl Iterator<Item = (InstanceHeadId, Option<(FileId, TypeItemId)>)> + '_ {
+        self.instance_heads.iter().map(|(k, v)| (*k, *v))
     }
 
     pub fn iter_do_statement(&self) -> impl Iterator<Item = (DoStatementId, &DoStatement)> {
@@ -501,6 +508,10 @@ impl LoweredTree {
 
     pub fn get_type_kind(&self, id: TypeId) -> Option<&TypeKind> {
         self.types.get(&id)
+    }
+
+    pub fn get_instance_head(&self, id: InstanceHeadId) -> Option<Option<(FileId, TypeItemId)>> {
+        self.instance_heads.get(&id).copied()
     }
 
     pub fn get_do_statement(&self, id: DoStatementId) -> Option<&DoStatement> {

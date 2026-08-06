@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+left@7:22
+  -> binder@7:13
+value@8:18
+  -> binder@8:10
+right@9:24
+  -> binder@9:16
+
+Types:
+
+a@3:22
+  -> forall@2:12
+a@4:18
+  -> forall@2:12
+a@3:32
+  -> forall@2:12
+a@4:13
+  -> forall@2:12
+a@3:27
+  -> forall@2:12

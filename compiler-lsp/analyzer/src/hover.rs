@@ -62,6 +62,9 @@ pub fn implementation(
         locate::Located::InstanceMember(file_id, term_id) => {
             hover_file_term(engine, file_id, term_id)
         }
+        locate::Located::InstanceHead(file_id, type_id) => {
+            hover_file_type(engine, file_id, type_id)
+        }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
         locate::Located::TypeItem(type_id) => hover_file_type(engine, current_file, type_id),
         locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),

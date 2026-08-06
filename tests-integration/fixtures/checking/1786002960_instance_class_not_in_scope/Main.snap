@@ -11,3 +11,10 @@ Value :: Prim.Type
 
 Roles
 Value = []
+
+Diagnostics
+error[NotInScope]: 'Missing' is not in scope
+  --> 5:10..5:17
+  |
+5 | instance Missing Value where
+  |          ^~~~~~~

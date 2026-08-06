@@ -9,6 +9,8 @@ pub type RecordPunId = AstId<cst::RecordPun>;
 pub type TypeId = AstId<cst::Type>;
 pub type TypeVariableBindingId = AstId<cst::TypeVariableBinding>;
 
+pub type InstanceHeadId = AstId<cst::InstanceHead>;
+
 pub type DoStatementId = AstId<cst::DoStatement>;
 pub type LetBindingId = AstId<cst::LetBindingPattern>;
 
