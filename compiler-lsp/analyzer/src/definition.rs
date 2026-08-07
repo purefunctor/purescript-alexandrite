@@ -10,9 +10,8 @@ use lowering::{
 use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
-use syntax::{SyntaxNode, SyntaxNodePtr, cst};
+use syntax::cst;
 
-use crate::extract::AnnotationSyntaxRange;
 use crate::position::Utf8Range;
 use crate::{AnalyzerContext, AnalyzerError, common, locate, position};
 
@@ -277,7 +276,7 @@ fn definition_expression(
                 TermVariableResolution::RecordPun(id) => {
                     let root = parsed.syntax_node();
                     let ptr = stabilized.syntax_ptr(*id).ok_or(AnalyzerError::NonFatal)?;
-                    let range = record_pun_name_range(&content, &root, &ptr)
+                    let range = position::record_pun_name_range(&content, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
                     let range = position::utf8_range_to_protocol(
                         &content,
@@ -298,21 +297,6 @@ fn definition_expression(
         }
         _ => Ok(None),
     }
-}
-
-fn record_pun_name_range(
-    content: &str,
-    root: &SyntaxNode,
-    ptr: &SyntaxNodePtr,
-) -> Option<Utf8Range> {
-    let node = ptr.try_to_node(root)?;
-    let pun = cst::RecordPun::cast(node)?;
-
-    let name = pun.name()?;
-    let name = name.syntax();
-    let range = AnnotationSyntaxRange::from_node(name).syntax?;
-
-    position::text_range_to_utf8_range(content, range)
 }
 
 fn definition_type(

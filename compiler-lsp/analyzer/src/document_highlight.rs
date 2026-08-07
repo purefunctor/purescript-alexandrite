@@ -15,6 +15,7 @@ use stabilizing::AstId;
 use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr, cst};
 
+use crate::extract::AnnotationSyntaxRange;
 use crate::position::{PositionEncoding, Utf8Range};
 use crate::{AnalyzerContext, AnalyzerError, locate, position};
 
@@ -223,9 +224,11 @@ fn highlight_binder(
         } = expr_kind
             && *id == binder_id
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, expr_id).and_then(
-                |range| document_highlight(&content, context.position_encoding(), range),
-            ));
+            highlights.extend(
+                highlight_id_range(&content, &parsed, &stabilized, expr_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
+            );
         }
     }
 
@@ -233,7 +236,7 @@ fn highlight_binder(
         if let TermVariableResolution::Binder(id) = resolution
             && id == binder_id
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+            highlights.extend(highlight_id_range(&content, &parsed, &stabilized, pun_id).and_then(
                 |range| document_highlight(&content, context.position_encoding(), range),
             ));
         }
@@ -316,9 +319,9 @@ fn highlight_file_term(
             && (*f_id, *t_id) == (file_id, term_id)
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_id).and_then(|range| {
-                    document_highlight(&content, context.position_encoding(), range)
-                }),
+                highlight_id_range(&content, &parsed, &stabilized, expression_id).and_then(
+                    |range| document_highlight(&content, context.position_encoding(), range),
+                ),
             );
         }
     }
@@ -328,7 +331,7 @@ fn highlight_file_term(
             && (*f_id, *t_id) == (file_id, term_id)
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, binder_id).and_then(|range| {
+                highlight_id_range(&content, &parsed, &stabilized, binder_id).and_then(|range| {
                     document_highlight(&content, context.position_encoding(), range)
                 }),
             );
@@ -338,7 +341,7 @@ fn highlight_file_term(
     for (operator_id, f_id, t_id) in lowered.tree.iter_term_operator() {
         if (f_id, t_id) == (file_id, term_id) {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
+                highlight_id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
                     document_highlight(&content, context.position_encoding(), range)
                 }),
             );
@@ -349,7 +352,7 @@ fn highlight_file_term(
         if let TermVariableResolution::Reference(f_id, t_id) = resolution
             && (f_id, t_id) == (file_id, term_id)
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+            highlights.extend(highlight_id_range(&content, &parsed, &stabilized, pun_id).and_then(
                 |range| document_highlight(&content, context.position_encoding(), range),
             ));
         }
@@ -406,7 +409,7 @@ fn highlight_file_type(
         | TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
             && (*f_id, *t_id) == (file_id, type_id)
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, ty_id).and_then(
+            highlights.extend(highlight_id_range(&content, &parsed, &stabilized, ty_id).and_then(
                 |range| document_highlight(&content, context.position_encoding(), range),
             ));
         }
@@ -415,7 +418,7 @@ fn highlight_file_type(
     for (operator_id, f_id, t_id) in lowered.tree.iter_type_operator() {
         if (f_id, t_id) == (file_id, type_id) {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
+                highlight_id_range(&content, &parsed, &stabilized, operator_id).and_then(|range| {
                     document_highlight(&content, context.position_encoding(), range)
                 }),
             );
@@ -522,9 +525,11 @@ fn highlight_let(
         } = expr_kind
             && *id == let_binding_id
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, expr_id).and_then(
-                |range| document_highlight(&content, context.position_encoding(), range),
-            ));
+            highlights.extend(
+                highlight_id_range(&content, &parsed, &stabilized, expr_id).and_then(|range| {
+                    document_highlight(&content, context.position_encoding(), range)
+                }),
+            );
         }
     }
 
@@ -532,7 +537,7 @@ fn highlight_let(
         if let TermVariableResolution::Let(id) = resolution
             && id == let_binding_id
         {
-            highlights.extend(locate::id_range(&content, &parsed, &stabilized, pun_id).and_then(
+            highlights.extend(highlight_id_range(&content, &parsed, &stabilized, pun_id).and_then(
                 |range| document_highlight(&content, context.position_encoding(), range),
             ));
         }
@@ -554,7 +559,7 @@ fn highlight_binder_pun(
     let mut highlights = vec![];
 
     highlights.extend(
-        locate::id_range(&content, &parsed, &stabilized, pun_id)
+        highlight_id_range(&content, &parsed, &stabilized, pun_id)
             .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
@@ -565,9 +570,9 @@ fn highlight_binder_pun(
             && *candidate_id == pun_id
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_id).and_then(|range| {
-                    document_highlight(&content, context.position_encoding(), range)
-                }),
+                highlight_id_range(&content, &parsed, &stabilized, expression_id).and_then(
+                    |range| document_highlight(&content, context.position_encoding(), range),
+                ),
             );
         }
     }
@@ -577,7 +582,7 @@ fn highlight_binder_pun(
             && candidate_id == pun_id
         {
             highlights.extend(
-                locate::id_range(&content, &parsed, &stabilized, expression_pun_id).and_then(
+                highlight_id_range(&content, &parsed, &stabilized, expression_pun_id).and_then(
                     |range| document_highlight(&content, context.position_encoding(), range),
                 ),
             );
@@ -770,6 +775,53 @@ where
     }));
 
     Ok(())
+}
+
+trait DocumentHighlightRange: AstNode {
+    fn annotation_syntax_range(&self) -> AnnotationSyntaxRange;
+}
+
+macro_rules! impl_document_highlight_range {
+    ($($target:ty),+ $(,)?) => {
+        $(
+            impl DocumentHighlightRange for $target {
+                fn annotation_syntax_range(&self) -> AnnotationSyntaxRange {
+                    AnnotationSyntaxRange::from_node(self.syntax())
+                }
+            }
+        )+
+    };
+}
+
+impl_document_highlight_range!(
+    cst::Binder,
+    cst::Expression,
+    cst::TermOperator,
+    cst::Type,
+    cst::TypeOperator,
+);
+
+impl DocumentHighlightRange for cst::RecordPun {
+    fn annotation_syntax_range(&self) -> AnnotationSyntaxRange {
+        self.name().map(|name| AnnotationSyntaxRange::from_node(name.syntax())).unwrap_or_default()
+    }
+}
+
+fn highlight_id_range<T>(
+    content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &stabilizing::StabilizedModule,
+    item_id: AstId<T>,
+) -> Option<Utf8Range>
+where
+    T: DocumentHighlightRange,
+{
+    let root = parsed.syntax_node();
+    let ptr = stabilized.syntax_ptr(item_id)?;
+    let node = ptr.try_to_node(&root)?;
+    let target = T::cast(node)?;
+    let range = target.annotation_syntax_range().syntax?;
+    position::text_range_to_utf8_range(content, range)
 }
 
 fn document_highlight(

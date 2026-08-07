@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 101
+assertion_line: 134
 expression: report
 ---
 DocumentHighlight at Position { line: 2, character: 9 }
@@ -10,8 +10,8 @@ binder { bar } = { bar }
 --       &         &
 ```
 
-2:8..2:12
-2:18..2:22
+2:9..2:12
+2:19..2:22
 
 
 DocumentHighlight at Position { line: 2, character: 19 }
@@ -21,8 +21,8 @@ binder { bar } = { bar }
 --       &         &
 ```
 
-2:8..2:12
-2:18..2:22
+2:9..2:12
+2:19..2:22
 
 
 DocumentHighlight at Position { line: 7, character: 11 }
@@ -33,4 +33,4 @@ record = { value }
 ```
 
 5:0..5:5
-7:10..7:16
+7:11..7:16

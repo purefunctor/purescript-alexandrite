@@ -267,6 +267,17 @@ pub fn instance_declaration_name_range(
     text_range_to_utf8_range(content, token.text_range())
 }
 
+pub fn record_pun_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let pun = cst::RecordPun::cast(node)?;
+    let token = pun.name()?.text()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
 pub fn infix_operator_range(
     content: &str,
     root: &SyntaxNode,

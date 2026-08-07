@@ -10,7 +10,7 @@ extract { value } = value
 --        &         &
 ```
 
-2:9..2:15
+2:10..2:15
 2:20..2:25
 
 
@@ -21,7 +21,7 @@ extract { value } = value
 --        &         &
 ```
 
-2:9..2:15
+2:10..2:15
 2:20..2:25
 
 
@@ -32,7 +32,7 @@ extractComment { {- thing -} value } = value
 --                               &         &
 ```
 
-5:16..5:34
+5:29..5:34
 5:39..5:44
 
 
@@ -43,5 +43,16 @@ extractComment { {- thing -} value } = value
 --                               &         &
 ```
 
-5:16..5:34
+5:29..5:34
 5:39..5:44
+
+
+DocumentHighlight at Position { line: 8, character: 27 }
+
+```
+wrap value = { {- thing -} value }
+--                         &
+```
+
+8:5..8:10
+8:27..8:32

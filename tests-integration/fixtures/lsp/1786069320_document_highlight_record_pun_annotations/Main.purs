@@ -5,3 +5,6 @@ extract { value } = value
 
 extractComment { {- thing -} value } = value
 --                               &         &
+
+wrap value = { {- thing -} value }
+--                         &

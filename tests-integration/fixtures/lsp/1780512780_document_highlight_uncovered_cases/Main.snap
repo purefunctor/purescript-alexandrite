@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 101
+assertion_line: 134
 expression: report
 ---
 DocumentHighlight at Position { line: 6, character: 16 }
@@ -21,7 +21,7 @@ binderPun = \binder -> { binder }
 ```
 
 9:13..9:19
-9:24..9:31
+9:25..9:31
 
 
 DocumentHighlight at Position { line: 12, character: 30 }
@@ -32,7 +32,7 @@ letPun = let local = Box in { local }
 ```
 
 12:13..12:18
-12:29..12:35
+12:30..12:35
 
 
 DocumentHighlight at Position { line: 15, character: 21 }
@@ -42,7 +42,7 @@ recordPunReference { field } = field
 --                   &         &
 ```
 
-15:20..15:26
+15:21..15:26
 15:31..15:36
 
 
@@ -53,7 +53,7 @@ recordPunReference { field } = field
 --                   &         &
 ```
 
-15:20..15:26
+15:21..15:26
 15:31..15:36
 
 
