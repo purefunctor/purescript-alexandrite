@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+DocumentHighlight at Position { line: 2, character: 10 }
+
+```
+extract { value } = value
+--        &         &
+```
+
+2:10..2:15
+2:20..2:25
+
+
+DocumentHighlight at Position { line: 2, character: 20 }
+
+```
+extract { value } = value
+--        &         &
+```
+
+2:10..2:15
+2:20..2:25
+
+
+DocumentHighlight at Position { line: 5, character: 33 }
+
+```
+extractComment { {- thing -} value } = value
+--                               &         &
+```
+
+5:29..5:34
+5:39..5:44
+
+
+DocumentHighlight at Position { line: 5, character: 43 }
+
+```
+extractComment { {- thing -} value } = value
+--                               &         &
+```
+
+5:29..5:34
+5:39..5:44
+
+
+DocumentHighlight at Position { line: 8, character: 27 }
+
+```
+wrap value = { {- thing -} value }
+--                         &
+```
+
+8:5..8:10
+8:27..8:32
