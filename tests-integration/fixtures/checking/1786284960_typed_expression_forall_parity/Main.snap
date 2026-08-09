@@ -1,0 +1,57 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+convert ::
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
+    (@g :: (t0 :: Prim.Type) -> Prim.Type).
+    Main.Convert @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (g :: (t0 :: Prim.Type) -> Prim.Type) =>
+    (forall (a :: (t0 :: Prim.Type)).
+      (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+      (g :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)))
+
+Types
+Convert ::
+  forall (t0 :: Prim.Type).
+    ((t0 :: Prim.Type) -> Prim.Type) -> ((t0 :: Prim.Type) -> Prim.Type) -> Prim.Constraint
+F :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+G :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+
+Classes
+class forall (t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (g :: (t0 :: Prim.Type) -> Prim.Type). Main.Convert @(t0 :: Prim.Type)
+  (f :: (t0 :: Prim.Type) -> Prim.Type)
+  (g :: (t0 :: Prim.Type) -> Prim.Type)
+  convert ::
+  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
+    (@g :: (t0 :: Prim.Type) -> Prim.Type).
+    Main.Convert @(t0 :: Prim.Type)
+      (f :: (t0 :: Prim.Type) -> Prim.Type)
+      (g :: (t0 :: Prim.Type) -> Prim.Type) =>
+    (forall (a :: (t0 :: Prim.Type)).
+      (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
+      (g :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)))
+
+Instances
+instance forall (t0 :: Prim.Type).
+  Main.Convert @(t0 :: Prim.Type) (Main.F @(t0 :: Prim.Type)) (Main.G @(t0 :: Prim.Type))
+
+Roles
+F = [Phantom]
+G = [Phantom]
+
+Diagnostics
+error[CannotUnify]: Cannot unify '(a :: (t0 :: Type))' with '(a1 :: (t0 :: Type))'
+  --> 12:14..12:50
+   |
+12 |   convert = (unsafeCoerce :: forall a. F a -> G a)
+   |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'F @(t0 :: Type) (a :: (t0 :: Type))' with 'F @(t0 :: Type) (a1 :: (t0 :: Type))'
+  --> 12:14..12:50
+   |
+12 |   convert = (unsafeCoerce :: forall a. F a -> G a)
+   |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

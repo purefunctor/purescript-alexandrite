@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Convert :: forall (k0 :: Prim.Type). (k0 -> Prim.Type) -> (k0 -> Prim.Type) -> Prim.Constraint
+interface Convert f g where
+  convert :: forall (a :: t0). f a -> g a
+
+data F :: forall (k0 :: Prim.Type). k0 -> Prim.Type
+data F @a
+
+data G :: forall (k0 :: Prim.Type). k0 -> Prim.Type
+data G @a
+
+foreign import unsafeCoerce :: forall a b. a -> b
+
+dictionary convertG :: forall t0. Main.Convert @t0 (Main.F @t0) (Main.G @t0) where
+  convert :: forall (a :: t0). Main.F @t0 a -> Main.G @t0 a
+  convert = unsafeCoerce @(Main.F @t0 a) @(Main.G @t0 a)
