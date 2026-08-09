@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+show :: forall (@a :: Prim.Type). Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+evidenceDoesNotEscape ::
+  forall (a :: Prim.Type).
+    { leaked :: (a :: Prim.Type) -> Prim.String
+    , scoped :: Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+    }
+consume ::
+  forall (result :: Prim.Type).
+    { value :: forall (a :: Prim.Type). (a :: Prim.Type) -> (result :: Prim.Type) } ->
+    (result :: Prim.Type)
+typeDoesNotEscape :: (a :: Prim.Type)
+
+Types
+Eq :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
+  show :: forall (@a :: Prim.Type). Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
