@@ -45,6 +45,9 @@ pub fn implementation(
             hover_record_access_label(engine, current_file, label_id)
         }
         locate::Located::Type(type_id) => hover_type(engine, current_file, type_id),
+        locate::Located::TypeVariableBinding(binding_id) => {
+            hover_type_variable_binding(engine, current_file, binding_id)
+        }
         locate::Located::BinderPun(pun_id) => hover_pun(engine, current_file, pun_id),
         locate::Located::ExpressionPun(pun_id) => hover_pun(engine, current_file, pun_id),
         locate::Located::TermOperator(operator_id) => {
@@ -297,6 +300,18 @@ fn hover_type(
             hover_checked_type(engine, current_file, type_kind)
         }
     }
+}
+
+fn hover_type_variable_binding(
+    engine: &impl AnalyzerQueries,
+    current_file: FileId,
+    binding_id: lowering::TypeVariableBindingId,
+) -> Result<Option<Hover>, AnalyzerError> {
+    let checked = engine.checked(current_file)?;
+    let binding_kind = checked.node_types.lookup_forall_binding(binding_id);
+    let binding_kind = binding_kind.ok_or(AnalyzerError::NonFatal)?;
+
+    hover_checked_type(engine, current_file, binding_kind)
 }
 
 fn hover_checked_type(

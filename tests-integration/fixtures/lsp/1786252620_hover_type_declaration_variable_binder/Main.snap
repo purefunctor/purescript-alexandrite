@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 2, character: 13 }
+
+```
+type Synonym a = a
+--           $
+```
+
+```purescript
+(t0 :: Type)
+```
+
+
+Hover at Position { line: 5, character: 14 }
+
+```
+class Example a
+--            $
+```
+
+```purescript
+(t0 :: Type)
+```
