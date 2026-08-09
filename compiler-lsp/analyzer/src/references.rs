@@ -73,6 +73,7 @@ pub fn implementation(
         }
         locate::Located::InstanceMember(_, _) => Ok(None),
         locate::Located::RecordAccessLabel(_) => Ok(None),
+        locate::Located::TypeVariableBinding(_) => Ok(None),
         locate::Located::Nothing => Ok(None),
     }
 }

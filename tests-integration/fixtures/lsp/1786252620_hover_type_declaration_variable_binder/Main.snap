@@ -11,7 +11,7 @@ type Synonym a = a
 ```
 
 ```purescript
-Synonym :: forall (t0 :: Type). (t0 :: Type) -> (t0 :: Type)
+(t0 :: Type)
 ```
 
 
@@ -23,5 +23,5 @@ class Example a
 ```
 
 ```purescript
-Example :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+(t0 :: Type)
 ```

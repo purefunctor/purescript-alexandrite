@@ -11,5 +11,5 @@ apply :: forall (constructor :: Type -> Type). constructor Int -> constructor In
 ```
 
 ```purescript
-Type
+Type -> Type
 ```

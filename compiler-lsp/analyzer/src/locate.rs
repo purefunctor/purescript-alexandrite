@@ -6,7 +6,7 @@ use files::FileId;
 use indexing::{ImportItemId, IndexedModule, IndexedTermItemKind, TermItemId, TypeItemId};
 use lowering::{
     BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordAccessLabelId, RecordPunId,
-    TermItemKind, TermOperatorId, TypeId, TypeOperatorId,
+    TermItemKind, TermOperatorId, TypeId, TypeOperatorId, TypeVariableBindingId,
 };
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::{AstNode, AstPtr};
@@ -134,6 +134,7 @@ pub enum Located {
     Expression(ExpressionId),
     RecordAccessLabel(RecordAccessLabelId),
     Type(TypeId),
+    TypeVariableBinding(TypeVariableBindingId),
     BinderPun(RecordPunId),
     ExpressionPun(RecordPunId),
     TermOperator(TermOperatorId),
@@ -215,6 +216,10 @@ fn locate_node(
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
         Some(Located::Expression(id))
+    } else if cst::TypeVariableBinding::can_cast(kind) {
+        let ptr = ptr.cast()?;
+        let id = stabilized.lookup_ptr(&ptr)?;
+        Some(Located::TypeVariableBinding(id))
     } else if cst::Type::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;

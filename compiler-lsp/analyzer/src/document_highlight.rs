@@ -69,6 +69,7 @@ pub fn implementation(
         locate::Located::ModuleName(_)
         | locate::Located::InstanceMember(_, _)
         | locate::Located::RecordAccessLabel(_)
+        | locate::Located::TypeVariableBinding(_)
         | locate::Located::Nothing => Ok(None),
     }
 }

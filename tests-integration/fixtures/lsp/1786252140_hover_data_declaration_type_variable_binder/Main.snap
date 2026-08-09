@@ -11,7 +11,7 @@ newtype Identity a = Identity a
 ```
 
 ```purescript
-Identity :: Type -> Type
+Type
 ```
 
 
@@ -23,5 +23,5 @@ data Proxy a = Proxy
 ```
 
 ```purescript
-Proxy :: forall (kind :: Type). (kind :: Type) -> Type
+(kind :: Type)
 ```
