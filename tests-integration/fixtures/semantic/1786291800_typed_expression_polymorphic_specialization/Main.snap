@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+implicit :: Prim.Int
+implicit = (\@a -> identity @a) @Prim.Int 0
+
+monomorphic :: Prim.Int -> Prim.Int
+monomorphic = (\@a -> identity @a) @Prim.Int
+
+visibleIdentity :: forall @a. a -> a
+visibleIdentity = \value -> value
+
+explicit :: Prim.Int
+explicit = (\@a -> visibleIdentity @a) @Prim.Int 0

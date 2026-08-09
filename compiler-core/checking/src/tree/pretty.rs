@@ -1262,6 +1262,8 @@ where
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
             ExpressionKind::Lambda { .. }
+            | ExpressionKind::TypeAbstraction { .. }
+            | ExpressionKind::EvidenceAbstraction { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
@@ -1500,6 +1502,16 @@ where
                 )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
+            }
+            ExpressionKind::TypeAbstraction { parameter, expression } => {
+                let parameter = type_pretty.render_atom(*parameter);
+                let expression = self.expression(*expression, evidence_names, type_pretty)?;
+                Ok(self.arena.text(format!("\\@{parameter} -> ")).append(expression))
+            }
+            ExpressionKind::EvidenceAbstraction { binder, expression } => {
+                let binder = self.evidence_binder_name(evidence_names, *binder)?;
+                let expression = self.expression(*expression, evidence_names, type_pretty)?;
+                Ok(self.arena.text(format!("\\{{{binder}}} -> ")).append(expression))
             }
             ExpressionKind::Lambda { binders, expression } => {
                 let mut lambda = self.arena.text("\\");

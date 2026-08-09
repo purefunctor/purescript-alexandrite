@@ -17,4 +17,4 @@ foreign import unsafeCoerce :: forall a b. a -> b
 
 dictionary convertG :: forall t0. Main.Convert @t0 (Main.F @t0) (Main.G @t0) where
   convert :: forall (a :: t0). Main.F @t0 a -> Main.G @t0 a
-  convert = unsafeCoerce @(Main.F @t0 a) @(Main.G @t0 a)
+  convert = (\@a -> unsafeCoerce @(Main.F @t0 a) @(Main.G @t0 a)) @a1

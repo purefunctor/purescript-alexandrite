@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Supplied :: Prim.Type -> Prim.Constraint
+interface Supplied a where
+  supplied :: a
+
+consume :: (Main.Supplied Prim.Int => Prim.Int) -> Prim.Int
+consume = \_ -> 0
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+apply :: forall a b. (a -> b) -> a -> b
+apply = \function -> \argument -> function argument
+
+throughOperator :: Prim.Int
+throughOperator =
+  apply @(Main.Supplied Prim.Int => Prim.Int) @Prim.Int consume
+    (\{suppliedDict} -> (\{suppliedDict1} -> supplied @Prim.Int {suppliedDict1}) {suppliedDict})
+
+throughNestedOperator :: Prim.Int
+throughNestedOperator =
+  apply @(Main.Supplied Prim.Int => Prim.Int) @Prim.Int consume
+    (\{suppliedDict} -> apply @Prim.Int @Prim.Int (identity @Prim.Int)
+      ((\{suppliedDict1} -> supplied @Prim.Int {suppliedDict1}) {suppliedDict}))
+
+polymorphicResult :: Prim.Int -> Prim.Int -> (forall a. a -> a)
+polymorphicResult = \_ -> \_ -> \value -> value
+
+throughPolymorphicResult :: forall a. a -> a
+throughPolymorphicResult = polymorphicResult 0 0 @a
+
+constrainedResult :: Prim.Int -> Prim.Int -> (Main.Supplied Prim.Int => Prim.Int)
+constrainedResult = \{suppliedDict} -> \_ -> \_ -> supplied @Prim.Int {suppliedDict}
+
+throughConstrainedResult :: Main.Supplied Prim.Int => Prim.Int
+throughConstrainedResult = \{suppliedDict} -> constrainedResult 0 0 {suppliedDict}

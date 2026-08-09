@@ -18,8 +18,10 @@ use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::context::CheckContext;
-use crate::core::{TypeId, normalise, toolkit, unification};
+use crate::core::substitute::{RigidRenaming, SubstituteName};
+use crate::core::{Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
+use crate::evidence::EvidenceBinderId;
 use crate::holes::{HoleBinding, TermHole};
 use crate::source::{operator, types};
 use crate::state::CheckState;
@@ -100,26 +102,98 @@ fn check_expression_quiet<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = prepare_expected_expression(state, context, expected)?;
-
-    if let Some(section_result) = context.sectioned.expressions.get(&expression) {
-        check_sectioned_expression(state, context, expression, section_result, expected)
-    } else {
-        check_expression_core(state, context, expression, expected)
-    }
+    check_expected_expression(state, context, expected, |state, expected| {
+        if let Some(section_result) = context.sectioned.expressions.get(&expression) {
+            check_sectioned_expression(state, context, expression, section_result, expected)
+        } else {
+            check_expression_core(state, context, expression, expected)
+        }
+    })
 }
 
-fn prepare_expected_expression<Q>(
+enum AbstractionLayer {
+    Type { outer: TypeId, parameter: TypeId },
+    Evidence { outer: TypeId, binder: EvidenceBinderId },
+}
+
+pub(super) fn check_expected_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expected: TypeId,
-) -> QueryResult<TypeId>
+    check: impl FnOnce(&mut CheckState, TypeId) -> QueryResult<ElaboratedExpression>,
+) -> QueryResult<ElaboratedExpression>
 where
     Q: ExternalQueries,
 {
     let expected = normalise::normalise(state, context, expected)?;
-    let expected = toolkit::skolemise_forall(state, context, expected)?;
-    toolkit::collect_givens(state, context, expected)
+    let head = normalise::expand(state, context, expected)?;
+    if !matches!(context.lookup_type(head), Type::Forall(_, _) | Type::Constrained(_, _)) {
+        return check(state, expected);
+    }
+
+    state.with_depth(|state| {
+        state.with_implication(|state| {
+            let mut current = expected;
+            let mut layers = vec![];
+            let mut renaming = RigidRenaming::default();
+
+            loop {
+                current = normalise::expand(state, context, current)?;
+                match context.lookup_type(current) {
+                    Type::Forall(binder_id, body) => {
+                        let binder = context.lookup_forall_binder(binder_id);
+                        let kind = renaming.substitute(state, context, binder.kind)?;
+                        let text = state.checked.lookup_name(binder.name);
+                        let parameter = state.fresh_rigid_named(context.queries, kind, text);
+                        renaming.insert(context, binder.name, parameter);
+                        let body =
+                            SubstituteName::one(state, context, binder.name, parameter, body)?;
+                        layers.push(AbstractionLayer::Type { outer: current, parameter });
+                        current = body;
+                    }
+                    Type::Constrained(constraint, body) => {
+                        let constraint = renaming.substitute(state, context, constraint)?;
+                        let binder = state.push_given(constraint);
+                        layers.push(AbstractionLayer::Evidence { outer: current, binder });
+                        current = body;
+                    }
+                    _ => break,
+                }
+            }
+
+            let renaming = Arc::new(renaming);
+            let checked =
+                state.with_source_type_renaming(&renaming, |state| check(state, current))?;
+            Ok(wrap_abstractions(state, checked, layers))
+        })
+    })
+}
+
+fn wrap_abstractions(
+    state: &mut CheckState,
+    mut expression: ElaboratedExpression,
+    layers: Vec<AbstractionLayer>,
+) -> ElaboratedExpression {
+    for layer in layers.into_iter().rev() {
+        let (type_id, kind) = match layer {
+            AbstractionLayer::Type { outer, parameter } => {
+                let kind = tree::ExpressionKind::TypeAbstraction {
+                    parameter,
+                    expression: expression.expression,
+                };
+                (outer, kind)
+            }
+            AbstractionLayer::Evidence { outer, binder } => {
+                let kind = tree::ExpressionKind::EvidenceAbstraction {
+                    binder,
+                    expression: expression.expression,
+                };
+                (outer, kind)
+            }
+        };
+        expression = allocate_expression(state, type_id, kind);
+    }
+    expression
 }
 
 pub(super) fn check_elaborated_expression<Q>(
@@ -131,8 +205,9 @@ pub(super) fn check_elaborated_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = prepare_expected_expression(state, context, expected)?;
-    check_elaborated_expression_quiet(state, context, inferred, expected)
+    check_expected_expression(state, context, expected, |state, expected| {
+        check_elaborated_expression_quiet(state, context, inferred, expected)
+    })
 }
 
 fn check_elaborated_expression_quiet<Q>(
@@ -144,9 +219,7 @@ fn check_elaborated_expression_quiet<Q>(
 where
     Q: ExternalQueries,
 {
-    let inferred = application::instantiate_expression(state, context, inferred)?;
-    unification::subtype(state, context, inferred.type_id, expected)?;
-    Ok(inferred)
+    application::subtype_expression(state, context, inferred, expected)
 }
 
 fn check_sectioned_expression<Q>(
@@ -221,10 +294,11 @@ where
                 return Ok(allocate_error_expression(state, unknown));
             };
 
-            let (annotation, _) = types::infer_kind(state, context, *type_)?;
-            unification::subtype(state, context, annotation, expected)?;
+            let (annotation, _) = types::check_kind(state, context, *type_, context.prim.t)?;
+            let applications =
+                application::check_subsumption(state, context, annotation, expected)?;
             let checked = check_expression(state, context, *expression, annotation)?;
-            Ok(ElaboratedExpression { type_id: expected, ..checked })
+            Ok(application::materialize_implicit_applications(state, checked, applications))
         }
         lowering::ExpressionKind::Lambda { binders, expression } => {
             forms::check_lambda(state, context, binders, *expression, expected)
@@ -342,9 +416,9 @@ where
                 return Ok(allocate_error_expression(state, unknown));
             };
 
-            let (t, _) = types::infer_kind(state, context, *t)?;
+            let (t, _) = types::check_kind(state, context, *t, context.prim.t)?;
             let checked = check_expression(state, context, *e, t)?;
-            Ok(ElaboratedExpression { type_id: t, ..checked })
+            Ok(checked)
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {

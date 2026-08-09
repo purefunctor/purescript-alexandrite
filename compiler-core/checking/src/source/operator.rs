@@ -103,10 +103,7 @@ where
         OperatorTree::Leaf(Some(type_id)) => match mode {
             OperatorKindMode::Infer => E::infer_surface(state, context, *type_id),
             OperatorKindMode::Check { expected_type } => {
-                // Peel constraints from the expected type as givens,
-                // so operator arguments like `unsafePartial $ expr`
-                // can discharge constraints like Partial properly.
-                let expected_type = toolkit::collect_givens(state, context, expected_type)?;
+                let expected_type = E::prepare_expected_surface(state, context, expected_type)?;
                 E::check_surface(state, context, *type_id, expected_type)
             }
         },
@@ -125,15 +122,33 @@ where
 
             let operator_type = E::lookup_item(state, context, file_id, item_id)?;
 
-            traverse_operator_branch(
-                state,
-                context,
-                *operator_id,
-                (file_id, item_id),
-                operator_type,
-                children,
-                mode,
-            )
+            match mode {
+                OperatorKindMode::Infer => traverse_operator_branch(
+                    state,
+                    context,
+                    *operator_id,
+                    (file_id, item_id),
+                    operator_type,
+                    children,
+                    mode,
+                ),
+                OperatorKindMode::Check { expected_type } => E::check_operator_branch(
+                    state,
+                    context,
+                    expected_type,
+                    |state, expected_type| {
+                        traverse_operator_branch(
+                            state,
+                            context,
+                            *operator_id,
+                            (file_id, item_id),
+                            operator_type,
+                            children,
+                            OperatorKindMode::Check { expected_type },
+                        )
+                    },
+                ),
+            }
         }
     }
 }
@@ -204,10 +219,7 @@ where
     };
 
     if let OperatorKindMode::Check { expected_type } = mode {
-        // Peel constraints from the expected type as givens,
-        // so operator result constraints can be discharged.
-        let expected_type = toolkit::collect_givens(state, context, expected_type)?;
-        let _ = unification::subtype(state, context, result_type, expected_type)?;
+        E::check_branch_result(state, context, result_type, expected_type)?;
     }
 
     let branch = OperatorBranch {
@@ -224,7 +236,13 @@ where
             result_type,
         },
     };
-    E::build(state, context, branch)
+    let built = E::build(state, context, branch)?;
+    match mode {
+        OperatorKindMode::Infer => Ok(built),
+        OperatorKindMode::Check { expected_type } => {
+            E::adapt_branch_result(state, context, built, expected_type)
+        }
+    }
 }
 
 pub trait IsOperator<Q: ExternalQueries>: IsElement {
@@ -262,6 +280,43 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         id: Self,
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
+
+    fn prepare_expected_surface(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        expected: TypeId,
+    ) -> QueryResult<TypeId> {
+        toolkit::collect_givens(state, context, expected)
+    }
+
+    fn check_operator_branch(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        expected: TypeId,
+        check: impl FnOnce(&mut CheckState, TypeId) -> QueryResult<(Self::Elaborated, TypeId)>,
+    ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        let expected = toolkit::collect_givens(state, context, expected)?;
+        check(state, expected)
+    }
+
+    fn check_branch_result(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        inferred: TypeId,
+        expected: TypeId,
+    ) -> QueryResult<()> {
+        unification::subtype(state, context, inferred, expected)?;
+        Ok(())
+    }
+
+    fn adapt_branch_result(
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        built: (Self::Elaborated, TypeId),
+        _expected: TypeId,
+    ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        Ok(built)
+    }
 
     fn should_defer_expansion(
         _state: &CheckState,
@@ -333,6 +388,54 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked = terms::check_expression(state, context, id, expected)?;
+        Ok((Some(checked), checked.type_id))
+    }
+
+    fn prepare_expected_surface(
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        expected: TypeId,
+    ) -> QueryResult<TypeId> {
+        Ok(expected)
+    }
+
+    fn check_operator_branch(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        expected: TypeId,
+        check: impl FnOnce(&mut CheckState, TypeId) -> QueryResult<(Self::Elaborated, TypeId)>,
+    ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        let checked =
+            terms::check_expected_expression(state, context, expected, |state, expected| {
+                let (expression, inferred) = check(state, expected)?;
+                let expression = expression.unwrap_or_else(|| {
+                    terms::allocate_expression(state, inferred, tree::ExpressionKind::Error)
+                });
+                Ok(expression)
+            })?;
+        Ok((Some(checked), checked.type_id))
+    }
+
+    fn check_branch_result(
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        _inferred: TypeId,
+        _expected: TypeId,
+    ) -> QueryResult<()> {
+        Ok(())
+    }
+
+    fn adapt_branch_result(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        (expression, inferred): (Self::Elaborated, TypeId),
+        expected: TypeId,
+    ) -> QueryResult<(Self::Elaborated, TypeId)> {
+        let Some(expression) = expression else {
+            unification::subtype(state, context, inferred, expected)?;
+            return Ok((None, inferred));
+        };
+        let checked = terms::application::subtype_expression(state, context, expression, expected)?;
         Ok((Some(checked), checked.type_id))
     }
 

@@ -227,8 +227,20 @@ pub fn subtype_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let applications =
-        unification::subtype_with_applications(state, context, expression.type_id, expected)?;
+    let applications = check_subsumption(state, context, expression.type_id, expected)?;
+    Ok(materialize_implicit_applications(state, expression, applications))
+}
+
+pub(super) fn check_subsumption<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    inferred: TypeId,
+    expected: TypeId,
+) -> QueryResult<Vec<ImplicitApplication>>
+where
+    Q: ExternalQueries,
+{
+    let applications = unification::subtype_with_applications(state, context, inferred, expected)?;
     let applications = applications.into_iter().map(|application| match application {
         unification::SubtypeApplication::Type { argument, result } => {
             ImplicitApplication::Type { argument, result }
@@ -237,10 +249,10 @@ where
             ImplicitApplication::Evidence { evidence, result }
         }
     });
-    Ok(materialize_implicit_applications(state, expression, applications))
+    Ok(applications.collect())
 }
 
-fn materialize_implicit_applications(
+pub(super) fn materialize_implicit_applications(
     state: &mut CheckState,
     mut expression: ElaboratedExpression,
     implicit: impl IntoIterator<Item = ImplicitApplication>,

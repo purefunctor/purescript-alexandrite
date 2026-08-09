@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Missing :: Prim.Type -> Prim.Constraint
+interface Missing a where
+  missing :: a
+
+interface Supplied :: Prim.Type -> Prim.Constraint
+interface Supplied a where
+  supplied :: a
+
+bad :: Prim.Int
+bad = (\{missingDict} -> missing @Prim.Int {missingDict}) {error}
+
+good :: Main.Supplied Prim.Int => Prim.Int
+good = \{suppliedDict} -> (\{suppliedDict1} -> supplied @Prim.Int {suppliedDict1}) {suppliedDict}

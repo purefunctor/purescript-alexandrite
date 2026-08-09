@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+implicit :: Prim.Int
+monomorphic :: Prim.Int -> Prim.Int
+visibleIdentity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+explicit :: Prim.Int
+
+Types

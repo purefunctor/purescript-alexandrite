@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+consume :: (forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)) -> Prim.Int
+higherRank :: Prim.Int
+
+Types

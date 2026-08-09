@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+consume :: (forall a. a -> a) -> Prim.Int
+consume = \_ -> 0
+
+higherRank :: Prim.Int
+higherRank = consume (\@a -> (\@a1 -> identity @a1) @a)

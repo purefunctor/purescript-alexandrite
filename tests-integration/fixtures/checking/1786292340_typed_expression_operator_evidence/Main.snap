@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+supplied :: forall (@a :: Prim.Type). Main.Supplied (a :: Prim.Type) => (a :: Prim.Type)
+consume :: (Main.Supplied Prim.Int => Prim.Int) -> Prim.Int
+identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+apply ::
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
+<| ::
+  forall (a :: Prim.Type) (b :: Prim.Type).
+    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
+throughOperator :: Prim.Int
+throughNestedOperator :: Prim.Int
+polymorphicResult ::
+  Prim.Int -> Prim.Int -> (forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type))
+<@> :: Prim.Int -> Prim.Int -> (forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type))
+throughPolymorphicResult :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+constrainedResult :: Prim.Int -> Prim.Int -> (Main.Supplied Prim.Int => Prim.Int)
+<#> :: Prim.Int -> Prim.Int -> (Main.Supplied Prim.Int => Prim.Int)
+throughConstrainedResult :: Main.Supplied Prim.Int => Prim.Int
+
+Types
+Supplied :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Supplied (a :: Prim.Type)
+  supplied :: forall (@a :: Prim.Type). Main.Supplied (a :: Prim.Type) => (a :: Prim.Type)

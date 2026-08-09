@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+missing :: forall (@a :: Prim.Type). Main.Missing (a :: Prim.Type) => (a :: Prim.Type)
+bad :: Prim.Int
+supplied :: forall (@a :: Prim.Type). Main.Supplied (a :: Prim.Type) => (a :: Prim.Type)
+good :: Main.Supplied Prim.Int => Prim.Int
+
+Types
+Missing :: Prim.Type -> Prim.Constraint
+Supplied :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Missing (a :: Prim.Type)
+  missing :: forall (@a :: Prim.Type). Main.Missing (a :: Prim.Type) => (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Supplied (a :: Prim.Type)
+  supplied :: forall (@a :: Prim.Type). Main.Supplied (a :: Prim.Type) => (a :: Prim.Type)
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Missing Int
+  --> 6:1..6:11
+  |
+6 | bad :: Int
+  | ^~~~~~~~~~
