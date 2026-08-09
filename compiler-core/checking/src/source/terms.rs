@@ -213,6 +213,19 @@ where
     };
 
     match kind {
+        lowering::ExpressionKind::Typed { expression, type_ } => {
+            let Some(expression) = expression else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let Some(type_) = type_ else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+
+            let (annotation, _) = types::infer_kind(state, context, *type_)?;
+            unification::subtype(state, context, annotation, expected)?;
+            let checked = check_expression(state, context, *expression, annotation)?;
+            Ok(ElaboratedExpression { type_id: expected, ..checked })
+        }
         lowering::ExpressionKind::Lambda { binders, expression } => {
             forms::check_lambda(state, context, binders, *expression, expected)
         }
@@ -330,7 +343,8 @@ where
             };
 
             let (t, _) = types::infer_kind(state, context, *t)?;
-            check_expression(state, context, *e, t)
+            let checked = check_expression(state, context, *e, t)?;
+            Ok(ElaboratedExpression { type_id: t, ..checked })
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {

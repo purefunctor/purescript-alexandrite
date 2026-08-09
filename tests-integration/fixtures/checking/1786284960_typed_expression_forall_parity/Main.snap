@@ -43,15 +43,3 @@ instance forall (t0 :: Prim.Type).
 Roles
 F = [Phantom]
 G = [Phantom]
-
-Diagnostics
-error[CannotUnify]: Cannot unify '(a :: (t0 :: Type))' with '(a1 :: (t0 :: Type))'
-  --> 12:14..12:50
-   |
-12 |   convert = (unsafeCoerce :: forall a. F a -> G a)
-   |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'F @(t0 :: Type) (a :: (t0 :: Type))' with 'F @(t0 :: Type) (a1 :: (t0 :: Type))'
-  --> 12:14..12:50
-   |
-12 |   convert = (unsafeCoerce :: forall a. F a -> G a)
-   |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
