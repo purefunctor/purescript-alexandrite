@@ -185,7 +185,7 @@ Use passed, failed, or not-run; LEFT only for deleted lines.`;
 async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<string> {
   const prompt = reviewPrompt(number, head);
   const result =
-    await amp.$`amp --orb-execute --execute ${prompt} --no-archive-after-execute --project ${repository} --mode medium`;
+    await amp.$`amp --orb-execute --execute ${prompt} --project ${repository} --mode medium`;
   if (result.exitCode !== 0) {
     const details = result.stderr.trim().slice(0, 1_000);
     throw new Error(`Review thread dispatch failed with exit code ${result.exitCode}: ${details}`);
