@@ -18,6 +18,7 @@ pub enum QueryKey {
     Resolved(FileId),
     Bracketed(FileId),
     Sectioned(FileId),
+    CheckedCore,
     Checked(FileId),
     Documented(FileId),
 }

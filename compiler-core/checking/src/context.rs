@@ -3,6 +3,7 @@
 //! See documentation for [`CheckContext`] for more information.
 
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use building_types::QueryResult;
@@ -32,20 +33,7 @@ where
     Q: ExternalQueries,
 {
     pub queries: &'q Q,
-
-    pub prim: PrimCore,
-    pub prim_int: PrimIntCore,
-    pub prim_boolean: PrimBooleanCore,
-    pub prim_ordering: PrimOrderingCore,
-    pub prim_symbol: PrimSymbolCore,
-    pub prim_row: PrimRowCore,
-    pub prim_row_list: PrimRowListCore,
-    pub prim_coerce: PrimCoerceCore,
-    pub prim_type_error: PrimTypeErrorCore,
-    pub known_types: KnownTypesCore,
-    pub known_terms: KnownTermsCore,
-    pub known_reflectable: KnownReflectableCore,
-    pub known_generic: Option<KnownGeneric>,
+    pub core: Arc<CheckedCore>,
 
     pub id: FileId,
     pub stabilized: Arc<StabilizedModule>,
@@ -56,11 +44,19 @@ where
     pub sectioned: Arc<Sectioned>,
     pub resolved: Arc<ResolvedModule>,
 
-    pub prim_indexed: Arc<IndexedModule>,
-    pub prim_resolved: Arc<ResolvedModule>,
-
     checked_dependencies: RefCell<FxHashMap<FileId, Arc<CheckedModule>>>,
     checked_synonyms: RefCell<FxHashMap<(FileId, TypeItemId), Option<CheckedSynonym>>>,
+}
+
+impl<'q, Q> Deref for CheckContext<'q, Q>
+where
+    Q: ExternalQueries,
+{
+    type Target = CheckedCore;
+
+    fn deref(&self) -> &CheckedCore {
+        &self.core
+    }
 }
 
 impl<'q, Q> CheckContext<'q, Q>
@@ -68,6 +64,7 @@ where
     Q: ExternalQueries,
 {
     pub fn new(queries: &'q Q, id: FileId) -> QueryResult<CheckContext<'q, Q>> {
+        let core = queries.checked_core()?;
         let stabilized = queries.stabilized(id)?;
         let indexed = queries.indexed(id)?;
         let lowered = queries.lowered(id)?;
@@ -76,39 +73,9 @@ where
         let sectioned = queries.sectioned(id)?;
         let resolved = queries.resolved(id)?;
 
-        let prim = PrimCore::collect(queries)?;
-        let prim_int = PrimIntCore::collect(queries)?;
-        let prim_boolean = PrimBooleanCore::collect(queries)?;
-        let prim_ordering = PrimOrderingCore::collect(queries)?;
-        let prim_symbol = PrimSymbolCore::collect(queries)?;
-        let prim_row = PrimRowCore::collect(queries)?;
-        let prim_row_list = PrimRowListCore::collect(queries)?;
-        let prim_coerce = PrimCoerceCore::collect(queries)?;
-        let prim_type_error = PrimTypeErrorCore::collect(queries)?;
-        let known_types = KnownTypesCore::collect(queries)?;
-        let known_terms = KnownTermsCore::collect(queries)?;
-        let known_reflectable = KnownReflectableCore::collect(queries)?;
-        let known_generic = KnownGeneric::collect(queries)?;
-
-        let prim_id = queries.prim_id();
-        let prim_indexed = queries.indexed(prim_id)?;
-        let prim_resolved = queries.resolved(prim_id)?;
-
         Ok(CheckContext {
             queries,
-            prim,
-            prim_int,
-            prim_boolean,
-            prim_ordering,
-            prim_symbol,
-            prim_row,
-            prim_row_list,
-            prim_coerce,
-            prim_type_error,
-            known_types,
-            known_terms,
-            known_reflectable,
-            known_generic,
+            core,
             id,
             stabilized,
             indexed,
@@ -117,8 +84,6 @@ where
             bracketed,
             sectioned,
             resolved,
-            prim_indexed,
-            prim_resolved,
             checked_dependencies: RefCell::default(),
             checked_synonyms: RefCell::default(),
         })
@@ -154,6 +119,65 @@ where
         let checked_synonym = checked.lookup_synonym(type_id);
         self.checked_synonyms.borrow_mut().insert(key, checked_synonym.clone());
         Ok(checked_synonym)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CheckedCore {
+    pub prim: PrimCore,
+    pub prim_int: PrimIntCore,
+    pub prim_boolean: PrimBooleanCore,
+    pub prim_ordering: PrimOrderingCore,
+    pub prim_symbol: PrimSymbolCore,
+    pub prim_row: PrimRowCore,
+    pub prim_row_list: PrimRowListCore,
+    pub prim_coerce: PrimCoerceCore,
+    pub prim_type_error: PrimTypeErrorCore,
+    pub known_types: KnownTypesCore,
+    pub known_terms: KnownTermsCore,
+    pub known_reflectable: KnownReflectableCore,
+    pub known_generic: Option<KnownGeneric>,
+    pub prim_indexed: Arc<IndexedModule>,
+    pub prim_resolved: Arc<ResolvedModule>,
+}
+
+impl CheckedCore {
+    pub fn new(queries: &impl ExternalQueries) -> QueryResult<CheckedCore> {
+        let prim = PrimCore::collect(queries)?;
+        let prim_int = PrimIntCore::collect(queries)?;
+        let prim_boolean = PrimBooleanCore::collect(queries)?;
+        let prim_ordering = PrimOrderingCore::collect(queries)?;
+        let prim_symbol = PrimSymbolCore::collect(queries)?;
+        let prim_row = PrimRowCore::collect(queries)?;
+        let prim_row_list = PrimRowListCore::collect(queries)?;
+        let prim_coerce = PrimCoerceCore::collect(queries)?;
+        let prim_type_error = PrimTypeErrorCore::collect(queries)?;
+        let known_types = KnownTypesCore::collect(queries)?;
+        let known_terms = KnownTermsCore::collect(queries)?;
+        let known_reflectable = KnownReflectableCore::collect(queries)?;
+        let known_generic = KnownGeneric::collect(queries)?;
+
+        let prim_id = queries.prim_id();
+        let prim_indexed = queries.indexed(prim_id)?;
+        let prim_resolved = queries.resolved(prim_id)?;
+
+        Ok(CheckedCore {
+            prim,
+            prim_int,
+            prim_boolean,
+            prim_ordering,
+            prim_symbol,
+            prim_row,
+            prim_row_list,
+            prim_coerce,
+            prim_type_error,
+            known_types,
+            known_terms,
+            known_reflectable,
+            known_generic,
+            prim_indexed,
+            prim_resolved,
+        })
     }
 }
 
@@ -357,6 +381,7 @@ impl<'r, 'q, Q: ExternalQueries> PrimLookup<'r, 'q, Q> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimCore {
     pub prim_id: FileId,
     pub t: TypeId,
@@ -414,6 +439,7 @@ impl PrimCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimIntCore {
     pub file_id: FileId,
     pub add: TypeItemId,
@@ -441,6 +467,7 @@ impl PrimIntCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimBooleanCore {
     pub true_: TypeId,
     pub false_: TypeId,
@@ -462,6 +489,7 @@ impl PrimBooleanCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimOrderingCore {
     pub lt: TypeId,
     pub eq: TypeId,
@@ -485,6 +513,7 @@ impl PrimOrderingCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimSymbolCore {
     pub file_id: FileId,
     pub append: TypeItemId,
@@ -510,6 +539,7 @@ impl PrimSymbolCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimRowCore {
     pub file_id: FileId,
     pub union: TypeItemId,
@@ -537,6 +567,7 @@ impl PrimRowCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimRowListCore {
     pub file_id: FileId,
     pub row_to_list: TypeItemId,
@@ -562,6 +593,7 @@ impl PrimRowListCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimCoerceCore {
     pub file_id: FileId,
     pub coercible: TypeItemId,
@@ -583,6 +615,7 @@ impl PrimCoerceCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrimTypeErrorCore {
     pub file_id: FileId,
     pub warn: TypeItemId,
@@ -661,6 +694,7 @@ fn fetch_known_constructor(
     Ok(Some(queries.intern_type(Type::Constructor(file_id, type_id))))
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownTypesCore {
     pub eq: Option<(FileId, TypeItemId)>,
     pub eq1: Option<(FileId, TypeItemId)>,
@@ -714,6 +748,7 @@ impl KnownTypesCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownReflectableCore {
     pub is_symbol: Option<(FileId, TypeItemId)>,
     pub reflectable: Option<(FileId, TypeItemId)>,
@@ -729,6 +764,7 @@ impl KnownReflectableCore {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownGeneric {
     pub no_constructors: TypeId,
     pub constructor: TypeId,
@@ -776,6 +812,7 @@ impl KnownGeneric {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownTermsCore {
     pub otherwise: Option<(FileId, TermItemId)>,
     pub map: Option<(FileId, TermItemId)>,

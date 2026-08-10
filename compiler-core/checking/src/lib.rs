@@ -44,6 +44,14 @@ pub trait ExternalQueries:
         Checked = Arc<CheckedModule>,
     > + core::pretty::PrettyQueries
 {
+    fn checked_core(&self) -> QueryResult<Arc<context::CheckedCore>>
+    where
+        Self: Sized,
+    {
+        let core = context::CheckedCore::new(self)?;
+        Ok(Arc::new(core))
+    }
+
     fn intern_type(&self, t: Type) -> TypeId;
 
     fn intern_forall_binder(&self, b: ForallBinder) -> ForallBinderId;

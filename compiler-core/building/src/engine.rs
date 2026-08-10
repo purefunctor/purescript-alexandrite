@@ -130,6 +130,7 @@ struct DerivedStorage {
     resolved: Shards<FileId, DerivedState<Arc<ResolvedModule>>>,
     bracketed: Shards<FileId, DerivedState<Arc<sugar::Bracketed>>>,
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
+    checked_core: Shards<(), DerivedState<Arc<checking::context::CheckedCore>>>,
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
     documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
 }
@@ -501,6 +502,13 @@ impl QueryEngine {
                 QueryKey::Resolved(k) => derived_changed!(resolved, k),
                 QueryKey::Bracketed(k) => derived_changed!(bracketed, k),
                 QueryKey::Sectioned(k) => derived_changed!(sectioned, k),
+                QueryKey::CheckedCore => {
+                    self.checked_core()?;
+                    let shard = self.derived.checked_core.shard(&()).read();
+                    if let Some(DerivedState::Computed { trace, .. }) = shard.get(&()) {
+                        latest = latest.max(trace.changed);
+                    }
+                }
                 QueryKey::Checked(k) => derived_changed!(checked, k),
                 QueryKey::Documented(k) => derived_changed!(documented, k),
             }
@@ -852,6 +860,18 @@ impl QueryEngine {
         )
     }
 
+    pub fn checked_core(&self) -> QueryResult<Arc<checking::context::CheckedCore>> {
+        self.query(
+            QueryKey::CheckedCore,
+            (),
+            |derived| &derived.checked_core,
+            |this| {
+                let core = checking::context::CheckedCore::new(this)?;
+                Ok(Arc::new(core))
+            },
+        )
+    }
+
     pub fn checked(&self, id: FileId) -> QueryResult<Arc<CheckedModule>> {
         self.query(
             QueryKey::Checked(id),
@@ -982,6 +1002,10 @@ impl checking::PrettyQueries for QueryEngine {
 }
 
 impl checking::ExternalQueries for QueryEngine {
+    fn checked_core(&self) -> QueryResult<Arc<checking::context::CheckedCore>> {
+        QueryEngine::checked_core(self)
+    }
+
     fn intern_type(&self, t: checking::Type) -> checking::TypeId {
         self.interned.checking.intern_type(t)
     }
@@ -1133,6 +1157,113 @@ mod tests {
         let index_a = engine.indexed(id).unwrap();
         let index_b = engine.indexed(id).unwrap();
         assert!(Arc::ptr_eq(&index_a, &index_b));
+    }
+
+    #[test]
+    fn test_checked_core_sharing_and_invalidation() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let main = files.insert(
+            "Main.purs",
+            "module Main where\n\nimport Data.Eq (class Eq)\n\ndata Value = Value\n\nderive instance Eq Value",
+        );
+        engine.set_content(main, files.content(main));
+        engine.set_module_file("Main", main);
+
+        let checked_initial = engine.checked(main).unwrap();
+        let core_initial = engine.checked_core().unwrap();
+        let core_repeated = engine.checked_core().unwrap();
+        assert!(Arc::ptr_eq(&core_initial, &core_repeated));
+
+        {
+            let snapshot = engine.snapshot();
+            let core_snapshot = snapshot.checked_core().unwrap();
+            assert!(Arc::ptr_eq(&core_initial, &core_snapshot));
+        }
+
+        let unrelated = files.insert("Unrelated.purs", "module Unrelated where\n\nvalue = 2");
+        engine.set_content(unrelated, files.content(unrelated));
+        engine.set_module_file("Unrelated", unrelated);
+
+        let core_after_unrelated = engine.checked_core().unwrap();
+        let checked_after_unrelated = engine.checked(main).unwrap();
+        assert!(Arc::ptr_eq(&core_initial, &core_after_unrelated));
+        assert!(Arc::ptr_eq(&checked_initial, &checked_after_unrelated));
+
+        {
+            let data_eq_name = engine.interned.module.lookup("Data.Eq").unwrap();
+            let unrelated_name = engine.interned.module.lookup("Unrelated").unwrap();
+            let shard = engine.derived.checked_core.shard(&()).read();
+            let DerivedState::Computed { dependencies, .. } = shard.get(&()).unwrap() else {
+                unreachable!("invariant violated: expected computed query");
+            };
+            assert!(dependencies.contains(&QueryKey::Module(data_eq_name)));
+            assert!(dependencies.contains(&QueryKey::Indexed(core_initial.prim.prim_id)));
+            assert!(dependencies.contains(&QueryKey::Resolved(core_initial.prim.prim_id)));
+            assert!(!dependencies.contains(&QueryKey::Module(unrelated_name)));
+            assert!(!dependencies.contains(&QueryKey::Content(unrelated)));
+        }
+
+        let data_eq = files.insert(
+            "Data.Eq.purs",
+            "module Data.Eq where\n\nclass Eq a where\n  eq :: a -> a -> Boolean",
+        );
+        engine.set_content(data_eq, files.content(data_eq));
+        engine.set_module_file("Data.Eq", data_eq);
+
+        let core_with_eq = engine.checked_core().unwrap();
+        assert!(!Arc::ptr_eq(&core_after_unrelated, &core_with_eq));
+        assert!(core_with_eq.known_types.eq.is_some());
+        assert!(core_with_eq.known_terms.eq.is_some());
+
+        let checked_with_eq = engine.checked(main).unwrap();
+        assert!(!Arc::ptr_eq(&checked_initial, &checked_with_eq));
+        assert_ne!(checked_initial, checked_with_eq);
+
+        let checked_trace_with_eq = {
+            let shard = engine.derived.checked.shard(&main).read();
+            let DerivedState::Computed { trace, dependencies, .. } = shard.get(&main).unwrap()
+            else {
+                unreachable!("invariant violated: expected computed query");
+            };
+            assert!(dependencies.contains(&QueryKey::CheckedCore));
+            *trace
+        };
+
+        engine.set_content(
+            data_eq,
+            "module Data.Eq where\n\nclass Eq a where\n  eq :: a -> a -> Boolean\n\nclass Eq1 f where\n  eq1 :: forall a. Eq a => f a -> f a -> Boolean",
+        );
+
+        let checked_with_eq1 = engine.checked(main).unwrap();
+        let (core_with_eq1, core_trace_with_eq1) = {
+            let shard = engine.derived.checked_core.shard(&()).read();
+            let DerivedState::Computed { computed, trace, .. } = shard.get(&()).unwrap() else {
+                unreachable!("invariant violated: expected computed query");
+            };
+            (Arc::clone(computed), *trace)
+        };
+        let revision = engine.control.global.revision.load(Ordering::Relaxed);
+        assert_eq!(core_trace_with_eq1.built, revision);
+        assert!(!Arc::ptr_eq(&core_with_eq, &core_with_eq1));
+        assert!(core_with_eq1.known_types.eq1.is_some());
+        assert!(core_with_eq1.known_terms.eq1.is_some());
+
+        let core_with_eq1_repeated = engine.checked_core().unwrap();
+        assert!(Arc::ptr_eq(&core_with_eq1, &core_with_eq1_repeated));
+        assert!(Arc::ptr_eq(&checked_with_eq, &checked_with_eq1));
+
+        let checked_trace_with_eq1 = {
+            let shard = engine.derived.checked.shard(&main).read();
+            let DerivedState::Computed { trace, .. } = shard.get(&main).unwrap() else {
+                unreachable!("invariant violated: expected computed query");
+            };
+            *trace
+        };
+        assert!(checked_trace_with_eq1.built > checked_trace_with_eq.built);
+        assert_eq!(checked_trace_with_eq1.changed, checked_trace_with_eq.changed);
     }
 
     #[test]
