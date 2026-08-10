@@ -86,9 +86,12 @@ type Synonym = ForeignType
  --   /
 
  newtype Wrapper = Wrapper ForeignType
-@@ -28,5 +28,5 @@
+@@ -26,7 +26,7 @@
+ operatorUse = foreignValue <?> foreignValue
+ --                         /
 
- infixl 5 type Synonym as :+:
+-infixl 5 type Synonym as :+:
++infixl 5 type Renamed as :+:
 
 -type OperatorUse = Synonym :+: Synonym
 +type OperatorUse = Renamed :+: Renamed

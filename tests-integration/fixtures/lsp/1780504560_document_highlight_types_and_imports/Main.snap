@@ -70,6 +70,7 @@ foreign import data Local :: Type
 ```
 
 5:20..5:25
+8:14..8:19
 17:36..17:41
 22:22..22:27
 25:31..25:36
@@ -175,8 +176,9 @@ infixr 5 plus as <+>
 --       &        &
 ```
 
-35:17..35:20
-47:29..47:32
+32:0..32:4
+33:0..33:4
+35:9..35:13
 
 
 DocumentHighlight at Position { line: 35, character: 18 }

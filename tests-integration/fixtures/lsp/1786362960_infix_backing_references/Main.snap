@@ -10,7 +10,7 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 6:0..6:23
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 4:0..4:25
 
 
 Hover at Position { line: 6, character: 10 }
@@ -23,7 +23,7 @@ infixl 6 combine as <+>
 Range: <none>
 
 ```purescript
-<+> ::
+combine ::
   forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
 ```
 
@@ -35,7 +35,7 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 6:9..6:16
 
 
 DocumentHighlight at Position { line: 6, character: 12 }
@@ -45,7 +45,8 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-6:20..6:23
+4:0..4:7
+6:9..6:16
 
 
 PrepareRename at Position { line: 6, character: 13 }
@@ -55,7 +56,7 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-<empty>
+6:9..6:16 combine
 
 
 Rename at Position { line: 6, character: 14 }
@@ -65,7 +66,22 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -2,9 +2,9 @@
+
+ import Library as Library
+
+-combine left right = left
++renamed left right = left
+
+-infixl 6 combine as <+>
++infixl 6 renamed as <+>
+ --       @$%&?/     $@
+
+ type Wrapped = Int
+```
 
 
 Hover at Position { line: 6, character: 20 }
@@ -100,7 +116,7 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 11:0..11:28
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 9:0..9:18
 
 
 Hover at Position { line: 11, character: 15 }
@@ -113,7 +129,7 @@ infixl 6 type Wrapped as :+:
 Range: <none>
 
 ```purescript
-:+: :: Type
+Wrapped :: Type
 ```
 
 
@@ -124,7 +140,7 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 11:14..11:21
 
 
 DocumentHighlight at Position { line: 11, character: 17 }
@@ -134,7 +150,8 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-11:25..11:28
+9:5..9:12
+11:14..11:21
 
 
 PrepareRename at Position { line: 11, character: 18 }
@@ -144,7 +161,7 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-<empty>
+11:14..11:21 Wrapped
 
 
 Rename at Position { line: 11, character: 19 }
@@ -154,7 +171,22 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -7,9 +7,9 @@
+ infixl 6 combine as <+>
+ --       @$%&?/     $@
+
+-type Wrapped = Int
++type Renamed = Int
+
+-infixl 6 type Wrapped as :+:
++infixl 6 type Renamed as :+:
+ --            @$%&?/     $@
+
+ infixl 6 Library.combine as <++>
+```
 
 
 Hover at Position { line: 11, character: 25 }
@@ -188,7 +220,7 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 14:0..14:32
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Library.purs @ 2:0..2:25
 
 
 Hover at Position { line: 14, character: 18 }
@@ -201,7 +233,7 @@ infixl 6 Library.combine as <++>
 Range: <none>
 
 ```purescript
-<++> ::
+combine ::
   forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
 ```
 
@@ -213,7 +245,7 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 14:9..14:24
 
 
 DocumentHighlight at Position { line: 14, character: 20 }
@@ -223,7 +255,7 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-14:28..14:32
+14:9..14:24
 
 
 PrepareRename at Position { line: 14, character: 21 }
@@ -233,7 +265,7 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-<empty>
+14:17..14:24 combine
 
 
 Rename at Position { line: 14, character: 22 }
@@ -243,7 +275,31 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-<empty>
+```diff
+--- Library.purs
++++ Library.purs
+@@ -1,5 +1,5 @@
+ module Library where
+
+-combine left right = left
++renamed left right = left
+
+ type Wrapped = Int
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -12,7 +12,7 @@
+ infixl 6 type Wrapped as :+:
+ --            @$%&?/     $@
+
+-infixl 6 Library.combine as <++>
++infixl 6 Library.renamed as <++>
+ --               @$%&?/
+
+ infixl 6 type Library.Wrapped as :++:
+```
 
 
 GotoDefinition at Position { line: 17, character: 22 }
@@ -253,7 +309,7 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 17:0..17:37
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Library.purs @ 4:0..4:18
 
 
 Hover at Position { line: 17, character: 23 }
@@ -266,7 +322,7 @@ infixl 6 type Library.Wrapped as :++:
 Range: <none>
 
 ```purescript
-:++: :: Type
+Wrapped :: Type
 ```
 
 
@@ -277,7 +333,7 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 17:14..17:29
 
 
 DocumentHighlight at Position { line: 17, character: 25 }
@@ -287,7 +343,7 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-17:33..17:37
+17:14..17:29
 
 
 PrepareRename at Position { line: 17, character: 26 }
@@ -297,7 +353,7 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-<empty>
+17:22..17:29 Wrapped
 
 
 Rename at Position { line: 17, character: 27 }
@@ -307,7 +363,30 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-<empty>
+```diff
+--- Library.purs
++++ Library.purs
+@@ -2,4 +2,4 @@
+
+ combine left right = left
+
+-type Wrapped = Int
++type Renamed = Int
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -15,7 +15,7 @@
+ infixl 6 Library.combine as <++>
+ --               @$%&?/
+
+-infixl 6 type Library.Wrapped as :++:
++infixl 6 type Library.Renamed as :++:
+ --                    @$%&?/
+
+ infixl 6 missing as <?>
+```
 
 
 GotoDefinition at Position { line: 20, character: 9 }
@@ -317,7 +396,7 @@ infixl 6 missing as <?>
 --       @$%&?/
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 20:0..20:23
+<empty>
 
 
 Hover at Position { line: 20, character: 10 }
@@ -337,7 +416,7 @@ infixl 6 missing as <?>
 --       @$%&?/
 ```
 
-
+<empty>
 
 
 DocumentHighlight at Position { line: 20, character: 12 }
@@ -347,7 +426,7 @@ infixl 6 missing as <?>
 --       @$%&?/
 ```
 
-20:20..20:23
+<empty>
 
 
 PrepareRename at Position { line: 20, character: 13 }
@@ -377,7 +456,7 @@ infixl 6 type Missing as :?:
 --            @$%&?/
 ```
 
-file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 23:0..23:28
+<empty>
 
 
 Hover at Position { line: 23, character: 15 }
@@ -397,7 +476,7 @@ infixl 6 type Missing as :?:
 --            @$%&?/
 ```
 
-
+<empty>
 
 
 DocumentHighlight at Position { line: 23, character: 17 }
@@ -407,7 +486,7 @@ infixl 6 type Missing as :?:
 --            @$%&?/
 ```
 
-23:25..23:28
+<empty>
 
 
 PrepareRename at Position { line: 23, character: 18 }
