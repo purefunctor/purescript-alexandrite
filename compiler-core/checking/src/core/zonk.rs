@@ -45,19 +45,21 @@ where
 {
     macro_rules! zonk_type_map {
         ($field:ident) => {
-            for (node_id, type_id) in mem::take(&mut state.checked.node_types.$field) {
-                let type_id = zonk(state, context, type_id)?;
-                state.checked.node_types.$field.insert(node_id, type_id);
+            let mut node_types = mem::take(&mut state.checked.node_types.$field);
+            for type_id in node_types.values_mut() {
+                *type_id = zonk(state, context, *type_id)?;
             }
+            state.checked.node_types.$field = node_types;
         };
     }
 
     macro_rules! zonk_operator_map {
         ($field:ident) => {
-            for (node_id, branch_types) in mem::take(&mut state.checked.node_types.$field) {
-                let branch_types = zonk_operator_branch(state, context, branch_types)?;
-                state.checked.node_types.$field.insert(node_id, branch_types);
+            let mut operator_types = mem::take(&mut state.checked.node_types.$field);
+            for branch_types in operator_types.values_mut() {
+                *branch_types = zonk_operator_branch(state, context, *branch_types)?;
             }
+            state.checked.node_types.$field = operator_types;
         };
     }
 
