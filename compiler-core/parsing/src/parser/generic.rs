@@ -80,7 +80,7 @@ pub(super) fn where_expression(p: &mut Parser) {
 }
 
 fn conditionals(p: &mut Parser, s: SyntaxKind) {
-    while p.at(SyntaxKind::PIPE) && !p.at_eof() {
+    while p.at(SyntaxKind::PIPE) {
         pattern_guarded(p, s);
     }
 }

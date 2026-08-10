@@ -22,7 +22,7 @@ pub(super) fn let_binding_statements(p: &mut Parser) {
         }
     };
     p.expect(SyntaxKind::LAYOUT_START);
-    while p.at_in(LET_BINDING_START) && !p.at_eof() {
+    while p.at_in(LET_BINDING_START) {
         p.alternative([let_binding_signature_or_equation, let_binding_pattern]);
         recover_until_end(p, "Unexpected tokens in let binding statement");
         if !p.at(SyntaxKind::LAYOUT_END) {

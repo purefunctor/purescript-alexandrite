@@ -19,7 +19,7 @@ pub(super) fn binder_1(p: &mut Parser) {
     let mut i = 0;
 
     binder_2(p);
-    while p.at_in(names::OPERATOR) && !p.at_eof() {
+    while p.at_in(names::OPERATOR) {
         let mut n = p.start();
         let mut o = p.start();
         names::operator(p);
@@ -63,7 +63,7 @@ fn binder_2(p: &mut Parser) {
 
 fn binder_constructor(p: &mut Parser, mut m: NodeMarker) {
     names::upper(p);
-    while p.at_in(BINDER_ATOM_START) && !p.at_eof() {
+    while p.at_in(BINDER_ATOM_START) {
         binder_atom(p);
     }
     m.end(p, SyntaxKind::BinderConstructor);

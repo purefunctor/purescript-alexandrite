@@ -7,16 +7,17 @@ mod types;
 
 use std::cell::Cell;
 
+#[cfg(debug_assertions)]
 use drop_bomb::DropBomb;
 use syntax::{SyntaxKind, TokenSet};
 
-use crate::builder::{Output, ParserError};
+use crate::builder::{Event, Output, ParserError};
 
 pub(crate) struct Parser<'t> {
     index: usize,
     tokens: &'t [SyntaxKind],
-    output: Vec<Output>,
-    errors: usize,
+    output: Vec<Event>,
+    errors: Vec<ParserError>,
     fuel: Cell<u16>,
 }
 
@@ -26,20 +27,21 @@ impl<'t> Parser<'t> {
     pub(crate) fn new(tokens: &'t [SyntaxKind]) -> Parser<'t> {
         let index = 0;
         let output = Vec::with_capacity(tokens.len());
-        let errors = 0;
+        let errors = vec![];
         let fuel = Cell::new(u16::MAX);
         Parser { index, tokens, output, errors, fuel }
     }
 
-    pub(crate) fn finish(self) -> Vec<Output> {
-        self.output
+    pub(crate) fn finish(self) -> Output {
+        Output { events: self.output, errors: self.errors }
     }
 
     fn nth(&self, index: usize) -> SyntaxKind {
-        if self.fuel.get() == 0 {
+        let fuel = self.fuel.get();
+        if fuel == 0 {
             panic!("invariant violated: fuel exhausted");
         }
-        self.fuel.set(self.fuel.get().saturating_sub(1));
+        self.fuel.set(fuel - 1);
         self.tokens.get(self.index + index).copied().unwrap_or(SyntaxKind::END_OF_FILE)
     }
 
@@ -47,73 +49,71 @@ impl<'t> Parser<'t> {
         self.fuel.set(u16::MAX);
         let kind = self.tokens[self.index];
         self.index += 1;
-        self.output.push(Output::Token { kind });
+        self.output.push(Event::Token { kind });
     }
 
     fn annotate(&mut self) {
-        self.output.push(Output::Annotate);
+        self.output.push(Event::Annotate);
     }
 
     fn qualify(&mut self) {
-        self.output.push(Output::Qualify);
+        self.output.push(Event::Qualify);
     }
 
     fn start(&mut self) -> NodeMarker {
         let index = self.output.len();
         let token_index = self.index;
-        self.output.push(Output::Start { kind: SyntaxKind::Node });
+        self.output.push(Event::Start { kind: SyntaxKind::Node });
         NodeMarker::new(index, token_index)
     }
 
     fn optional(&mut self, rule: Rule) {
         let initial_index = self.index;
         let initial_output = self.output.len();
-        let initial_errors = self.errors;
+        let initial_errors = self.errors.len();
 
         rule(self);
 
-        if self.errors != initial_errors {
+        if self.errors.len() != initial_errors {
             self.index = initial_index;
             self.output.truncate(initial_output);
-            self.errors = initial_errors;
+            self.errors.truncate(initial_errors);
         }
     }
 
     fn alternative(&mut self, rules: impl IntoIterator<Item = Rule>) {
         let initial_index = self.index;
         let initial_output = self.output.len();
-        let initial_errors = self.errors;
+        let initial_errors = self.errors.len();
+        let mut rules = rules.into_iter();
+        let fallback = rules.next().expect("invariant violated: at least one branch");
 
-        let mut fallback = None;
+        fallback(self);
+        if self.errors.len() == initial_errors {
+            return;
+        }
+        self.index = initial_index;
+        self.output.truncate(initial_output);
+        self.errors.truncate(initial_errors);
 
-        for rule in rules.into_iter() {
+        for rule in rules {
             rule(self);
 
-            if self.errors == initial_errors {
+            if self.errors.len() == initial_errors {
                 return;
             }
 
-            if fallback.is_none() {
-                let output = self.output.drain(initial_output..).collect();
-                fallback = Some((self.index, self.errors, output));
-            } else {
-                self.output.truncate(initial_output);
-            }
-
             self.index = initial_index;
-            self.errors = initial_errors;
+            self.output.truncate(initial_output);
+            self.errors.truncate(initial_errors);
         }
 
-        let (index, errors, mut output) =
-            fallback.expect("invariant violated: at least one branch");
-        self.index = index;
-        self.errors = errors;
-        self.output.append(&mut output);
+        fallback(self);
     }
 
     fn error(&mut self, message: &'static str) {
-        self.errors += 1;
-        self.output.push(Output::Error { message: ParserError::Message(message) });
+        self.errors.push(ParserError::Message(message));
+        self.output.push(Event::Error);
     }
 
     fn error_recover(&mut self, message: &'static str) {
@@ -161,7 +161,7 @@ impl<'t> Parser<'t> {
         }
         self.fuel.set(u16::MAX);
         self.index += 1;
-        self.output.push(Output::Token { kind });
+        self.output.push(Event::Token { kind });
         true
     }
 
@@ -169,8 +169,8 @@ impl<'t> Parser<'t> {
         if self.eat(kind) {
             return true;
         }
-        self.errors += 1;
-        self.output.push(Output::Error { message: ParserError::Expected(kind) });
+        self.errors.push(ParserError::Expected(kind));
+        self.output.push(Event::Error);
         false
     }
 
@@ -183,27 +183,48 @@ impl<'t> Parser<'t> {
     }
 }
 
+struct MarkerBomb {
+    #[cfg(debug_assertions)]
+    inner: DropBomb,
+}
+
+impl MarkerBomb {
+    fn new() -> MarkerBomb {
+        #[cfg(debug_assertions)]
+        let inner = DropBomb::new("critical failure: failed to call end or cancel");
+        MarkerBomb {
+            #[cfg(debug_assertions)]
+            inner,
+        }
+    }
+
+    fn defuse(&mut self) {
+        #[cfg(debug_assertions)]
+        self.inner.defuse();
+    }
+}
+
 struct NodeMarker {
     index: usize,
     token_index: usize,
-    bomb: DropBomb,
+    bomb: MarkerBomb,
 }
 
 impl NodeMarker {
     fn new(index: usize, token_index: usize) -> NodeMarker {
-        let bomb = DropBomb::new("failed to call end or cancel");
+        let bomb = MarkerBomb::new();
         NodeMarker { index, token_index, bomb }
     }
 
     fn end(&mut self, parser: &mut Parser, kind: SyntaxKind) {
         self.bomb.defuse();
         match &mut parser.output[self.index] {
-            Output::Start { kind: marker } => {
+            Event::Start { kind: marker } => {
                 *marker = kind;
             }
             _ => unreachable!(),
         }
-        parser.output.push(Output::Finish);
+        parser.output.push(Event::Finish);
     }
 
     fn end_non_empty(&mut self, parser: &mut Parser, kind: SyntaxKind) {
@@ -218,7 +239,7 @@ impl NodeMarker {
         self.bomb.defuse();
         if self.index == parser.output.len() - 1 {
             match parser.output.pop() {
-                Some(Output::Start { kind: SyntaxKind::Node }) => (),
+                Some(Event::Start { kind: SyntaxKind::Node }) => (),
                 _ => unreachable!(),
             }
         }
@@ -395,7 +416,7 @@ fn imports_and_statements(p: &mut Parser) {
         }
     };
 
-    while p.at(SyntaxKind::IMPORT) && !p.at_eof() {
+    while p.at(SyntaxKind::IMPORT) {
         import_statement(p);
         recover_until_end(p, "Unexpected tokens in import statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
@@ -407,7 +428,7 @@ fn imports_and_statements(p: &mut Parser) {
 
     let mut statements = p.start();
 
-    while p.at_in(MODULE_STATEMENT_START) && !p.at_eof() {
+    while p.at_in(MODULE_STATEMENT_START) {
         module_statement(p);
         recover_until_end(p, "Unexpected tokens in module statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
@@ -751,7 +772,7 @@ fn class_statements(p: &mut Parser) {
             e.end(p, SyntaxKind::ERROR);
         }
     };
-    while p.at_in(names::LOWER) && !p.at_eof() {
+    while p.at_in(names::LOWER) {
         class_statement(p);
         recover_until_end(p, "Unexpected tokens in class statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
@@ -773,7 +794,7 @@ fn class_statement(p: &mut Parser) {
 fn instance_chain(p: &mut Parser) {
     let mut m = p.start();
     instance_declaration(p);
-    while p.at(SyntaxKind::ELSE) && !p.at_eof() {
+    while p.at(SyntaxKind::ELSE) {
         instance_declaration(p);
     }
     m.end(p, SyntaxKind::InstanceChain);
@@ -836,7 +857,7 @@ fn instance_constraints(p: &mut Parser) {
 fn instance_head(p: &mut Parser) {
     let mut m = p.start();
     names::upper(p);
-    while p.at_in(types::TYPE_ATOM_START) && !p.at_eof() {
+    while p.at_in(types::TYPE_ATOM_START) {
         types::type_atom(p);
     }
     m.end(p, SyntaxKind::InstanceHead);
@@ -858,7 +879,7 @@ fn instance_statements(p: &mut Parser) {
             e.end(p, SyntaxKind::ERROR);
         }
     };
-    while p.at_in(names::LOWER) && !p.at_eof() {
+    while p.at_in(names::LOWER) {
         instance_statement(p);
         recover_until_end(p, "Unexpected tokens in instance statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
@@ -885,7 +906,7 @@ fn derive_declaration(p: &mut Parser) {
     p.optional(instance_name);
     p.optional(instance_constraints);
     instance_head(p);
-    while p.at_in(types::TYPE_ATOM_START) && !p.at_eof() {
+    while p.at_in(types::TYPE_ATOM_START) {
         types::type_atom(p);
     }
     m.end(p, SyntaxKind::DeriveDeclaration);
@@ -939,7 +960,7 @@ fn data_constructors(p: &mut Parser) {
 fn data_constructor(p: &mut Parser) {
     let mut m = p.start();
     p.expect(SyntaxKind::UPPER);
-    while p.at_in(types::TYPE_ATOM_START) && !p.at_eof() {
+    while p.at_in(types::TYPE_ATOM_START) {
         types::type_atom(p);
     }
     m.end(p, SyntaxKind::DataConstructor);

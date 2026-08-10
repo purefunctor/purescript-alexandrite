@@ -19,7 +19,7 @@ fn expression_1(p: &mut Parser) {
     let mut i = 0;
 
     expression_2(p);
-    while p.at_in(names::OPERATOR) && !p.at_eof() {
+    while p.at_in(names::OPERATOR) {
         let mut n = p.start();
         let mut o = p.start();
         names::operator(p);
@@ -41,7 +41,7 @@ fn expression_2(p: &mut Parser) {
     let mut i = 0;
 
     expression_3(p);
-    while p.at(SyntaxKind::TICK) && !p.at_eof() {
+    while p.at(SyntaxKind::TICK) {
         let mut m = p.start();
         tick_expression(p);
         expression_3(p);
@@ -69,7 +69,7 @@ fn tick_expression_1(p: &mut Parser) {
     let mut i = 0;
 
     expression_3(p);
-    while p.at_in(names::OPERATOR) && !p.at_eof() {
+    while p.at_in(names::OPERATOR) {
         names::operator(p);
         expression_3(p);
         i += 1;
@@ -99,7 +99,7 @@ fn expression_4(p: &mut Parser) {
     let mut i = 0;
 
     expression_5(p);
-    while at_argument(p) && !p.at_eof() {
+    while at_argument(p) {
         expression_argument(p);
         i += 1;
     }
@@ -295,7 +295,7 @@ fn do_statements(p: &mut Parser) {
         }
     };
     p.expect(SyntaxKind::LAYOUT_START);
-    while p.at_in(DO_STATEMENT_START) && !p.at_eof() {
+    while p.at_in(DO_STATEMENT_START) {
         do_statement(p);
         recover_until_end(p, "Unexpected tokens in do statement");
         if !p.at(SyntaxKind::LAYOUT_END) {
@@ -402,7 +402,7 @@ fn expression_7(p: &mut Parser) {
     let mut i = 0;
 
     expression_atom(p);
-    while p.at(SyntaxKind::PERIOD) && !p.at_eof() {
+    while p.at(SyntaxKind::PERIOD) {
         let mut label = p.start();
         p.expect(SyntaxKind::PERIOD);
         names::label(p);

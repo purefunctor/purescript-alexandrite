@@ -48,7 +48,7 @@ pub(super) fn type_3(p: &mut Parser) {
     let mut i = 0;
 
     type_4(p);
-    while p.at_in(names::OPERATOR) && !p.at_eof() {
+    while p.at_in(names::OPERATOR) {
         let mut n = p.start();
         let mut o = p.start();
         names::operator(p);
@@ -82,7 +82,7 @@ pub(super) fn type_5(p: &mut Parser) {
     let mut i = 0;
 
     type_atom(p);
-    while p.at_in(TYPE_ATOM_START) && !p.at_eof() {
+    while p.at_in(TYPE_ATOM_START) {
         type_atom(p);
         i += 1;
     }
