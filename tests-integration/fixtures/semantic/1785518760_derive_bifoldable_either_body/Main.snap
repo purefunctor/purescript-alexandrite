@@ -11,19 +11,21 @@ data Either @a @b
 dictionary bifoldableEither :: Data.Bifoldable.Bifoldable Main.Either where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Either a b -> c
-  bifoldr = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Left field0) -> firstFunction field0 accumulator
-      (Right field0) -> secondFunction field0 accumulator
+  bifoldr = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Left field0) -> firstFunction field0 accumulator
+        (Right field0) -> secondFunction field0 accumulator
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Either a b -> c
-  bifoldl = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Left field0) -> firstFunction accumulator field0
-      (Right field0) -> secondFunction accumulator field0
+  bifoldl = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Left field0) -> firstFunction accumulator field0
+        (Right field0) -> secondFunction accumulator field0
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Either a b -> m
-  bifoldMap = \{monoidDict} ->
+  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Left field0) -> firstFunction field0

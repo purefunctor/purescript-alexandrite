@@ -10,6 +10,7 @@ dictionary contravariantEmpty :: Data.Functor.Contravariant.Contravariant (Main.
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a) -> Main.Empty @Prim.Type a -> Main.Empty @Prim.Type b
-  cmap = \function value ->
-    case value of
-      <error>
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        <error>

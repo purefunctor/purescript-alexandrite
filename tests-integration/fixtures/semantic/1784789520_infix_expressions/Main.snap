@@ -4,7 +4,7 @@ assertion_line: 68
 expression: report
 ---
 choose :: forall a b. a -> b -> a
-choose = \left -> \right -> left
+choose = \@a -> \@b -> \left -> \right -> left
 
 singleInfix :: Prim.Int
 singleInfix = choose @Prim.Int @Prim.String 1 "text"
@@ -13,7 +13,7 @@ multipleInfix :: Prim.Int
 multipleInfix = choose @Prim.Int @Prim.Boolean (choose @Prim.Int @Prim.String 1 "first") true
 
 identity :: forall a. a -> a
-identity = \value -> value
+identity = \@a -> \value -> value
 
 polymorphicHead :: forall t0. t0 -> t0
-polymorphicHead = choose @(t0 -> t0) @Prim.Int identity 1
+polymorphicHead = \@t0 -> choose @(t0 -> t0) @Prim.Int identity 1

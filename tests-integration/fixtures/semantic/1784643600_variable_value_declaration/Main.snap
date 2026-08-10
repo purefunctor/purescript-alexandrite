@@ -4,4 +4,4 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall t0. t0 -> t0
-identity = \a -> a
+identity = \@t0 -> \a -> a

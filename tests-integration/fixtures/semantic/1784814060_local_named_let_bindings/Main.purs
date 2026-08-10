@@ -15,6 +15,17 @@ whereBinding value = local
   local :: a
   local = value
 
+siblingPolymorphicBindings :: forall a. a -> { first :: a, second :: a }
+siblingPolymorphicBindings value =
+  let
+    first :: forall b. b -> b
+    first inner = inner
+
+    second :: forall b. b -> b
+    second inner = inner
+  in
+    { first: first value, second: second value }
+
 unIdentity :: forall a. Identity a -> a
 unIdentity value =
   let

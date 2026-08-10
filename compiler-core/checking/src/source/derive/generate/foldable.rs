@@ -7,13 +7,12 @@ use smol_str::format_smolstr;
 use crate::context::CheckContext;
 use crate::core::substitute::RigidRenaming;
 use crate::core::{ApplicationArgument, RowType, Type, TypeId, normalise, signature, toolkit};
-use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::field;
 use crate::source::derive::variance::{
     ConstructorRecipe, RecordFieldRecipe, TraversalOperation, TraversalParameter, VarianceRecipe,
 };
-use crate::source::terms::ElaboratedExpression;
+use crate::source::terms::{ElaboratedExpression, equations};
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
@@ -59,7 +58,7 @@ impl Mappings<ElaboratedExpression> {
 struct DecodedFoldMember {
     member: ResolvedMember,
     renaming: Arc<RigidRenaming>,
-    constraints: Vec<TypeId>,
+    abstractions: Vec<signature::SkolemisedAbstraction>,
     implementation_type: TypeId,
     function_type: TypeId,
     mappings: Mappings<TypeId>,
@@ -101,7 +100,7 @@ impl DecodedFoldMember {
             (TraversalKind::Foldable, FoldOperation::Map) => 2,
             (TraversalKind::Bifoldable, FoldOperation::Map) => 3,
         };
-        let signature::SkolemisedSignature { renaming, constraints, arguments, result } =
+        let signature::SkolemisedSignature { renaming, abstractions, arguments, result } =
             signature::expect_term_signature(
                 state,
                 context,
@@ -138,7 +137,7 @@ impl DecodedFoldMember {
             implementation_type: member.implementation_type,
             member,
             renaming,
-            constraints,
+            abstractions,
             function_type,
             mappings,
             accumulator_type,
@@ -280,10 +279,7 @@ where
             return Ok(None);
         };
 
-        let mut evidences = Vec::with_capacity(member.constraints.len());
-        for &constraint in &member.constraints {
-            evidences.push(Evidence::Given(state.push_given(constraint)));
-        }
+        let abstractions = equations::bind_signature_abstractions(state, &member.abstractions);
 
         let body = state.with_source_type_renaming(&member.renaming, |state| {
             emit_variance_fold(state, context, result.derive_id, &member, recipe, operation)
@@ -294,7 +290,7 @@ where
             result.derive_id,
             (member.member.file_id, member.member.item_id),
             member.implementation_type,
-            evidences,
+            abstractions,
             body,
         )))
     })

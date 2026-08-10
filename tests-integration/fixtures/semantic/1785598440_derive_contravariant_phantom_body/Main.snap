@@ -13,6 +13,7 @@ dictionary contravariantConstant ::
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a) -> Main.Constant @Prim.Type value a -> Main.Constant @Prim.Type value b
-  cmap = \function value ->
-    case value of
-      (Constant field0) -> Constant @Prim.Type @value @b field0
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        (Constant field0) -> Constant @Prim.Type @value @b field0

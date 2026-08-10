@@ -17,27 +17,30 @@ dictionary bifoldableWrap ::
   where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
-  bifoldr = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
-        (\element accumulator -> firstFunction element accumulator)
-        (foldr @g {foldableDict1} @b @c (\element accumulator -> secondFunction element accumulator)
-          accumulator
-          field1)
-        field0
+  bifoldr = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
+          (\element accumulator -> firstFunction element accumulator)
+          (foldr @g {foldableDict1} @b @c
+            (\element accumulator -> secondFunction element accumulator)
+            accumulator
+            field1)
+          field0
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
-  bifoldl = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
-        (\accumulator element -> secondFunction accumulator element)
-        (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
-          accumulator
-          field0)
-        field1
+  bifoldl = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
+          (\accumulator element -> secondFunction accumulator element)
+          (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
+            accumulator
+            field0)
+          field1
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
-  bifoldMap = \{monoidDict} ->
+  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Wrap field0 field1) -> append @m {monoidDict.semigroupDict}

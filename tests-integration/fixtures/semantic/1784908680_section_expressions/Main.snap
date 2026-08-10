@@ -19,18 +19,19 @@ ordered :: Prim.Int -> Prim.String -> Prim.String
 ordered = \v64 v66 -> use v64 v66
 
 nested :: forall t0 t1. (((Prim.Int -> t0) -> t0) -> t1) -> t1
-nested = \v71 -> v71 \v75 -> v75 1
+nested = \@t0 -> \@t1 -> \v71 -> v71 \v75 -> v75 1
 
 access :: forall t0 t1. { value :: t0 | t1 } -> t0
-access = \v82 -> v82.value
+access = \@t0 -> \@t1 -> \v82 -> v82.value
 
 update :: forall t0 t1 t2 t3 t4.
   { first :: t0, second :: t1 | t2 } -> t3 -> t4 -> { first :: t3, second :: t4 | t2 }
-update = \v88 v91 v93 -> v88 { first = v91, second = v93 }
+update = \@t0 -> \@t1 -> \@t2 -> \@t3 -> \@t4 -> \v88 v91 v93 -> v88 { first = v91, second = v93 }
 
 conditional :: forall t0. Prim.Boolean -> t0 -> t0 -> t0
-conditional = \v99 v101 v103 ->
-  if v99 then v101 else v103
+conditional = \@t0 ->
+  \v99 v101 v103 ->
+    if v99 then v101 else v103
 
 caseScrutinee :: Prim.Boolean -> Prim.Int
 caseScrutinee = \v109 ->
@@ -45,7 +46,8 @@ caseScrutinees = \v128 v129 ->
     false, _ -> 0
 
 caseAlternatives :: forall t0 t1. Prim.Boolean -> { value :: t0 | t1 } -> t0
-caseAlternatives = \v150 ->
-  case v150 of
-    true -> \v158 -> v158.value
-    false -> \v166 -> v166.value
+caseAlternatives = \@t0 -> \@t1 ->
+  \v150 ->
+    case v150 of
+      true -> \v158 -> v158.value
+      false -> \v166 -> v166.value

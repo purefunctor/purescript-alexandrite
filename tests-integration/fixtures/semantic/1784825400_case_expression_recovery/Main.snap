@@ -9,22 +9,22 @@ missingScrutinee =
     <error> -> true
 
 mismatchedBinders :: forall t0 t1. t0 -> t1 -> Prim.Boolean
-mismatchedBinders = \first -> \second ->
+mismatchedBinders = \@t0 -> \@t1 -> \first -> \second ->
   case first, second of
     _ -> true
 
 missingResult :: forall t0 t1. t0 -> t1
-missingResult = \value ->
+missingResult = \@t0 -> \@t1 -> \value ->
   case value of
     _ -> <error>
 
 missingGuardResult :: forall t0 t1. t0 -> t1
-missingGuardResult = \value ->
+missingGuardResult = \@t0 -> \@t1 -> \value ->
   case value of
     _
       | true -> <error>
 
 missingBranchBody :: forall t0 t1. t0 -> t1
-missingBranchBody = \value ->
+missingBranchBody = \@t0 -> \@t1 -> \value ->
   case value of
     _ -> <error>

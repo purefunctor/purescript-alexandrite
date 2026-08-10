@@ -9,7 +9,7 @@ use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::term_items::{
     emit_instance_superclass_constraints, freshen_instance_rigids, instantiate_class_member_type,
 };
-use crate::source::terms::ElaboratedExpression;
+use crate::source::terms::{ElaboratedExpression, equations};
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
@@ -373,14 +373,10 @@ where
             return Ok(None);
         };
 
-        let signature::SkolemisedSignature { renaming, constraints, result: body_type, .. } =
+        let signature::SkolemisedSignature { renaming, abstractions, result: body_type, .. } =
             signature::expect_term_signature(state, context, member.implementation_type, 0)?;
 
-        let mut evidences = Vec::with_capacity(constraints.len());
-        for constraint in constraints {
-            let evidence = Evidence::Given(state.push_given(constraint));
-            evidences.push(evidence);
-        }
+        let abstractions = equations::bind_signature_abstractions(state, &abstractions);
 
         let body = state.with_source_type_renaming(&renaming, |state| {
             let mut builder = DerivedTreeBuilder::new(state, context, result.derive_id);
@@ -392,7 +388,7 @@ where
             result.derive_id,
             (member.file_id, member.item_id),
             member.implementation_type,
-            evidences,
+            abstractions,
             body,
         );
         Ok(Some(member))
@@ -403,7 +399,7 @@ pub(super) fn generated_member(
     derive_id: indexing::DeriveId,
     resolution: (files::FileId, indexing::TermItemId),
     implementation_type: TypeId,
-    evidences: Vec<Evidence>,
+    abstractions: Vec<tree::DeclarationAbstraction>,
     body: ElaboratedExpression,
 ) -> tree::InstanceMember {
     let where_expression = tree::WhereExpression::new(body.expression);
@@ -413,7 +409,7 @@ pub(super) fn generated_member(
     tree::InstanceMember {
         resolution,
         implementation_type,
-        evidences: Arc::from(evidences),
+        abstractions: Arc::from(abstractions),
         equations: Arc::from([equation]),
     }
 }

@@ -16,12 +16,13 @@ dictionary functorCompose ::
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b) -> Main.Compose @Prim.Type @Prim.Type f g a -> Main.Compose @Prim.Type @Prim.Type f g b
-  map = \function value ->
-    case value of
-      (Compose field0) -> Compose @Prim.Type @Prim.Type @f @g @b
-        (map @f {functorDict} @(g a) @(g b)
-          (\element -> map @g {functorDict1} @a @b (\element -> function element) element)
-          field0)
+  map = \@a -> \@b ->
+    \function value ->
+      case value of
+        (Compose field0) -> Compose @Prim.Type @Prim.Type @f @g @b
+          (map @f {functorDict} @(g a) @(g b)
+            (\element -> map @g {functorDict1} @a @b (\element -> function element) element)
+            field0)
 
 dictionary foldableCompose ::
   forall f g.
@@ -31,29 +32,31 @@ dictionary foldableCompose ::
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
-  foldr = \function accumulator value ->
-    case value of
-      (Compose field0) -> foldr @f {foldableDict} @(g a) @b
-        (\element accumulator ->
-          foldr @g {foldableDict1} @a @b (\element accumulator -> function element accumulator)
-            accumulator
-            element)
-        accumulator
-        field0
+  foldr = \@a -> \@b ->
+    \function accumulator value ->
+      case value of
+        (Compose field0) -> foldr @f {foldableDict} @(g a) @b
+          (\element accumulator ->
+            foldr @g {foldableDict1} @a @b (\element accumulator -> function element accumulator)
+              accumulator
+              element)
+          accumulator
+          field0
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
-  foldl = \function accumulator value ->
-    case value of
-      (Compose field0) -> foldl @f {foldableDict} @(g a) @b
-        (\accumulator element ->
-          foldl @g {foldableDict1} @a @b (\accumulator element -> function accumulator element)
-            accumulator
-            element)
-        accumulator
-        field0
+  foldl = \@a -> \@b ->
+    \function accumulator value ->
+      case value of
+        (Compose field0) -> foldl @f {foldableDict} @(g a) @b
+          (\accumulator element ->
+            foldl @g {foldableDict1} @a @b (\accumulator element -> function accumulator element)
+              accumulator
+              element)
+          accumulator
+          field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.Compose @Prim.Type @Prim.Type f g a -> m
-  foldMap = \{monoidDict} ->
+  foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
         (Compose field0) -> foldMap @f {foldableDict} @(g a) @m {monoidDict}
@@ -74,7 +77,7 @@ dictionary traversableCompose ::
   (a -> m b) ->
   Main.Compose @Prim.Type @Prim.Type f g a ->
   m (Main.Compose @Prim.Type @Prim.Type f g b)
-  traverse = \{applicativeDict} ->
+  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
     \function value ->
       case value of
         (Compose field0) -> map @m {applicativeDict.applyDict.functorDict} @(f (g b)) @(Main.Compose @Prim.Type @Prim.Type f g b)
@@ -88,7 +91,7 @@ dictionary traversableCompose ::
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.Compose @Prim.Type @Prim.Type f g (m a) -> m (Main.Compose @Prim.Type @Prim.Type f g a)
-  sequence = \{applicativeDict} ->
+  sequence = \@a -> \@m -> \{applicativeDict} ->
     \value ->
       traverse @(Main.Compose @Prim.Type @Prim.Type f g) {traversableCompose {traversableDict} {traversableDict1}} @(m a) @a @m {applicativeDict}
         (\effect0 -> effect0)

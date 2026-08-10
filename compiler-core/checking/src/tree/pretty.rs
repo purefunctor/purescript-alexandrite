@@ -21,11 +21,11 @@ use crate::evidence::{
     ReflectableEvidence, ReflectableOrdering, SuperclassId, SynthesizedEvidence,
 };
 use crate::tree::{
-    BinderId, BinderKind, BinderSource, CaseAlternative, Equation, ExpressionId, ExpressionKind,
-    GuardedAlternative, GuardedExpression, InstanceDeclaration, InstanceImplementation,
-    InstanceMember, LetBindingChunk, LetBindings, LocalDeclarationId, PatternGuard,
-    RecordBinderField, RecordExpressionField, RecordExpressionUpdate, TermDeclarationKind,
-    TypeDeclarationKind, VariableResolution, WhereExpression,
+    BinderId, BinderKind, BinderSource, CaseAlternative, DeclarationAbstraction, Equation,
+    ExpressionId, ExpressionKind, GuardedAlternative, GuardedExpression, InstanceDeclaration,
+    InstanceImplementation, InstanceMember, LetBindingChunk, LetBindings, LocalDeclarationId,
+    PatternGuard, RecordBinderField, RecordExpressionField, RecordExpressionUpdate,
+    TermDeclarationKind, TypeDeclarationKind, VariableResolution, WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -456,23 +456,29 @@ where
             unreachable!("invariant violated: term declaration is not a value");
         };
 
-        let type_id = self.signature_type_pretty.render(declaration.type_id);
+        let mut signature_pretty = self.signature_type_pretty.state();
+        let type_id = signature_pretty.render(declaration.type_id);
         let signature = self.arena.text(format!("{name} :: {type_id}"));
+        let rigid_names = self.declaration_rigid_names(&mut signature_pretty, &value.abstractions);
 
         let mut evidence_names = EvidenceNames::new();
-        for evidence in value.evidences.iter() {
-            if let Evidence::Given(binder) = evidence {
+        for abstraction in value.abstractions.iter() {
+            if let DeclarationAbstraction::Evidence { evidence: Evidence::Given(binder), .. } =
+                abstraction
+            {
                 self.evidence_binder_name(&mut evidence_names, *binder)?;
             }
         }
+        let mut equation_type_pretty = self.type_pretty.state();
+        self.assign_rigid_names(&mut equation_type_pretty, &rigid_names);
 
         let Some(equations) = self.equation_declarations(
             name,
             "",
-            &value.evidences,
+            &value.abstractions,
             &value.equations,
             &mut evidence_names,
-            &[],
+            &mut equation_type_pretty,
         )?
         else {
             return Ok(None);
@@ -538,26 +544,36 @@ where
                     let mut evidence_names = EvidenceNames::new();
                     let instance_evidences =
                         instance.evidences.iter().map(|evidence| &evidence.evidence);
-                    for evidence in instance_evidences.chain(member.evidences.iter()) {
+                    let member_evidences =
+                        member.abstractions.iter().filter_map(|abstraction| match abstraction {
+                            DeclarationAbstraction::Evidence { evidence, .. } => Some(evidence),
+                            DeclarationAbstraction::Type { .. } => None,
+                        });
+                    for evidence in instance_evidences.chain(member_evidences) {
                         if let Evidence::Given(binder) = evidence {
                             self.evidence_binder_name(&mut evidence_names, *binder)?;
                         }
                     }
 
+                    let (signature, member_rigid_names) =
+                        self.instance_member_signature(member, &member_name, &rigid_names)?;
+                    let equation_rigid_names =
+                        rigid_names.iter().cloned().chain(member_rigid_names);
+                    let equation_rigid_names = equation_rigid_names.collect::<Vec<_>>();
+                    let mut equation_type_pretty = self.type_pretty.state();
+                    self.assign_rigid_names(&mut equation_type_pretty, &equation_rigid_names);
                     let Some(equations) = self.equation_declarations(
                         &member_name,
                         "  ",
-                        &member.evidences,
+                        &member.abstractions,
                         &member.equations,
                         &mut evidence_names,
-                        &rigid_names,
+                        &mut equation_type_pretty,
                     )?
                     else {
                         continue;
                     };
 
-                    let signature =
-                        self.instance_member_signature(member, &member_name, &rigid_names)?;
                     fields.push(signature.append(self.arena.hardline()).append(equations));
                 }
             }
@@ -582,7 +598,7 @@ where
         member: &InstanceMember,
         name: &str,
         rigid_names: &[(crate::TypeId, SmolStr)],
-    ) -> QueryResult<Doc<'arena>> {
+    ) -> QueryResult<(Doc<'arena>, Vec<(crate::TypeId, SmolStr)>)> {
         let mut type_pretty = self.type_pretty.state();
 
         for (rigid, display) in rigid_names {
@@ -591,9 +607,11 @@ where
             }
         }
 
-        let mut remaining_type = member.implementation_type;
-        while let Type::Forall(binder, inner) = self.queries.lookup_type(remaining_type) {
-            let binder = self.queries.lookup_forall_binder(binder);
+        for abstraction in member.abstractions.iter() {
+            let DeclarationAbstraction::Type { binder, .. } = abstraction else {
+                continue;
+            };
+            let binder = self.queries.lookup_forall_binder(*binder);
             let text = if member.resolution.0 == self.file_id {
                 self.checked.lookup_name(binder.name)
             } else {
@@ -603,11 +621,40 @@ where
                 let text = self.queries.lookup_smol_str(text);
                 type_pretty.allocate_display_name(binder.name, text);
             }
-            remaining_type = inner;
         }
 
         let type_id = type_pretty.render(member.implementation_type);
-        Ok(self.arena.text(format!("  {name} :: {type_id}")))
+        let rigid_names = self.declaration_rigid_names(&mut type_pretty, &member.abstractions);
+        let signature = self.arena.text(format!("  {name} :: {type_id}"));
+        Ok((signature, rigid_names))
+    }
+
+    fn declaration_rigid_names(
+        &self,
+        type_pretty: &mut TypePrettyState<'context, Q>,
+        abstractions: &[DeclarationAbstraction],
+    ) -> Vec<(crate::TypeId, SmolStr)> {
+        let rigid_names = abstractions.iter().filter_map(|abstraction| {
+            let DeclarationAbstraction::Type { binder, rigid } = abstraction else {
+                return None;
+            };
+            let binder = self.queries.lookup_forall_binder(*binder);
+            let display = type_pretty.display_name(binder.name);
+            Some((*rigid, display))
+        });
+        rigid_names.collect()
+    }
+
+    fn assign_rigid_names(
+        &self,
+        type_pretty: &mut TypePrettyState<'context, Q>,
+        rigid_names: &[(crate::TypeId, SmolStr)],
+    ) {
+        for (rigid, display) in rigid_names {
+            if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
+                type_pretty.assign_display_name(name, SmolStr::clone(display));
+            }
+        }
     }
 
     fn dictionary_signature(
@@ -745,27 +792,22 @@ where
         &self,
         name: &str,
         prefix: &str,
-        evidences: &[Evidence],
+        declaration_abstractions: &[DeclarationAbstraction],
         equations: &[Equation],
         evidence_names: &mut EvidenceNames,
-        rigid_names: &[(crate::TypeId, SmolStr)],
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Option<Doc<'arena>>> {
         let mut rendered_equations = vec![];
-        let mut type_pretty = self.type_pretty.state();
-        for (rigid, display) in rigid_names {
-            if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
-                type_pretty.assign_display_name(name, SmolStr::clone(display));
-            }
-        }
         for equation in equations.iter() {
-            let has_abstraction = !equation.binders.is_empty() || !evidences.is_empty();
+            let has_abstraction =
+                !equation.binders.is_empty() || !declaration_abstractions.is_empty();
             let (mut expression, where_bindings, force_body_break, is_lambda) = if let [alternative] =
                 equation.guarded_expression.alternatives.as_ref()
                 && alternative.pattern_guards.is_empty()
             {
                 let where_expression = &alternative.where_expression;
                 let expression =
-                    self.expression(where_expression.expression, evidence_names, &mut type_pretty)?;
+                    self.expression(where_expression.expression, evidence_names, type_pretty)?;
                 let bindings = (!where_expression.bindings.chunks.is_empty())
                     .then_some(&where_expression.bindings);
                 let force_body_break =
@@ -779,18 +821,26 @@ where
                 let expression = self.guarded_expression(
                     &equation.guarded_expression,
                     evidence_names,
-                    &mut type_pretty,
+                    type_pretty,
                 )?;
                 (expression, None, false, false)
             };
 
             let mut abstractions = vec![];
-            for evidence in evidences.iter() {
-                let binder = self.evidence_name(evidence_names, evidence)?;
-                abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
+            for abstraction in declaration_abstractions {
+                match abstraction {
+                    DeclarationAbstraction::Type { rigid, .. } => {
+                        let binder = type_pretty.render_atom(*rigid);
+                        abstractions.push(self.arena.text(format!("\\@{binder} ->")));
+                    }
+                    DeclarationAbstraction::Evidence { evidence, .. } => {
+                        let binder = self.evidence_name(evidence_names, evidence)?;
+                        abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
+                    }
+                }
             }
             for &binder in equation.binders.iter() {
-                let binder = self.binder(binder)?;
+                let binder = self.binder(binder, type_pretty)?;
                 let abstraction =
                     self.arena.text("\\").append(binder).append(self.arena.text(" ->"));
                 abstractions.push(abstraction);
@@ -824,7 +874,7 @@ where
                     .group()
             };
             if let Some(bindings) = where_bindings {
-                let where_clause = self.where_clause(bindings, evidence_names, &mut type_pretty)?;
+                let where_clause = self.where_clause(bindings, evidence_names, type_pretty)?;
                 equation = equation.append(self.arena.hardline().append(where_clause).nest(2));
             }
             if !prefix.is_empty() {
@@ -847,14 +897,21 @@ where
         &self,
         declaration_id: LocalDeclarationId,
         evidence_names: &mut EvidenceNames,
+        type_pretty: &mut TypePrettyState<'context, Q>,
     ) -> QueryResult<Doc<'arena>> {
         let declaration = &self.checked.tree[declaration_id];
         let name = self.local_declaration_name(declaration.source);
-        let type_id = self.signature_type_pretty.render(declaration.type_id);
+        let type_pretty = &mut type_pretty.fork();
+        let type_id = type_pretty.render(declaration.type_id);
         let signature = self.arena.text(format!("{name} :: {type_id}"));
+        let rigid_names =
+            self.declaration_rigid_names(type_pretty, &declaration.value.abstractions);
+        self.assign_rigid_names(type_pretty, &rigid_names);
 
-        for evidence in declaration.value.evidences.iter() {
-            if let Evidence::Given(binder) = evidence {
+        for abstraction in declaration.value.abstractions.iter() {
+            if let DeclarationAbstraction::Evidence { evidence: Evidence::Given(binder), .. } =
+                abstraction
+            {
                 self.evidence_binder_name(evidence_names, *binder)?;
             }
         }
@@ -862,10 +919,10 @@ where
         let equations = self.equation_declarations(
             &name,
             "",
-            &declaration.value.evidences,
+            &declaration.value.abstractions,
             &declaration.value.equations,
             evidence_names,
-            &[],
+            type_pretty,
         )?;
         let equations = equations.unwrap_or_else(|| self.arena.text(format!("{name} = <error>")));
         Ok(signature.append(self.arena.hardline()).append(equations))
@@ -881,7 +938,7 @@ where
         for chunk in bindings.chunks.iter() {
             match chunk {
                 LetBindingChunk::Pattern { binder, where_expression, .. } => {
-                    let binder = self.binder(*binder)?;
+                    let binder = self.binder(*binder, type_pretty)?;
                     let expression =
                         self.where_expression(where_expression, evidence_names, type_pretty)?;
                     rendered.push(
@@ -907,7 +964,11 @@ where
                 }
                 LetBindingChunk::Names { declarations, .. } => {
                     for &declaration in declarations.iter() {
-                        rendered.push(self.local_declaration(declaration, evidence_names)?);
+                        rendered.push(self.local_declaration(
+                            declaration,
+                            evidence_names,
+                            type_pretty,
+                        )?);
                     }
                 }
             }
@@ -1028,7 +1089,7 @@ where
                 self.expression(expression, evidence_names, type_pretty)
             }
             PatternGuard::Pattern { binder, expression } => {
-                let binder = self.binder(binder)?;
+                let binder = self.binder(binder, type_pretty)?;
                 let expression = self.expression(expression, evidence_names, type_pretty)?;
                 Ok(binder.append(self.arena.text(" <- ")).append(expression))
             }
@@ -1085,7 +1146,7 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let mut rendered_binders = vec![];
         for &binder in alternative.binders.iter() {
-            rendered_binders.push(self.binder(binder)?);
+            rendered_binders.push(self.binder(binder, type_pretty)?);
         }
 
         let mut rendered_binders = rendered_binders.into_iter();
@@ -1134,13 +1195,17 @@ where
         )
     }
 
-    fn binder(&self, binder_id: BinderId) -> QueryResult<Doc<'arena>> {
+    fn binder(
+        &self,
+        binder_id: BinderId,
+        type_pretty: &mut TypePrettyState<'context, Q>,
+    ) -> QueryResult<Doc<'arena>> {
         let binder = &self.checked.tree[binder_id];
         match &binder.kind {
             BinderKind::Error => Ok(self.arena.text("<error>")),
             BinderKind::Typed { binder, annotation } => {
-                let binder = self.binder(*binder)?;
-                let annotation = self.type_pretty.render(*annotation);
+                let binder = self.binder(*binder, type_pretty)?;
+                let annotation = type_pretty.render(*annotation);
                 Ok(self
                     .arena
                     .text("(")
@@ -1179,7 +1244,7 @@ where
                 }
             },
             BinderKind::Named { name, binder } => {
-                let binder = self.binder(*binder)?;
+                let binder = self.binder(*binder, type_pretty)?;
                 Ok(self.arena.text(format!("{name}@")).append(binder))
             }
             BinderKind::Wildcard => Ok(self.arena.text("_")),
@@ -1201,7 +1266,7 @@ where
                     if position > 0 {
                         array = array.append(self.arena.text(", "));
                     }
-                    array = array.append(self.binder(element)?);
+                    array = array.append(self.binder(element, type_pretty)?);
                 }
                 Ok(array.append(self.arena.text("]")))
             }
@@ -1213,7 +1278,7 @@ where
                     }
                     match field {
                         RecordBinderField::Field { label, binder } => {
-                            let binder = self.binder(*binder)?;
+                            let binder = self.binder(*binder, type_pretty)?;
                             record =
                                 record.append(self.arena.text(format!("{label}: "))).append(binder);
                         }
@@ -1232,7 +1297,7 @@ where
                     return Ok(constructor);
                 }
                 for &argument in arguments.iter() {
-                    let argument = self.binder(argument)?;
+                    let argument = self.binder(argument, type_pretty)?;
                     constructor = constructor.append(self.arena.space()).append(argument);
                 }
                 Ok(self.arena.text("(").append(constructor).append(self.arena.text(")")))
@@ -1534,7 +1599,7 @@ where
                         if position > 0 {
                             lambda = lambda.append(self.arena.space());
                         }
-                        lambda = lambda.append(self.binder(binder)?);
+                        lambda = lambda.append(self.binder(binder, type_pretty)?);
                     }
                 }
 

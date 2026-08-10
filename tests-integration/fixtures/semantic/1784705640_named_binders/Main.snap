@@ -9,5 +9,5 @@ data Maybe @a
   | Nothing :: Main.Maybe a
 
 fromMaybe :: forall a. a -> Main.Maybe a -> a
-fromMaybe = \fallback -> \whole@(Just value) -> value
-fromMaybe = \fallback -> \Nothing -> fallback
+fromMaybe = \@a -> \fallback -> \whole@(Just value) -> value
+fromMaybe = \@a -> \fallback -> \Nothing -> fallback

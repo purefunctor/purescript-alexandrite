@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Convert :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Convert f g where
+  convert :: forall (a :: Prim.Type). f a -> g a
+  convertExplicit :: forall (a :: Prim.Type). f a -> g a
+
+interface Clash :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Clash f where
+  clash :: forall (a :: Prim.Type). f a -> f a
+
+data F :: Prim.Type -> Prim.Type
+data F @a
+
+data G :: Prim.Type -> Prim.Type
+data G @a
+
+foreign import unsafeCoerce :: forall a b. a -> b
+
+dictionary convertG :: Main.Convert Main.F Main.G where
+  convert :: forall (a :: Prim.Type). Main.F a -> Main.G a
+  convert = \@a -> (\@a1 -> unsafeCoerce @(Main.F a1) @(Main.G a1)) @a
+  convertExplicit :: forall (a :: Prim.Type). Main.F a -> Main.G a
+  convertExplicit = \@a -> (\@a1 -> unsafeCoerce @(Main.F a1) @(Main.G a1)) @a
+
+dictionary clash1 :: forall f. Main.Clash f where
+  clash :: forall (a :: Prim.Type). f a -> f a
+  clash = \@a -> \(value :: f a) ->
+    case value of
+      (matched :: f a) -> local matched
+    where
+    local :: f a -> f a
+    local = unsafeCoerce @(f a) @(f a)

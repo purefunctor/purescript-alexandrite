@@ -4,7 +4,7 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \value -> value
+identity = \@a -> \value -> value
 
 applyIdentity :: forall a. a -> a
-applyIdentity = \value -> identity @a (identity @a value)
+applyIdentity = \@a -> \value -> identity @a (identity @a value)

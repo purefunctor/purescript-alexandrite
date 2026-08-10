@@ -4,13 +4,13 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall @a. a -> a
-identity = \value -> value
+identity = \@a -> \value -> value
 
 const :: forall a @b. a -> b -> a
-const = \value -> \_ -> value
+const = \@a -> \@b -> \value -> \_ -> value
 
 testIdentity :: Prim.Int -> Prim.Int
 testIdentity = identity @Prim.Int
 
 testConst :: forall t0. t0 -> Prim.String -> t0
-testConst = const @t0 @Prim.String
+testConst = \@t0 -> const @t0 @Prim.String

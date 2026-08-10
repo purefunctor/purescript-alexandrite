@@ -9,7 +9,7 @@ data Maybe @a
   | Just :: a -> Main.Maybe a
 
 nested :: forall t0 t1. t0 -> t1 -> t0
-nested = \first -> \second -> first
+nested = \@t0 -> \@t1 -> \first -> \second -> first
 
 caseBody :: Main.Maybe Prim.Int -> Prim.Int
 caseBody = \maybe ->

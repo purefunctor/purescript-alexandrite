@@ -14,7 +14,7 @@ dictionary functorRightNested ::
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b) -> Main.RightNested @Prim.Type p a -> Main.RightNested @Prim.Type p b
-  map = \function -> \(RightNested value) ->
+  map = \@a -> \@b -> \function -> \(RightNested value) ->
     RightNested @Prim.Type @p @b
       (bimap @p {bifunctorDict} @Prim.Int @Prim.Int @a @b (\fixed -> fixed) function value)
 
@@ -24,16 +24,16 @@ dictionary foldableRightNested ::
   Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
-  foldr = \function -> \initial -> \(RightNested value) ->
+  foldr = \@a -> \@b -> \function -> \initial -> \(RightNested value) ->
     bifoldr @p {bifoldableDict} @Prim.Int @a @b (\_ accumulated -> accumulated) function initial
       value
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
-  foldl = \function -> \initial -> \(RightNested value) ->
+  foldl = \@a -> \@b -> \function -> \initial -> \(RightNested value) ->
     bifoldl @p {bifoldableDict} @Prim.Int @a @b (\accumulated _ -> accumulated) function initial
       value
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
-  foldMap = \{monoidDict} -> \function -> \(RightNested value) ->
+  foldMap = \@a -> \@m -> \{monoidDict} -> \function -> \(RightNested value) ->
     bifoldMap @p {bifoldableDict} @m @Prim.Int @a {monoidDict} (\_ -> mempty @m {monoidDict})
       function
       value
@@ -48,7 +48,7 @@ dictionary traversableRightNested ::
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.RightNested @Prim.Type p a -> m (Main.RightNested @Prim.Type p b)
-  traverse = \{applicativeDict} ->
+  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
     \function value ->
       case value of
         (RightNested field0) -> map @m {applicativeDict.applyDict.functorDict} @(p Prim.Int b) @(Main.RightNested @Prim.Type p b)
@@ -60,7 +60,7 @@ dictionary traversableRightNested ::
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.RightNested @Prim.Type p (m a) -> m (Main.RightNested @Prim.Type p a)
-  sequence = \{applicativeDict} ->
+  sequence = \@a -> \@m -> \{applicativeDict} ->
     \value ->
       traverse @(Main.RightNested @Prim.Type p) {traversableRightNested {bitraversableDict}} @(m a) @a @m {applicativeDict}
         (\effect0 -> effect0)

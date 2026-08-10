@@ -8,7 +8,7 @@ data Identity @a
   | Identity :: a -> Main.Identity a
 
 letBinding :: forall a. a -> a
-letBinding = \value ->
+letBinding = \@a -> \value ->
   let
     local :: a
     local = value
@@ -16,13 +16,23 @@ letBinding = \value ->
     local
 
 whereBinding :: forall a. a -> a
-whereBinding = \value -> local
+whereBinding = \@a -> \value -> local
   where
   local :: a
   local = value
 
+siblingPolymorphicBindings :: forall a. a -> { first :: a, second :: a }
+siblingPolymorphicBindings = \@a -> \value ->
+  let
+    first :: forall (b :: Prim.Type). b -> b
+    first = \@b -> \inner -> inner
+    second :: forall (b :: Prim.Type). b -> b
+    second = \@b -> \inner -> inner
+  in
+    { first: first @a value, second: second @a value }
+
 unIdentity :: forall a. Main.Identity a -> a
-unIdentity = \value ->
+unIdentity = \@a -> \value ->
   let
     (Identity inner) = value
   in

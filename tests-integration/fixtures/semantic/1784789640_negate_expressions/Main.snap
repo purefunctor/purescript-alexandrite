@@ -9,7 +9,7 @@ interface Negative a where
 foreign import negate :: forall a. Main.Negative a => a -> a
 
 negative :: forall a. Main.Negative a => a -> a
-negative = \{negativeDict} -> \value -> negate @a {negativeDict} value
+negative = \@a -> \{negativeDict} -> \value -> negate @a {negativeDict} value
 
 shadowedNegate :: (Prim.Int -> Prim.Int) -> Prim.Int -> Prim.Int
 shadowedNegate = \negate -> \value -> negate value

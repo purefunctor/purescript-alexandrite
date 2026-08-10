@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Value :: Prim.Type -> Prim.Constraint
+interface Value a where
+  value :: a
+
+test :: Prim.Int
+test = (\{valueDict} -> value @Prim.Int {valueDict}) {error}

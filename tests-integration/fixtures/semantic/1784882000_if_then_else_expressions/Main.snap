@@ -20,15 +20,15 @@ inferred = \condition ->
   if condition then "yes" else "no"
 
 constrained :: forall value. Main.Predicate value => value -> Prim.Int
-constrained = \{predicateDict} -> \value ->
+constrained = \@value -> \{predicateDict} -> \value ->
   if predicate @value {predicateDict} value then 1 else 2
 
 constrainedBranches :: forall value. Main.Default value => Prim.Boolean -> value
-constrainedBranches = \{defaultDict} -> \condition ->
+constrainedBranches = \@value -> \{defaultDict} -> \condition ->
   if condition then defaultValue @value {defaultDict} else defaultValue @value {defaultDict}
 
 higherRank :: Prim.Boolean -> (forall value. value -> value)
-higherRank = \condition ->
+higherRank = \@value -> \condition ->
   if condition then identity @value else identity @value
 
 nested :: Prim.Boolean -> Prim.Boolean -> Prim.Int
@@ -39,4 +39,4 @@ asArgument :: Prim.Boolean -> Prim.Int
 asArgument = \condition -> identity @Prim.Int if condition then 1 else 2
 
 identity :: forall value. value -> value
-identity = \value -> value
+identity = \@value -> \value -> value

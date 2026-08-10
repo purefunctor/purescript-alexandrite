@@ -20,11 +20,12 @@ dictionary bifunctorWrap ::
   (c -> d) ->
   Main.Wrap @Prim.Type @Prim.Type f g a c ->
   Main.Wrap @Prim.Type @Prim.Type f g b d
-  bimap = \firstFunction secondFunction value ->
-    case value of
-      (Wrap field0 field1) -> Wrap @Prim.Type @Prim.Type @f @g @b @d
-        (map @f {functorDict} @a @b (\element -> firstFunction element) field0)
-        (map @g {functorDict1} @c @d (\element -> secondFunction element) field1)
+  bimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Wrap field0 field1) -> Wrap @Prim.Type @Prim.Type @f @g @b @d
+          (map @f {functorDict} @a @b (\element -> firstFunction element) field0)
+          (map @g {functorDict1} @c @d (\element -> secondFunction element) field1)
 
 dictionary bifoldableWrap ::
   forall f g.
@@ -34,27 +35,30 @@ dictionary bifoldableWrap ::
   where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
-  bifoldr = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
-        (\element accumulator -> firstFunction element accumulator)
-        (foldr @g {foldableDict1} @b @c (\element accumulator -> secondFunction element accumulator)
-          accumulator
-          field1)
-        field0
+  bifoldr = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
+          (\element accumulator -> firstFunction element accumulator)
+          (foldr @g {foldableDict1} @b @c
+            (\element accumulator -> secondFunction element accumulator)
+            accumulator
+            field1)
+          field0
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
-  bifoldl = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
-        (\accumulator element -> secondFunction accumulator element)
-        (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
-          accumulator
-          field0)
-        field1
+  bifoldl = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
+          (\accumulator element -> secondFunction accumulator element)
+          (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
+            accumulator
+            field0)
+          field1
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
-  bifoldMap = \{monoidDict} ->
+  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Wrap field0 field1) -> append @m {monoidDict.semigroupDict}
@@ -77,7 +81,7 @@ dictionary bitraversableWrap ::
   (b -> f1 d) ->
   Main.Wrap @Prim.Type @Prim.Type f g a b ->
   f1 (Main.Wrap @Prim.Type @Prim.Type f g c d)
-  bitraverse = \{applicativeDict} ->
+  bitraverse = \@f1 -> \@a -> \@b -> \@c -> \@d -> \{applicativeDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Wrap field0 field1) -> apply @f1 {applicativeDict.applyDict} @(g d) @(Main.Wrap @Prim.Type @Prim.Type f g c d)
@@ -93,7 +97,7 @@ dictionary bitraversableWrap ::
   bisequence :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Control.Applicative.Applicative f1 =>
   Main.Wrap @Prim.Type @Prim.Type f g (f1 a) (f1 b) -> f1 (Main.Wrap @Prim.Type @Prim.Type f g a b)
-  bisequence = \{applicativeDict} ->
+  bisequence = \@f1 -> \@a -> \@b -> \{applicativeDict} ->
     \value ->
       bitraverse @(Main.Wrap @Prim.Type @Prim.Type f g) {bitraversableWrap {traversableDict} {traversableDict1}} @f1 @(f1 a) @(f1 b) @a @b {applicativeDict}
         (\effect0 -> effect0)

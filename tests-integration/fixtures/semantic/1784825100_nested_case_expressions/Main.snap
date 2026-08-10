@@ -10,7 +10,7 @@ data Choice @a
   | Pair :: a -> a -> Main.Choice a
 
 identity :: forall a. a -> a
-identity = \value -> value
+identity = \@a -> \value -> value
 
 nested :: Main.Choice (Main.Choice Prim.Int) -> Prim.Int
 nested = \choice ->

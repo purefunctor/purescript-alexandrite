@@ -13,7 +13,8 @@ dictionary contravariantOptionalPredicate ::
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a) -> Main.OptionalPredicate a -> Main.OptionalPredicate b
-  cmap = \function value ->
-    case value of
-      None -> None @b
-      (Some field0) -> Some @b \argument -> field0 (function argument)
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        None -> None @b
+        (Some field0) -> Some @b \argument -> field0 (function argument)
