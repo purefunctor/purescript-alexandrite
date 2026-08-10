@@ -1,18 +1,23 @@
 use std::sync::Arc;
 
-use lexing::Lexed;
+use lexing::{Lexed, Position};
 use syntax::{SyntaxKind, SyntaxValue, TreeOwner};
 use syntree::Builder as SyntreeBuilder;
 
 use crate::{ParseError, ParsedModule};
 
+pub(crate) struct Output {
+    pub(crate) events: Vec<Event>,
+    pub(crate) errors: Vec<ParserError>,
+}
+
 #[derive(Debug)]
-pub(crate) enum Output {
+pub(crate) enum Event {
     Start { kind: SyntaxKind },
     Annotate,
     Qualify,
     Token { kind: SyntaxKind },
-    Error { message: ParserError },
+    Error,
     Finish,
 }
 
@@ -25,6 +30,11 @@ pub(crate) enum ParserError {
 struct Builder<'l, 's> {
     lexed: &'l Lexed<'s>,
     index: usize,
+    previous_end: u32,
+    annotation_end: u32,
+    qualifier_end: u32,
+    token_end: u32,
+    position: Position,
     annotated: bool,
     qualified: bool,
     builder: SyntreeBuilder<SyntaxValue>,
@@ -33,12 +43,30 @@ struct Builder<'l, 's> {
 
 impl<'l, 's> Builder<'l, 's> {
     fn new(lexed: &'l Lexed<'s>) -> Builder<'l, 's> {
+        let info = lexed.info(0);
         let index = 0;
+        let previous_end = 0;
+        let annotation_end = info.annotation;
+        let qualifier_end = info.qualifier;
+        let token_end = info.token;
+        let position = info.position;
         let annotated = false;
         let qualified = false;
         let builder = SyntreeBuilder::new();
         let errors = vec![];
-        Builder { lexed, index, annotated, qualified, builder, errors }
+        Builder {
+            lexed,
+            index,
+            previous_end,
+            annotation_end,
+            qualifier_end,
+            token_end,
+            position,
+            annotated,
+            qualified,
+            builder,
+            errors,
+        }
     }
 
     fn build(self) -> (ParsedModule, Vec<ParseError>) {
@@ -58,12 +86,11 @@ impl<'l, 's> Builder<'l, 's> {
     }
 
     fn annotate(&mut self) {
-        if let Some(annotation) = self.lexed.annotation(self.index)
-            && !self.annotated
-        {
+        if !self.annotated && self.previous_end < self.annotation_end {
+            let length = (self.annotation_end - self.previous_end) as usize;
             self.start(SyntaxKind::Annotation);
             self.builder
-                .token(SyntaxValue::token(SyntaxKind::TEXT), annotation.len())
+                .token(SyntaxValue::token(SyntaxKind::TEXT), length)
                 .expect("critical violation: syntax tree capacity exceeded");
             self.finish();
         }
@@ -72,12 +99,11 @@ impl<'l, 's> Builder<'l, 's> {
     }
 
     fn qualify(&mut self) {
-        if let Some(qualifier) = self.lexed.qualifier(self.index)
-            && !self.qualified
-        {
+        if !self.qualified && self.annotation_end < self.qualifier_end {
+            let length = (self.qualifier_end - self.annotation_end) as usize;
             self.start(SyntaxKind::Qualifier);
             self.builder
-                .token(SyntaxValue::token(SyntaxKind::TEXT), qualifier.len())
+                .token(SyntaxValue::token(SyntaxKind::TEXT), length)
                 .expect("critical violation: syntax tree capacity exceeded");
             self.finish();
         }
@@ -102,21 +128,28 @@ impl<'l, 's> Builder<'l, 's> {
         self.qualify();
 
         if !matches!(kind, SyntaxKind::ERROR) {
-            let text = self.lexed.text(self.index);
+            let length = (self.token_end - self.qualifier_end) as usize;
             self.builder
-                .token(SyntaxValue::token(kind), text.len())
+                .token(SyntaxValue::token(kind), length)
                 .expect("critical violation: syntax tree capacity exceeded");
         }
 
+        self.previous_end = self.token_end;
         self.index += 1;
+        if self.index < self.lexed.len() {
+            let info = self.lexed.info(self.index);
+            self.annotation_end = info.annotation;
+            self.qualifier_end = info.qualifier;
+            self.token_end = info.token;
+            self.position = info.position;
+        }
         self.annotated = false;
         self.qualified = false;
     }
 
     fn error(&mut self, message: impl Into<Arc<str>>) {
-        let info = self.lexed.info(self.index);
-        let offset = info.qualifier as usize;
-        let position = self.lexed.position(self.index);
+        let offset = self.qualifier_end as usize;
+        let position = self.position;
         let message = message.into();
         self.builder
             .token_empty(SyntaxValue::token(SyntaxKind::ERROR))
@@ -131,22 +164,28 @@ impl<'l, 's> Builder<'l, 's> {
     }
 }
 
-pub(crate) fn build(lexed: &Lexed<'_>, output: Vec<Output>) -> (ParsedModule, Vec<ParseError>) {
+pub(crate) fn build(lexed: &Lexed<'_>, output: Output) -> (ParsedModule, Vec<ParseError>) {
     let mut builder = Builder::new(lexed);
+    let mut errors = output.errors.into_iter();
 
-    for event in output {
+    for event in output.events {
         match event {
-            Output::Start { kind } => builder.start(kind),
-            Output::Annotate => builder.annotate(),
-            Output::Qualify => builder.qualify(),
-            Output::Token { kind } => builder.token(kind),
-            Output::Error { message: ParserError::Message(message) } => builder.error(message),
-            Output::Error { message: ParserError::Expected(kind) } => {
-                builder.error(format!("Expected {kind:?}"));
+            Event::Start { kind } => builder.start(kind),
+            Event::Annotate => builder.annotate(),
+            Event::Qualify => builder.qualify(),
+            Event::Token { kind } => builder.token(kind),
+            Event::Error => {
+                match errors.next().expect("invariant violated: missing parser error") {
+                    ParserError::Message(message) => builder.error(message),
+                    ParserError::Expected(kind) => {
+                        builder.error(format!("Expected {kind:?}"));
+                    }
+                }
             }
-            Output::Finish => builder.finish(),
+            Event::Finish => builder.finish(),
         }
     }
+    assert!(errors.next().is_none(), "invariant violated: unconsumed parser error");
 
     builder.build()
 }

@@ -30,7 +30,7 @@ impl ParsedModule {
     }
 
     pub fn cst(&self) -> cst::Module {
-        let node = self.syntax_node().clone();
+        let node = self.syntax_node();
         cst::Module::cast(node).expect("invariant violated: expected cst::Module")
     }
 
