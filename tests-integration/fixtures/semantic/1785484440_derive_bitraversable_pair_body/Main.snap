@@ -10,25 +10,28 @@ data Pair @a @b
 dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
   bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
-  bimap = \firstFunction secondFunction value ->
-    case value of
-      (Pair field0 field1 field2) -> Pair @b @d (firstFunction field0) field1
-        (secondFunction field2)
+  bimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Pair field0 field1 field2) -> Pair @b @d (firstFunction field0) field1
+          (secondFunction field2)
 
 dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Pair a b -> c
-  bifoldr = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
+  bifoldr = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Pair a b -> c
-  bifoldl = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
+  bifoldl = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Pair a b -> m
-  bifoldMap = \{monoidDict} ->
+  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Pair field0 field1 field2) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
@@ -41,7 +44,7 @@ dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
   (d :: Prim.Type).
   Control.Applicative.Applicative f =>
   (a -> f c) -> (b -> f d) -> Main.Pair a b -> f (Main.Pair c d)
-  bitraverse = \{applicativeDict} ->
+  bitraverse = \@f -> \@a -> \@b -> \@c -> \@d -> \{applicativeDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Pair field0 field1 field2) -> apply @f {applicativeDict.applyDict} @d @(Main.Pair c d)
@@ -51,7 +54,7 @@ dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
           (secondFunction field2)
   bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Control.Applicative.Applicative f => Main.Pair (f a) (f b) -> f (Main.Pair a b)
-  bisequence = \{applicativeDict} ->
+  bisequence = \@f -> \@a -> \@b -> \{applicativeDict} ->
     \value ->
       bitraverse @Main.Pair {bitraversablePair} @f @(f a) @(f b) @a @b {applicativeDict}
         (\effect0 -> effect0)

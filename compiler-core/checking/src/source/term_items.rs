@@ -28,7 +28,7 @@ struct TermSccState {
 enum PendingValueGroup {
     Checked {
         residuals: Vec<ConstraintInScope>,
-        evidences: Vec<Evidence>,
+        abstractions: Vec<tree::DeclarationAbstraction>,
         equations: Vec<equations::ElaboratedEquation>,
     },
     Inferred {
@@ -490,7 +490,7 @@ fn record_instance_member(
     Some(tree::InstanceMember {
         resolution,
         implementation_type,
-        evidences: Arc::from(checked.evidences),
+        abstractions: Arc::from(checked.abstractions),
         equations: Arc::from(equations),
     })
 }
@@ -773,9 +773,9 @@ where
     if let Some(signature_id) = signature
         && let Some(signature_type) = state.checked.lookup_term_item_type(item_id)
     {
-        let (residuals, evidences, equations) =
+        let (residuals, abstractions, equations) =
             check_value_group_core_check(state, context, signature_id, signature_type, equations)?;
-        Ok(Some(PendingValueGroup::Checked { residuals, evidences, equations }))
+        Ok(Some(PendingValueGroup::Checked { residuals, abstractions, equations }))
     } else {
         let (residuals, equations) =
             check_value_group_core_infer(state, context, item_id, equations)?;
@@ -789,7 +789,11 @@ fn check_value_group_core_check<Q>(
     signature_id: lowering::TypeId,
     signature_type: TypeId,
     equations: &[lowering::Equation],
-) -> QueryResult<(Vec<ConstraintInScope>, Vec<Evidence>, Vec<equations::ElaboratedEquation>)>
+) -> QueryResult<(
+    Vec<ConstraintInScope>,
+    Vec<tree::DeclarationAbstraction>,
+    Vec<equations::ElaboratedEquation>,
+)>
 where
     Q: ExternalQueries,
 {
@@ -808,7 +812,7 @@ where
     )?;
     state.report_exhaustiveness(exhaustiveness);
     let residuals = state.solve_constraints(context)?;
-    Ok((residuals, checked_equations.evidences, checked_equations.equations))
+    Ok((residuals, checked_equations.abstractions, checked_equations.equations))
 }
 
 fn check_value_group_core_infer<Q>(
@@ -854,7 +858,7 @@ where
         marker: TypeId,
         unsolved: Vec<u32>,
         errors: generalise::ConstraintErrors,
-        evidences: Vec<Evidence>,
+        abstractions: Vec<tree::DeclarationAbstraction>,
         equations: Vec<equations::ElaboratedEquation>,
         inferred_constraints: bool,
     }
@@ -871,10 +875,10 @@ where
 
         let mut errors = generalise::ConstraintErrors::default();
 
-        let (marker, evidences, equations, inferred_constraints) = match group {
-            Some(PendingValueGroup::Checked { residuals, evidences, equations }) => {
+        let (marker, abstractions, equations, inferred_constraints) = match group {
+            Some(PendingValueGroup::Checked { residuals, abstractions, equations }) => {
                 errors.unsatisfied.extend(residuals);
-                (marker, evidences, equations, false)
+                (marker, abstractions, equations, false)
             }
             Some(PendingValueGroup::Inferred { residuals, equations }) => {
                 let constrained = generalise::constrain_using_residuals(
@@ -885,7 +889,13 @@ where
                     &mut errors,
                 )?;
                 let inferred_constraints = !constrained.evidences.is_empty();
-                (constrained.type_id, constrained.evidences, equations, inferred_constraints)
+                let abstractions = std::iter::zip(constrained.constraints, constrained.evidences)
+                    .map(|(constraint, evidence)| tree::DeclarationAbstraction::Evidence {
+                        constraint,
+                        evidence,
+                    });
+                let abstractions = abstractions.collect();
+                (constrained.type_id, abstractions, equations, inferred_constraints)
             }
             None => (marker, vec![], vec![], false),
         };
@@ -894,17 +904,25 @@ where
         let unsolved = generalise::unsolved_unifications(state, context, marker)?;
 
         let pending_group =
-            Pending { marker, unsolved, errors, evidences, equations, inferred_constraints };
+            Pending { marker, unsolved, errors, abstractions, equations, inferred_constraints };
         pending.push((item_id, pending_group));
     }
 
     for (
         item_id,
-        Pending { marker, unsolved, errors, evidences, equations, inferred_constraints },
+        Pending { marker, unsolved, errors, abstractions, equations, inferred_constraints },
     ) in pending
     {
-        let marker = generalise::generalise_unsolved(state, context, marker, &unsolved)?;
+        let generalised =
+            generalise::generalise_unsolved_with_parameters(state, context, marker, &unsolved)?;
+        let marker = generalised.type_id;
         state.checked.term_item_types.insert(item_id, marker);
+
+        let type_abstractions = generalised.parameters.into_iter().map(|parameter| {
+            tree::DeclarationAbstraction::Type { binder: parameter.binder, rigid: parameter.rigid }
+        });
+        let abstractions = type_abstractions.chain(abstractions);
+        let abstractions = abstractions.collect();
 
         if recursive && inferred_constraints {
             // Keep constraint evidence consistent with the candidate type used for error recovery.
@@ -915,7 +933,7 @@ where
             });
         }
 
-        record_value_declaration(state, context, item_id, marker, evidences, equations);
+        record_value_declaration(state, context, item_id, marker, abstractions, equations);
 
         for error in errors.ambiguous {
             let constraint = state.canonicals.type_id(context, error);
@@ -952,7 +970,7 @@ fn record_value_declaration<Q>(
     context: &CheckContext<Q>,
     item_id: TermItemId,
     type_id: TypeId,
-    evidences: Vec<Evidence>,
+    abstractions: Vec<tree::DeclarationAbstraction>,
     equations: Vec<equations::ElaboratedEquation>,
 ) where
     Q: ExternalQueries,
@@ -977,8 +995,10 @@ fn record_value_declaration<Q>(
         return;
     }
 
-    let declaration =
-        tree::ValueDeclaration { evidences: Arc::from(evidences), equations: Arc::from(equations) };
+    let declaration = tree::ValueDeclaration {
+        abstractions: Arc::from(abstractions),
+        equations: Arc::from(equations),
+    };
     let declaration =
         tree::TermDeclaration { type_id, kind: tree::TermDeclarationKind::Value(declaration) };
     state.checked.tree.insert_term(item_id, declaration);

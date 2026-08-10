@@ -7,13 +7,12 @@ use smol_str::format_smolstr;
 use crate::context::CheckContext;
 use crate::core::substitute::RigidRenaming;
 use crate::core::{ApplicationArgument, RowType, Type, TypeId, normalise, signature, toolkit};
-use crate::evidence::Evidence;
 use crate::source::derive::builder::DerivedTreeBuilder;
 use crate::source::derive::field;
 use crate::source::derive::variance::{
     ConstructorRecipe, RecordFieldRecipe, TraversalOperation, TraversalParameter, VarianceRecipe,
 };
-use crate::source::terms::ElaboratedExpression;
+use crate::source::terms::{ElaboratedExpression, equations};
 use crate::state::CheckState;
 use crate::{ExternalQueries, tree};
 
@@ -52,7 +51,7 @@ impl Mappings<ElaboratedExpression> {
 struct DecodedTraversalMember {
     member: ResolvedMember,
     renaming: Arc<RigidRenaming>,
-    constraints: Vec<TypeId>,
+    abstractions: Vec<signature::SkolemisedAbstraction>,
     implementation_type: TypeId,
     function_type: TypeId,
     mappings: Mappings<TypeId>,
@@ -93,7 +92,7 @@ impl DecodedTraversalMember {
             TraversalKind::Traversable => 2,
             TraversalKind::Bitraversable => 3,
         };
-        let signature::SkolemisedSignature { renaming, constraints, arguments, result } =
+        let signature::SkolemisedSignature { renaming, abstractions, arguments, result } =
             signature::expect_term_signature(
                 state,
                 context,
@@ -162,7 +161,7 @@ impl DecodedTraversalMember {
             implementation_type: member.implementation_type,
             member,
             renaming,
-            constraints,
+            abstractions,
             function_type,
             mappings,
             effect,
@@ -278,10 +277,7 @@ where
             return Ok(None);
         };
 
-        let mut evidences = Vec::with_capacity(member.constraints.len());
-        for &constraint in &member.constraints {
-            evidences.push(Evidence::Given(state.push_given(constraint)));
-        }
+        let abstractions = equations::bind_signature_abstractions(state, &member.abstractions);
 
         let body = state.with_source_type_renaming(&member.renaming, |state| {
             emit_variance_traversal(state, context, result.derive_id, &member, recipe)
@@ -292,7 +288,7 @@ where
             result.derive_id,
             (member.member.file_id, member.member.item_id),
             member.implementation_type,
-            evidences,
+            abstractions,
             body,
         )))
     })
@@ -324,7 +320,12 @@ where
         else {
             return Ok(None);
         };
-        let signature::SkolemisedSignature { renaming, constraints, arguments, result: body_type } =
+        let signature::SkolemisedSignature {
+            renaming,
+            abstractions,
+            arguments,
+            result: body_type,
+        } =
             signature::expect_term_signature(state, context, member.implementation_type, 1)?;
         let [source_type] = arguments.as_slice() else {
             return Ok(None);
@@ -368,10 +369,7 @@ where
             _ => return Ok(None),
         };
 
-        let mut evidences = Vec::with_capacity(constraints.len());
-        for constraint in constraints {
-            evidences.push(Evidence::Given(state.push_given(constraint)));
-        }
+        let abstractions = equations::bind_signature_abstractions(state, &abstractions);
 
         let body = state.with_source_type_renaming(&renaming, |state| {
             let mut builder = DerivedTreeBuilder::new(state, context, result.derive_id);
@@ -415,7 +413,7 @@ where
             result.derive_id,
             (member.file_id, member.item_id),
             member.implementation_type,
-            evidences,
+            abstractions,
             body,
         )))
     })

@@ -12,5 +12,8 @@ interface Second a where
 foreign import interleaved :: forall a. Main.First a => a -> (forall b. Main.Second b => b -> a)
 
 applyInterleaved :: forall a b. Main.First a => Main.Second b => a -> b -> a
-applyInterleaved = \{firstDict} -> \{secondDict} -> \first -> \second ->
+applyInterleaved = \@a -> \@b -> \{firstDict} -> \{secondDict} -> \first -> \second ->
   interleaved @a {firstDict} first @b {secondDict} second
+
+layered :: forall a. Main.First a => (forall b. Main.Second b => a -> b -> a)
+layered = \@a -> \{firstDict} -> \@b -> \{secondDict} -> \first -> \_ -> first

@@ -507,16 +507,20 @@ where
             continue;
         };
 
-        let signature::DecomposedSignature {
-            binders: kind_binders,
-            arguments: parameter_kinds,
-            ..
-        } = signature::decompose_signature(
-            state,
-            context,
-            constructor_kind,
-            signature::DecomposeSignatureMode::Full,
-        )?;
+        let signature::DecomposedSignature { abstractions, arguments: parameter_kinds, .. } =
+            signature::decompose_signature(
+                state,
+                context,
+                constructor_kind,
+                signature::DecomposeSignatureMode::Full,
+            )?;
+        let kind_binders = abstractions.into_iter().filter_map(|abstraction| {
+            let signature::DecomposedAbstraction::Type { binder } = abstraction else {
+                return None;
+            };
+            Some(context.lookup_forall_binder(binder))
+        });
+        let kind_binders = kind_binders.collect::<Vec<_>>();
 
         // parameter_kinds is the post-generalisation kind for each parameter;
         // we want to replace pre-generalisation kinds carried by parameters
@@ -870,16 +874,20 @@ where
             continue;
         };
 
-        let signature::DecomposedSignature {
-            binders: class_binders,
-            arguments: class_parameters,
-            ..
-        } = signature::decompose_signature(
-            state,
-            context,
-            class_kind,
-            signature::DecomposeSignatureMode::Full,
-        )?;
+        let signature::DecomposedSignature { abstractions, arguments: class_parameters, .. } =
+            signature::decompose_signature(
+                state,
+                context,
+                class_kind,
+                signature::DecomposeSignatureMode::Full,
+            )?;
+        let class_binders = abstractions.into_iter().filter_map(|abstraction| {
+            let signature::DecomposedAbstraction::Type { binder } = abstraction else {
+                return None;
+            };
+            Some(context.lookup_forall_binder(binder))
+        });
+        let class_binders = class_binders.collect::<Vec<_>>();
 
         let get_parameter_kind = |index: usize| {
             if let Some(kind) = class_parameters.get(index) {

@@ -6,21 +6,32 @@ use lowering::TypeVariableBinding;
 
 use crate::context::CheckContext;
 use crate::core::substitute::RigidRenaming;
-use crate::core::{ForallBinder, Type, TypeId, normalise, toolkit, unification};
+use crate::core::{ForallBinderId, Type, TypeId, normalise, toolkit, unification};
 use crate::error::ErrorKind;
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DecomposedAbstraction {
+    Type { binder: ForallBinderId },
+    Constraint { constraint: TypeId },
+}
+
 pub struct DecomposedSignature {
-    pub binders: Vec<ForallBinder>,
-    pub constraints: Vec<TypeId>,
+    pub abstractions: Vec<DecomposedAbstraction>,
     pub arguments: Vec<TypeId>,
     pub result: TypeId,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkolemisedAbstraction {
+    Type { binder: ForallBinderId, rigid: TypeId },
+    Constraint { constraint: TypeId },
+}
+
 pub struct SkolemisedSignature {
     pub renaming: Arc<RigidRenaming>,
-    pub constraints: Vec<TypeId>,
+    pub abstractions: Vec<SkolemisedAbstraction>,
     pub arguments: Vec<TypeId>,
     pub result: TypeId,
 }
@@ -40,8 +51,7 @@ pub fn decompose_signature<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut binders = vec![];
-    let mut constraints = vec![];
+    let mut abstractions = vec![];
     let mut arguments = vec![];
 
     safe_loop! {
@@ -49,12 +59,12 @@ where
 
         match context.lookup_type(current) {
             Type::Forall(binder_id, inner) => {
-                binders.push(context.lookup_forall_binder(binder_id));
+                abstractions.push(DecomposedAbstraction::Type { binder: binder_id });
                 current = inner;
             }
 
             Type::Constrained(constraint, constrained) => {
-                constraints.push(constraint);
+                abstractions.push(DecomposedAbstraction::Constraint { constraint });
                 current = constrained;
             }
 
@@ -62,7 +72,7 @@ where
                 if let DecomposeSignatureMode::Patterns { required } = mode
                     && arguments.len() >= required
                 {
-                    return Ok(DecomposedSignature { binders, constraints, arguments, result: current });
+                    return Ok(DecomposedSignature { abstractions, arguments, result: current });
                 }
 
                 arguments.push(argument);
@@ -73,7 +83,7 @@ where
                 if let DecomposeSignatureMode::Patterns { required } = mode
                     && arguments.len() >= required
                 {
-                    return Ok(DecomposedSignature { binders, constraints, arguments, result: current });
+                    return Ok(DecomposedSignature { abstractions, arguments, result: current });
                 }
 
                 let function_argument =
@@ -81,7 +91,7 @@ where
 
                 let Type::Application(function, argument) = context.lookup_type(function_argument)
                 else {
-                    return Ok(DecomposedSignature { binders, constraints, arguments, result: current });
+                    return Ok(DecomposedSignature { abstractions, arguments, result: current });
                 };
 
                 let function = normalise::expand(state, context, function)?;
@@ -89,11 +99,11 @@ where
                     arguments.push(argument);
                     current = result;
                 } else {
-                    return Ok(DecomposedSignature { binders, constraints, arguments, result: current });
+                    return Ok(DecomposedSignature { abstractions, arguments, result: current });
                 }
             }
 
-            _ => return Ok(DecomposedSignature { binders, constraints, arguments, result: current }),
+            _ => return Ok(DecomposedSignature { abstractions, arguments, result: current }),
         }
     }
 }
@@ -125,12 +135,7 @@ where
     let arguments = remaining.by_ref().take(actual as usize).collect();
     let result = context.intern_function_iter(remaining, signature.result);
 
-    Ok(DecomposedSignature {
-        binders: signature.binders,
-        constraints: signature.constraints,
-        arguments,
-        result,
-    })
+    Ok(DecomposedSignature { abstractions: signature.abstractions, arguments, result })
 }
 
 pub fn expect_term_signature<Q>(
@@ -145,7 +150,7 @@ where
     let signature =
         decompose_signature(state, context, signature_type, DecomposeSignatureMode::Full)?;
 
-    let SkolemisedSignature { renaming, constraints, arguments, result } =
+    let SkolemisedSignature { renaming, abstractions, arguments, result } =
         skolemise_decomposed_signature(state, context, signature)?;
 
     let mut remaining = arguments.into_iter();
@@ -154,7 +159,7 @@ where
     let mut result = context.intern_function_iter(remaining, result);
     synthesise_functions(state, context, &mut arguments, &mut result, required)?;
 
-    Ok(SkolemisedSignature { renaming, constraints, arguments, result })
+    Ok(SkolemisedSignature { renaming, abstractions, arguments, result })
 }
 
 fn synthesise_functions<Q>(
@@ -198,19 +203,24 @@ where
     Q: ExternalQueries,
 {
     let mut renaming = RigidRenaming::default();
+    let mut abstractions = Vec::with_capacity(signature.abstractions.len());
 
-    for binder in &signature.binders {
-        let kind = renaming.substitute(state, context, binder.kind)?;
-        let text = toolkit::lookup_name(state, context, binder.name)?;
-        let rigid = state.fresh_rigid_named(context.queries, kind, text);
-        renaming.insert(context, binder.name, rigid);
+    for abstraction in signature.abstractions {
+        match abstraction {
+            DecomposedAbstraction::Type { binder } => {
+                let forall_binder = context.lookup_forall_binder(binder);
+                let kind = renaming.substitute(state, context, forall_binder.kind)?;
+                let text = toolkit::lookup_name(state, context, forall_binder.name)?;
+                let rigid = state.fresh_rigid_named(context.queries, kind, text);
+                renaming.insert(context, forall_binder.name, rigid);
+                abstractions.push(SkolemisedAbstraction::Type { binder, rigid });
+            }
+            DecomposedAbstraction::Constraint { constraint } => {
+                let constraint = renaming.substitute(state, context, constraint)?;
+                abstractions.push(SkolemisedAbstraction::Constraint { constraint });
+            }
+        }
     }
-
-    let constraints = signature
-        .constraints
-        .iter()
-        .map(|&constraint| renaming.substitute(state, context, constraint))
-        .collect::<QueryResult<Vec<_>>>()?;
 
     let arguments = signature
         .arguments
@@ -221,5 +231,5 @@ where
     let result = renaming.substitute(state, context, signature.result)?;
     let renaming = Arc::new(renaming);
 
-    Ok(SkolemisedSignature { renaming, constraints, arguments, result })
+    Ok(SkolemisedSignature { renaming, abstractions, arguments, result })
 }

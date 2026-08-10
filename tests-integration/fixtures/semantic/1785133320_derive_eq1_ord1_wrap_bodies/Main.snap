@@ -23,7 +23,7 @@ dictionary eq1Wrap :: forall f. { eq1Dict :: Data.Eq.Eq1 f } => Data.Eq.Eq1 (Mai
   where
   eq1 :: forall (a :: Prim.Type).
   Data.Eq.Eq a => Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Prim.Boolean
-  eq1 = \{eqDict} -> eq @(Main.Wrap @Prim.Type f a) {eqWrap {eq1Dict} {eqDict}}
+  eq1 = \@a -> \{eqDict} -> eq @(Main.Wrap @Prim.Type f a) {eqWrap {eq1Dict} {eqDict}}
 
 dictionary ordWrap ::
   forall f a.
@@ -48,4 +48,4 @@ dictionary ord1Wrap ::
   superclass eq1Dict = eq1Wrap {ord1Dict.eq1Dict}
   compare1 :: forall (a :: Prim.Type).
   Data.Ord.Ord a => Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Data.Ordering.Ordering
-  compare1 = \{ordDict} -> compare @(Main.Wrap @Prim.Type f a) {ordWrap {ord1Dict} {ordDict}}
+  compare1 = \@a -> \{ordDict} -> compare @(Main.Wrap @Prim.Type f a) {ordWrap {ord1Dict} {ordDict}}

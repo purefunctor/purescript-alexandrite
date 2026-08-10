@@ -13,22 +13,24 @@ data TripleNegative @a
 
 dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Predicate a -> Main.Predicate b
-  cmap = \function value ->
-    case value of
-      (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
 
 dictionary contravariantTripleNegative ::
   Data.Functor.Contravariant.Contravariant Main.TripleNegative
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.TripleNegative a -> Main.TripleNegative b
-  cmap = \function value ->
-    case value of
-      (TripleNegative field0) -> TripleNegative @b
-        (cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate (Main.Predicate a)) @(Main.Predicate (Main.Predicate b))
-          (\element ->
-            cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate b) @(Main.Predicate a)
-              (\element ->
-                cmap @Main.Predicate {contravariantPredicate} @a @b (\element -> function element)
-                  element)
-              element)
-          field0)
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        (TripleNegative field0) -> TripleNegative @b
+          (cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate (Main.Predicate a)) @(Main.Predicate (Main.Predicate b))
+            (\element ->
+              cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate b) @(Main.Predicate a)
+                (\element ->
+                  cmap @Main.Predicate {contravariantPredicate} @a @b (\element -> function element)
+                    element)
+                element)
+            field0)

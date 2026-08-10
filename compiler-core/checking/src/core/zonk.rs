@@ -11,7 +11,8 @@ use crate::error::{CheckingError, ErrorKind};
 use crate::holes::{HoleBinding, TermHole, TypeHole};
 use crate::state::CheckState;
 use crate::tree::{
-    BinderKind, ExpressionKind, InstanceImplementation, TermDeclarationKind, TypeDeclarationKind,
+    BinderKind, DeclarationAbstraction, ExpressionKind, InstanceImplementation,
+    TermDeclarationKind, TypeDeclarationKind,
 };
 use crate::{ExternalQueries, OperatorBranchTypes, holes};
 
@@ -52,6 +53,30 @@ where
     Q: ExternalQueries,
 {
     fold_type(state, context, id, &mut Zonk)
+}
+
+fn zonk_declaration_abstractions<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    abstractions: &mut Arc<[DeclarationAbstraction]>,
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    for abstraction in Arc::make_mut(abstractions) {
+        match abstraction {
+            DeclarationAbstraction::Type { binder, rigid } => {
+                let mut forall_binder = context.lookup_forall_binder(*binder);
+                forall_binder.kind = zonk(state, context, forall_binder.kind)?;
+                *binder = context.intern_forall_binder(forall_binder);
+                *rigid = zonk(state, context, *rigid)?;
+            }
+            DeclarationAbstraction::Evidence { constraint, .. } => {
+                *constraint = zonk(state, context, *constraint)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn zonk_nodes<Q>(state: &mut CheckState, context: &CheckContext<Q>) -> QueryResult<()>
@@ -124,6 +149,7 @@ where
     let mut local_declarations = mem::take(&mut state.checked.tree.arena.lets);
     for (_, declaration) in local_declarations.iter_mut() {
         declaration.type_id = zonk(state, context, declaration.type_id)?;
+        zonk_declaration_abstractions(state, context, &mut declaration.value.abstractions)?;
     }
     state.checked.tree.arena.lets = local_declarations;
 
@@ -131,7 +157,10 @@ where
     for (_, declaration) in term_declarations.iter_mut() {
         declaration.type_id = zonk(state, context, declaration.type_id)?;
         match &mut declaration.kind {
-            TermDeclarationKind::Value(_) | TermDeclarationKind::Foreign => {}
+            TermDeclarationKind::Value(value) => {
+                zonk_declaration_abstractions(state, context, &mut value.abstractions)?;
+            }
+            TermDeclarationKind::Foreign => {}
             TermDeclarationKind::Constructor(constructor) => {
                 let arguments =
                     constructor.arguments.iter().map(|&argument| zonk(state, context, argument));
@@ -152,6 +181,11 @@ where
                         for member in Arc::make_mut(members) {
                             member.implementation_type =
                                 zonk(state, context, member.implementation_type)?;
+                            zonk_declaration_abstractions(
+                                state,
+                                context,
+                                &mut member.abstractions,
+                            )?;
                         }
                     }
                     InstanceImplementation::Delegate { constraint, .. } => {

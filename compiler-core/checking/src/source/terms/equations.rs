@@ -34,7 +34,7 @@ pub type ValueEquationPatterns = Vec<TypeId>;
 
 pub struct CheckedValueEquations {
     pub patterns: ValueEquationPatterns,
-    pub evidences: Vec<Evidence>,
+    pub abstractions: Vec<tree::DeclarationAbstraction>,
     pub equations: Vec<ElaboratedEquation>,
 }
 
@@ -72,14 +72,10 @@ where
 {
     let required = equations.iter().map(|equation| equation.binders.len()).max().unwrap_or(0);
 
-    let signature::SkolemisedSignature { renaming, constraints, arguments, result } =
+    let signature::SkolemisedSignature { renaming, abstractions, arguments, result } =
         signature::expect_term_signature(state, context, expected_type, required)?;
 
-    let mut evidences = vec![];
-    for &constraint in &constraints {
-        let evidence = state.push_given(constraint);
-        evidences.push(Evidence::Given(evidence));
-    }
+    let abstractions = bind_signature_abstractions(state, &abstractions);
 
     let signature = context.intern_function_list(&arguments, result);
     let signature = ValueEquationSignature { signature, arguments, result };
@@ -91,7 +87,7 @@ where
         check_equations(state, context, origin, &signature, &arguments, equations)
     })?;
 
-    Ok(CheckedValueEquations { patterns: arguments, evidences, equations })
+    Ok(CheckedValueEquations { patterns: arguments, abstractions, equations })
 }
 
 /// Infers a group of [`lowering::Equation`].
@@ -146,9 +142,28 @@ where
 
     Ok(CheckedValueEquations {
         patterns: arguments,
-        evidences: vec![],
+        abstractions: vec![],
         equations: elaborated_equations,
     })
+}
+
+pub fn bind_signature_abstractions(
+    state: &mut CheckState,
+    abstractions: &[signature::SkolemisedAbstraction],
+) -> Vec<tree::DeclarationAbstraction> {
+    let abstractions = abstractions.iter().map(|abstraction| match *abstraction {
+        signature::SkolemisedAbstraction::Type { binder, rigid } => {
+            tree::DeclarationAbstraction::Type { binder, rigid }
+        }
+        signature::SkolemisedAbstraction::Constraint { constraint } => {
+            let evidence = state.push_given(constraint);
+            tree::DeclarationAbstraction::Evidence {
+                constraint,
+                evidence: Evidence::Given(evidence),
+            }
+        }
+    });
+    abstractions.collect()
 }
 
 fn check_equations<Q>(

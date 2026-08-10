@@ -59,8 +59,14 @@ pub enum TermDeclarationKind {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ValueDeclaration {
-    pub evidences: Arc<[Evidence]>,
+    pub abstractions: Arc<[DeclarationAbstraction]>,
     pub equations: Arc<[Equation]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeclarationAbstraction {
+    Type { binder: ForallBinderId, rigid: TypeId },
+    Evidence { constraint: TypeId, evidence: Evidence },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -74,10 +80,10 @@ impl LocalDeclaration {
     pub fn new(
         source: LetBindingNameGroupId,
         type_id: TypeId,
-        evidences: Arc<[Evidence]>,
+        abstractions: Arc<[DeclarationAbstraction]>,
         equations: Arc<[Equation]>,
     ) -> LocalDeclaration {
-        let value = ValueDeclaration { evidences, equations };
+        let value = ValueDeclaration { abstractions, equations };
         LocalDeclaration { source, type_id, value }
     }
 
@@ -129,7 +135,7 @@ pub struct InstanceSuperclass {
 pub struct InstanceMember {
     pub resolution: (FileId, TermItemId),
     pub implementation_type: TypeId,
-    pub evidences: Arc<[Evidence]>,
+    pub abstractions: Arc<[DeclarationAbstraction]>,
     pub equations: Arc<[Equation]>,
 }
 

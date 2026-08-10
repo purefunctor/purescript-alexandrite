@@ -173,11 +173,35 @@ pub fn generalise_unsolved<Q>(
 where
     Q: ExternalQueries,
 {
+    let generalised = generalise_unsolved_with_parameters(state, context, id, unsolved)?;
+    Ok(generalised.type_id)
+}
+
+pub struct GeneralisedType {
+    pub type_id: TypeId,
+    pub parameters: Vec<GeneralisedParameter>,
+}
+
+pub struct GeneralisedParameter {
+    pub binder: crate::core::ForallBinderId,
+    pub rigid: TypeId,
+}
+
+pub fn generalise_unsolved_with_parameters<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    id: TypeId,
+    unsolved: &[u32],
+) -> QueryResult<GeneralisedType>
+where
+    Q: ExternalQueries,
+{
     if unsolved.is_empty() {
-        return Ok(id);
+        return Ok(GeneralisedType { type_id: id, parameters: vec![] });
     }
 
     let mut quantified = id;
+    let mut parameters = Vec::with_capacity(unsolved.len());
 
     // All rigid type variables in a single generalisation share the same
     // depth, one level deeper than the ambient scope. Note that the depth
@@ -205,28 +229,31 @@ where
         let UnificationEntry { kind, state: unification_state, .. } =
             *state.unifications.get(unification_id);
 
-        let (name, kind) = match unification_state {
+        let (rigid, name, kind) = match unification_state {
             UnificationState::Unsolved => {
                 let name = state.names.fresh();
                 let rigid = context.intern_rigid(name, depth, kind);
                 state.unifications.solve(unification_id, rigid);
-                (name, kind)
+                (rigid, name, kind)
             }
             UnificationState::Solved(solution) => {
                 let solution = normalise::expand(state, context, solution)?;
                 let Type::Rigid(name, _, kind) = context.lookup_type(solution) else {
                     continue;
                 };
-                (name, kind)
+                (solution, name, kind)
             }
         };
 
         let binder = ForallBinder { visible: false, name, kind };
         let binder = context.intern_forall_binder(binder);
         quantified = context.intern_forall(binder, quantified);
+        parameters.push(GeneralisedParameter { binder, rigid });
     }
 
-    zonk::zonk(state, context, quantified)
+    parameters.reverse();
+    let type_id = zonk::zonk(state, context, quantified)?;
+    Ok(GeneralisedType { type_id, parameters })
 }
 
 /// Generalises a given type. See also module-level documentation.
@@ -250,6 +277,7 @@ pub struct ConstraintErrors {
 
 pub struct ConstrainedByResiduals {
     pub type_id: TypeId,
+    pub constraints: Vec<TypeId>,
     pub evidences: Vec<Evidence>,
 }
 
@@ -264,7 +292,11 @@ where
     Q: ExternalQueries,
 {
     if residuals.is_empty() {
-        return Ok(ConstrainedByResiduals { type_id: unconstrained, evidences: vec![] });
+        return Ok(ConstrainedByResiduals {
+            type_id: unconstrained,
+            constraints: vec![],
+            evidences: vec![],
+        });
     }
 
     for residual in residuals.iter_mut() {
@@ -279,14 +311,17 @@ where
     let generalised = residuals.sorted_by_key(|constraint| constraint.key.wanted).collect_vec();
     let generalised = finalise_generalised_constraints(state, context, generalised)?;
 
-    let constrained = generalised.iter().rfold(unconstrained, |inner, generalised| {
-        let constraint = state.canonicals.type_id(context, generalised.constraint);
-        context.intern_constrained(constraint, inner)
-    });
+    let constraints = generalised
+        .iter()
+        .map(|generalised| state.canonicals.type_id(context, generalised.constraint));
+    let constraints = constraints.collect::<Vec<_>>();
+    let constrained = constraints
+        .iter()
+        .rfold(unconstrained, |inner, &constraint| context.intern_constrained(constraint, inner));
     let evidences = generalised.into_iter().map(|generalised| generalised.evidence);
     let evidences = evidences.collect();
 
-    Ok(ConstrainedByResiduals { type_id: constrained, evidences })
+    Ok(ConstrainedByResiduals { type_id: constrained, constraints, evidences })
 }
 
 type PrunedPartial = (Vec<ConstraintInScope>, Option<ConstraintInScope>);

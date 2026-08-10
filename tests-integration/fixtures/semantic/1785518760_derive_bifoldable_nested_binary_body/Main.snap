@@ -15,25 +15,27 @@ dictionary bifoldableNested ::
   where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
-  bifoldr = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Nested field0) -> bifoldr @p {bifoldableDict} @a @b @c
-        (\element accumulator -> firstFunction element accumulator)
-        (\element accumulator -> secondFunction element accumulator)
-        accumulator
-        field0
+  bifoldr = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Nested field0) -> bifoldr @p {bifoldableDict} @a @b @c
+          (\element accumulator -> firstFunction element accumulator)
+          (\element accumulator -> secondFunction element accumulator)
+          accumulator
+          field0
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
-  bifoldl = \firstFunction secondFunction accumulator value ->
-    case value of
-      (Nested field0) -> bifoldl @p {bifoldableDict} @a @b @c
-        (\accumulator element -> firstFunction accumulator element)
-        (\accumulator element -> secondFunction accumulator element)
-        accumulator
-        field0
+  bifoldl = \@a -> \@b -> \@c ->
+    \firstFunction secondFunction accumulator value ->
+      case value of
+        (Nested field0) -> bifoldl @p {bifoldableDict} @a @b @c
+          (\accumulator element -> firstFunction accumulator element)
+          (\accumulator element -> secondFunction accumulator element)
+          accumulator
+          field0
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Nested @Prim.Type @Prim.Type p a b -> m
-  bifoldMap = \{monoidDict} ->
+  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Nested field0) -> bifoldMap @p {bifoldableDict} @m @a @b {monoidDict}

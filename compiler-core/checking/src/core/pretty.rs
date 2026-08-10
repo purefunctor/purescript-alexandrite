@@ -44,7 +44,7 @@ pub trait PrettyQueries:
     fn lookup_smol_str(&self, id: SmolStrId) -> SmolStr;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PrettyNames {
     display_by_name: FxHashMap<Name, SmolStr>,
     next_suffix: FxHashMap<SmolStr, NonZeroU32>,
@@ -263,6 +263,15 @@ impl<'a, Q> PrettyState<'a, Q>
 where
     Q: PrettyQueries + ?Sized,
 {
+    pub(crate) fn fork(&self) -> PrettyState<'a, Q> {
+        PrettyState {
+            queries: self.queries,
+            checked: self.checked,
+            config: self.config,
+            names: self.names.clone(),
+        }
+    }
+
     pub fn display_name(&mut self, name: Name) -> SmolStr {
         self.names.set_default_name("t");
         self.names.display_name(self.queries, &self.checked.names, name)

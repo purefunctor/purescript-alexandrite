@@ -9,6 +9,6 @@ data Maybe @a
   | Nothing :: Main.Maybe a
 
 recover :: forall a. a -> Main.Maybe a -> a
-recover = \fallback -> \input ->
+recover = \@a -> \fallback -> \input ->
   | (Just value) <- input -> value
   | true -> fallback

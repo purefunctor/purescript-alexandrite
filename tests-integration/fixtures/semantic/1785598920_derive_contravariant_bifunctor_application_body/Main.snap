@@ -14,16 +14,18 @@ data Nested @a
 dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
   bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
-  bimap = \firstFunction secondFunction value ->
-    case value of
-      (Pair field0 field1) -> Pair @b @d (firstFunction field0) (secondFunction field1)
+  bimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Pair field0 field1) -> Pair @b @d (firstFunction field0) (secondFunction field1)
 
 dictionary contravariantNested :: Data.Functor.Contravariant.Contravariant Main.Nested where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Nested a -> Main.Nested b
-  cmap = \function value ->
-    case value of
-      (Nested field0) -> Nested @b
-        (bimap @Main.Pair {bifunctorPair} @(a -> Prim.Int) @(b -> Prim.Int) @Prim.String @Prim.String
-          (\element -> \argument -> element (function argument))
-          (\unchanged -> unchanged)
-          field0)
+  cmap = \@a -> \@b ->
+    \function value ->
+      case value of
+        (Nested field0) -> Nested @b
+          (bimap @Main.Pair {bifunctorPair} @(a -> Prim.Int) @(b -> Prim.Int) @Prim.String @Prim.String
+            (\element -> \argument -> element (function argument))
+            (\unchanged -> unchanged)
+            field0)

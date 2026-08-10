@@ -290,7 +290,7 @@ where
         .map(|(source, equation)| equation.into_local_tree(source));
 
     let equations = equations.collect();
-    let evidences = checked_equations.evidences.into();
+    let abstractions = checked_equations.abstractions.into();
 
-    Ok(tree::LocalDeclaration::new(id, name_type, evidences, equations))
+    Ok(tree::LocalDeclaration::new(id, name_type, abstractions, equations))
 }

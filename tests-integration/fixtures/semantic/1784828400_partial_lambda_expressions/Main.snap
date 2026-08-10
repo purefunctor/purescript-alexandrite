@@ -12,4 +12,4 @@ checked :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
 checked = \{partialDict} -> \(Just value) -> value
 
 inferred :: forall t0. Prim.Partial => Main.Maybe t0 -> t0
-inferred = \{trivial} -> \(Just value) -> value
+inferred = \@t0 -> \{trivial} -> \(Just value) -> value

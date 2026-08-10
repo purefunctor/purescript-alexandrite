@@ -15,11 +15,11 @@ interface Capability m where
 foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
 
 inferredPun :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
-inferredPun = \{firstDict} -> \{secondDict} ->
+inferredPun = \@t0 -> \@t1 -> \{firstDict} -> \{secondDict} ->
   { interleaved: interleaved @t0 {firstDict} @t1 {secondDict} }
 
 inferredExplicit :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
-inferredExplicit = \{firstDict} -> \{secondDict} ->
+inferredExplicit = \@t0 -> \@t1 -> \{firstDict} -> \{secondDict} ->
   { interleaved: interleaved @t0 {firstDict} @t1 {secondDict} }
 
 aliased :: Main.Alias

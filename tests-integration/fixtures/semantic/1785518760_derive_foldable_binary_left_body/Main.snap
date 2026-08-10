@@ -14,25 +14,27 @@ dictionary foldableLeftDuplicate ::
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
-  foldr = \function accumulator value ->
-    case value of
-      (LeftDuplicate field0) -> bifoldr @p {bifoldableDict} @a @Prim.Int @b
-        (\element accumulator -> function element accumulator)
-        (\ignored accumulator -> accumulator)
-        accumulator
-        field0
+  foldr = \@a -> \@b ->
+    \function accumulator value ->
+      case value of
+        (LeftDuplicate field0) -> bifoldr @p {bifoldableDict} @a @Prim.Int @b
+          (\element accumulator -> function element accumulator)
+          (\ignored accumulator -> accumulator)
+          accumulator
+          field0
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
-  foldl = \function accumulator value ->
-    case value of
-      (LeftDuplicate field0) -> bifoldl @p {bifoldableDict} @a @Prim.Int @b
-        (\accumulator element -> function accumulator element)
-        (\accumulator ignored -> accumulator)
-        accumulator
-        field0
+  foldl = \@a -> \@b ->
+    \function accumulator value ->
+      case value of
+        (LeftDuplicate field0) -> bifoldl @p {bifoldableDict} @a @Prim.Int @b
+          (\accumulator element -> function accumulator element)
+          (\accumulator ignored -> accumulator)
+          accumulator
+          field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.LeftDuplicate @Prim.Type p a -> m
-  foldMap = \{monoidDict} ->
+  foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
         (LeftDuplicate field0) -> bifoldMap @p {bifoldableDict} @m @a @Prim.Int {monoidDict}

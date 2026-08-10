@@ -11,8 +11,9 @@ data RecordPro @a @b
 dictionary profunctorRecordPro :: Data.Profunctor.Profunctor Main.RecordPro where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.RecordPro b c -> Main.RecordPro a d
-  dimap = \firstFunction secondFunction value ->
-    case value of
-      (RecordPro field0) -> RecordPro @a @d
-        field0 { consume = \argument ->
-          field0.consume (firstFunction argument), produce = secondFunction field0.produce }
+  dimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (RecordPro field0) -> RecordPro @a @d
+          field0 { consume = \argument ->
+            field0.consume (firstFunction argument), produce = secondFunction field0.produce }

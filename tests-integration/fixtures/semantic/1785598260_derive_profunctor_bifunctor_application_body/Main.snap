@@ -14,17 +14,19 @@ data Nested @a @b
 dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
   bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
-  bimap = \firstFunction secondFunction value ->
-    case value of
-      (Pair field0 field1) -> Pair @b @d (firstFunction field0) (secondFunction field1)
+  bimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Pair field0 field1) -> Pair @b @d (firstFunction field0) (secondFunction field1)
 
 dictionary profunctorNested :: Data.Profunctor.Profunctor Main.Nested where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Nested b c -> Main.Nested a d
-  dimap = \firstFunction secondFunction value ->
-    case value of
-      (Nested field0) -> Nested @a @d
-        (bimap @Main.Pair {bifunctorPair} @(b -> Prim.Int) @(a -> Prim.Int) @c @d
-          (\element -> \argument -> element (firstFunction argument))
-          (\element -> secondFunction element)
-          field0)
+  dimap = \@a -> \@b -> \@c -> \@d ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Nested field0) -> Nested @a @d
+          (bimap @Main.Pair {bifunctorPair} @(b -> Prim.Int) @(a -> Prim.Int) @c @d
+            (\element -> \argument -> element (firstFunction argument))
+            (\element -> secondFunction element)
+            field0)

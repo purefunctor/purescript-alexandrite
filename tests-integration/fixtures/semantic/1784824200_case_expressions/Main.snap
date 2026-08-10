@@ -32,6 +32,6 @@ multiple = \first -> \second ->
     _, _ -> 0
 
 partial :: forall t0. Prim.Partial => Main.Choice t0 -> t0
-partial = \{trivial} -> \choice ->
+partial = \@t0 -> \{trivial} -> \choice ->
   case choice of
     (One value) -> value

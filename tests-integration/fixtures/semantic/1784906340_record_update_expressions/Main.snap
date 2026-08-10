@@ -4,7 +4,7 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \value -> value
+identity = \@a -> \value -> value
 
 record :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 record = { first: 1, nested: { value: 2 }, transform: identity @Prim.Int }
@@ -16,7 +16,7 @@ typeChanging :: { first :: Prim.String, nested :: { value :: Prim.Int }, transfo
 typeChanging = record { first = "two" }
 
 multiple :: forall t0. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t0 -> t0 }
-multiple = record { first = 2, transform = identity @t0 }
+multiple = \@t0 -> record { first = 2, transform = identity @t0 }
 
 nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 nested = record { nested { value = 3 } }
