@@ -19,6 +19,7 @@
 //!
 //! [pratt parser]: https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
 
+use std::collections::hash_map::Entry;
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -76,18 +77,43 @@ impl ForOperatorId for TypeOperatorId {
     }
 }
 
+struct BracketingContext<'a, Q>
+where
+    Q: crate::ExternalQueries,
+{
+    queries: &'a Q,
+    lowered: &'a LoweredModule,
+    lowered_by_file: FxHashMap<FileId, Arc<LoweredModule>>,
+}
+
+impl<'a, Q> BracketingContext<'a, Q>
+where
+    Q: crate::ExternalQueries,
+{
+    fn new(queries: &'a Q, lowered: &'a LoweredModule) -> BracketingContext<'a, Q> {
+        BracketingContext { queries, lowered, lowered_by_file: FxHashMap::default() }
+    }
+}
+
 /// Resolves an operator and its associativity and precedence.
-fn operator_info<OperatorId>(
-    queries: &impl crate::ExternalQueries,
-    lowered: &LoweredModule,
+fn operator_info<OperatorId, Q>(
+    context: &mut BracketingContext<'_, Q>,
     id: OperatorId,
 ) -> Option<(Associativity, u8)>
 where
+    Q: crate::ExternalQueries,
     OperatorId: ForOperatorId,
 {
-    let (file_id, term_id) = OperatorId::resolve_operator(lowered, id)?;
-    let lowered = queries.lowered(file_id).ok()?;
-    OperatorId::operator_info(&lowered, term_id)
+    let (file_id, item_id) = OperatorId::resolve_operator(context.lowered, id)?;
+    let queries = context.queries;
+    let lowered = match context.lowered_by_file.entry(file_id) {
+        Entry::Occupied(entry) => entry.into_mut(),
+        Entry::Vacant(entry) => {
+            let lowered = queries.lowered(file_id).ok()?;
+            entry.insert(lowered)
+        }
+    };
+    OperatorId::operator_info(lowered.as_ref(), item_id)
 }
 
 /// Translates [`Associativity`] and precedence into binding power.
@@ -111,13 +137,13 @@ fn binding_power(associativity: Associativity, precedence: u8) -> (u8, u8) {
 // section: algorithm
 
 /// Common entry point for bracketing.
-fn bracket<Id>(
-    queries: &impl crate::ExternalQueries,
-    lowered: &LoweredModule,
+fn bracket<Id, Q>(
+    context: &mut BracketingContext<'_, Q>,
     item: Option<Id>,
     items: &[OperatorPair<Id>],
 ) -> BracketingResult<Id>
 where
+    Q: crate::ExternalQueries,
     Id: IsElement,
     Id::OperatorId: ForOperatorId,
 {
@@ -131,21 +157,21 @@ where
         }
         _ => {
             let mut items = items.iter().copied().peekable();
-            bracket_loop(queries, lowered, item, &mut items, 0, None)
+            bracket_loop(context, item, &mut items, 0, None)
         }
     }
 }
 
 /// Core pratt parsing loop for bracketing.
-fn bracket_loop<Id>(
-    queries: &impl crate::ExternalQueries,
-    lowered: &LoweredModule,
+fn bracket_loop<Id, Q>(
+    context: &mut BracketingContext<'_, Q>,
     item: Option<Id>,
     items: &mut Peekable<impl Iterator<Item = OperatorPair<Id>>>,
     minimum_binding_power: u8,
     previous_operator: Option<OperatorInfo<Id::OperatorId>>,
 ) -> BracketingResult<Id>
 where
+    Q: crate::ExternalQueries,
     Id: IsElement,
     Id::OperatorId: ForOperatorId,
 {
@@ -155,7 +181,7 @@ where
         let id = id.ok_or(BracketingError::InvalidOperator)?;
 
         let (associativity, precedence) =
-            operator_info(queries, lowered, id).ok_or(BracketingError::FailedToResolve(id))?;
+            operator_info(context, id).ok_or(BracketingError::FailedToResolve(id))?;
 
         let operator = OperatorInfo { id, associativity, precedence };
 
@@ -178,8 +204,7 @@ where
 
         items.next();
 
-        let right =
-            bracket_loop(queries, lowered, element, items, right_binding_power, Some(operator))?;
+        let right = bracket_loop(context, element, items, right_binding_power, Some(operator))?;
 
         left = OperatorTree::Branch(id, [left, right].into());
     }
@@ -237,24 +262,26 @@ pub fn bracketed(
     queries: &impl crate::ExternalQueries,
     lowered: &LoweredModule,
 ) -> QueryResult<Bracketed> {
+    let mut context = BracketingContext::new(queries, lowered);
+
     let mut binders = FxHashMap::default();
     for (id, kind) in lowered.tree.iter_binder() {
         if let BinderKind::OperatorChain { head, tail } = kind {
-            binders.insert(id, bracket(queries, lowered, *head, tail));
+            binders.insert(id, bracket(&mut context, *head, tail));
         }
     }
 
     let mut expressions = FxHashMap::default();
     for (id, kind) in lowered.tree.iter_expression() {
         if let ExpressionKind::OperatorChain { head, tail } = kind {
-            expressions.insert(id, bracket(queries, lowered, *head, tail));
+            expressions.insert(id, bracket(&mut context, *head, tail));
         }
     }
 
     let mut types = FxHashMap::default();
     for (id, kind) in lowered.tree.iter_type() {
         if let TypeKind::OperatorChain { head, tail } = kind {
-            types.insert(id, bracket(queries, lowered, *head, tail));
+            types.insert(id, bracket(&mut context, *head, tail));
         }
     }
 
