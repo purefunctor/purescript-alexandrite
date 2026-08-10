@@ -248,6 +248,20 @@ where
     };
 
     match kind {
+        lowering::ExpressionKind::Typed { expression, type_ } => {
+            let Some(expression) = expression else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+            let Some(type_) = type_ else {
+                return Ok(allocate_error_expression(state, unknown));
+            };
+
+            let (annotation, _) = types::check_kind(state, context, *type_, context.prim.t)?;
+            let applications =
+                application::check_subsumption(state, context, annotation, expected)?;
+            let checked = check_expression(state, context, *expression, annotation)?;
+            Ok(application::materialize_implicit_applications(state, checked, applications))
+        }
         lowering::ExpressionKind::Lambda { binders, expression } => {
             forms::check_lambda(state, context, binders, *expression, expected)
         }
@@ -364,7 +378,7 @@ where
                 return Ok(allocate_error_expression(state, unknown));
             };
 
-            let (t, _) = types::infer_kind(state, context, *t)?;
+            let (t, _) = types::check_kind(state, context, *t, context.prim.t)?;
             check_expression(state, context, *e, t)
         }
 
