@@ -20,7 +20,7 @@ type Hover = Type
 --           $
 ```
 
-Range: <none>
+Range: "Type"
 
 ```purescript
 Type :: Type

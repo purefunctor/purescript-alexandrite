@@ -10,7 +10,7 @@ import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
 
-Range: <none>
+Range: "Lib"
 
 ```purescript
 module Lib where
@@ -80,7 +80,7 @@ ref = life
 --     $
 ```
 
-Range: <none>
+Range: "life"
 
 ```purescript
 life :: Int
@@ -94,7 +94,7 @@ just :: forall a. a -> Maybe a
 --                      $    $
 ```
 
-Range: <none>
+Range: "Maybe"
 
 ```purescript
 Maybe :: Type -> Type
@@ -122,7 +122,7 @@ just = Just
 --      $
 ```
 
-Range: <none>
+Range: "Just"
 
 ```purescript
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
@@ -136,7 +136,7 @@ nothing :: forall a. Maybe a
 --                    $
 ```
 
-Range: <none>
+Range: "Maybe"
 
 ```purescript
 Maybe :: Type -> Type
@@ -150,7 +150,7 @@ nothing = Nothing
 --         $
 ```
 
-Range: <none>
+Range: "Nothing"
 
 ```purescript
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
@@ -164,7 +164,7 @@ opName = (+)
 --        $
 ```
 
-Range: <none>
+Range: "(+)"
 
 ```purescript
 + :: Int -> Int -> Int
@@ -178,7 +178,7 @@ opChain = 9 + 10
 --          $
 ```
 
-Range: <none>
+Range: "+"
 
 ```purescript
 + :: Int -> Int -> Int
@@ -192,7 +192,7 @@ type TypeOpChain = Int ++ Int
 --                     $
 ```
 
-Range: <none>
+Range: "++"
 
 ```purescript
 ++ :: Type -> Type -> Type

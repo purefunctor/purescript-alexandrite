@@ -20,7 +20,7 @@ infixl 6 combine as <+>
 --       @$%&?/     $@
 ```
 
-Range: <none>
+Range: "combine"
 
 ```purescript
 combine ::
@@ -126,7 +126,7 @@ infixl 6 type Wrapped as :+:
 --            @$%&?/     $@
 ```
 
-Range: <none>
+Range: "Wrapped"
 
 ```purescript
 Wrapped :: Type
@@ -230,7 +230,7 @@ infixl 6 Library.combine as <++>
 --               @$%&?/
 ```
 
-Range: <none>
+Range: "Library.combine"
 
 ```purescript
 combine ::
@@ -319,7 +319,7 @@ infixl 6 type Library.Wrapped as :++:
 --                    @$%&?/
 ```
 
-Range: <none>
+Range: "Library.Wrapped"
 
 ```purescript
 Wrapped :: Type

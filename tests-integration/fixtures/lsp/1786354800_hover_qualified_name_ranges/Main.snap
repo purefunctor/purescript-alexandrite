@@ -10,7 +10,7 @@ import Library.Values as Library.Values
 --       $       $
 ```
 
-Range: <none>
+Range: "Library.Values"
 
 ```purescript
 module Library.Values where
@@ -24,7 +24,7 @@ import Library.Values as Library.Values
 --       $       $
 ```
 
-Range: <none>
+Range: "Library.Values"
 
 ```purescript
 module Library.Values where
@@ -38,7 +38,7 @@ qualifiedType :: Library.Values.Value
 --                                $
 ```
 
-Range: <none>
+Range: "Library.Values.Value"
 
 ```purescript
 Value :: Type
@@ -52,7 +52,7 @@ qualifiedType = Library.Values.value
 --                               $
 ```
 
-Range: <none>
+Range: "Library.Values.value"
 
 ```purescript
 value :: Value
@@ -66,7 +66,7 @@ qualifiedOperator = Library.Values.(+)
 --                                  $
 ```
 
-Range: <none>
+Range: "Library.Values.(+)"
 
 ```purescript
 + :: Int -> Int -> Int
@@ -80,7 +80,7 @@ endBoundary = Library.Values.value
 --                                $
 ```
 
-Range: <none>
+Range: "Library.Values.value"
 
 ```purescript
 value :: Value

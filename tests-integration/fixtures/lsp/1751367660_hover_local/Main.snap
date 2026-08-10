@@ -10,7 +10,7 @@ ref = life
 --    $
 ```
 
-Range: <none>
+Range: "life"
 
 ```purescript
 life :: Int
@@ -24,7 +24,7 @@ Hover at Position { line: 17, character: 6 }
 --    $     $
 ```
 
-Range: <none>
+Range: "life"
 
 ```purescript
 Int
@@ -38,7 +38,7 @@ Hover at Position { line: 17, character: 12 }
 --    $     $
 ```
 
-Range: <none>
+Range: "value"
 
 ```purescript
 Int
@@ -52,7 +52,7 @@ just :: Maybe Int
 --       $
 ```
 
-Range: <none>
+Range: "Maybe"
 
 ```purescript
 Maybe :: Type -> Type
@@ -66,7 +66,7 @@ just = Just 42
 --      $
 ```
 
-Range: <none>
+Range: "Just"
 
 ```purescript
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
@@ -80,7 +80,7 @@ nothing :: Maybe Int
 --          $
 ```
 
-Range: <none>
+Range: "Maybe"
 
 ```purescript
 Maybe :: Type -> Type
@@ -94,7 +94,7 @@ nothing = Nothing
 --         $
 ```
 
-Range: <none>
+Range: "Nothing"
 
 ```purescript
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
@@ -108,7 +108,7 @@ Hover at Position { line: 34, character: 3 }
 -- $
 ```
 
-Range: <none>
+Range: "Just"
 
 ```purescript
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
@@ -122,7 +122,7 @@ Hover at Position { line: 37, character: 3 }
 -- $
 ```
 
-Range: <none>
+Range: "Nothing"
 
 ```purescript
 Nothing :: forall (@a :: Type). Maybe (a :: Type)

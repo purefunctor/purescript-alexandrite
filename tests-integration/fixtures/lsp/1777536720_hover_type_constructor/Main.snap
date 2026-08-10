@@ -10,7 +10,7 @@ foreign import main :: Effect Unit
 --                     $
 ```
 
-Range: <none>
+Range: "Effect"
 
 ```purescript
 Effect :: Type -> Type

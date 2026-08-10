@@ -10,7 +10,7 @@ bug ∷ ∀ a. Effect (Either a a) → Effect (Either a a)
 --                 $                     $
 ```
 
-Range: <none>
+Range: "Either"
 
 ```purescript
 Either :: Type -> Type -> Type
@@ -24,7 +24,7 @@ bug ∷ ∀ a. Effect (Either a a) → Effect (Either a a)
 --                 $                     $
 ```
 
-Range: <none>
+Range: "Either"
 
 ```purescript
 Either :: Type -> Type -> Type

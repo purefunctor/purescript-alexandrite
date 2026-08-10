@@ -215,6 +215,15 @@ pub fn locate(
     id: FileId,
     position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {
+    let (located, _) = locate_with_token(engine, id, position)?;
+    Ok(located)
+}
+
+pub(crate) fn locate_with_token(
+    engine: &impl AnalyzerQueries,
+    id: FileId,
+    position: Utf8Position,
+) -> Result<(Located, Option<SyntaxToken>), AnalyzerError> {
     let content = engine.content(id);
 
     let (parsed, _) = engine.parsed(id)?;
@@ -223,15 +232,18 @@ pub fn locate(
     let lowered = engine.lowered(id)?;
 
     let Some(offset) = position::utf8_position_to_offset(&content, position) else {
-        return Ok(Located::Nothing);
+        return Ok((Located::Nothing, None));
     };
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
 
     Ok(match token {
-        TokenAtOffset::None => Located::Nothing,
-        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, &lowered, token),
+        TokenAtOffset::None => (Located::Nothing, None),
+        TokenAtOffset::Single(token) => {
+            let located = locate_single(&stabilized, &indexed, &lowered, &token);
+            (located, Some(token))
+        }
         TokenAtOffset::Between(left, right) => {
             locate_between(&stabilized, &indexed, &lowered, left, right)
         }
@@ -242,7 +254,7 @@ fn locate_single(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
     lowered: &LoweredModule,
-    token: SyntaxToken,
+    token: &SyntaxToken,
 ) -> Located {
     token
         .parent_ancestors()
@@ -422,16 +434,16 @@ fn locate_between(
     lowered: &LoweredModule,
     left: SyntaxToken,
     right: SyntaxToken,
-) -> Located {
-    let left = locate_single(stabilized, indexed, lowered, left);
-    let right = locate_single(stabilized, indexed, lowered, right);
-    match (&left, &right) {
+) -> (Located, Option<SyntaxToken>) {
+    let left_located = locate_single(stabilized, indexed, lowered, &left);
+    let right_located = locate_single(stabilized, indexed, lowered, &right);
+    match (&left_located, &right_located) {
         // If left/right share an ancestor;
-        (_, _) if left == right => left,
-        (_, Located::Nothing) => left,
-        (Located::Nothing, _) => right,
+        (_, _) if left_located == right_located => (right_located, Some(right)),
+        (_, Located::Nothing) => (left_located, Some(left)),
+        (Located::Nothing, _) => (right_located, Some(right)),
         // otherwise, lean towards the right.
-        (_, _) => right,
+        (_, _) => (right_located, Some(right)),
     }
 }
 

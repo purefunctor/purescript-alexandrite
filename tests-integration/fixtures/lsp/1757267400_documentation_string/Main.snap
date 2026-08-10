@@ -10,7 +10,7 @@ test = id
 --     $
 ```
 
-Range: <none>
+Range: "id"
 
 ```purescript
 id :: forall (a :: Type). (a :: Type) -> (a :: Type)
@@ -26,7 +26,7 @@ test2 = const
 --      $
 ```
 
-Range: <none>
+Range: "const"
 
 ```purescript
 const ::
@@ -41,7 +41,7 @@ test3 = docOnly
 --      $
 ```
 
-Range: <none>
+Range: "docOnly"
 
 ```purescript
 docOnly :: Int
@@ -57,7 +57,7 @@ test4 = multiLine
 --      $
 ```
 
-Range: <none>
+Range: "multiLine"
 
 ```purescript
 multiLine :: Int
@@ -75,7 +75,7 @@ test5 = multiLine2
 --      $
 ```
 
-Range: <none>
+Range: "multiLine2"
 
 ```purescript
 multiLine2 :: Int
@@ -93,7 +93,7 @@ test6 = multiLine3
 --      $
 ```
 
-Range: <none>
+Range: "multiLine3"
 
 ```purescript
 multiLine3 :: Int
@@ -113,7 +113,7 @@ Hover at Position { line: 60, character: 6 }
 --    $
 ```
 
-Range: <none>
+Range: "valueOnly"
 
 ```purescript
 Int
@@ -127,7 +127,7 @@ Hover at Position { line: 62, character: 6 }
 --    $
 ```
 
-Range: <none>
+Range: "withSignature"
 
 ```purescript
 Int
