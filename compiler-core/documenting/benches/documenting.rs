@@ -11,8 +11,7 @@ struct Fixture {
     indexed: Arc<indexing::IndexedModule>,
 }
 
-fn fixture(item_count: usize) -> Fixture {
-    let source = synthetic_module(item_count);
+fn fixture_from_source(source: String) -> Fixture {
     let lexed = lexing::lex(&source);
     let tokens = lexing::layout(&lexed);
     let (parsed, _) = parsing::parse(&lexed, &tokens);
@@ -51,10 +50,43 @@ fn synthetic_module(item_count: usize) -> String {
     source
 }
 
+fn annotation_heavy_module(item_count: usize) -> String {
+    let mut source = String::from("-- | Module documentation.\nmodule Bench.Documenting where\n\n");
+
+    for index in 0..item_count {
+        for line in 0..16 {
+            writeln!(
+                source,
+                "-- | Documentation line {line} for value {index} has enough deterministic text to make annotation copies measurable."
+            )
+            .unwrap();
+        }
+        writeln!(source, "value{index} :: Int").unwrap();
+        writeln!(source, "value{index} = {index}").unwrap();
+        writeln!(source).unwrap();
+    }
+
+    source
+}
+
 fn criterion_benchmark(c: &mut Criterion) {
-    let fixture = fixture(400);
+    let fixture = fixture_from_source(synthetic_module(400));
 
     c.bench_function("document-module-synthetic", |b| {
+        b.iter(|| {
+            let documented = documenting::document_module(
+                black_box(&fixture.source),
+                black_box(&fixture.parsed),
+                black_box(&fixture.stabilized),
+                black_box(&fixture.indexed),
+            );
+            black_box(documented);
+        });
+    });
+
+    let fixture = fixture_from_source(annotation_heavy_module(400));
+
+    c.bench_function("document-module-annotation-heavy", |b| {
         b.iter(|| {
             let documented = documenting::document_module(
                 black_box(&fixture.source),
