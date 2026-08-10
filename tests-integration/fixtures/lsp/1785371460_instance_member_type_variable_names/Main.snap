@@ -10,6 +10,8 @@ Hover at Position { line: 9, character: 6 }
 --    $
 ```
 
+Range: <none>
+
 ```purescript
 ((a :: Type) -> (r :: Type)) -> (r :: Type)
 ```
@@ -22,6 +24,8 @@ Hover at Position { line: 11, character: 8 }
 --      $       $
 ```
 
+Range: <none>
+
 ```purescript
 (b :: Type) -> (r :: Type)
 ```
@@ -33,6 +37,8 @@ Hover at Position { line: 11, character: 16 }
         return (function a)
 --      $       $
 ```
+
+Range: <none>
 
 ```purescript
 (a :: Type) -> (b :: Type)

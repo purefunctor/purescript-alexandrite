@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 4, character: 11 }
@@ -9,6 +9,8 @@ Hover at Position { line: 4, character: 11 }
 test = add ?one ?two
 --         $    $
 ```
+
+Range: <none>
 
 ```purescript
 Int
@@ -21,6 +23,8 @@ Hover at Position { line: 4, character: 16 }
 test = add ?one ?two
 --         $    $
 ```
+
+Range: <none>
 
 ```purescript
 Int

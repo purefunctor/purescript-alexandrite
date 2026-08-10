@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 2, character: 8 }
@@ -9,6 +9,8 @@ Hover at Position { line: 2, character: 8 }
 import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
+
+Range: <none>
 
 ```purescript
 module Lib where
@@ -22,6 +24,8 @@ import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
 
+Range: <none>
+
 ```purescript
 life :: Int
 ```
@@ -33,6 +37,8 @@ Hover at Position { line: 2, character: 19 }
 import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
+
+Range: <none>
 
 ```purescript
 Maybe :: Type -> Type
@@ -46,6 +52,8 @@ import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
 
+Range: <none>
+
 ```purescript
 + :: Int -> Int -> Int
 ```
@@ -57,6 +65,8 @@ Hover at Position { line: 2, character: 41 }
 import Lib (life, Maybe(..), (+),  type (++))
 --      $    $     $          $          $
 ```
+
+Range: <none>
 
 ```purescript
 ++ :: Type -> Type -> Type
@@ -70,6 +80,8 @@ ref = life
 --     $
 ```
 
+Range: <none>
+
 ```purescript
 life :: Int
 ```
@@ -81,6 +93,8 @@ Hover at Position { line: 9, character: 24 }
 just :: forall a. a -> Maybe a
 --                      $    $
 ```
+
+Range: <none>
 
 ```purescript
 Maybe :: Type -> Type
@@ -94,6 +108,8 @@ just :: forall a. a -> Maybe a
 --                      $    $
 ```
 
+Range: <none>
+
 ```purescript
 Type
 ```
@@ -105,6 +121,8 @@ Hover at Position { line: 11, character: 8 }
 just = Just
 --      $
 ```
+
+Range: <none>
 
 ```purescript
 Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
@@ -118,6 +136,8 @@ nothing :: forall a. Maybe a
 --                    $
 ```
 
+Range: <none>
+
 ```purescript
 Maybe :: Type -> Type
 ```
@@ -129,6 +149,8 @@ Hover at Position { line: 16, character: 11 }
 nothing = Nothing
 --         $
 ```
+
+Range: <none>
 
 ```purescript
 Nothing :: forall (@a :: Type). Maybe (a :: Type)
@@ -142,6 +164,8 @@ opName = (+)
 --        $
 ```
 
+Range: <none>
+
 ```purescript
 + :: Int -> Int -> Int
 ```
@@ -154,6 +178,8 @@ opChain = 9 + 10
 --          $
 ```
 
+Range: <none>
+
 ```purescript
 + :: Int -> Int -> Int
 ```
@@ -165,6 +191,8 @@ Hover at Position { line: 27, character: 23 }
 type TypeOpChain = Int ++ Int
 --                     $
 ```
+
+Range: <none>
 
 ```purescript
 ++ :: Type -> Type -> Type

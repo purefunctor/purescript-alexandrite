@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 GotoDefinition at Position { line: 4, character: 18 }
@@ -19,6 +19,8 @@ Hover at Position { line: 7, character: 13 }
 type Hover = Type
 --           $
 ```
+
+Range: <none>
 
 ```purescript
 Type :: Type

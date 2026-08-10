@@ -10,6 +10,8 @@ Hover at Position { line: 7, character: 3 }
 -- $
 ```
 
+Range: <none>
+
 ```purescript
 map ::
   forall (@f :: Type -> Type).
@@ -28,6 +30,8 @@ Hover at Position { line: 9, character: 3 }
 -- $
 ```
 
+Range: <none>
+
 ```purescript
 map ::
   forall (@f :: Type -> Type).
@@ -45,6 +49,8 @@ Hover at Position { line: 16, character: 3 }
 value = 42
 -- $
 ```
+
+Range: <none>
 
 ```purescript
 value :: Int

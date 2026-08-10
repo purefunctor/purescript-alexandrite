@@ -10,6 +10,8 @@ fromBinder argument = argument
 --         $
 ```
 
+Range: <none>
+
 ```purescript
 (t0 :: Type)
 ```
@@ -21,6 +23,8 @@ Hover at Position { line: 5, character: 12 }
 fromLiteral "hello" = "hello"
 --          $
 ```
+
+Range: <none>
 
 ```purescript
 String
@@ -34,6 +38,8 @@ fromArray [ element ] = [ element ]
 --        $
 ```
 
+Range: <none>
+
 ```purescript
 Array (t0 :: Type)
 ```
@@ -45,6 +51,8 @@ Hover at Position { line: 11, character: 11 }
 fromRecord { element } = { element }
 --         $
 ```
+
+Range: <none>
 
 ```purescript
 { element :: (t0 :: Type) | (t1 :: Row Type) }
