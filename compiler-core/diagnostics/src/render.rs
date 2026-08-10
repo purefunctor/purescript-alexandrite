@@ -210,8 +210,17 @@ pub fn to_lsp_diagnostic(
 ) -> Option<lsp_types::Diagnostic> {
     let line_index = LineIndex::new(content);
 
+    to_lsp_diagnostic_with_line_index(diagnostic, &line_index, uri, encoding)
+}
+
+pub fn to_lsp_diagnostic_with_line_index(
+    diagnostic: &Diagnostic,
+    line_index: &LineIndex,
+    uri: &lsp_types::Url,
+    encoding: &lsp_types::PositionEncodingKind,
+) -> Option<lsp_types::Diagnostic> {
     let to_position =
-        |offset: u32| offset_to_lsp_position(&line_index, TextSize::from(offset), encoding);
+        |offset: u32| offset_to_lsp_position(line_index, TextSize::from(offset), encoding);
 
     let start = to_position(diagnostic.span.start)?;
     let end = to_position(diagnostic.span.end)?;
