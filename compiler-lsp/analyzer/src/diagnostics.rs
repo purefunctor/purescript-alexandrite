@@ -1,6 +1,7 @@
 use building_types::QueryProxy;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
 use files::FileId;
+use line_index::LineIndex;
 use lsp_types::{Diagnostic, Url};
 
 use crate::{AnalyzerContext, AnalyzerError, AnalyzerHost, common};
@@ -56,8 +57,14 @@ where
     }
 
     let position_encoding = context.position_encoding().into();
+    let line_index = LineIndex::new(&content);
     let diagnostics = all_diagnostics.iter().filter_map(|diagnostic| {
-        diagnostics::to_lsp_diagnostic(diagnostic, &content, &uri, &position_encoding)
+        diagnostics::to_lsp_diagnostic_with_line_index(
+            diagnostic,
+            &line_index,
+            &uri,
+            &position_encoding,
+        )
     });
 
     let diagnostics = diagnostics.collect();
