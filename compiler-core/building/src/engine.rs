@@ -666,15 +666,40 @@ impl QueryEngine {
     where
         K: Hash + Eq + Copy,
         F: FnOnce(&InputStorage) -> &Shards<K, InputState<V>>,
+        V: Eq,
+    {
+        let shard = shards(&self.input).shard(&key);
+        {
+            let guard = shard.read();
+            if guard.get(&key).is_some_and(|state| state.value == value) {
+                return;
+            }
+        }
+
+        self.set_input_transaction(key, shard, value);
+    }
+
+    fn set_input_transaction<K, V>(
+        &self,
+        key: K,
+        shard: &RwLock<FxHashMap<K, InputState<V>>>,
+        value: V,
+    ) where
+        K: Hash + Eq + Copy,
+        V: Eq,
     {
         self.control.global.cancelled.store(true, Ordering::Relaxed);
         let _query_lock = self.control.global.query_lock.write();
 
+        let mut guard = shard.write();
+        if guard.get(&key).is_some_and(|state| state.value == value) {
+            self.control.global.cancelled.store(false, Ordering::Relaxed);
+            return;
+        }
+
         let changed = self.control.global.revision.fetch_add(1, Ordering::Relaxed);
         let state = InputState { value, changed: changed + 1 };
-
-        let shard = shards(&self.input).shard(&key);
-        shard.write().insert(key, state);
+        guard.insert(key, state);
 
         self.control.global.cancelled.store(false, Ordering::Relaxed);
     }
@@ -1033,8 +1058,8 @@ impl sugar::ExternalQueries for QueryEngine {}
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
-    use std::sync::Arc;
-    use std::sync::atomic::Ordering;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier};
 
     use building_types::{QueryError, QueryResult};
     use files::{FileId, Files};
@@ -1081,6 +1106,165 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_equal_input_write_cost() {
+        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const QUERY: FileId = FileId::from_raw(RawIdx::from_u32(1));
+
+        let engine = QueryEngine::default();
+        let initial_content: Arc<str> = Arc::from("module Main where\n\nvalue = 42");
+        let equal_content: Arc<str> = Arc::from("module Main where\n\nvalue = 42");
+        assert!(!Arc::ptr_eq(&initial_content, &equal_content));
+
+        let recomputations = AtomicUsize::new(0);
+        let compute = |engine: &QueryEngine| {
+            recomputations.fetch_add(1, Ordering::Relaxed);
+            engine.content(SOURCE);
+            engine.parsed(SOURCE)
+        };
+
+        engine.set_content(SOURCE, initial_content);
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+
+        let revision_before = engine.control.global.revision.load(Ordering::Relaxed);
+        let recomputations_before = recomputations.load(Ordering::Relaxed);
+
+        engine.set_content(SOURCE, equal_content);
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+
+        let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
+        let recomputations_after = recomputations.load(Ordering::Relaxed);
+        assert_eq!(
+            (revision_after - revision_before, recomputations_after - recomputations_before),
+            (0, 0)
+        );
+
+        engine.set_content(SOURCE, "module Main where\n\nvalue = 43");
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+
+        let revision_after_change = engine.control.global.revision.load(Ordering::Relaxed);
+        let recomputations_after_change = recomputations.load(Ordering::Relaxed);
+        assert_eq!(
+            (
+                revision_after_change - revision_after,
+                recomputations_after_change - recomputations_after
+            ),
+            (1, 1)
+        );
+    }
+
+    #[test]
+    fn test_equal_input_write_does_not_cancel_live_snapshot() {
+        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+
+        let engine = QueryEngine::default();
+        let initial_content: Arc<str> = Arc::from("module Main where");
+        let equal_content: Arc<str> = Arc::from("module Main where");
+        assert!(!Arc::ptr_eq(&initial_content, &equal_content));
+
+        engine.set_content(SOURCE, Arc::clone(&initial_content));
+        let revision_before = engine.control.global.revision.load(Ordering::Relaxed);
+        let snapshot = engine.snapshot();
+        engine.set_content(SOURCE, equal_content);
+        drop(snapshot);
+
+        let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
+        let stored_content = engine.content(SOURCE);
+        assert_eq!(revision_after, revision_before);
+        assert!(!engine.control.global.cancelled.load(Ordering::Relaxed));
+        assert!(Arc::ptr_eq(&stored_content, &initial_content));
+    }
+
+    #[test]
+    fn test_concurrent_input_writes_advance_revision_once() {
+        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+
+        let engine = QueryEngine::default();
+        engine.set_content(SOURCE, "module Main where\n\nvalue = 1");
+
+        let revision_before = engine.control.global.revision.load(Ordering::Relaxed);
+        let snapshot = engine.snapshot();
+        let barrier = Barrier::new(3);
+        let updated_a: Arc<str> = Arc::from("module Main where\n\nvalue = 2");
+        let updated_b: Arc<str> = Arc::from("module Main where\n\nvalue = 2");
+        assert!(!Arc::ptr_eq(&updated_a, &updated_b));
+
+        std::thread::scope(|scope| {
+            let setter_a = scope.spawn(|| {
+                {
+                    let shard = engine.input.content.shard(&SOURCE).read();
+                    assert_eq!(
+                        shard.get(&SOURCE).unwrap().value.as_ref(),
+                        "module Main where\n\nvalue = 1"
+                    );
+                }
+                barrier.wait();
+                let shard = engine.input.content.shard(&SOURCE);
+                engine.set_input_transaction(SOURCE, shard, updated_a);
+            });
+            let setter_b = scope.spawn(|| {
+                {
+                    let shard = engine.input.content.shard(&SOURCE).read();
+                    assert_eq!(
+                        shard.get(&SOURCE).unwrap().value.as_ref(),
+                        "module Main where\n\nvalue = 1"
+                    );
+                }
+                barrier.wait();
+                let shard = engine.input.content.shard(&SOURCE);
+                engine.set_input_transaction(SOURCE, shard, updated_b);
+            });
+
+            barrier.wait();
+            drop(snapshot);
+            setter_a.join().unwrap();
+            setter_b.join().unwrap();
+        });
+
+        let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
+        let shard = engine.input.content.shard(&SOURCE).read();
+        let state = shard.get(&SOURCE).unwrap();
+        assert_eq!(revision_after, revision_before + 1);
+        assert_eq!(state.changed, revision_after);
+        assert_eq!(state.value.as_ref(), "module Main where\n\nvalue = 2");
+    }
+
+    #[test]
+    fn test_equal_module_input_write_preserves_revision() {
+        const MODULE_FILE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const REPLACEMENT_FILE: FileId = FileId::from_raw(RawIdx::from_u32(1));
+
+        let engine = QueryEngine::default();
+        engine.set_module_file("Main", MODULE_FILE);
+
+        let module_name = engine.interned.module.lookup("Main").unwrap();
+        let changed_before = {
+            let shard = engine.input.module.shard(&module_name).read();
+            shard.get(&module_name).unwrap().changed
+        };
+        let revision_before = engine.control.global.revision.load(Ordering::Relaxed);
+
+        engine.set_module_file("Main", MODULE_FILE);
+
+        let changed_after = {
+            let shard = engine.input.module.shard(&module_name).read();
+            shard.get(&module_name).unwrap().changed
+        };
+        let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
+        assert_eq!(changed_after, changed_before);
+        assert_eq!(revision_after, revision_before);
+
+        engine.set_module_file("Main", REPLACEMENT_FILE);
+
+        let changed_after_replacement = {
+            let shard = engine.input.module.shard(&module_name).read();
+            shard.get(&module_name).unwrap().changed
+        };
+        let revision_after_replacement = engine.control.global.revision.load(Ordering::Relaxed);
+        assert_eq!(changed_after_replacement, revision_after_replacement);
+        assert_eq!(revision_after_replacement - revision_after, 1);
     }
 
     #[test]
