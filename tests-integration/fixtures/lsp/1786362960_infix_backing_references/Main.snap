@@ -1,0 +1,430 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+GotoDefinition at Position { line: 6, character: 9 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 6:0..6:23
+
+
+Hover at Position { line: 6, character: 10 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+Range: <none>
+
+```purescript
+<+> ::
+  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+```
+
+
+References at Position { line: 6, character: 11 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+
+
+
+DocumentHighlight at Position { line: 6, character: 12 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+6:20..6:23
+
+
+PrepareRename at Position { line: 6, character: 13 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+<empty>
+
+
+Rename at Position { line: 6, character: 14 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+<empty>
+
+
+Hover at Position { line: 6, character: 20 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+Range: <none>
+
+```purescript
+<+> ::
+  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+```
+
+
+GotoDefinition at Position { line: 6, character: 21 }
+
+```
+infixl 6 combine as <+>
+--       @$%&?/     $@
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 6:0..6:23
+
+
+GotoDefinition at Position { line: 11, character: 14 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 11:0..11:28
+
+
+Hover at Position { line: 11, character: 15 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+Range: <none>
+
+```purescript
+:+: :: Type
+```
+
+
+References at Position { line: 11, character: 16 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+
+
+
+DocumentHighlight at Position { line: 11, character: 17 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+11:25..11:28
+
+
+PrepareRename at Position { line: 11, character: 18 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+<empty>
+
+
+Rename at Position { line: 11, character: 19 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+<empty>
+
+
+Hover at Position { line: 11, character: 25 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+Range: <none>
+
+```purescript
+:+: :: Type
+```
+
+
+GotoDefinition at Position { line: 11, character: 26 }
+
+```
+infixl 6 type Wrapped as :+:
+--            @$%&?/     $@
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 11:0..11:28
+
+
+GotoDefinition at Position { line: 14, character: 17 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 14:0..14:32
+
+
+Hover at Position { line: 14, character: 18 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+Range: <none>
+
+```purescript
+<++> ::
+  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+```
+
+
+References at Position { line: 14, character: 19 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+
+
+
+DocumentHighlight at Position { line: 14, character: 20 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+14:28..14:32
+
+
+PrepareRename at Position { line: 14, character: 21 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+<empty>
+
+
+Rename at Position { line: 14, character: 22 }
+
+```
+infixl 6 Library.combine as <++>
+--               @$%&?/
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 17, character: 22 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 17:0..17:37
+
+
+Hover at Position { line: 17, character: 23 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+Range: <none>
+
+```purescript
+:++: :: Type
+```
+
+
+References at Position { line: 17, character: 24 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+
+
+
+DocumentHighlight at Position { line: 17, character: 25 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+17:33..17:37
+
+
+PrepareRename at Position { line: 17, character: 26 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+<empty>
+
+
+Rename at Position { line: 17, character: 27 }
+
+```
+infixl 6 type Library.Wrapped as :++:
+--                    @$%&?/
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 20, character: 9 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 20:0..20:23
+
+
+Hover at Position { line: 20, character: 10 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+<empty>
+
+
+References at Position { line: 20, character: 11 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+
+
+
+DocumentHighlight at Position { line: 20, character: 12 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+20:20..20:23
+
+
+PrepareRename at Position { line: 20, character: 13 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+<empty>
+
+
+Rename at Position { line: 20, character: 14 }
+
+```
+infixl 6 missing as <?>
+--       @$%&?/
+```
+
+<empty>
+
+
+GotoDefinition at Position { line: 23, character: 14 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+file:///tests-integration/fixtures/lsp/1786362960_infix_backing_references/Main.purs @ 23:0..23:28
+
+
+Hover at Position { line: 23, character: 15 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+<empty>
+
+
+References at Position { line: 23, character: 16 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+
+
+
+DocumentHighlight at Position { line: 23, character: 17 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+23:25..23:28
+
+
+PrepareRename at Position { line: 23, character: 18 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+<empty>
+
+
+Rename at Position { line: 23, character: 19 }
+
+```
+infixl 6 type Missing as :?:
+--            @$%&?/
+```
+
+<empty>
