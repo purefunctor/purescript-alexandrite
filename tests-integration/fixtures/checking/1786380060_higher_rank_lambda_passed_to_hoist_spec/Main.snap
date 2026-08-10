@@ -66,20 +66,3 @@ First = [Phantom]
 Second = [Phantom]
 Third = [Phantom]
 SpecT = [Phantom, Phantom]
-
-Diagnostics
-error[CannotUnify]: Cannot unify 'Third' with 'Function (First (a :: Type))'
-  --> 55:23..57:26
-   |
-55 |         ( \_ value -> value
-   |                       ^~~~~
-error[CannotUnify]: Cannot unify 'Third ?53' with 'Function (First (a :: Type)) (Third (a :: Type))'
-  --> 55:23..57:26
-   |
-55 |         ( \_ value -> value
-   |                       ^~~~~
-error[CannotUnify]: Cannot unify 'Third ?53' with 'First (a :: Type) -> Third (a :: Type)'
-  --> 55:23..57:26
-   |
-55 |         ( \_ value -> value
-   |                       ^~~~~
