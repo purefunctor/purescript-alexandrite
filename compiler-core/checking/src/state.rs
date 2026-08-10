@@ -55,10 +55,12 @@ pub struct UnificationEntry {
 pub struct Unifications {
     entries: Vec<UnificationEntry>,
     unique: u32,
+    frozen: bool,
 }
 
 impl Unifications {
     pub fn fresh(&mut self, depth: Depth, kind: TypeId) -> u32 {
+        assert!(!self.frozen, "invariant violated: fresh unification created while frozen");
         let unique = self.unique;
 
         self.unique += 1;
@@ -76,11 +78,25 @@ impl Unifications {
     }
 
     pub fn solve(&mut self, index: u32, solution: TypeId) {
+        let frozen = self.frozen;
+        let state = self.get(index).state;
+        assert!(
+            !frozen || matches!(state, UnificationState::Solved(_)),
+            "invariant violated: unification solved while frozen"
+        );
         self.get_mut(index).state = UnificationState::Solved(solution);
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &UnificationEntry> {
         self.entries.iter()
+    }
+
+    fn freeze(&mut self) {
+        self.frozen = true;
+    }
+
+    fn unfreeze(&mut self) {
+        self.frozen = false;
     }
 }
 
@@ -140,6 +156,8 @@ pub struct CheckState {
     pub bindings: Bindings,
     pub patterns: PatternInterner,
 
+    zonk_cache: Option<FxHashMap<TypeId, TypeId>>,
+
     pub unifications: Unifications,
     pub implications: Implications,
     pub canonicals: Canonicals,
@@ -158,6 +176,7 @@ impl CheckState {
             names: Names::new(file_id),
             bindings: Default::default(),
             patterns: Default::default(),
+            zonk_cache: None,
             unifications: Default::default(),
             implications: Default::default(),
             canonicals: Default::default(),
@@ -165,6 +184,31 @@ impl CheckState {
             defer_expansion: Default::default(),
             depth: Depth(0),
             crumbs: Default::default(),
+        }
+    }
+
+    /// Enables subtree memoization while preventing new unification solutions.
+    ///
+    /// Existing solutions may still be path-compressed.
+    pub fn with_zonk_cache<T>(&mut self, f: impl FnOnce(&mut CheckState) -> T) -> T {
+        assert!(self.zonk_cache.is_none(), "invariant violated: zonk cache enabled twice");
+        self.unifications.freeze();
+        self.zonk_cache = Some(FxHashMap::default());
+
+        let result = f(self);
+
+        self.zonk_cache = None;
+        self.unifications.unfreeze();
+        result
+    }
+
+    pub(crate) fn lookup_zonk_cache(&self, id: TypeId) -> Option<TypeId> {
+        self.zonk_cache.as_ref().and_then(|cache| cache.get(&id)).copied()
+    }
+
+    pub(crate) fn insert_zonk_cache(&mut self, id: TypeId, result: TypeId) {
+        if let Some(cache) = &mut self.zonk_cache {
+            cache.insert(id, result);
         }
     }
 

@@ -20,15 +20,30 @@ struct Zonk;
 impl TypeFold for Zonk {
     fn transform<Q>(
         &mut self,
-        _state: &mut CheckState,
+        state: &mut CheckState,
         _context: &CheckContext<Q>,
-        _id: TypeId,
+        id: TypeId,
         _t: &Type,
     ) -> QueryResult<FoldAction>
     where
         Q: ExternalQueries,
     {
-        Ok(FoldAction::Continue)
+        let cached = state.lookup_zonk_cache(id);
+        Ok(cached.map_or(FoldAction::Continue, FoldAction::Replace))
+    }
+
+    fn complete<Q>(
+        &mut self,
+        state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        id: TypeId,
+        result: TypeId,
+    ) -> QueryResult<TypeId>
+    where
+        Q: ExternalQueries,
+    {
+        state.insert_zonk_cache(id, result);
+        Ok(result)
     }
 }
 
