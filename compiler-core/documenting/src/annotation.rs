@@ -185,8 +185,8 @@ fn annotation_documentation(source: &str, node: &SyntaxNode) -> Option<String> {
         return None;
     }
 
-    let text = node.first_token()?.text(source).to_owned();
-    extract_annotation(&text)
+    let text = node.first_token()?.text(source);
+    extract_annotation(text)
 }
 
 fn documentation_line_content(line: &str) -> Option<&str> {
@@ -223,6 +223,23 @@ mod tests {
     use indexing::IndexedTermItemKind;
 
     use super::*;
+
+    #[test]
+    fn multiline_annotation_extraction_preserves_line_semantics() {
+        let text = concat!(
+            "  -- | First line.  \n",
+            "    -- |  Indented second line.\n",
+            "    -- Ordinary comment.\n",
+            "    -- | Third line.\n",
+        );
+
+        let documentation = extract_annotation(text);
+
+        assert_eq!(
+            documentation.as_deref(),
+            Some("First line.\n Indented second line.\nThird line.")
+        );
+    }
 
     #[test]
     fn value_equation_documentation_used_when_signature_has_no_documentation() {
