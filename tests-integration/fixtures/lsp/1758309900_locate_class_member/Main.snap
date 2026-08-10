@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 References at Position { line: 3, character: 3 }
@@ -29,6 +29,8 @@ Hover at Position { line: 3, character: 7 }
   eqEqEqEq :: a -> a -> Boolean
 -- % @ $
 ```
+
+Range: <none>
 
 ```purescript
 eqEqEqEq ::

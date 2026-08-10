@@ -3,10 +3,12 @@
 use std::iter;
 
 use files::FileId;
-use indexing::{ImportItemId, IndexedModule, IndexedTermItemKind, TermItemId, TypeItemId};
+use indexing::{
+    ImportItemId, IndexedModule, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+};
 use lowering::{
     BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordAccessLabelId, RecordPunId,
-    TermItemKind, TermOperatorId, TypeId, TypeOperatorId, TypeVariableBindingId,
+    TermItemKind, TermOperatorId, TypeId, TypeItemKind, TypeOperatorId, TypeVariableBindingId,
 };
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::{AstNode, AstPtr};
@@ -67,6 +69,65 @@ pub fn instance_head_ranges(
         }
     });
     ranges.collect()
+}
+
+pub fn term_infix_reference_ranges(
+    content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    target: (FileId, TermItemId),
+) -> Vec<Utf8Range> {
+    let root = parsed.syntax_node();
+    let ranges = indexed.items.iter_terms().filter_map(|(term_id, item)| {
+        let IndexedTermItemKind::Operator { id } = &item.kind else { return None };
+        let TermItemKind::Operator { resolution, .. } = lowered.tree.get_term_item_kind(term_id)?
+        else {
+            return None;
+        };
+        if resolution.as_ref() != Some(&target) {
+            return None;
+        }
+        infix_reference_range(content, &root, stabilized, *id)
+    });
+    ranges.collect()
+}
+
+pub fn type_infix_reference_ranges(
+    content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    target: (FileId, TypeItemId),
+) -> Vec<Utf8Range> {
+    let root = parsed.syntax_node();
+    let ranges = indexed.items.iter_types().filter_map(|(type_id, item)| {
+        let IndexedTypeItemKind::Operator { id } = &item.kind else { return None };
+        let TypeItemKind::Operator { resolution, .. } = lowered.tree.get_type_item_kind(type_id)?
+        else {
+            return None;
+        };
+        if resolution.as_ref() != Some(&target) {
+            return None;
+        }
+        infix_reference_range(content, &root, stabilized, *id)
+    });
+    ranges.collect()
+}
+
+fn infix_reference_range(
+    content: &str,
+    root: &SyntaxNode,
+    stabilized: &StabilizedModule,
+    id: AstId<cst::InfixDeclaration>,
+) -> Option<Utf8Range> {
+    let ptr = stabilized.syntax_ptr(id)?;
+    let declaration = ptr.try_to_node(root).and_then(cst::InfixDeclaration::cast)?;
+    let qualified = declaration.qualified()?;
+    let range = position::qualified_name_text_range(&qualified)?;
+    position::text_range_to_utf8_range(content, range)
 }
 
 fn instance_head_range<T>(
@@ -139,6 +200,8 @@ pub enum Located {
     ExpressionPun(RecordPunId),
     TermOperator(TermOperatorId),
     TypeOperator(TypeOperatorId),
+    TermReference(FileId, TermItemId),
+    TypeReference(FileId, TypeItemId),
     InstanceHead(FileId, TypeItemId),
     InstanceMember(FileId, TermItemId),
     TermItem(TermItemId),
@@ -152,6 +215,15 @@ pub fn locate(
     id: FileId,
     position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {
+    let (located, _) = locate_with_token(engine, id, position)?;
+    Ok(located)
+}
+
+pub(crate) fn locate_with_token(
+    engine: &impl AnalyzerQueries,
+    id: FileId,
+    position: Utf8Position,
+) -> Result<(Located, Option<SyntaxToken>), AnalyzerError> {
     let content = engine.content(id);
 
     let (parsed, _) = engine.parsed(id)?;
@@ -160,15 +232,18 @@ pub fn locate(
     let lowered = engine.lowered(id)?;
 
     let Some(offset) = position::utf8_position_to_offset(&content, position) else {
-        return Ok(Located::Nothing);
+        return Ok((Located::Nothing, None));
     };
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
 
     Ok(match token {
-        TokenAtOffset::None => Located::Nothing,
-        TokenAtOffset::Single(token) => locate_single(&stabilized, &indexed, &lowered, token),
+        TokenAtOffset::None => (Located::Nothing, None),
+        TokenAtOffset::Single(token) => {
+            let located = locate_single(&stabilized, &indexed, &lowered, &token);
+            (located, Some(token))
+        }
         TokenAtOffset::Between(left, right) => {
             locate_between(&stabilized, &indexed, &lowered, left, right)
         }
@@ -179,7 +254,7 @@ fn locate_single(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
     lowered: &LoweredModule,
-    token: SyntaxToken,
+    token: &SyntaxToken,
 ) -> Located {
     token
         .parent_ancestors()
@@ -200,6 +275,8 @@ fn locate_node(
     } else if cst::ModuleName::can_cast(kind) {
         let ptr = ptr.cast()?;
         Some(Located::ModuleName(ptr))
+    } else if cst::QualifiedName::can_cast(kind) {
+        locate_infix_reference(stabilized, indexed, lowered, node)
     } else if cst::ImportItem::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
@@ -308,22 +385,65 @@ fn locate_node(
     }
 }
 
+fn locate_infix_reference(
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    node: SyntaxNode,
+) -> Option<Located> {
+    let parent = node.parent()?;
+    if !cst::InfixDeclaration::can_cast(parent.kind()) {
+        return None;
+    }
+    let located = resolve_infix_reference(stabilized, indexed, lowered, parent);
+    Some(located.unwrap_or(Located::Nothing))
+}
+
+fn resolve_infix_reference(
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    declaration: SyntaxNode,
+) -> Option<Located> {
+    let declaration = cst::Declaration::cast(declaration)?;
+    let ptr = AstPtr::new(&declaration);
+    let declaration_id = stabilized.lookup_ptr(&ptr)?;
+
+    if let Some(term_id) = indexed.pairs.declaration_to_term(declaration_id) {
+        let TermItemKind::Operator { resolution, .. } = lowered.tree.get_term_item_kind(term_id)?
+        else {
+            return None;
+        };
+        let (file_id, term_id) = resolution.as_ref()?;
+        Some(Located::TermReference(*file_id, *term_id))
+    } else if let Some(type_id) = indexed.pairs.declaration_to_type(declaration_id) {
+        let TypeItemKind::Operator { resolution, .. } = lowered.tree.get_type_item_kind(type_id)?
+        else {
+            return None;
+        };
+        let (file_id, type_id) = resolution.as_ref()?;
+        Some(Located::TypeReference(*file_id, *type_id))
+    } else {
+        None
+    }
+}
+
 fn locate_between(
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
     lowered: &LoweredModule,
     left: SyntaxToken,
     right: SyntaxToken,
-) -> Located {
-    let left = locate_single(stabilized, indexed, lowered, left);
-    let right = locate_single(stabilized, indexed, lowered, right);
-    match (&left, &right) {
+) -> (Located, Option<SyntaxToken>) {
+    let left_located = locate_single(stabilized, indexed, lowered, &left);
+    let right_located = locate_single(stabilized, indexed, lowered, &right);
+    match (&left_located, &right_located) {
         // If left/right share an ancestor;
-        (_, _) if left == right => left,
-        (_, Located::Nothing) => left,
-        (Located::Nothing, _) => right,
+        (_, _) if left_located == right_located => (right_located, Some(right)),
+        (_, Located::Nothing) => (left_located, Some(left)),
+        (Located::Nothing, _) => (right_located, Some(right)),
         // otherwise, lean towards the right.
-        (_, _) => right,
+        (_, _) => (right_located, Some(right)),
     }
 }
 

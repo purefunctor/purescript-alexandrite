@@ -7,7 +7,7 @@ use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
 use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
-use syntax::{TextRange, cst};
+use syntax::{SyntaxToken, TextRange, TextSize, cst};
 
 use crate::extract::AnnotationSyntaxRange;
 use crate::{AnalyzerContext, AnalyzerError, AnalyzerQueries, extract, locate, position};
@@ -30,9 +30,14 @@ pub fn implementation(
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(engine, current_file, position)?;
+    let offset =
+        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let (located, token) = locate::locate_with_token(engine, current_file, position)?;
+    let range = hover_name_range(token, offset).and_then(|range| {
+        position::text_range_to_protocol(&content, range, context.position_encoding())
+    });
 
-    match located {
+    let hover = match located {
         locate::Located::ModuleName(module_name) => {
             hover_module_name(engine, current_file, module_name)
         }
@@ -62,6 +67,12 @@ pub fn implementation(
                 lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             hover_file_type(engine, f_id, t_id)
         }
+        locate::Located::TermReference(file_id, term_id) => {
+            hover_file_term(engine, file_id, term_id)
+        }
+        locate::Located::TypeReference(file_id, type_id) => {
+            hover_file_type(engine, file_id, type_id)
+        }
         locate::Located::InstanceHead(file_id, type_id) => {
             hover_file_type(engine, file_id, type_id)
         }
@@ -72,7 +83,28 @@ pub fn implementation(
         locate::Located::TypeItem(type_id) => hover_file_type(engine, current_file, type_id),
         locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),
         locate::Located::Nothing => Ok(None),
-    }
+    }?;
+
+    Ok(hover.map(|mut hover| {
+        hover.range = range;
+        hover
+    }))
+}
+
+fn hover_name_range(token: Option<SyntaxToken>, offset: TextSize) -> Option<TextRange> {
+    let token = token?;
+    let mut ancestors = token.parent_ancestors();
+    let range = ancestors.find_map(|node| {
+        let kind = node.kind();
+        if cst::ModuleName::can_cast(kind) {
+            Some(node.text_range())
+        } else if let Some(qualified) = cst::QualifiedName::cast(node) {
+            position::qualified_name_text_range(&qualified)
+        } else {
+            None
+        }
+    });
+    range.filter(|range| range.contains_inclusive(offset))
 }
 
 fn hover_module_name(

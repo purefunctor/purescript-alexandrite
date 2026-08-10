@@ -10,6 +10,8 @@ access = record.nested.value
 --              $      $
 ```
 
+Range: <none>
+
 ```purescript
 { value :: Int }
 ```
@@ -21,6 +23,8 @@ Hover at Position { line: 5, character: 23 }
 access = record.nested.value
 --              $      $
 ```
+
+Range: <none>
 
 ```purescript
 Int

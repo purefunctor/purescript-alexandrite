@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 6, character: 19 }
@@ -9,6 +9,8 @@ Hover at Position { line: 6, character: 19 }
 bug ∷ ∀ a. Effect (Either a a) → Effect (Either a a)
 --                 $                     $
 ```
+
+Range: "Either"
 
 ```purescript
 Either :: Type -> Type -> Type
@@ -21,6 +23,8 @@ Hover at Position { line: 6, character: 41 }
 bug ∷ ∀ a. Effect (Either a a) → Effect (Either a a)
 --                 $                     $
 ```
+
+Range: "Either"
 
 ```purescript
 Either :: Type -> Type -> Type

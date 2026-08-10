@@ -10,6 +10,8 @@ inferred { argument } = { argument }
 --         $              $
 ```
 
+Range: <none>
+
 ```purescript
 (t0 :: Type)
 ```
@@ -21,6 +23,8 @@ Hover at Position { line: 2, character: 26 }
 inferred { argument } = { argument }
 --         $              $
 ```
+
+Range: <none>
 
 ```purescript
 (t0 :: Type)
@@ -34,6 +38,8 @@ checked { argument } = { argument }
 --        $              $
 ```
 
+Range: <none>
+
 ```purescript
 (ofCourse :: Type)
 ```
@@ -45,6 +51,8 @@ Hover at Position { line: 6, character: 25 }
 checked { argument } = { argument }
 --        $              $
 ```
+
+Range: <none>
 
 ```purescript
 (ofCourse :: Type)

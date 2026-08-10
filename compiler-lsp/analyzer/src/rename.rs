@@ -625,6 +625,8 @@ fn rename_target(
 
             RenameTarget::Type(file_id, type_id)
         }
+        locate::Located::TermReference(file_id, term_id) => RenameTarget::Term(file_id, term_id),
+        locate::Located::TypeReference(file_id, type_id) => RenameTarget::Type(file_id, type_id),
         locate::Located::InstanceHead(file_id, type_id) => RenameTarget::Type(file_id, type_id),
         locate::Located::TermItem(term_id) => RenameTarget::Term(current_file, term_id),
         locate::Located::TypeItem(type_id) => RenameTarget::Type(current_file, type_id),

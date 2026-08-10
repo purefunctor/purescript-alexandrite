@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 101
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 2, character: 15 }
@@ -9,6 +9,8 @@ Hover at Position { line: 2, character: 15 }
 equation = let life = 42 in life
 --             $
 ```
+
+Range: <none>
 
 ```purescript
 Int
@@ -21,6 +23,8 @@ Hover at Position { line: 7, character: 4 }
     life :: Int
 --  $
 ```
+
+Range: <none>
 
 ```purescript
 Int

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 3, character: 20 }
@@ -9,6 +9,8 @@ Hover at Position { line: 3, character: 20 }
 foreign import data Effect :: Type -> Type
 --                  $ @ %
 ```
+
+Range: <none>
 
 ```purescript
 Effect :: Type -> Type
@@ -43,6 +45,8 @@ Hover at Position { line: 10, character: 3 }
 effectEffectEffect = 123
 -- $ @ %
 ```
+
+Range: <none>
 
 ```purescript
 effectEffectEffect :: Int

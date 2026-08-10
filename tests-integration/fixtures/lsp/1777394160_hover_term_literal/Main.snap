@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 2, character: 7 }
@@ -9,6 +9,8 @@ Hover at Position { line: 2, character: 7 }
 life = 42
 --     $
 ```
+
+Range: <none>
 
 ```purescript
 Int
@@ -22,6 +24,8 @@ hello = "world"
 --       $
 ```
 
+Range: <none>
+
 ```purescript
 String
 ```
@@ -33,6 +37,8 @@ Hover at Position { line: 8, character: 9 }
 colon = ':'
 --       $
 ```
+
+Range: <none>
 
 ```purescript
 Char
@@ -46,6 +52,8 @@ array = [ 1, 2, 3 ]
 --      $
 ```
 
+Range: <none>
+
 ```purescript
 Array Int
 ```
@@ -57,6 +65,8 @@ Hover at Position { line: 14, character: 9 }
 record = { life }
 --       $
 ```
+
+Range: <none>
 
 ```purescript
 { life :: Int }

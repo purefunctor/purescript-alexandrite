@@ -10,6 +10,8 @@ newtype Identity a = Identity a
 --               $
 ```
 
+Range: <none>
+
 ```purescript
 Type
 ```
@@ -21,6 +23,8 @@ Hover at Position { line: 6, character: 11 }
 data Proxy a = Proxy
 --         $
 ```
+
+Range: <none>
 
 ```purescript
 (kind :: Type)

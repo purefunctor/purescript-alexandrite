@@ -63,6 +63,12 @@ pub fn implementation(
         locate::Located::TypeOperator(operator_id) => {
             highlight_type_operator(context, current_file, operator_id)
         }
+        locate::Located::TermReference(file_id, term_id) => {
+            highlight_file_term(context, current_file, file_id, term_id)
+        }
+        locate::Located::TypeReference(file_id, type_id) => {
+            highlight_file_type(context, current_file, file_id, type_id)
+        }
         locate::Located::InstanceHead(file_id, type_id) => {
             highlight_file_type(context, current_file, file_id, type_id)
         }
@@ -349,6 +355,18 @@ fn highlight_file_term(
         }
     }
 
+    let ranges = locate::term_infix_reference_ranges(
+        &content,
+        &parsed,
+        &stabilized,
+        &indexed,
+        &lowered,
+        (file_id, term_id),
+    );
+    for range in ranges {
+        highlights.extend(document_highlight(&content, context.position_encoding(), range));
+    }
+
     for (pun_id, resolution) in lowered.tree.iter_expression_pun() {
         if let TermVariableResolution::Reference(f_id, t_id) = resolution
             && (f_id, t_id) == (file_id, term_id)
@@ -424,6 +442,18 @@ fn highlight_file_type(
                 }),
             );
         }
+    }
+
+    let ranges = locate::type_infix_reference_ranges(
+        &content,
+        &parsed,
+        &stabilized,
+        &indexed,
+        &lowered,
+        (file_id, type_id),
+    );
+    for range in ranges {
+        highlights.extend(document_highlight(&content, context.position_encoding(), range));
     }
 
     let ranges = locate::instance_head_ranges(

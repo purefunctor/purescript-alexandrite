@@ -10,6 +10,8 @@ class Functor f
 --    $ @ %
 ```
 
+Range: <none>
+
 ```purescript
 Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
 ```
@@ -45,6 +47,8 @@ Hover at Position { line: 9, character: 9 }
 instance Functor Identity
 --       $@%&/?
 ```
+
+Range: "Functor"
 
 ```purescript
 Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
@@ -157,6 +161,8 @@ derive instance Functor Derived
 --              $@%
 ```
 
+Range: "Functor"
+
 ```purescript
 Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
 ```
@@ -193,6 +199,8 @@ derive newtype instance Functor Wrapper
 --                      $@%
 ```
 
+Range: "Functor"
+
 ```purescript
 Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
 ```
@@ -228,6 +236,8 @@ Hover at Position { line: 29, character: 18 }
 else instance Lib.ImportedFunctor ChainSecond
 --                $@%/
 ```
+
+Range: "Lib.ImportedFunctor"
 
 ```purescript
 ImportedFunctor :: forall (t0 :: Type). (t0 :: Type) -> Constraint

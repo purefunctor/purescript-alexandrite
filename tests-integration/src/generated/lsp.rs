@@ -505,6 +505,8 @@ fn dispatch_cursor(
             }
         }
         CursorKind::Hover => {
+            let file_id = host.file_id(uri.as_str()).expect("hover URI references a loaded file");
+            let content = engine.content(file_id);
             if let Ok(Some(response)) = analyzer::hover::implementation(&context, uri, position) {
                 let convert = |marked: MarkedString| -> String {
                     match marked {
@@ -514,6 +516,24 @@ fn dispatch_cursor(
                         }) => format!("```{language}\n{value}\n```"),
                     }
                 };
+
+                let range = response.range.and_then(|range| {
+                    analyzer::position::protocol_position_to_utf8(&content, range.start, encoding)
+                        .zip(analyzer::position::protocol_position_to_utf8(
+                            &content, range.end, encoding,
+                        ))
+                        .and_then(|(start, end)| {
+                            let start =
+                                analyzer::position::utf8_position_to_offset(&content, start)?;
+                            let end = analyzer::position::utf8_position_to_offset(&content, end)?;
+                            content.get(usize::from(start)..usize::from(end))
+                        })
+                });
+                if let Some(range) = range {
+                    writeln!(result, "Range: {range:?}\n").unwrap();
+                } else {
+                    writeln!(result, "Range: <none>\n").unwrap();
+                }
 
                 match response.contents {
                     HoverContents::Scalar(marked) => {

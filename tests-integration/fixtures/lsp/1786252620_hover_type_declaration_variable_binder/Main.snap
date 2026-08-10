@@ -10,6 +10,8 @@ type Synonym a = a
 --           $
 ```
 
+Range: <none>
+
 ```purescript
 (t0 :: Type)
 ```
@@ -21,6 +23,8 @@ Hover at Position { line: 5, character: 14 }
 class Example a
 --            $
 ```
+
+Range: <none>
 
 ```purescript
 (t0 :: Type)

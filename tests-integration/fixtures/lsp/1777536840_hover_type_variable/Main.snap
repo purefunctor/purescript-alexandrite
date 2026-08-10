@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 2, character: 22 }
@@ -9,6 +9,8 @@ Hover at Position { line: 2, character: 22 }
 identity :: forall a. a -> a
 --                    $
 ```
+
+Range: <none>
 
 ```purescript
 Type

@@ -56,6 +56,12 @@ pub fn implementation(
                 lowered.tree.get_type_operator(operator_id).ok_or(AnalyzerError::NonFatal)?;
             definition_file_type(context, f_id, t_id)
         }
+        locate::Located::TermReference(file_id, term_id) => {
+            definition_file_term(context, file_id, term_id)
+        }
+        locate::Located::TypeReference(file_id, type_id) => {
+            definition_file_type(context, file_id, type_id)
+        }
         locate::Located::InstanceHead(file_id, type_id) => {
             definition_file_type(context, file_id, type_id)
         }

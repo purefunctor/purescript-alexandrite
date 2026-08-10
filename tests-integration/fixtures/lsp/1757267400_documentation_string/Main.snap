@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 90
+assertion_line: 134
 expression: report
 ---
 Hover at Position { line: 6, character: 7 }
@@ -9,6 +9,8 @@ Hover at Position { line: 6, character: 7 }
 test = id
 --     $
 ```
+
+Range: "id"
 
 ```purescript
 id :: forall (a :: Type). (a :: Type) -> (a :: Type)
@@ -24,6 +26,8 @@ test2 = const
 --      $
 ```
 
+Range: "const"
+
 ```purescript
 const ::
   forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
@@ -36,6 +40,8 @@ Hover at Position { line: 21, character: 8 }
 test3 = docOnly
 --      $
 ```
+
+Range: "docOnly"
 
 ```purescript
 docOnly :: Int
@@ -50,6 +56,8 @@ Hover at Position { line: 29, character: 8 }
 test4 = multiLine
 --      $
 ```
+
+Range: "multiLine"
 
 ```purescript
 multiLine :: Int
@@ -67,6 +75,8 @@ test5 = multiLine2
 --      $
 ```
 
+Range: "multiLine2"
+
 ```purescript
 multiLine2 :: Int
 ```
@@ -82,6 +92,8 @@ Hover at Position { line: 50, character: 8 }
 test6 = multiLine3
 --      $
 ```
+
+Range: "multiLine3"
 
 ```purescript
 multiLine3 :: Int
@@ -101,6 +113,8 @@ Hover at Position { line: 60, character: 6 }
 --    $
 ```
 
+Range: "valueOnly"
+
 ```purescript
 Int
 ```
@@ -112,6 +126,8 @@ Hover at Position { line: 62, character: 6 }
     , withSignature
 --    $
 ```
+
+Range: "withSignature"
 
 ```purescript
 Int

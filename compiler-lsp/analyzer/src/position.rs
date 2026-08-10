@@ -278,6 +278,25 @@ pub fn record_pun_name_range(
     text_range_to_utf8_range(content, token.text_range())
 }
 
+pub fn qualified_name_text_range(qualified: &cst::QualifiedName) -> Option<TextRange> {
+    let qualifier_range = qualified
+        .qualifier()
+        .and_then(|qualifier| qualifier.text())
+        .map(|token| token.text_range());
+    let name_range = qualified
+        .lower()
+        .or_else(|| qualified.upper())
+        .or_else(|| qualified.operator())
+        .or_else(|| qualified.operator_name())
+        .map(|token| token.text_range());
+
+    match (qualifier_range, name_range) {
+        (Some(qualifier), Some(name)) => Some(qualifier.cover(name)),
+        (Some(range), None) | (None, Some(range)) => Some(range),
+        (None, None) => None,
+    }
+}
+
 pub fn infix_operator_range(
     content: &str,
     root: &SyntaxNode,
