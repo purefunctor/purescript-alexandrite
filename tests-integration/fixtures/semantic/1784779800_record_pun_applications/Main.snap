@@ -34,7 +34,7 @@ inferredAliasExplicit = { aliased: aliased }
 foreign import fetch :: forall m. Main.Capability m => Prim.Int -> m Prim.Int
 
 expectedPun :: Main.Setup
-expectedPun = { fetch: fetch @m {capabilityDict} }
+expectedPun = { fetch: \@m -> \{capabilityDict} -> fetch @m {capabilityDict} }
 
 expectedExplicit :: Main.Setup
-expectedExplicit = { fetch: fetch @m {capabilityDict} }
+expectedExplicit = { fetch: \@m -> \{capabilityDict} -> fetch @m {capabilityDict} }

@@ -18,7 +18,8 @@ use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::context::CheckContext;
-use crate::core::{TypeId, normalise, toolkit, unification};
+use crate::core::substitute::SubstituteName;
+use crate::core::{Type, TypeId, normalise, toolkit, unification};
 use crate::error::{ErrorCrumb, ErrorKind};
 use crate::holes::{HoleBinding, TermHole};
 use crate::source::{operator, types};
@@ -100,26 +101,14 @@ fn check_expression_quiet<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = prepare_expected_expression(state, context, expected)?;
-
-    if let Some(section_result) = context.sectioned.expressions.get(&expression) {
-        check_sectioned_expression(state, context, expression, section_result, expected)
-    } else {
-        check_expression_core(state, context, expression, expected)
-    }
-}
-
-fn prepare_expected_expression<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    expected: TypeId,
-) -> QueryResult<TypeId>
-where
-    Q: ExternalQueries,
-{
     let expected = normalise::normalise(state, context, expected)?;
-    let expected = toolkit::skolemise_forall(state, context, expected)?;
-    toolkit::collect_givens(state, context, expected)
+    check_expected_expression(state, context, expected, |state, expected| {
+        if let Some(section_result) = context.sectioned.expressions.get(&expression) {
+            check_sectioned_expression(state, context, expression, section_result, expected)
+        } else {
+            check_expression_core(state, context, expression, expected)
+        }
+    })
 }
 
 pub(super) fn check_elaborated_expression<Q>(
@@ -131,8 +120,54 @@ pub(super) fn check_elaborated_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = prepare_expected_expression(state, context, expected)?;
-    check_elaborated_expression_quiet(state, context, inferred, expected)
+    let expected = normalise::normalise(state, context, expected)?;
+    check_expected_expression(state, context, expected, |state, expected| {
+        check_elaborated_expression_quiet(state, context, inferred, expected)
+    })
+}
+
+fn check_expected_expression<Q, F>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    expected: TypeId,
+    check: F,
+) -> QueryResult<ElaboratedExpression>
+where
+    Q: ExternalQueries,
+    F: FnOnce(&mut CheckState, TypeId) -> QueryResult<ElaboratedExpression>,
+{
+    let expected = normalise::expand(state, context, expected)?;
+    match context.lookup_type(expected) {
+        Type::Forall(binder_id, inner) => state.with_depth(|state| {
+            let binder = context.lookup_forall_binder(binder_id);
+
+            let kind = normalise::normalise(state, context, binder.kind)?;
+            let text = state.checked.lookup_name(binder.name);
+            let rigid = state.fresh_rigid_named(context.queries, kind, text);
+
+            let inner = SubstituteName::one(state, context, binder.name, rigid, inner)?;
+            let checked = check_expected_expression(state, context, inner, check)?;
+
+            let kind = tree::ExpressionKind::TypeAbstraction {
+                binder: rigid,
+                expression: checked.expression,
+            };
+
+            Ok(allocate_expression(state, expected, kind))
+        }),
+        Type::Constrained(constraint, constrained) => state.with_implication(|state| {
+            let binder = state.push_given(constraint);
+            let checked = check_expected_expression(state, context, constrained, check)?;
+
+            let kind = tree::ExpressionKind::EvidenceAbstraction {
+                binder,
+                expression: checked.expression,
+            };
+
+            Ok(allocate_expression(state, expected, kind))
+        }),
+        _ => check(state, expected),
+    }
 }
 
 fn check_elaborated_expression_quiet<Q>(

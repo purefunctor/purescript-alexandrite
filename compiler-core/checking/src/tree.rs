@@ -17,7 +17,7 @@ use smol_str::SmolStr;
 
 use crate::TypeId;
 use crate::core::{ForallBinderId, Role, SmolStrId};
-use crate::evidence::{Evidence, EvidenceVarId, SuperclassId};
+use crate::evidence::{Evidence, EvidenceBinderId, EvidenceVarId, SuperclassId};
 
 pub type ExpressionId = Idx<Expression>;
 pub type BinderId = Idx<Binder>;
@@ -352,6 +352,8 @@ pub enum ExpressionKind {
     TermApplication { function: ExpressionId, argument: ExpressionId },
     TypeApplication { function: ExpressionId, argument: TypeId },
     EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+    TypeAbstraction { binder: TypeId, expression: ExpressionId },
+    EvidenceAbstraction { binder: EvidenceBinderId, expression: ExpressionId },
     Lambda { binders: Arc<[BinderId]>, expression: ExpressionId },
     IfThenElse { condition: ExpressionId, then: ExpressionId, else_: ExpressionId },
     Case { scrutinees: Arc<[ExpressionId]>, alternatives: Arc<[CaseAlternative]> },

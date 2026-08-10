@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+show :: forall (@a :: Prim.Type). Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+evidenceDoesNotEscape ::
+  forall (a :: Prim.Type).
+    { leaked :: (a :: Prim.Type) -> Prim.String
+    , scoped :: Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+    }
+consume ::
+  forall (result :: Prim.Type).
+    { value :: forall (a :: Prim.Type). (a :: Prim.Type) -> (result :: Prim.Type) } ->
+    (result :: Prim.Type)
+typeDoesNotEscape :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+
+Types
+Eq :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
+  show :: forall (@a :: Prim.Type). Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Eq (a :: Type)
+  --> 7:1..11:7
+  |
+7 | evidenceDoesNotEscape
+  | ^~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '(t0 :: Type)' with '(a1 :: Type)'
+  --> 19:48..19:53
+   |
+19 | typeDoesNotEscape = consume { value: \value -> value }
+   |                                                ^~~~~

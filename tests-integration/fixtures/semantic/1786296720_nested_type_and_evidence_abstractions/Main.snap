@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  show :: a -> Prim.String
+
+interface First :: Prim.Type -> Prim.Constraint
+interface First a where
+  interleaved :: forall (b :: Prim.Type). Main.Second b => a -> b
+
+interface Second :: Prim.Type -> Prim.Constraint
+interface Second b where
+
+record :: { show :: forall a. Main.Eq a => a -> Prim.String }
+record = { show: \@a -> \{eqDict} -> show @a {eqDict} }
+
+interleavedRecord :: { interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b) }
+interleavedRecord =
+  { interleaved: \@a ->
+    \{firstDict} -> \@b -> \{secondDict} -> interleaved @a {firstDict} @b {secondDict} }

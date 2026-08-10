@@ -83,8 +83,14 @@ where
     let mut expressions = mem::take(&mut state.checked.tree.arena.expressions);
     for (_, expression) in expressions.iter_mut() {
         expression.type_id = zonk(state, context, expression.type_id)?;
-        if let ExpressionKind::TypeApplication { argument, .. } = &mut expression.kind {
-            *argument = zonk(state, context, *argument)?;
+        match &mut expression.kind {
+            ExpressionKind::TypeApplication { argument, .. } => {
+                *argument = zonk(state, context, *argument)?;
+            }
+            ExpressionKind::TypeAbstraction { binder, .. } => {
+                *binder = zonk(state, context, *binder)?;
+            }
+            _ => {}
         }
     }
     state.checked.tree.arena.expressions = expressions;
