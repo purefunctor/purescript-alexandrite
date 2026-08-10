@@ -65,54 +65,62 @@ where
         }
     }
 
+    macro_rules! fold_pair {
+        ($first:ident, $second:ident, $intern:ident) => {{
+            let folded_first = fold_type(state, context, $first, folder)?;
+            let folded_second = fold_type(state, context, $second, folder)?;
+            if folded_first == $first && folded_second == $second {
+                id
+            } else {
+                context.$intern(folded_first, folded_second)
+            }
+        }};
+    }
+
     let t = context.lookup_type(id);
     let result = match t {
         Type::Application(function, argument) => {
-            let function = fold_type(state, context, function, folder)?;
-            let argument = fold_type(state, context, argument, folder)?;
-            context.intern_application(function, argument)
+            fold_pair!(function, argument, intern_application)
         }
         Type::KindApplication(function, argument) => {
-            let function = fold_type(state, context, function, folder)?;
-            let argument = fold_type(state, context, argument, folder)?;
-            context.intern_kind_application(function, argument)
+            fold_pair!(function, argument, intern_kind_application)
         }
         Type::Forall(binder_id, inner) => {
-            let mut binder = context.lookup_forall_binder(binder_id);
+            let original_binder = context.lookup_forall_binder(binder_id);
+            let mut binder = original_binder;
             folder.transform_binder(&mut binder);
             binder.kind = fold_type(state, context, binder.kind, folder)?;
-            let inner = fold_type(state, context, inner, folder)?;
-            let binder_id = context.intern_forall_binder(binder);
-            context.intern_forall(binder_id, inner)
+            let folded_inner = fold_type(state, context, inner, folder)?;
+            if binder == original_binder && folded_inner == inner {
+                id
+            } else {
+                let binder_id = context.intern_forall_binder(binder);
+                context.intern_forall(binder_id, folded_inner)
+            }
         }
         Type::Constrained(constraint, inner) => {
-            let constraint = fold_type(state, context, constraint, folder)?;
-            let inner = fold_type(state, context, inner, folder)?;
-            context.intern_constrained(constraint, inner)
+            fold_pair!(constraint, inner, intern_constrained)
         }
-        Type::Function(argument, result) => {
-            let argument = fold_type(state, context, argument, folder)?;
-            let result = fold_type(state, context, result, folder)?;
-            context.intern_function(argument, result)
-        }
-        Type::Kinded(inner, kind) => {
-            let inner = fold_type(state, context, inner, folder)?;
-            let kind = fold_type(state, context, kind, folder)?;
-            context.intern_kinded(inner, kind)
-        }
+        Type::Function(argument, result) => fold_pair!(argument, result, intern_function),
+        Type::Kinded(inner, kind) => fold_pair!(inner, kind, intern_kinded),
         Type::Constructor(_, _) => id,
         Type::Integer(_) | Type::String(_, _) => id,
         Type::Row(row_id) => {
+            let original_row = context.lookup_row_type(row_id);
             let (mut fields, tail) = flatten_row(state, context, row_id)?;
             for field in fields.iter_mut() {
                 field.id = fold_type(state, context, field.id, folder)?;
             }
             let tail = tail.map(|tail| fold_type(state, context, tail, folder)).transpose()?;
-            context.intern_row(fields, tail)
+            if fields.as_slice() == original_row.fields.as_ref() && tail == original_row.tail {
+                id
+            } else {
+                context.intern_row(fields, tail)
+            }
         }
         Type::Rigid(name, depth, kind) => {
-            let kind = fold_type(state, context, kind, folder)?;
-            context.intern_rigid(name, depth, kind)
+            let folded_kind = fold_type(state, context, kind, folder)?;
+            if folded_kind == kind { id } else { context.intern_rigid(name, depth, folded_kind) }
         }
         Type::Unification(_) | Type::Free(_) | Type::Unknown(_) => id,
     };
