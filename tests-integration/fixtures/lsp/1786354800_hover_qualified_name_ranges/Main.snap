@@ -1,0 +1,101 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 2, character: 9 }
+
+```
+import Library.Values as Library.Values
+--       $       $
+```
+
+Range: <none>
+
+```purescript
+module Library.Values where
+```
+
+
+Hover at Position { line: 2, character: 17 }
+
+```
+import Library.Values as Library.Values
+--       $       $
+```
+
+Range: <none>
+
+```purescript
+module Library.Values where
+```
+
+
+Hover at Position { line: 5, character: 34 }
+
+```
+qualifiedType :: Library.Values.Value
+--                                $
+```
+
+Range: <none>
+
+```purescript
+Value :: Type
+```
+
+
+Hover at Position { line: 7, character: 33 }
+
+```
+qualifiedType = Library.Values.value
+--                               $
+```
+
+Range: <none>
+
+```purescript
+value :: Value
+```
+
+
+Hover at Position { line: 10, character: 36 }
+
+```
+qualifiedOperator = Library.Values.(+)
+--                                  $
+```
+
+Range: <none>
+
+```purescript
++ :: Int -> Int -> Int
+```
+
+
+Hover at Position { line: 13, character: 34 }
+
+```
+endBoundary = Library.Values.value
+--                                $
+```
+
+Range: <none>
+
+```purescript
+value :: Value
+```
+
+
+Hover at Position { line: 18, character: 21 }
+
+```
+recordAccess = record.value
+--                   $
+```
+
+Range: <none>
+
+```purescript
+Int
+```
