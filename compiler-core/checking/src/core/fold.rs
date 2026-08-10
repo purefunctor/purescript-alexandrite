@@ -23,6 +23,16 @@ pub trait TypeFold {
     ) -> QueryResult<FoldAction>;
 
     fn transform_binder(&mut self, _binder: &mut ForallBinder) {}
+
+    fn complete<Q: ExternalQueries>(
+        &mut self,
+        _state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        _id: TypeId,
+        result: TypeId,
+    ) -> QueryResult<TypeId> {
+        Ok(result)
+    }
 }
 
 pub fn fold_type<Q, F>(
@@ -107,7 +117,7 @@ where
         Type::Unification(_) | Type::Free(_) | Type::Unknown(_) => id,
     };
 
-    Ok(result)
+    folder.complete(state, context, id, result)
 }
 
 /// Flatten a row type into a single row.
