@@ -388,7 +388,7 @@ where
 
         let name = state.names.fresh();
         state.checked.node_types.forall_bindings.insert(equation_binding.id, kind);
-        state.bindings.bind_forall(equation_binding.id, name, kind);
+        state.bindings.bind_forall(equation_binding.id, name, state.depth, kind);
 
         let text = if let Some(name) = &equation_binding.name {
             SmolStr::clone(name)

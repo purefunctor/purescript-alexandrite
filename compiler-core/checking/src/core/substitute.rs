@@ -7,7 +7,7 @@ use building_types::QueryResult;
 use crate::ExternalQueries;
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
-use crate::core::{Name, Type, TypeId};
+use crate::core::{Depth, Name, Type, TypeId};
 use crate::state::CheckState;
 
 pub type NameToType = FxHashMap<Name, TypeId>;
@@ -15,6 +15,7 @@ pub type NameToType = FxHashMap<Name, TypeId>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct RigidReplacement {
     name: Name,
+    depth: Depth,
     type_id: TypeId,
 }
 
@@ -32,10 +33,10 @@ impl RigidRenaming {
     where
         Q: ExternalQueries,
     {
-        let Type::Rigid(name, _, _) = context.lookup_type(replacement) else {
+        let Type::Rigid(name, depth, _) = context.lookup_type(replacement) else {
             unreachable!("invariant violated: expected a rigid variable");
         };
-        let replacement = RigidReplacement { name, type_id: replacement };
+        let replacement = RigidReplacement { name, depth, type_id: replacement };
         self.replacements.insert(original, replacement);
     }
 
@@ -51,8 +52,8 @@ impl RigidRenaming {
         fold_type(state, context, in_type, &mut SubstituteRigidName { renaming: self })
     }
 
-    pub(crate) fn replacement_name(&self, original: Name) -> Option<Name> {
-        self.replacements.get(&original).map(|replacement| replacement.name)
+    pub(crate) fn replacement(&self, original: Name) -> Option<(Name, Depth)> {
+        self.replacements.get(&original).map(|replacement| (replacement.name, replacement.depth))
     }
 }
 

@@ -116,21 +116,23 @@ pub(crate) enum SourceTypeVariableKey {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SourceTypeVariable {
     pub(crate) name: Name,
+    pub(crate) depth: Depth,
     pub(crate) kind: TypeId,
 }
 
 impl Bindings {
-    fn bind(&mut self, key: SourceTypeVariableKey, name: Name, kind: TypeId) {
-        self.variables.insert(key, SourceTypeVariable { name, kind });
+    fn bind(&mut self, key: SourceTypeVariableKey, name: Name, depth: Depth, kind: TypeId) {
+        self.variables.insert(key, SourceTypeVariable { name, depth, kind });
     }
 
     pub(crate) fn bind_forall(
         &mut self,
         id: lowering::TypeVariableBindingId,
         name: Name,
+        depth: Depth,
         kind: TypeId,
     ) {
-        self.bind(SourceTypeVariableKey::Forall(id), name, kind);
+        self.bind(SourceTypeVariableKey::Forall(id), name, depth, kind);
     }
 
     pub(crate) fn bind_implicit(
@@ -138,9 +140,10 @@ impl Bindings {
         node: lowering::GraphNodeId,
         id: lowering::ImplicitBindingId,
         name: Name,
+        depth: Depth,
         kind: TypeId,
     ) {
-        self.bind(SourceTypeVariableKey::Implicit { node, id }, name, kind);
+        self.bind(SourceTypeVariableKey::Implicit { node, id }, name, depth, kind);
     }
 
     pub(crate) fn lookup(&self, key: SourceTypeVariableKey) -> Option<SourceTypeVariable> {
@@ -378,8 +381,9 @@ impl CheckState {
 
         for renaming in Vec::clone(&self.bindings.renamings) {
             variable.kind = renaming.substitute(self, context, variable.kind)?;
-            if let Some(name) = renaming.replacement_name(variable.name) {
+            if let Some((name, depth)) = renaming.replacement(variable.name) {
                 variable.name = name;
+                variable.depth = depth;
             }
         }
 
