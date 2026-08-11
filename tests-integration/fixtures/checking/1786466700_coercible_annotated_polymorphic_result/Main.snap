@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Map ::
+  forall (@key :: Prim.Type) (@value :: Prim.Type). Main.Map (key :: Prim.Type) (value :: Prim.Type)
+Set ::
+  forall (@value :: Prim.Type).
+    Main.Map (value :: Prim.Type) Data.Unit.Unit -> Main.Set (value :: Prim.Type)
+filterKeys ::
+  forall (key :: Prim.Type).
+    ((key :: Prim.Type) -> Prim.Boolean) ->
+    (forall (value :: Prim.Type).
+      Main.Map (key :: Prim.Type) (value :: Prim.Type) ->
+      Main.Map (key :: Prim.Type) (value :: Prim.Type))
+filter ::
+  forall (value :: Prim.Type).
+    ((value :: Prim.Type) -> Prim.Boolean) ->
+    Main.Set (value :: Prim.Type) ->
+    Main.Set (value :: Prim.Type)
+
+Types
+Map :: Prim.Type -> Prim.Type -> Prim.Type
+Set :: Prim.Type -> Prim.Type
+
+Roles
+Map = [Phantom, Phantom]
+Set = [Representational]
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Coercible @Type
+  (forall (value :: Type).
+    Map (value1 :: Type) (value :: Type) -> Map (value1 :: Type) (value :: Type))
+  (Set (value1 :: Type) -> Set (value1 :: Type))
+  --> 17:1..17:69
+   |
+17 | filter :: forall value. (value -> Boolean) -> Set value -> Set value
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
