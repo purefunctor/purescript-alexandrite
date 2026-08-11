@@ -68,6 +68,7 @@ interface IssueComment {
   id: number;
   body?: string;
   created_at?: string;
+  issue_url?: string;
   user?: GitHubActor;
 }
 interface PullRequestReview {
@@ -185,7 +186,7 @@ Use passed, failed, or not-run; LEFT only for deleted lines.`;
 async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<string> {
   const prompt = reviewPrompt(number, head);
   const result =
-    await amp.$`amp --orb-execute --execute ${prompt} --project ${repository} --mode medium`;
+    await amp.$`amp --orb-execute --execute ${prompt} --project ${repository} --mode medium --label ci-review-agent`;
   if (result.exitCode !== 0) {
     const details = result.stderr.trim().slice(0, 1_000);
     throw new Error(`Review thread dispatch failed with exit code ${result.exitCode}: ${details}`);
@@ -193,8 +194,6 @@ async function createReviewThread(amp: PluginAPI, number: number, head: string):
   const threadId = result.stdout.match(/\/threads\/(T-[0-9a-f-]+)\s*$/)?.[1];
   if (threadId === undefined)
     throw new Error("Review thread dispatch did not return a thread URL.");
-  const labelResult = await amp.$`amp threads label ${threadId} ci-review-agent`;
-  if (labelResult.exitCode !== 0) throw new Error(`Could not label review thread ${threadId}.`);
   return threadId;
 }
 
@@ -218,7 +217,7 @@ export default async function (amp: PluginAPI) {
   const webhookUrlPath = `${root}/.git/amp-github-pr-review-webhook-url`;
   await writeFile(webhookUrlPath, `${registration.url}\n`, { mode: 0o600 });
   await chmod(webhookUrlPath, 0o600);
-  void reconcileOpenClaims(amp, credentials).catch((error) =>
+  void reconcileClaims(amp, credentials).catch((error) =>
     amp.logger.log("PR review reconciliation failed.", error)
   );
 }
@@ -264,23 +263,27 @@ async function handleDelivery(
     payload.pull_request.head.sha,
     context.signal
   );
-  void reconcileOpenClaims(amp, credentials).catch((error) =>
+  void reconcileClaims(amp, credentials).catch((error) =>
     amp.logger.log("PR review reconciliation failed.", error)
   );
 }
 
-async function reconcileOpenClaims(amp: PluginAPI, credentials: Credentials) {
+async function reconcileClaims(amp: PluginAPI, credentials: Credentials) {
   const token = await createInstallationToken(credentials);
-  const pulls = await githubPaginatedRequest<PullRequest>(
+  const comments = await githubPaginatedRequest<IssueComment>(
     token,
-    `/repos/${repository}/pulls?state=open`
+    `/repos/${repository}/issues/comments`
   );
-  for (const pull of pulls) {
+  const numbers = new Set<number>();
+  for (const comment of comments) {
+    if (parseState(comment) === null) continue;
+    const match = comment.issue_url?.match(/\/issues\/(\d+)$/);
+    if (match !== undefined && match !== null) numbers.add(Number(match[1]));
+  }
+  for (const number of numbers) {
+    const pull = await getPullRequest(number, token);
     if (pull.user.login !== reviewAuthor) continue;
-    const comments = await listIssueComments(pull.number, token);
-    if (comments.some((comment) => parseState(comment) !== null)) {
-      await reconcilePullRequest(amp, credentials, token, pull.number, pull.head.sha);
-    }
+    await reconcilePullRequest(amp, credentials, token, pull.number, pull.head.sha);
   }
 }
 
@@ -319,7 +322,7 @@ async function reconcilePullRequest(
         entry.state.head !== pull.head.sha;
       if (stale && !signal?.aborted) {
         await cancelReviewCheckRuns(number, entry.state.head, token, signal);
-        await deleteIssueComment(entry.comment.id, token, signal);
+        await retireClaim(amp, entry.comment, entry.state, token, signal);
       }
     }
     if (
@@ -342,7 +345,7 @@ async function reconcilePullRequest(
         token
       );
       for (const entry of currentClaims)
-        await deleteIssueComment(entry.comment.id, token, signal);
+        await retireClaim(amp, entry.comment, entry.state, token, signal);
       return;
     }
     const active = currentClaims[0];
@@ -485,21 +488,35 @@ async function monitorThread(
           await new Promise((resolve) => setTimeout(resolve, 5_000));
           continue;
         }
-        await finishReview(amp, response, credentials, number, head, claimId, threadId);
+        const finished = await finishReview(amp, response, credentials, number, head, threadId);
+        if (!finished) {
+          await new Promise((resolve) => setTimeout(resolve, 5_000));
+          continue;
+        }
+        await archiveReviewThread(amp, threadId);
+        const token = await createInstallationToken(credentials);
+        await deleteIssueComment(claimId, token);
         return;
       } catch (error) {
         if (error instanceof TerminalReviewError) {
-          const token = await createInstallationToken(credentials);
-          await completeReviewCheckRuns(
-            number,
-            head,
-            "failure",
-            "The reviewer returned an invalid result.",
-            token
-          );
-          await deleteIssueComment(claimId, token);
-          amp.logger.log("Discarded a deterministic invalid review result.", error);
-          return;
+          try {
+            const token = await createInstallationToken(credentials);
+            await completeReviewCheckRuns(
+              number,
+              head,
+              "failure",
+              "The reviewer returned an invalid result.",
+              token
+            );
+            await archiveReviewThread(amp, threadId);
+            await deleteIssueComment(claimId, token);
+            amp.logger.log("Discarded a deterministic invalid review result.", error);
+            return;
+          } catch (cleanupError) {
+            amp.logger.log("Automated review monitor will retry terminal cleanup.", cleanupError);
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+            continue;
+          }
         }
         amp.logger.log("Automated review monitor will retry durable completion.", error);
         await new Promise((resolve) => setTimeout(resolve, 5_000));
@@ -549,9 +566,8 @@ async function finishReview(
   credentials: Credentials,
   number: number,
   head: string,
-  claimId: number,
   threadId: string
-) {
+): Promise<boolean> {
   const report = parseReviewReport(response);
   if (report.headSha !== head)
     throw new TerminalReviewError("Review result does not match the requested revision.");
@@ -565,14 +581,12 @@ async function finishReview(
       token,
       threadId
     );
-    await deleteIssueComment(claimId, token);
-    return;
+    return true;
   }
   let pull = await getPullRequest(number, token);
   if (pull.state !== "open" || pull.head.sha !== head) {
     await cancelReviewCheckRuns(number, head, token);
-    await deleteIssueComment(claimId, token);
-    return;
+    return true;
   }
   const files = await listPullRequestFiles(number, token);
   const locations = collectChangedLines(files);
@@ -584,8 +598,7 @@ async function finishReview(
   pull = await getPullRequest(number, token);
   if (pull.state !== "open" || pull.head.sha !== head) {
     await cancelReviewCheckRuns(number, head, token);
-    await deleteIssueComment(claimId, token);
-    return;
+    return true;
   }
   const body = formatSummary(head, report, threadId);
   try {
@@ -615,14 +628,31 @@ async function finishReview(
       token,
       threadId
     );
-    await deleteIssueComment(claimId, token);
     await notificationThread?.appendUserMessage({
       type: "user-message",
       content: `The automated GitHub review for PR #${number} at ${head.slice(0, 12)} was published by ${botLogin}. Report that completion to the user and include the PR URL https://github.com/${repository}/pull/${number}.`,
     });
+    return true;
   } else {
     amp.logger.log(`Could not confirm completed review for PR #${number}.`);
+    return false;
   }
+}
+
+async function archiveReviewThread(amp: PluginAPI, threadId: string) {
+  const result = await amp.$`amp threads archive ${threadId}`;
+  if (result.exitCode !== 0) throw new Error(`Could not archive review thread ${threadId}.`);
+}
+
+async function retireClaim(
+  amp: PluginAPI,
+  comment: IssueComment,
+  state: ClaimState,
+  token: string,
+  signal?: AbortSignal
+) {
+  if (state.status === "running") await archiveReviewThread(amp, state.threadId!);
+  await deleteIssueComment(comment.id, token, signal);
 }
 
 function parseReviewReport(message: ReviewResponse): ReviewReport {
