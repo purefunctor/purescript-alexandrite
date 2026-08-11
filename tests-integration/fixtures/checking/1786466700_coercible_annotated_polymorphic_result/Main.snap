@@ -28,13 +28,3 @@ Set :: Prim.Type -> Prim.Type
 Roles
 Map = [Phantom, Phantom]
 Set = [Representational]
-
-Diagnostics
-error[NoInstanceFound]: No instance found for: Coercible @Type
-  (forall (value :: Type).
-    Map (value1 :: Type) (value :: Type) -> Map (value1 :: Type) (value :: Type))
-  (Set (value1 :: Type) -> Set (value1 :: Type))
-  --> 17:1..17:69
-   |
-17 | filter :: forall value. (value -> Boolean) -> Set value -> Set value
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

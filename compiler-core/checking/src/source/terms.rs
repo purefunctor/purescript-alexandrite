@@ -365,7 +365,8 @@ where
             };
 
             let (t, _) = types::infer_kind(state, context, *t)?;
-            check_expression(state, context, *e, t)
+            let ElaboratedExpression { expression, .. } = check_expression(state, context, *e, t)?;
+            Ok(ElaboratedExpression { type_id: t, expression })
         }
 
         lowering::ExpressionKind::OperatorChain { .. } => {
