@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+consume :: Prim.Int -> Main.Unit
+test :: Main.Unit
+
+Types
+Unit :: Prim.Type
+
+Roles
+Unit = []

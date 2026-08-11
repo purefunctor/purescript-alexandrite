@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+Proxy :: forall (@value :: Prim.Type). Main.Proxy (value :: Prim.Type)
+consume ::
+  (Main.Unit -> (forall (value :: Prim.Type). Main.Proxy (value :: Prim.Type))) -> Main.Unit
+test :: Main.Unit
+
+Types
+Unit :: Prim.Type
+Proxy :: Prim.Type -> Prim.Type
+
+Roles
+Unit = []
+Proxy = [Phantom]
