@@ -13,8 +13,10 @@ use tests_compatibility::registry::{FsRegistry, RegistryLayout, RegistryReader};
 use tests_compatibility::{PackageCache, Preset, default_cache_dir};
 
 use crate::verifier::cli::{Cli, Command, DEFAULT_INDEX_DIR, DEFAULT_REGISTRY_DIR};
+use crate::verifier::comparison::compare_reports;
 use crate::verifier::compile::compile_sources;
 use crate::verifier::report::{PackageSetReport, Report, SelectionReport};
+use crate::verifier::reporting::{append_markdown, github_annotations, render_markdown};
 use crate::verifier::selection::{SelectedPackage, package_map, resolve_selection};
 use crate::verifier::sources::discover_sources;
 
@@ -107,22 +109,18 @@ fn run() -> Result<bool> {
             let cache = PackageCache::new(cache_dir);
             prepare_packages(&cache, &selection.packages, "Preparing selected packages")?;
 
-            let source_files = selection
-                .packages
-                .par_iter()
-                .map(|package| {
-                    let extracted = cache.source_path(&package.name, &package.version);
-                    discover_sources(&package.name, &package.version, &extracted).with_context(
-                        || {
-                            format!(
-                                "failed to discover source files for {}@{}",
-                                package.name, package.version
-                            )
-                        },
+            let source_files = selection.packages.par_iter().map(|package| {
+                let extracted = cache.source_path(&package.name, &package.version);
+                discover_sources(&package.name, &package.version, &extracted).with_context(|| {
+                    format!(
+                        "failed to discover source files for {}@{}",
+                        package.name, package.version
                     )
                 })
-                .collect::<Result<Vec<_>>>()?;
-            let mut source_files = source_files.into_iter().flatten().collect::<Vec<_>>();
+            });
+            let source_files = source_files.collect::<Result<Vec<_>>>()?;
+            let source_files = source_files.into_iter().flatten();
+            let mut source_files = source_files.collect::<Vec<_>>();
             source_files.sort_by(|a, b| {
                 (&a.package, &a.version, &a.relative_path).cmp(&(
                     &b.package,
@@ -155,12 +153,45 @@ fn run() -> Result<bool> {
             report.print_human();
 
             if let Some(path) = args.json_output {
-                report.write_json(path.clone()).with_context(|| {
+                report.write_json(&path).with_context(|| {
                     format!("failed to write JSON report to {}", path.display())
                 })?;
             }
 
             Ok(report.has_errors())
+        }
+        Command::Compare(args) => {
+            let base = Report::read_json(&args.base_report).with_context(|| {
+                format!("failed to read base report from {}", args.base_report.display())
+            })?;
+            let candidate = Report::read_json(&args.candidate_report).with_context(|| {
+                format!("failed to read candidate report from {}", args.candidate_report.display())
+            })?;
+            let comparison = compare_reports(&base, &candidate)?;
+            comparison.write_json(&args.json_output).with_context(|| {
+                format!("failed to write comparison report to {}", args.json_output.display())
+            })?;
+
+            let markdown = render_markdown(&comparison, &candidate, args.detail_limit);
+            if let Some(path) = args.summary_output {
+                append_markdown(&path, &markdown).with_context(|| {
+                    format!("failed to append comparison summary to {}", path.display())
+                })?;
+            } else {
+                println!("{markdown}");
+            }
+            if args.github_annotations {
+                print!(
+                    "{}",
+                    github_annotations(
+                        &comparison,
+                        args.error_annotation_limit,
+                        args.warning_annotation_limit,
+                    )
+                );
+            }
+
+            Ok(comparison.has_regressions())
         }
     }
 }
@@ -172,8 +203,8 @@ fn prepare_packages(
 ) -> Result<()> {
     let pending = packages
         .iter()
-        .filter(|package| !cache.is_package_prepared(&package.name, &package.version))
-        .collect::<Vec<_>>();
+        .filter(|package| !cache.is_package_prepared(&package.name, &package.version));
+    let pending = pending.collect::<Vec<_>>();
 
     if pending.is_empty() {
         return Ok(());

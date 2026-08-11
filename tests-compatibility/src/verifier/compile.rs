@@ -6,10 +6,14 @@ use diagnostics::{
     Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rustc_with_path,
 };
 use files::{FileId, Files};
+use rayon::prelude::*;
 use url::Url;
 
 use super::error::VerifierError;
-use super::report::{CompilerDiagnostic, SpanReport, VerifierIssue};
+use super::report::{
+    CompilationStage, CompilerDiagnostic, DiagnosticSeverity, IssueLocation, SourcePosition,
+    SpanReport, VerifierIssue,
+};
 use super::sources::SourceFile;
 
 #[derive(Debug, Default)]
@@ -19,10 +23,10 @@ pub struct CompileReport {
 }
 
 #[derive(Debug, Clone)]
-struct FileMeta {
+struct FileMetadata {
     package: String,
     version: String,
-    path: String,
+    relative_path: String,
     content: String,
 }
 
@@ -33,7 +37,7 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
 
     let mut report = CompileReport::default();
     let mut file_ids = Vec::new();
-    let mut meta = HashMap::new();
+    let mut file_metadata = HashMap::new();
 
     for source in source_files {
         let content = fs::read_to_string(&source.path)?;
@@ -44,26 +48,35 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
         let file_id = files.insert(uri, content.clone());
         engine.set_content(file_id, content.clone());
         file_ids.push(file_id);
-        meta.insert(
+        file_metadata.insert(
             file_id,
-            FileMeta {
+            FileMetadata {
                 package: source.package.clone(),
                 version: source.version.clone(),
-                path: source.path.to_string_lossy().into_owned(),
+                relative_path: source.relative_path.to_string_lossy().replace('\\', "/"),
                 content,
             },
         );
     }
 
-    register_modules(&engine, &file_ids, &meta, &mut report);
+    register_modules(&engine, &file_ids, &file_metadata, &mut report);
 
-    for &file_id in &file_ids {
+    let file_reports = file_ids.par_iter().map(|&file_id| {
+        let engine = engine.snapshot();
+        let mut file_report = CompileReport::default();
         collect_file(
             &engine,
             file_id,
-            meta.get(&file_id).expect("file metadata exists"),
-            &mut report,
+            file_metadata.get(&file_id).expect("file metadata exists"),
+            &mut file_report,
         );
+        file_report
+    });
+    let file_reports = file_reports.collect::<Vec<_>>();
+
+    for file_report in file_reports {
+        report.diagnostics.extend(file_report.diagnostics);
+        report.verifier_errors.extend(file_report.verifier_errors);
     }
 
     Ok(report)
@@ -72,25 +85,33 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
 fn register_modules(
     engine: &QueryEngine,
     file_ids: &[FileId],
-    meta: &HashMap<FileId, FileMeta>,
+    file_metadata: &HashMap<FileId, FileMetadata>,
     report: &mut CompileReport,
 ) {
     let mut modules: HashMap<String, FileId> = HashMap::new();
 
     for &file_id in file_ids {
-        let file_meta = meta.get(&file_id).expect("file metadata exists");
+        let metadata = file_metadata.get(&file_id).expect("file metadata exists");
         match engine.parsed(file_id) {
             Ok((parsed, errors)) => {
-                report.diagnostics.extend(parse_diagnostics(file_meta, &errors));
+                report.diagnostics.extend(parse_diagnostics(metadata, &errors));
 
-                if let Some(module_name) = parsed.module_name(&file_meta.content) {
+                if let Some(module_name) = parsed.module_name(&metadata.content) {
                     let module_name = module_name.to_string();
                     if let Some(existing) = modules.get(&module_name) {
-                        let first = meta.get(existing).expect("file metadata exists");
+                        let first = file_metadata.get(existing).expect("file metadata exists");
                         report.verifier_errors.push(VerifierIssue::duplicate_module(
                             &module_name,
-                            &first.path,
-                            &file_meta.path,
+                            IssueLocation {
+                                package: first.package.clone(),
+                                version: first.version.clone(),
+                                file: first.relative_path.clone(),
+                            },
+                            IssueLocation {
+                                package: metadata.package.clone(),
+                                version: metadata.version.clone(),
+                                file: metadata.relative_path.clone(),
+                            },
                         ));
                     } else {
                         engine.set_module_file(&module_name, file_id);
@@ -98,7 +119,9 @@ fn register_modules(
                     }
                 }
             }
-            Err(error) => push_query_error(report, file_meta, "parse", error),
+            Err(error) => {
+                push_query_error(report, metadata, CompilationStage::Parse, error);
+            }
         }
     }
 }
@@ -106,7 +129,7 @@ fn register_modules(
 fn collect_file(
     engine: &QueryEngine,
     file_id: FileId,
-    meta: &FileMeta,
+    metadata: &FileMetadata,
     report: &mut CompileReport,
 ) {
     let Ok((parsed, _)) = engine.parsed(file_id) else {
@@ -115,94 +138,106 @@ fn collect_file(
     let root = parsed.syntax_node();
 
     if let Err(error) = engine.stabilized(file_id) {
-        push_query_error(report, meta, "stabilizing", error);
+        push_query_error(report, metadata, CompilationStage::Stabilizing, error);
         return;
     }
 
     match engine.indexed(file_id) {
         Ok(indexed) => {
-            with_diagnostics_context(engine, file_id, &root, meta, |ctx| {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
                 for error in &indexed.errors {
                     let diagnostics = error.to_diagnostics(&ctx);
                     if diagnostics.is_empty() {
                         report.diagnostics.push(debug_diagnostic(
-                            meta,
-                            "indexing",
+                            metadata,
+                            CompilationStage::Indexing,
                             "IndexingError",
                             error,
                         ));
                     } else {
-                        report.diagnostics.extend(convert_diagnostics(meta, diagnostics));
+                        report.diagnostics.extend(convert_diagnostics(
+                            metadata,
+                            CompilationStage::Indexing,
+                            diagnostics,
+                        ));
                     }
                 }
             });
         }
         Err(error) => {
-            push_query_error(report, meta, "indexing", error);
+            push_query_error(report, metadata, CompilationStage::Indexing, error);
             return;
         }
     }
 
     match engine.resolved(file_id) {
         Ok(resolved) => {
-            with_diagnostics_context(engine, file_id, &root, meta, |ctx| {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
                 for error in &resolved.errors {
-                    report
-                        .diagnostics
-                        .extend(convert_diagnostics(meta, error.to_diagnostics(&ctx)));
+                    report.diagnostics.extend(convert_diagnostics(
+                        metadata,
+                        CompilationStage::Resolving,
+                        error.to_diagnostics(&ctx),
+                    ));
                 }
             });
         }
         Err(error) => {
-            push_query_error(report, meta, "resolving", error);
+            push_query_error(report, metadata, CompilationStage::Resolving, error);
         }
     }
 
     match engine.lowered(file_id) {
         Ok(lowered) => {
-            with_diagnostics_context(engine, file_id, &root, meta, |ctx| {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
                 for error in &lowered.errors {
-                    report
-                        .diagnostics
-                        .extend(convert_diagnostics(meta, error.to_diagnostics(&ctx)));
+                    report.diagnostics.extend(convert_diagnostics(
+                        metadata,
+                        CompilationStage::Lowering,
+                        error.to_diagnostics(&ctx),
+                    ));
                 }
             });
         }
-        Err(error) => push_query_error(report, meta, "lowering", error),
+        Err(error) => push_query_error(report, metadata, CompilationStage::Lowering, error),
     }
 
     match engine.grouped(file_id) {
         Ok(grouped) => {
-            with_diagnostics_context(engine, file_id, &root, meta, |ctx| {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
                 for error in &grouped.cycle_errors {
-                    report
-                        .diagnostics
-                        .extend(convert_diagnostics(meta, error.to_diagnostics(&ctx)));
+                    report.diagnostics.extend(convert_diagnostics(
+                        metadata,
+                        CompilationStage::Lowering,
+                        error.to_diagnostics(&ctx),
+                    ));
                 }
             });
         }
-        Err(error) => push_query_error(report, meta, "grouping", error),
+        Err(error) => push_query_error(report, metadata, CompilationStage::Grouping, error),
     }
 
     if let Err(error) = engine.bracketed(file_id) {
-        push_query_error(report, meta, "bracketing", error);
+        push_query_error(report, metadata, CompilationStage::Bracketing, error);
     }
 
     if let Err(error) = engine.sectioned(file_id) {
-        push_query_error(report, meta, "sectioning", error);
+        push_query_error(report, metadata, CompilationStage::Sectioning, error);
     }
 
     match engine.checked(file_id) {
         Ok(checked) => {
-            with_diagnostics_context(engine, file_id, &root, meta, |ctx| {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
                 for error in &checked.errors {
-                    report
-                        .diagnostics
-                        .extend(convert_diagnostics(meta, error.to_diagnostics(&ctx)));
+                    report.diagnostics.extend(convert_diagnostics(
+                        metadata,
+                        CompilationStage::Checking,
+                        error.to_diagnostics(&ctx),
+                    ));
                 }
             });
         }
-        Err(error) => push_query_error(report, meta, "checking", error),
+        Err(error) => push_query_error(report, metadata, CompilationStage::Checking, error),
     }
 }
 
@@ -210,7 +245,7 @@ fn with_diagnostics_context(
     engine: &QueryEngine,
     file_id: FileId,
     root: &syntax::SyntaxNode,
-    meta: &FileMeta,
+    metadata: &FileMetadata,
     f: impl FnOnce(DiagnosticsContext<'_, QueryEngine>),
 ) {
     let Ok(stabilized) = engine.stabilized(file_id) else {
@@ -227,7 +262,7 @@ fn with_diagnostics_context(
     };
     f(DiagnosticsContext::new(
         engine,
-        &meta.content,
+        &metadata.content,
         root,
         &stabilized,
         &indexed,
@@ -236,73 +271,107 @@ fn with_diagnostics_context(
     ));
 }
 
-fn parse_diagnostics(meta: &FileMeta, errors: &[parsing::ParseError]) -> Vec<CompilerDiagnostic> {
-    errors
-        .iter()
-        .map(|error| {
-            let start = error.offset as u32;
-            let end = start.saturating_add(1);
-            let diagnostic = Diagnostic::error(
-                "ParseError",
-                error.message.to_string(),
-                Span::new(start, end),
-                "parse",
-            );
-            compiler_diagnostic(meta, "parse", diagnostic)
-        })
-        .collect()
+fn parse_diagnostics(
+    metadata: &FileMetadata,
+    errors: &[parsing::ParseError],
+) -> Vec<CompilerDiagnostic> {
+    let diagnostics = errors.iter().map(|error| {
+        let start = error.offset as u32;
+        let content_end = metadata.content.len() as u32;
+        let end = start.saturating_add(1).min(content_end);
+        let diagnostic = Diagnostic::error(
+            "ParseError",
+            error.message.to_string(),
+            Span::new(start, end),
+            "parse",
+        );
+        compiler_diagnostic(metadata, CompilationStage::Parse, diagnostic)
+    });
+    diagnostics.collect()
 }
 
 fn debug_diagnostic(
-    meta: &FileMeta,
-    stage: &'static str,
+    metadata: &FileMetadata,
+    stage: CompilationStage,
     code: &'static str,
     error: &impl std::fmt::Debug,
 ) -> CompilerDiagnostic {
     let diagnostic = Diagnostic::error(
         code,
         format!("{error:?}"),
-        Span::new(0, meta.content.len() as u32),
-        stage,
+        Span::new(0, metadata.content.len() as u32),
+        stage.as_str(),
     );
-    compiler_diagnostic(meta, stage, diagnostic)
+    compiler_diagnostic(metadata, stage, diagnostic)
 }
 
-fn convert_diagnostics(meta: &FileMeta, diagnostics: Vec<Diagnostic>) -> Vec<CompilerDiagnostic> {
-    diagnostics
-        .into_iter()
-        .map(|diagnostic| compiler_diagnostic(meta, diagnostic.source, diagnostic))
-        .collect()
+fn convert_diagnostics(
+    metadata: &FileMetadata,
+    stage: CompilationStage,
+    diagnostics: Vec<Diagnostic>,
+) -> Vec<CompilerDiagnostic> {
+    let diagnostics =
+        diagnostics.into_iter().map(|diagnostic| compiler_diagnostic(metadata, stage, diagnostic));
+    diagnostics.collect()
 }
 
-fn compiler_diagnostic(meta: &FileMeta, stage: &str, diagnostic: Diagnostic) -> CompilerDiagnostic {
+fn compiler_diagnostic(
+    metadata: &FileMetadata,
+    stage: CompilationStage,
+    diagnostic: Diagnostic,
+) -> CompilerDiagnostic {
     let severity = match diagnostic.severity {
-        Severity::Error => "error",
-        Severity::Warning => "warning",
+        Severity::Error => DiagnosticSeverity::Error,
+        Severity::Warning => DiagnosticSeverity::Warning,
     };
-    let human =
-        format_rustc_with_path(std::slice::from_ref(&diagnostic), &meta.content, &meta.path);
+    let human = format_rustc_with_path(
+        std::slice::from_ref(&diagnostic),
+        &metadata.content,
+        &metadata.relative_path,
+    );
 
     CompilerDiagnostic {
-        package: meta.package.clone(),
-        version: meta.version.clone(),
-        file: meta.path.clone(),
-        stage: stage.to_string(),
-        severity: severity.to_string(),
+        package: metadata.package.clone(),
+        version: metadata.version.clone(),
+        file: metadata.relative_path.clone(),
+        stage,
+        severity,
         code: diagnostic.code.to_string(),
         message: diagnostic.message,
-        span: SpanReport { start: diagnostic.span.start, end: diagnostic.span.end },
+        span: SpanReport {
+            start: diagnostic.span.start,
+            end: diagnostic.span.end,
+            start_position: Some(source_position(&metadata.content, diagnostic.span.start)),
+            end_position: Some(source_position(&metadata.content, diagnostic.span.end)),
+        },
         human,
     }
 }
 
-fn push_query_error(report: &mut CompileReport, meta: &FileMeta, stage: &str, error: QueryError) {
+fn push_query_error(
+    report: &mut CompileReport,
+    metadata: &FileMetadata,
+    stage: CompilationStage,
+    error: QueryError,
+) {
     report.verifier_errors.push(VerifierIssue::query_error(
-        &meta.package,
-        &meta.path,
+        &metadata.package,
+        &metadata.version,
+        &metadata.relative_path,
         stage,
         format!("{error:?}"),
     ));
+}
+
+fn source_position(content: &str, offset: u32) -> SourcePosition {
+    let offset = offset as usize;
+    let prefix = content.get(..offset).expect("diagnostic span is a source text boundary");
+    let preceding_lines = prefix.bytes().filter(|byte| *byte == b'\n');
+    let line = preceding_lines.count() as u32 + 1;
+    let current_line = prefix.rsplit_once('\n').map_or(prefix, |(_, current_line)| current_line);
+    let characters = current_line.chars();
+    let column = characters.count() as u32 + 1;
+    SourcePosition { line, column }
 }
 
 #[cfg(test)]
@@ -311,6 +380,7 @@ mod tests {
 
     use tempfile::tempdir;
 
+    use super::super::report::{CompilationStage, IssueLocation, VerifierIssueKind};
     use super::super::sources::SourceFile;
 
     use super::compile_sources;
@@ -341,10 +411,53 @@ mod tests {
         fs::write(&b, "module Main where\n").unwrap();
 
         let report =
-            compile_sources(&[source("fixture", "1.0.0", &a), source("fixture", "1.0.0", &b)])
+            compile_sources(&[source("fixture-a", "1.0.0", &a), source("fixture-b", "2.0.0", &b)])
                 .unwrap();
 
-        assert!(report.verifier_errors.iter().any(|issue| issue.kind == "DuplicateModule"));
+        let duplicate = report
+            .verifier_errors
+            .iter()
+            .find(|issue| issue.kind == VerifierIssueKind::DuplicateModule)
+            .expect("duplicate module issue");
+        assert_eq!(
+            duplicate.locations,
+            [
+                IssueLocation {
+                    package: "fixture-a".to_string(),
+                    version: "1.0.0".to_string(),
+                    file: "src/A.purs".to_string(),
+                },
+                IssueLocation {
+                    package: "fixture-b".to_string(),
+                    version: "2.0.0".to_string(),
+                    file: "src/B.purs".to_string(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn reports_parse_errors_at_end_of_file() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        let path = dir.path().join("src/Broken.purs");
+        let content = "module Broken where\n\nimport Prelude (";
+        fs::write(&path, content).unwrap();
+
+        let report = compile_sources(&[source("fixture", "1.0.0", &path)]).unwrap();
+        let diagnostic = report
+            .diagnostics
+            .iter()
+            .find(|diagnostic| {
+                diagnostic.stage == CompilationStage::Parse
+                    && diagnostic.span.start == content.len() as u32
+            })
+            .expect("parse diagnostic at end of file");
+
+        assert_eq!(diagnostic.file, "src/Broken.purs");
+        assert_eq!(diagnostic.span.end, content.len() as u32);
+        assert_eq!(diagnostic.span.end_position.as_ref().unwrap().line, 3);
+        assert_eq!(diagnostic.span.end_position.as_ref().unwrap().column, 17);
     }
 
     fn source(package: &str, version: &str, path: &std::path::Path) -> SourceFile {
@@ -352,7 +465,7 @@ mod tests {
             package: package.to_string(),
             version: version.to_string(),
             path: path.to_path_buf(),
-            relative_path: path.file_name().unwrap().into(),
+            relative_path: std::path::Path::new("src").join(path.file_name().unwrap()),
         }
     }
 }
