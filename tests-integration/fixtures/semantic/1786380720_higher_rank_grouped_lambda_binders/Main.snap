@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+interface Identity :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface Identity value where
+
+foreign import consume :: (Main.Unit -> (forall value. Main.Identity @Prim.Type value => value -> value)) -> Main.Unit
+
+test :: Main.Unit
+test = consume \_ -> \@value -> \{identityDict} -> \value -> value

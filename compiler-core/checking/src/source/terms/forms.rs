@@ -1,7 +1,7 @@
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{TypeId, exhaustive, toolkit, unification};
+use crate::core::{Type, TypeId, exhaustive, normalise, toolkit, unification};
 use crate::source::binder;
 use crate::source::terms::{ElaboratedExpression, application, guarded};
 use crate::state::CheckState;
@@ -148,6 +148,17 @@ where
     let mut remaining = expected;
 
     for &binder_id in binders.iter() {
+        if !arguments.is_empty() {
+            let expanded = normalise::expand(state, context, remaining)?;
+            let requires_abstraction = matches!(
+                context.lookup_type(expanded),
+                Type::Forall(_, _) | Type::Constrained(_, _)
+            );
+            if requires_abstraction {
+                break;
+            }
+        }
+
         let decomposed = toolkit::decompose_function(state, context, remaining)?;
         let argument = if let Some((argument, result)) = decomposed {
             let argument = if binder::requires_instantiation(context, binder_id) {
@@ -165,7 +176,12 @@ where
         checked_binders.push(checked_binder.binder);
     }
 
-    let body = if let Some(body) = expression {
+    let (current_binders, remaining_binders) = binders.split_at(arguments.len());
+    let body = if !remaining_binders.is_empty() {
+        super::check_expected_expression(state, context, remaining, |state, expected| {
+            check_lambda(state, context, remaining_binders, expression, expected)
+        })?
+    } else if let Some(body) = expression {
         super::check_expression(state, context, body, remaining)?
     } else {
         let type_id = state.fresh_unification(context.queries, context.prim.t);
@@ -175,7 +191,8 @@ where
 
     let function_type = context.intern_function_list(&arguments, body.type_id);
 
-    let exhaustiveness = exhaustive::check_lambda_patterns(state, context, &arguments, binders)?;
+    let exhaustiveness =
+        exhaustive::check_lambda_patterns(state, context, &arguments, current_binders)?;
 
     let has_missing = exhaustiveness.missing.is_some();
     state.report_exhaustiveness(exhaustiveness);
