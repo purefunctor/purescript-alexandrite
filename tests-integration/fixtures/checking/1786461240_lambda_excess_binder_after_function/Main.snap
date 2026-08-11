@@ -13,3 +13,10 @@ Unit :: Prim.Type
 
 Roles
 Unit = []
+
+Diagnostics
+error[CannotUnify]: Cannot unify '?0 -> Int' with 'Int'
+  --> 8:16..8:37
+  |
+8 | test = consume \value extra -> value
+  |                ^~~~~~~~~~~~~~~~~~~~~

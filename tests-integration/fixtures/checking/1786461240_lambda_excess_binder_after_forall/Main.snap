@@ -17,3 +17,20 @@ Proxy :: Prim.Type -> Prim.Type
 Roles
 Unit = []
 Proxy = [Phantom]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Function ?1' with 'Proxy'
+  --> 11:16..11:33
+   |
+11 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy (value :: Type)'
+  --> 11:16..11:33
+   |
+11 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy (value :: Type)'
+  --> 11:16..11:33
+   |
+11 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~

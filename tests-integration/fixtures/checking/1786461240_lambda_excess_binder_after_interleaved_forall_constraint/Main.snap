@@ -24,3 +24,20 @@ class forall (value :: Prim.Type). Main.Marker (value :: Prim.Type)
 Roles
 Unit = []
 Proxy = [Phantom]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Function ?1' with 'Proxy'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy (value :: Type)'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy (value :: Type)'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
