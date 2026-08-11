@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+Proxy :: forall (@value :: Prim.Type). Main.Proxy (value :: Prim.Type)
+consume ::
+  (Main.Unit ->
+  (forall (value :: Prim.Type).
+    Main.Marker (value :: Prim.Type) => Main.Proxy (value :: Prim.Type))) ->
+  Main.Unit
+test :: Main.Unit
+
+Types
+Unit :: Prim.Type
+Proxy :: Prim.Type -> Prim.Type
+Marker :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Marker (value :: Prim.Type)
+
+Roles
+Unit = []
+Proxy = [Phantom]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Function ?1' with 'Proxy'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy (value :: Type)'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy (value :: Type)'
+  --> 15:16..15:33
+   |
+15 | test = consume \_ extra -> Proxy
+   |                ^~~~~~~~~~~~~~~~~

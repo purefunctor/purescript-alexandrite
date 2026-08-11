@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+consume :: (Prim.Int -> Prim.Int) -> Main.Unit
+test :: Main.Unit
+
+Types
+Unit :: Prim.Type
+
+Roles
+Unit = []
+
+Diagnostics
+error[CannotUnify]: Cannot unify '?0 -> Int' with 'Int'
+  --> 8:16..8:37
+  |
+8 | test = consume \value extra -> value
+  |                ^~~~~~~~~~~~~~~~~~~~~

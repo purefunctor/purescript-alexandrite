@@ -169,7 +169,13 @@ where
             remaining = result;
             argument
         } else {
-            state.fresh_unification(context.queries, context.prim.t)
+            let argument = state.fresh_unification(context.queries, context.prim.t);
+            let result = state.fresh_unification(context.queries, context.prim.t);
+            let function = context.intern_function(argument, result);
+
+            unification::subtype(state, context, function, remaining)?;
+            remaining = result;
+            argument
         };
         let checked_binder = binder::check_binder(state, context, binder_id, argument)?;
         arguments.push(argument);
