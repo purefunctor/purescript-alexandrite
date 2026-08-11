@@ -261,7 +261,7 @@ where
                     .lookup_source_type_variable(context, SourceTypeVariableKey::Forall(*forall))?
                     .expect("invariant violated: KindScope::bind_forall");
 
-                let t = context.intern_rigid(variable.name, state.depth, variable.kind);
+                let t = context.intern_rigid(variable.name, variable.depth, variable.kind);
 
                 Ok((t, variable.kind))
             }
@@ -278,7 +278,7 @@ where
                         state.checked.names.insert(n, text);
                     }
 
-                    state.bindings.bind_implicit(implicit.node, implicit.id, n, k);
+                    state.bindings.bind_implicit(implicit.node, implicit.id, n, state.depth, k);
                     state
                         .checked
                         .node_types
@@ -293,7 +293,7 @@ where
                         .lookup_source_type_variable(context, key)?
                         .expect("invariant violated: KindScope::bind_implicit");
 
-                    let t = context.intern_rigid(variable.name, state.depth, variable.kind);
+                    let t = context.intern_rigid(variable.name, variable.depth, variable.kind);
 
                     Ok((t, variable.kind))
                 }
@@ -493,7 +493,7 @@ where
 
     state.checked.names.insert(name, text);
     state.checked.node_types.forall_bindings.insert(binding.id, kind);
-    state.bindings.bind_forall(binding.id, name, kind);
+    state.bindings.bind_forall(binding.id, name, state.depth, kind);
     Ok(ForallBinder { visible, name, kind })
 }
 

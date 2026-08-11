@@ -16,10 +16,3 @@ Packed :: Prim.Type
 
 Roles
 Packed = []
-
-Diagnostics
-error[CannotUnify]: Cannot unify '(a :: Type)' with '(a :: Type)'
-  --> 8:35..8:45
-  |
-8 | recover (Packed run) = run (\_ -> value :: a)
-  |                                   ^~~~~~~~~~
