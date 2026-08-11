@@ -17,6 +17,7 @@ pub struct Cli {
 pub enum Command {
     Prepare(PrepareArgs),
     Verify(VerifyArgs),
+    Compare(CompareArgs),
 }
 
 #[derive(Debug, Args)]
@@ -49,6 +50,26 @@ pub struct VerifyArgs {
     pub json_output: Option<PathBuf>,
     #[arg(long)]
     pub cache_dir: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+pub struct CompareArgs {
+    #[arg(long)]
+    pub base_report: PathBuf,
+    #[arg(long)]
+    pub candidate_report: PathBuf,
+    #[arg(long)]
+    pub json_output: PathBuf,
+    #[arg(long)]
+    pub summary_output: Option<PathBuf>,
+    #[arg(long)]
+    pub github_annotations: bool,
+    #[arg(long, default_value_t = 100)]
+    pub detail_limit: usize,
+    #[arg(long, default_value_t = 10)]
+    pub error_annotation_limit: usize,
+    #[arg(long, default_value_t = 10)]
+    pub warning_annotation_limit: usize,
 }
 
 fn parse_package_name(value: &str) -> Result<String, String> {

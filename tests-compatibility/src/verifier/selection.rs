@@ -56,7 +56,10 @@ pub fn resolve_selection(
         _ => SelectionMode::Combined,
     };
 
-    roots.extend(preset_package_names(&presets));
+    let preset_packages = preset_package_names(&presets);
+    let available_preset_packages =
+        preset_packages.into_iter().filter(|package| package_versions.contains_key(package));
+    roots.extend(available_preset_packages);
 
     let mut manifests: HashMap<String, Manifest> = HashMap::new();
     let mut selection = resolve_closure_with(roots, package_versions, |name| {
@@ -116,7 +119,7 @@ where
             if package_versions.contains_key(dependency) {
                 queue.push_back(dependency.clone());
             } else {
-                errors.push(VerifierIssue::missing_dependency(&package, dependency));
+                errors.push(VerifierIssue::missing_dependency(&package, version, dependency));
             }
         }
     }
@@ -138,6 +141,7 @@ mod tests {
 
     use tests_compatibility::registry::{Location, Manifest};
 
+    use super::super::report::VerifierIssueKind;
     use super::{normalize_core_package, resolve_closure_with};
 
     fn manifest(name: &str, version: &str, deps: &[&str]) -> Manifest {
@@ -190,7 +194,7 @@ mod tests {
             })
             .unwrap();
 
-        assert_eq!(resolved.errors[0].kind, "MissingPackageSetDependency");
+        assert_eq!(resolved.errors[0].kind, VerifierIssueKind::MissingPackageSetDependency);
     }
 
     #[test]
@@ -201,6 +205,6 @@ mod tests {
             resolve_closure_with(BTreeSet::from(["effect".to_string()]), &versions, |_| Ok(None))
                 .unwrap();
 
-        assert_eq!(resolved.errors[0].kind, "MissingManifest");
+        assert_eq!(resolved.errors[0].kind, VerifierIssueKind::MissingManifest);
     }
 }

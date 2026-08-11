@@ -48,6 +48,124 @@ jobs:
       - name: Run integration tests
         run: cargo nextest run -p tests-integration
 
+  compatibility:
+    name: Package compatibility
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout candidate revision
+        uses: actions/checkout@v7
+        with:
+          path: candidate
+
+      - name: Checkout base revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Install Rust toolchain
+        run: rustup update stable && rustup default stable
+
+      - name: Build compatibility verifiers
+        run: |
+          cargo build --manifest-path base/Cargo.toml -p tests-compatibility
+          cargo build --manifest-path candidate/Cargo.toml -p tests-compatibility
+
+      - name: Prepare core and Acme corpus
+        working-directory: candidate
+        run: target/debug/tests-compatibility prepare --preset core --preset acme
+
+      - name: Collect base and candidate reports
+        id: reports
+        env:
+          CORPUS_DIR: ${{ github.workspace }}/candidate/target/compatibility
+          REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
+        run: |
+          mkdir -p "$REPORT_DIR"
+
+          # Status 1 is a valid verifier report containing diagnostics; status 2 is an execution failure.
+          set +e
+          (
+            cd base
+            target/debug/tests-compatibility verify \
+              --preset core \
+              --preset acme \
+              --registry-dir "$CORPUS_DIR/registry" \
+              --index-dir "$CORPUS_DIR/registry-index" \
+              --cache-dir "$CORPUS_DIR" \
+              --json-output "$REPORT_DIR/base.json"
+          ) > "$REPORT_DIR/base.log" 2>&1
+          base_status=$?
+
+          (
+            cd candidate
+            target/debug/tests-compatibility verify \
+              --preset core \
+              --preset acme \
+              --registry-dir "$CORPUS_DIR/registry" \
+              --index-dir "$CORPUS_DIR/registry-index" \
+              --cache-dir "$CORPUS_DIR" \
+              --json-output "$REPORT_DIR/candidate.json"
+          ) > "$REPORT_DIR/candidate.log" 2>&1
+          candidate_status=$?
+          set -e
+
+          echo "base_status=$base_status" >> "$GITHUB_OUTPUT"
+          echo "candidate_status=$candidate_status" >> "$GITHUB_OUTPUT"
+
+      - name: Compare compatibility reports
+        id: comparison
+        env:
+          REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
+        run: |
+          set +e
+          candidate/target/debug/tests-compatibility compare \
+            --base-report "$REPORT_DIR/base.json" \
+            --candidate-report "$REPORT_DIR/candidate.json" \
+            --json-output "$REPORT_DIR/comparison.json" \
+            --summary-output "$GITHUB_STEP_SUMMARY" \
+            --github-annotations \
+            2>&1 | tee "$REPORT_DIR/comparison.log"
+          comparison_status=${PIPESTATUS[0]}
+          set -e
+
+          echo "status=$comparison_status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload compatibility reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compatibility-reports
+          path: compatibility-artifacts
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce compatibility result
+        if: always()
+        env:
+          BASE_STATUS: ${{ steps.reports.outputs.base_status }}
+          CANDIDATE_STATUS: ${{ steps.reports.outputs.candidate_status }}
+          COMPARISON_STATUS: ${{ steps.comparison.outputs.status }}
+        run: |
+          # Preserve verifier status 1 for comparison, then fail only for execution failures or regressions.
+          if [[ "$BASE_STATUS" != "0" && "$BASE_STATUS" != "1" ]]; then
+            echo "::error::Base compatibility verifier failed with status ${BASE_STATUS:-missing}"
+            exit 1
+          fi
+          if [[ "$CANDIDATE_STATUS" != "0" && "$CANDIDATE_STATUS" != "1" ]]; then
+            echo "::error::Candidate compatibility verifier failed with status ${CANDIDATE_STATUS:-missing}"
+            exit 1
+          fi
+          if [[ "$COMPARISON_STATUS" != "0" && "$COMPARISON_STATUS" != "1" ]]; then
+            echo "::error::Compatibility report comparison failed with status ${COMPARISON_STATUS:-missing}"
+            exit 1
+          fi
+          exit "$COMPARISON_STATUS"
+
   wasm:
     name: Compilation (docs-lib)
     runs-on: ubuntu-latest
