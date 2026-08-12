@@ -84,14 +84,6 @@ where
             evidences.push(tree::InstanceEvidence { constraint: signature_constraint, evidence });
         }
 
-        let superclasses = emit_instance_superclass_constraints(
-            state,
-            context,
-            result.class_file,
-            result.class_id,
-            &freshened.arguments,
-        )?;
-
         let delegate_constraint =
             freshened.renaming.substitute(state, context, delegate_constraint)?;
         let evidence = state.push_wanted(delegate_constraint);
@@ -100,7 +92,7 @@ where
             class: (result.class_file, result.class_id),
             rigid_parameters: Arc::from(freshened.rigids),
             evidences: Arc::from(evidences),
-            superclasses: Arc::from(superclasses),
+            superclasses: Arc::from([]),
             implementation: tree::InstanceImplementation::Delegate {
                 constraint: delegate_constraint,
                 evidence,

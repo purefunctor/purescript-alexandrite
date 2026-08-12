@@ -40,10 +40,3 @@ derive forall (parameter :: Prim.Type -> Prim.Type).
 Roles
 Representation = [Phantom, Phantom]
 Wrapper = [Representational, Representational]
-
-Diagnostics
-error[NoInstanceFound]: No instance found for: Gate (parameter :: Type -> Type)
-  --> 22:1..22:50
-   |
-22 | derive newtype instance Child (Wrapper parameter)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

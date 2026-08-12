@@ -36,8 +36,10 @@ dictionary parentWrapper :: { gateDict :: Main.Gate } => Main.Parent Main.Wrappe
   parent :: Main.Wrapper -> Main.Wrapper
   parent = \value -> value
 
+dictionary childWrapper :: Main.Child Main.Wrapper = childRepresentation
+
 parentFromChild :: forall value. Main.Child value => value -> value
 parentFromChild = \@value -> \{childDict} -> parent @value {childDict.parentDict}
 
 useDelegateSuperclass :: Main.Wrapper -> Main.Wrapper
-useDelegateSuperclass = parentFromChild @Main.Wrapper {<instance>}
+useDelegateSuperclass = parentFromChild @Main.Wrapper {childWrapper}

@@ -13,3 +13,8 @@ interface Relation label value where
 newtype Wrapper :: Prim.Type -> Prim.Type
 newtype Wrapper @value
   | Wrapper :: value -> Main.Wrapper value
+
+dictionary relationWrapper ::
+  forall label value.
+  { relationDict :: Main.Relation label value } =>
+  Main.Relation label (Main.Wrapper value) = relationDict
