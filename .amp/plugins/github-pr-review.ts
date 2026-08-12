@@ -186,7 +186,7 @@ Use passed, failed, or not-run; LEFT only for deleted lines.`;
 async function createReviewThread(amp: PluginAPI, number: number, head: string): Promise<string> {
   const prompt = reviewPrompt(number, head);
   const result =
-    await amp.$`amp --orb-execute --execute ${prompt} --project ${repository} --mode medium --label ci-review-agent`;
+    await amp.$`amp --orb-execute --execute ${prompt} --project ${repository} --mode medium`;
   if (result.exitCode !== 0) {
     const details = result.stderr.trim().slice(0, 1_000);
     throw new Error(`Review thread dispatch failed with exit code ${result.exitCode}: ${details}`);
@@ -194,6 +194,11 @@ async function createReviewThread(amp: PluginAPI, number: number, head: string):
   const threadId = result.stdout.match(/\/threads\/(T-[0-9a-f-]+)\s*$/)?.[1];
   if (threadId === undefined)
     throw new Error("Review thread dispatch did not return a thread URL.");
+  const labelResult = await amp.$`amp threads label ${threadId} ci-review-agent`;
+  if (labelResult.exitCode !== 0) {
+    const details = labelResult.stderr.trim().slice(0, 1_000);
+    throw new Error(`Review thread labeling failed with exit code ${labelResult.exitCode}: ${details}`);
+  }
   return threadId;
 }
 
