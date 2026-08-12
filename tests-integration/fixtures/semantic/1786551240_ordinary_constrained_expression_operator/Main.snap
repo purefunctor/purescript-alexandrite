@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Equal :: Prim.Type -> Prim.Constraint
+interface Equal a where
+  equal :: a -> a -> Prim.Boolean
+
+dictionary equalInt :: Main.Equal Prim.Int where
+  equal :: Prim.Int -> Prim.Int -> Prim.Boolean
+  equal = \left -> \right -> true
+
+ordinaryConstrainedOperator :: Prim.Boolean
+ordinaryConstrainedOperator = equal {equalInt} 1 2

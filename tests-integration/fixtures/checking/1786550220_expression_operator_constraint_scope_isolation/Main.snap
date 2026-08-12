@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+combine ::
+  forall (result :: Prim.Type).
+    (Main.First @Prim.Type Prim.Int => Prim.Int) -> (result :: Prim.Type) -> (result :: Prim.Type)
+<+> ::
+  forall (result :: Prim.Type).
+    (Main.First @Prim.Type Prim.Int => Prim.Int) -> (result :: Prim.Type) -> (result :: Prim.Type)
+constrainedValue :: Main.First @Prim.Type Prim.Int => Prim.Int
+needsFirst :: Main.First @Prim.Type Prim.Int => Prim.Int
+test :: Prim.Int
+
+Types
+First :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.First @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
