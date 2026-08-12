@@ -4,10 +4,10 @@ assertion_line: 68
 expression: report
 ---
 checked :: forall a. a -> a
-checked = \@a -> \value -> value
+checked = \value -> value
 
 inferred :: forall t0. t0 -> t0
-inferred = \@t0 -> \value -> value
+inferred = \value -> value
 
 multiple :: forall t0 t1. t0 -> t1 -> t0
-multiple = \@t0 -> \@t1 -> \first second -> first
+multiple = \first second -> first

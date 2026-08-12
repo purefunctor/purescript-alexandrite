@@ -23,4 +23,4 @@ instanceEvidence :: Prim.Int
 instanceEvidence = useChild {childInt {parentInt}} 1
 
 superclassEvidence :: forall value. Main.Child value => value -> value
-superclassEvidence = \@value -> \{childDict} -> useParent {childDict.parentDict}
+superclassEvidence = \{childDict} -> useParent {childDict.parentDict}

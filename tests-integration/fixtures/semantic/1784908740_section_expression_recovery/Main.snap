@@ -4,19 +4,19 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \@a -> \value -> value
+identity = \value -> value
 
 apply :: forall a b. (a -> b) -> a -> b
-apply = \@a -> \@b -> \function -> \argument -> function argument
+apply = \function -> \argument -> function argument
 
 orphan :: ?[missing expression]
 orphan = <error>
 
 orphanInLambda :: forall t0. t0 -> ?[missing expression]
-orphanInLambda = \@t0 -> \value -> <error>
+orphanInLambda = \value -> <error>
 
 failedBody :: forall t0. (?[missing expression] -> t0) -> t0
-failedBody = \@t0 -> \v56 -> apply v56 <error>
+failedBody = \v56 -> apply v56 <error>
 
 invalidExpected :: Prim.Int
 invalidExpected = \v67 -> identity v67

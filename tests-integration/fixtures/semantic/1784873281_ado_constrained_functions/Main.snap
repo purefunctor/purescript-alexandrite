@@ -16,10 +16,10 @@ interface Operations effect where
   effect (value -> result) -> effect value -> effect result
 
 usingMapApply :: forall effect. Main.Operations effect => effect (Main.Tuple Prim.Int Prim.String)
-usingMapApply = \@effect -> \{operationsDict} ->
+usingMapApply = \{operationsDict} ->
   apply {operationsDict}
     (map {operationsDict} (\first second -> Tuple first second) (pure {operationsDict} 1))
     (pure {operationsDict} "two")
 
 usingPure :: forall effect. Main.Operations effect => effect Prim.Int
-usingPure = \@effect -> \{operationsDict} -> pure {operationsDict} 1
+usingPure = \{operationsDict} -> pure {operationsDict} 1

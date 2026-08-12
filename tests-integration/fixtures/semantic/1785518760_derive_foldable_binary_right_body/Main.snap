@@ -13,24 +13,22 @@ dictionary foldableRightNested ::
   Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (RightNested field0) -> foldr {foldableDict}
-          (\element accumulator -> function element accumulator)
-          accumulator
-          field0
+  foldr = \function accumulator value ->
+    case value of
+      (RightNested field0) -> foldr {foldableDict}
+        (\element accumulator -> function element accumulator)
+        accumulator
+        field0
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (RightNested field0) -> foldl {foldableDict}
-          (\accumulator element -> function accumulator element)
-          accumulator
-          field0
+  foldl = \function accumulator value ->
+    case value of
+      (RightNested field0) -> foldl {foldableDict}
+        (\accumulator element -> function accumulator element)
+        accumulator
+        field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (RightNested field0) -> foldMap {foldableDict} {monoidDict} (\element -> function element)

@@ -291,11 +291,6 @@ where
         self.render_with_signature(None, id, Precedence::Top)
     }
 
-    pub(crate) fn render_atom(&mut self, id: TypeId) -> SmolStr {
-        self.names.set_default_name("t");
-        self.render_with_signature(None, id, Precedence::Atom)
-    }
-
     pub fn render_signature(&mut self, name: &str, id: TypeId) -> SmolStr {
         self.names.set_default_name("t");
         self.render_with_signature(Some(name), id, Precedence::Top)

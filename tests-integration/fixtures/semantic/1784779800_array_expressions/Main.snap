@@ -4,7 +4,7 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall t0. t0 -> t0
-identity = \@t0 -> \value -> value
+identity = \value -> value
 
 empty :: Prim.Array Prim.Int
 empty = []
@@ -16,7 +16,7 @@ nested :: Prim.Array (Prim.Array Prim.Int)
 nested = [[1], [2, 3]]
 
 inferredFunctions :: forall t0. Prim.Array (t0 -> t0)
-inferredFunctions = \@t0 -> [identity]
+inferredFunctions = [identity]
 
 checkedFunctions :: Prim.Array (Prim.Int -> Prim.Int)
 checkedFunctions = [identity]

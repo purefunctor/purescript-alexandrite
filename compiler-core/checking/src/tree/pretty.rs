@@ -799,8 +799,10 @@ where
     ) -> QueryResult<Option<Doc<'arena>>> {
         let mut rendered_equations = vec![];
         for equation in equations.iter() {
-            let has_abstraction =
-                !equation.binders.is_empty() || !declaration_abstractions.is_empty();
+            let has_abstraction = !equation.binders.is_empty()
+                || declaration_abstractions.iter().any(|abstraction| {
+                    matches!(abstraction, DeclarationAbstraction::Evidence { .. })
+                });
             let (mut expression, where_bindings, force_body_break, is_lambda) = if let [alternative] =
                 equation.guarded_expression.alternatives.as_ref()
                 && alternative.pattern_guards.is_empty()
@@ -828,16 +830,13 @@ where
 
             let mut abstractions = vec![];
             for abstraction in declaration_abstractions {
-                match abstraction {
-                    DeclarationAbstraction::Type { rigid, .. } => {
-                        let binder = type_pretty.render_atom(*rigid);
-                        abstractions.push(self.arena.text(format!("\\@{binder} ->")));
-                    }
-                    DeclarationAbstraction::Evidence { evidence, .. } => {
-                        let binder = self.evidence_name(evidence_names, evidence)?;
-                        abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
-                    }
-                }
+                // Type abstractions are omitted because the declaration's
+                // rendered signature already communicates its binders.
+                let DeclarationAbstraction::Evidence { evidence, .. } = abstraction else {
+                    continue;
+                };
+                let binder = self.evidence_name(evidence_names, evidence)?;
+                abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
             }
             for &binder in equation.binders.iter() {
                 let binder = self.binder(binder, type_pretty)?;

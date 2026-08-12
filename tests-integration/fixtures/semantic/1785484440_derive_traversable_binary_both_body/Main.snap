@@ -14,8 +14,7 @@ dictionary functorDuplicate ::
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b) -> Main.Duplicate @Prim.Type p a -> Main.Duplicate @Prim.Type p b
-  map = \@a -> \@b -> \function -> \(Duplicate value) ->
-    Duplicate (bimap {bifunctorDict} function function value)
+  map = \function -> \(Duplicate value) -> Duplicate (bimap {bifunctorDict} function function value)
 
 dictionary foldableDuplicate ::
   forall p.
@@ -23,14 +22,14 @@ dictionary foldableDuplicate ::
   Data.Foldable.Foldable (Main.Duplicate @Prim.Type p)
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
-  foldr = \@a -> \@b -> \function -> \initial -> \(Duplicate value) ->
+  foldr = \function -> \initial -> \(Duplicate value) ->
     bifoldr {bifoldableDict} function function initial value
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
-  foldl = \@a -> \@b -> \function -> \initial -> \(Duplicate value) ->
+  foldl = \function -> \initial -> \(Duplicate value) ->
     bifoldl {bifoldableDict} function function initial value
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.Duplicate @Prim.Type p a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} -> \function -> \(Duplicate value) ->
+  foldMap = \{monoidDict} -> \function -> \(Duplicate value) ->
     bifoldMap {bifoldableDict} {monoidDict} function function value
 
 dictionary traversableDuplicate ::
@@ -43,7 +42,7 @@ dictionary traversableDuplicate ::
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.Duplicate @Prim.Type p a -> m (Main.Duplicate @Prim.Type p b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
         (Duplicate field0) -> map {applicativeDict.applyDict.functorDict}
@@ -54,7 +53,7 @@ dictionary traversableDuplicate ::
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.Duplicate @Prim.Type p (m a) -> m (Main.Duplicate @Prim.Type p a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
+  sequence = \{applicativeDict} ->
     \value ->
       traverse {traversableDuplicate {bitraversableDict}} {applicativeDict} (\effect0 -> effect0)
         value

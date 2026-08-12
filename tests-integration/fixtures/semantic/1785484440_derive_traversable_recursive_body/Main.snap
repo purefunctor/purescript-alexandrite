@@ -10,36 +10,33 @@ data Tree @a
 
 dictionary functorTree :: Data.Functor.Functor Main.Tree where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Tree a -> Main.Tree b
-  map = \@a -> \@b ->
-    \function value ->
-      case value of
-        (Leaf field0) -> Leaf (function field0)
-        (Branch field0 field1) -> Branch (map {functorTree} (\element -> function element) field0)
-          (map {functorTree} (\element -> function element) field1)
+  map = \function value ->
+    case value of
+      (Leaf field0) -> Leaf (function field0)
+      (Branch field0 field1) -> Branch (map {functorTree} (\element -> function element) field0)
+        (map {functorTree} (\element -> function element) field1)
 
 dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Tree a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Leaf field0) -> function field0 accumulator
-        (Branch field0 field1) -> foldr {foldableTree}
-          (\element accumulator -> function element accumulator)
-          (foldr {foldableTree} (\element accumulator -> function element accumulator) accumulator
-            field1)
-          field0
+  foldr = \function accumulator value ->
+    case value of
+      (Leaf field0) -> function field0 accumulator
+      (Branch field0 field1) -> foldr {foldableTree}
+        (\element accumulator -> function element accumulator)
+        (foldr {foldableTree} (\element accumulator -> function element accumulator) accumulator
+          field1)
+        field0
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Tree a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Leaf field0) -> function accumulator field0
-        (Branch field0 field1) -> foldl {foldableTree}
-          (\accumulator element -> function accumulator element)
-          (foldl {foldableTree} (\accumulator element -> function accumulator element) accumulator
-            field0)
-          field1
+  foldl = \function accumulator value ->
+    case value of
+      (Leaf field0) -> function accumulator field0
+      (Branch field0 field1) -> foldl {foldableTree}
+        (\accumulator element -> function accumulator element)
+        (foldl {foldableTree} (\accumulator element -> function accumulator element) accumulator
+          field0)
+        field1
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (Leaf field0) -> function field0
@@ -52,7 +49,7 @@ dictionary traversableTree :: Data.Traversable.Traversable Main.Tree where
   superclass foldableDict = foldableTree
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Tree a -> m (Main.Tree b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
         (Leaf field0) -> map {applicativeDict.applyDict.functorDict}
@@ -65,5 +62,5 @@ dictionary traversableTree :: Data.Traversable.Traversable Main.Tree where
           (traverse {traversableTree} {applicativeDict} (\element -> function element) field1)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Tree (m a) -> m (Main.Tree a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
+  sequence = \{applicativeDict} ->
     \value -> traverse {traversableTree} {applicativeDict} (\effect0 -> effect0) value

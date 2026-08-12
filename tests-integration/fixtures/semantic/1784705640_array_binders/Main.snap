@@ -4,5 +4,5 @@ assertion_line: 68
 expression: report
 ---
 headOr :: forall a. a -> Prim.Array a -> a
-headOr = \@a -> \fallback -> \[first, _] -> first
-headOr = \@a -> \fallback -> \_ -> fallback
+headOr = \fallback -> \[first, _] -> first
+headOr = \fallback -> \_ -> fallback

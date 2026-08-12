@@ -10,19 +10,17 @@ data Maybe @a
 
 dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        Nothing -> accumulator
-        (Just field0) -> function field0 accumulator
+  foldr = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function field0 accumulator
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Maybe a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        Nothing -> accumulator
-        (Just field0) -> function accumulator field0
+  foldl = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function accumulator field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         Nothing -> mempty {monoidDict}

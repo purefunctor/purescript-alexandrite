@@ -4,10 +4,10 @@ assertion_line: 68
 expression: report
 ---
 unresolvedMap :: forall t0 t1. t0 t1
-unresolvedMap = \@t0 -> \@t1 -> <error> (\value -> value) 1
+unresolvedMap = <error> (\value -> value) 1
 
 unresolvedApply :: forall t0 t1. t0 t1
-unresolvedApply = \@t0 -> \@t1 -> <error> (<error> (\first second -> first) 1) 2
+unresolvedApply = <error> (<error> (\first second -> first) 1) 2
 
 unresolvedPure :: forall t0. t0 Prim.Int
-unresolvedPure = \@t0 -> <error> 1
+unresolvedPure = <error> 1

@@ -12,8 +12,7 @@ dictionary contravariantPredicateRecord ::
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a) -> Main.PredicateRecord a -> Main.PredicateRecord b
-  cmap = \@a -> \@b ->
-    \function value ->
-      case value of
-        (PredicateRecord field0) -> PredicateRecord
-          field0 { run = \argument -> field0.run (function argument) }
+  cmap = \function value ->
+    case value of
+      (PredicateRecord field0) -> PredicateRecord
+        field0 { run = \argument -> field0.run (function argument) }

@@ -14,9 +14,9 @@ interface Second :: Prim.Type -> Prim.Constraint
 interface Second a where
 
 useDefault :: forall a. Main.Default a => a
-useDefault = \@a -> \{defaultDict} -> default {defaultDict}
+useDefault = \{defaultDict} -> default {defaultDict}
 
 foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
 
 useInterleaved :: forall a b. Main.First a => Main.Second b => a -> b
-useInterleaved = \@a -> \@b -> \{firstDict} -> \{secondDict} -> interleaved {firstDict} {secondDict}
+useInterleaved = \{firstDict} -> \{secondDict} -> interleaved {firstDict} {secondDict}

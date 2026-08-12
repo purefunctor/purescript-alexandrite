@@ -10,27 +10,24 @@ data Maybe @a
 
 dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Maybe a -> Main.Maybe b
-  map = \@a -> \@b ->
-    \function value ->
-      case value of
-        Nothing -> Nothing
-        (Just field0) -> Just (function field0)
+  map = \function value ->
+    case value of
+      Nothing -> Nothing
+      (Just field0) -> Just (function field0)
 
 dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        Nothing -> accumulator
-        (Just field0) -> function field0 accumulator
+  foldr = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function field0 accumulator
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Maybe a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        Nothing -> accumulator
-        (Just field0) -> function accumulator field0
+  foldl = \function accumulator value ->
+    case value of
+      Nothing -> accumulator
+      (Just field0) -> function accumulator field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         Nothing -> mempty {monoidDict}
@@ -41,7 +38,7 @@ dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
   superclass foldableDict = foldableMaybe
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Maybe a -> m (Main.Maybe b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
         Nothing -> pure {applicativeDict} Nothing
@@ -50,5 +47,5 @@ dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
           (function field0)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Maybe (m a) -> m (Main.Maybe a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
+  sequence = \{applicativeDict} ->
     \value -> traverse {traversableMaybe} {applicativeDict} (\effect0 -> effect0) value

@@ -14,7 +14,7 @@ interface Example a b where
   example :: a -> b -> Prim.Boolean
 
 implementation :: forall b a. Main.Second b => a -> b -> Prim.Boolean
-implementation = \@b -> \@a -> \{secondDict} -> \_ -> \_ -> boolean
+implementation = \{secondDict} -> \_ -> \_ -> boolean
 
 foreign import boolean :: Prim.Boolean
 

@@ -22,13 +22,13 @@ foreign import unsafeCoerce :: forall a b. a -> b
 
 dictionary convertG :: Main.Convert Main.F Main.G where
   convert :: forall (a :: Prim.Type). Main.F a -> Main.G a
-  convert = \@a -> unsafeCoerce
+  convert = unsafeCoerce
   convertExplicit :: forall (a :: Prim.Type). Main.F a -> Main.G a
-  convertExplicit = \@a -> unsafeCoerce
+  convertExplicit = unsafeCoerce
 
 dictionary clash1 :: forall f. Main.Clash f where
   clash :: forall (a :: Prim.Type). f a -> f a
-  clash = \@a -> \(value :: f a) ->
+  clash = \(value :: f a) ->
     case value of
       (matched :: f a) -> local matched
     where

@@ -13,8 +13,7 @@ dictionary contravariantOpenPredicate ::
   where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a) -> Main.OpenPredicate r a -> Main.OpenPredicate r b
-  cmap = \@a -> \@b ->
-    \function value ->
-      case value of
-        (OpenPredicate field0) -> OpenPredicate
-          field0 { run = \argument -> field0.run (function argument) }
+  cmap = \function value ->
+    case value of
+      (OpenPredicate field0) -> OpenPredicate
+        field0 { run = \argument -> field0.run (function argument) }

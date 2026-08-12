@@ -4,4 +4,4 @@ assertion_line: 68
 expression: report
 ---
 ignore :: forall a b. a -> b -> b
-ignore = \@a -> \@b -> \_ -> \value -> value
+ignore = \_ -> \value -> value

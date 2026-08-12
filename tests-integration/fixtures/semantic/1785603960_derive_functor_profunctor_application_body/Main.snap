@@ -14,20 +14,18 @@ data DoubleInput @a
 dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
-  dimap = \@a -> \@b -> \@c -> \@d ->
-    \firstFunction secondFunction value ->
-      case value of
-        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
 
 dictionary functorDoubleInput :: Data.Functor.Functor Main.DoubleInput where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.DoubleInput a -> Main.DoubleInput b
-  map = \@a -> \@b ->
-    \function value ->
-      case value of
-        (DoubleInput field0) -> DoubleInput
-          (dimap {profunctorFunction}
-            (\element ->
-              dimap {profunctorFunction} (\element -> function element) (\unchanged -> unchanged)
-                element)
-            (\unchanged -> unchanged)
-            field0)
+  map = \function value ->
+    case value of
+      (DoubleInput field0) -> DoubleInput
+        (dimap {profunctorFunction}
+          (\element ->
+            dimap {profunctorFunction} (\element -> function element) (\unchanged -> unchanged)
+              element)
+          (\unchanged -> unchanged)
+          field0)

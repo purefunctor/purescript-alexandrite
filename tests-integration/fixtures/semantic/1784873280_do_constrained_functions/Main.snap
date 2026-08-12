@@ -12,9 +12,9 @@ interface Operations effect where
   effect value -> (value -> effect result) -> effect result
 
 usingBind :: forall effect. Main.Operations effect => effect Prim.Int
-usingBind = \@effect -> \{operationsDict} ->
+usingBind = \{operationsDict} ->
   bind {operationsDict} (pure {operationsDict} 1) \value -> pure {operationsDict} value
 
 usingDiscard :: forall effect. Main.Operations effect => effect Prim.Int
-usingDiscard = \@effect -> \{operationsDict} ->
+usingDiscard = \{operationsDict} ->
   discard {operationsDict} (pure {operationsDict} "ignored") \_ -> pure {operationsDict} 1

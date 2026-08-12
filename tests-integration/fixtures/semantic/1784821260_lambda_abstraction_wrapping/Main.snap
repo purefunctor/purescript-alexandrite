@@ -4,8 +4,8 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \@a -> \value -> value
+identity = \value -> value
 
 wrap :: forall a. a -> a -> a -> a -> a -> a -> a
-wrap = \@a -> \firstArgument -> \secondArgument -> \thirdArgument -> \fourthArgument ->
-  \fifthArgument -> \sixthArgument -> firstArgument
+wrap = \firstArgument -> \secondArgument -> \thirdArgument -> \fourthArgument -> \fifthArgument ->
+  \sixthArgument -> firstArgument

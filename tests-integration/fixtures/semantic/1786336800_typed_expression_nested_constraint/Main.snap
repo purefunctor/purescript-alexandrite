@@ -7,7 +7,7 @@ interface Value :: Prim.Type -> Prim.Constraint
 interface Value a where
 
 constrainedIdentity :: forall a. Main.Value a => a -> a
-constrainedIdentity = \@a -> \{valueDict} -> \value -> value
+constrainedIdentity = \{valueDict} -> \value -> value
 
 test :: forall a. Main.Value a => a -> a
-test = \@a -> \{valueDict} -> (\{valueDict1} -> constrainedIdentity {valueDict1}) {valueDict}
+test = \{valueDict} -> (\{valueDict1} -> constrainedIdentity {valueDict1}) {valueDict}

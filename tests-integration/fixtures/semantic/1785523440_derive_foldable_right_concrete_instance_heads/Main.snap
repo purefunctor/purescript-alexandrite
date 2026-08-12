@@ -14,19 +14,17 @@ data RightNested @a
 dictionary bifoldableProduct :: Data.Bifoldable.Bifoldable Main.Product where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Product a b -> c
-  bifoldr = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (Product field0 field1) -> firstFunction field0 (secondFunction field1 accumulator)
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Product field0 field1) -> firstFunction field0 (secondFunction field1 accumulator)
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Product a b -> c
-  bifoldl = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (Product field0 field1) -> secondFunction (firstFunction accumulator field0) field1
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Product field0 field1) -> secondFunction (firstFunction accumulator field0) field1
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Product a b -> m
-  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
+  bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
         (Product field0 field1) -> append {monoidDict.semigroupDict} (firstFunction field0)
@@ -34,42 +32,38 @@ dictionary bifoldableProduct :: Data.Bifoldable.Bifoldable Main.Product where
 
 dictionary foldableProduct :: Data.Foldable.Foldable (Main.Product Prim.Int) where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Product Prim.Int a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Product field0 field1) -> function field1 accumulator
+  foldr = \function accumulator value ->
+    case value of
+      (Product field0 field1) -> function field1 accumulator
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Product Prim.Int a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Product field0 field1) -> function accumulator field1
+  foldl = \function accumulator value ->
+    case value of
+      (Product field0 field1) -> function accumulator field1
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.Product Prim.Int a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (Product field0 field1) -> function field1
 
 dictionary foldableRightNested :: Data.Foldable.Foldable Main.RightNested where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (RightNested field0) -> foldr {foldableProduct}
-          (\element accumulator -> function element accumulator)
-          accumulator
-          field0
+  foldr = \function accumulator value ->
+    case value of
+      (RightNested field0) -> foldr {foldableProduct}
+        (\element accumulator -> function element accumulator)
+        accumulator
+        field0
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (RightNested field0) -> foldl {foldableProduct}
-          (\accumulator element -> function accumulator element)
-          accumulator
-          field0
+  foldl = \function accumulator value ->
+    case value of
+      (RightNested field0) -> foldl {foldableProduct}
+        (\accumulator element -> function accumulator element)
+        accumulator
+        field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.RightNested a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (RightNested field0) -> foldMap {foldableProduct} {monoidDict}

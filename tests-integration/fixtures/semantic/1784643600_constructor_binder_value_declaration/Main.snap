@@ -9,5 +9,5 @@ data Maybe @a
   | Nothing :: Main.Maybe a
 
 fromMaybe :: forall t0. t0 -> Main.Maybe t0 -> t0
-fromMaybe = \@t0 -> \default -> \(Just value) -> value
-fromMaybe = \@t0 -> \default -> \Nothing -> default
+fromMaybe = \default -> \(Just value) -> value
+fromMaybe = \default -> \Nothing -> default

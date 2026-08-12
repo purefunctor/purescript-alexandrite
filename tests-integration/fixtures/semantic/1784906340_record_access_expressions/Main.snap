@@ -4,7 +4,7 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \@a -> \value -> value
+identity = \value -> value
 
 record :: { function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
 record = { function: identity, nested: { value: 42 } }

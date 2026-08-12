@@ -9,24 +9,21 @@ data Product @a
 
 dictionary functorProduct :: Data.Functor.Functor Main.Product where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Product a -> Main.Product b
-  map = \@a -> \@b ->
-    \function value ->
-      case value of
-        (Product field0 field1 field2) -> Product (function field0) field1 (function field2)
+  map = \function value ->
+    case value of
+      (Product field0 field1 field2) -> Product (function field0) field1 (function field2)
 
 dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Product a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Product field0 field1 field2) -> function field0 (function field2 accumulator)
+  foldr = \function accumulator value ->
+    case value of
+      (Product field0 field1 field2) -> function field0 (function field2 accumulator)
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Product a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Product field0 field1 field2) -> function (function accumulator field0) field2
+  foldl = \function accumulator value ->
+    case value of
+      (Product field0 field1 field2) -> function (function accumulator field0) field2
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Product a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (Product field0 field1 field2) -> append {monoidDict.semigroupDict} (function field0)
@@ -37,7 +34,7 @@ dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
   superclass foldableDict = foldableProduct
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Product a -> m (Main.Product b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
         (Product field0 field1 field2) -> apply {applicativeDict.applyDict}
@@ -47,5 +44,5 @@ dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
           (function field2)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Product (m a) -> m (Main.Product a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
+  sequence = \{applicativeDict} ->
     \value -> traverse {traversableProduct} {applicativeDict} (\effect0 -> effect0) value

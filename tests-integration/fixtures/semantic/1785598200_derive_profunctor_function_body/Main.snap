@@ -10,7 +10,6 @@ data Function @a @b
 dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
   (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
-  dimap = \@a -> \@b -> \@c -> \@d ->
-    \firstFunction secondFunction value ->
-      case value of
-        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))

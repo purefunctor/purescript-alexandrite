@@ -9,4 +9,4 @@ data Maybe @a
   | Nothing :: Main.Maybe a
 
 nothing :: forall a. Main.Maybe a
-nothing = \@a -> Nothing
+nothing = Nothing
