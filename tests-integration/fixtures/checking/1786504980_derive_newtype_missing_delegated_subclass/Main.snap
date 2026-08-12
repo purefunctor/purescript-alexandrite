@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Representation :: Main.Representation
+Wrapper :: Main.Representation -> Main.Wrapper
+
+Types
+Parent :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Child :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Representation :: Prim.Type
+Wrapper :: Prim.Type
+
+Classes
+class forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)). Main.Parent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)). Main.Parent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type)) <= Main.Child @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+
+Instances
+instance Main.Parent @Prim.Type Main.Representation
+instance Main.Parent @Prim.Type Main.Wrapper
+
+Derived
+derive Main.Child @Prim.Type Main.Wrapper
+
+Roles
+Representation = []
+Wrapper = []
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Child @Type Representation
+  --> 15:1..15:38
+   |
+15 | derive newtype instance Child Wrapper
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

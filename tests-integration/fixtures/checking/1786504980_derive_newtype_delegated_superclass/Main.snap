@@ -1,0 +1,42 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Representation ::
+  forall (@parameter :: Prim.Type -> Prim.Type) (@value :: Prim.Type).
+    Main.Representation (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type)
+Wrapper ::
+  forall (@parameter :: Prim.Type -> Prim.Type) (@value :: Prim.Type).
+    Main.Representation (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type) ->
+    Main.Wrapper (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type)
+
+Types
+Parent :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Child :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Gate :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Representation :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+Wrapper :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+
+Classes
+class forall (constructor :: Prim.Type -> Prim.Type). Main.Parent (constructor :: Prim.Type -> Prim.Type)
+class forall (constructor :: Prim.Type -> Prim.Type). Main.Parent (constructor :: Prim.Type -> Prim.Type) <= Main.Child (constructor :: Prim.Type -> Prim.Type)
+class forall (constructor :: Prim.Type -> Prim.Type). Main.Gate (constructor :: Prim.Type -> Prim.Type)
+
+Instances
+instance forall (parameter :: Prim.Type -> Prim.Type).
+  Main.Parent (Main.Representation (parameter :: Prim.Type -> Prim.Type))
+instance forall (parameter :: Prim.Type -> Prim.Type).
+  Main.Child (Main.Representation (parameter :: Prim.Type -> Prim.Type))
+instance forall (parameter :: Prim.Type -> Prim.Type).
+  Main.Gate (parameter :: Prim.Type -> Prim.Type) =>
+  Main.Parent (Main.Wrapper (parameter :: Prim.Type -> Prim.Type))
+
+Derived
+derive forall (parameter :: Prim.Type -> Prim.Type).
+  Main.Child (Main.Wrapper (parameter :: Prim.Type -> Prim.Type))
+
+Roles
+Representation = [Phantom, Phantom]
+Wrapper = [Representational, Representational]
