@@ -17,8 +17,8 @@ dictionary eqTuple ::
   eq = \left right ->
     case left, right of
       (Tuple left0 left1), (Tuple right0 right1) ->
-        if eq @a {eqDict} left0 right0 then
-          if eq @b {eqDict1} left1 right1 then true else false
+        if eq {eqDict} left0 right0 then
+          if eq {eqDict1} left1 right1 then true else false
         else
           false
 
@@ -33,9 +33,9 @@ dictionary ordTuple ::
   compare = \left right ->
     case left, right of
       (Tuple left0 left1), (Tuple right0 right1) ->
-        case compare @a {ordDict} left0 right0 of
+        case compare {ordDict} left0 right0 of
           EQ ->
-            case compare @b {ordDict1} left1 right1 of
+            case compare {ordDict1} left1 right1 of
               EQ -> EQ
               ordering -> ordering
           ordering -> ordering

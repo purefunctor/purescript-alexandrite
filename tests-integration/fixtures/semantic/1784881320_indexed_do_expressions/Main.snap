@@ -34,10 +34,9 @@ foreign import stepFour :: Main.Action 4 Prim.Number
 
 indexedBind :: Main.Action 0 Prim.Number
 indexedBind =
-  bind @0 {onZero} @1 @Prim.Int @Prim.Number stepZero \zero ->
-    bind @1 {onDefault} @2 @Prim.String @Prim.Number stepOne \one ->
-      bind @2 {onTwo} @3 @Prim.Boolean @Prim.Number stepTwo \two ->
-        bind @3 {onDefault} @4 @Prim.String @Prim.Number stepThree \three -> stepFour
+  bind {onZero} stepZero \zero ->
+    bind {onDefault} stepOne \one ->
+      bind {onTwo} stepTwo \two -> bind {onDefault} stepThree \three -> stepFour
 
 indexedDiscard :: Main.Action 4 Prim.Boolean
-indexedDiscard = discard @4 {onDefault} @2 @Prim.Number @Prim.Boolean stepFour \_ -> stepTwo
+indexedDiscard = discard {onDefault} stepFour \_ -> stepTwo

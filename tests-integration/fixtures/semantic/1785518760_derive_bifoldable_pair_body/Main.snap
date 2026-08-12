@@ -10,20 +10,18 @@ data Pair @a @b
 dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.Pair a b -> c
-  bifoldr = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.Pair a b -> c
-  bifoldl = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Pair a b -> m
-  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
+  bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Pair field0 field1 field2) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
+        (Pair field0 field1 field2) -> append {monoidDict.semigroupDict} (firstFunction field0)
           (secondFunction field2)

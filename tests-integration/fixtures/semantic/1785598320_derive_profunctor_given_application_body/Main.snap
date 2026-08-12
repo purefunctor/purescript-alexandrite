@@ -18,10 +18,9 @@ dictionary profunctorNested ::
   (c -> d) ->
   Main.Nested @Prim.Type @Prim.Type p b c ->
   Main.Nested @Prim.Type @Prim.Type p a d
-  dimap = \@a -> \@b -> \@c -> \@d ->
-    \firstFunction secondFunction value ->
-      case value of
-        (Nested field0) -> Nested @Prim.Type @Prim.Type @p @a @d
-          (dimap @p {profunctorDict} @a @b @c @d (\element -> firstFunction element)
-            (\element -> secondFunction element)
-            field0)
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Nested field0) -> Nested
+        (dimap {profunctorDict} (\element -> firstFunction element)
+          (\element -> secondFunction element)
+          field0)

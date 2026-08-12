@@ -9,18 +9,16 @@ data Record @a
 
 dictionary foldableRecord :: Data.Foldable.Foldable Main.Record where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Record a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Record field0) -> function field0.alpha (function field0.zeta accumulator)
+  foldr = \function accumulator value ->
+    case value of
+      (Record field0) -> function field0.alpha (function field0.zeta accumulator)
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Record a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Record field0) -> function (function accumulator field0.alpha) field0.zeta
+  foldl = \function accumulator value ->
+    case value of
+      (Record field0) -> function (function accumulator field0.alpha) field0.zeta
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Record a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
-        (Record field0) -> append @m {monoidDict.semigroupDict} (function field0.alpha)
+        (Record field0) -> append {monoidDict.semigroupDict} (function field0.alpha)
           (function field0.zeta)

@@ -9,17 +9,15 @@ data Identity @a
 
 dictionary foldableIdentity :: Data.Foldable.Foldable Main.Identity where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Identity a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Identity field0) -> function field0 accumulator
+  foldr = \function accumulator value ->
+    case value of
+      (Identity field0) -> function field0 accumulator
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Identity a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Identity field0) -> function accumulator field0
+  foldl = \function accumulator value ->
+    case value of
+      (Identity field0) -> function accumulator field0
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Identity a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
         (Identity field0) -> function field0

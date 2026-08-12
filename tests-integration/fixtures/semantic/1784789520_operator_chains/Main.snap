@@ -30,5 +30,5 @@ rightAssociative = append 1 (append 2 3)
 foreign import interleaved :: forall a. Main.First a => a -> (forall b. Main.Second b => b -> a)
 
 implicitApplications :: forall a b. Main.First a => Main.Second b => a -> b -> a
-implicitApplications = \@a -> \@b -> \{firstDict} -> \{secondDict} -> \left -> \right ->
-  interleaved @a {firstDict} left @b {secondDict} right
+implicitApplications = \{firstDict} -> \{secondDict} -> \left -> \right ->
+  interleaved {firstDict} left {secondDict} right

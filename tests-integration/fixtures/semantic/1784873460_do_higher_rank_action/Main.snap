@@ -9,4 +9,4 @@ foreign import bind :: forall result.
   (forall value. Main.Box value) -> ((forall value1. Main.Box value1) -> result) -> result
 
 higherRank :: Prim.Int
-higherRank = bind @Prim.Int polymorphic \value -> 42
+higherRank = bind polymorphic \value -> 42

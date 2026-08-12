@@ -4,10 +4,10 @@ assertion_line: 68
 expression: report
 ---
 apply :: forall a b. (a -> b) -> a -> b
-apply = \@a -> \@b -> \function -> \value -> function value
+apply = \function -> \value -> function value
 
 argument :: forall t0. t0 -> t0
-argument = \@t0 -> apply @t0 @t0 \value -> value
+argument = apply \value -> value
 
 functionPosition :: forall t0 t1. (t0 -> t1) -> t0 -> t1
-functionPosition = \@t0 -> \@t1 -> (\function -> function) (apply @t0 @t1)
+functionPosition = (\function -> function) apply

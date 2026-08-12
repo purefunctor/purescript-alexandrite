@@ -15,9 +15,8 @@ interface Second :: Prim.Type -> Prim.Constraint
 interface Second b where
 
 record :: { show :: forall a. Main.Eq a => a -> Prim.String }
-record = { show: \@a -> \{eqDict} -> show @a {eqDict} }
+record = { show: \{eqDict} -> show {eqDict} }
 
 interleavedRecord :: { interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b) }
 interleavedRecord =
-  { interleaved: \@a ->
-    \{firstDict} -> \@b -> \{secondDict} -> interleaved @a {firstDict} @b {secondDict} }
+  { interleaved: \{firstDict} -> \{secondDict} -> interleaved {firstDict} {secondDict} }

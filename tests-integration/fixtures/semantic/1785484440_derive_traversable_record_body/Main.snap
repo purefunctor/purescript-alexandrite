@@ -9,28 +9,25 @@ data Record @a
 
 dictionary functorRecord :: Data.Functor.Functor Main.Record where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Record a -> Main.Record b
-  map = \@a -> \@b ->
-    \function value ->
-      case value of
-        (Record field0) -> Record @b
-          field0 { alpha = function field0.alpha, zeta = function field0.zeta }
+  map = \function value ->
+    case value of
+      (Record field0) -> Record
+        field0 { alpha = function field0.alpha, zeta = function field0.zeta }
 
 dictionary foldableRecord :: Data.Foldable.Foldable Main.Record where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Record a -> b
-  foldr = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Record field0) -> function field0.alpha (function field0.zeta accumulator)
+  foldr = \function accumulator value ->
+    case value of
+      (Record field0) -> function field0.alpha (function field0.zeta accumulator)
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Record a -> b
-  foldl = \@a -> \@b ->
-    \function accumulator value ->
-      case value of
-        (Record field0) -> function (function accumulator field0.alpha) field0.zeta
+  foldl = \function accumulator value ->
+    case value of
+      (Record field0) -> function (function accumulator field0.alpha) field0.zeta
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Record a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} ->
+  foldMap = \{monoidDict} ->
     \function value ->
       case value of
-        (Record field0) -> append @m {monoidDict.semigroupDict} (function field0.alpha)
+        (Record field0) -> append {monoidDict.semigroupDict} (function field0.alpha)
           (function field0.zeta)
 
 dictionary traversableRecord :: Data.Traversable.Traversable Main.Record where
@@ -38,19 +35,17 @@ dictionary traversableRecord :: Data.Traversable.Traversable Main.Record where
   superclass foldableDict = foldableRecord
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Record a -> m (Main.Record b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
-        (Record field0) -> map @m {applicativeDict.applyDict.functorDict} @{ alpha :: b, fixed :: Prim.Int, zeta :: b } @(Main.Record b)
-          (\field0Result -> Record @b field0Result)
-          (apply @m {applicativeDict.applyDict} @b @{ alpha :: b, fixed :: Prim.Int, zeta :: b }
-            (map @m {applicativeDict.applyDict.functorDict} @b @(b -> { alpha :: b, fixed :: Prim.Int, zeta :: b })
+        (Record field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> Record field0Result)
+          (apply {applicativeDict.applyDict}
+            (map {applicativeDict.applyDict.functorDict}
               (\recordField0 recordField1 -> field0 { alpha = recordField0, zeta = recordField1 })
               (function field0.alpha))
             (function field0.zeta))
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Record (m a) -> m (Main.Record a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
-    \value ->
-      traverse @Main.Record {traversableRecord} @(m a) @a @m {applicativeDict} (\effect0 -> effect0)
-        value
+  sequence = \{applicativeDict} ->
+    \value -> traverse {traversableRecord} {applicativeDict} (\effect0 -> effect0) value

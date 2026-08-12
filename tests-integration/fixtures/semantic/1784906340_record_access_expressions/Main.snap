@@ -4,10 +4,10 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \@a -> \value -> value
+identity = \value -> value
 
 record :: { function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
-record = { function: identity @Prim.Int, nested: { value: 42 } }
+record = { function: identity, nested: { value: 42 } }
 
 direct :: { value :: Prim.Int }
 direct = record.nested
@@ -19,9 +19,7 @@ functionPosition :: Prim.Int
 functionPosition = record.function 1
 
 argument :: { value :: Prim.Int }
-argument = identity @{ value :: Prim.Int } record.nested
+argument = identity record.nested
 
 applicationBase :: Prim.Int
-applicationBase =
-  (identity @{ function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
-    record).nested.value
+applicationBase = (identity record).nested.value

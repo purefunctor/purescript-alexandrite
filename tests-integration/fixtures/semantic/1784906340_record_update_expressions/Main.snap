@@ -4,10 +4,10 @@ assertion_line: 68
 expression: report
 ---
 identity :: forall a. a -> a
-identity = \@a -> \value -> value
+identity = \value -> value
 
 record :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
-record = { first: 1, nested: { value: 2 }, transform: identity @Prim.Int }
+record = { first: 1, nested: { value: 2 }, transform: identity }
 
 leaf :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 leaf = record { first = 2 }
@@ -16,7 +16,7 @@ typeChanging :: { first :: Prim.String, nested :: { value :: Prim.Int }, transfo
 typeChanging = record { first = "two" }
 
 multiple :: forall t0. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t0 -> t0 }
-multiple = \@t0 -> record { first = 2, transform = identity @t0 }
+multiple = record { first = 2, transform = identity }
 
 nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
 nested = record { nested { value = 3 } }
@@ -25,11 +25,7 @@ accessValue :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :
 accessValue = record { first = record.nested.value }
 
 applicationBase :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
-applicationBase =
-  (identity @{ first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
-    record) { first = 2 }
+applicationBase = (identity record) { first = 2 }
 
 argument :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
-argument =
-  identity @{ first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
-    record { first = 2 }
+argument = identity record { first = 2 }

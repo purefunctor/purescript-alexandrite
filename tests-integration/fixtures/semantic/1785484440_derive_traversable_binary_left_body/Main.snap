@@ -14,9 +14,8 @@ dictionary functorLeftDuplicate ::
   where
   map :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b) -> Main.LeftDuplicate @Prim.Type p a -> Main.LeftDuplicate @Prim.Type p b
-  map = \@a -> \@b -> \function -> \(LeftDuplicate value) ->
-    LeftDuplicate @Prim.Type @p @b
-      (bimap @p {bifunctorDict} @a @b @Prim.Int @Prim.Int function (\fixed -> fixed) value)
+  map = \function -> \(LeftDuplicate value) ->
+    LeftDuplicate (bimap {bifunctorDict} function (\fixed -> fixed) value)
 
 dictionary foldableLeftDuplicate ::
   forall p.
@@ -25,20 +24,16 @@ dictionary foldableLeftDuplicate ::
   where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
   (a -> b -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
-  foldr = \@a -> \@b -> \function -> \initial -> \(LeftDuplicate value) ->
-    bifoldr @p {bifoldableDict} @a @Prim.Int @b function (\_ accumulated -> accumulated) initial
-      value
+  foldr = \function -> \initial -> \(LeftDuplicate value) ->
+    bifoldr {bifoldableDict} function (\_ accumulated -> accumulated) initial value
   foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
   (b -> a -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
-  foldl = \@a -> \@b -> \function -> \initial -> \(LeftDuplicate value) ->
-    bifoldl @p {bifoldableDict} @a @Prim.Int @b function (\accumulated _ -> accumulated) initial
-      value
+  foldl = \function -> \initial -> \(LeftDuplicate value) ->
+    bifoldl {bifoldableDict} function (\accumulated _ -> accumulated) initial value
   foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> Main.LeftDuplicate @Prim.Type p a -> m
-  foldMap = \@a -> \@m -> \{monoidDict} -> \function -> \(LeftDuplicate value) ->
-    bifoldMap @p {bifoldableDict} @m @a @Prim.Int {monoidDict} function
-      (\_ -> mempty @m {monoidDict})
-      value
+  foldMap = \{monoidDict} -> \function -> \(LeftDuplicate value) ->
+    bifoldMap {bifoldableDict} {monoidDict} function (\_ -> mempty {monoidDict}) value
 
 dictionary traversableLeftDuplicate ::
   forall p.
@@ -50,20 +45,19 @@ dictionary traversableLeftDuplicate ::
   traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.LeftDuplicate @Prim.Type p a -> m (Main.LeftDuplicate @Prim.Type p b)
-  traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
+  traverse = \{applicativeDict} ->
     \function value ->
       case value of
-        (LeftDuplicate field0) -> map @m {applicativeDict.applyDict.functorDict} @(p b Prim.Int) @(Main.LeftDuplicate @Prim.Type p b)
-          (\field0Result -> LeftDuplicate @Prim.Type @p @b field0Result)
-          (bitraverse @p {bitraversableDict} @m @a @Prim.Int @b @Prim.Int {applicativeDict}
-            (\element -> function element)
-            (\unchanged -> pure @m {applicativeDict} @Prim.Int unchanged)
+        (LeftDuplicate field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> LeftDuplicate field0Result)
+          (bitraverse {bitraversableDict} {applicativeDict} (\element -> function element)
+            (\unchanged -> pure {applicativeDict} unchanged)
             field0)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.LeftDuplicate @Prim.Type p (m a) -> m (Main.LeftDuplicate @Prim.Type p a)
-  sequence = \@a -> \@m -> \{applicativeDict} ->
+  sequence = \{applicativeDict} ->
     \value ->
-      traverse @(Main.LeftDuplicate @Prim.Type p) {traversableLeftDuplicate {bitraversableDict}} @(m a) @a @m {applicativeDict}
+      traverse {traversableLeftDuplicate {bitraversableDict}} {applicativeDict}
         (\effect0 -> effect0)
         value

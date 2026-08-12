@@ -10,20 +10,18 @@ data RecordPair @a @b
 dictionary bifoldableRecordPair :: Data.Bifoldable.Bifoldable Main.RecordPair where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (a -> c -> c) -> (b -> c -> c) -> c -> Main.RecordPair a b -> c
-  bifoldr = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (RecordPair field0) -> firstFunction field0.alpha (secondFunction field0.zeta accumulator)
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (RecordPair field0) -> firstFunction field0.alpha (secondFunction field0.zeta accumulator)
   bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
   (c -> a -> c) -> (c -> b -> c) -> c -> Main.RecordPair a b -> c
-  bifoldl = \@a -> \@b -> \@c ->
-    \firstFunction secondFunction accumulator value ->
-      case value of
-        (RecordPair field0) -> secondFunction (firstFunction accumulator field0.alpha) field0.zeta
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (RecordPair field0) -> secondFunction (firstFunction accumulator field0.alpha) field0.zeta
   bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.RecordPair a b -> m
-  bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
+  bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (RecordPair field0) -> append @m {monoidDict.semigroupDict} (firstFunction field0.alpha)
+        (RecordPair field0) -> append {monoidDict.semigroupDict} (firstFunction field0.alpha)
           (secondFunction field0.zeta)

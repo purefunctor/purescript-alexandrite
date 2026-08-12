@@ -14,5 +14,5 @@ dictionary eqMaybe :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.M
     case left, right of
       Nothing, Nothing -> true
       (Just left0), (Just right0) ->
-        if eq @a {eqDict} left0 right0 then true else false
+        if eq {eqDict} left0 right0 then true else false
       _, _ -> false

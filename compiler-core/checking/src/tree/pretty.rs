@@ -799,8 +799,10 @@ where
     ) -> QueryResult<Option<Doc<'arena>>> {
         let mut rendered_equations = vec![];
         for equation in equations.iter() {
-            let has_abstraction =
-                !equation.binders.is_empty() || !declaration_abstractions.is_empty();
+            let has_abstraction = !equation.binders.is_empty()
+                || declaration_abstractions.iter().any(|abstraction| {
+                    matches!(abstraction, DeclarationAbstraction::Evidence { .. })
+                });
             let (mut expression, where_bindings, force_body_break, is_lambda) = if let [alternative] =
                 equation.guarded_expression.alternatives.as_ref()
                 && alternative.pattern_guards.is_empty()
@@ -828,16 +830,13 @@ where
 
             let mut abstractions = vec![];
             for abstraction in declaration_abstractions {
-                match abstraction {
-                    DeclarationAbstraction::Type { rigid, .. } => {
-                        let binder = type_pretty.render_atom(*rigid);
-                        abstractions.push(self.arena.text(format!("\\@{binder} ->")));
-                    }
-                    DeclarationAbstraction::Evidence { evidence, .. } => {
-                        let binder = self.evidence_name(evidence_names, evidence)?;
-                        abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
-                    }
-                }
+                // Type abstractions are omitted because the declaration's
+                // rendered signature already communicates its binders.
+                let DeclarationAbstraction::Evidence { evidence, .. } = abstraction else {
+                    continue;
+                };
+                let binder = self.evidence_name(evidence_names, evidence)?;
+                abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
             }
             for &binder in equation.binders.iter() {
                 let binder = self.binder(binder, type_pretty)?;
@@ -1186,8 +1185,7 @@ where
     fn expression_is_block_argument(&self, expression_id: ExpressionId) -> bool {
         matches!(
             &self.checked.tree[expression_id].kind,
-            ExpressionKind::TypeAbstraction { .. }
-                | ExpressionKind::EvidenceAbstraction { .. }
+            ExpressionKind::EvidenceAbstraction { .. }
                 | ExpressionKind::Lambda { .. }
                 | ExpressionKind::IfThenElse { .. }
                 | ExpressionKind::Case { .. }
@@ -1328,15 +1326,14 @@ where
     ) -> QueryResult<Doc<'arena>> {
         let expression = &self.checked.tree[expression_id];
         let precedence = match &expression.kind {
-            ExpressionKind::TypeAbstraction { .. }
-            | ExpressionKind::EvidenceAbstraction { .. }
+            ExpressionKind::EvidenceAbstraction { .. }
             | ExpressionKind::Lambda { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Let { .. } => ExpressionPrecedence::Abstraction,
-            ExpressionKind::TermApplication { .. }
-            | ExpressionKind::TypeApplication { .. }
-            | ExpressionKind::EvidenceApplication { .. } => ExpressionPrecedence::Application,
+            ExpressionKind::TermApplication { .. } | ExpressionKind::EvidenceApplication { .. } => {
+                ExpressionPrecedence::Application
+            }
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
             _ => ExpressionPrecedence::Atom,
         };
@@ -1550,16 +1547,6 @@ where
                     Ok(breakable_continuation(self.arena, function, argument))
                 }
             }
-            ExpressionKind::TypeApplication { function, argument } => {
-                let function = self.expression_at(
-                    *function,
-                    ExpressionPrecedence::Application,
-                    evidence_names,
-                    type_pretty,
-                )?;
-                let argument = type_pretty.render_atom(*argument);
-                Ok(function.append(self.arena.text(format!(" @{argument}"))))
-            }
             ExpressionKind::EvidenceApplication { function, evidence } => {
                 let function = self.expression_at(
                     *function,
@@ -1569,16 +1556,6 @@ where
                 )?;
                 let evidence = self.evidence_variable_name(evidence_names, *evidence)?;
                 Ok(function.append(self.arena.text(format!(" {{{evidence}}}"))))
-            }
-            ExpressionKind::TypeAbstraction { binder, expression } => {
-                let binder = type_pretty.render_atom(*binder);
-                let abstraction = self.arena.text(format!("\\@{binder} ->"));
-                let body = self.expression(*expression, evidence_names, type_pretty)?;
-                if self.expression_requires_body_break(*expression) {
-                    Ok(abstraction.append(self.arena.hardline().append(body).nest(2)))
-                } else {
-                    Ok(breakable_continuation(self.arena, abstraction, body))
-                }
             }
             ExpressionKind::EvidenceAbstraction { binder, expression } => {
                 let binder = self.evidence_binder_name(evidence_names, *binder)?;

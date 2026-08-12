@@ -20,7 +20,7 @@ foreign import useParent :: forall value. Main.Parent value => value -> value
 foreign import useChild :: forall value. Main.Child value => value -> value
 
 instanceEvidence :: Prim.Int
-instanceEvidence = useChild @Prim.Int {childInt {parentInt}} 1
+instanceEvidence = useChild {childInt {parentInt}} 1
 
 superclassEvidence :: forall value. Main.Child value => value -> value
-superclassEvidence = \@value -> \{childDict} -> useParent @value {childDict.parentDict}
+superclassEvidence = \{childDict} -> useParent {childDict.parentDict}

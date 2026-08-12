@@ -12,7 +12,7 @@ dictionary eqMu :: forall f. { eq1Dict :: Data.Eq.Eq1 f } => Data.Eq.Eq (Main.Mu
   eq = \left right ->
     case left, right of
       (In left0), (In right0) ->
-        if eq1 @f {eq1Dict} @(Main.Mu f) {eqMu {eq1Dict}} left0 right0 then true else false
+        if eq1 {eq1Dict} {eqMu {eq1Dict}} left0 right0 then true else false
 
 dictionary ordMu :: forall f. { ord1Dict :: Data.Ord.Ord1 f } => Data.Ord.Ord (Main.Mu f) where
   superclass eqDict = eqMu {ord1Dict.eq1Dict}
@@ -20,6 +20,6 @@ dictionary ordMu :: forall f. { ord1Dict :: Data.Ord.Ord1 f } => Data.Ord.Ord (M
   compare = \left right ->
     case left, right of
       (In left0), (In right0) ->
-        case compare1 @f {ord1Dict} @(Main.Mu f) {ordMu {ord1Dict}} left0 right0 of
+        case compare1 {ord1Dict} {ordMu {ord1Dict}} left0 right0 of
           EQ -> EQ
           ordering -> ordering
