@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Parent :: Prim.Type -> Prim.Constraint
+interface Parent value where
+  parent :: value -> value
+
+interface Child :: Prim.Type -> Prim.Constraint
+interface Child value where
+  superclass parentDict :: Main.Parent value
+  child :: value -> value
+
+interface Gate :: Prim.Constraint
+interface Gate where
+
+data Representation :: Prim.Type
+data Representation
+  | Representation :: Main.Representation
+
+newtype Wrapper :: Prim.Type
+newtype Wrapper
+  | Wrapper :: Main.Representation -> Main.Wrapper
+
+dictionary parentRepresentation :: Main.Parent Main.Representation where
+  parent :: Main.Representation -> Main.Representation
+  parent = \value -> value
+
+dictionary childRepresentation :: Main.Child Main.Representation where
+  superclass parentDict = parentRepresentation
+  child :: Main.Representation -> Main.Representation
+  child = \value -> value
+
+dictionary parentWrapper :: { gateDict :: Main.Gate } => Main.Parent Main.Wrapper where
+  parent :: Main.Wrapper -> Main.Wrapper
+  parent = \value -> value
+
+parentFromChild :: forall value. Main.Child value => value -> value
+parentFromChild = \@value -> \{childDict} -> parent @value {childDict.parentDict}
+
+useDelegateSuperclass :: Main.Wrapper -> Main.Wrapper
+useDelegateSuperclass = parentFromChild @Main.Wrapper {<instance>}

@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Parent :: Prim.Type -> Prim.Constraint
+interface Parent value where
+
+interface Relation :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Relation label value where
+  superclass parentDict :: Main.Parent value
+
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @value
+  | Wrapper :: value -> Main.Wrapper value
