@@ -1,0 +1,644 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+unsafeValue :: forall (value :: Prim.Type). (value :: Prim.Type)
+pureM ::
+  forall (monad :: Prim.Type -> Prim.Type) (value :: Prim.Type).
+    (value :: Prim.Type) -> (monad :: Prim.Type -> Prim.Type) (value :: Prim.Type)
+bind ::
+  forall (monad :: Prim.Type -> Prim.Type) (value :: Prim.Type) (result :: Prim.Type).
+    (monad :: Prim.Type -> Prim.Type) (value :: Prim.Type) ->
+    ((value :: Prim.Type) -> (monad :: Prim.Type -> Prim.Type) (result :: Prim.Type)) ->
+    (monad :: Prim.Type -> Prim.Type) (result :: Prim.Type)
+map ::
+  forall (functor :: Prim.Type -> Prim.Type) (value :: Prim.Type) (result :: Prim.Type).
+    ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    (functor :: Prim.Type -> Prim.Type) (value :: Prim.Type) ->
+    (functor :: Prim.Type -> Prim.Type) (result :: Prim.Type)
+apply ::
+  forall (apply_ :: Prim.Type -> Prim.Type) (value :: Prim.Type) (result :: Prim.Type).
+    (apply_ :: Prim.Type -> Prim.Type) ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    (apply_ :: Prim.Type -> Prim.Type) (value :: Prim.Type) ->
+    (apply_ :: Prim.Type -> Prim.Type) (result :: Prim.Type)
+mutate ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (value :: Prim.Type)
+modify ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Mutable (region :: Prim.Type))
+modifyFunction ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Prim.Int -> Main.Mutable (region :: Prim.Type))
+modifyRecord ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) { value :: Main.Mutable (region :: Prim.Type) }
+modifyArray ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Prim.Array (Main.Mutable (region :: Prim.Type)))
+modifySynonym ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Synonym (Main.Mutable (region :: Prim.Type)))
+modifyBox ::
+  forall (region :: Prim.Type).
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Box (Main.Mutable (region :: Prim.Type)))
+poke ::
+  forall (value :: Prim.Type) (region :: Prim.Type).
+    Prim.String ->
+    (value :: Prim.Type) ->
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Mutable (region :: Prim.Type))
+delete ::
+  forall (region :: Prim.Type).
+    Prim.String ->
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Mutable (region :: Prim.Type))
+values :: Main.Values Prim.Int
+foldAction ::
+  forall (region :: Prim.Type) (value :: Prim.Type) (accumulator :: Prim.Type).
+    ((accumulator :: Prim.Type) ->
+    (value :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (accumulator :: Prim.Type)) ->
+    (accumulator :: Prim.Type) ->
+    Main.Values (value :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (accumulator :: Prim.Type)
+mutateConstrained ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Marker (region :: Prim.Type) =>
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (value :: Prim.Type)
+constrainedModify ::
+  forall (region :: Prim.Type).
+    Main.Marker (region :: Prim.Type) =>
+    Main.Mutable (region :: Prim.Type) ->
+    Main.Action (region :: Prim.Type) (Main.Mutable (region :: Prim.Type))
+mutateWithResultConstraint ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.ResultConstraint (result :: Prim.Type) =>
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (value :: Prim.Type)
+nestedMutate ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Marker (region :: Prim.Type) =>
+      Main.Mutable (region :: Prim.Type) ->
+      (forall (token :: Prim.Type).
+        Main.Token (token :: Prim.Type) ->
+        Main.Action (region :: Prim.Type) (result :: Prim.Type))) ->
+    (value :: Prim.Type)
+nestedModify ::
+  forall (region :: Prim.Type).
+    Main.Marker (region :: Prim.Type) =>
+    Main.Mutable (region :: Prim.Type) ->
+    (forall (token :: Prim.Type).
+      Main.Token (token :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (Main.Mutable (region :: Prim.Type)))
+leak ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+leakConstrained ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Marker (region :: Prim.Type) =>
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+discard :: forall (value :: Prim.Type). (value :: Prim.Type) -> Prim.Int
+consume ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (result :: Prim.Type) ->
+    Prim.Int
+consumeFunction ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (result :: Prim.Type) ->
+    Prim.Int
+consumeRecord ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    { value :: (result :: Prim.Type) } ->
+    Prim.Int
+consumeArray ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    Prim.Array (result :: Prim.Type) ->
+    Prim.Int
+consumeSynonym ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    Main.Synonym (result :: Prim.Type) ->
+    Prim.Int
+captureFunction ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    Prim.Int ->
+    (result :: Prim.Type) ->
+    Prim.Int
+captureVisible ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (forall (@token :: Prim.Type).
+      Main.Token (token :: Prim.Type) -> (result :: Prim.Type) -> Prim.Int)
+captureVisibleArgument ::
+  forall (result :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (result :: Prim.Type)) ->
+    (forall (@token :: Prim.Type). ((result :: Prim.Type) -> (token :: Prim.Type)) -> Prim.Int)
+consumeIndependent ::
+  forall (left :: Prim.Type) (right :: Prim.Type).
+    (forall (region :: Prim.Type).
+      Main.Mutable (region :: Prim.Type) ->
+      Main.Action (region :: Prim.Type) (left :: Prim.Type)) ->
+    (forall (region1 :: Prim.Type).
+      Main.Mutable (region1 :: Prim.Type) ->
+      Main.Action (region1 :: Prim.Type) (right :: Prim.Type)) ->
+    (right :: Prim.Type) ->
+    Prim.Int
+monomorphicModify ::
+  Main.Mutable Main.FixedRegion -> Main.Action Main.FixedRegion (Main.Mutable Main.FixedRegion)
+Wrapper :: forall (@value :: Prim.Type). (value :: Prim.Type) -> Main.Wrapper (value :: Prim.Type)
+applyValue ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    ((value :: Prim.Type) -> (result :: Prim.Type)) -> (value :: Prim.Type) -> (result :: Prim.Type)
+<| ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    ((value :: Prim.Type) -> (result :: Prim.Type)) -> (value :: Prim.Type) -> (result :: Prim.Type)
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+positiveModify :: Prim.Int
+positivePoke :: Prim.Int
+positiveDelete :: Prim.Int
+positiveFold :: Prim.Int
+positiveConstrained :: Prim.Int
+positiveResultConstraint :: Prim.Int
+positiveNested :: Prim.Int
+positiveDo :: Prim.Int
+positiveAdo :: Prim.Int
+positiveDoLet :: Prim.Int
+positiveAdoLet :: Prim.Int
+escaped :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+discarded :: Prim.Int
+binderEscape :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Int
+wrappedEscape :: forall (t0 :: Prim.Type). Main.Wrapper (t0 :: Prim.Type)
+recordEscape :: forall (t0 :: Prim.Type). { value :: (t0 :: Prim.Type) }
+constrainedEscape :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+functionEscape :: Prim.Int
+recordLiteralEscape :: Prim.Int
+arrayLiteralEscape :: Prim.Int
+ifEscape :: Prim.Int
+caseEscape :: Prim.Int
+inferredCaseEscape :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+inferredGuardedEscape :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+letEscape :: Prim.Int
+synonymEscape :: Prim.Int
+multiStepEscape :: Prim.Int
+parenthesizedMultiStepEscape :: Prim.Int
+visibleTypeApplicationEscape :: Prim.Int
+visibleTypeArgumentEscape :: Prim.Int
+operatorEscape :: Prim.Int
+sectionEscape :: Prim.Int
+doEscape :: Prim.Int
+adoEscape :: Prim.Int
+independentOwnerEscape :: Prim.Int
+monomorphicCallback :: Prim.Int
+
+Types
+Mutable :: Prim.Type -> Prim.Type
+Action :: Prim.Type -> Prim.Type -> Prim.Type
+Values :: Prim.Type -> Prim.Type
+Token :: Prim.Type -> Prim.Type
+Box :: Prim.Type -> Prim.Type
+FixedRegion :: Prim.Type
+Marker :: Prim.Type -> Prim.Constraint
+ResultConstraint :: Prim.Type -> Prim.Constraint
+Wrapper :: Prim.Type -> Prim.Type
+Synonym :: Prim.Type -> Prim.Type
+
+Synonyms
+type Synonym value = { nested :: { value :: (value :: Prim.Type) } }
+
+Classes
+class forall (region :: Prim.Type). Main.Marker (region :: Prim.Type)
+class forall (result :: Prim.Type). Main.ResultConstraint (result :: Prim.Type)
+
+Instances
+instance forall (region :: Prim.Type). Main.ResultConstraint (Main.Mutable (region :: Prim.Type))
+
+Roles
+Mutable = [Nominal]
+Action = [Nominal, Nominal]
+Values = [Nominal]
+Token = [Nominal]
+Box = [Nominal]
+FixedRegion = []
+Wrapper = [Representational]
+
+Diagnostics
+error[CannotUnify]: Cannot unify '?81' with 'Mutable (region :: Type)'
+  --> 218:25..218:31
+    |
+218 | positiveModify = mutate modify
+    |                         ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region :: Type) (Mutable (region :: Type))' with 'Action (region :: Type) ?81'
+  --> 218:25..218:31
+    |
+218 | positiveModify = mutate modify
+    |                         ^~~~~~
+error[CannotUnify]: Cannot unify '?84' with 'Mutable (region1 :: Type)'
+  --> 221:24..221:36
+    |
+221 | positivePoke = mutate (poke "key" 1)
+    |                        ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region1 :: Type) (Mutable (region1 :: Type))' with 'Action (region1 :: Type) ?84'
+  --> 221:24..221:36
+    |
+221 | positivePoke = mutate (poke "key" 1)
+    |                        ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?88' with 'Mutable (region2 :: Type)'
+  --> 224:26..224:38
+    |
+224 | positiveDelete = mutate (delete "key")
+    |                          ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region2 :: Type) (Mutable (region2 :: Type))' with 'Action (region2 :: Type) ?88'
+  --> 224:26..224:38
+    |
+224 | positiveDelete = mutate (delete "key")
+    |                          ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?91' with 'Mutable (region3 :: Type)'
+  --> 228:3..228:81
+    |
+228 |   foldAction (\accumulator value -> poke "key" value accumulator) mutable values
+    |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region3 :: Type) (Mutable (region3 :: Type))' with 'Action (region3 :: Type) ?91'
+  --> 228:3..228:81
+    |
+228 |   foldAction (\accumulator value -> poke "key" value accumulator) mutable values
+    |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?98' with 'Mutable (region4 :: Type)'
+  --> 231:41..231:58
+    |
+231 | positiveConstrained = mutateConstrained constrainedModify
+    |                                         ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region4 :: Type) (Mutable (region4 :: Type))' with 'Action (region4 :: Type) ?98'
+  --> 231:41..231:58
+    |
+231 | positiveConstrained = mutateConstrained constrainedModify
+    |                                         ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?101' with 'Mutable (region5 :: Type)'
+  --> 234:55..234:61
+    |
+234 | positiveResultConstraint = mutateWithResultConstraint modify
+    |                                                       ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region5 :: Type) (Mutable (region5 :: Type))' with 'Action (region5 :: Type) ?101'
+  --> 234:55..234:61
+    |
+234 | positiveResultConstraint = mutateWithResultConstraint modify
+    |                                                       ^~~~~~
+error[NoInstanceFound]: No instance found for: ResultConstraint ?101
+  --> 233:1..233:32
+    |
+233 | positiveResultConstraint :: Int
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?104' with 'Mutable (region6 :: Type)'
+  --> 237:31..237:43
+    |
+237 | positiveNested = nestedMutate nestedModify
+    |                               ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region6 :: Type) (Mutable (region6 :: Type))' with 'Action (region6 :: Type) ?104'
+  --> 237:31..237:43
+    |
+237 | positiveNested = nestedMutate nestedModify
+    |                               ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?108' with 'Mutable (region7 :: Type)'
+  --> 240:33..242:14
+    |
+240 | positiveDo = mutate \mutable -> do
+    |                                 ^~
+error[CannotUnify]: Cannot unify 'Action (region7 :: Type) (Mutable (region7 :: Type))' with 'Action (region7 :: Type) ?108'
+  --> 240:33..242:14
+    |
+240 | positiveDo = mutate \mutable -> do
+    |                                 ^~
+error[CannotUnify]: Cannot unify '?120' with 'Mutable (region8 :: Type)'
+  --> 245:34..247:11
+    |
+245 | positiveAdo = mutate \mutable -> ado
+    |                                  ^~~
+error[CannotUnify]: Cannot unify 'Action (region8 :: Type) (Mutable (region8 :: Type))' with 'Action (region8 :: Type) ?120'
+  --> 245:34..247:11
+    |
+245 | positiveAdo = mutate \mutable -> ado
+    |                                  ^~~
+error[CannotUnify]: Cannot unify '?129' with 'Mutable (region9 :: Type)'
+  --> 250:36..254:14
+    |
+250 | positiveDoLet = mutate \mutable -> do
+    |                                    ^~
+error[CannotUnify]: Cannot unify 'Action (region9 :: Type) (Mutable (region9 :: Type))' with 'Action (region9 :: Type) ?129'
+  --> 250:36..254:14
+    |
+250 | positiveDoLet = mutate \mutable -> do
+    |                                    ^~
+error[CannotUnify]: Cannot unify '?149' with 'Mutable (region10 :: Type)'
+  --> 257:37..261:12
+    |
+257 | positiveAdoLet = mutate \mutable -> ado
+    |                                     ^~~
+error[CannotUnify]: Cannot unify 'Action (region10 :: Type) (Mutable (region10 :: Type))' with 'Action (region10 :: Type) ?149'
+  --> 257:37..261:12
+    |
+257 | positiveAdoLet = mutate \mutable -> ado
+    |                                     ^~~
+error[CannotUnify]: Cannot unify '(t0 :: Type)' with 'Mutable (region11 :: Type)'
+  --> 263:16..263:22
+    |
+263 | escaped = leak modify
+    |                ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region11 :: Type) (Mutable (region11 :: Type))' with 'Action (region11 :: Type) (t0 :: Type)'
+  --> 263:16..263:22
+    |
+263 | escaped = leak modify
+    |                ^~~~~~
+error[CannotUnify]: Cannot unify '?168' with 'Mutable (region12 :: Type)'
+  --> 266:27..266:33
+    |
+266 | discarded = discard (leak modify)
+    |                           ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region12 :: Type) (Mutable (region12 :: Type))' with 'Action (region12 :: Type) ?168'
+  --> 266:27..266:33
+    |
+266 | discarded = discard (leak modify)
+    |                           ^~~~~~
+error[CannotUnify]: Cannot unify '(t1 :: Type)' with 'Mutable (region13 :: Type)'
+  --> 268:34..268:40
+    |
+268 | binderEscape = \value -> consume modify value
+    |                                  ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region13 :: Type) (Mutable (region13 :: Type))' with 'Action (region13 :: Type) (t1 :: Type)'
+  --> 268:34..268:40
+    |
+268 | binderEscape = \value -> consume modify value
+    |                                  ^~~~~~
+error[CannotUnify]: Cannot unify '(t2 :: Type)' with 'Mutable (region14 :: Type)'
+  --> 270:31..270:37
+    |
+270 | wrappedEscape = Wrapper (leak modify)
+    |                               ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region14 :: Type) (Mutable (region14 :: Type))' with 'Action (region14 :: Type) (t2 :: Type)'
+  --> 270:31..270:37
+    |
+270 | wrappedEscape = Wrapper (leak modify)
+    |                               ^~~~~~
+error[CannotUnify]: Cannot unify '(t3 :: Type)' with 'Mutable (region15 :: Type)'
+  --> 272:30..272:36
+    |
+272 | recordEscape = { value: leak modify }
+    |                              ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region15 :: Type) (Mutable (region15 :: Type))' with 'Action (region15 :: Type) (t3 :: Type)'
+  --> 272:30..272:36
+    |
+272 | recordEscape = { value: leak modify }
+    |                              ^~~~~~
+error[CannotUnify]: Cannot unify '(t4 :: Type)' with 'Mutable (region16 :: Type)'
+  --> 274:37..274:54
+    |
+274 | constrainedEscape = leakConstrained constrainedModify
+    |                                     ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region16 :: Type) (Mutable (region16 :: Type))' with 'Action (region16 :: Type) (t4 :: Type)'
+  --> 274:37..274:54
+    |
+274 | constrainedEscape = leakConstrained constrainedModify
+    |                                     ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?192 -> ?193' with 'Int -> Mutable (region17 :: Type)'
+  --> 277:34..277:48
+    |
+277 | functionEscape = consumeFunction modifyFunction (\_ -> unsafeValue)
+    |                                  ^~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region17 :: Type) (Int -> Mutable (region17 :: Type))' with 'Action (region17 :: Type) (?192 -> ?193)'
+  --> 277:34..277:48
+    |
+277 | functionEscape = consumeFunction modifyFunction (\_ -> unsafeValue)
+    |                                  ^~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?195' with '{ value :: Mutable (region18 :: Type) }'
+  --> 280:37..280:49
+    |
+280 | recordLiteralEscape = consumeRecord modifyRecord { value: unsafeValue }
+    |                                     ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region18 :: Type) { value :: Mutable (region18 :: Type) }' with 'Action (region18 :: Type) ?195'
+  --> 280:37..280:49
+    |
+280 | recordLiteralEscape = consumeRecord modifyRecord { value: unsafeValue }
+    |                                     ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?198' with 'Array (Mutable (region19 :: Type))'
+  --> 283:35..283:46
+    |
+283 | arrayLiteralEscape = consumeArray modifyArray [ unsafeValue ]
+    |                                   ^~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region19 :: Type) (Array (Mutable (region19 :: Type)))' with 'Action (region19 :: Type) ?198'
+  --> 283:35..283:46
+    |
+283 | arrayLiteralEscape = consumeArray modifyArray [ unsafeValue ]
+    |                                   ^~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?201' with 'Mutable (region20 :: Type)'
+  --> 286:28..286:34
+    |
+286 | ifEscape = consumeFunction modify (if true then unsafeValue else unsafeValue)
+    |                            ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region20 :: Type) (Mutable (region20 :: Type))' with 'Action (region20 :: Type) ?201'
+  --> 286:28..286:34
+    |
+286 | ifEscape = consumeFunction modify (if true then unsafeValue else unsafeValue)
+    |                            ^~~~~~
+error[CannotUnify]: Cannot unify '?205' with 'Mutable (region21 :: Type)'
+  --> 289:30..289:36
+    |
+289 | caseEscape = consumeFunction modify (case true of
+    |                              ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region21 :: Type) (Mutable (region21 :: Type))' with 'Action (region21 :: Type) ?205'
+  --> 289:30..289:36
+    |
+289 | caseEscape = consumeFunction modify (case true of
+    |                              ^~~~~~
+error[CannotUnify]: Cannot unify '(t5 :: Type)' with 'Mutable (region22 :: Type)'
+  --> 294:16..294:22
+    |
+294 |   true -> leak modify
+    |                ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region22 :: Type) (Mutable (region22 :: Type))' with 'Action (region22 :: Type) (t5 :: Type)'
+  --> 294:16..294:22
+    |
+294 |   true -> leak modify
+    |                ^~~~~~
+error[CannotUnify]: Cannot unify '(t6 :: Type)' with 'Mutable (region23 :: Type)'
+  --> 298:17..298:23
+    |
+298 |   | true = leak modify
+    |                 ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region23 :: Type) (Mutable (region23 :: Type))' with 'Action (region23 :: Type) (t6 :: Type)'
+  --> 298:17..298:23
+    |
+298 |   | true = leak modify
+    |                 ^~~~~~
+error[CannotUnify]: Cannot unify '?219' with 'Mutable (region24 :: Type)'
+  --> 302:29..302:35
+    |
+302 | letEscape = consumeFunction modify (let value = unsafeValue in value)
+    |                             ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region24 :: Type) (Mutable (region24 :: Type))' with 'Action (region24 :: Type) ?219'
+  --> 302:29..302:35
+    |
+302 | letEscape = consumeFunction modify (let value = unsafeValue in value)
+    |                             ^~~~~~
+error[CannotUnify]: Cannot unify '?223' with '{ nested :: { value :: Mutable (region25 :: Type) } }'
+  --> 305:32..305:45
+    |
+305 | synonymEscape = consumeSynonym modifySynonym { nested: { value: unsafeValue } }
+    |                                ^~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region25 :: Type) (Synonym (Mutable (region25 :: Type)))' with 'Action (region25 :: Type) ?223'
+  --> 305:32..305:45
+    |
+305 | synonymEscape = consumeSynonym modifySynonym { nested: { value: unsafeValue } }
+    |                                ^~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?226' with 'Mutable (region26 :: Type)'
+  --> 308:35..308:41
+    |
+308 | multiStepEscape = captureFunction modify 0 unsafeValue
+    |                                   ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region26 :: Type) (Mutable (region26 :: Type))' with 'Action (region26 :: Type) ?226'
+  --> 308:35..308:41
+    |
+308 | multiStepEscape = captureFunction modify 0 unsafeValue
+    |                                   ^~~~~~
+error[CannotUnify]: Cannot unify '?229' with 'Mutable (region27 :: Type)'
+  --> 311:49..311:55
+    |
+311 | parenthesizedMultiStepEscape = (captureFunction modify 0) unsafeValue
+    |                                                 ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region27 :: Type) (Mutable (region27 :: Type))' with 'Action (region27 :: Type) ?229'
+  --> 311:49..311:55
+    |
+311 | parenthesizedMultiStepEscape = (captureFunction modify 0) unsafeValue
+    |                                                 ^~~~~~
+error[CannotUnify]: Cannot unify '?232' with 'Mutable (region28 :: Type)'
+  --> 314:47..314:53
+    |
+314 | visibleTypeApplicationEscape = captureVisible modify @Int unsafeValue unsafeValue
+    |                                               ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region28 :: Type) (Mutable (region28 :: Type))' with 'Action (region28 :: Type) ?232'
+  --> 314:47..314:53
+    |
+314 | visibleTypeApplicationEscape = captureVisible modify @Int unsafeValue unsafeValue
+    |                                               ^~~~~~
+error[CannotUnify]: Cannot unify '?239' with 'Mutable (region29 :: Type)'
+  --> 317:52..317:58
+    |
+317 | visibleTypeArgumentEscape = captureVisibleArgument modify @_ identity
+    |                                                    ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region29 :: Type) (Mutable (region29 :: Type))' with 'Action (region29 :: Type) ?239'
+  --> 317:52..317:58
+    |
+317 | visibleTypeArgumentEscape = captureVisibleArgument modify @_ identity
+    |                                                    ^~~~~~
+error[CannotUnify]: Cannot unify '?243' with 'Mutable (region30 :: Type)'
+  --> 320:34..320:40
+    |
+320 | operatorEscape = captureFunction modify 0 <| unsafeValue
+    |                                  ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region30 :: Type) (Mutable (region30 :: Type))' with 'Action (region30 :: Type) ?243'
+  --> 320:34..320:40
+    |
+320 | operatorEscape = captureFunction modify 0 <| unsafeValue
+    |                                  ^~~~~~
+error[CannotUnify]: Cannot unify '?250 -> ?249' with 'Int -> Mutable (region31 :: Type)'
+  --> 323:33..323:47
+    |
+323 | sectionEscape = consumeFunction modifyFunction (unsafeValue <| _)
+    |                                 ^~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region31 :: Type) (Int -> Mutable (region31 :: Type))' with 'Action (region31 :: Type) (?250 -> ?249)'
+  --> 323:33..323:47
+    |
+323 | sectionEscape = consumeFunction modifyFunction (unsafeValue <| _)
+    |                                 ^~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?261 ?263' with 'Box (Mutable (region32 :: Type))'
+  --> 326:20..326:29
+    |
+326 | doEscape = consume modifyBox do
+    |                    ^~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region32 :: Type) (Box (Mutable (region32 :: Type)))' with 'Action (region32 :: Type) (?261 ?263)'
+  --> 326:20..326:29
+    |
+326 | doEscape = consume modifyBox do
+    |                    ^~~~~~~~~
+error[CannotUnify]: Cannot unify '?273 ?275' with 'Box (Mutable (region33 :: Type))'
+  --> 331:21..331:30
+    |
+331 | adoEscape = consume modifyBox ado
+    |                     ^~~~~~~~~
+error[CannotUnify]: Cannot unify 'Action (region33 :: Type) (Box (Mutable (region33 :: Type)))' with 'Action (region33 :: Type) (?273 ?275)'
+  --> 331:21..331:30
+    |
+331 | adoEscape = consume modifyBox ado
+    |                     ^~~~~~~~~
+error[CannotUnify]: Cannot unify '?276' with 'Mutable (region34 :: Type)'
+  --> 336:45..336:51
+    |
+336 | independentOwnerEscape = consumeIndependent modify modify unsafeValue
+    |                                             ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region34 :: Type) (Mutable (region34 :: Type))' with 'Action (region34 :: Type) ?276'
+  --> 336:45..336:51
+    |
+336 | independentOwnerEscape = consumeIndependent modify modify unsafeValue
+    |                                             ^~~~~~
+error[CannotUnify]: Cannot unify '?277' with 'Mutable (region35 :: Type)'
+  --> 336:52..336:58
+    |
+336 | independentOwnerEscape = consumeIndependent modify modify unsafeValue
+    |                                                    ^~~~~~
+error[CannotUnify]: Cannot unify 'Action (region35 :: Type) (Mutable (region35 :: Type))' with 'Action (region35 :: Type) ?277'
+  --> 336:52..336:58
+    |
+336 | independentOwnerEscape = consumeIndependent modify modify unsafeValue
+    |                                                    ^~~~~~
+error[CannotUnify]: Cannot unify '(region36 :: Type)' with 'FixedRegion'
+  --> 339:30..339:47
+    |
+339 | monomorphicCallback = mutate monomorphicModify
+    |                              ^~~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Mutable (region36 :: Type)' with 'Mutable FixedRegion'
+  --> 339:30..339:47
+    |
+339 | monomorphicCallback = mutate monomorphicModify
+    |                              ^~~~~~~~~~~~~~~~~

@@ -1,0 +1,107 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Marker :: Prim.Type -> Prim.Constraint
+interface Marker region where
+
+foreign import unsafeValue :: forall value. value
+
+foreign import pureM :: forall monad value. value -> monad value
+
+foreign import bind :: forall monad value result. monad value -> (value -> monad result) -> monad result
+
+foreign import map :: forall functor value result. (value -> result) -> functor value -> functor result
+
+foreign import apply :: forall apply_ value result. apply_ (value -> result) -> apply_ value -> apply_ result
+
+foreign import mutate :: forall value result. (forall region. Main.Mutable region -> Main.Action region result) -> value
+
+foreign import modify :: forall region. Main.Mutable region -> Main.Action region (Main.Mutable region)
+
+mutateConstrained :: forall value result.
+  (forall region. Main.Marker region => Main.Mutable region -> Main.Action region result) -> value
+mutateConstrained = \@value -> \@result ->
+  unsafeValue @((forall (region :: Prim.Type).
+  Main.Marker region => Main.Mutable region -> Main.Action region result) ->
+value)
+
+constrainedModify :: forall region. Main.Marker region => Main.Mutable region -> Main.Action region (Main.Mutable region)
+constrainedModify = \@region -> \{markerDict} ->
+  unsafeValue @(Main.Mutable region -> Main.Action region (Main.Mutable region))
+
+nestedMutate :: forall value result.
+  (forall region.
+    Main.Marker region =>
+    Main.Mutable region -> (forall token. Main.Token token -> Main.Action region result)) ->
+  value
+nestedMutate = \@value -> \@result ->
+  unsafeValue @((forall (region :: Prim.Type).
+  Main.Marker region =>
+  Main.Mutable region ->
+  (forall (token :: Prim.Type). Main.Token token -> Main.Action region result)) ->
+value)
+
+nestedModify :: forall region.
+  Main.Marker region =>
+  Main.Mutable region ->
+  (forall token. Main.Token token -> Main.Action region (Main.Mutable region))
+nestedModify = \@region -> \{markerDict} -> \@token ->
+  unsafeValue @(Main.Mutable region -> Main.Token token -> Main.Action region (Main.Mutable region))
+
+positiveModify :: Prim.Int
+positiveModify = mutate @Prim.Int @?27 \@region -> modify @region
+
+positiveConstrained :: Prim.Int
+positiveConstrained =
+  mutateConstrained @Prim.Int @?30 \@region ->
+    \{markerDict} -> constrainedModify @region {markerDict}
+
+positiveNested :: Prim.Int
+positiveNested =
+  nestedMutate @Prim.Int @?33 \@region -> \{markerDict} -> nestedModify @region {markerDict}
+
+positiveDo :: Prim.Int
+positiveDo =
+  mutate @Prim.Int @?37 \@region ->
+    \mutable ->
+      bind @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region)
+        (pureM @(Main.Action region) @(Main.Mutable region) mutable) \value ->
+        pureM @(Main.Action region) @(Main.Mutable region) value
+
+positiveAdo :: Prim.Int
+positiveAdo =
+  mutate @Prim.Int @?49 \@region ->
+    \mutable ->
+      map @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region) (\value -> value)
+        (pureM @(Main.Action region) @(Main.Mutable region) mutable)
+
+positiveDoLet :: Prim.Int
+positiveDoLet =
+  mutate @Prim.Int @?58 \@region ->
+    \mutable ->
+      bind @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region)
+        (pureM @(Main.Action region) @(Main.Mutable region) mutable) \first ->
+        let
+          second :: Main.Mutable region
+          second = first
+        in
+          bind @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region)
+            (pureM @(Main.Action region) @(Main.Mutable region) second) \third ->
+            pureM @(Main.Action region) @(Main.Mutable region) third
+
+positiveAdoLet :: Prim.Int
+positiveAdoLet =
+  mutate @Prim.Int @?78 \@region ->
+    \mutable ->
+      apply @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region)
+        (map @(Main.Action region) @(Main.Mutable region) @(Main.Mutable region -> Main.Mutable region)
+          (\first _ ->
+            let
+              second :: Main.Mutable region
+              second = first
+            in
+              second)
+          (pureM @(Main.Action region) @(Main.Mutable region) mutable))
+        (pureM @(Main.Action region) @(Main.Mutable region) mutable)
