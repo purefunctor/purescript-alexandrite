@@ -37,21 +37,11 @@ NoBase = [Nominal]
 Product = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: LocalAlias
-  --> 13:1..13:31
-   |
-13 | derive instance Eq1 LocalAlias
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 error[CannotDeriveForType]: Cannot derive for type: ImportedAlias
   --> 17:1..17:34
    |
 17 | derive instance Eq1 ImportedAlias
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: NoBase
-  --> 21:1..21:27
-   |
-21 | derive instance Eq1 NoBase
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~
 error[PartialSynonymApplication]: Partial type synonym application
   --> 27:21..27:31
    |
@@ -67,3 +57,9 @@ error[CannotDeriveForType]: Cannot derive for type: ?[partial synonym applicatio
    |
 27 | derive instance Eq1 ProductInt
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[NoInstanceFound]: No instance found for: Eq (NoBase (t0 :: Type))
+  --> 21:1..21:27
+   |
+21 | derive instance Eq1 NoBase
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~
+  trivia: Eq (t0 :: Type) is in scope

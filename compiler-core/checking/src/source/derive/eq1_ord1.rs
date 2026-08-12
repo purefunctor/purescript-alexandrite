@@ -66,7 +66,7 @@ where
         return Ok(None);
     };
 
-    if tools::extract_local_algebraic_data(state, context, *derived_type)?.is_none() {
+    if tools::extract_local_type_constructor(state, context, *derived_type)?.is_none() {
         state.insert_error(ErrorKind::CannotDeriveForType { type_id: *derived_type });
         return Ok(None);
     }

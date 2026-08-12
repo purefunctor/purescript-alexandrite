@@ -19,15 +19,3 @@ derive Data.Ord.Ord1 Main.Opaque
 
 Roles
 Opaque = [Nominal]
-
-Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Opaque
-  --> 12:1..12:27
-   |
-12 | derive instance Eq1 Opaque
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Opaque
-  --> 17:1..17:28
-   |
-17 | derive instance Ord1 Opaque
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
