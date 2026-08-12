@@ -90,6 +90,30 @@ where
     Q: ExternalQueries,
     E: IsOperator<Q>,
 {
+    if let OperatorKindMode::Check { expected_type } = mode {
+        return E::check_expected_subtree(state, context, expected_type, |state, expected_type| {
+            traverse_operator_tree_core(
+                state,
+                context,
+                operator_tree,
+                OperatorKindMode::Check { expected_type },
+            )
+        });
+    }
+
+    traverse_operator_tree_core(state, context, operator_tree, mode)
+}
+
+fn traverse_operator_tree_core<Q, E>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    operator_tree: &OperatorTree<E>,
+    mode: OperatorKindMode,
+) -> QueryResult<(E::Elaborated, TypeId)>
+where
+    Q: ExternalQueries,
+    E: IsOperator<Q>,
+{
     let unknown_elaborated = E::unknown_elaborated(context);
 
     match operator_tree {
@@ -263,6 +287,18 @@ pub trait IsOperator<Q: ExternalQueries>: IsElement {
         expected: TypeId,
     ) -> QueryResult<(Self::Elaborated, TypeId)>;
 
+    fn check_expected_subtree<F>(
+        state: &mut CheckState,
+        _context: &CheckContext<Q>,
+        expected: TypeId,
+        check: F,
+    ) -> QueryResult<(Self::Elaborated, TypeId)>
+    where
+        F: FnOnce(&mut CheckState, TypeId) -> QueryResult<(Self::Elaborated, TypeId)>,
+    {
+        check(state, expected)
+    }
+
     fn should_defer_expansion(
         _state: &CheckState,
         _context: &CheckContext<Q>,
@@ -334,6 +370,36 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
     ) -> QueryResult<(Self::Elaborated, TypeId)> {
         let checked = terms::check_expression(state, context, id, expected)?;
         Ok((Some(checked), checked.type_id))
+    }
+
+    fn check_expected_subtree<F>(
+        state: &mut CheckState,
+        context: &CheckContext<Q>,
+        expected: TypeId,
+        check: F,
+    ) -> QueryResult<(Self::Elaborated, TypeId)>
+    where
+        F: FnOnce(&mut CheckState, TypeId) -> QueryResult<(Self::Elaborated, TypeId)>,
+    {
+        let expected = normalise::expand(state, context, expected)?;
+        let Type::Constrained(constraint, constrained) = context.lookup_type(expected) else {
+            return check(state, expected);
+        };
+
+        state.with_implication(|state| {
+            let binder = state.push_given(constraint);
+            let (checked, _) = Self::check_expected_subtree(state, context, constrained, check)?;
+
+            let checked = checked.map(|checked| {
+                let kind = tree::ExpressionKind::EvidenceAbstraction {
+                    binder,
+                    expression: checked.expression,
+                };
+                terms::allocate_expression(state, expected, kind)
+            });
+
+            Ok((checked, expected))
+        })
     }
 
     fn build(

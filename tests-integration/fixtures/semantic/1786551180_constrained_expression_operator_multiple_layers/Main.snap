@@ -17,4 +17,5 @@ foreign import consumeMultiplyConstrained :: (Main.First @Prim.Type Prim.Int => 
 
 multipleConstraintLayers :: Prim.Int
 multipleConstraintLayers =
-  apply consumeMultiplyConstrained (multiplyConstrained {firstDict} {secondDict})
+  apply consumeMultiplyConstrained \{firstDict} ->
+    \{secondDict} -> multiplyConstrained {firstDict} {secondDict}

@@ -15,4 +15,5 @@ foreign import constrainedValue :: Main.First @Prim.Type Prim.Int => Prim.Int
 foreign import consumeConstrained :: (Main.First @Prim.Type Prim.Int => Prim.Int) -> Prim.Int
 
 constrainedSubtree :: Prim.Int
-constrainedSubtree = apply consumeConstrained (apply identity (constrainedValue {firstDict}))
+constrainedSubtree =
+  apply consumeConstrained \{firstDict} -> apply identity (constrainedValue {firstDict})

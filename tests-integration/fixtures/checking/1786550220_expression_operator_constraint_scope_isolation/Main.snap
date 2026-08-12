@@ -19,3 +19,10 @@ First :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
 
 Classes
 class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.First @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: First @Type Int
+  --> 16:1..16:12
+   |
+16 | test :: Int
+   | ^~~~~~~~~~~
