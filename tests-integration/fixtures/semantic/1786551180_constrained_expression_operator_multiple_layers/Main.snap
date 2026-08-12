@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface First :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface First a where
+
+interface Second :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface Second a where
+
+foreign import apply :: forall argument result. (argument -> result) -> argument -> result
+
+foreign import multiplyConstrained :: Main.First @Prim.Type Prim.Int => Main.Second @Prim.Type Prim.Int => Prim.Int
+
+foreign import consumeMultiplyConstrained :: (Main.First @Prim.Type Prim.Int => Main.Second @Prim.Type Prim.Int => Prim.Int) -> Prim.Int
+
+multipleConstraintLayers :: Prim.Int
+multipleConstraintLayers =
+  apply consumeMultiplyConstrained \{firstDict} ->
+    \{secondDict} -> multiplyConstrained {firstDict} {secondDict}

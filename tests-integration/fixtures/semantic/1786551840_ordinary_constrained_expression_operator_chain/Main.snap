@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Semigroup :: Prim.Type -> Prim.Constraint
+interface Semigroup a where
+  append :: a -> a -> a
+
+dictionary semigroupString :: Main.Semigroup Prim.String where
+  append :: Prim.String -> Prim.String -> Prim.String
+  append = \left -> \right -> left
+
+ordinaryConstrainedOperatorChain :: Prim.String
+ordinaryConstrainedOperatorChain =
+  append {semigroupString} "first" (append {semigroupString} "second" "third")
