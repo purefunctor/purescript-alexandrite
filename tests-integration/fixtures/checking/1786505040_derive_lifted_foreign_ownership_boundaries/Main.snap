@@ -1,0 +1,69 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Product ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Product (a :: Prim.Type) (b :: Prim.Type)
+
+Types
+LocalOpaque :: Prim.Type -> Prim.Type
+LocalAlias :: Prim.Type -> Prim.Type
+ImportedAlias :: Prim.Type -> Prim.Type
+NoBase :: Prim.Type -> Prim.Type
+Product :: Prim.Type -> Prim.Type -> Prim.Type
+ProductInt :: Prim.Type -> Prim.Type
+
+Synonyms
+type LocalAlias = Main.LocalOpaque
+type ImportedAlias = Library.ImportedOpaque
+type ProductInt a = Main.Product Prim.Int (a :: Prim.Type)
+
+Instances
+instance forall (a :: Prim.Type).
+  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Main.LocalOpaque (a :: Prim.Type))
+
+Derived
+derive Data.Eq.Eq1 Main.LocalAlias
+derive Data.Eq.Eq1 Main.ImportedAlias
+derive Data.Eq.Eq1 Main.NoBase
+derive Data.Eq.Eq1 ?[partial synonym application]
+
+Roles
+LocalOpaque = [Nominal]
+NoBase = [Nominal]
+Product = [Representational, Representational]
+
+Diagnostics
+error[CannotDeriveForType]: Cannot derive for type: LocalAlias
+  --> 13:1..13:31
+   |
+13 | derive instance Eq1 LocalAlias
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedAlias
+  --> 17:1..17:34
+   |
+17 | derive instance Eq1 ImportedAlias
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: NoBase
+  --> 21:1..21:27
+   |
+21 | derive instance Eq1 NoBase
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~
+error[PartialSynonymApplication]: Partial type synonym application
+  --> 27:21..27:31
+   |
+27 | derive instance Eq1 ProductInt
+   |                     ^~~~~~~~~~
+error[CannotUnify]: Cannot unify '?[partial synonym application]' with 'Type -> Type'
+  --> 27:21..27:31
+   |
+27 | derive instance Eq1 ProductInt
+   |                     ^~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ?[partial synonym application]
+  --> 27:1..27:31
+   |
+27 | derive instance Eq1 ProductInt
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
