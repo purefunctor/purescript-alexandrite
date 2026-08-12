@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+
+Types
+Opaque :: Prim.Type -> Prim.Type
+
+Instances
+instance forall (a :: Prim.Type). Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Main.Opaque (a :: Prim.Type))
+instance forall (a :: Prim.Type).
+  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Main.Opaque (a :: Prim.Type))
+
+Derived
+derive Data.Eq.Eq1 Main.Opaque
+derive Data.Ord.Ord1 Main.Opaque
+
+Roles
+Opaque = [Nominal]

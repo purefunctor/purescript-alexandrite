@@ -2,14 +2,13 @@ module Main where
 
 import Data.Eq (class Eq, class Eq1)
 import Data.Ord (class Ord, class Ord1)
-import Library (Imported)
+import Library (ImportedLifted, ImportedOpaque, ImportedStructural)
 
-foreign import data Opaque1 :: Type -> Type
+derive instance Eq a => Eq (ImportedStructural a)
+derive instance Ord a => Ord (ImportedStructural a)
 
-derive instance Eq1 Opaque1
-derive instance Ord1 Opaque1
+derive instance Eq1 ImportedLifted
+derive instance Ord1 ImportedLifted
 
-derive instance Eq a => Eq (Imported a)
-derive instance Eq1 Imported
-derive instance Ord a => Ord (Imported a)
-derive instance Ord1 Imported
+derive instance Eq1 ImportedOpaque
+derive instance Ord1 ImportedOpaque

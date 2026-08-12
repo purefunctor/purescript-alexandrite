@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+dictionary eqOpaque :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Opaque a) where
+  eq :: Main.Opaque a -> Main.Opaque a -> Prim.Boolean
+  eq = \_ -> \_ -> true
+
+dictionary eq1Opaque :: Data.Eq.Eq1 Main.Opaque where
+  eq1 :: forall (a :: Prim.Type). Data.Eq.Eq a => Main.Opaque a -> Main.Opaque a -> Prim.Boolean
+  eq1 = \@a -> \{eqDict} -> eq @(Main.Opaque a) {eqOpaque {eqDict}}
+
+dictionary ordOpaque :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Opaque a)
+  where
+  superclass eqDict = eqOpaque {ordDict.eqDict}
+  compare :: Main.Opaque a -> Main.Opaque a -> Data.Ordering.Ordering
+  compare = \_ -> \_ -> EQ
+
+dictionary ord1Opaque :: Data.Ord.Ord1 Main.Opaque where
+  superclass eq1Dict = eq1Opaque
+  compare1 :: forall (a :: Prim.Type). Data.Ord.Ord a => Main.Opaque a -> Main.Opaque a -> Data.Ordering.Ordering
+  compare1 = \@a -> \{ordDict} -> compare @(Main.Opaque a) {ordOpaque {ordDict}}

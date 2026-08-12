@@ -6,49 +6,45 @@ expression: report
 Terms
 
 Types
-Opaque1 :: Prim.Type -> Prim.Type
 
 Derived
-derive Data.Eq.Eq1 Main.Opaque1
-derive Data.Ord.Ord1 Main.Opaque1
 derive forall (a :: Prim.Type).
-  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Library.Imported (a :: Prim.Type))
-derive Data.Eq.Eq1 Library.Imported
+  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Library.ImportedStructural (a :: Prim.Type))
 derive forall (a :: Prim.Type).
-  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Library.Imported (a :: Prim.Type))
-derive Data.Ord.Ord1 Library.Imported
-
-Roles
-Opaque1 = [Nominal]
+  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Library.ImportedStructural (a :: Prim.Type))
+derive Data.Eq.Eq1 Library.ImportedLifted
+derive Data.Ord.Ord1 Library.ImportedLifted
+derive Data.Eq.Eq1 Library.ImportedOpaque
+derive Data.Ord.Ord1 Library.ImportedOpaque
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Opaque1
-  --> 9:1..9:28
+error[CannotDeriveForType]: Cannot derive for type: ImportedStructural (a :: Type)
+  --> 7:1..7:50
   |
-9 | derive instance Eq1 Opaque1
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Opaque1
-  --> 10:1..10:29
+7 | derive instance Eq a => Eq (ImportedStructural a)
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedStructural (a1 :: Type)
+  --> 8:1..8:52
+  |
+8 | derive instance Ord a => Ord (ImportedStructural a)
+  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedLifted
+  --> 10:1..10:35
    |
-10 | derive instance Ord1 Opaque1
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported (a :: Type)
-  --> 12:1..12:40
+10 | derive instance Eq1 ImportedLifted
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedLifted
+  --> 11:1..11:36
    |
-12 | derive instance Eq a => Eq (Imported a)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported
-  --> 13:1..13:29
+11 | derive instance Ord1 ImportedLifted
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedOpaque
+  --> 13:1..13:35
    |
-13 | derive instance Eq1 Imported
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported (a1 :: Type)
-  --> 14:1..14:42
+13 | derive instance Eq1 ImportedOpaque
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[CannotDeriveForType]: Cannot derive for type: ImportedOpaque
+  --> 14:1..14:36
    |
-14 | derive instance Ord a => Ord (Imported a)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Imported
-  --> 15:1..15:30
-   |
-15 | derive instance Ord1 Imported
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+14 | derive instance Ord1 ImportedOpaque
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -74,6 +74,32 @@ where
     }
 }
 
+pub fn extract_local_type_constructor<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    derived_type: TypeId,
+) -> QueryResult<Option<(FileId, TypeItemId)>>
+where
+    Q: ExternalQueries,
+{
+    let Some((type_file, type_id)) =
+        toolkit::extract_type_constructor(state, context, derived_type)?
+    else {
+        return Ok(None);
+    };
+    if type_file != context.id {
+        return Ok(None);
+    }
+
+    let kind = &context.indexed.items[type_id].kind;
+    match kind {
+        IndexedTypeItemKind::Data { .. }
+        | IndexedTypeItemKind::Newtype { .. }
+        | IndexedTypeItemKind::Foreign { .. } => Ok(Some((type_file, type_id))),
+        _ => Ok(None),
+    }
+}
+
 pub fn extract_local_algebraic_data<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -82,14 +108,10 @@ pub fn extract_local_algebraic_data<Q>(
 where
     Q: ExternalQueries,
 {
-    let Some((data_file, data_id)) =
-        toolkit::extract_type_constructor(state, context, derived_type)?
+    let Some((data_file, data_id)) = extract_local_type_constructor(state, context, derived_type)?
     else {
         return Ok(None);
     };
-    if data_file != context.id {
-        return Ok(None);
-    }
 
     let kind = &context.indexed.items[data_id].kind;
     match kind {
