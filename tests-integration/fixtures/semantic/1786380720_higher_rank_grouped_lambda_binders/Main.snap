@@ -13,4 +13,4 @@ interface Identity value where
 foreign import consume :: (Main.Unit -> (forall value. Main.Identity @Prim.Type value => value -> value)) -> Main.Unit
 
 test :: Main.Unit
-test = consume \_ -> \@value -> \{identityDict} -> \value -> value
+test = consume \_ -> \{identityDict} -> \value -> value

@@ -22,5 +22,5 @@ dictionary foldableRecord :: Data.Foldable.Foldable Main.Record where
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (Record field0) -> append @m {monoidDict.semigroupDict} (function field0.alpha)
+        (Record field0) -> append {monoidDict.semigroupDict} (function field0.alpha)
           (function field0.zeta)

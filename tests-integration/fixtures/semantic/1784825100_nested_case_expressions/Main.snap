@@ -24,6 +24,6 @@ nested = \choice ->
 
 applied :: Main.Choice Prim.Int -> Prim.Int
 applied = \choice ->
-  identity @Prim.Int case choice of
+  identity case choice of
     (One value) -> value
     _ -> 0

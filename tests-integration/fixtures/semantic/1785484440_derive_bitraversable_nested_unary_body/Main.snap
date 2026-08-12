@@ -23,9 +23,8 @@ dictionary bifunctorWrap ::
   bimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Wrap field0 field1) -> Wrap @Prim.Type @Prim.Type @f @g @b @d
-          (map @f {functorDict} @a @b (\element -> firstFunction element) field0)
-          (map @g {functorDict1} @c @d (\element -> secondFunction element) field1)
+        (Wrap field0 field1) -> Wrap (map {functorDict} (\element -> firstFunction element) field0)
+          (map {functorDict1} (\element -> secondFunction element) field1)
 
 dictionary bifoldableWrap ::
   forall f g.
@@ -38,10 +37,9 @@ dictionary bifoldableWrap ::
   bifoldr = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
+        (Wrap field0 field1) -> foldr {foldableDict}
           (\element accumulator -> firstFunction element accumulator)
-          (foldr @g {foldableDict1} @b @c
-            (\element accumulator -> secondFunction element accumulator)
+          (foldr {foldableDict1} (\element accumulator -> secondFunction element accumulator)
             accumulator
             field1)
           field0
@@ -50,9 +48,9 @@ dictionary bifoldableWrap ::
   bifoldl = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
+        (Wrap field0 field1) -> foldl {foldableDict1}
           (\accumulator element -> secondFunction accumulator element)
-          (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
+          (foldl {foldableDict} (\accumulator element -> firstFunction accumulator element)
             accumulator
             field0)
           field1
@@ -61,10 +59,9 @@ dictionary bifoldableWrap ::
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Wrap field0 field1) -> append @m {monoidDict.semigroupDict}
-          (foldMap @f {foldableDict} @a @m {monoidDict} (\element -> firstFunction element) field0)
-          (foldMap @g {foldableDict1} @b @m {monoidDict} (\element -> secondFunction element)
-            field1)
+        (Wrap field0 field1) -> append {monoidDict.semigroupDict}
+          (foldMap {foldableDict} {monoidDict} (\element -> firstFunction element) field0)
+          (foldMap {foldableDict1} {monoidDict} (\element -> secondFunction element) field1)
 
 dictionary bitraversableWrap ::
   forall f g.
@@ -84,22 +81,19 @@ dictionary bitraversableWrap ::
   bitraverse = \@f1 -> \@a -> \@b -> \@c -> \@d -> \{applicativeDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Wrap field0 field1) -> apply @f1 {applicativeDict.applyDict} @(g d) @(Main.Wrap @Prim.Type @Prim.Type f g c d)
-          (map @f1 {applicativeDict.applyDict.functorDict} @(f c) @(g d -> Main.Wrap @Prim.Type @Prim.Type f g c d)
-            (\field0Result field1Result ->
-              Wrap @Prim.Type @Prim.Type @f @g @c @d field0Result field1Result)
-            (traverse @f {traversableDict} @a @c @f1 {applicativeDict}
-              (\element -> firstFunction element)
+        (Wrap field0 field1) -> apply {applicativeDict.applyDict}
+          (map {applicativeDict.applyDict.functorDict}
+            (\field0Result field1Result -> Wrap field0Result field1Result)
+            (traverse {traversableDict} {applicativeDict} (\element -> firstFunction element)
               field0))
-          (traverse @g {traversableDict1} @b @d @f1 {applicativeDict}
-            (\element -> secondFunction element)
+          (traverse {traversableDict1} {applicativeDict} (\element -> secondFunction element)
             field1)
   bisequence :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Control.Applicative.Applicative f1 =>
   Main.Wrap @Prim.Type @Prim.Type f g (f1 a) (f1 b) -> f1 (Main.Wrap @Prim.Type @Prim.Type f g a b)
   bisequence = \@f1 -> \@a -> \@b -> \{applicativeDict} ->
     \value ->
-      bitraverse @(Main.Wrap @Prim.Type @Prim.Type f g) {bitraversableWrap {traversableDict} {traversableDict1}} @f1 @(f1 a) @(f1 b) @a @b {applicativeDict}
+      bitraverse {bitraversableWrap {traversableDict} {traversableDict1}} {applicativeDict}
         (\effect0 -> effect0)
         (\effect1 -> effect1)
         value

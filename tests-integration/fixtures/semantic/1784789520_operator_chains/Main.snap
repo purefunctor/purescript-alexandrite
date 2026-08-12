@@ -31,4 +31,4 @@ foreign import interleaved :: forall a. Main.First a => a -> (forall b. Main.Sec
 
 implicitApplications :: forall a b. Main.First a => Main.Second b => a -> b -> a
 implicitApplications = \@a -> \@b -> \{firstDict} -> \{secondDict} -> \left -> \right ->
-  interleaved @a {firstDict} left @b {secondDict} right
+  interleaved {firstDict} left {secondDict} right

@@ -25,6 +25,5 @@ dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (Product field0 field1 field2 field3) -> append @m {monoidDict.semigroupDict}
-          (function field0)
-          (append @m {monoidDict.semigroupDict} (function field2) (function field3))
+        (Product field0 field1 field2 field3) -> append {monoidDict.semigroupDict} (function field0)
+          (append {monoidDict.semigroupDict} (function field2) (function field3))

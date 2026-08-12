@@ -13,8 +13,8 @@ dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
   map = \@a -> \@b ->
     \function value ->
       case value of
-        Nothing -> Nothing @b
-        (Just field0) -> Just @b (function field0)
+        Nothing -> Nothing
+        (Just field0) -> Just (function field0)
 
 dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
@@ -33,7 +33,7 @@ dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        Nothing -> mempty @m {monoidDict}
+        Nothing -> mempty {monoidDict}
         (Just field0) -> function field0
 
 dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
@@ -44,13 +44,11 @@ dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
   traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
     \function value ->
       case value of
-        Nothing -> pure @m {applicativeDict} @(Main.Maybe b) (Nothing @b)
-        (Just field0) -> map @m {applicativeDict.applyDict.functorDict} @b @(Main.Maybe b)
-          (\field0Result -> Just @b field0Result)
+        Nothing -> pure {applicativeDict} Nothing
+        (Just field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> Just field0Result)
           (function field0)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Maybe (m a) -> m (Main.Maybe a)
   sequence = \@a -> \@m -> \{applicativeDict} ->
-    \value ->
-      traverse @Main.Maybe {traversableMaybe} @(m a) @a @m {applicativeDict} (\effect0 -> effect0)
-        value
+    \value -> traverse {traversableMaybe} {applicativeDict} (\effect0 -> effect0) value

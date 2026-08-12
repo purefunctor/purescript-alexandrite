@@ -17,11 +17,9 @@ interface Operations effect where
 
 usingMapApply :: forall effect. Main.Operations effect => effect (Main.Tuple Prim.Int Prim.String)
 usingMapApply = \@effect -> \{operationsDict} ->
-  apply @effect {operationsDict} @Prim.String @(Main.Tuple Prim.Int Prim.String)
-    (map @effect {operationsDict} @Prim.Int @(Prim.String -> Main.Tuple Prim.Int Prim.String)
-      (\first second -> Tuple @Prim.Int @Prim.String first second)
-      (pure @effect {operationsDict} @Prim.Int 1))
-    (pure @effect {operationsDict} @Prim.String "two")
+  apply {operationsDict}
+    (map {operationsDict} (\first second -> Tuple first second) (pure {operationsDict} 1))
+    (pure {operationsDict} "two")
 
 usingPure :: forall effect. Main.Operations effect => effect Prim.Int
-usingPure = \@effect -> \{operationsDict} -> pure @effect {operationsDict} @Prim.Int 1
+usingPure = \@effect -> \{operationsDict} -> pure {operationsDict} 1

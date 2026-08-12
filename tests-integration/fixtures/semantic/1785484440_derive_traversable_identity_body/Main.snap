@@ -12,7 +12,7 @@ dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
   map = \@a -> \@b ->
     \function value ->
       case value of
-        (Identity field0) -> Identity @b (function field0)
+        (Identity field0) -> Identity (function field0)
 
 dictionary foldableIdentity :: Data.Foldable.Foldable Main.Identity where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Identity a -> b
@@ -39,13 +39,10 @@ dictionary traversableIdentity :: Data.Traversable.Traversable Main.Identity whe
   traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
     \function value ->
       case value of
-        (Identity field0) -> map @m {applicativeDict.applyDict.functorDict} @b @(Main.Identity b)
-          (\field0Result -> Identity @b field0Result)
+        (Identity field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> Identity field0Result)
           (function field0)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Identity (m a) -> m (Main.Identity a)
   sequence = \@a -> \@m -> \{applicativeDict} ->
-    \value ->
-      traverse @Main.Identity {traversableIdentity} @(m a) @a @m {applicativeDict}
-        (\effect0 -> effect0)
-        value
+    \value -> traverse {traversableIdentity} {applicativeDict} (\effect0 -> effect0) value

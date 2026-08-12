@@ -8,4 +8,4 @@ interface Value a where
   value :: a
 
 test :: Prim.Int
-test = (\{valueDict} -> value @Prim.Int {valueDict}) {error}
+test = (\{valueDict} -> value {valueDict}) {error}

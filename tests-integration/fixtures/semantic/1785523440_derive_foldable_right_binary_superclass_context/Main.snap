@@ -16,7 +16,7 @@ dictionary foldableRightNested ::
   foldr = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> bifoldr @p {bitraversableDict.bifoldableDict} @Prim.Int @a @b
+        (RightNested field0) -> bifoldr {bitraversableDict.bifoldableDict}
           (\ignored accumulator -> accumulator)
           (\element accumulator -> function element accumulator)
           accumulator
@@ -25,7 +25,7 @@ dictionary foldableRightNested ::
   foldl = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> bifoldl @p {bitraversableDict.bifoldableDict} @Prim.Int @a @b
+        (RightNested field0) -> bifoldl {bitraversableDict.bifoldableDict}
           (\accumulator ignored -> accumulator)
           (\accumulator element -> function accumulator element)
           accumulator
@@ -35,7 +35,7 @@ dictionary foldableRightNested ::
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (RightNested field0) -> bifoldMap @p {bitraversableDict.bifoldableDict} @m @Prim.Int @a {monoidDict}
-          (\ignored -> mempty @m {monoidDict})
+        (RightNested field0) -> bifoldMap {bitraversableDict.bifoldableDict} {monoidDict}
+          (\ignored -> mempty {monoidDict})
           (\element -> function element)
           field0

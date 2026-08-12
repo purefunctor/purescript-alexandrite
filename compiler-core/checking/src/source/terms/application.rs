@@ -18,12 +18,12 @@ pub struct UnanchoredApplication {
 }
 
 pub enum ImplicitApplication {
-    Type { argument: TypeId, result: TypeId },
+    Type { result: TypeId },
     Evidence { evidence: EvidenceVarId, result: TypeId },
 }
 
 enum PendingImplicitApplication {
-    Type { argument: TypeId, result: TypeId },
+    Type { result: TypeId },
     Constraint { constraint: TypeId, result: TypeId },
 }
 
@@ -131,13 +131,8 @@ where
         match context.lookup_type(type_id) {
             Type::Forall(binder_id, body) => {
                 let binder = context.lookup_forall_binder(binder_id);
-                let (argument, result) =
-                    instantiate_callable_forall(state, context, binder, body)?;
-                let kind = tree::ExpressionKind::TypeApplication {
-                    function: expression.expression,
-                    argument,
-                };
-                expression = super::allocate_expression(state, result, kind);
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                expression.type_id = result;
             }
             Type::Constrained(constraint, result) => {
                 let evidence = state.push_wanted(constraint);
@@ -189,9 +184,8 @@ where
     safe_loop! {
         match analyse_callable_head(state, context, function)? {
             CallableAnalysis::Forall { binder, body } => {
-                let (argument, result) =
-                    instantiate_callable_forall(state, context, binder, body)?;
-                implicit.push(PendingImplicitApplication::Type { argument, result });
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                implicit.push(PendingImplicitApplication::Type { result });
                 function = result;
             }
             CallableAnalysis::Constraint { constraint, result } => {
@@ -200,8 +194,8 @@ where
             }
             CallableAnalysis::Function { argument, result } => {
                 let implicit = implicit.into_iter().map(|application| match application {
-                    PendingImplicitApplication::Type { argument, result } => {
-                        ImplicitApplication::Type { argument, result }
+                    PendingImplicitApplication::Type { result } => {
+                        ImplicitApplication::Type { result }
                     }
                     PendingImplicitApplication::Constraint { constraint, result } => {
                         let evidence = state.push_wanted(constraint);
@@ -230,9 +224,7 @@ where
     let applications =
         unification::subtype_with_applications(state, context, expression.type_id, expected)?;
     let applications = applications.into_iter().map(|application| match application {
-        unification::SubtypeApplication::Type { argument, result } => {
-            ImplicitApplication::Type { argument, result }
-        }
+        unification::SubtypeApplication::Type { result } => ImplicitApplication::Type { result },
         unification::SubtypeApplication::Evidence { evidence, result } => {
             ImplicitApplication::Evidence { evidence, result }
         }
@@ -246,23 +238,18 @@ fn materialize_implicit_applications(
     implicit: impl IntoIterator<Item = ImplicitApplication>,
 ) -> ElaboratedExpression {
     for application in implicit {
-        let (type_id, kind) = match application {
-            ImplicitApplication::Type { argument, result } => {
-                let kind = tree::ExpressionKind::TypeApplication {
-                    function: expression.expression,
-                    argument,
-                };
-                (result, kind)
+        match application {
+            ImplicitApplication::Type { result } => {
+                expression.type_id = result;
             }
             ImplicitApplication::Evidence { evidence, result } => {
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: expression.expression,
                     evidence,
                 };
-                (result, kind)
+                expression = super::allocate_expression(state, result, kind);
             }
-        };
-        expression = super::allocate_expression(state, type_id, kind);
+        }
     }
     expression
 }
@@ -332,13 +319,8 @@ where
     safe_loop! {
         match analyse_callable_head(state, context, function.type_id)? {
             CallableAnalysis::Forall { binder, body } => {
-                let (argument, result) =
-                    instantiate_callable_forall(state, context, binder, body)?;
-                let kind = tree::ExpressionKind::TypeApplication {
-                    function: function.expression,
-                    argument,
-                };
-                function = super::allocate_expression(state, result, kind);
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                function.type_id = result;
             }
             CallableAnalysis::Constraint { constraint, result } => {
                 let evidence = state.push_wanted(constraint);
@@ -386,21 +368,13 @@ where
                     let (argument, _) = types::check_kind(state, context, argument, binder_kind)?;
                     let result =
                         SubstituteName::one(state, context, binder.name, argument, body)?;
-                    let kind = tree::ExpressionKind::TypeApplication {
-                        function: function.expression,
-                        argument,
-                    };
-                    let application = super::allocate_expression(state, result, kind);
+                    let application =
+                        ElaboratedExpression { type_id: result, expression: function.expression };
                     break Ok(ApplicationStep::Applied(application));
                 }
 
-                let (argument, result) =
-                    instantiate_callable_forall(state, context, binder, body)?;
-                let kind = tree::ExpressionKind::TypeApplication {
-                    function: function.expression,
-                    argument,
-                };
-                function = super::allocate_expression(state, result, kind);
+                let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
+                function.type_id = result;
             }
             Type::Constrained(constraint, result) => {
                 let evidence = state.push_wanted(constraint);

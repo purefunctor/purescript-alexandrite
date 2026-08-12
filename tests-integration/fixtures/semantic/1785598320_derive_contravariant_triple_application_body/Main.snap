@@ -16,7 +16,7 @@ dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Ma
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+        (Predicate field0) -> Predicate \argument -> field0 (function argument)
 
 dictionary contravariantTripleNegative ::
   Data.Functor.Contravariant.Contravariant Main.TripleNegative
@@ -25,12 +25,10 @@ dictionary contravariantTripleNegative ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (TripleNegative field0) -> TripleNegative @b
-          (cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate (Main.Predicate a)) @(Main.Predicate (Main.Predicate b))
+        (TripleNegative field0) -> TripleNegative
+          (cmap {contravariantPredicate}
             (\element ->
-              cmap @Main.Predicate {contravariantPredicate} @(Main.Predicate b) @(Main.Predicate a)
-                (\element ->
-                  cmap @Main.Predicate {contravariantPredicate} @a @b (\element -> function element)
-                    element)
+              cmap {contravariantPredicate}
+                (\element -> cmap {contravariantPredicate} (\element -> function element) element)
                 element)
             field0)

@@ -16,7 +16,7 @@ dictionary functorBox :: Data.Functor.Functor Main.Box where
   map = \@a -> \@b ->
     \function value ->
       case value of
-        (Box field0) -> Box @b (function field0)
+        (Box field0) -> Box (function field0)
 
 dictionary contravariantBoxedPredicate ::
   Data.Functor.Contravariant.Contravariant Main.BoxedPredicate
@@ -25,7 +25,5 @@ dictionary contravariantBoxedPredicate ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (BoxedPredicate field0) -> BoxedPredicate @b
-          (map @Main.Box {functorBox} @(a -> Prim.Boolean) @(b -> Prim.Boolean)
-            (\element -> \argument -> element (function argument))
-            field0)
+        (BoxedPredicate field0) -> BoxedPredicate
+          (map {functorBox} (\element -> \argument -> element (function argument)) field0)

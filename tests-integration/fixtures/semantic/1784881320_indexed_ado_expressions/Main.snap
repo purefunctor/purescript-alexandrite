@@ -33,15 +33,11 @@ foreign import stepThree :: Main.Action 3 Prim.String
 
 indexedApply :: Main.Action 3 Prim.String
 indexedApply =
-  apply @3 {onDefault} @2 @Prim.String @Prim.String
-    (apply @2 {onTwo} @1 @Prim.Boolean @(Prim.String -> Prim.String)
-      (apply @1 {onDefault} @0 @Prim.String @(Prim.Boolean -> Prim.String -> Prim.String)
-        (map @0 {onZero} @Prim.Int @(Prim.String -> Prim.Boolean -> Prim.String -> Prim.String)
-          (\zero one two three -> three)
-          stepZero)
-        stepOne)
+  apply {onDefault}
+    (apply {onTwo}
+      (apply {onDefault} (map {onZero} (\zero one two three -> three) stepZero) stepOne)
       stepTwo)
     stepThree
 
 indexedPure :: Main.Action 2 Prim.Int
-indexedPure = pure @2 {onTwo} @Prim.Int 1
+indexedPure = pure {onTwo} 1

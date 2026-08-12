@@ -17,20 +17,17 @@ dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Function field0) -> Function @a @d \argument ->
-          secondFunction (field0 (firstFunction argument))
+        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
 
 dictionary functorDoubleInput :: Data.Functor.Functor Main.DoubleInput where
   map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.DoubleInput a -> Main.DoubleInput b
   map = \@a -> \@b ->
     \function value ->
       case value of
-        (DoubleInput field0) -> DoubleInput @b
-          (dimap @Main.Function {profunctorFunction} @(Main.Function b Prim.Int) @(Main.Function a Prim.Int) @Prim.Int @Prim.Int
+        (DoubleInput field0) -> DoubleInput
+          (dimap {profunctorFunction}
             (\element ->
-              dimap @Main.Function {profunctorFunction} @a @b @Prim.Int @Prim.Int
-                (\element -> function element)
-                (\unchanged -> unchanged)
+              dimap {profunctorFunction} (\element -> function element) (\unchanged -> unchanged)
                 element)
             (\unchanged -> unchanged)
             field0)

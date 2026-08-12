@@ -25,5 +25,5 @@ dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Pair field0 field1 field2) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
+        (Pair field0 field1 field2) -> append {monoidDict.semigroupDict} (firstFunction field0)
           (secondFunction field2)

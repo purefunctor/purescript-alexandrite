@@ -12,4 +12,4 @@ dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Ma
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+        (Predicate field0) -> Predicate \argument -> field0 (function argument)

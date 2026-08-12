@@ -10,7 +10,7 @@ const :: forall a @b. a -> b -> a
 const = \@a -> \@b -> \value -> \_ -> value
 
 testIdentity :: Prim.Int -> Prim.Int
-testIdentity = identity @Prim.Int
+testIdentity = identity
 
 testConst :: forall t0. t0 -> Prim.String -> t0
-testConst = \@t0 -> const @t0 @Prim.String
+testConst = \@t0 -> const

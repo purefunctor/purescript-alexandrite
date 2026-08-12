@@ -14,8 +14,8 @@ dictionary bifunctorEither :: Data.Bifunctor.Bifunctor Main.Either where
   bimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Left field0) -> Left @b @d (firstFunction field0)
-        (Right field0) -> Right @b @d (secondFunction field0)
+        (Left field0) -> Left (firstFunction field0)
+        (Right field0) -> Right (secondFunction field0)
 
 dictionary bifoldableEither :: Data.Bifoldable.Bifoldable Main.Either where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
@@ -50,17 +50,15 @@ dictionary bitraversableEither :: Data.Bitraversable.Bitraversable Main.Either w
   bitraverse = \@f -> \@a -> \@b -> \@c -> \@d -> \{applicativeDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Left field0) -> map @f {applicativeDict.applyDict.functorDict} @c @(Main.Either c d)
-          (\field0Result -> Left @c @d field0Result)
+        (Left field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> Left field0Result)
           (firstFunction field0)
-        (Right field0) -> map @f {applicativeDict.applyDict.functorDict} @d @(Main.Either c d)
-          (\field0Result -> Right @c @d field0Result)
+        (Right field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> Right field0Result)
           (secondFunction field0)
   bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Control.Applicative.Applicative f => Main.Either (f a) (f b) -> f (Main.Either a b)
   bisequence = \@f -> \@a -> \@b -> \{applicativeDict} ->
     \value ->
-      bitraverse @Main.Either {bitraversableEither} @f @(f a) @(f b) @a @b {applicativeDict}
-        (\effect0 -> effect0)
-        (\effect1 -> effect1)
+      bitraverse {bitraversableEither} {applicativeDict} (\effect0 -> effect0) (\effect1 -> effect1)
         value

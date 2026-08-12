@@ -22,7 +22,7 @@ test3 :: forall t0 t1. { poly :: t0 | t1 } -> t0
 test3 = \@t0 -> \@t1 -> \v88 -> v88.poly
 
 test4 :: forall t0 t1. Prim.Array { prop :: t0 | t1 } -> Prim.Array t0
-test4 = \@t0 -> \@t1 -> map @{ prop :: t0 | t1 } @t0 \v97 -> v97.prop
+test4 = \@t0 -> \@t1 -> map \v97 -> v97.prop
 
 test5 :: Prim.Int
 test5 = f \v106 -> v106.foo
@@ -37,11 +37,10 @@ test8 :: forall t0 t1 t2. (({ foo :: t0 | t1 } -> t0) -> t2) -> t2
 test8 = \@t0 -> \@t1 -> \@t2 -> \v137 -> v137 \v140 -> v140.foo
 
 test9 :: forall t0 t1 t2. Prim.Array (({ prop :: t0 | t1 } -> t0) -> t2) -> Prim.Array t2
-test9 = \@t0 -> \@t1 -> \@t2 ->
-  map @(({ prop :: t0 | t1 } -> t0) -> t2) @t2 \v150 -> v150 \v153 -> v153.prop
+test9 = \@t0 -> \@t1 -> \@t2 -> map \v150 -> v150 \v153 -> v153.prop
 
 test10 :: forall t0 t1 t2. { a :: { b :: t0 | t1 } | t2 } -> t0
-test10 = \@t0 -> \@t1 -> \@t2 -> apply @{ a :: { b :: t0 | t1 } | t2 } @t0 \v163 -> v163.a.b
+test10 = \@t0 -> \@t1 -> \@t2 -> apply \v163 -> v163.a.b
 
 test11 :: forall t0 t1 t2. t0 -> { a :: t0, b :: { foo :: t1 | t2 } -> t1 }
 test11 = \@t0 -> \@t1 -> \@t2 -> \v171 -> { a: v171, b: \v174 -> v174.foo }

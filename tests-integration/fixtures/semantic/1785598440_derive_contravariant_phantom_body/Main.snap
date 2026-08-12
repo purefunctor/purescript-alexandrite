@@ -16,4 +16,4 @@ dictionary contravariantConstant ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Constant field0) -> Constant @Prim.Type @value @b field0
+        (Constant field0) -> Constant field0

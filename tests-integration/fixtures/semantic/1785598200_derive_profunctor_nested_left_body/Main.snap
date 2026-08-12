@@ -17,8 +17,7 @@ dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Function field0) -> Function @a @d \argument ->
-          secondFunction (field0 (firstFunction argument))
+        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
 
 dictionary profunctorNestedLeft :: Data.Profunctor.Profunctor (Main.NestedLeft @Prim.Type) where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
@@ -26,8 +25,6 @@ dictionary profunctorNestedLeft :: Data.Profunctor.Profunctor (Main.NestedLeft @
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (NestedLeft field0) -> NestedLeft @Prim.Type @a @d
-          (dimap @Main.Function {profunctorFunction} @a @b @Prim.Int @Prim.Int
-            (\element -> firstFunction element)
-            (\unchanged -> unchanged)
+        (NestedLeft field0) -> NestedLeft
+          (dimap {profunctorFunction} (\element -> firstFunction element) (\unchanged -> unchanged)
             field0)

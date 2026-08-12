@@ -29,7 +29,7 @@ dictionary bifoldableProduct :: Data.Bifoldable.Bifoldable Main.Product where
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Product field0 field1) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
+        (Product field0 field1) -> append {monoidDict.semigroupDict} (firstFunction field0)
           (secondFunction field1)
 
 dictionary foldableProduct :: Data.Foldable.Foldable (Main.Product Prim.Int) where
@@ -55,7 +55,7 @@ dictionary foldableRightNested :: Data.Foldable.Foldable Main.RightNested where
   foldr = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> foldr @(Main.Product Prim.Int) {foldableProduct} @a @b
+        (RightNested field0) -> foldr {foldableProduct}
           (\element accumulator -> function element accumulator)
           accumulator
           field0
@@ -63,7 +63,7 @@ dictionary foldableRightNested :: Data.Foldable.Foldable Main.RightNested where
   foldl = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> foldl @(Main.Product Prim.Int) {foldableProduct} @a @b
+        (RightNested field0) -> foldl {foldableProduct}
           (\accumulator element -> function accumulator element)
           accumulator
           field0
@@ -72,6 +72,6 @@ dictionary foldableRightNested :: Data.Foldable.Foldable Main.RightNested where
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (RightNested field0) -> foldMap @(Main.Product Prim.Int) {foldableProduct} @a @m {monoidDict}
+        (RightNested field0) -> foldMap {foldableProduct} {monoidDict}
           (\element -> function element)
           field0

@@ -15,5 +15,5 @@ dictionary contravariantPredicateRecord ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (PredicateRecord field0) -> PredicateRecord @b
+        (PredicateRecord field0) -> PredicateRecord
           field0 { run = \argument -> field0.run (function argument) }

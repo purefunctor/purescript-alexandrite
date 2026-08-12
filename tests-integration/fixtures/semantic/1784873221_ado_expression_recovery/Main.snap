@@ -16,4 +16,4 @@ missingAdoAction :: forall t0 t1. t0 t1
 missingAdoAction = \@t0 -> \@t1 -> <error> <error>
 
 missingAdoResult :: forall t0. Main.Effect t0
-missingAdoResult = \@t0 -> map @Prim.Int @t0 (\value -> <error>) (pure @Prim.Int 1)
+missingAdoResult = \@t0 -> map (\value -> <error>) (pure 1)

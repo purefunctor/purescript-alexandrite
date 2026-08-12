@@ -14,6 +14,6 @@ dictionary profunctorRecordPro :: Data.Profunctor.Profunctor Main.RecordPro wher
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (RecordPro field0) -> RecordPro @a @d
+        (RecordPro field0) -> RecordPro
           field0 { consume = \argument ->
             field0.consume (firstFunction argument), produce = secondFunction field0.produce }

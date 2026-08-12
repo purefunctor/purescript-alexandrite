@@ -17,4 +17,4 @@ foreign import boolean :: Prim.Boolean
 
 dictionary exampleInt :: Main.Example Prim.Int where
   apply :: forall (b :: Prim.Type). Main.Required b => Prim.Int -> b -> Prim.Boolean
-  apply = \@b -> \{requiredDict} -> implementation @Prim.Int @b {requiredDict}
+  apply = \@b -> \{requiredDict} -> implementation {requiredDict}

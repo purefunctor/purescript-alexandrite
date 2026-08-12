@@ -25,5 +25,5 @@ dictionary bifoldableRecordPair :: Data.Bifoldable.Bifoldable Main.RecordPair wh
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (RecordPair field0) -> append @m {monoidDict.semigroupDict} (firstFunction field0.alpha)
+        (RecordPair field0) -> append {monoidDict.semigroupDict} (firstFunction field0.alpha)
           (secondFunction field0.zeta)

@@ -17,5 +17,4 @@ dictionary contravariantNested ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Nested field0) -> Nested @Prim.Type @f @b
-          (cmap @f {contravariantDict} @a @b (\element -> function element) field0)
+        (Nested field0) -> Nested (cmap {contravariantDict} (\element -> function element) field0)

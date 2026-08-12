@@ -18,7 +18,7 @@ dictionary bifoldableNested ::
   bifoldr = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Nested field0) -> bifoldr @p {bifoldableDict} @a @b @c
+        (Nested field0) -> bifoldr {bifoldableDict}
           (\element accumulator -> firstFunction element accumulator)
           (\element accumulator -> secondFunction element accumulator)
           accumulator
@@ -28,7 +28,7 @@ dictionary bifoldableNested ::
   bifoldl = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Nested field0) -> bifoldl @p {bifoldableDict} @a @b @c
+        (Nested field0) -> bifoldl {bifoldableDict}
           (\accumulator element -> firstFunction accumulator element)
           (\accumulator element -> secondFunction accumulator element)
           accumulator
@@ -38,7 +38,7 @@ dictionary bifoldableNested ::
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Nested field0) -> bifoldMap @p {bifoldableDict} @m @a @b {monoidDict}
+        (Nested field0) -> bifoldMap {bifoldableDict} {monoidDict}
           (\element -> firstFunction element)
           (\element -> secondFunction element)
           field0

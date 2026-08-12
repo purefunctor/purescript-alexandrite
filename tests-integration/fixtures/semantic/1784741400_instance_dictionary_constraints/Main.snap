@@ -25,4 +25,4 @@ dictionary exampleAB ::
   Main.Example a b
   where
   example :: a -> b -> Prim.Boolean
-  example = implementation @b @a {secondDict}
+  example = implementation {secondDict}

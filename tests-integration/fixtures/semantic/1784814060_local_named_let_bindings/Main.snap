@@ -29,7 +29,7 @@ siblingPolymorphicBindings = \@a -> \value ->
     second :: forall (b :: Prim.Type). b -> b
     second = \@b -> \inner -> inner
   in
-    { first: first @a value, second: second @a value }
+    { first: first value, second: second value }
 
 unIdentity :: forall a. Main.Identity a -> a
 unIdentity = \@a -> \value ->

@@ -13,11 +13,10 @@ data List @a
   | Nil :: Main.List a
 
 operatorName :: forall a. Main.Combine a => a -> a -> a
-operatorName = \@a -> \{combineDict} -> combine @a {combineDict}
+operatorName = \@a -> \{combineDict} -> combine {combineDict}
 
 operatorApplication :: forall a. Main.Combine a => a -> a -> a
-operatorApplication = \@a -> \{combineDict} -> \left -> \right ->
-  combine @a {combineDict} left right
+operatorApplication = \@a -> \{combineDict} -> \left -> \right -> combine {combineDict} left right
 
 constructorOperator :: forall t0. t0 -> Main.List t0 -> Main.List t0
-constructorOperator = \@t0 -> Cons @t0
+constructorOperator = \@t0 -> Cons

@@ -138,7 +138,7 @@ where
 {
     let expected = normalise::expand(state, context, expected)?;
     match context.lookup_type(expected) {
-        Type::Forall(binder_id, inner) => state.with_depth(|state| {
+        Type::Forall(binder_id, inner) => {
             let binder = context.lookup_forall_binder(binder_id);
 
             let kind = normalise::normalise(state, context, binder.kind)?;
@@ -147,14 +147,8 @@ where
 
             let inner = SubstituteName::one(state, context, binder.name, rigid, inner)?;
             let checked = check_expected_expression(state, context, inner, check)?;
-
-            let kind = tree::ExpressionKind::TypeAbstraction {
-                binder: rigid,
-                expression: checked.expression,
-            };
-
-            Ok(allocate_expression(state, expected, kind))
-        }),
+            Ok(checked)
+        }
         Type::Constrained(constraint, constrained) => state.with_implication(|state| {
             let binder = state.push_given(constraint);
             let checked = check_expected_expression(state, context, constrained, check)?;

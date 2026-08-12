@@ -16,11 +16,11 @@ foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b
 
 inferredPun :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
 inferredPun = \@t0 -> \@t1 -> \{firstDict} -> \{secondDict} ->
-  { interleaved: interleaved @t0 {firstDict} @t1 {secondDict} }
+  { interleaved: interleaved {firstDict} {secondDict} }
 
 inferredExplicit :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
 inferredExplicit = \@t0 -> \@t1 -> \{firstDict} -> \{secondDict} ->
-  { interleaved: interleaved @t0 {firstDict} @t1 {secondDict} }
+  { interleaved: interleaved {firstDict} {secondDict} }
 
 aliased :: Main.Alias
 aliased = 1
@@ -34,7 +34,7 @@ inferredAliasExplicit = { aliased: aliased }
 foreign import fetch :: forall m. Main.Capability m => Prim.Int -> m Prim.Int
 
 expectedPun :: Main.Setup
-expectedPun = { fetch: \@m -> \{capabilityDict} -> fetch @m {capabilityDict} }
+expectedPun = { fetch: \{capabilityDict} -> fetch {capabilityDict} }
 
 expectedExplicit :: Main.Setup
-expectedExplicit = { fetch: \@m -> \{capabilityDict} -> fetch @m {capabilityDict} }
+expectedExplicit = { fetch: \{capabilityDict} -> fetch {capabilityDict} }

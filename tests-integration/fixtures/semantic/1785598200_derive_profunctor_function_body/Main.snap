@@ -13,5 +13,4 @@ dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Function field0) -> Function @a @d \argument ->
-          secondFunction (field0 (firstFunction argument))
+        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))

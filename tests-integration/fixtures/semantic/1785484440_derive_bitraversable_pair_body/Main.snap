@@ -13,8 +13,7 @@ dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
   bimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Pair field0 field1 field2) -> Pair @b @d (firstFunction field0) field1
-          (secondFunction field2)
+        (Pair field0 field1 field2) -> Pair (firstFunction field0) field1 (secondFunction field2)
 
 dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
   bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
@@ -34,7 +33,7 @@ dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Pair field0 field1 field2) -> append @m {monoidDict.semigroupDict} (firstFunction field0)
+        (Pair field0 field1 field2) -> append {monoidDict.semigroupDict} (firstFunction field0)
           (secondFunction field2)
 
 dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
@@ -47,16 +46,14 @@ dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
   bitraverse = \@f -> \@a -> \@b -> \@c -> \@d -> \{applicativeDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Pair field0 field1 field2) -> apply @f {applicativeDict.applyDict} @d @(Main.Pair c d)
-          (map @f {applicativeDict.applyDict.functorDict} @c @(d -> Main.Pair c d)
-            (\field0Result field2Result -> Pair @c @d field0Result field1 field2Result)
+        (Pair field0 field1 field2) -> apply {applicativeDict.applyDict}
+          (map {applicativeDict.applyDict.functorDict}
+            (\field0Result field2Result -> Pair field0Result field1 field2Result)
             (firstFunction field0))
           (secondFunction field2)
   bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
   Control.Applicative.Applicative f => Main.Pair (f a) (f b) -> f (Main.Pair a b)
   bisequence = \@f -> \@a -> \@b -> \{applicativeDict} ->
     \value ->
-      bitraverse @Main.Pair {bitraversablePair} @f @(f a) @(f b) @a @b {applicativeDict}
-        (\effect0 -> effect0)
-        (\effect1 -> effect1)
+      bitraverse {bitraversablePair} {applicativeDict} (\effect0 -> effect0) (\effect1 -> effect1)
         value

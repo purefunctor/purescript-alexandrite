@@ -22,9 +22,9 @@ foreign import unsafeCoerce :: forall a b. a -> b
 
 dictionary convertG :: Main.Convert Main.F Main.G where
   convert :: forall (a :: Prim.Type). Main.F a -> Main.G a
-  convert = \@a -> (\@a1 -> unsafeCoerce @(Main.F a1) @(Main.G a1)) @a
+  convert = \@a -> unsafeCoerce
   convertExplicit :: forall (a :: Prim.Type). Main.F a -> Main.G a
-  convertExplicit = \@a -> (\@a1 -> unsafeCoerce @(Main.F a1) @(Main.G a1)) @a
+  convertExplicit = \@a -> unsafeCoerce
 
 dictionary clash1 :: forall f. Main.Clash f where
   clash :: forall (a :: Prim.Type). f a -> f a
@@ -33,4 +33,4 @@ dictionary clash1 :: forall f. Main.Clash f where
       (matched :: f a) -> local matched
     where
     local :: f a -> f a
-    local = unsafeCoerce @(f a) @(f a)
+    local = unsafeCoerce

@@ -20,7 +20,7 @@ dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Ma
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+        (Predicate field0) -> Predicate \argument -> field0 (function argument)
 
 dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
@@ -28,8 +28,7 @@ dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
   dimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Function field0) -> Function @a @d \argument ->
-          secondFunction (field0 (firstFunction argument))
+        (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
 
 dictionary bifunctorMixed :: Data.Bifunctor.Bifunctor Main.Mixed where
   bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
@@ -37,11 +36,8 @@ dictionary bifunctorMixed :: Data.Bifunctor.Bifunctor Main.Mixed where
   bimap = \@a -> \@b -> \@c -> \@d ->
     \firstFunction secondFunction value ->
       case value of
-        (Mixed field0) -> Mixed @b @d
-          (dimap @Main.Function {profunctorFunction} @(Main.Predicate b) @(Main.Predicate a) @c @d
-            (\element ->
-              cmap @Main.Predicate {contravariantPredicate} @b @a
-                (\element -> firstFunction element)
-                element)
+        (Mixed field0) -> Mixed
+          (dimap {profunctorFunction}
+            (\element -> cmap {contravariantPredicate} (\element -> firstFunction element) element)
             (\element -> secondFunction element)
             field0)

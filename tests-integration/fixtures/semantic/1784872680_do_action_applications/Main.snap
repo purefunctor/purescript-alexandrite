@@ -13,5 +13,4 @@ foreign import pure :: forall value. value -> Main.Effect value
 foreign import bind :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
 
 selected :: Main.Select @Prim.Type Prim.Int => Main.Effect Prim.Int
-selected = \{selectDict} ->
-  bind @Prim.Int @Prim.Int (constrained @Prim.Int {selectDict}) \value -> pure @Prim.Int value
+selected = \{selectDict} -> bind (constrained {selectDict}) \value -> pure value

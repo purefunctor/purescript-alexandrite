@@ -20,21 +20,21 @@ dictionary functorBox :: Data.Functor.Functor Main.Box where
   map = \@a -> \@b ->
     \function value ->
       case value of
-        (Box field0) -> Box @b (function field0)
+        (Box field0) -> Box (function field0)
 
 dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Predicate a -> Main.Predicate b
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (Predicate field0) -> Predicate @b \argument -> field0 (function argument)
+        (Predicate field0) -> Predicate \argument -> field0 (function argument)
 
 dictionary contravariantBoxedInput :: Data.Functor.Contravariant.Contravariant Main.BoxedInput where
   cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.BoxedInput a -> Main.BoxedInput b
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        (BoxedInput field0) -> BoxedInput @b
-          (cmap @Main.Predicate {contravariantPredicate} @(Main.Box a) @(Main.Box b)
-            (\element -> map @Main.Box {functorBox} @b @a (\element -> function element) element)
+        (BoxedInput field0) -> BoxedInput
+          (cmap {contravariantPredicate}
+            (\element -> map {functorBox} (\element -> function element) element)
             field0)

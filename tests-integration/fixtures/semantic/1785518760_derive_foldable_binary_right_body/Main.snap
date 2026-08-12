@@ -16,7 +16,7 @@ dictionary foldableRightNested ::
   foldr = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> foldr @(p Prim.Int) {foldableDict} @a @b
+        (RightNested field0) -> foldr {foldableDict}
           (\element accumulator -> function element accumulator)
           accumulator
           field0
@@ -24,7 +24,7 @@ dictionary foldableRightNested ::
   foldl = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (RightNested field0) -> foldl @(p Prim.Int) {foldableDict} @a @b
+        (RightNested field0) -> foldl {foldableDict}
           (\accumulator element -> function accumulator element)
           accumulator
           field0
@@ -33,6 +33,5 @@ dictionary foldableRightNested ::
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (RightNested field0) -> foldMap @(p Prim.Int) {foldableDict} @a @m {monoidDict}
-          (\element -> function element)
+        (RightNested field0) -> foldMap {foldableDict} {monoidDict} (\element -> function element)
           field0

@@ -24,8 +24,7 @@ polymorphicRecordUpdate :: forall t0 t1. { foo :: t0 | t1 } -> { foo :: Prim.Int
 polymorphicRecordUpdate = \@t0 -> \@t1 -> \v62 -> v62 { foo = 0 }
 
 higherOrderContext :: forall t0 t1. Prim.Array { x :: t0 | t1 } -> Prim.Array { x :: Prim.Int | t1 }
-higherOrderContext = \@t0 -> \@t1 ->
-  map @{ x :: t0 | t1 } @{ x :: Prim.Int | t1 } \v74 -> v74 { x = 10 }
+higherOrderContext = \@t0 -> \@t1 -> map \v74 -> v74 { x = 10 }
 
 multipleSectionsInteraction :: forall t0 t1 t2 t3 t4. { x :: t0, y :: t1 | t2 } -> t3 -> t4 -> { x :: t3, y :: t4 | t2 }
 multipleSectionsInteraction = \@t0 -> \@t1 -> \@t2 -> \@t3 -> \@t4 ->

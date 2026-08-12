@@ -14,7 +14,7 @@ foreign import map :: forall value result. (value -> result) -> Main.Effect valu
 foreign import apply :: forall value result. Main.Effect (value -> result) -> Main.Effect value -> Main.Effect result
 
 zero :: Main.Effect Prim.Int
-zero = pure @Prim.Int 1
+zero = pure 1
 
 zeroWithLet :: Main.Effect Prim.Int
 zeroWithLet =
@@ -22,39 +22,29 @@ zeroWithLet =
     value :: Prim.Int
     value = 1
   in
-    pure @Prim.Int value
+    pure value
 
 one :: Main.Effect Prim.Int
-one = map @Prim.Int @Prim.Int (\value -> value) (pure @Prim.Int 1)
+one = map (\value -> value) (pure 1)
 
 multiple :: Main.Effect (Main.Tuple Prim.Int Prim.String)
-multiple =
-  apply @Prim.String @(Main.Tuple Prim.Int Prim.String)
-    (map @Prim.Int @(Prim.String -> Main.Tuple Prim.Int Prim.String)
-      (\first second -> Tuple @Prim.Int @Prim.String first second)
-      (pure @Prim.Int 1))
-    (pure @Prim.String "two")
+multiple = apply (map (\first second -> Tuple first second) (pure 1)) (pure "two")
 
 discarded :: Main.Effect Prim.String
-discarded =
-  apply @Prim.String @Prim.String
-    (map @Prim.Int @(Prim.String -> Prim.String) (\_ value -> value) (pure @Prim.Int 1))
-    (pure @Prim.String "kept")
+discarded = apply (map (\_ value -> value) (pure 1)) (pure "kept")
 
 withLet :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
 withLet =
-  apply @Prim.Int @(Main.Tuple Prim.Int Prim.Int)
-    (map @Prim.Int @(Prim.Int -> Main.Tuple Prim.Int Prim.Int)
+  apply
+    (map
       (\first second ->
         let
           next :: Prim.Int
           next = first
         in
-          Tuple @Prim.Int @Prim.Int next second)
-      (pure @Prim.Int 1))
-    (pure @Prim.Int 2)
+          Tuple next second)
+      (pure 1))
+    (pure 2)
 
 nested :: Main.Effect Prim.Int
-nested =
-  map @Prim.Int @Prim.Int (\value -> value)
-    (map @Prim.Int @Prim.Int (\inner -> inner) (pure @Prim.Int 1))
+nested = map (\value -> value) (map (\inner -> inner) (pure 1))

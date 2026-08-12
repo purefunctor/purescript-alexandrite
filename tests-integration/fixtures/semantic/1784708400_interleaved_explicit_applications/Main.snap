@@ -13,7 +13,7 @@ foreign import interleaved :: forall a. Main.First a => a -> (forall b. Main.Sec
 
 applyInterleaved :: forall a b. Main.First a => Main.Second b => a -> b -> a
 applyInterleaved = \@a -> \@b -> \{firstDict} -> \{secondDict} -> \first -> \second ->
-  interleaved @a {firstDict} first @b {secondDict} second
+  interleaved {firstDict} first {secondDict} second
 
 layered :: forall a. Main.First a => (forall b. Main.Second b => a -> b -> a)
 layered = \@a -> \{firstDict} -> \@b -> \{secondDict} -> \first -> \_ -> first

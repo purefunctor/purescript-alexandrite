@@ -12,11 +12,11 @@ dictionary eqIdentity :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Mai
   eq = \left right ->
     case left, right of
       (Identity left0), (Identity right0) ->
-        if eq @a {eqDict} left0 right0 then true else false
+        if eq {eqDict} left0 right0 then true else false
 
 dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
   eq1 :: forall (a :: Prim.Type). Data.Eq.Eq a => Main.Identity a -> Main.Identity a -> Prim.Boolean
-  eq1 = \@a -> \{eqDict} -> eq @(Main.Identity a) {eqIdentity {eqDict}}
+  eq1 = \@a -> \{eqDict} -> eq {eqIdentity {eqDict}}
 
 dictionary ordIdentity :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Identity a)
   where
@@ -25,7 +25,7 @@ dictionary ordIdentity :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Or
   compare = \left right ->
     case left, right of
       (Identity left0), (Identity right0) ->
-        case compare @a {ordDict} left0 right0 of
+        case compare {ordDict} left0 right0 of
           EQ -> EQ
           ordering -> ordering
 
@@ -33,4 +33,4 @@ dictionary ord1Identity :: Data.Ord.Ord1 Main.Identity where
   superclass eq1Dict = eq1Identity
   compare1 :: forall (a :: Prim.Type).
   Data.Ord.Ord a => Main.Identity a -> Main.Identity a -> Data.Ordering.Ordering
-  compare1 = \@a -> \{ordDict} -> compare @(Main.Identity a) {ordIdentity {ordDict}}
+  compare1 = \@a -> \{ordDict} -> compare {ordIdentity {ordDict}}

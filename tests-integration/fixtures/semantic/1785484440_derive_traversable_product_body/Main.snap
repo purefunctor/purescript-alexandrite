@@ -12,7 +12,7 @@ dictionary functorProduct :: Data.Functor.Functor Main.Product where
   map = \@a -> \@b ->
     \function value ->
       case value of
-        (Product field0 field1 field2) -> Product @b (function field0) field1 (function field2)
+        (Product field0 field1 field2) -> Product (function field0) field1 (function field2)
 
 dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
   foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Product a -> b
@@ -29,7 +29,7 @@ dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (Product field0 field1 field2) -> append @m {monoidDict.semigroupDict} (function field0)
+        (Product field0 field1 field2) -> append {monoidDict.semigroupDict} (function field0)
           (function field2)
 
 dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
@@ -40,15 +40,12 @@ dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
   traverse = \@a -> \@b -> \@m -> \{applicativeDict} ->
     \function value ->
       case value of
-        (Product field0 field1 field2) -> apply @m {applicativeDict.applyDict} @b @(Main.Product b)
-          (map @m {applicativeDict.applyDict.functorDict} @b @(b -> Main.Product b)
-            (\field0Result field2Result -> Product @b field0Result field1 field2Result)
+        (Product field0 field1 field2) -> apply {applicativeDict.applyDict}
+          (map {applicativeDict.applyDict.functorDict}
+            (\field0Result field2Result -> Product field0Result field1 field2Result)
             (function field0))
           (function field2)
   sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Product (m a) -> m (Main.Product a)
   sequence = \@a -> \@m -> \{applicativeDict} ->
-    \value ->
-      traverse @Main.Product {traversableProduct} @(m a) @a @m {applicativeDict}
-        (\effect0 -> effect0)
-        value
+    \value -> traverse {traversableProduct} {applicativeDict} (\effect0 -> effect0) value

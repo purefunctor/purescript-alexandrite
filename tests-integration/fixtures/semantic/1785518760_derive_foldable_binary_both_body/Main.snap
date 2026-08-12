@@ -16,7 +16,7 @@ dictionary foldableDuplicate ::
   foldr = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (Duplicate field0) -> bifoldr @p {bifoldableDict} @a @a @b
+        (Duplicate field0) -> bifoldr {bifoldableDict}
           (\element accumulator -> function element accumulator)
           (\element accumulator -> function element accumulator)
           accumulator
@@ -25,7 +25,7 @@ dictionary foldableDuplicate ::
   foldl = \@a -> \@b ->
     \function accumulator value ->
       case value of
-        (Duplicate field0) -> bifoldl @p {bifoldableDict} @a @a @b
+        (Duplicate field0) -> bifoldl {bifoldableDict}
           (\accumulator element -> function accumulator element)
           (\accumulator element -> function accumulator element)
           accumulator
@@ -35,7 +35,6 @@ dictionary foldableDuplicate ::
   foldMap = \@a -> \@m -> \{monoidDict} ->
     \function value ->
       case value of
-        (Duplicate field0) -> bifoldMap @p {bifoldableDict} @m @a @a {monoidDict}
-          (\element -> function element)
+        (Duplicate field0) -> bifoldMap {bifoldableDict} {monoidDict} (\element -> function element)
           (\element -> function element)
           field0

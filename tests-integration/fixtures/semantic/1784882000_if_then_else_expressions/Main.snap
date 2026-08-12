@@ -21,22 +21,22 @@ inferred = \condition ->
 
 constrained :: forall value. Main.Predicate value => value -> Prim.Int
 constrained = \@value -> \{predicateDict} -> \value ->
-  if predicate @value {predicateDict} value then 1 else 2
+  if predicate {predicateDict} value then 1 else 2
 
 constrainedBranches :: forall value. Main.Default value => Prim.Boolean -> value
 constrainedBranches = \@value -> \{defaultDict} -> \condition ->
-  if condition then defaultValue @value {defaultDict} else defaultValue @value {defaultDict}
+  if condition then defaultValue {defaultDict} else defaultValue {defaultDict}
 
 higherRank :: Prim.Boolean -> (forall value. value -> value)
 higherRank = \@value -> \condition ->
-  if condition then identity @value else identity @value
+  if condition then identity else identity
 
 nested :: Prim.Boolean -> Prim.Boolean -> Prim.Int
 nested = \first -> \second ->
   if first then if second then 1 else 2 else 3
 
 asArgument :: Prim.Boolean -> Prim.Int
-asArgument = \condition -> identity @Prim.Int if condition then 1 else 2
+asArgument = \condition -> identity if condition then 1 else 2
 
 identity :: forall value. value -> value
 identity = \@value -> \value -> value

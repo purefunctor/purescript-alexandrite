@@ -10,22 +10,19 @@ foreign import bind :: forall value result. Main.Effect value -> (value -> Main.
 foreign import discard :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
 
 bound :: Main.Effect Prim.Int
-bound = bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \value -> pure @Prim.Int value
+bound = bind (pure 1) \value -> pure value
 
 discarded :: Main.Effect Prim.String
-discarded = discard @Prim.Int @Prim.String (pure @Prim.Int 1) \_ -> pure @Prim.String "done"
+discarded = discard (pure 1) \_ -> pure "done"
 
 withLet :: Main.Effect Prim.Int
 withLet =
-  bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \value ->
+  bind (pure 1) \value ->
     let
       next :: Prim.Int
       next = value
     in
-      pure @Prim.Int next
+      pure next
 
 nested :: Main.Effect Prim.Int
-nested =
-  bind @Prim.Int @Prim.Int
-    (bind @Prim.Int @Prim.Int (pure @Prim.Int 1) \inner -> pure @Prim.Int inner) \value ->
-    pure @Prim.Int value
+nested = bind (bind (pure 1) \inner -> pure inner) \value -> pure value

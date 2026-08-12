@@ -16,5 +16,5 @@ dictionary contravariantOptionalPredicate ::
   cmap = \@a -> \@b ->
     \function value ->
       case value of
-        None -> None @b
-        (Some field0) -> Some @b \argument -> field0 (function argument)
+        None -> None
+        (Some field0) -> Some \argument -> field0 (function argument)

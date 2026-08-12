@@ -19,10 +19,10 @@ inferredFunctions :: forall t0. Prim.Array (t0 -> t0)
 inferredFunctions = \@t0 -> [identity]
 
 checkedFunctions :: Prim.Array (Prim.Int -> Prim.Int)
-checkedFunctions = [identity @Prim.Int]
+checkedFunctions = [identity]
 
 checkedIdentity :: Prim.Array Prim.Int -> Prim.Array Prim.Int
-checkedIdentity = identity @(Prim.Array Prim.Int)
+checkedIdentity = identity
 
 consume :: Prim.Array Prim.Int -> Prim.Array Prim.Int
 consume = \value -> value

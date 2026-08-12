@@ -20,10 +20,9 @@ dictionary bifoldableWrap ::
   bifoldr = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Wrap field0 field1) -> foldr @f {foldableDict} @a @c
+        (Wrap field0 field1) -> foldr {foldableDict}
           (\element accumulator -> firstFunction element accumulator)
-          (foldr @g {foldableDict1} @b @c
-            (\element accumulator -> secondFunction element accumulator)
+          (foldr {foldableDict1} (\element accumulator -> secondFunction element accumulator)
             accumulator
             field1)
           field0
@@ -32,9 +31,9 @@ dictionary bifoldableWrap ::
   bifoldl = \@a -> \@b -> \@c ->
     \firstFunction secondFunction accumulator value ->
       case value of
-        (Wrap field0 field1) -> foldl @g {foldableDict1} @b @c
+        (Wrap field0 field1) -> foldl {foldableDict1}
           (\accumulator element -> secondFunction accumulator element)
-          (foldl @f {foldableDict} @a @c (\accumulator element -> firstFunction accumulator element)
+          (foldl {foldableDict} (\accumulator element -> firstFunction accumulator element)
             accumulator
             field0)
           field1
@@ -43,7 +42,6 @@ dictionary bifoldableWrap ::
   bifoldMap = \@m -> \@a -> \@b -> \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
-        (Wrap field0 field1) -> append @m {monoidDict.semigroupDict}
-          (foldMap @f {foldableDict} @a @m {monoidDict} (\element -> firstFunction element) field0)
-          (foldMap @g {foldableDict1} @b @m {monoidDict} (\element -> secondFunction element)
-            field1)
+        (Wrap field0 field1) -> append {monoidDict.semigroupDict}
+          (foldMap {foldableDict} {monoidDict} (\element -> firstFunction element) field0)
+          (foldMap {foldableDict1} {monoidDict} (\element -> secondFunction element) field1)

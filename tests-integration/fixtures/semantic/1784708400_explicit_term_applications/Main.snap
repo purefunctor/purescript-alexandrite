@@ -7,4 +7,4 @@ identity :: forall a. a -> a
 identity = \@a -> \value -> value
 
 applyIdentity :: forall a. a -> a
-applyIdentity = \@a -> \value -> identity @a (identity @a value)
+applyIdentity = \@a -> \value -> identity (identity value)
