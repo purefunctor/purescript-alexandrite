@@ -1,0 +1,57 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Result :: Main.Result
+Spec :: Main.Spec
+Query :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Query (a :: Prim.Type)
+Eval :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+mkEval ::
+  forall (a :: Prim.Type). Main.Spec -> Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+mkComponent :: Main.ComponentSpec -> Main.Result
+accept ::
+  (forall (a :: Prim.Type). Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)) ->
+  Main.Result
+direct :: Main.Result
+aliased :: Main.Result
+annotated :: Main.Result
+
+Types
+Result :: Prim.Type
+Spec :: Prim.Type
+Query :: Prim.Type -> Prim.Type
+Eval :: Prim.Type -> Prim.Type
+ComponentSpec :: Prim.Type
+
+Synonyms
+type ComponentSpec = { eval :: forall (a :: Prim.Type). Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type) }
+
+Roles
+Result = []
+Spec = []
+Query = [Representational]
+Eval = [Representational]
+
+Diagnostics
+error[CannotUnify]: Cannot unify '?10' with '(a :: Type)'
+  --> 24:22..24:30
+   |
+24 | direct = mkComponent { eval }
+   |                      ^~~~~~~~
+error[CannotUnify]: Cannot unify 'Query (a :: Type)' with 'Query ?10'
+  --> 24:22..24:30
+   |
+24 | direct = mkComponent { eval }
+   |                      ^~~~~~~~
+error[CannotUnify]: Cannot unify '?13' with '(a1 :: Type)'
+  --> 29:18..29:23
+   |
+29 | aliased = accept alias
+   |                  ^~~~~
+error[CannotUnify]: Cannot unify 'Query (a1 :: Type)' with 'Query ?13'
+  --> 29:18..29:23
+   |
+29 | aliased = accept alias
+   |                  ^~~~~

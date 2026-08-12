@@ -1,0 +1,56 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Result :: Main.Result
+Spec :: Main.Spec
+Query :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Query (a :: Prim.Type)
+Eval :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+operation ::
+  forall (@a :: Prim.Type). Main.Operation (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+mkEval ::
+  forall (a :: Prim.Type).
+    Main.Operation (a :: Prim.Type) =>
+    Main.Spec -> Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+accept ::
+  (forall (a :: Prim.Type).
+    Main.Operation (a :: Prim.Type) => Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)) ->
+  Main.Result
+constrainedLocal :: Main.Result
+
+Types
+Result :: Prim.Type
+Spec :: Prim.Type
+Query :: Prim.Type -> Prim.Type
+Eval :: Prim.Type -> Prim.Type
+Operation :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Operation (a :: Prim.Type)
+  operation ::
+  forall (@a :: Prim.Type). Main.Operation (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+
+Roles
+Result = []
+Spec = []
+Query = [Representational]
+Eval = [Representational]
+
+Diagnostics
+error[CannotUnify]: Cannot unify '?9' with '(a :: Type)'
+  --> 21:27..21:31
+   |
+21 | constrainedLocal = accept eval
+   |                           ^~~~
+error[CannotUnify]: Cannot unify 'Query (a :: Type)' with 'Query ?9'
+  --> 21:27..21:31
+   |
+21 | constrainedLocal = accept eval
+   |                           ^~~~
+error[NoInstanceFound]: No instance found for: Operation ?9
+  --> 20:1..20:27
+   |
+20 | constrainedLocal :: Result
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~

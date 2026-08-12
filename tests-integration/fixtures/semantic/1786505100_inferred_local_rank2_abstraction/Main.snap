@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Result :: Prim.Type
+data Result
+  | Result :: Main.Result
+
+data Spec :: Prim.Type
+data Spec
+  | Spec :: Main.Spec
+
+data Query :: Prim.Type -> Prim.Type
+data Query @a
+  | Query :: a -> Main.Query a
+
+data Eval :: Prim.Type -> Prim.Type
+data Eval @a
+  | Eval :: a -> Main.Eval a
+
+mkEval :: forall a. Main.Spec -> Main.Query a -> Main.Eval a
+mkEval = \@a -> \_ -> \(Query value) -> Eval @a value
+
+mkComponent :: Main.ComponentSpec -> Main.Result
+mkComponent = \_ -> Result
+
+accept :: (forall a. Main.Query a -> Main.Eval a) -> Main.Result
+accept = \_ -> Result
+
+direct :: Main.Result
+direct = mkComponent { eval: \@a -> eval }
+  where
+  eval :: Main.Query ?10 -> Main.Eval ?10
+  eval = mkEval @?10 Spec
+
+aliased :: Main.Result
+aliased = accept \@a -> alias
+  where
+  eval :: Main.Query ?13 -> Main.Eval ?13
+  eval = mkEval @?13 Spec
+  alias :: Main.Query ?13 -> Main.Eval ?13
+  alias = eval

@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Result :: Main.Result
+Spec :: Main.Spec
+Query :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Query (a :: Prim.Type)
+Eval :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+Pair ::
+  forall (@a :: Prim.Type) (@b :: Prim.Type).
+    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+mkEval ::
+  forall (a :: Prim.Type). Main.Spec -> Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)
+accept ::
+  (forall (a :: Prim.Type). Main.Query (a :: Prim.Type) -> Main.Eval (a :: Prim.Type)) ->
+  Main.Result
+concreteReuse :: Main.Pair Main.Result (Main.Eval Main.Result)
+
+Types
+Result :: Prim.Type
+Spec :: Prim.Type
+Query :: Prim.Type -> Prim.Type
+Eval :: Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Roles
+Result = []
+Spec = []
+Query = [Representational]
+Eval = [Representational]
+Pair = [Representational, Representational]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Result' with '(a :: Type)'
+  --> 19:30..19:34
+   |
+19 | concreteReuse = Pair (accept eval) (eval (Query Result))
+   |                              ^~~~
+error[CannotUnify]: Cannot unify 'Query (a :: Type)' with 'Query Result'
+  --> 19:30..19:34
+   |
+19 | concreteReuse = Pair (accept eval) (eval (Query Result))
+   |                              ^~~~
