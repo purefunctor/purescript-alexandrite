@@ -8,6 +8,7 @@ pub mod generalise;
 pub mod normalise;
 pub mod pretty;
 pub mod signature;
+pub mod skolem;
 pub mod substitute;
 pub mod toolkit;
 pub mod unification;
@@ -25,6 +26,7 @@ use smol_str::{SmolStr, SmolStrBuilder};
 pub struct Name {
     pub file: FileId,
     pub unique: u32,
+    pub scope: Option<SkolemScope>,
 }
 
 impl Name {
@@ -47,6 +49,13 @@ impl Depth {
     }
 }
 
+/// A globally unique lexical scope introduced while checking an expected forall.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SkolemScope {
+    pub file: FileId,
+    pub unique: u32,
+}
+
 /// Carries information about a type variable under a forall.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ForallBinder {
@@ -56,6 +65,8 @@ pub struct ForallBinder {
     pub name: Name,
     /// The kind of the type variable.
     pub kind: TypeId,
+    /// The lexical scope owned by an expected forall during expression checking.
+    pub scope: Option<SkolemScope>,
 }
 
 /// Represents a row type.

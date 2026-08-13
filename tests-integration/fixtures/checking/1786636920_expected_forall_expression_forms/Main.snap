@@ -1,0 +1,123 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Token ::
+  forall (t0 :: Prim.Type) (@scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+Effect :: forall (@value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+modify ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+leak ::
+  forall (t0 :: Prim.Type) (result :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+pure :: forall (value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+bind ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect (value :: Prim.Type) ->
+    ((value :: Prim.Type) -> Main.Effect (result :: Prim.Type)) ->
+    Main.Effect (result :: Prim.Type)
+discard ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect (value :: Prim.Type) ->
+    ((value :: Prim.Type) -> Main.Effect (result :: Prim.Type)) ->
+    Main.Effect (result :: Prim.Type)
+map ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    Main.Effect (value :: Prim.Type) ->
+    Main.Effect (result :: Prim.Type)
+apply ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    Main.Effect (value :: Prim.Type) ->
+    Main.Effect (result :: Prim.Type)
+applyValue ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (value :: Prim.Type) -> ((value :: Prim.Type) -> (result :: Prim.Type)) -> (result :: Prim.Type)
+# ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (value :: Prim.Type) -> ((value :: Prim.Type) -> (result :: Prim.Type)) -> (result :: Prim.Type)
+escapedOperator ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedSection ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (t1 :: Prim.Type)) ->
+    (t1 :: Prim.Type)
+escapedDo ::
+  forall (t0 :: Prim.Type). Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+escapedAdo ::
+  forall (t0 :: Prim.Type). Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+escapedRecord ::
+  forall (t0 :: Prim.Type). { token :: Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) }
+escapedRecordUpdate ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { token :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    { token :: Main.Token @(t2 :: Prim.Type) (scope :: (t2 :: Prim.Type))
+    | (t1 :: Prim.Row Prim.Type)
+    }
+escapedPatternGuard :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+escapedCase ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> { token :: Main.Token @(t1 :: Prim.Type) (scope :: (t1 :: Prim.Type)) }
+
+Types
+Token :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Token = [Phantom]
+Effect = [Representational]
+
+Diagnostics
+error[EscapedSkolem]: Type variable '(scope :: (t0 :: Type))' has escaped its scope, appearing in type 'forall (t0 :: Type). Token @(t0 :: Type) (scope :: (t0 :: Type))'
+  --> 49:1..49:41
+   |
+49 | escapedOperator = leak modify # identity
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope1 :: (t1 :: Type))' has escaped its scope, appearing in type 'forall (t1 :: Type) (t2 :: Type).
+  (Token @(t1 :: Type) (scope1 :: (t1 :: Type)) -> (t2 :: Type)) -> (t2 :: Type)'
+  --> 51:1..51:35
+   |
+51 | escapedSection = (leak modify # _)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope2 :: (t3 :: Type))' has escaped its scope, appearing in type 'forall (t3 :: Type). Effect (Token @(t3 :: Type) (scope2 :: (t3 :: Type)))'
+  --> 53:1..55:13
+   |
+53 | escapedDo = do
+   | ^~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope3 :: (t4 :: Type))' has escaped its scope, appearing in type 'forall (t4 :: Type). Effect (Token @(t4 :: Type) (scope3 :: (t4 :: Type)))'
+  --> 57:1..59:11
+   |
+57 | escapedAdo = ado
+   | ^~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope4 :: (t5 :: Type))' has escaped its scope, appearing in type 'forall (t5 :: Type). { token :: Token @(t5 :: Type) (scope4 :: (t5 :: Type)) }'
+  --> 61:1..61:39
+   |
+61 | escapedRecord = { token: leak modify }
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope5 :: (t6 :: Type))' has escaped its scope, appearing in type 'forall (t7 :: Type) (t8 :: Row Type) (t6 :: Type).
+  { token :: (t7 :: Type) | (t8 :: Row Type) } ->
+  { token :: Token @(t6 :: Type) (scope5 :: (t6 :: Type)) | (t8 :: Row Type) }'
+  --> 63:1..63:60
+   |
+63 | escapedRecordUpdate record = record { token = leak modify }
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope6 :: ?83)' has escaped its scope, appearing in type 'Token @?83 (scope6 :: ?83)'
+  --> 65:1..66:33
+   |
+65 | escapedPatternGuard value
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope7 :: (t9 :: Type))' has escaped its scope, appearing in type 'forall (t10 :: Type) (t9 :: Type).
+  (t10 :: Type) -> { token :: Token @(t9 :: Type) (scope7 :: (t9 :: Type)) }'
+  --> 68:1..69:34
+   |
+68 | escapedCase value = case value of
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

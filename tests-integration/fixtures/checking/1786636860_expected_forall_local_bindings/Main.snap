@@ -1,0 +1,97 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+Spec :: Main.Spec
+Token ::
+  forall (t0 :: Prim.Type) (@scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+modify ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+mkEval :: forall (value :: Prim.Type). Main.Spec -> (value :: Prim.Type) -> (value :: Prim.Type)
+constrainedEval ::
+  forall (value :: Prim.Type).
+    Main.Witness @Prim.Type (value :: Prim.Type) =>
+    Main.Spec -> (value :: Prim.Type) -> (value :: Prim.Type)
+consumeIdentity ::
+  (forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+leak ::
+  forall (t0 :: Prim.Type) (result :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+validLocalEval :: Main.Unit
+validNestedLocalEval :: Main.Unit
+escapedLocalEvidence :: Main.Unit
+escapedLocalAlias ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedEtaExpansion ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedIdentityWrapper ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedArrayWrapper ::
+  forall (t0 :: Prim.Type). Prim.Array (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+escapedConditionalWrapper ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedUnusedLocal :: Prim.Int
+
+Types
+Unit :: Prim.Type
+Spec :: Prim.Type
+Token :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Witness :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)). Main.Witness @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+
+Instances
+instance forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)).
+  Main.Witness @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+
+Roles
+Unit = []
+Spec = []
+Token = [Phantom]
+
+Diagnostics
+error[EscapedSkolem]: Type variable '(scope :: (t0 :: Type))' has escaped its scope, appearing in type 'Token @(t0 :: Type) (scope :: (t0 :: Type))'
+  --> 54:3..54:24
+   |
+54 |   escaped = leak modify
+   |   ^~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope1 :: ?61)' has escaped its scope, appearing in type 'Token @?61 (scope1 :: ?61)'
+  --> 67:3..67:24
+   |
+67 |   escaped = leak modify
+   |   ^~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(value :: Type)' has escaped its scope, appearing in type 'Witness @Type (value :: Type)'
+  --> 50:3..50:30
+   |
+50 |   eval = constrainedEval Spec
+   |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope2 :: (t1 :: Type))' has escaped its scope, appearing in type 'forall (t1 :: Type). Token @(t1 :: Type) (scope2 :: (t1 :: Type))'
+  --> 56:1..56:52
+   |
+56 | escapedEtaExpansion = leak (\token -> modify token)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope3 :: (t2 :: Type))' has escaped its scope, appearing in type 'forall (t2 :: Type). Token @(t2 :: Type) (scope3 :: (t2 :: Type))'
+  --> 58:1..58:48
+   |
+58 | escapedIdentityWrapper = identity (leak modify)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope4 :: (t3 :: Type))' has escaped its scope, appearing in type 'forall (t3 :: Type). Array (Token @(t3 :: Type) (scope4 :: (t3 :: Type)))'
+  --> 60:1..60:36
+   |
+60 | escapedArrayWrapper = [leak modify]
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope5 :: (t4 :: Type))' has escaped its scope, appearing in type 'forall (t4 :: Type). Token @(t4 :: Type) (scope5 :: (t4 :: Type))'
+  --> 62:1..62:89
+   |
+62 | escapedConditionalWrapper = leak (\token -> if true then modify token else modify token)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

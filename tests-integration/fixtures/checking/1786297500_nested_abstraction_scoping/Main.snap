@@ -29,3 +29,8 @@ error[NoInstanceFound]: No instance found for: Eq (a :: Type)
   |
 7 | evidenceDoesNotEscape
   | ^~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(a1 :: Type)' has escaped its scope, appearing in type '(a1 :: Type)'
+  --> 19:1..19:55
+   |
+19 | typeDoesNotEscape = consume { value: \value -> value }
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -226,6 +226,7 @@ fn check_source(queries: &impl ExternalQueries, file_id: FileId) -> QueryResult<
         core::zonk::zonk_tree(state, &context)?;
         core::zonk::zonk_evidence(state, &context)?;
         core::zonk::zonk_holes(state, &context)?;
+        core::skolem::check(state, &context);
         core::zonk::zonk_errors(state, &context)
     })?;
     state.checked.evidence.assert_finished();

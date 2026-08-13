@@ -1,0 +1,171 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+Token ::
+  forall (t0 :: Prim.Type) (@scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+Effect :: forall (@value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+Proxy ::
+  forall (t0 :: Prim.Type) (@value :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+Map ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@key :: (t0 :: Prim.Type))
+    (@value :: (t1 :: Prim.Type)).
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type))
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+modify ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+consumeIdentity ::
+  (forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+discardValue :: forall (value :: Prim.Type). (value :: Prim.Type) -> Main.Unit
+leak ::
+  forall (t0 :: Prim.Type) (result :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+mutate ::
+  forall (t0 :: Prim.Type) (discarded :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+      Main.Effect (discarded :: Prim.Type)) ->
+    Main.Unit
+mutateConstrained ::
+  forall (t0 :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) =>
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit) ->
+    Main.Unit
+poke ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit
+pokeReturningToken ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+pokeConstrained ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) =>
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit
+pokeWithoutWitness ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+    (result :: (t1 :: Prim.Type)).
+    Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (scope :: (t0 :: Prim.Type))
+      (result :: (t1 :: Prim.Type)) =>
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Proxy @(t1 :: Prim.Type) (result :: (t1 :: Prim.Type))
+mutateMap ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (key :: (t0 :: Prim.Type))
+    (value :: (t1 :: Prim.Type)) (discarded :: Prim.Type).
+    Main.Witness @(t0 :: Prim.Type) (key :: (t0 :: Prim.Type)) =>
+    (forall (scope :: (t2 :: Prim.Type)).
+      Main.Token @(t2 :: Prim.Type) (scope :: (t2 :: Prim.Type)) ->
+      Main.Effect (discarded :: Prim.Type)) ->
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type)) ->
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type))
+pokeMap ::
+  forall (t0 :: Prim.Type) (key :: Prim.Type) (value :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Witness @Prim.Type (key :: Prim.Type) =>
+    (key :: Prim.Type) ->
+    (value :: Prim.Type) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+validRankTwoCallback ::
+  (forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+validDirectPolymorphicExpression :: Main.Unit
+validDiscardedHigherRankResult :: Main.Unit
+validDiscardedScopedHigherRankResult :: Main.Unit
+validDiscardedConstrainedHigherRankResult :: Main.Unit
+validConstrainedTypeErasingCallback ::
+  forall (key :: Prim.Type) (value :: Prim.Type).
+    Main.Witness @Prim.Type (key :: Prim.Type) =>
+    (key :: Prim.Type) ->
+    (value :: Prim.Type) ->
+    Main.Map @Prim.Type @Prim.Type (key :: Prim.Type) (value :: Prim.Type) ->
+    Main.Map @Prim.Type @Prim.Type (key :: Prim.Type) (value :: Prim.Type)
+escapedResult ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedBinder :: ((value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+escapedNestedUse ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedDiscardedOuterArgument ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> Main.Token @(t1 :: Prim.Type) (scope :: (t1 :: Prim.Type))
+escapedDiscardedArgument :: Main.Unit
+escapedEvidenceOnly ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type)).
+    Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (scope :: (t0 :: Prim.Type))
+      (t2 :: (t1 :: Prim.Type)) =>
+    Main.Proxy @(t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type))
+
+Types
+Unit :: Prim.Type
+Token :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Map ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+Witness :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+EscapingEvidence ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)). Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (scope :: (t0 :: Prim.Type)) (result :: (t1 :: Prim.Type)). Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+  (scope :: (t0 :: Prim.Type))
+  (result :: (t1 :: Prim.Type))
+
+Roles
+Unit = []
+Token = [Phantom]
+Effect = [Representational]
+Proxy = [Phantom]
+Map = [Phantom, Phantom]
+
+Diagnostics
+error[EscapedSkolem]: Type variable '(scope :: (t0 :: Type))' has escaped its scope, appearing in type 'forall (t0 :: Type). Token @(t0 :: Type) (scope :: (t0 :: Type))'
+  --> 99:1..99:28
+   |
+99 | escapedResult = leak modify
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(value :: Type)' has escaped its scope, appearing in type '((value :: Type) -> (value :: Type)) -> Unit'
+  --> 101:1..101:54
+    |
+101 | escapedBinder = \callback -> consumeIdentity callback
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope1 :: (t1 :: Type))' has escaped its scope, appearing in type 'forall (t1 :: Type). Token @(t1 :: Type) (scope1 :: (t1 :: Type))'
+  --> 103:1..103:42
+    |
+103 | escapedNestedUse = identity (leak modify)
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope2 :: (t2 :: Type))' has escaped its scope, appearing in type 'forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> Token @(t2 :: Type) (scope2 :: (t2 :: Type))'
+  --> 105:1..105:46
+    |
+105 | escapedDiscardedOuterArgument _ = leak modify
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope3 :: ?111)' has escaped its scope, appearing in type 'Token @?111 (scope3 :: ?111)'
+  --> 107:1..107:33
+    |
+107 | escapedDiscardedArgument :: Unit
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope4 :: (t4 :: Type))' has escaped its scope, appearing in type 'forall (t4 :: Type) (t5 :: Type) (t6 :: (t5 :: Type)).
+  EscapingEvidence @(t4 :: Type) @(t5 :: Type) (scope4 :: (t4 :: Type)) (t6 :: (t5 :: Type)) =>
+  Proxy @(t5 :: Type) (t6 :: (t5 :: Type))'
+  --> 110:1..110:46
+    |
+110 | escapedEvidenceOnly = leak pokeWithoutWitness
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

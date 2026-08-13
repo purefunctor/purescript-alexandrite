@@ -291,6 +291,17 @@ impl ToDiagnostics for CheckingError {
             ErrorKind::EmptyDoBlock => {
                 (Severity::Error, "EmptyDoBlock", "Empty do block".to_string())
             }
+            ErrorKind::EscapedSkolem { skolem, type_id } => {
+                let skolem = render_type(*skolem);
+                let type_id = render_type(*type_id);
+                (
+                    Severity::Error,
+                    "EscapedSkolem",
+                    format!(
+                        "Type variable '{skolem}' has escaped its scope, appearing in type '{type_id}'"
+                    ),
+                )
+            }
             ErrorKind::TermHole { source_term } => {
                 let name = context.text_of(span).trim();
                 if let Some(hole) = context.checked.lookup_term_hole(*source_term) {

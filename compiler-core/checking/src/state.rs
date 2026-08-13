@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::{CanonicalConstraintId, Canonicals, ConstraintInScope};
@@ -13,7 +13,7 @@ use crate::core::exhaustive::{
     ExhaustivenessReport, Pattern, PatternConstructor, PatternId, PatternInterner, PatternKind,
 };
 use crate::core::substitute::RigidRenaming;
-use crate::core::{Depth, Name, SmolStrId, Type, TypeId, constraint};
+use crate::core::{Depth, Name, SkolemScope, SmolStrId, Type, TypeId, constraint};
 use crate::error::{CheckingError, ErrorCrumb, ErrorKind};
 use crate::evidence::{EvidenceBinderId, EvidenceVarId};
 use crate::implication::{GivenConstraint, Implications, Patterns, WantedConstraint};
@@ -33,7 +33,14 @@ impl Names {
     pub fn fresh(&mut self) -> Name {
         let unique = self.unique;
         self.unique += 1;
-        Name { file: self.file, unique }
+        Name { file: self.file, unique, scope: None }
+    }
+
+    pub fn fresh_scoped(&mut self) -> (Name, SkolemScope) {
+        let name = self.fresh();
+        let scope = SkolemScope { file: name.file, unique: name.unique };
+        let name = Name { scope: Some(scope), ..name };
+        (name, scope)
     }
 }
 
@@ -160,6 +167,7 @@ pub struct CheckState {
     pub patterns: PatternInterner,
 
     zonk_cache: Option<FxHashMap<TypeId, TypeId>>,
+    pub(crate) judgments: FxHashSet<tree::ExpressionId>,
 
     pub unifications: Unifications,
     pub implications: Implications,
@@ -180,6 +188,7 @@ impl CheckState {
             bindings: Default::default(),
             patterns: Default::default(),
             zonk_cache: None,
+            judgments: Default::default(),
             unifications: Default::default(),
             implications: Default::default(),
             canonicals: Default::default(),
@@ -264,6 +273,20 @@ impl CheckState {
         queries.intern_type(Type::Rigid(name, self.depth, kind))
     }
 
+    pub fn fresh_scoped_rigid_named(
+        &mut self,
+        queries: &impl ExternalQueries,
+        kind: TypeId,
+        text: Option<SmolStrId>,
+    ) -> (TypeId, Name, SkolemScope) {
+        let (name, scope) = self.names.fresh_scoped();
+        if let Some(text) = text {
+            self.checked.names.insert(name, text);
+        }
+        let rigid = queries.intern_type(Type::Rigid(name, self.depth, kind));
+        (rigid, name, scope)
+    }
+
     pub fn insert_error(&mut self, kind: ErrorKind) {
         let crumbs = self.crumbs.iter().copied().collect();
         self.checked.errors.push(CheckingError { kind, crumbs });
@@ -288,6 +311,10 @@ impl CheckState {
     ) -> tree::ExpressionId {
         let expression = tree::Expression { type_id, kind };
         self.checked.tree.allocate_expression(expression)
+    }
+
+    pub(crate) fn retain_expression_judgment(&mut self, expression: tree::ExpressionId) {
+        self.judgments.insert(expression);
     }
 
     pub fn allocate_error_expression(&mut self, type_id: TypeId) -> tree::ExpressionId {

@@ -125,6 +125,11 @@ where
     let mut expressions = mem::take(&mut state.checked.tree.arena.expressions);
     for (_, expression) in expressions.iter_mut() {
         expression.type_id = zonk(state, context, expression.type_id)?;
+        if let crate::tree::ExpressionKind::EvidenceApplication { constraint, .. } =
+            &mut expression.kind
+        {
+            *constraint = zonk(state, context, *constraint)?;
+        }
     }
     state.checked.tree.arena.expressions = expressions;
 
@@ -294,6 +299,11 @@ where
             let t1 = zonk(state, context, t1)?;
             let t2 = zonk(state, context, t2)?;
             ErrorKind::CannotUnify { t1, t2 }
+        }
+        ErrorKind::EscapedSkolem { skolem, type_id } => {
+            let skolem = zonk(state, context, skolem)?;
+            let type_id = zonk(state, context, type_id)?;
+            ErrorKind::EscapedSkolem { skolem, type_id }
         }
         ErrorKind::InstanceHeadLabeledRow { class_file, class_item, position, type_id } => {
             let type_id = zonk(state, context, type_id)?;
