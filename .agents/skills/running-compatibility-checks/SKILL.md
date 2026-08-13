@@ -28,7 +28,7 @@ Pass another commit, branch, or tag when requested:
 just compatibility <base-ref>
 ```
 
-Do not require a clean worktree. The candidate is the current checkout, including uncommitted source changes. The base runs in a temporary detached worktree, so the command does not switch or modify the active checkout.
+Do not require a clean worktree. The candidate is the current checkout, including uncommitted source changes. The base runs in a temporary detached worktree, so the command does not switch or modify the active checkout. The candidate build and prepared corpus are written under `target/`.
 
 ## Interpret the result
 

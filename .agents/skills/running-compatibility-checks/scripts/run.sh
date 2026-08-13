@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+setup_failure() {
+  printf 'compatibility: %s failed\n' "$1" >&2
+  exit 2
+}
+
 usage() {
   cat <<'EOF'
 Usage: run.sh [base-ref]
@@ -22,7 +27,7 @@ if [[ $# -gt 1 ]]; then
 fi
 
 base_ref="${1:-origin/main}"
-workspace=$(git rev-parse --show-toplevel)
+workspace=$(git rev-parse --show-toplevel) || setup_failure "locating the workspace"
 base_commit=$(git -C "$workspace" rev-parse --verify "${base_ref}^{commit}") || {
   printf 'compatibility: base revision not found: %s\n' "$base_ref" >&2
   exit 2
@@ -30,7 +35,8 @@ base_commit=$(git -C "$workspace" rev-parse --verify "${base_ref}^{commit}") || 
 
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 report_dir=${COMPATIBILITY_REPORT_DIR:-"$workspace/target/compatibility-reports/$timestamp-$$"}
-temporary_dir=$(mktemp -d "${TMPDIR:-/tmp}/alexandrite-compatibility.XXXXXX")
+temporary_dir=$(mktemp -d "${TMPDIR:-/tmp}/alexandrite-compatibility.XXXXXX") || \
+  setup_failure "creating the temporary directory"
 base_workspace="$temporary_dir/base"
 
 cleanup() {
@@ -41,33 +47,43 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-mkdir -p "$report_dir"
+if ! mkdir -p "$report_dir"; then
+  setup_failure "creating the report directory"
+fi
 
 printf 'Compatibility base: %s (%s)\n' "$base_ref" "$base_commit"
 printf 'Building candidate verifier in release mode...\n'
-cargo build --manifest-path "$workspace/Cargo.toml" \
+if ! cargo build --manifest-path "$workspace/Cargo.toml" \
   --target-dir "$workspace/target" \
   --release \
-  -p tests-compatibility
+  -p tests-compatibility; then
+  setup_failure "building the candidate verifier"
+fi
 
 printf 'Creating temporary base worktree...\n'
-git -C "$workspace" worktree add --detach "$base_workspace" "$base_commit" >/dev/null
+if ! git -C "$workspace" worktree add --detach "$base_workspace" "$base_commit" >/dev/null; then
+  setup_failure "creating the base worktree"
+fi
 
 printf 'Building base verifier in release mode...\n'
-cargo build --manifest-path "$base_workspace/Cargo.toml" \
+if ! cargo build --manifest-path "$base_workspace/Cargo.toml" \
   --target-dir "$base_workspace/target" \
   --release \
-  -p tests-compatibility
+  -p tests-compatibility; then
+  setup_failure "building the base verifier"
+fi
 
 candidate_verifier="$workspace/target/release/tests-compatibility"
 base_verifier="$base_workspace/target/release/tests-compatibility"
 corpus_dir="$workspace/target/compatibility"
 
 printf 'Preparing core and Acme corpus...\n'
-(
+if ! (
   cd "$workspace"
   "$candidate_verifier" prepare --preset core --preset acme
-)
+); then
+  setup_failure "preparing the compatibility corpus"
+fi
 
 printf 'Collecting base and candidate reports...\n'
 set +e
