@@ -32,6 +32,10 @@ coverage-html:
 @bench *args="":
   cargo criterion -p tests-compatibility "$@"
 
+[doc("Compare package compatibility with a base revision using release builds")]
+@compatibility base="origin/main":
+  bash .agents/skills/running-compatibility-checks/scripts/run.sh "{{base}}"
+
 [doc("Apply clippy fixes and format")]
 fix:
   cargo clippy --workspace --fix && cargo fmt
