@@ -1,6 +1,6 @@
 use la_arena::RawIdx;
 
-use crate::{IndexedModule, IndexedTermItemKind, InstanceId, TermItemId, index_module};
+use crate::{IndexedModule, InstanceId, TermItemId, index_module};
 
 fn index(source: &str) -> IndexedModule {
     let lexed = lexing::lex(source);
@@ -14,11 +14,10 @@ fn index(source: &str) -> IndexedModule {
 }
 
 fn instance_id(indexed: &IndexedModule, name: &str) -> InstanceId {
-    let term_id = indexed.names.terms.lookup(name).unwrap();
-    let IndexedTermItemKind::Instance { id } = indexed.items[term_id].kind else {
-        panic!("expected {name} to be an instance");
-    };
-    id
+    let mut instances = indexed.items.iter_instances();
+    let (_, instance) =
+        instances.find(|(_, instance)| instance.name.as_deref() == Some(name)).unwrap();
+    instance.id
 }
 
 #[test]

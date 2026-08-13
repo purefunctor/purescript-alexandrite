@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{EquationSourceId, TermItemId, TypeItemId};
+use indexing::{DeriveItemId, EquationSourceId, InstanceItemId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
@@ -343,20 +343,8 @@ pub enum TermItemKind {
     Constructor {
         arguments: Arc<[TypeId]>,
     },
-    Derive {
-        newtype: bool,
-        constraints: Arc<[TypeId]>,
-        resolution: Option<(FileId, TypeItemId)>,
-        arguments: Arc<[TypeId]>,
-    },
     Foreign {
         signature: Option<TypeId>,
-    },
-    Instance {
-        constraints: Arc<[TypeId]>,
-        resolution: Option<(FileId, TypeItemId)>,
-        arguments: Arc<[TypeId]>,
-        members: Arc<[InstanceMemberGroup]>,
     },
     Operator {
         associativity: Option<Associativity>,
@@ -367,6 +355,22 @@ pub enum TermItemKind {
         signature: Option<TypeId>,
         equations: Arc<[Equation]>,
     },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct InstanceItem {
+    pub constraints: Arc<[TypeId]>,
+    pub resolution: Option<(FileId, TypeItemId)>,
+    pub arguments: Arc<[TypeId]>,
+    pub members: Arc<[InstanceMemberGroup]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct DeriveItem {
+    pub newtype: bool,
+    pub constraints: Arc<[TypeId]>,
+    pub resolution: Option<(FileId, TypeItemId)>,
+    pub arguments: Arc<[TypeId]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -450,6 +454,8 @@ pub struct LoweredTree {
     pub(crate) types: FxHashMap<TypeId, TypeKind>,
     pub(crate) term_items: ArenaMap<TermItemId, TermItemKind>,
     pub(crate) type_items: ArenaMap<TypeItemId, TypeItemKind>,
+    pub(crate) instance_items: ArenaMap<InstanceItemId, InstanceItem>,
+    pub(crate) derive_items: ArenaMap<DeriveItemId, DeriveItem>,
 
     pub(crate) do_statements: FxHashMap<DoStatementId, DoStatement>,
     pub(crate) let_binding_groups: Arena<LetBindingNameGroup>,
@@ -515,6 +521,14 @@ impl LoweredTree {
         self.type_items.get(id)
     }
 
+    pub fn get_instance_item(&self, id: InstanceItemId) -> Option<&InstanceItem> {
+        self.instance_items.get(id)
+    }
+
+    pub fn get_derive_item(&self, id: DeriveItemId) -> Option<&DeriveItem> {
+        self.derive_items.get(id)
+    }
+
     pub fn get_let_binding_group(&self, id: LetBindingNameGroupId) -> &LetBindingNameGroup {
         &self.let_binding_groups[id]
     }
@@ -578,10 +592,8 @@ impl LoweredTree {
         &self,
         statement_id: InstanceMemberId,
     ) -> Option<(FileId, TermItemId)> {
-        self.term_items.values().find_map(|item| {
-            let TermItemKind::Instance { members, .. } = item else {
-                return None;
-            };
+        self.instance_items.values().find_map(|item| {
+            let members = &item.members;
             let member = members.iter().find(|member| member.statements.contains(&statement_id))?;
             member.resolution
         })

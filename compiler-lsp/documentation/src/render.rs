@@ -251,11 +251,44 @@ impl<'a> ModuleEncoder<'a> {
         let name = term_item.name.as_ref().map(|name| name.to_string());
         let documentation =
             term_documentation.and_then(|term| optional_string(&term.documentation));
-        let signature = term_signature(term_id, term_item, &self.checked)
+        let signature = term_signature(term_id, &self.checked)
             .map(|signature| self.type_encoder.encode_signature(signature))
             .transpose()?;
 
         Ok(schema::TermItem { name, documentation, signature, kind: term_kind(&term_item.kind) })
+    }
+
+    fn encode_instance_item(
+        &mut self,
+        item_id: InstanceDocumentItemId,
+    ) -> Result<schema::TermItem, Error> {
+        let (name, documentation, signature, kind) = match item_id {
+            InstanceDocumentItemId::Instance(id) => {
+                let item = &self.indexed.items[id];
+                let documentation = self.documented.instances.get(&id);
+                let signature = self.checked.lookup_instance(item.id).map(|item| item.signature);
+                (&item.name, documentation, signature, schema::TermKind::Instance)
+            }
+            InstanceDocumentItemId::Derive(id) => {
+                let item = &self.indexed.items[id];
+                let documentation = self.documented.derives.get(&id);
+                let signature =
+                    self.checked.lookup_derived_instance(item.id).map(|item| item.signature);
+                (&item.name, documentation, signature, schema::TermKind::Derive)
+            }
+        };
+        let name = name.as_ref().map(ToString::to_string);
+        let documentation = documentation.and_then(|item| optional_string(&item.documentation));
+        let signature =
+            signature.map(|signature| self.type_encoder.encode_signature(signature)).transpose()?;
+        Ok(schema::TermItem { name, documentation, signature, kind })
+    }
+
+    fn encode_instance_items(
+        &mut self,
+        items: impl IntoIterator<Item = InstanceDocumentItemId>,
+    ) -> Result<Vec<schema::TermItem>, Error> {
+        items.into_iter().map(|item| self.encode_instance_item(item)).collect()
     }
 
     fn encode_functional_dependencies(
@@ -290,7 +323,7 @@ impl<'a> ModuleEncoder<'a> {
     fn encode_type_item(
         &mut self,
         type_id: indexing::TypeItemId,
-        instances: impl IntoIterator<Item = indexing::TermItemId>,
+        instances: impl IntoIterator<Item = InstanceDocumentItemId>,
     ) -> Result<schema::TypeItem, Error> {
         let indexed = Arc::clone(&self.indexed);
         let type_item = &indexed.items[type_id];
@@ -313,7 +346,7 @@ impl<'a> ModuleEncoder<'a> {
                 };
 
                 let constructors = self.encode_term_items(constructors.iter().copied())?;
-                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+                let instances = self.encode_instance_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Data { signature, declaration, constructors, instances }
             }
@@ -327,7 +360,7 @@ impl<'a> ModuleEncoder<'a> {
                 };
 
                 let constructors = self.encode_term_items(constructors.iter().copied())?;
-                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+                let instances = self.encode_instance_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Newtype { signature, declaration, constructors, instances }
             }
@@ -338,7 +371,7 @@ impl<'a> ModuleEncoder<'a> {
                     None
                 };
 
-                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+                let instances = self.encode_instance_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Synonym { signature, equation, instances }
             }
@@ -355,7 +388,7 @@ impl<'a> ModuleEncoder<'a> {
                     };
 
                 let members = self.encode_term_items(members.iter().copied())?;
-                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+                let instances = self.encode_instance_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Class {
                     signature,
@@ -367,7 +400,7 @@ impl<'a> ModuleEncoder<'a> {
                 }
             }
             indexing::IndexedTypeItemKind::Foreign { .. } => {
-                let instances = self.encode_term_items(instance_ids.iter().copied())?;
+                let instances = self.encode_instance_items(instance_ids.iter().copied())?;
 
                 schema::TypeItemForm::Foreign { signature, instances }
             }
@@ -416,15 +449,30 @@ pub fn render_module(
     let mut types = vec![];
 
     let mut nested_terms = NestedTerms::new();
-    let mut instances_of = collect_instances_of(&encoder, &mut nested_terms);
+    let mut nested_instances = NestedInstances::new();
+    let mut instances_of = collect_instances_of(&encoder, &mut nested_instances);
     collect_constructors_members(&encoder, &mut nested_terms);
 
     let indexed = Arc::clone(&encoder.indexed);
-    for (term_id, _) in indexed.items.iter_terms() {
-        if nested_terms.contains(&term_id) {
-            continue;
+    for &item_id in indexed.items.ordered_terms() {
+        match item_id {
+            indexing::OrderedTermItemId::Term(id) if !nested_terms.contains(&id) => {
+                terms.push(encoder.encode_term_item(id)?);
+            }
+            indexing::OrderedTermItemId::Instance(id) => {
+                let id = InstanceDocumentItemId::Instance(id);
+                if !nested_instances.contains(&id) {
+                    terms.push(encoder.encode_instance_item(id)?);
+                }
+            }
+            indexing::OrderedTermItemId::Derive(id) => {
+                let id = InstanceDocumentItemId::Derive(id);
+                if !nested_instances.contains(&id) {
+                    terms.push(encoder.encode_instance_item(id)?);
+                }
+            }
+            indexing::OrderedTermItemId::Term(_) => {}
         }
-        terms.push(encoder.encode_term_item(term_id)?);
     }
     for (type_id, _) in indexed.items.iter_types() {
         let instances = instances_of.remove(&type_id).unwrap_or_default();
@@ -457,9 +505,7 @@ fn term_kind(kind: &indexing::IndexedTermItemKind) -> schema::TermKind {
     match kind {
         indexing::IndexedTermItemKind::ClassMember { .. } => schema::TermKind::ClassMember,
         indexing::IndexedTermItemKind::Constructor { .. } => schema::TermKind::Constructor,
-        indexing::IndexedTermItemKind::Derive { .. } => schema::TermKind::Derive,
         indexing::IndexedTermItemKind::Foreign { .. } => schema::TermKind::Foreign,
-        indexing::IndexedTermItemKind::Instance { .. } => schema::TermKind::Instance,
         indexing::IndexedTermItemKind::Operator { .. } => schema::TermKind::Operator,
         indexing::IndexedTermItemKind::Value { .. } => schema::TermKind::Value,
     }
@@ -467,47 +513,41 @@ fn term_kind(kind: &indexing::IndexedTermItemKind) -> schema::TermKind {
 
 fn term_signature(
     term_id: indexing::TermItemId,
-    term_item: &indexing::IndexedTermItem,
     checked: &checking::CheckedModule,
 ) -> Option<checking::TypeId> {
-    match &term_item.kind {
-        indexing::IndexedTermItemKind::Instance { id } => {
-            checked.lookup_instance(*id).map(|instance| instance.signature)
-        }
-        indexing::IndexedTermItemKind::Derive { id } => {
-            checked.lookup_derived_instance(*id).map(|instance| instance.signature)
-        }
-        _ => checked.lookup_term_item_type(term_id),
-    }
+    checked.lookup_term_item_type(term_id)
 }
 
 type NestedTerms = BTreeSet<indexing::TermItemId>;
-type InstanceParentMap = BTreeMap<indexing::TypeItemId, Vec<indexing::TermItemId>>;
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum InstanceDocumentItemId {
+    Instance(indexing::InstanceItemId),
+    Derive(indexing::DeriveItemId),
+}
+
+type NestedInstances = BTreeSet<InstanceDocumentItemId>;
+type InstanceParentMap = BTreeMap<indexing::TypeItemId, Vec<InstanceDocumentItemId>>;
 type InstanceParents = BTreeSet<indexing::TypeItemId>;
 
 fn collect_instances_of(
     encoder: &ModuleEncoder<'_>,
-    nested_terms: &mut NestedTerms,
+    nested_instances: &mut NestedInstances,
 ) -> InstanceParentMap {
     let mut instances_by_parent = InstanceParentMap::new();
 
-    for (term_id, term_item) in encoder.indexed.items.iter_terms() {
-        if !matches!(
-            term_item.kind,
-            indexing::IndexedTermItemKind::Instance { .. }
-                | indexing::IndexedTermItemKind::Derive { .. }
-        ) {
-            continue;
-        }
-
-        let parents = instance_parents(encoder, term_id, term_item);
+    for &item_id in encoder.indexed.items.instance_sources() {
+        let item_id = match item_id {
+            indexing::InstanceSourceItemId::Instance(id) => InstanceDocumentItemId::Instance(id),
+            indexing::InstanceSourceItemId::Derive(id) => InstanceDocumentItemId::Derive(id),
+        };
+        let parents = instance_parents(encoder, item_id);
         if parents.is_empty() {
             continue;
         }
 
-        nested_terms.insert(term_id);
+        nested_instances.insert(item_id);
         for parent in parents {
-            instances_by_parent.entry(parent).or_default().push(term_id);
+            instances_by_parent.entry(parent).or_default().push(item_id);
         }
     }
 
@@ -516,17 +556,23 @@ fn collect_instances_of(
 
 fn instance_parents(
     encoder: &ModuleEncoder<'_>,
-    term_id: indexing::TermItemId,
-    term_item: &indexing::IndexedTermItem,
+    item_id: InstanceDocumentItemId,
 ) -> InstanceParents {
     let mut parents = InstanceParents::new();
 
-    let checked_instance = match &term_item.kind {
-        indexing::IndexedTermItemKind::Instance { id } => encoder.checked.lookup_instance(*id),
-        indexing::IndexedTermItemKind::Derive { id } => {
-            encoder.checked.lookup_derived_instance(*id)
+    let (checked_instance, arguments) = match item_id {
+        InstanceDocumentItemId::Instance(id) => {
+            let item = &encoder.indexed.items[id];
+            let checked = encoder.checked.lookup_instance(item.id);
+            let arguments = encoder.lowered.tree.get_instance_item(id).map(|item| &item.arguments);
+            (checked, arguments)
         }
-        _ => None,
+        InstanceDocumentItemId::Derive(id) => {
+            let item = &encoder.indexed.items[id];
+            let checked = encoder.checked.lookup_derived_instance(item.id);
+            let arguments = encoder.lowered.tree.get_derive_item(id).map(|item| &item.arguments);
+            (checked, arguments)
+        }
     };
 
     if let Some(instance) = checked_instance
@@ -536,15 +582,7 @@ fn instance_parents(
         parents.insert(parent_type);
     }
 
-    let Some(term_item) = encoder.lowered.tree.get_term_item_kind(term_id) else {
-        return parents;
-    };
-
-    let arguments = match term_item {
-        lowering::TermItemKind::Instance { arguments, .. }
-        | lowering::TermItemKind::Derive { arguments, .. } => arguments,
-        _ => return parents,
-    };
+    let Some(arguments) = arguments else { return parents };
 
     for &argument in arguments.iter() {
         collect_instance_type_parents(encoder, &mut parents, argument);

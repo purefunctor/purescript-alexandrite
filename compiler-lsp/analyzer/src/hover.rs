@@ -81,6 +81,21 @@ pub fn implementation(
         }
         locate::Located::TermItem(term_id) => hover_file_term(engine, current_file, term_id),
         locate::Located::TypeItem(type_id) => hover_file_type(engine, current_file, type_id),
+        locate::Located::InstanceItem(item_id) => {
+            let indexed = engine.indexed(current_file)?;
+            let checked = engine.checked(current_file)?;
+            let item = &indexed.items[item_id];
+            let signature = checked.lookup_instance(item.id).map(|instance| instance.signature);
+            hover_instance_signature(engine, &checked, item.name.as_deref(), signature)
+        }
+        locate::Located::DeriveItem(item_id) => {
+            let indexed = engine.indexed(current_file)?;
+            let checked = engine.checked(current_file)?;
+            let item = &indexed.items[item_id];
+            let signature =
+                checked.lookup_derived_instance(item.id).map(|instance| instance.signature);
+            hover_instance_signature(engine, &checked, item.name.as_deref(), signature)
+        }
         locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),
         locate::Located::Nothing => Ok(None),
     }?;
@@ -89,6 +104,19 @@ pub fn implementation(
         hover.range = range;
         hover
     }))
+}
+
+fn hover_instance_signature(
+    engine: &impl AnalyzerQueries,
+    checked: &checking::CheckedModule,
+    name: Option<&str>,
+    signature: Option<checking::TypeId>,
+) -> Result<Option<Hover>, AnalyzerError> {
+    let signature = signature.ok_or(AnalyzerError::NonFatal)?;
+    let pretty = Pretty::with_config(engine, checked, PRETTY_CONFIG);
+    let value = pretty.render_signature(name.unwrap_or("<unknown>"), signature).to_string();
+    let value = MarkedString::from_language_code("purescript".to_string(), value);
+    Ok(Some(Hover { contents: HoverContents::Scalar(value), range: None }))
 }
 
 fn hover_name_range(token: Option<SyntaxToken>, offset: TextSize) -> Option<TextRange> {

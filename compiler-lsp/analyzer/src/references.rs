@@ -72,6 +72,16 @@ pub fn implementation(
         locate::Located::TypeItem(type_id) => {
             references_file_type(context, current_file, current_file, type_id)
         }
+        locate::Located::InstanceItem(item_id) => {
+            let uri = common::file_uri(context, current_file)?;
+            let location = common::file_instance_location(context, uri, current_file, item_id)?;
+            Ok(Some(vec![location]))
+        }
+        locate::Located::DeriveItem(item_id) => {
+            let uri = common::file_uri(context, current_file)?;
+            let location = common::file_derive_location(context, uri, current_file, item_id)?;
+            Ok(Some(vec![location]))
+        }
         locate::Located::LetBinding(let_id) => references_let(context, current_file, let_id),
         locate::Located::BinderPun(pun_id) => references_binder_pun(context, current_file, pun_id),
         locate::Located::ExpressionPun(pun_id) => {

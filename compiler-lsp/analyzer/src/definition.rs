@@ -70,6 +70,16 @@ pub fn implementation(
         }
         locate::Located::TermItem(term_id) => definition_file_term(context, current_file, term_id),
         locate::Located::TypeItem(type_id) => definition_file_type(context, current_file, type_id),
+        locate::Located::InstanceItem(item_id) => {
+            let uri = common::file_uri(context, current_file)?;
+            let location = common::file_instance_location(context, uri, current_file, item_id)?;
+            Ok(Some(GotoDefinitionResponse::Scalar(location)))
+        }
+        locate::Located::DeriveItem(item_id) => {
+            let uri = common::file_uri(context, current_file)?;
+            let location = common::file_derive_location(context, uri, current_file, item_id)?;
+            Ok(Some(GotoDefinitionResponse::Scalar(location)))
+        }
         locate::Located::LetBinding(let_id) => {
             definition_let_binding(context, current_file, let_id)
         }

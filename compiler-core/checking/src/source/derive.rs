@@ -17,7 +17,7 @@ pub mod variance;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId};
+use indexing::{DeriveItemId, TypeItemId};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
@@ -70,7 +70,7 @@ pub(super) enum DeriveStrategy {
 
 pub struct DeriveHeadResult {
     derive_id: indexing::DeriveId,
-    item_id: TermItemId,
+    item_id: DeriveItemId,
     signature: TypeId,
     constraints: Vec<TypeId>,
     class_file: FileId,

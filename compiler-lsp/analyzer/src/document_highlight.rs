@@ -50,6 +50,30 @@ pub fn implementation(
         locate::Located::TypeItem(type_id) => {
             highlight_file_type(context, current_file, current_file, type_id)
         }
+        locate::Located::InstanceItem(item_id) => {
+            let indexed = context.queries().indexed(current_file)?;
+            let mut highlights = vec![];
+            push_name_highlight(
+                context,
+                current_file,
+                &mut highlights,
+                Some(indexed.items[item_id].id),
+                position::instance_declaration_name_range,
+            )?;
+            Ok(finish_highlights(highlights))
+        }
+        locate::Located::DeriveItem(item_id) => {
+            let indexed = context.queries().indexed(current_file)?;
+            let mut highlights = vec![];
+            push_name_highlight(
+                context,
+                current_file,
+                &mut highlights,
+                Some(indexed.items[item_id].id),
+                position::declaration_name_range,
+            )?;
+            Ok(finish_highlights(highlights))
+        }
         locate::Located::LetBinding(let_binding_id) => {
             highlight_let(context, current_file, let_binding_id)
         }
@@ -669,20 +693,14 @@ fn term_item_highlights(
     }
 
     match &indexed.items[term_id].kind {
-        IndexedTermItemKind::ClassMember { id } => {
+        IndexedTermItemKind::ClassMember { id, .. } => {
             push_name_highlights!(position::class_member_name_range; Some(*id));
         }
         IndexedTermItemKind::Constructor { id, .. } => {
             push_name_highlights!(position::data_constructor_name_range; Some(*id));
         }
-        IndexedTermItemKind::Derive { id } => {
-            push_name_highlights!(position::declaration_name_range; Some(*id));
-        }
         IndexedTermItemKind::Foreign { id } => {
             push_name_highlights!(position::declaration_name_range; Some(*id));
-        }
-        IndexedTermItemKind::Instance { id } => {
-            push_name_highlights!(position::instance_declaration_name_range; Some(*id));
         }
         IndexedTermItemKind::Operator { id } => {
             push_name_highlights!(position::infix_operator_range; Some(*id));

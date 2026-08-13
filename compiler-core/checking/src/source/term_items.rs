@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
+use indexing::{IndexedTermItemKind, InstanceItemId, InstanceSourceItemId, TermItemId, TypeItemId};
 use lowering::TermItemKind;
 use rustc_hash::FxHashMap;
 
@@ -57,21 +57,16 @@ pub fn check_instance_declarations<Q>(
 where
     Q: ExternalQueries,
 {
-    for scc in &context.grouped.term_scc {
-        let items = scc.as_slice();
-
-        let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.tree.get_term_item_kind(item_id)?;
-            let TermItemKind::Instance { constraints, resolution, arguments, .. } = item else {
-                return None;
-            };
-            let resolution = *resolution;
-            Some(CheckInstanceDeclaration { item_id, constraints, resolution, arguments })
-        });
-
-        for item in items {
-            check_instance_declaration(state, context, item)?;
-        }
+    for &item_id in &context.grouped.instance_items {
+        let Some(item) = context.lowered.tree.get_instance_item(item_id) else { continue };
+        let resolution = item.resolution;
+        let item = CheckInstanceDeclaration {
+            item_id,
+            constraints: &item.constraints,
+            resolution,
+            arguments: &item.arguments,
+        };
+        check_instance_declaration(state, context, item)?;
     }
 
     Ok(())
@@ -84,19 +79,21 @@ fn check_overlapping_instance_declarations<Q>(
 where
     Q: ExternalQueries,
 {
-    for scc in &context.grouped.term_scc {
-        for &item_id in scc.as_slice() {
-            state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
-                constraint::instances::validate_declared_instance_overlap(state, context, item_id)
-            })?;
-        }
+    for &item_id in &context.grouped.instance_sources {
+        let crumb = match item_id {
+            InstanceSourceItemId::Instance(id) => ErrorCrumb::InstanceDeclaration(id),
+            InstanceSourceItemId::Derive(id) => ErrorCrumb::DeriveDeclaration(id),
+        };
+        state.with_error_crumb(crumb, |state| {
+            constraint::instances::validate_declared_instance_overlap(state, context, item_id)
+        })?;
     }
 
     Ok(())
 }
 
 struct CheckInstanceDeclaration<'a> {
-    item_id: TermItemId,
+    item_id: InstanceItemId,
     constraints: &'a [lowering::TypeId],
     resolution: Option<(FileId, TypeItemId)>,
     arguments: &'a [lowering::TypeId],
@@ -116,10 +113,7 @@ where
         return Ok(());
     };
 
-    let IndexedTermItemKind::Instance { id: instance_id } = context.indexed.items[item_id].kind
-    else {
-        return Ok(());
-    };
+    let instance_id = context.indexed.items[item_id].id;
 
     let class_kind = toolkit::lookup_file_type(state, context, class_file, class_id)?;
 
@@ -215,48 +209,36 @@ fn check_instance_members<Q>(state: &mut CheckState, context: &CheckContext<Q>) 
 where
     Q: ExternalQueries,
 {
-    for scc in &context.grouped.term_scc {
-        for &item_id in scc.as_slice() {
-            let Some(TermItemKind::Instance { members, resolution, .. }) =
-                context.lowered.tree.get_term_item_kind(item_id)
-            else {
-                continue;
-            };
+    for &item_id in &context.grouped.instance_items {
+        let Some(item) = context.lowered.tree.get_instance_item(item_id) else { continue };
+        let Some((class_file, class_id)) = item.resolution else {
+            continue;
+        };
+        let instance_id = context.indexed.items[item_id].id;
 
-            let Some((class_file, class_id)) = *resolution else {
-                continue;
-            };
+        let Some(checked_instance) = state.checked.lookup_instance(instance_id) else {
+            continue;
+        };
 
-            let IndexedTermItemKind::Instance { id: instance_id } =
-                context.indexed.items[item_id].kind
-            else {
-                continue;
-            };
+        let Some(instance) = toolkit::instance_info(
+            state,
+            context,
+            checked_instance.signature,
+            checked_instance.resolution,
+        )?
+        else {
+            continue;
+        };
 
-            let Some(checked_instance) = state.checked.lookup_instance(instance_id) else {
-                continue;
-            };
-
-            let Some(instance) = toolkit::instance_info(
-                state,
-                context,
-                checked_instance.signature,
-                checked_instance.resolution,
-            )?
-            else {
-                continue;
-            };
-
-            check_instance_member_groups(
-                state,
-                context,
-                item_id,
-                members,
-                (class_file, class_id),
-                checked_instance.signature,
-                &instance,
-            )?;
-        }
+        check_instance_member_groups(
+            state,
+            context,
+            item_id,
+            &item.members,
+            (class_file, class_id),
+            checked_instance.signature,
+            &instance,
+        )?;
     }
 
     Ok(())
@@ -265,7 +247,7 @@ where
 fn check_instance_member_groups<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    instance_item_id: TermItemId,
+    instance_item_id: InstanceItemId,
     members: &[lowering::InstanceMemberGroup],
     (class_file, class_id): (FileId, TypeItemId),
     instance_signature: TypeId,
@@ -274,7 +256,7 @@ fn check_instance_member_groups<Q>(
 where
     Q: ExternalQueries,
 {
-    state.with_error_crumb(ErrorCrumb::TermDeclaration(instance_item_id), |state| {
+    state.with_error_crumb(ErrorCrumb::InstanceDeclaration(instance_item_id), |state| {
         state.with_implication(|state| {
             let FreshenedInstanceRigids {
                 constraints: instance_constraints,
@@ -383,7 +365,7 @@ where
                     type_id: instance_signature,
                     kind: tree::TermDeclarationKind::Instance(instance),
                 };
-                state.checked.tree.insert_term(instance_item_id, declaration);
+                state.checked.tree.insert_instance(instance_item_id, declaration);
                 Ok(())
             })
         })
