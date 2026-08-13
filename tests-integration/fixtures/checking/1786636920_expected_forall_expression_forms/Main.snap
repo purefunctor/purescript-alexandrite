@@ -1,0 +1,77 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Token ::
+  forall (t0 :: Prim.Type) (@scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+Effect :: forall (@value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+modify ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+leak ::
+  forall (t0 :: Prim.Type) (result :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+pure :: forall (value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+bind ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect (value :: Prim.Type) ->
+    ((value :: Prim.Type) -> Main.Effect (result :: Prim.Type)) ->
+    Main.Effect (result :: Prim.Type)
+discard ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect (value :: Prim.Type) ->
+    ((value :: Prim.Type) -> Main.Effect (result :: Prim.Type)) ->
+    Main.Effect (result :: Prim.Type)
+map ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    Main.Effect (value :: Prim.Type) ->
+    Main.Effect (result :: Prim.Type)
+apply ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    Main.Effect ((value :: Prim.Type) -> (result :: Prim.Type)) ->
+    Main.Effect (value :: Prim.Type) ->
+    Main.Effect (result :: Prim.Type)
+applyValue ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (value :: Prim.Type) -> ((value :: Prim.Type) -> (result :: Prim.Type)) -> (result :: Prim.Type)
+# ::
+  forall (value :: Prim.Type) (result :: Prim.Type).
+    (value :: Prim.Type) -> ((value :: Prim.Type) -> (result :: Prim.Type)) -> (result :: Prim.Type)
+escapedOperator ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedSection ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (t1 :: Prim.Type)) ->
+    (t1 :: Prim.Type)
+escapedDo ::
+  forall (t0 :: Prim.Type). Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+escapedAdo ::
+  forall (t0 :: Prim.Type). Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+escapedRecord ::
+  forall (t0 :: Prim.Type). { token :: Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) }
+escapedRecordUpdate ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Type).
+    { token :: (t0 :: Prim.Type) | (t1 :: Prim.Row Prim.Type) } ->
+    { token :: Main.Token @(t2 :: Prim.Type) (scope :: (t2 :: Prim.Type))
+    | (t1 :: Prim.Row Prim.Type)
+    }
+escapedPatternGuard :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+escapedCase ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> { token :: Main.Token @(t1 :: Prim.Type) (scope :: (t1 :: Prim.Type)) }
+
+Types
+Token :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Token = [Phantom]
+Effect = [Representational]

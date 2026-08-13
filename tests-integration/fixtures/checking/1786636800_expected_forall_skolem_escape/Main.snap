@@ -1,0 +1,137 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+Token ::
+  forall (t0 :: Prim.Type) (@scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+Effect :: forall (@value :: Prim.Type). (value :: Prim.Type) -> Main.Effect (value :: Prim.Type)
+Proxy ::
+  forall (t0 :: Prim.Type) (@value :: (t0 :: Prim.Type)).
+    Main.Proxy @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+Map ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@key :: (t0 :: Prim.Type))
+    (@value :: (t1 :: Prim.Type)).
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type))
+identity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
+modify ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+consumeIdentity ::
+  (forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+discardValue :: forall (value :: Prim.Type). (value :: Prim.Type) -> Main.Unit
+leak ::
+  forall (t0 :: Prim.Type) (result :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> (result :: Prim.Type)) ->
+    (result :: Prim.Type)
+mutate ::
+  forall (t0 :: Prim.Type) (discarded :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+      Main.Effect (discarded :: Prim.Type)) ->
+    Main.Unit
+mutateConstrained ::
+  forall (t0 :: Prim.Type).
+    (forall (scope :: (t0 :: Prim.Type)).
+      Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) =>
+      Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit) ->
+    Main.Unit
+poke ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit
+pokeReturningToken ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+pokeConstrained ::
+  forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) =>
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) -> Main.Effect Main.Unit
+pokeWithoutWitness ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+    (result :: (t1 :: Prim.Type)).
+    Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (scope :: (t0 :: Prim.Type))
+      (result :: (t1 :: Prim.Type)) =>
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Proxy @(t1 :: Prim.Type) (result :: (t1 :: Prim.Type))
+mutateMap ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (key :: (t0 :: Prim.Type))
+    (value :: (t1 :: Prim.Type)) (discarded :: Prim.Type).
+    Main.Witness @(t0 :: Prim.Type) (key :: (t0 :: Prim.Type)) =>
+    (forall (scope :: (t2 :: Prim.Type)).
+      Main.Token @(t2 :: Prim.Type) (scope :: (t2 :: Prim.Type)) ->
+      Main.Effect (discarded :: Prim.Type)) ->
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type)) ->
+    Main.Map @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (key :: (t0 :: Prim.Type))
+      (value :: (t1 :: Prim.Type))
+pokeMap ::
+  forall (t0 :: Prim.Type) (key :: Prim.Type) (value :: Prim.Type) (scope :: (t0 :: Prim.Type)).
+    Main.Witness @Prim.Type (key :: Prim.Type) =>
+    (key :: Prim.Type) ->
+    (value :: Prim.Type) ->
+    Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)) ->
+    Main.Effect (Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)))
+validRankTwoCallback ::
+  (forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+validDirectPolymorphicExpression :: Main.Unit
+validDiscardedHigherRankResult :: Main.Unit
+validDiscardedScopedHigherRankResult :: Main.Unit
+validDiscardedConstrainedHigherRankResult :: Main.Unit
+validConstrainedTypeErasingCallback ::
+  forall (key :: Prim.Type) (value :: Prim.Type).
+    Main.Witness @Prim.Type (key :: Prim.Type) =>
+    (key :: Prim.Type) ->
+    (value :: Prim.Type) ->
+    Main.Map @Prim.Type @Prim.Type (key :: Prim.Type) (value :: Prim.Type) ->
+    Main.Map @Prim.Type @Prim.Type (key :: Prim.Type) (value :: Prim.Type)
+escapedResult ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedBinder :: ((value :: Prim.Type) -> (value :: Prim.Type)) -> Main.Unit
+escapedNestedUse ::
+  forall (t0 :: Prim.Type). Main.Token @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+escapedDiscardedOuterArgument ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> Main.Token @(t1 :: Prim.Type) (scope :: (t1 :: Prim.Type))
+escapedDiscardedArgument :: Main.Unit
+escapedEvidenceOnly ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type)).
+    Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+      (scope :: (t0 :: Prim.Type))
+      (t2 :: (t1 :: Prim.Type)) =>
+    Main.Proxy @(t1 :: Prim.Type) (t2 :: (t1 :: Prim.Type))
+
+Types
+Unit :: Prim.Type
+Token :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Map ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+Witness :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+EscapingEvidence ::
+  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
+    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (scope :: (t0 :: Prim.Type)). Main.Witness @(t0 :: Prim.Type) (scope :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (scope :: (t0 :: Prim.Type)) (result :: (t1 :: Prim.Type)). Main.EscapingEvidence @(t0 :: Prim.Type) @(t1 :: Prim.Type)
+  (scope :: (t0 :: Prim.Type))
+  (result :: (t1 :: Prim.Type))
+
+Roles
+Unit = []
+Token = [Phantom]
+Effect = [Representational]
+Proxy = [Phantom]
+Map = [Phantom, Phantom]
