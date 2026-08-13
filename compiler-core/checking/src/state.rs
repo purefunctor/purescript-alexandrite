@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::context::CheckContext;
 use crate::core::constraint::{CanonicalConstraintId, Canonicals, ConstraintInScope};
@@ -167,6 +167,7 @@ pub struct CheckState {
     pub patterns: PatternInterner,
 
     zonk_cache: Option<FxHashMap<TypeId, TypeId>>,
+    pub(crate) judgments: FxHashSet<tree::ExpressionId>,
 
     pub unifications: Unifications,
     pub implications: Implications,
@@ -187,6 +188,7 @@ impl CheckState {
             bindings: Default::default(),
             patterns: Default::default(),
             zonk_cache: None,
+            judgments: Default::default(),
             unifications: Default::default(),
             implications: Default::default(),
             canonicals: Default::default(),
@@ -307,8 +309,12 @@ impl CheckState {
         type_id: TypeId,
         kind: tree::ExpressionKind,
     ) -> tree::ExpressionId {
-        let expression = tree::Expression { type_id, retained_judgment: false, kind };
+        let expression = tree::Expression { type_id, kind };
         self.checked.tree.allocate_expression(expression)
+    }
+
+    pub(crate) fn retain_expression_judgment(&mut self, expression: tree::ExpressionId) {
+        self.judgments.insert(expression);
     }
 
     pub fn allocate_error_expression(&mut self, type_id: TypeId) -> tree::ExpressionId {

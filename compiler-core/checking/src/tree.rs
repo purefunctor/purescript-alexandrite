@@ -330,7 +330,6 @@ pub enum RecordBinderField {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Expression {
     pub type_id: TypeId,
-    pub(crate) retained_judgment: bool,
     pub kind: ExpressionKind,
 }
 
@@ -385,10 +384,6 @@ impl CheckedTree {
 
     pub(crate) fn set_expression_type(&mut self, expression: ExpressionId, type_id: TypeId) {
         self.arena.expressions[expression].type_id = type_id;
-    }
-
-    pub(crate) fn retain_expression_judgment(&mut self, expression: ExpressionId) {
-        self.arena.expressions[expression].retained_judgment = true;
     }
 
     pub fn allocate_binder(&mut self, binder: Binder) -> BinderId {

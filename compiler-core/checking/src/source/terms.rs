@@ -53,7 +53,7 @@ fn retain_expression_judgment(
     // Only source expression roots correspond to PureScript's `TypedValue`
     // judgments. Generated elaboration nodes can cache transient unification
     // solutions and must not become independent judgments.
-    state.checked.tree.retain_expression_judgment(expression.expression);
+    state.retain_expression_judgment(expression.expression);
     expression
 }
 

@@ -48,6 +48,7 @@ where
 {
     checked: &'c CheckedModule,
     context: &'context CheckContext<'queries, Q>,
+    judgments: &'c FxHashSet<ExpressionId>,
     local: Option<LocalDeclarationId>,
     discovering: bool,
     expected_skolems: FxHashSet<SkolemScope>,
@@ -68,7 +69,13 @@ where
         expected_skolems.extend(scopes);
     }
 
-    let (errors, _) = collect_errors(&state.checked, context, None, Pass::Audit(expected_skolems));
+    let (errors, _) = collect_errors(
+        &state.checked,
+        &state.judgments,
+        context,
+        None,
+        Pass::Audit(expected_skolems),
+    );
     state.checked.errors.extend(errors);
 }
 
@@ -84,16 +91,27 @@ where
     let type_id = super::zonk::zonk(state, context, type_id)?;
     state.checked.tree.set_let_type(declaration, type_id);
 
-    let (_, expected_skolems) =
-        collect_errors(&state.checked, context, Some(declaration), Pass::Discover);
-    let (errors, _) =
-        collect_errors(&state.checked, context, Some(declaration), Pass::Audit(expected_skolems));
+    let (_, expected_skolems) = collect_errors(
+        &state.checked,
+        &state.judgments,
+        context,
+        Some(declaration),
+        Pass::Discover,
+    );
+    let (errors, _) = collect_errors(
+        &state.checked,
+        &state.judgments,
+        context,
+        Some(declaration),
+        Pass::Audit(expected_skolems),
+    );
     state.checked.errors.extend(errors);
     Ok(())
 }
 
 fn new_checker<'c, 'context, 'queries, Q>(
     checked: &'c CheckedModule,
+    judgments: &'c FxHashSet<ExpressionId>,
     context: &'context CheckContext<'queries, Q>,
     local: Option<LocalDeclarationId>,
     pass: Pass,
@@ -129,6 +147,7 @@ where
     SkolemChecker {
         checked,
         context,
+        judgments,
         local,
         discovering,
         expected_skolems,
@@ -401,7 +420,7 @@ fn check_expression<Q>(
         checker.tasks.push(Task::ExitScope(scope));
     }
 
-    if checker.evidence_depth == 0 && expression.retained_judgment {
+    if checker.evidence_depth == 0 && checker.judgments.contains(&expression_id) {
         inspect_type(checker, expression.type_id, crumb);
     }
 
@@ -608,8 +627,9 @@ fn inspect_type<Q>(
     }
 }
 
-fn collect_errors<Q>(
-    checked: &CheckedModule,
+fn collect_errors<'c, Q>(
+    checked: &'c CheckedModule,
+    judgments: &'c FxHashSet<ExpressionId>,
     context: &CheckContext<Q>,
     local: Option<LocalDeclarationId>,
     pass: Pass,
@@ -617,7 +637,7 @@ fn collect_errors<Q>(
 where
     Q: ExternalQueries,
 {
-    let mut checker = new_checker(checked, context, local, pass);
+    let mut checker = new_checker(checked, judgments, context, local, pass);
 
     while let Some(task) = checker.tasks.pop() {
         match task {
