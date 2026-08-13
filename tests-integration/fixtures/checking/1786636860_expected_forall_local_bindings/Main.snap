@@ -58,3 +58,40 @@ Roles
 Unit = []
 Spec = []
 Token = [Phantom]
+
+Diagnostics
+error[EscapedSkolem]: Type variable '(scope :: (t0 :: Type))' has escaped its scope, appearing in type 'Token @(t0 :: Type) (scope :: (t0 :: Type))'
+  --> 54:3..54:24
+   |
+54 |   escaped = leak modify
+   |   ^~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope1 :: ?61)' has escaped its scope, appearing in type 'Token @?61 (scope1 :: ?61)'
+  --> 67:3..67:24
+   |
+67 |   escaped = leak modify
+   |   ^~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(value :: Type)' has escaped its scope, appearing in type 'Witness @Type (value :: Type)'
+  --> 50:3..50:30
+   |
+50 |   eval = constrainedEval Spec
+   |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope2 :: (t1 :: Type))' has escaped its scope, appearing in type 'forall (t1 :: Type). Token @(t1 :: Type) (scope2 :: (t1 :: Type))'
+  --> 56:1..56:52
+   |
+56 | escapedEtaExpansion = leak (\token -> modify token)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope3 :: (t2 :: Type))' has escaped its scope, appearing in type 'forall (t2 :: Type). Token @(t2 :: Type) (scope3 :: (t2 :: Type))'
+  --> 58:1..58:48
+   |
+58 | escapedIdentityWrapper = identity (leak modify)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope4 :: (t3 :: Type))' has escaped its scope, appearing in type 'forall (t3 :: Type). Array (Token @(t3 :: Type) (scope4 :: (t3 :: Type)))'
+  --> 60:1..60:36
+   |
+60 | escapedArrayWrapper = [leak modify]
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope5 :: (t4 :: Type))' has escaped its scope, appearing in type 'forall (t4 :: Type). Token @(t4 :: Type) (scope5 :: (t4 :: Type))'
+  --> 62:1..62:89
+   |
+62 | escapedConditionalWrapper = leak (\token -> if true then modify token else modify token)
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

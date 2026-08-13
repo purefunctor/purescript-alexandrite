@@ -46,6 +46,17 @@ fn allocate_error_expression(state: &mut CheckState, type_id: TypeId) -> Elabora
     ElaboratedExpression { type_id, expression }
 }
 
+fn retain_expression_judgment(
+    state: &mut CheckState,
+    expression: ElaboratedExpression,
+) -> ElaboratedExpression {
+    // Only source expression roots correspond to PureScript's `TypedValue`
+    // judgments. Generated elaboration nodes can cache transient unification
+    // solutions and must not become independent judgments.
+    state.checked.tree.retain_expression_judgment(expression.expression);
+    expression
+}
+
 pub(super) fn allocate_term_reference<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -87,6 +98,7 @@ where
 {
     state.with_error_crumb(ErrorCrumb::CheckingExpression(expression), |state| {
         let checked = check_expression_quiet(state, context, expression, expected)?;
+        let checked = retain_expression_judgment(state, checked);
         state.checked.node_types.expressions.insert(expression, checked.type_id);
         Ok(checked)
     })
@@ -121,9 +133,10 @@ where
     Q: ExternalQueries,
 {
     let expected = normalise::normalise(state, context, expected)?;
-    check_expected_expression(state, context, expected, |state, expected| {
+    let checked = check_expected_expression(state, context, expected, |state, expected| {
         check_elaborated_expression_quiet(state, context, inferred, expected)
-    })
+    })?;
+    Ok(retain_expression_judgment(state, checked))
 }
 
 fn check_expected_expression<Q, F>(
@@ -143,11 +156,16 @@ where
 
             let kind = normalise::normalise(state, context, binder.kind)?;
             let text = state.checked.lookup_name(binder.name);
-            let rigid = state.fresh_rigid_named(context.queries, kind, text);
+            let (rigid, name, scope) = state.fresh_scoped_rigid_named(context.queries, kind, text);
 
             let inner = SubstituteName::one(state, context, binder.name, rigid, inner)?;
             let checked = check_expected_expression(state, context, inner, check)?;
-            Ok(checked)
+            let binder = crate::core::ForallBinder { name, scope: Some(scope), ..binder };
+            let binder = context.intern_forall_binder(binder);
+            let inner = state.checked.tree[checked.expression].type_id;
+            let scoped = context.intern_forall(binder, inner);
+            state.checked.tree.set_expression_type(checked.expression, scoped);
+            Ok(ElaboratedExpression { type_id: expected, expression: checked.expression })
         }
         Type::Constrained(constraint, constrained) => state.with_implication(|state| {
             let binder = state.push_given(constraint);
@@ -289,6 +307,7 @@ where
 {
     state.with_error_crumb(ErrorCrumb::InferringExpression(expression), |state| {
         let inferred = infer_expression_quiet(state, context, expression)?;
+        let inferred = retain_expression_judgment(state, inferred);
         state.checked.node_types.expressions.insert(expression, inferred.type_id);
         Ok(inferred)
     })

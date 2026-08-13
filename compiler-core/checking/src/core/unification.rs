@@ -31,7 +31,7 @@ impl CanUnify {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SubtypeApplication {
     Type { result: TypeId },
-    Evidence { evidence: EvidenceVarId, result: TypeId },
+    Evidence { evidence: EvidenceVarId, constraint: TypeId, result: TypeId },
 }
 
 /// Strategy for handling constrained types during [`subtype_with`].
@@ -156,7 +156,7 @@ where
         }
         (Type::Constrained(constraint, result), _) => {
             let evidence = state.push_wanted(constraint);
-            applications.push(SubtypeApplication::Evidence { evidence, result });
+            applications.push(SubtypeApplication::Evidence { evidence, constraint, result });
             subtype_with_applications_core(state, context, result, t2, applications)
         }
         (_, _) => subtype(state, context, t1, t2),

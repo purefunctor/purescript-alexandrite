@@ -70,6 +70,10 @@ pub enum ErrorKind {
     DeriveMissingFunctor,
     EmptyAdoBlock,
     EmptyDoBlock,
+    EscapedSkolem {
+        skolem: TypeId,
+        type_id: TypeId,
+    },
     TermHole {
         source_term: lowering::ExpressionId,
     },

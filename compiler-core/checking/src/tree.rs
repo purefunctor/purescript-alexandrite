@@ -330,6 +330,7 @@ pub enum RecordBinderField {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Expression {
     pub type_id: TypeId,
+    pub(crate) retained_judgment: bool,
     pub kind: ExpressionKind,
 }
 
@@ -356,7 +357,7 @@ pub enum ExpressionKind {
     RecordPun { source: lowering::RecordPunId, resolution: VariableResolution },
     Section { binder: BinderId },
     TermApplication { function: ExpressionId, argument: ExpressionId },
-    EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId },
+    EvidenceApplication { function: ExpressionId, evidence: EvidenceVarId, constraint: TypeId },
     EvidenceAbstraction { binder: EvidenceBinderId, expression: ExpressionId },
     Lambda { binders: Arc<[BinderId]>, expression: ExpressionId },
     IfThenElse { condition: ExpressionId, then: ExpressionId, else_: ExpressionId },
@@ -380,6 +381,14 @@ pub enum RecordExpressionUpdate {
 impl CheckedTree {
     pub fn allocate_expression(&mut self, expression: Expression) -> ExpressionId {
         self.arena.expressions.alloc(expression)
+    }
+
+    pub(crate) fn set_expression_type(&mut self, expression: ExpressionId, type_id: TypeId) {
+        self.arena.expressions[expression].type_id = type_id;
+    }
+
+    pub(crate) fn retain_expression_judgment(&mut self, expression: ExpressionId) {
+        self.arena.expressions[expression].retained_judgment = true;
     }
 
     pub fn allocate_binder(&mut self, binder: Binder) -> BinderId {
@@ -413,6 +422,10 @@ impl CheckedTree {
         self.terms.get(source).copied()
     }
 
+    pub(crate) fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, TermDeclarationId)> + '_ {
+        self.terms.iter().map(|(source, declaration)| (source, *declaration))
+    }
+
     pub fn insert_let(&mut self, declaration: LocalDeclaration) -> LocalDeclarationId {
         let source = declaration.source;
         let declaration = self.arena.lets.alloc(declaration);
@@ -423,6 +436,10 @@ impl CheckedTree {
 
     pub fn lookup_let(&self, source: LetBindingNameGroupId) -> Option<LocalDeclarationId> {
         self.lets.get(source).copied()
+    }
+
+    pub(crate) fn set_let_type(&mut self, declaration: LocalDeclarationId, type_id: TypeId) {
+        self.arena.lets[declaration].type_id = type_id;
     }
 
     pub fn insert_type_declaration(

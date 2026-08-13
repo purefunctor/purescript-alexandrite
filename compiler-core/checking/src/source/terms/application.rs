@@ -19,7 +19,7 @@ pub struct UnanchoredApplication {
 
 pub enum ImplicitApplication {
     Type { result: TypeId },
-    Evidence { evidence: EvidenceVarId, result: TypeId },
+    Evidence { evidence: EvidenceVarId, constraint: TypeId, result: TypeId },
 }
 
 enum PendingImplicitApplication {
@@ -139,6 +139,7 @@ where
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: expression.expression,
                     evidence,
+                    constraint,
                 };
                 expression = super::allocate_expression(state, result, kind);
             }
@@ -166,6 +167,7 @@ where
         let kind = tree::ExpressionKind::EvidenceApplication {
             function: expression.expression,
             evidence,
+            constraint,
         };
         expression = super::allocate_expression(state, result, kind);
     }
@@ -199,7 +201,7 @@ where
                     }
                     PendingImplicitApplication::Constraint { constraint, result } => {
                         let evidence = state.push_wanted(constraint);
-                        ImplicitApplication::Evidence { evidence, result }
+                        ImplicitApplication::Evidence { evidence, constraint, result }
                     }
                 });
                 let implicit = implicit.collect();
@@ -225,8 +227,8 @@ where
         unification::subtype_with_applications(state, context, expression.type_id, expected)?;
     let applications = applications.into_iter().map(|application| match application {
         unification::SubtypeApplication::Type { result } => ImplicitApplication::Type { result },
-        unification::SubtypeApplication::Evidence { evidence, result } => {
-            ImplicitApplication::Evidence { evidence, result }
+        unification::SubtypeApplication::Evidence { evidence, constraint, result } => {
+            ImplicitApplication::Evidence { evidence, constraint, result }
         }
     });
     Ok(materialize_implicit_applications(state, expression, applications))
@@ -242,10 +244,11 @@ fn materialize_implicit_applications(
             ImplicitApplication::Type { result } => {
                 expression.type_id = result;
             }
-            ImplicitApplication::Evidence { evidence, result } => {
+            ImplicitApplication::Evidence { evidence, constraint, result } => {
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: expression.expression,
                     evidence,
+                    constraint,
                 };
                 expression = super::allocate_expression(state, result, kind);
             }
@@ -327,6 +330,7 @@ where
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: function.expression,
                     evidence,
+                    constraint,
                 };
                 function = super::allocate_expression(state, result, kind);
             }
@@ -381,6 +385,7 @@ where
                 let kind = tree::ExpressionKind::EvidenceApplication {
                     function: function.expression,
                     evidence,
+                    constraint,
                 };
                 function = super::allocate_expression(state, result, kind);
             }

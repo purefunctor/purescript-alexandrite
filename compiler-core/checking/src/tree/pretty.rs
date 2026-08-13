@@ -1547,7 +1547,7 @@ where
                     Ok(breakable_continuation(self.arena, function, argument))
                 }
             }
-            ExpressionKind::EvidenceApplication { function, evidence } => {
+            ExpressionKind::EvidenceApplication { function, evidence, .. } => {
                 let function = self.expression_at(
                     *function,
                     ExpressionPrecedence::Application,

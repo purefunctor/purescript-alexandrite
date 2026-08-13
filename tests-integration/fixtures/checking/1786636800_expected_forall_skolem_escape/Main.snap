@@ -135,3 +135,37 @@ Token = [Phantom]
 Effect = [Representational]
 Proxy = [Phantom]
 Map = [Phantom, Phantom]
+
+Diagnostics
+error[EscapedSkolem]: Type variable '(scope :: (t0 :: Type))' has escaped its scope, appearing in type 'forall (t0 :: Type). Token @(t0 :: Type) (scope :: (t0 :: Type))'
+  --> 99:1..99:28
+   |
+99 | escapedResult = leak modify
+   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(value :: Type)' has escaped its scope, appearing in type '((value :: Type) -> (value :: Type)) -> Unit'
+  --> 101:1..101:54
+    |
+101 | escapedBinder = \callback -> consumeIdentity callback
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope1 :: (t1 :: Type))' has escaped its scope, appearing in type 'forall (t1 :: Type). Token @(t1 :: Type) (scope1 :: (t1 :: Type))'
+  --> 103:1..103:42
+    |
+103 | escapedNestedUse = identity (leak modify)
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope2 :: (t2 :: Type))' has escaped its scope, appearing in type 'forall (t3 :: Type) (t2 :: Type). (t3 :: Type) -> Token @(t2 :: Type) (scope2 :: (t2 :: Type))'
+  --> 105:1..105:46
+    |
+105 | escapedDiscardedOuterArgument _ = leak modify
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope3 :: ?111)' has escaped its scope, appearing in type 'Token @?111 (scope3 :: ?111)'
+  --> 107:1..107:33
+    |
+107 | escapedDiscardedArgument :: Unit
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error[EscapedSkolem]: Type variable '(scope4 :: (t4 :: Type))' has escaped its scope, appearing in type 'forall (t4 :: Type) (t5 :: Type) (t6 :: (t5 :: Type)).
+  EscapingEvidence @(t4 :: Type) @(t5 :: Type) (scope4 :: (t4 :: Type)) (t6 :: (t5 :: Type)) =>
+  Proxy @(t5 :: Type) (t6 :: (t5 :: Type))'
+  --> 110:1..110:46
+    |
+110 | escapedEvidenceOnly = leak pokeWithoutWitness
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

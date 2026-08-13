@@ -3,7 +3,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{Type, TypeId, exhaustive, normalise, unification};
+use crate::core::{Type, TypeId, exhaustive, normalise, skolem, unification};
 use crate::error::ErrorCrumb;
 use crate::source::terms::{ElaboratedExpression, application, equations, guarded};
 use crate::source::{binder, types};
@@ -169,12 +169,14 @@ where
         match item {
             lowering::Scc::Base(id) | lowering::Scc::Recursive(id) => {
                 let declaration = check_let_name_binding(state, context, *id)?;
-                state.checked.tree.insert_let(declaration);
+                let declaration = state.checked.tree.insert_let(declaration);
+                skolem::check_local(state, context, declaration)?;
             }
             lowering::Scc::Mutual(mutual) => {
                 for &id in mutual {
                     let declaration = check_let_name_binding(state, context, id)?;
-                    state.checked.tree.insert_let(declaration);
+                    let declaration = state.checked.tree.insert_let(declaration);
+                    skolem::check_local(state, context, declaration)?;
                 }
             }
         }
