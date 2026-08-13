@@ -34,7 +34,7 @@ coverage-html:
 
 [doc("Compare package compatibility with a base revision using release builds")]
 @compatibility base="origin/main":
-  bash .agents/skills/running-compatibility-checks/scripts/run.sh "{{base}}"
+  bash .agents/skills/running-compatibility-checks/scripts/run.sh {{quote(base)}}
 
 [doc("Apply clippy fixes and format")]
 fix:
