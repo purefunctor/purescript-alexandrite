@@ -4,11 +4,15 @@ import type { PluginAPI, PluginThread, WebhookEvent, WebhookHandlerContext } fro
 import { createHmac, createSign, timingSafeEqual } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 
+export const description =
+  "Reviews Alexandrite pull requests and marks Amp threads from merged commits as archive candidates.";
+
 const repository = "purefunctor/purescript-alexandrite";
 const reviewAuthor = "purefunctor";
 const botLogin = "purefunctor[bot]";
 const markerNamespace = "amp-pr-review-state";
 const stateVersion = 2;
+const archiveCandidateLabel = "archive-candidate";
 const handledActions = new Set([
   "opened",
   "reopened",
@@ -31,7 +35,13 @@ interface PullRequestPayload {
   action: string;
   number: number;
   repository: { full_name: string };
-  pull_request: { html_url: string; state: string; user: { login: string }; head: { sha: string } };
+  pull_request: {
+    html_url: string;
+    state: string;
+    merged: boolean;
+    user: { login: string };
+    head: { sha: string };
+  };
 }
 interface PullRequest {
   number: number;
@@ -59,6 +69,9 @@ interface ReviewReport {
 interface PullRequestFile {
   filename: string;
   patch?: string;
+}
+interface PullRequestCommit {
+  commit: { message: string };
 }
 interface GitHubActor {
   login?: string;
@@ -148,6 +161,7 @@ function parsePayload(event: WebhookEvent): PullRequestPayload | null {
     candidate.repository?.full_name !== repository ||
     pullRequest?.user?.login !== reviewAuthor ||
     typeof pullRequest.html_url !== "string" ||
+    typeof pullRequest.merged !== "boolean" ||
     !/^https:\/\/github\.com\/purefunctor\/purescript-alexandrite\/pull\/\d+$/.test(
       pullRequest.html_url
     ) ||
@@ -260,6 +274,10 @@ async function handleDelivery(
   notificationThread = context.thread;
   const token = await createInstallationToken(credentials, context.signal);
   if (context.signal.aborted) return;
+  if (payload.action === "closed" && payload.pull_request.merged) {
+    await markMergedThreadsAsArchiveCandidates(amp, payload.number, token, context.signal);
+  }
+  if (context.signal.aborted) return;
   await reconcilePullRequest(
     amp,
     credentials,
@@ -271,6 +289,31 @@ async function handleDelivery(
   void reconcileClaims(amp, credentials).catch((error) =>
     amp.logger.log("PR review reconciliation failed.", error)
   );
+}
+
+async function markMergedThreadsAsArchiveCandidates(
+  amp: PluginAPI,
+  number: number,
+  token: string,
+  signal: AbortSignal
+) {
+  const commits = await listPullRequestCommits(number, token, signal);
+  const threadIds = new Set<string>();
+  for (const commit of commits) {
+    for (const match of commit.commit.message.matchAll(
+      /^Amp-Thread(?:-ID)?:\s+https:\/\/ampcode\.com\/threads\/(T-[0-9a-f-]+)\s*$/gim
+    )) {
+      threadIds.add(match[1]);
+    }
+  }
+  for (const threadId of threadIds) {
+    if (signal.aborted) return;
+    const result = await amp.$`amp threads label ${threadId} ${archiveCandidateLabel}`;
+    if (result.exitCode !== 0) {
+      const details = result.stderr.trim().slice(0, 1_000);
+      throw new Error(`Could not mark thread ${threadId} as an archive candidate: ${details}`);
+    }
+  }
 }
 
 async function reconcileClaims(amp: PluginAPI, credentials: Credentials) {
@@ -952,6 +995,13 @@ async function listIssueComments(
 }
 async function listPullRequestFiles(number: number, token: string): Promise<PullRequestFile[]> {
   return githubPaginatedRequest(token, `/repos/${repository}/pulls/${number}/files`);
+}
+async function listPullRequestCommits(
+  number: number,
+  token: string,
+  signal?: AbortSignal
+): Promise<PullRequestCommit[]> {
+  return githubPaginatedRequest(token, `/repos/${repository}/pulls/${number}/commits`, signal);
 }
 async function completedReviewExists(
   number: number,
