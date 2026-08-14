@@ -4,7 +4,7 @@ mod map;
 pub use id::*;
 pub use map::*;
 
-use syntax::{SyntaxKind, SyntaxNode, WalkEvent};
+use syntax::{SyntaxKind, SyntaxNode};
 
 /// Allocates stable IDs for text ranges.
 ///
@@ -21,15 +21,12 @@ use syntax::{SyntaxKind, SyntaxNode, WalkEvent};
 pub fn stabilize_module(node: &SyntaxNode) -> StabilizedModule {
     let mut ast_ptr_map = StabilizedModule::default();
 
-    for event in node.preorder() {
-        if let WalkEvent::Enter(node) = event
-            && let kind = node.kind()
-            && !matches!(
-                kind,
-                SyntaxKind::Annotation | SyntaxKind::QualifiedName | SyntaxKind::LabelName
-            )
-        {
-            ast_ptr_map.allocate(&node);
+    for pointer in node.preorder_pointers() {
+        if !matches!(
+            pointer.kind(),
+            SyntaxKind::Annotation | SyntaxKind::QualifiedName | SyntaxKind::LabelName
+        ) {
+            ast_ptr_map.allocate_ptr(pointer);
         }
     }
 

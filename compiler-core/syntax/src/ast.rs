@@ -60,7 +60,14 @@ pub mod support {
     use super::*;
 
     pub fn child<N: AstNode>(node: &SyntaxNode) -> Option<N> {
-        node.children().find_map(N::cast)
+        let mut child = node.first_child();
+        while let Some(node) = child {
+            child = node.next_sibling();
+            if let Some(node) = N::cast(node) {
+                return Some(node);
+            }
+        }
+        None
     }
 
     pub fn children<N: AstNode>(node: &SyntaxNode) -> AstChildren<N> {
@@ -68,8 +75,6 @@ pub mod support {
     }
 
     pub fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
-        node.children_with_tokens()
-            .filter_map(|element| element.into_token())
-            .find(|token| token.kind() == kind)
+        node.token(kind)
     }
 }
