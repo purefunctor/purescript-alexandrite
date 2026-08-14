@@ -1,6 +1,6 @@
 use la_arena::RawIdx;
 
-use crate::{IndexedModule, TermItemId, index_module};
+use crate::{IndexedModule, IndexedTermItemKind, InstanceId, TermItemId, index_module};
 
 fn index(source: &str) -> IndexedModule {
     let lexed = lexing::lex(source);
@@ -11,6 +11,14 @@ fn index(source: &str) -> IndexedModule {
     let root = parsed.syntax_node();
     let stabilized = stabilizing::stabilize_module(&root);
     index_module(source, &parsed.cst(), &stabilized)
+}
+
+fn instance_id(indexed: &IndexedModule, name: &str) -> InstanceId {
+    let term_id = indexed.names.terms.lookup(name).unwrap();
+    let IndexedTermItemKind::Instance { id } = indexed.items[term_id].kind else {
+        panic!("expected {name} to be an instance");
+    };
+    id
 }
 
 #[test]
@@ -39,4 +47,34 @@ fn constructor_owners_preserve_type_and_constructor_ids() {
     assert_eq!(indexed.constructor_type(value), None);
     let out_of_range = TermItemId::from_raw(RawIdx::from_u32(u32::MAX));
     assert_eq!(indexed.constructor_type(out_of_range), None);
+}
+
+#[test]
+fn instance_chain_metadata_preserves_chain_and_source_order() {
+    let indexed = index(
+        "module Main where\n\
+         foreign import data Subject :: Type\n\
+         class Example a\n\
+         instance first :: Example Subject\n\
+         else instance middle :: Example Subject\n\
+         else instance last :: Example Subject\n\
+         instance standalone :: Example Subject\n",
+    );
+
+    let first = instance_id(&indexed, "first");
+    let middle = instance_id(&indexed, "middle");
+    let last = instance_id(&indexed, "last");
+    let standalone = instance_id(&indexed, "standalone");
+    let first_chain = indexed.pairs.instance_chain_id(first).unwrap();
+    let standalone_chain = indexed.pairs.instance_chain_id(standalone).unwrap();
+
+    assert_ne!(first_chain, standalone_chain);
+    assert_eq!(indexed.pairs.instance_chain_metadata(first), Some((first_chain, 0)));
+    assert_eq!(indexed.pairs.instance_chain_metadata(middle), Some((first_chain, 1)));
+    assert_eq!(indexed.pairs.instance_chain_metadata(last), Some((first_chain, 2)));
+    assert_eq!(indexed.pairs.instance_chain_metadata(standalone), Some((standalone_chain, 0)),);
+    assert_eq!(indexed.pairs.instance_chain_position(first), Some(0));
+    assert_eq!(indexed.pairs.instance_chain_position(middle), Some(1));
+    assert_eq!(indexed.pairs.instance_chain_position(last), Some(2));
+    assert_eq!(indexed.pairs.instance_chain_position(standalone), Some(0));
 }

@@ -144,10 +144,18 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
         }
         cst::Declaration::InstanceChain(cst) => {
             let chain_id = stabilized.lookup_cst(cst).expect_id();
-            for cst in cst.instance_declarations() {
+            for (position, cst) in cst.instance_declarations().enumerate() {
                 let instance_id = stabilized.lookup_cst(&cst).expect_id();
                 let term_id = index_instance(state, instance_id, &cst);
-                state.pairs.instance_chain.push((chain_id, instance_id));
+                debug_assert!(
+                    state
+                        .pairs
+                        .instance_chain
+                        .last()
+                        .is_none_or(|(previous_id, _, _)| *previous_id < instance_id),
+                    "invariant violated: instance IDs are not in source order",
+                );
+                state.pairs.instance_chain.push((instance_id, chain_id, position as u32));
                 state.pairs.instance_to_term.push((instance_id, term_id));
                 state.pairs.declaration_to_term.push((declaration_id, term_id));
                 if let Some(cst) = cst.instance_statements() {

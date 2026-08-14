@@ -324,8 +324,10 @@ fn collect_instances_from_checked(
         .iter()
         .filter(|(_, instance)| instance.resolution == (class_file, class_id))
         .map(|(&id, &instance)| {
-            let chain = indexed.pairs.instance_chain_id(id).map(|chain_id| (file_id, chain_id));
-            let position = indexed.pairs.instance_chain_position(id).unwrap_or(0);
+            let (chain, position) = indexed
+                .pairs
+                .instance_chain_metadata(id)
+                .map_or((None, 0), |(chain_id, position)| (Some((file_id, chain_id)), position));
             let origin = InstanceCandidateOrigin::Instance(file_id, id);
             InstanceCandidate { chain, position, origin, instance }
         });
