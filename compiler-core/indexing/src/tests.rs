@@ -65,6 +65,21 @@ fn constructor_owner_requires_attachment_to_the_recovered_type() {
 }
 
 #[test]
+fn constructor_owner_requires_attachment_to_the_recovered_class() {
+    let indexed = index(
+        "module Main where\n\
+         class Clash a\n\
+         data Clash = Constructor\n",
+    );
+
+    let clash = indexed.names.types.lookup("Clash").unwrap();
+    let constructor = indexed.names.terms.lookup("Constructor").unwrap();
+
+    assert_eq!(indexed.data_constructors(clash).next(), None);
+    assert_eq!(indexed.constructor_type(constructor), None);
+}
+
+#[test]
 fn instance_chain_metadata_preserves_chain_and_source_order() {
     let indexed = index(
         "module Main where\n\
