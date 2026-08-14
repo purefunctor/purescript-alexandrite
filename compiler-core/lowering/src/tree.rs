@@ -448,8 +448,8 @@ pub struct LoweredTree {
     pub(crate) binders: FxHashMap<BinderId, BinderKind>,
     pub(crate) expressions: FxHashMap<ExpressionId, ExpressionKind>,
     pub(crate) types: FxHashMap<TypeId, TypeKind>,
-    pub(crate) term_items: FxHashMap<TermItemId, TermItemKind>,
-    pub(crate) type_items: FxHashMap<TypeItemId, TypeItemKind>,
+    pub(crate) term_items: ArenaMap<TermItemId, TermItemKind>,
+    pub(crate) type_items: ArenaMap<TypeItemId, TypeItemKind>,
 
     pub(crate) do_statements: FxHashMap<DoStatementId, DoStatement>,
     pub(crate) let_binding_groups: Arena<LetBindingNameGroup>,
@@ -508,11 +508,11 @@ impl LoweredTree {
     }
 
     pub fn get_term_item_kind(&self, id: TermItemId) -> Option<&TermItemKind> {
-        self.term_items.get(&id)
+        self.term_items.get(id)
     }
 
     pub fn get_type_item_kind(&self, id: TypeItemId) -> Option<&TypeItemKind> {
-        self.type_items.get(&id)
+        self.type_items.get(id)
     }
 
     pub fn get_let_binding_group(&self, id: LetBindingNameGroupId) -> &LetBindingNameGroup {
