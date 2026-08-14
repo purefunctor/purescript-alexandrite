@@ -133,7 +133,15 @@ where
             let crumb = ErrorCrumb::TermDeclaration(source);
             Task::Term(&checked.tree[declaration], crumb)
         });
-        tasks.collect_vec()
+        let instances = checked.tree.iter_instances().map(|(source, declaration)| {
+            let crumb = ErrorCrumb::InstanceDeclaration(source);
+            Task::Term(&checked.tree[declaration], crumb)
+        });
+        let derives = checked.tree.iter_derives().map(|(source, declaration)| {
+            let crumb = ErrorCrumb::DeriveDeclaration(source);
+            Task::Term(&checked.tree[declaration], crumb)
+        });
+        tasks.chain(instances).chain(derives).collect_vec()
     };
     tasks.reverse();
 

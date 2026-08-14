@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use files::FileId;
 use indexing::{
-    EquationSourceId, IndexedModule, IndexedTermItem, IndexedTermItemKind, IndexedTypeItem,
-    IndexedTypeItemKind, TermItemId, TypeItemId, TypeRoleId,
+    DeriveItemId, EquationSourceId, IndexedDeriveItem, IndexedInstanceItem, IndexedModule,
+    IndexedTermItem, IndexedTermItemKind, IndexedTypeItem, IndexedTypeItemKind, InstanceItemId,
+    TermItemId, TypeItemId, TypeRoleId,
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -77,6 +78,12 @@ impl State {
     fn begin_type(&mut self, id: TypeItemId) {
         self.current_term = None;
         self.current_type = Some(id);
+        self.current_synonym = None;
+    }
+
+    fn begin_instance_or_derive(&mut self) {
+        self.current_term = None;
+        self.current_type = None;
         self.current_synonym = None;
     }
 
@@ -401,6 +408,20 @@ pub(super) fn lower_module(
         });
     }
 
+    for (id, item) in context.indexed.items.iter_instances() {
+        state.with_scope(|state| {
+            state.begin_instance_or_derive();
+            lower_instance_item(state, &context, id, item);
+        });
+    }
+
+    for (id, item) in context.indexed.items.iter_derives() {
+        state.with_scope(|state| {
+            state.begin_instance_or_derive();
+            lower_derive_item(state, &context, id, item);
+        });
+    }
+
     for (id, item) in context.indexed.items.iter_types() {
         state.with_scope(|state| {
             state.begin_type(id);
@@ -440,41 +461,6 @@ fn lower_term_item(
 
         IndexedTermItemKind::Constructor { .. } => (), // See lower_type_item
 
-        IndexedTermItemKind::Derive { id } => {
-            let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
-
-            let newtype = cst.as_ref().map(|cst| cst.newtype_token().is_some()).unwrap_or(false);
-
-            let resolution = cst.as_ref().and_then(|cst| {
-                let head = cst.instance_head()?;
-                lower_instance_class_reference(state, context, &head)
-            });
-
-            state.push_implicit_scope();
-            let arguments = recover! {
-                let head = cst.as_ref()?.instance_head()?;
-
-                head
-                    .children()
-                    .map(|cst| recursive::lower_type(state, context, &cst))
-                    .collect()
-            };
-
-            state.in_constraint = true;
-            let constraints = recover! {
-                cst.as_ref()?
-                    .instance_constraints()?
-                    .children()
-                    .map(|cst| recursive::lower_type(state, context, &cst))
-                    .collect()
-            };
-            state.in_constraint = false;
-            state.finish_implicit_scope();
-
-            let kind = TermItemKind::Derive { newtype, constraints, resolution, arguments };
-            state.tree.term_items.insert(item_id, kind);
-        }
-
         IndexedTermItemKind::Foreign { id } => {
             let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
 
@@ -484,44 +470,6 @@ fn lower_term_item(
             });
 
             let kind = TermItemKind::Foreign { signature };
-            state.tree.term_items.insert(item_id, kind);
-        }
-
-        IndexedTermItemKind::Instance { id } => {
-            let cst = context.stabilized.ast_ptr(*id).and_then(|cst| cst.try_to_node(context.root));
-
-            let resolution = cst.as_ref().and_then(|cst| {
-                let head = cst.instance_head()?;
-                lower_instance_class_reference(state, context, &head)
-            });
-
-            state.push_implicit_scope();
-            let arguments = recover! {
-                let head = cst.as_ref()?.instance_head()?;
-
-                head
-                    .children()
-                    .map(|cst| recursive::lower_type(state, context, &cst))
-                    .collect()
-            };
-
-            state.in_constraint = true;
-            let constraints = recover! {
-                cst.as_ref()?
-                    .instance_constraints()?
-                    .children()
-                    .map(|cst| recursive::lower_type(state, context, &cst))
-                    .collect()
-            };
-            state.in_constraint = false;
-            state.finish_implicit_scope();
-
-            let members = recover! {
-                let statements = cst.as_ref()?.instance_statements()?;
-                lower_instance_statements(state, context, &statements, resolution)
-            };
-
-            let kind = TermItemKind::Instance { constraints, resolution, arguments, members };
             state.tree.term_items.insert(item_id, kind);
         }
 
@@ -594,6 +542,80 @@ fn lower_term_item(
             state.tree.term_items.insert(item_id, kind);
         }
     }
+}
+
+fn lower_instance_item(
+    state: &mut State,
+    context: &Context,
+    item_id: InstanceItemId,
+    item: &IndexedInstanceItem,
+) {
+    let cst = context.stabilized.ast_ptr(item.id).and_then(|cst| cst.try_to_node(context.root));
+
+    let resolution = cst.as_ref().and_then(|cst| {
+        let head = cst.instance_head()?;
+        lower_instance_class_reference(state, context, &head)
+    });
+
+    state.push_implicit_scope();
+    let arguments = recover! {
+        let head = cst.as_ref()?.instance_head()?;
+        head.children().map(|cst| recursive::lower_type(state, context, &cst)).collect()
+    };
+
+    state.in_constraint = true;
+    let constraints = recover! {
+        cst.as_ref()?
+            .instance_constraints()?
+            .children()
+            .map(|cst| recursive::lower_type(state, context, &cst))
+            .collect()
+    };
+    state.in_constraint = false;
+    state.finish_implicit_scope();
+
+    let members = recover! {
+        let statements = cst.as_ref()?.instance_statements()?;
+        lower_instance_statements(state, context, &statements, resolution)
+    };
+
+    let item = InstanceItem { constraints, resolution, arguments, members };
+    state.tree.instance_items.insert(item_id, item);
+}
+
+fn lower_derive_item(
+    state: &mut State,
+    context: &Context,
+    item_id: DeriveItemId,
+    item: &IndexedDeriveItem,
+) {
+    let cst = context.stabilized.ast_ptr(item.id).and_then(|cst| cst.try_to_node(context.root));
+
+    let newtype = cst.as_ref().map(|cst| cst.newtype_token().is_some()).unwrap_or(false);
+    let resolution = cst.as_ref().and_then(|cst| {
+        let head = cst.instance_head()?;
+        lower_instance_class_reference(state, context, &head)
+    });
+
+    state.push_implicit_scope();
+    let arguments = recover! {
+        let head = cst.as_ref()?.instance_head()?;
+        head.children().map(|cst| recursive::lower_type(state, context, &cst)).collect()
+    };
+
+    state.in_constraint = true;
+    let constraints = recover! {
+        cst.as_ref()?
+            .instance_constraints()?
+            .children()
+            .map(|cst| recursive::lower_type(state, context, &cst))
+            .collect()
+    };
+    state.in_constraint = false;
+    state.finish_implicit_scope();
+
+    let item = DeriveItem { newtype, constraints, resolution, arguments };
+    state.tree.derive_items.insert(item_id, item);
 }
 
 fn lower_type_item(
@@ -834,7 +856,8 @@ fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
 
 fn lower_class_members(state: &mut State, context: &Context, id: TypeItemId) {
     for item_id in context.indexed.class_members(id) {
-        let IndexedTermItemKind::ClassMember { id } = context.indexed.items[item_id].kind else {
+        let IndexedTermItemKind::ClassMember { id, .. } = context.indexed.items[item_id].kind
+        else {
             unreachable!("invariant violated: expected IndexedTermItemKind::ClassMember");
         };
 

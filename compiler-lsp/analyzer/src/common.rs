@@ -1,7 +1,8 @@
 use building_types::QueryProxy;
 use files::FileId;
-use indexing::{TermItemId, TypeItemId};
+use indexing::{DeriveItemId, InstanceItemId, TermItemId, TypeItemId};
 use lsp_types::*;
+use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
 use crate::position::Utf8Range;
@@ -49,6 +50,42 @@ pub fn file_type_location(
     let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
 
+    Ok(Location { uri, range })
+}
+
+pub fn file_instance_location(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    file_id: FileId,
+    item_id: InstanceItemId,
+) -> Result<Location, AnalyzerError> {
+    let indexed = context.queries().indexed(file_id)?;
+    file_source_location(context, uri, file_id, indexed.items[item_id].id)
+}
+
+pub fn file_derive_location(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    file_id: FileId,
+    item_id: DeriveItemId,
+) -> Result<Location, AnalyzerError> {
+    let indexed = context.queries().indexed(file_id)?;
+    file_source_location(context, uri, file_id, indexed.items[item_id].id)
+}
+
+fn file_source_location<T: AstNode>(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    file_id: FileId,
+    source_id: stabilizing::AstId<T>,
+) -> Result<Location, AnalyzerError> {
+    let content = context.queries().content(file_id);
+    let stabilized = context.queries().stabilized(file_id)?;
+    let range =
+        locate::id_range(&content, &context.queries().parsed(file_id)?.0, &stabilized, source_id)
+            .ok_or(AnalyzerError::NonFatal)?;
+    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
+        .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 

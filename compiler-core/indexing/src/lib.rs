@@ -179,6 +179,10 @@ pub enum TypeSelection {
 pub struct IndexedItems {
     terms: Arena<IndexedTermItem>,
     types: Arena<IndexedTypeItem>,
+    instances: Arena<IndexedInstanceItem>,
+    derives: Arena<IndexedDeriveItem>,
+    instance_sources: Vec<InstanceSourceItemId>,
+    ordered_terms: Vec<OrderedTermItemId>,
 }
 
 impl IndexedItems {
@@ -188,6 +192,22 @@ impl IndexedItems {
 
     pub fn iter_types(&self) -> impl Iterator<Item = (TypeItemId, &IndexedTypeItem)> {
         self.types.iter()
+    }
+
+    pub fn iter_instances(&self) -> impl Iterator<Item = (InstanceItemId, &IndexedInstanceItem)> {
+        self.instances.iter()
+    }
+
+    pub fn iter_derives(&self) -> impl Iterator<Item = (DeriveItemId, &IndexedDeriveItem)> {
+        self.derives.iter()
+    }
+
+    pub fn instance_sources(&self) -> &[InstanceSourceItemId] {
+        &self.instance_sources
+    }
+
+    pub fn ordered_terms(&self) -> &[OrderedTermItemId] {
+        &self.ordered_terms
     }
 }
 
@@ -204,6 +224,22 @@ impl ops::Index<TypeItemId> for IndexedItems {
 
     fn index(&self, index: TypeItemId) -> &IndexedTypeItem {
         &self.types[index]
+    }
+}
+
+impl ops::Index<InstanceItemId> for IndexedItems {
+    type Output = IndexedInstanceItem;
+
+    fn index(&self, index: InstanceItemId) -> &IndexedInstanceItem {
+        &self.instances[index]
+    }
+}
+
+impl ops::Index<DeriveItemId> for IndexedItems {
+    type Output = IndexedDeriveItem;
+
+    fn index(&self, index: DeriveItemId) -> &IndexedDeriveItem {
+        &self.derives[index]
     }
 }
 
@@ -258,29 +294,31 @@ impl IndexedImport {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedPairs {
-    derive_to_term: Vec<(DeriveId, TermItemId)>,
+    derive_to_item: Vec<(DeriveId, DeriveItemId)>,
     instance_chain: Vec<(InstanceId, InstanceChainId, u32)>,
-    instance_to_term: Vec<(InstanceId, TermItemId)>,
+    instance_to_item: Vec<(InstanceId, InstanceItemId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
     declaration_to_term: Vec<(DeclarationId, TermItemId)>,
     declaration_to_type: Vec<(DeclarationId, TypeItemId)>,
+    declaration_to_instance: Vec<(DeclarationId, InstanceItemId)>,
+    declaration_to_derive: Vec<(DeclarationId, DeriveItemId)>,
     constructor_to_term: Vec<(DataConstructorId, TermItemId)>,
     class_member_to_term: Vec<(ClassMemberId, TermItemId)>,
 }
 
 impl IndexedPairs {
-    pub fn derive_to_term(&self, id: DeriveId) -> Option<TermItemId> {
-        self.derive_to_term.iter().find_map(
-            move |(derive_id, term_id)| {
-                if *derive_id == id { Some(*term_id) } else { None }
+    pub fn derive_to_item(&self, id: DeriveId) -> Option<DeriveItemId> {
+        self.derive_to_item.iter().find_map(
+            move |(derive_id, item_id)| {
+                if *derive_id == id { Some(*item_id) } else { None }
             },
         )
     }
 
-    pub fn instance_to_term(&self, id: InstanceId) -> Option<TermItemId> {
-        self.instance_to_term.iter().find_map(move |(instance_id, term_id)| {
-            if *instance_id == id { Some(*term_id) } else { None }
+    pub fn instance_to_item(&self, id: InstanceId) -> Option<InstanceItemId> {
+        self.instance_to_item.iter().find_map(move |(instance_id, item_id)| {
+            if *instance_id == id { Some(*item_id) } else { None }
         })
     }
 
@@ -293,6 +331,18 @@ impl IndexedPairs {
     pub fn declaration_to_type(&self, id: DeclarationId) -> Option<TypeItemId> {
         self.declaration_to_type.iter().find_map(move |(declaration_id, type_id)| {
             if *declaration_id == id { Some(*type_id) } else { None }
+        })
+    }
+
+    pub fn declaration_to_instance(&self, id: DeclarationId) -> Option<InstanceItemId> {
+        self.declaration_to_instance.iter().find_map(move |(declaration_id, item_id)| {
+            if *declaration_id == id { Some(*item_id) } else { None }
+        })
+    }
+
+    pub fn declaration_to_derive(&self, id: DeclarationId) -> Option<DeriveItemId> {
+        self.declaration_to_derive.iter().find_map(move |(declaration_id, item_id)| {
+            if *declaration_id == id { Some(*item_id) } else { None }
         })
     }
 

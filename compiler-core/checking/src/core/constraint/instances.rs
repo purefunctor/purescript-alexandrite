@@ -5,8 +5,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 use files::FileId;
 use indexing::{
-    DeriveId, IndexedModule, IndexedTermItemKind, InstanceChainId, InstanceId, TermItemId,
-    TypeItemId,
+    DeriveId, IndexedModule, InstanceChainId, InstanceId, InstanceSourceItemId, TypeItemId,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -56,7 +55,7 @@ pub struct InstanceChains {
 pub fn validate_declared_instance_overlap<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    item_id: TermItemId,
+    item_id: InstanceSourceItemId,
 ) -> QueryResult<()>
 where
     Q: ExternalQueries,
@@ -74,8 +73,9 @@ where
     let Some(current_position) = context
         .indexed
         .items
-        .iter_terms()
-        .position(|(candidate_item_id, _)| candidate_item_id == item_id)
+        .instance_sources()
+        .iter()
+        .position(|&candidate_item_id| candidate_item_id == item_id)
     else {
         return Ok(());
     };
@@ -96,23 +96,24 @@ where
 fn declared_instance_candidate<Q>(
     state: &CheckState,
     context: &CheckContext<Q>,
-    item_id: TermItemId,
+    item_id: InstanceSourceItemId,
 ) -> Option<(InstanceCandidateOrigin, CheckedInstance)>
 where
     Q: ExternalQueries,
 {
-    match context.indexed.items[item_id].kind {
-        IndexedTermItemKind::Instance { id } => {
+    match item_id {
+        InstanceSourceItemId::Instance(item_id) => {
+            let id = context.indexed.items[item_id].id;
             let instance = state.checked.lookup_instance(id)?;
             let origin = InstanceCandidateOrigin::Instance(context.id, id);
             Some((origin, instance))
         }
-        IndexedTermItemKind::Derive { id } => {
+        InstanceSourceItemId::Derive(item_id) => {
+            let id = context.indexed.items[item_id].id;
             let instance = state.checked.lookup_derived_instance(id)?;
             let origin = InstanceCandidateOrigin::Derive(context.id, id);
             Some((origin, instance))
         }
-        _ => None,
     }
 }
 
@@ -278,17 +279,22 @@ fn instance_candidate_position<Q>(
 where
     Q: ExternalQueries,
 {
-    context.indexed.items.iter_terms().position(|(_, item)| match (origin, &item.kind) {
-        (
-            InstanceCandidateOrigin::Instance(file_id, origin_id),
-            IndexedTermItemKind::Instance { id },
-        ) => file_id == context.id && origin_id == *id,
-        (
-            InstanceCandidateOrigin::Derive(file_id, origin_id),
-            IndexedTermItemKind::Derive { id },
-        ) => file_id == context.id && origin_id == *id,
-        _ => false,
-    })
+    if match origin {
+        InstanceCandidateOrigin::Instance(file_id, _)
+        | InstanceCandidateOrigin::Derive(file_id, _) => file_id != context.id,
+    } {
+        return None;
+    }
+
+    let item_id = match origin {
+        InstanceCandidateOrigin::Instance(_, id) => {
+            InstanceSourceItemId::Instance(context.indexed.pairs.instance_to_item(id)?)
+        }
+        InstanceCandidateOrigin::Derive(_, id) => {
+            InstanceSourceItemId::Derive(context.indexed.pairs.derive_to_item(id)?)
+        }
+    };
+    context.indexed.items.instance_sources().iter().position(|&id| id == item_id)
 }
 
 fn should_report_overlap<Q>(

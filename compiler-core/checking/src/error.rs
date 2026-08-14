@@ -10,6 +10,8 @@ use crate::core::{SmolStrId, TypeId};
 pub enum ErrorCrumb {
     TermDeclaration(indexing::TermItemId),
     TypeDeclaration(indexing::TypeItemId),
+    InstanceDeclaration(indexing::InstanceItemId),
+    DeriveDeclaration(indexing::DeriveItemId),
     ConstructorArgument(lowering::TypeId),
 
     InferringKind(lowering::TypeId),

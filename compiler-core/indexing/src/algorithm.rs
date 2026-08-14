@@ -70,6 +70,7 @@ impl<'a> State<'a> {
 
     fn alloc_term(&mut self, item: IndexedTermItem) -> TermItemId {
         let id = self.items.terms.alloc(item);
+        self.items.ordered_terms.push(OrderedTermItemId::Term(id));
         self.open = Some(OpenItemGroup::Term(id));
         id
     }
@@ -77,6 +78,22 @@ impl<'a> State<'a> {
     fn alloc_type(&mut self, item: IndexedTypeItem) -> TypeItemId {
         let id = self.items.types.alloc(item);
         self.open = Some(OpenItemGroup::Type(id));
+        id
+    }
+
+    fn alloc_instance(&mut self, item: IndexedInstanceItem) -> InstanceItemId {
+        let id = self.items.instances.alloc(item);
+        self.items.instance_sources.push(InstanceSourceItemId::Instance(id));
+        self.items.ordered_terms.push(OrderedTermItemId::Instance(id));
+        self.open = None;
+        id
+    }
+
+    fn alloc_derive(&mut self, item: IndexedDeriveItem) -> DeriveItemId {
+        let id = self.items.derives.alloc(item);
+        self.items.instance_sources.push(InstanceSourceItemId::Derive(id));
+        self.items.ordered_terms.push(OrderedTermItemId::Derive(id));
+        self.open = None;
         id
     }
 }
@@ -146,7 +163,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             let chain_id = stabilized.lookup_cst(cst).expect_id();
             for (position, cst) in cst.instance_declarations().enumerate() {
                 let instance_id = stabilized.lookup_cst(&cst).expect_id();
-                let term_id = index_instance(state, instance_id, &cst);
+                let item_id = index_instance(state, instance_id, &cst);
                 debug_assert!(
                     state
                         .pairs
@@ -156,8 +173,8 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
                     "invariant violated: instance IDs are not in source order",
                 );
                 state.pairs.instance_chain.push((instance_id, chain_id, position as u32));
-                state.pairs.instance_to_term.push((instance_id, term_id));
-                state.pairs.declaration_to_term.push((declaration_id, term_id));
+                state.pairs.instance_to_item.push((instance_id, item_id));
+                state.pairs.declaration_to_instance.push((declaration_id, item_id));
                 if let Some(cst) = cst.instance_statements() {
                     for cst in cst.children() {
                         let m_id = stabilized.lookup_cst(&cst).expect_id();
@@ -267,7 +284,7 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             if let Some(cst) = cst.class_statements() {
                 for cst in cst.children() {
                     let member_id = stabilized.lookup_cst(&cst).expect_id();
-                    let term_id = index_class_member(state, member_id, &cst);
+                    let term_id = index_class_member(state, type_id, member_id, &cst);
                     if let IndexedTypeItemKind::Class { members, .. } =
                         &mut state.items.types[type_id].kind
                     {
@@ -428,9 +445,9 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
         }
         cst::Declaration::DeriveDeclaration(cst) => {
             let id = stabilized.lookup_cst(cst).expect_id();
-            let term_id = index_derive(state, id, cst);
-            state.pairs.derive_to_term.push((id, term_id));
-            state.pairs.declaration_to_term.push((declaration_id, term_id));
+            let item_id = index_derive(state, id, cst);
+            state.pairs.derive_to_item.push((id, item_id));
+            state.pairs.declaration_to_derive.push((declaration_id, item_id));
         }
     }
 }
@@ -610,17 +627,22 @@ fn index_data_constructor(
 ) -> TermItemId {
     let name = name_from_token(state.source, cst.name_token());
     let kind = IndexedTermItemKind::Constructor { id, type_id };
-    state.items.terms.alloc(IndexedTermItem { name, kind, exported: false })
+    let item_id = state.items.terms.alloc(IndexedTermItem { name, kind, exported: false });
+    state.items.ordered_terms.push(OrderedTermItemId::Term(item_id));
+    item_id
 }
 
 fn index_class_member(
     state: &mut State,
+    parent: TypeItemId,
     id: ClassMemberId,
     cst: &cst::ClassMemberStatement,
 ) -> TermItemId {
     let name = name_from_token(state.source, cst.name_token());
-    let kind = IndexedTermItemKind::ClassMember { id };
-    state.items.terms.alloc(IndexedTermItem { name, kind, exported: false })
+    let kind = IndexedTermItemKind::ClassMember { id, parent };
+    let item_id = state.items.terms.alloc(IndexedTermItem { name, kind, exported: false });
+    state.items.ordered_terms.push(OrderedTermItemId::Term(item_id));
+    item_id
 }
 
 fn index_foreign_data(
@@ -646,30 +668,26 @@ fn index_foreign_value(
     })
 }
 
-fn index_instance(state: &mut State, id: InstanceId, cst: &cst::InstanceDeclaration) -> TermItemId {
+fn index_instance(
+    state: &mut State,
+    id: InstanceId,
+    cst: &cst::InstanceDeclaration,
+) -> InstanceItemId {
     let name = cst.instance_name().and_then(|n| {
         let token = n.name_token()?;
         let text = token.text(state.source);
         Some(SmolStr::from(text))
     });
-    state.alloc_term(IndexedTermItem {
-        name,
-        kind: IndexedTermItemKind::Instance { id },
-        exported: true,
-    })
+    state.alloc_instance(IndexedInstanceItem { name, id })
 }
 
-fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -> TermItemId {
+fn index_derive(state: &mut State, id: DeriveId, cst: &cst::DeriveDeclaration) -> DeriveItemId {
     let name = cst.instance_name().and_then(|n| {
         let token = n.name_token()?;
         let text = token.text(state.source);
         Some(SmolStr::from(text))
     });
-    state.alloc_term(IndexedTermItem {
-        name,
-        kind: IndexedTermItemKind::Derive { id },
-        exported: true,
-    })
+    state.alloc_derive(IndexedDeriveItem { name, id })
 }
 
 fn validate_items(state: &mut State) {

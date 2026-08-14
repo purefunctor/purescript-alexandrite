@@ -2,7 +2,7 @@ use building_types::QueryResult;
 use files::FileId;
 use indexing::{
     ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedImport, IndexedModule,
-    IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+    IndexedTypeItemKind, TermItemId, TypeItemId,
 };
 use smol_str::SmolStr;
 
@@ -348,18 +348,7 @@ fn add_local_class(
 }
 
 fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId) {
-    let local_terms = indexed.names.terms.iter().filter_map(|(name, id)| {
-        let item = &indexed.items[id];
-        // Instances cannot be referred to directly by their given name yet.
-        // They're simply assumed to exist in a global context for coherence.
-        if matches!(
-            item.kind,
-            IndexedTermItemKind::Instance { .. } | IndexedTermItemKind::Derive { .. }
-        ) {
-            return None;
-        }
-        Some((name, file, id))
-    });
+    let local_terms = indexed.names.terms.iter().map(|(name, id)| (name, file, id));
 
     let local_types = indexed.names.types.iter().map(|(name, id)| {
         let item = &indexed.items[id];
@@ -378,12 +367,6 @@ fn export_module_items(state: &mut State, indexed: &IndexedModule, file: FileId)
 
     let exported_terms = indexed.names.terms.iter().filter_map(|(name, id)| {
         let item = &indexed.items[id];
-        if matches!(
-            item.kind,
-            IndexedTermItemKind::Instance { .. } | IndexedTermItemKind::Derive { .. }
-        ) {
-            return None;
-        }
         if matches!(indexed.kind, ExportKind::Explicit) && !item.exported {
             return None;
         }

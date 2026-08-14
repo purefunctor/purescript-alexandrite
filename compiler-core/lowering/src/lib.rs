@@ -18,7 +18,9 @@ pub use source::*;
 pub use tree::*;
 
 use files::FileId;
-use indexing::{IndexedModule, TermItemId, TypeItemId};
+use indexing::{
+    DeriveItemId, IndexedModule, InstanceItemId, InstanceSourceItemId, TermItemId, TypeItemId,
+};
 use petgraph::algo::tarjan_scc;
 use petgraph::prelude::DiGraphMap;
 use resolving::ResolvedModule;
@@ -42,6 +44,9 @@ pub struct LoweredModule {
 pub struct GroupedModule {
     pub term_scc: Vec<Scc<TermItemId>>,
     pub type_scc: Vec<Scc<TypeItemId>>,
+    pub instance_items: Vec<InstanceItemId>,
+    pub derive_items: Vec<DeriveItemId>,
+    pub instance_sources: Vec<InstanceSourceItemId>,
     pub cycle_errors: Vec<LoweringError>,
 }
 
@@ -98,6 +103,9 @@ pub fn group_module(indexed: &IndexedModule, lowered: &LoweredModule) -> Grouped
 
     let term_scc = compute_scc(term_nodes(), &lowered.term_edges);
     let type_scc = compute_scc(type_nodes(), &lowered.type_edges);
+    let instance_items = indexed.items.iter_instances().map(|(id, _)| id).collect();
+    let derive_items = indexed.items.iter_derives().map(|(id, _)| id).collect();
+    let instance_sources = indexed.items.instance_sources().to_vec();
 
     let kind_cycles = find_cycles(type_nodes(), &lowered.kind_edges);
     let synonym_cycles = find_cycles(type_nodes(), &lowered.synonym_edges);
@@ -111,7 +119,14 @@ pub fn group_module(indexed: &IndexedModule, lowered: &LoweredModule) -> Grouped
         .map(|group| LoweringError::RecursiveSynonym(RecursiveGroup { group }));
 
     let cycle_errors = kind_cycles.chain(synonym_cycles).collect();
-    GroupedModule { term_scc, type_scc, cycle_errors }
+    GroupedModule {
+        term_scc,
+        type_scc,
+        instance_items,
+        derive_items,
+        instance_sources,
+        cycle_errors,
+    }
 }
 
 fn compute_scc<N>(nodes: impl Iterator<Item = N>, edges: &FxHashSet<(N, N)>) -> Vec<Scc<N>>

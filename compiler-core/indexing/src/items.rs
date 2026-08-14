@@ -14,17 +14,50 @@ pub struct IndexedTermItem {
 /// The source declarations grouped into an [`IndexedTermItem`].
 #[derive(Debug, PartialEq, Eq)]
 pub enum IndexedTermItemKind {
-    ClassMember { id: ClassMemberId },
+    ClassMember { id: ClassMemberId, parent: TypeItemId },
     Constructor { id: DataConstructorId, type_id: Option<TypeItemId> },
-    Derive { id: DeriveId },
     Foreign { id: ForeignValueId },
-    Instance { id: InstanceId },
     Operator { id: InfixId },
     Value { signature: Option<ValueSignatureId>, equations: Vec<ValueEquationId> },
 }
 
 /// A module-local term identity preserved by later compiler representations.
 pub type TermItemId = Idx<IndexedTermItem>;
+
+/// An instance declaration that participates in instance checking but not the term namespace.
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedInstanceItem {
+    pub name: Option<SmolStr>,
+    pub id: InstanceId,
+}
+
+/// A module-local identity for an instance declaration.
+pub type InstanceItemId = Idx<IndexedInstanceItem>;
+
+/// A derive declaration that participates in instance checking but not the term namespace.
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndexedDeriveItem {
+    pub name: Option<SmolStr>,
+    pub id: DeriveId,
+}
+
+/// A module-local identity for a derive declaration.
+pub type DeriveItemId = Idx<IndexedDeriveItem>;
+
+/// The source order used when checking overlap between declared and derived instances.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InstanceSourceItemId {
+    Instance(InstanceItemId),
+    Derive(DeriveItemId),
+}
+
+/// Term symbols, instance declarations, and derive declarations in source allocation order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OrderedTermItemId {
+    Term(TermItemId),
+    Instance(InstanceItemId),
+    Derive(DeriveItemId),
+}
 
 /// A type item assembled from the source declarations that share its module-level identity.
 #[derive(Debug, PartialEq, Eq)]

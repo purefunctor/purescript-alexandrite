@@ -440,6 +440,16 @@ where
             RenameTarget::Type(file_id, type_id) => {
                 self.type_declaration_edits(file_id, type_id, new_name)
             }
+            RenameTarget::Instance(file_id, item_id) => {
+                let indexed = self.context.queries().indexed(file_id)?;
+                push_name_edits!(self, file_id, new_name, position::instance_declaration_name_range; Some(indexed.items[item_id].id));
+                Ok(())
+            }
+            RenameTarget::Derive(file_id, item_id) => {
+                let indexed = self.context.queries().indexed(file_id)?;
+                push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(indexed.items[item_id].id));
+                Ok(())
+            }
             RenameTarget::Binder(file_id, binder_id) => {
                 self.binder_declaration_edit(file_id, binder_id, new_name)
             }
@@ -543,20 +553,14 @@ where
         let indexed = self.context.queries().indexed(file_id)?;
 
         match &indexed.items[term_id].kind {
-            IndexedTermItemKind::ClassMember { id } => {
+            IndexedTermItemKind::ClassMember { id, .. } => {
                 push_name_edits!(self, file_id, new_name, position::class_member_name_range; Some(*id));
             }
             IndexedTermItemKind::Constructor { id, .. } => {
                 push_name_edits!(self, file_id, new_name, position::data_constructor_name_range; Some(*id));
             }
-            IndexedTermItemKind::Derive { id } => {
-                push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(*id));
-            }
             IndexedTermItemKind::Foreign { id } => {
                 push_name_edits!(self, file_id, new_name, position::declaration_name_range; Some(*id));
-            }
-            IndexedTermItemKind::Instance { id } => {
-                push_name_edits!(self, file_id, new_name, position::instance_declaration_name_range; Some(*id));
             }
             IndexedTermItemKind::Operator { id } => {
                 push_name_edits!(self, file_id, new_name, position::infix_operator_range; Some(*id));
@@ -680,6 +684,8 @@ where
                     }
                 }
                 RenameTarget::Binder(_, _)
+                | RenameTarget::Instance(_, _)
+                | RenameTarget::Derive(_, _)
                 | RenameTarget::LetBinding(_, _)
                 | RenameTarget::RecordPun(_, _)
                 | RenameTarget::Qualifier(_, _)
@@ -780,6 +786,8 @@ where
                 }
             }
             RenameTarget::Binder(_, _)
+            | RenameTarget::Instance(_, _)
+            | RenameTarget::Derive(_, _)
             | RenameTarget::LetBinding(_, _)
             | RenameTarget::RecordPun(_, _)
             | RenameTarget::Qualifier(_, _)

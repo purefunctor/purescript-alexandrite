@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap;
 
-use indexing::{IndexedModule, TermItemId, TypeItemId};
+use indexing::{DeriveItemId, IndexedModule, InstanceItemId, TermItemId, TypeItemId};
 use parsing::ParsedModule;
 use stabilizing::StabilizedModule;
 
@@ -10,6 +10,8 @@ pub struct State {
     pub documentation: String,
     pub terms: FxHashMap<TermItemId, DocumentedTerm>,
     pub types: FxHashMap<TypeItemId, DocumentedType>,
+    pub instances: FxHashMap<InstanceItemId, DocumentedTerm>,
+    pub derives: FxHashMap<DeriveItemId, DocumentedTerm>,
 }
 
 pub fn document_module(
@@ -37,5 +39,17 @@ pub fn document_module(
 
     let types = types.collect();
 
-    State { documentation, terms, types }
+    let instances = indexed.items.iter_instances().map(|(id, item)| {
+        let documentation = annotation::instance_documentation(stabilized, &annotations, item.id);
+        (id, DocumentedTerm { documentation })
+    });
+    let instances = instances.collect();
+
+    let derives = indexed.items.iter_derives().map(|(id, item)| {
+        let documentation = annotation::derive_documentation(stabilized, &annotations, item.id);
+        (id, DocumentedTerm { documentation })
+    });
+    let derives = derives.collect();
+
+    State { documentation, terms, types, instances, derives }
 }

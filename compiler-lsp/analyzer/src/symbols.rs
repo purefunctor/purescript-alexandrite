@@ -12,10 +12,9 @@ fn term_symbol_kind(kind: &IndexedTermItemKind) -> SymbolKind {
         IndexedTermItemKind::Constructor { .. } => SymbolKind::CONSTRUCTOR,
         IndexedTermItemKind::ClassMember { .. } => SymbolKind::METHOD,
         IndexedTermItemKind::Operator { .. } => SymbolKind::OPERATOR,
-        IndexedTermItemKind::Value { .. }
-        | IndexedTermItemKind::Foreign { .. }
-        | IndexedTermItemKind::Derive { .. }
-        | IndexedTermItemKind::Instance { .. } => SymbolKind::FUNCTION,
+        IndexedTermItemKind::Value { .. } | IndexedTermItemKind::Foreign { .. } => {
+            SymbolKind::FUNCTION
+        }
     }
 }
 

@@ -5,13 +5,15 @@ use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
-use indexing::{TermItemId, TypeItemId};
+use indexing::{DeriveItemId, InstanceItemId, TermItemId, TypeItemId};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DocumentedModule {
     pub documentation: String,
     pub terms: FxHashMap<TermItemId, DocumentedTerm>,
     pub types: FxHashMap<TypeItemId, DocumentedType>,
+    pub instances: FxHashMap<InstanceItemId, DocumentedTerm>,
+    pub derives: FxHashMap<DeriveItemId, DocumentedTerm>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +32,7 @@ pub fn document_module(
     stabilized: &stabilizing::StabilizedModule,
     indexed: &indexing::IndexedModule,
 ) -> Arc<DocumentedModule> {
-    let algorithm::State { documentation, terms, types } =
+    let algorithm::State { documentation, terms, types, instances, derives } =
         algorithm::document_module(source, parsed, stabilized, indexed);
-    Arc::new(DocumentedModule { documentation, terms, types })
+    Arc::new(DocumentedModule { documentation, terms, types, instances, derives })
 }

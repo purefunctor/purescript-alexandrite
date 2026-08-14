@@ -1,7 +1,6 @@
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{IndexedTermItemKind, TermItemId, TypeItemId};
-use lowering::TermItemKind;
+use indexing::{DeriveItemId, TypeItemId};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
@@ -26,28 +25,17 @@ where
 {
     let mut results = vec![];
 
-    for scc in &context.grouped.term_scc {
-        let items = scc.as_slice();
-
-        let items = items.iter().filter_map(|&item_id| {
-            let item = context.lowered.tree.get_term_item_kind(item_id)?;
-            let TermItemKind::Derive { newtype, constraints, resolution, arguments } = item else {
-                return None;
-            };
-            let resolution = *resolution;
-            Some(CheckDeriveDeclaration {
-                item_id,
-                newtype: *newtype,
-                constraints,
-                resolution,
-                arguments,
-            })
-        });
-
-        for item in items {
-            if let Some(result) = check_derive_declaration(state, context, item)? {
-                results.push(result);
-            }
+    for &item_id in &context.grouped.derive_items {
+        let Some(item) = context.lowered.tree.get_derive_item(item_id) else { continue };
+        let item = CheckDeriveDeclaration {
+            item_id,
+            newtype: item.newtype,
+            constraints: &item.constraints,
+            resolution: item.resolution,
+            arguments: &item.arguments,
+        };
+        if let Some(result) = check_derive_declaration(state, context, item)? {
+            results.push(result);
         }
     }
 
@@ -55,7 +43,7 @@ where
 }
 
 struct CheckDeriveDeclaration<'a> {
-    item_id: TermItemId,
+    item_id: DeriveItemId,
     newtype: bool,
     constraints: &'a [lowering::TypeId],
     resolution: Option<(FileId, TypeItemId)>,
@@ -64,7 +52,7 @@ struct CheckDeriveDeclaration<'a> {
 
 struct CheckDeriveDeclarationCore<'a> {
     derive_id: indexing::DeriveId,
-    item_id: TermItemId,
+    item_id: DeriveItemId,
     newtype: bool,
     class_file: FileId,
     class_id: TypeItemId,
@@ -86,11 +74,9 @@ where
         return Ok(None);
     };
 
-    let IndexedTermItemKind::Derive { id: derive_id } = context.indexed.items[item_id].kind else {
-        return Ok(None);
-    };
+    let derive_id = context.indexed.items[item_id].id;
 
-    state.with_error_crumb(ErrorCrumb::TermDeclaration(item_id), |state| {
+    state.with_error_crumb(ErrorCrumb::DeriveDeclaration(item_id), |state| {
         check_derive_declaration_core(
             state,
             context,

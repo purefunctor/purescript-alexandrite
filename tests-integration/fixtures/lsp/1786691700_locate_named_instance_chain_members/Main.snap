@@ -1,0 +1,77 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 9, character: 14 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+Range: <none>
+
+```purescript
+second :: Example @Type Second
+```
+
+
+GotoDefinition at Position { line: 9, character: 15 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+file:///tests-integration/fixtures/lsp/1786691700_locate_named_instance_chain_members/Main.purs @ 9:0..9:38
+
+
+References at Position { line: 9, character: 16 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+file:///tests-integration/fixtures/lsp/1786691700_locate_named_instance_chain_members/Main.purs @ 9:0..9:38
+
+
+DocumentHighlight at Position { line: 9, character: 17 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+9:14..9:20
+
+
+Rename at Position { line: 9, character: 18 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -7,5 +7,5 @@
+ data Second = Second
+
+ instance first :: Example First
+-else instance second :: Example Second
++else instance renamed :: Example Second
+ --            $@%&/?
+```
+
+
+PrepareRename at Position { line: 9, character: 19 }
+
+```
+else instance second :: Example Second
+--            $@%&/?
+```
+
+9:14..9:20 second

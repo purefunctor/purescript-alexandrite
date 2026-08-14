@@ -1,8 +1,8 @@
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{
-    ImportId, ImportItemId, ImportKind, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
-    TypeItemId,
+    DeriveItemId, ImportId, ImportItemId, ImportKind, IndexedTermItemKind, IndexedTypeItemKind,
+    InstanceItemId, TermItemId, TypeItemId,
 };
 use lowering::{
     BinderId, BinderKind, ExpressionKind, LetBindingNameGroupId, RecordPunId,
@@ -20,6 +20,8 @@ mod edit;
 enum RenameTarget {
     Term(FileId, TermItemId),
     Type(FileId, TypeItemId),
+    Instance(FileId, InstanceItemId),
+    Derive(FileId, DeriveItemId),
     Binder(FileId, BinderId),
     LetBinding(FileId, LetBindingNameGroupId),
     RecordPun(FileId, RecordPunId),
@@ -32,6 +34,8 @@ impl RenameTarget {
         match self {
             RenameTarget::Term(file_id, _)
             | RenameTarget::Type(file_id, _)
+            | RenameTarget::Instance(file_id, _)
+            | RenameTarget::Derive(file_id, _)
             | RenameTarget::Binder(file_id, _)
             | RenameTarget::LetBinding(file_id, _)
             | RenameTarget::RecordPun(file_id, _)
@@ -96,6 +100,9 @@ pub fn implementation(
             edits.collect_declaration(target, &new_name)?;
             edits.collect_item_surfaces(target, &old_name, &new_name)?;
         }
+        RenameTarget::Instance(_, _) | RenameTarget::Derive(_, _) => {
+            edits.collect_declaration(target, &new_name)?;
+        }
         RenameTarget::Binder(_, _)
         | RenameTarget::LetBinding(_, _)
         | RenameTarget::RecordPun(_, _) => {
@@ -132,7 +139,10 @@ fn rename_conflicts(
             let target = TermVariableResolution::RecordPun(pun_id);
             local_rename_conflicts(context, file_id, target, new_name)
         }
-        RenameTarget::Qualifier(_, _) | RenameTarget::Module(_) => Ok(false),
+        RenameTarget::Instance(_, _)
+        | RenameTarget::Derive(_, _)
+        | RenameTarget::Qualifier(_, _)
+        | RenameTarget::Module(_) => Ok(false),
     }
 }
 
@@ -630,6 +640,8 @@ fn rename_target(
         locate::Located::InstanceHead(file_id, type_id) => RenameTarget::Type(file_id, type_id),
         locate::Located::TermItem(term_id) => RenameTarget::Term(current_file, term_id),
         locate::Located::TypeItem(type_id) => RenameTarget::Type(current_file, type_id),
+        locate::Located::InstanceItem(item_id) => RenameTarget::Instance(current_file, item_id),
+        locate::Located::DeriveItem(item_id) => RenameTarget::Derive(current_file, item_id),
         locate::Located::LetBinding(binding_id) => {
             RenameTarget::LetBinding(current_file, binding_id)
         }
@@ -786,9 +798,6 @@ fn target_name(
             let kind = match item.kind {
                 IndexedTermItemKind::Constructor { .. } => NameKind::Upper,
                 IndexedTermItemKind::Operator { .. } => NameKind::Operator,
-                IndexedTermItemKind::Derive { .. } | IndexedTermItemKind::Instance { .. } => {
-                    return Ok(None);
-                }
                 _ => NameKind::Lower,
             };
 
@@ -808,6 +817,14 @@ fn target_name(
             };
 
             Some((name.to_string(), kind))
+        }
+        RenameTarget::Instance(file_id, item_id) => {
+            let indexed = context.queries().indexed(file_id)?;
+            indexed.items[item_id].name.as_ref().map(|name| (name.to_string(), NameKind::Lower))
+        }
+        RenameTarget::Derive(file_id, item_id) => {
+            let indexed = context.queries().indexed(file_id)?;
+            indexed.items[item_id].name.as_ref().map(|name| (name.to_string(), NameKind::Lower))
         }
         RenameTarget::Binder(file_id, binder_id) => {
             let lowered = context.queries().lowered(file_id)?;

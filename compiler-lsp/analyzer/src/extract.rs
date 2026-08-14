@@ -111,19 +111,13 @@ impl AnnotationSyntaxRange {
         let item = &indexed.items[term_id];
 
         let range = match &item.kind {
-            IndexedTermItemKind::ClassMember { id } => {
+            IndexedTermItemKind::ClassMember { id, .. } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
             IndexedTermItemKind::Constructor { id, .. } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            IndexedTermItemKind::Derive { id } => {
-                signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
-            }
             IndexedTermItemKind::Foreign { id } => {
-                signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
-            }
-            IndexedTermItemKind::Instance { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
             IndexedTermItemKind::Operator { id } => {

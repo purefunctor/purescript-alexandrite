@@ -9,7 +9,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use files::FileId;
-use indexing::{DeriveId, EquationSourceId, TermItemId, TypeItemId};
+use indexing::{DeriveId, DeriveItemId, EquationSourceId, InstanceItemId, TermItemId, TypeItemId};
 use la_arena::{Arena, ArenaMap, Idx};
 use lowering::LetBindingNameGroupId;
 use rustc_hash::FxHashMap;
@@ -29,6 +29,8 @@ pub type LocalDeclarationId = Idx<LocalDeclaration>;
 pub struct CheckedTree {
     pub(crate) arena: CheckedTreeArena,
     terms: ArenaMap<TermItemId, TermDeclarationId>,
+    instances: ArenaMap<InstanceItemId, TermDeclarationId>,
+    derives: ArenaMap<DeriveItemId, TermDeclarationId>,
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
     lets: ArenaMap<LetBindingNameGroupId, LocalDeclarationId>,
     sections: FxHashMap<lowering::ExpressionId, BinderId>,
@@ -417,8 +419,48 @@ impl CheckedTree {
         self.terms.get(source).copied()
     }
 
+    pub fn insert_instance(
+        &mut self,
+        source: InstanceItemId,
+        declaration: TermDeclaration,
+    ) -> TermDeclarationId {
+        let declaration = self.arena.terms.alloc(declaration);
+        self.instances.insert(source, declaration);
+        declaration
+    }
+
+    pub fn lookup_instance(&self, source: InstanceItemId) -> Option<TermDeclarationId> {
+        self.instances.get(source).copied()
+    }
+
+    pub fn insert_derive(
+        &mut self,
+        source: DeriveItemId,
+        declaration: TermDeclaration,
+    ) -> TermDeclarationId {
+        let declaration = self.arena.terms.alloc(declaration);
+        self.derives.insert(source, declaration);
+        declaration
+    }
+
+    pub fn lookup_derive(&self, source: DeriveItemId) -> Option<TermDeclarationId> {
+        self.derives.get(source).copied()
+    }
+
     pub(crate) fn iter_terms(&self) -> impl Iterator<Item = (TermItemId, TermDeclarationId)> + '_ {
         self.terms.iter().map(|(source, declaration)| (source, *declaration))
+    }
+
+    pub(crate) fn iter_instances(
+        &self,
+    ) -> impl Iterator<Item = (InstanceItemId, TermDeclarationId)> + '_ {
+        self.instances.iter().map(|(source, declaration)| (source, *declaration))
+    }
+
+    pub(crate) fn iter_derives(
+        &self,
+    ) -> impl Iterator<Item = (DeriveItemId, TermDeclarationId)> + '_ {
+        self.derives.iter().map(|(source, declaration)| (source, *declaration))
     }
 
     pub fn insert_let(&mut self, declaration: LocalDeclaration) -> LocalDeclarationId {

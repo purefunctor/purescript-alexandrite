@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{IndexedTermItem, IndexedTermItemKind, IndexedTypeItem};
+use indexing::{IndexedTermItem, IndexedTypeItem, InstanceSourceItemId, OrderedTermItemId};
 use lowering::TermVariableResolution;
 use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashMap;
@@ -25,7 +25,8 @@ use crate::tree::{
     ExpressionId, ExpressionKind, GuardedAlternative, GuardedExpression, InstanceDeclaration,
     InstanceImplementation, InstanceMember, LetBindingChunk, LetBindings, LocalDeclarationId,
     PatternGuard, RecordBinderField, RecordExpressionField, RecordExpressionUpdate,
-    TermDeclarationKind, TypeDeclarationKind, VariableResolution, WhereExpression,
+    TermDeclarationId, TermDeclarationKind, TypeDeclarationKind, VariableResolution,
+    WhereExpression,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -253,37 +254,64 @@ where
                 term_names.allocate_display_name(SmolStr::clone(name));
             }
         }
-
-        for (term_id, IndexedTermItem { name, .. }) in self.indexed.items.iter_terms() {
-            let Some(declaration_id) = self.checked.tree.lookup_term(term_id) else {
-                continue;
+        for item_id in self.indexed.items.instance_sources() {
+            let name = match item_id {
+                InstanceSourceItemId::Instance(id) => &self.indexed.items[*id].name,
+                InstanceSourceItemId::Derive(id) => &self.indexed.items[*id].name,
             };
-            let declaration = &self.checked.tree[declaration_id];
-            match &declaration.kind {
-                TermDeclarationKind::Value(_) => {
-                    let Some(name) = name else { continue };
-                    let Some(declaration) = self.value_declaration(term_id, name)? else {
+            if let Some(name) = name {
+                term_names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+
+        for &item_id in self.indexed.items.ordered_terms() {
+            match item_id {
+                OrderedTermItemId::Term(term_id) => {
+                    let item = &self.indexed.items[term_id];
+                    let Some(declaration_id) = self.checked.tree.lookup_term(term_id) else {
                         continue;
                     };
-                    declarations.push(declaration);
+                    let declaration = &self.checked.tree[declaration_id];
+                    match &declaration.kind {
+                        TermDeclarationKind::Value(_) => {
+                            let Some(name) = &item.name else { continue };
+                            let Some(declaration) = self.value_declaration(term_id, name)? else {
+                                continue;
+                            };
+                            declarations.push(declaration);
+                        }
+                        TermDeclarationKind::Foreign => {
+                            let Some(name) = &item.name else { continue };
+                            let type_id = self.signature_type_pretty.render(declaration.type_id);
+                            let declaration =
+                                self.arena.text(format!("foreign import {name} :: {type_id}"));
+                            declarations.push(declaration);
+                        }
+                        TermDeclarationKind::Constructor(_) => {}
+                        TermDeclarationKind::Instance(_) => {
+                            unreachable!("invariant violated: instance stored as a term symbol")
+                        }
+                    }
                 }
-                TermDeclarationKind::Foreign => {
-                    let Some(name) = name else { continue };
-                    let type_id = self.signature_type_pretty.render(declaration.type_id);
-                    let declaration =
-                        self.arena.text(format!("foreign import {name} :: {type_id}"));
-                    declarations.push(declaration);
+                OrderedTermItemId::Instance(id) => {
+                    let name = &self.indexed.items[id].name;
+                    let declaration_id = self.checked.tree.lookup_instance(id);
+                    self.push_instance_declaration(
+                        &mut declarations,
+                        &mut term_names,
+                        name,
+                        declaration_id,
+                    )?;
                 }
-                TermDeclarationKind::Constructor(_) => {}
-                TermDeclarationKind::Instance(instance) => {
-                    let name = if let Some(name) = name {
-                        SmolStr::clone(name)
-                    } else {
-                        let base = self.dictionary_base_name(declaration.type_id, instance)?;
-                        term_names.allocate_display_name(base)
-                    };
-                    let declaration = self.instance_declaration(term_id, &name)?;
-                    declarations.push(declaration);
+                OrderedTermItemId::Derive(id) => {
+                    let name = &self.indexed.items[id].name;
+                    let declaration_id = self.checked.tree.lookup_derive(id);
+                    self.push_instance_declaration(
+                        &mut declarations,
+                        &mut term_names,
+                        name,
+                        declaration_id,
+                    )?;
                 }
             }
         }
@@ -299,6 +327,27 @@ where
         } else {
             Ok(self.arena.nil())
         }
+    }
+
+    fn push_instance_declaration(
+        &mut self,
+        declarations: &mut Vec<Doc<'arena>>,
+        term_names: &mut PrettyNames,
+        name: &Option<SmolStr>,
+        declaration_id: Option<TermDeclarationId>,
+    ) -> QueryResult<()> {
+        let Some(declaration_id) = declaration_id else { return Ok(()) };
+        let declaration = &self.checked.tree[declaration_id];
+        let TermDeclarationKind::Instance(instance) = &declaration.kind else { return Ok(()) };
+        let name = if let Some(name) = name {
+            SmolStr::clone(name)
+        } else {
+            let base = self.dictionary_base_name(declaration.type_id, instance)?;
+            term_names.allocate_display_name(base)
+        };
+        let declaration = self.instance_declaration(declaration_id, &name)?;
+        declarations.push(declaration);
+        Ok(())
     }
 
     fn data_declaration(
@@ -489,14 +538,9 @@ where
 
     fn instance_declaration(
         &mut self,
-        term_id: indexing::TermItemId,
+        declaration_id: TermDeclarationId,
         name: &str,
     ) -> QueryResult<Doc<'arena>> {
-        let declaration_id = self
-            .checked
-            .tree
-            .lookup_term(term_id)
-            .expect("invariant violated: missing checked instance declaration");
         let declaration = &self.checked.tree[declaration_id];
         let TermDeclarationKind::Instance(instance) = &declaration.kind else {
             unreachable!("invariant violated: term declaration is not an instance");
@@ -1709,25 +1753,22 @@ where
         let indexed =
             if file_id == self.file_id { None } else { Some(self.queries.indexed(file_id)?) };
         let indexed = indexed.as_deref().unwrap_or(self.indexed);
-        let mut term_items = indexed.items.iter_terms();
-        let term_id = term_items.find_map(|(term_id, item)| {
-            let matches = match (&item.kind, origin) {
-                (
-                    IndexedTermItemKind::Instance { id },
-                    InstanceCandidateOrigin::Instance(_, origin_id),
-                ) => *id == origin_id,
-                (
-                    IndexedTermItemKind::Derive { id },
-                    InstanceCandidateOrigin::Derive(_, origin_id),
-                ) => *id == origin_id,
-                (_, _) => false,
-            };
-            matches.then_some(term_id)
-        });
-        let Some(term_id) = term_id else {
+        let item_id = match origin {
+            InstanceCandidateOrigin::Instance(_, id) => {
+                indexed.pairs.instance_to_item(id).map(InstanceSourceItemId::Instance)
+            }
+            InstanceCandidateOrigin::Derive(_, id) => {
+                indexed.pairs.derive_to_item(id).map(InstanceSourceItemId::Derive)
+            }
+        };
+        let Some(item_id) = item_id else {
             return Ok(UNKNOWN_INSTANCE_EVIDENCE);
         };
-        if let Some(name) = &indexed.items[term_id].name {
+        let item_name = match item_id {
+            InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
+            InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
+        };
+        if let Some(name) = item_name {
             return Ok(SmolStr::clone(name));
         }
 
@@ -1740,20 +1781,35 @@ where
                 names.allocate_display_name(SmolStr::clone(name));
             }
         }
-        for (candidate_id, candidate) in indexed.items.iter_terms() {
-            if candidate.name.is_some() {
+        for &candidate_id in indexed.items.instance_sources() {
+            let name = match candidate_id {
+                InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
+                InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
+            };
+            if let Some(name) = name {
+                names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+        for &candidate_id in indexed.items.instance_sources() {
+            let (candidate_name, declaration_id) = match candidate_id {
+                InstanceSourceItemId::Instance(id) => {
+                    (&indexed.items[id].name, checked.tree.lookup_instance(id))
+                }
+                InstanceSourceItemId::Derive(id) => {
+                    (&indexed.items[id].name, checked.tree.lookup_derive(id))
+                }
+            };
+            if candidate_name.is_some() {
                 continue;
             }
-            let Some(declaration_id) = checked.tree.lookup_term(candidate_id) else {
-                continue;
-            };
+            let Some(declaration_id) = declaration_id else { continue };
             let declaration = &checked.tree[declaration_id];
             let TermDeclarationKind::Instance(instance) = &declaration.kind else {
                 continue;
             };
             let base = self.dictionary_base_name(declaration.type_id, instance)?;
             let name = names.allocate_display_name(base);
-            if candidate_id == term_id {
+            if candidate_id == item_id {
                 return Ok(name);
             }
         }

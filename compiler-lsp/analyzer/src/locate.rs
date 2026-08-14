@@ -4,7 +4,8 @@ use std::iter;
 
 use files::FileId;
 use indexing::{
-    ImportItemId, IndexedModule, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
+    DeriveItemId, ImportItemId, IndexedModule, IndexedTermItemKind, IndexedTypeItemKind,
+    InstanceItemId, TermItemId, TypeItemId,
 };
 use lowering::{
     BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordAccessLabelId, RecordPunId,
@@ -46,26 +47,22 @@ pub fn instance_head_ranges(
     target: (FileId, TypeItemId),
 ) -> Vec<Utf8Range> {
     let root = parsed.syntax_node();
-    let ranges = indexed.items.iter_terms().filter_map(|(term_id, item)| {
-        let kind = lowered.tree.get_term_item_kind(term_id)?;
-        let resolution = match kind {
-            TermItemKind::Instance { resolution, .. } | TermItemKind::Derive { resolution, .. } => {
-                resolution.as_ref()
+    let ranges = indexed.items.instance_sources().iter().filter_map(|item_id| match item_id {
+        indexing::InstanceSourceItemId::Instance(id) => {
+            let item = &indexed.items[*id];
+            let lowered = lowered.tree.get_instance_item(*id)?;
+            if lowered.resolution != Some(target) {
+                return None;
             }
-            _ => None,
-        }?;
-        if *resolution != target {
-            return None;
+            instance_head_range(content, &root, stabilized, item.id)
         }
-
-        match &item.kind {
-            IndexedTermItemKind::Instance { id } => {
-                instance_head_range(content, &root, stabilized, *id)
+        indexing::InstanceSourceItemId::Derive(id) => {
+            let item = &indexed.items[*id];
+            let lowered = lowered.tree.get_derive_item(*id)?;
+            if lowered.resolution != Some(target) {
+                return None;
             }
-            IndexedTermItemKind::Derive { id } => {
-                instance_head_range(content, &root, stabilized, *id)
-            }
-            _ => None,
+            instance_head_range(content, &root, stabilized, item.id)
         }
     });
     ranges.collect()
@@ -206,6 +203,8 @@ pub enum Located {
     InstanceMember(FileId, TermItemId),
     TermItem(TermItemId),
     TypeItem(TypeItemId),
+    InstanceItem(InstanceItemId),
+    DeriveItem(DeriveItemId),
     LetBinding(LetBindingNameGroupId),
     Nothing,
 }
@@ -325,31 +324,32 @@ fn locate_node(
         let id = stabilized.lookup_ptr(&ptr)?;
         Some(Located::TypeOperator(id))
     } else if cst::InstanceHead::can_cast(kind) {
-        let term_id =
+        let resolution =
             if let Some(instance) = node.ancestors().find_map(cst::InstanceDeclaration::cast) {
                 let ptr = AstPtr::new(&instance);
                 let instance_id = stabilized.lookup_ptr(&ptr)?;
-                indexed.pairs.instance_to_term(instance_id)?
+                let item_id = indexed.pairs.instance_to_item(instance_id)?;
+                lowered.tree.get_instance_item(item_id)?.resolution
             } else {
                 let derive = node.ancestors().find_map(cst::DeriveDeclaration::cast)?;
                 let ptr = AstPtr::new(&derive);
                 let derive_id = stabilized.lookup_ptr(&ptr)?;
-                indexed.pairs.derive_to_term(derive_id)?
+                let item_id = indexed.pairs.derive_to_item(derive_id)?;
+                lowered.tree.get_derive_item(item_id)?.resolution
             };
-        let kind = lowered.tree.get_term_item_kind(term_id)?;
-        let resolution = match kind {
-            TermItemKind::Instance { resolution, .. } | TermItemKind::Derive { resolution, .. } => {
-                resolution.as_ref()
-            }
-            _ => None,
-        }?;
-        let (file_id, type_id) = resolution;
-        Some(Located::InstanceHead(*file_id, *type_id))
+        let (file_id, type_id) = resolution?;
+        Some(Located::InstanceHead(file_id, type_id))
+    } else if cst::InstanceDeclaration::can_cast(kind) {
+        let ptr = ptr.cast()?;
+        let id = stabilized.lookup_ptr(&ptr)?;
+        indexed.pairs.instance_to_item(id).map(Located::InstanceItem)
     } else if cst::Declaration::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
         None.or_else(|| indexed.pairs.declaration_to_term(id).map(Located::TermItem))
             .or_else(|| indexed.pairs.declaration_to_type(id).map(Located::TypeItem))
+            .or_else(|| indexed.pairs.declaration_to_instance(id).map(Located::InstanceItem))
+            .or_else(|| indexed.pairs.declaration_to_derive(id).map(Located::DeriveItem))
     } else if cst::LetBinding::can_cast(kind) {
         let node = cst::LetBinding::cast(node)?;
         match node {

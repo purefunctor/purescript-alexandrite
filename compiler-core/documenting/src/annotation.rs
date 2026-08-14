@@ -61,19 +61,13 @@ pub fn term_documentation(
     item: &IndexedTermItem,
 ) -> String {
     match &item.kind {
-        IndexedTermItemKind::ClassMember { id } => {
+        IndexedTermItemKind::ClassMember { id, .. } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
         IndexedTermItemKind::Constructor { id, .. } => {
             data_constructor_item_documentation(stabilized, annotations, *id)
         }
-        IndexedTermItemKind::Derive { id } => {
-            signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
-        }
         IndexedTermItemKind::Foreign { id } => {
-            signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
-        }
-        IndexedTermItemKind::Instance { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
         IndexedTermItemKind::Operator { id } => {
@@ -84,6 +78,22 @@ pub fn term_documentation(
             signature_equation_documentation(stabilized, annotations, signature, &equation)
         }
     }
+}
+
+pub fn instance_documentation(
+    stabilized: &StabilizedModule,
+    annotations: &AnnotationIndex,
+    id: indexing::InstanceId,
+) -> String {
+    signature_equation_documentation(stabilized, annotations, &Some(id), &Some(id))
+}
+
+pub fn derive_documentation(
+    stabilized: &StabilizedModule,
+    annotations: &AnnotationIndex,
+    id: indexing::DeriveId,
+) -> String {
+    signature_equation_documentation(stabilized, annotations, &Some(id), &Some(id))
 }
 
 pub fn type_documentation(

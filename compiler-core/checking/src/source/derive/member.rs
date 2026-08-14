@@ -17,7 +17,7 @@ where
     Q: ExternalQueries,
 {
     for result in derives {
-        state.with_error_crumb(ErrorCrumb::TermDeclaration(result.item_id), |state| {
+        state.with_error_crumb(ErrorCrumb::DeriveDeclaration(result.item_id), |state| {
             state.with_implication(|state| check_derive_member(state, context, result))
         })?;
     }
@@ -105,7 +105,7 @@ where
             tools::solve_and_report_constraints(state, context)?
             && let Some(declaration) = declaration
         {
-            state.checked.tree.insert_term(result.item_id, declaration);
+            state.checked.tree.insert_derive(result.item_id, declaration);
         }
     }
 

@@ -200,6 +200,14 @@ where
             ErrorCrumb::TypeDeclaration(id) => {
                 self.indexed.type_item_ptr(self.stabilized, *id).next()?
             }
+            ErrorCrumb::InstanceDeclaration(id) => {
+                let source = self.indexed.items[*id].id;
+                self.stabilized.syntax_ptr(source)?
+            }
+            ErrorCrumb::DeriveDeclaration(id) => {
+                let source = self.indexed.items[*id].id;
+                self.stabilized.syntax_ptr(source)?
+            }
             ErrorCrumb::InferringDoBind(id)
             | ErrorCrumb::InferringDoDiscard(id)
             | ErrorCrumb::CheckingDoLet(id) => self.stabilized.syntax_ptr(*id)?,
