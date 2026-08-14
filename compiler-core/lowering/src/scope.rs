@@ -11,7 +11,6 @@
 //! [`BinderId`].
 //!
 //! [scope graph]: https://pl.ewi.tudelft.nl/research/projects/scope-graphs/
-use std::collections::VecDeque;
 use std::ops;
 
 use files::FileId;
@@ -155,8 +154,8 @@ impl LoweringGraph {
     /// Initialise a traversal starting from a [`GraphNodeId`].
     pub fn traverse(&self, id: GraphNodeId) -> GraphIter<'_> {
         let inner = &self.inner;
-        let queue = VecDeque::from([id]);
-        GraphIter { inner, queue }
+        let next = Some(id);
+        GraphIter { inner, next }
     }
 
     pub fn resolve_term(&self, id: GraphNodeId, name: &str) -> Option<TermVariableResolution> {
@@ -225,23 +224,21 @@ impl LoweringGraphNodes {
 /// An iterator that traverses the [`LoweringGraph`].
 pub struct GraphIter<'a> {
     inner: &'a Arena<GraphNode>,
-    queue: VecDeque<GraphNodeId>,
+    next: Option<GraphNodeId>,
 }
 
 impl<'a> Iterator for GraphIter<'a> {
     type Item = (Idx<GraphNode>, &'a GraphNode);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let id = self.queue.pop_back()?;
+        let id = self.next.take()?;
         let item = &self.inner[id];
         match &item {
             GraphNode::Binder { parent, .. }
             | GraphNode::Forall { parent, .. }
             | GraphNode::Let { parent, .. }
             | GraphNode::Implicit { parent, .. } => {
-                parent.map(|id| {
-                    self.queue.push_front(id);
-                });
+                self.next = *parent;
             }
         };
         Some((id, item))
