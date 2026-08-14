@@ -17,6 +17,24 @@ to enable minimal recomputation across trivial formatting changes.
 The language server component implements core code intelligence features such as completion, jump to
 definition, hover information, find references, workspace symbol search, and diagnostics.
 
+## Editor features
+
+Alexandrite provides code intelligence for PureScript projects through its VS Code extension.
+
+| Completion | Automatic imports |
+| :---: | :---: |
+| ![Completing a PureScript expression](.github/assets/vscode-demos/completion.gif) | ![Automatically importing a completed PureScript name](.github/assets/vscode-demos/automatic-import.gif) |
+| **Live diagnostics** | **Inferred types** |
+| ![Updating diagnostics while editing PureScript](.github/assets/vscode-demos/live-diagnostics.gif) | ![Viewing an inferred PureScript type](.github/assets/vscode-demos/inferred-types.gif) |
+| **Go to definition** | **Find references** |
+| ![Navigating to a PureScript definition](.github/assets/vscode-demos/go-to-definition.gif) | ![Finding references to a PureScript name](.github/assets/vscode-demos/find-references.gif) |
+| **Rename** | **Document symbols** |
+| ![Renaming a PureScript name across files](.github/assets/vscode-demos/rename.gif) | ![Searching symbols in a PureScript document](.github/assets/vscode-demos/document-symbols.gif) |
+| **Workspace symbols** | **Typed-hole suggestions** |
+| ![Searching PureScript symbols across a workspace](.github/assets/vscode-demos/workspace-symbols.gif) | ![Replacing a typed hole with an Alexandrite suggestion](.github/assets/vscode-demos/typed-hole-suggestions.gif) |
+| **Document highlights** | **Semantic highlighting** |
+| ![Highlighting occurrences of PureScript names](.github/assets/vscode-demos/document-highlights.gif) | ![Enabling semantic highlighting for PureScript](.github/assets/vscode-demos/semantic-highlighting.gif) |
+
 ## Installation
 
 On Linux and macOS:
