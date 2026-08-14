@@ -50,6 +50,21 @@ fn constructor_owners_preserve_type_and_constructor_ids() {
 }
 
 #[test]
+fn constructor_owner_requires_attachment_to_the_recovered_type() {
+    let indexed = index(
+        "module Main where\n\
+         type Mismatch = Int\n\
+         data Mismatch = Constructor\n",
+    );
+
+    let mismatch = indexed.names.types.lookup("Mismatch").unwrap();
+    let constructor = indexed.names.terms.lookup("Constructor").unwrap();
+
+    assert_eq!(indexed.data_constructors(mismatch).next(), None);
+    assert_eq!(indexed.constructor_type(constructor), None);
+}
+
+#[test]
 fn instance_chain_metadata_preserves_chain_and_source_order() {
     let indexed = index(
         "module Main where\n\

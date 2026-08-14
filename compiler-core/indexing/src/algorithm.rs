@@ -344,7 +344,10 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             );
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
-                let term_id = index_data_constructor(state, type_id, constructor_id, &cst);
+                let attached_type_id =
+                    matches!(state.items.types[type_id].kind, IndexedTypeItemKind::Newtype { .. })
+                        .then_some(type_id);
+                let term_id = index_data_constructor(state, attached_type_id, constructor_id, &cst);
                 if let IndexedTypeItemKind::Newtype { constructors, .. } =
                     &mut state.items.types[type_id].kind
                 {
@@ -410,7 +413,10 @@ fn index_declaration(state: &mut State, stabilized: &StabilizedModule, cst: &cst
             );
             for cst in cst.data_constructors() {
                 let constructor_id = stabilized.lookup_cst(&cst).expect_id();
-                let term_id = index_data_constructor(state, type_id, constructor_id, &cst);
+                let attached_type_id =
+                    matches!(state.items.types[type_id].kind, IndexedTypeItemKind::Data { .. })
+                        .then_some(type_id);
+                let term_id = index_data_constructor(state, attached_type_id, constructor_id, &cst);
                 if let IndexedTypeItemKind::Data { constructors, .. } =
                     &mut state.items.types[type_id].kind
                 {
@@ -598,7 +604,7 @@ fn index_type_declaration<T: AstNode>(
 
 fn index_data_constructor(
     state: &mut State,
-    type_id: TypeItemId,
+    type_id: Option<TypeItemId>,
     id: DataConstructorId,
     cst: &cst::DataConstructor,
 ) -> TermItemId {

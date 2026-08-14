@@ -81,7 +81,7 @@ impl IndexedModule {
         let IndexedTermItemKind::Constructor { type_id, .. } = self.items[id].kind else {
             return None;
         };
-        Some(type_id)
+        type_id
     }
 
     pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
