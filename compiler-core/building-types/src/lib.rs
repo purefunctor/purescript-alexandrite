@@ -20,6 +20,8 @@ pub enum QueryKey {
     Sectioned(FileId),
     CheckedCore,
     Checked(FileId),
+    CoreFn(FileId),
+    JavaScript(FileId),
     Documented(FileId),
 }
 

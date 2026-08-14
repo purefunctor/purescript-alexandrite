@@ -9,6 +9,7 @@ anyhow = "1"
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4", features = ["derive"] }
+corefn = { version = "0.1.0", path = "../compiler-core/corefn" }
 criterion = { version = "0.6.0", features = ["html_reports"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
@@ -17,6 +18,7 @@ git2 = "0.20"
 globset = "0.4.18"
 indicatif = "0.18.3"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
+javascript = { version = "0.1.0", path = "../compiler-core/javascript" }
 lexing = { version = "0.1.0", path = "../compiler-core/lexing" }
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 parsing = { version = "0.1.0", path = "../compiler-core/parsing" }
@@ -25,7 +27,7 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0", features = ["unbounded_depth"] }
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
 tar = "0.4.46"
@@ -50,4 +52,12 @@ harness = false
 
 [[bench]]
 name = "checking_multi_core"
+harness = false
+
+[[bench]]
+name = "corefn_multi_core"
+harness = false
+
+[[bench]]
+name = "javascript_multi_core"
 harness = false

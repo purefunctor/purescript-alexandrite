@@ -99,6 +99,7 @@ where
     state.with_error_crumb(ErrorCrumb::CheckingExpression(expression), |state| {
         let checked = check_expression_quiet(state, context, expression, expected)?;
         let checked = retain_expression_judgment(state, checked);
+        state.checked.tree.set_expression_source(checked.expression, expression);
         state.checked.node_types.expressions.insert(expression, checked.type_id);
         Ok(checked)
     })
@@ -308,6 +309,7 @@ where
     state.with_error_crumb(ErrorCrumb::InferringExpression(expression), |state| {
         let inferred = infer_expression_quiet(state, context, expression)?;
         let inferred = retain_expression_judgment(state, inferred);
+        state.checked.tree.set_expression_source(inferred.expression, expression);
         state.checked.node_types.expressions.insert(expression, inferred.type_id);
         Ok(inferred)
     })

@@ -239,6 +239,15 @@ fn collect_file(
         }
         Err(error) => push_query_error(report, metadata, CompilationStage::Checking, error),
     }
+
+    if let Err(error) = engine.corefn(file_id) {
+        push_query_error(report, metadata, CompilationStage::CoreFn, error);
+        return;
+    }
+
+    if let Err(error) = engine.javascript(file_id) {
+        push_query_error(report, metadata, CompilationStage::JavaScript, error);
+    }
 }
 
 fn with_diagnostics_context(

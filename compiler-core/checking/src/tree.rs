@@ -32,6 +32,7 @@ pub struct CheckedTree {
     types: ArenaMap<TypeItemId, TypeDeclarationId>,
     lets: ArenaMap<LetBindingNameGroupId, LocalDeclarationId>,
     sections: FxHashMap<lowering::ExpressionId, BinderId>,
+    expression_sources: FxHashMap<ExpressionId, lowering::ExpressionId>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -380,6 +381,21 @@ pub enum RecordExpressionUpdate {
 impl CheckedTree {
     pub fn allocate_expression(&mut self, expression: Expression) -> ExpressionId {
         self.arena.expressions.alloc(expression)
+    }
+
+    pub(crate) fn set_expression_source(
+        &mut self,
+        expression: ExpressionId,
+        source: lowering::ExpressionId,
+    ) {
+        self.expression_sources.insert(expression, source);
+    }
+
+    pub fn lookup_expression_source(
+        &self,
+        expression: ExpressionId,
+    ) -> Option<lowering::ExpressionId> {
+        self.expression_sources.get(&expression).copied()
     }
 
     pub(crate) fn set_expression_type(&mut self, expression: ExpressionId, type_id: TypeId) {

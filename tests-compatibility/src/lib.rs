@@ -161,30 +161,40 @@ pub fn load_sources(paths: Vec<PathBuf>) -> Arc<[(String, String)]> {
 pub struct WarmedEngine {
     pub engine: QueryEngine,
     pub candidates: Vec<FileId>,
+    pub paths: Vec<String>,
 }
 
-pub fn build_warmed_engine(sources: &[(String, String)]) -> WarmedEngine {
+pub fn build_registered_engine(sources: &[(String, String)]) -> WarmedEngine {
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
     prim::configure(&mut engine, &mut files);
 
     let mut candidates = vec![];
+    let mut paths = vec![];
     for (uri, content) in sources {
         let file_id = files.insert(uri.as_str(), content.as_str());
         engine.set_content(file_id, content.as_str());
         candidates.push(file_id);
+        paths.push(uri.clone());
     }
 
-    for &file_id in &candidates {
-        let content = engine.content(file_id);
-        if let Ok((parsed, _)) = engine.parsed(file_id)
-            && let Some(module_name) = parsed.module_name(&content)
-        {
+    for (file_id, (_, content)) in candidates.iter().copied().zip(sources) {
+        let lexed = lexing::lex(content);
+        let tokens = lexing::layout(&lexed);
+        let (parsed, _) = parsing::parse(&lexed, &tokens);
+        if let Some(module_name) = parsed.module_name(content) {
             engine.set_module_file(module_name.as_ref(), file_id);
         }
     }
 
-    candidates.par_iter().for_each(|&file_id| {
+    WarmedEngine { engine, candidates, paths }
+}
+
+pub fn build_warmed_engine(sources: &[(String, String)]) -> WarmedEngine {
+    let registered = build_registered_engine(sources);
+    let engine = &registered.engine;
+
+    registered.candidates.par_iter().for_each(|&file_id| {
         let snapshot = engine.snapshot();
         let _ = snapshot.parsed(file_id);
         let _ = snapshot.stabilized(file_id);
@@ -196,7 +206,7 @@ pub fn build_warmed_engine(sources: &[(String, String)]) -> WarmedEngine {
         let _ = snapshot.sectioned(file_id);
     });
 
-    WarmedEngine { engine, candidates }
+    registered
 }
 
 pub fn run_single_core(warmed: &WarmedEngine) {
@@ -211,6 +221,66 @@ pub fn run_multi_core(warmed: &WarmedEngine) {
         let snapshot = engine.snapshot();
         let _ = black_box(snapshot.checked(file_id));
     });
+}
+
+pub fn run_corefn_multi_core(registered: &WarmedEngine) -> usize {
+    let engine = &registered.engine;
+    let output_sizes = registered.candidates.par_iter().map(|&file_id| {
+        let snapshot = engine.snapshot();
+        let module = snapshot
+            .corefn(file_id)
+            .unwrap_or_else(|error| panic!("CoreFn query failed for {file_id:?}: {error}"));
+        let output = serde_json::to_vec(module.as_ref())
+            .unwrap_or_else(|error| panic!("CoreFn serialization failed for {file_id:?}: {error}"));
+        black_box(output).len()
+    });
+    output_sizes.sum()
+}
+
+pub fn run_corefn_single_core(registered: &WarmedEngine) -> usize {
+    let mut output_size = 0;
+    for &file_id in &registered.candidates {
+        let module = registered
+            .engine
+            .corefn(file_id)
+            .unwrap_or_else(|error| panic!("CoreFn query failed for {file_id:?}: {error}"));
+        let output = serde_json::to_vec(module.as_ref())
+            .unwrap_or_else(|error| panic!("CoreFn serialization failed for {file_id:?}: {error}"));
+        output_size += black_box(output).len();
+    }
+    output_size
+}
+
+pub fn run_javascript_multi_core(registered: &WarmedEngine) -> usize {
+    let engine = &registered.engine;
+    let output_sizes = registered.candidates.par_iter().map(|&file_id| {
+        let snapshot = engine.snapshot();
+        let module = snapshot
+            .javascript(file_id)
+            .unwrap_or_else(|error| panic!("JavaScript query failed for {file_id:?}: {error}"));
+        let mut output = Vec::new();
+        module.serialize(&mut output).unwrap_or_else(|error| {
+            panic!("JavaScript serialization failed for {file_id:?}: {error}")
+        });
+        black_box(output).len()
+    });
+    output_sizes.sum()
+}
+
+pub fn run_javascript_single_core(registered: &WarmedEngine) -> usize {
+    let mut output_size = 0;
+    for &file_id in &registered.candidates {
+        let module = registered
+            .engine
+            .javascript(file_id)
+            .unwrap_or_else(|error| panic!("JavaScript query failed for {file_id:?}: {error}"));
+        let mut output = Vec::new();
+        module.serialize(&mut output).unwrap_or_else(|error| {
+            panic!("JavaScript serialization failed for {file_id:?}: {error}")
+        });
+        output_size += black_box(output).len();
+    }
+    output_size
 }
 
 pub fn probe_iter_time(

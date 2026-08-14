@@ -132,6 +132,8 @@ struct DerivedStorage {
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
     checked_core: Shards<(), DerivedState<Arc<checking::context::CheckedCore>>>,
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
+    corefn: Shards<FileId, DerivedState<Arc<corefn::Module>>>,
+    javascript: Shards<FileId, DerivedState<Arc<javascript::Module>>>,
     documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
 }
 
@@ -510,6 +512,8 @@ impl QueryEngine {
                     }
                 }
                 QueryKey::Checked(k) => derived_changed!(checked, k),
+                QueryKey::CoreFn(k) => derived_changed!(corefn, k),
+                QueryKey::JavaScript(k) => derived_changed!(javascript, k),
                 QueryKey::Documented(k) => derived_changed!(documented, k),
             }
         }
@@ -905,6 +909,36 @@ impl QueryEngine {
             |this| {
                 let checked = checking::check_module(this, id)?;
                 Ok(Arc::new(checked))
+            },
+        )
+    }
+
+    pub fn corefn(&self, id: FileId) -> QueryResult<Arc<corefn::Module>> {
+        self.query(
+            QueryKey::CoreFn(id),
+            id,
+            |derived| &derived.corefn,
+            |this| {
+                let content = this.content(id);
+                let (parsed, _) = this.parsed(id)?;
+                let module_path = parsed
+                    .module_name(&content)
+                    .map(|name| format!("{name}.purs"))
+                    .unwrap_or_else(|| "Main.purs".to_owned());
+                let module = corefn::compile_module(this, id, module_path)?;
+                Ok(Arc::new(module))
+            },
+        )
+    }
+
+    pub fn javascript(&self, id: FileId) -> QueryResult<Arc<javascript::Module>> {
+        self.query(
+            QueryKey::JavaScript(id),
+            id,
+            |derived| &derived.javascript,
+            |this| {
+                let corefn = this.corefn(id)?;
+                Ok(Arc::new(javascript::generate_module(&corefn)))
             },
         )
     }
@@ -1341,6 +1375,62 @@ mod tests {
         let index_a = engine.indexed(id).unwrap();
         let index_b = engine.indexed(id).unwrap();
         assert!(Arc::ptr_eq(&index_a, &index_b));
+    }
+
+    #[test]
+    fn test_corefn_sharing_and_invalidation() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let main = files.insert("Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(main, files.content(main));
+        engine.set_module_file("Main", main);
+
+        let initial = engine.corefn(main).unwrap();
+        let repeated = engine.corefn(main).unwrap();
+        assert!(Arc::ptr_eq(&initial, &repeated));
+        {
+            let shard = engine.derived.corefn.shard(&main).read();
+            let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
+                unreachable!("invariant violated: expected computed CoreFn query");
+            };
+            assert!(dependencies.contains(&QueryKey::Checked(main)));
+        }
+
+        engine.set_content(main, "module Main where\n\nlife = 43");
+
+        let changed = engine.corefn(main).unwrap();
+        assert!(!Arc::ptr_eq(&initial, &changed));
+        assert_ne!(initial, changed);
+    }
+
+    #[test]
+    fn test_javascript_sharing_and_invalidation() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let main = files.insert("Main.purs", "module Main where\n\nlife = 42");
+        engine.set_content(main, files.content(main));
+        engine.set_module_file("Main", main);
+
+        let initial = engine.javascript(main).unwrap();
+        let repeated = engine.javascript(main).unwrap();
+        assert!(Arc::ptr_eq(&initial, &repeated));
+        {
+            let shard = engine.derived.javascript.shard(&main).read();
+            let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
+                unreachable!("invariant violated: expected computed JavaScript query");
+            };
+            assert!(dependencies.contains(&QueryKey::CoreFn(main)));
+        }
+
+        engine.set_content(main, "module Main where\n\nlife = 43");
+
+        let changed = engine.javascript(main).unwrap();
+        assert!(!Arc::ptr_eq(&initial, &changed));
+        assert_ne!(initial, changed);
     }
 
     #[test]

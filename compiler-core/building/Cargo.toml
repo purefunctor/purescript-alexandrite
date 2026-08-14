@@ -6,10 +6,12 @@ edition = "2024"
 [dependencies]
 building-types = { version = "0.1.0", path = "../building-types" }
 checking = { version = "0.1.0", path = "../checking" }
+corefn = { version = "0.1.0", path = "../corefn" }
 documenting = { version = "0.1.0", path = "../documenting" }
 files = { version = "0.1.0", path = "../files" }
 indexing = { version = "0.1.0", path = "../indexing" }
 interner = { version = "0.1.0", path = "../interner" }
+javascript = { version = "0.1.0", path = "../javascript" }
 lexing = { version = "0.1.0", path = "../lexing" }
 lock_api = "0.4.14"
 lowering = { version = "0.1.0", path = "../lowering" }

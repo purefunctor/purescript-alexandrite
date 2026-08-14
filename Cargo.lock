@@ -253,10 +253,12 @@ version = "0.1.0"
 dependencies = [
  "building-types",
  "checking",
+ "corefn",
  "documenting",
  "files",
  "indexing",
  "interner",
+ "javascript",
  "la-arena",
  "lexing",
  "lock_api",
@@ -490,6 +492,24 @@ checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
 dependencies = [
  "cfg-if",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "corefn"
+version = "0.1.0"
+dependencies = [
+ "building-types",
+ "checking",
+ "files",
+ "indexing",
+ "line-index",
+ "lowering",
+ "parsing",
+ "resolving",
+ "serde",
+ "serde_json",
+ "stabilizing",
+ "syntax",
 ]
 
 [[package]]
@@ -1320,6 +1340,13 @@ name = "itoa"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+
+[[package]]
+name = "javascript"
+version = "0.1.0"
+dependencies = [
+ "corefn",
+]
 
 [[package]]
 name = "jobserver"
@@ -2578,6 +2605,7 @@ dependencies = [
  "building",
  "checking",
  "clap",
+ "corefn",
  "criterion",
  "diagnostics",
  "files",
@@ -2586,6 +2614,7 @@ dependencies = [
  "globset",
  "indexing",
  "indicatif",
+ "javascript",
  "lexing",
  "lowering",
  "parsing",

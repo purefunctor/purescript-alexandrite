@@ -72,6 +72,8 @@ pub enum CompilationStage {
     Bracketing,
     Sectioning,
     Checking,
+    CoreFn,
+    JavaScript,
 }
 
 impl CompilationStage {
@@ -86,6 +88,8 @@ impl CompilationStage {
             CompilationStage::Bracketing => "bracketing",
             CompilationStage::Sectioning => "sectioning",
             CompilationStage::Checking => "checking",
+            CompilationStage::CoreFn => "corefn",
+            CompilationStage::JavaScript => "javascript",
         }
     }
 }

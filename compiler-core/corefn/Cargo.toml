@@ -1,0 +1,18 @@
+[package]
+name = "corefn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+building-types = { version = "0.1.0", path = "../building-types" }
+checking = { version = "0.1.0", path = "../checking" }
+files = { version = "0.1.0", path = "../files" }
+indexing = { version = "0.1.0", path = "../indexing" }
+line-index = "0.1.2"
+lowering = { version = "0.1.0", path = "../lowering" }
+parsing = { version = "0.1.0", path = "../parsing" }
+resolving = { version = "0.1.0", path = "../resolving" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
+stabilizing = { version = "0.1.0", path = "../stabilizing" }
+syntax = { version = "0.1.0", path = "../syntax" }
