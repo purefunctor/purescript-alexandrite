@@ -7,11 +7,11 @@ Terms
 
 Types
 RowBox :: Prim.Row Prim.Type -> Prim.Type
-Apply :: forall (k :: Prim.Type). ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+Apply :: forall k. (k -> Prim.Type) -> k -> Prim.Type
 RowDesugared :: Prim.Type
 
 Synonyms
-type Apply f a = (f :: (k :: Prim.Type) -> Prim.Type) (a :: (k :: Prim.Type))
+type Apply f a = (f :: k -> Prim.Type) (a :: k)
 type RowDesugared = Main.Apply @(Prim.Row Prim.Type) Main.RowBox ()
 
 Roles

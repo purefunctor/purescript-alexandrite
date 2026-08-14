@@ -7,7 +7,7 @@ Terms
 empty ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Empty (f :: Prim.Type -> Prim.Type) => (f :: Prim.Type -> Prim.Type) Prim.Int
-Wrapper :: forall (@a :: Prim.Type). Prim.Array (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
+Wrapper :: forall @a. Prim.Array a -> Main.Wrapper a
 
 Types
 Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint

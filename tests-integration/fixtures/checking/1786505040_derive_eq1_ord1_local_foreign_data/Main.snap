@@ -9,9 +9,8 @@ Types
 Opaque :: Prim.Type -> Prim.Type
 
 Instances
-instance forall (a :: Prim.Type). Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Main.Opaque (a :: Prim.Type))
-instance forall (a :: Prim.Type).
-  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Main.Opaque (a :: Prim.Type))
+instance forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Opaque a)
+instance forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.Opaque a)
 
 Derived
 derive Data.Eq.Eq1 Main.Opaque

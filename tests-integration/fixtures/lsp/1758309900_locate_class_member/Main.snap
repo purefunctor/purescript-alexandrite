@@ -33,6 +33,5 @@ Hover at Position { line: 3, character: 7 }
 Range: <none>
 
 ```purescript
-eqEqEqEq ::
-  forall (@a :: Type). Eq (a :: Type) => (a :: Type) -> (a :: Type) -> Boolean
+eqEqEqEq :: forall @a. Eq a => a -> a -> Boolean
 ```

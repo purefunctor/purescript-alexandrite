@@ -4,12 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-WrongFirst ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.WrongFirst (a :: Prim.Type) (b :: Prim.Type)
-WrongSecond ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    ((b :: Prim.Type) -> (a :: Prim.Type)) -> Main.WrongSecond (a :: Prim.Type) (b :: Prim.Type)
+WrongFirst :: forall @a @b. a -> b -> Main.WrongFirst a b
+WrongSecond :: forall @a @b. (b -> a) -> Main.WrongSecond a b
 
 Types
 WrongFirst :: Prim.Type -> Prim.Type -> Prim.Type
@@ -24,17 +20,17 @@ WrongFirst = [Representational, Representational]
 WrongSecond = [Representational, Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: t0
   --> 6:1..6:38
   |
 6 | derive instance Profunctor WrongFirst
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t1 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: t1
   --> 9:1..9:39
   |
 9 | derive instance Profunctor WrongSecond
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t2 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: t2
   --> 9:1..9:39
   |
 9 | derive instance Profunctor WrongSecond

@@ -6,51 +6,21 @@ expression: report
 Terms
 Unit :: Main.Unit
 Respond ::
-  forall (@x' :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type) (@a :: Prim.Type)
-    (@m :: Prim.Type -> Prim.Type) (@r :: Prim.Type).
-    (a :: Prim.Type) ->
-    ((a' :: Prim.Type) ->
-    Main.Proxy
-      (x' :: Prim.Type)
-      (x :: Prim.Type)
-      (a' :: Prim.Type)
-      (a :: Prim.Type)
-      (m :: Prim.Type -> Prim.Type)
-      (r :: Prim.Type)) ->
-    Main.Proxy
-      (x' :: Prim.Type)
-      (x :: Prim.Type)
-      (a' :: Prim.Type)
-      (a :: Prim.Type)
-      (m :: Prim.Type -> Prim.Type)
-      (r :: Prim.Type)
+  forall @x' @x @a' @a (@m :: Prim.Type -> Prim.Type) @r.
+    a ->
+    (a' -> Main.Proxy x' x a' a (m :: Prim.Type -> Prim.Type) r) ->
+    Main.Proxy x' x a' a (m :: Prim.Type -> Prim.Type) r
 Pure ::
-  forall (@x' :: Prim.Type) (@x :: Prim.Type) (@a' :: Prim.Type) (@a :: Prim.Type)
-    (@m :: Prim.Type -> Prim.Type) (@r :: Prim.Type).
-    (r :: Prim.Type) ->
-    Main.Proxy
-      (x' :: Prim.Type)
-      (x :: Prim.Type)
-      (a' :: Prim.Type)
-      (a :: Prim.Type)
-      (m :: Prim.Type -> Prim.Type)
-      (r :: Prim.Type)
+  forall @x' @x @a' @a (@m :: Prim.Type -> Prim.Type) @r.
+    r -> Main.Proxy x' x a' a (m :: Prim.Type -> Prim.Type) r
 respond ::
-  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (a' :: Prim.Type) (x :: Prim.Type)
-    (x' :: Prim.Type).
+  forall (m :: Prim.Type -> Prim.Type) a a' x x'.
     Main.Monad (m :: Prim.Type -> Prim.Type) =>
-    (a :: Prim.Type) ->
-    Main.Proxy
-      (x' :: Prim.Type)
-      (x :: Prim.Type)
-      (a' :: Prim.Type)
-      (a :: Prim.Type)
-      (m :: Prim.Type -> Prim.Type)
-      (a' :: Prim.Type)
+    a -> Main.Proxy x' x a' a (m :: Prim.Type -> Prim.Type) a'
 yield ::
-  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  forall (m :: Prim.Type -> Prim.Type) a.
     Main.Monad (m :: Prim.Type -> Prim.Type) =>
-    (a :: Prim.Type) -> Main.Producer_ (a :: Prim.Type) (m :: Prim.Type -> Prim.Type) Main.Unit
+    a -> Main.Producer_ a (m :: Prim.Type -> Prim.Type) Main.Unit
 
 Types
 Unit :: Prim.Type
@@ -66,14 +36,7 @@ Proxy ::
 Producer_ :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
 
 Synonyms
-type Producer_ b m r = forall (x' :: Prim.Type) (x :: Prim.Type).
-  Main.Proxy
-    (x' :: Prim.Type)
-    (x :: Prim.Type)
-    Main.Unit
-    (b :: Prim.Type)
-    (m :: Prim.Type -> Prim.Type)
-    (r :: Prim.Type)
+type Producer_ b m r = forall x' x. Main.Proxy x' x Main.Unit b (m :: Prim.Type -> Prim.Type) r
 
 Classes
 class forall (m :: Prim.Type -> Prim.Type). Main.Monad (m :: Prim.Type -> Prim.Type)

@@ -13,4 +13,4 @@ Types
 ConstPoly :: Prim.Type
 
 Synonyms
-type ConstPoly = forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+type ConstPoly = forall a b. a -> b -> a

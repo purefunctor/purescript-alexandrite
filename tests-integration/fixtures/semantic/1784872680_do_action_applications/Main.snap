@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface Select :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface Select :: forall k0. k0 -> Prim.Constraint
 interface Select value where
 
 foreign import constrained :: forall value. Main.Select @Prim.Type value => Main.Effect value

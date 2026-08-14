@@ -4,31 +4,29 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Pair ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
-test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+test :: forall @a. Main.Test a => a -> Prim.Int
 
 Types
 Pair :: Prim.Type -> Prim.Type -> Prim.Type
 Test :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
-  test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
+class forall (a :: Prim.Type). Main.Test a
+  test :: forall @a. Main.Test a => a -> Prim.Int
 
 Instances
-instance forall (a :: Prim.Type). Main.Test (Main.Pair (a :: Prim.Type) Prim.Int)
-instance forall (b :: Prim.Type). Main.Test (Main.Pair Prim.String (b :: Prim.Type))
+instance forall a. Main.Test (Main.Pair a Prim.Int)
+instance forall b. Main.Test (Main.Pair Prim.String b)
 
 Roles
 Pair = [Representational, Representational]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String (b :: Type))
+error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String b)
   --> 11:1..12:13
    |
 11 | instance testRight :: Test (Pair String b) where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (a :: Type). Test (Pair (a :: Type) Int) is matching
-  trivia: forall (b :: Type). Test (Pair String (b :: Type)) is matching
+  trivia: forall a. Test (Pair a Int) is matching
+  trivia: forall b. Test (Pair String b) is matching

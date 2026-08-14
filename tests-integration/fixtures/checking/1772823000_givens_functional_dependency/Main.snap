@@ -4,28 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-convert ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
-useGiven :: forall (x :: Prim.Type). Main.Convert Prim.Int (x :: Prim.Type) => (x :: Prim.Type)
-relate ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
-    Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)
-useRelate ::
-  forall (y :: Prim.Type). Main.Relate Prim.Int Prim.String (y :: Prim.Type) => (y :: Prim.Type)
+convert :: forall @a @b. Main.Convert a b => a -> b
+useGiven :: forall x. Main.Convert Prim.Int x => x
+relate :: forall @a @b @c. Main.Relate a b c => a -> b -> c
+useRelate :: forall y. Main.Relate Prim.Int Prim.String y => y
 
 Types
 Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
 Relate :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
-  convert ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
-class forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type). Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
-  relate ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
-    Main.Relate (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert a b
+  convert :: forall @a @b. Main.Convert a b => a -> b
+class forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type). Main.Relate a b c
+  relate :: forall @a @b @c. Main.Relate a b c => a -> b -> c

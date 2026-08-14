@@ -4,10 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-<: ::
-  forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
-const ::
-  forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+<: :: forall a b. a -> b -> a
+const :: forall a b. a -> b -> a
 + :: Prim.Int -> Prim.Int -> Prim.Int
 add :: Prim.Int -> Prim.Int -> Prim.Int
 

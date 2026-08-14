@@ -4,14 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-lazyFail :: forall (@a :: Prim.Type). Main.LazyFail (a :: Prim.Type) => (a :: Prim.Type)
+lazyFail :: forall @a. Main.LazyFail a => a
 
 Types
 LazyFail :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.LazyFail (a :: Prim.Type)
-  lazyFail :: forall (@a :: Prim.Type). Main.LazyFail (a :: Prim.Type) => (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.LazyFail a
+  lazyFail :: forall @a. Main.LazyFail a => a
 
 Instances
 instance Prim.TypeError.Fail (Prim.TypeError.Text "LazyFail") => Main.LazyFail Prim.Int

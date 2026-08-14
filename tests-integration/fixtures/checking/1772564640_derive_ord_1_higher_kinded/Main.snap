@@ -5,37 +5,31 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
 MkWrapNoOrd1 ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.WrapNoOrd1 @(t0 :: Prim.Type)
-      (f :: (t0 :: Prim.Type) -> Prim.Type)
-      (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.WrapNoOrd1 @t0 (f :: t0 -> Prim.Type) (a :: t0)
 
 Types
-Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
-WrapNoOrd1 ::
-  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+WrapNoOrd1 :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
 
 Derived
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (a :: Prim.Type) =>
-  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Ord.Ord (a :: Prim.Type) =>
-  Data.Ord.Ord (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+  Data.Ord.Ord a =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (a :: Prim.Type) =>
-  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
-derive forall (a :: Prim.Type) (f :: Prim.Type -> Prim.Type).
-  Data.Ord.Ord (a :: Prim.Type) =>
-  Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall a (f :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord a => Data.Ord.Ord (Main.WrapNoOrd1 @Prim.Type (f :: Prim.Type -> Prim.Type) a)
 
 Roles
 Wrap = [Representational, Nominal]
@@ -47,12 +41,12 @@ error[NoInstanceFound]: No instance found for: Ord1 (f :: Type -> Type)
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (a :: Type) is in scope
-  trivia: Eq (a :: Type) is in scope
+  trivia: Ord a is in scope
+  trivia: Eq a is in scope
 error[NoInstanceFound]: No instance found for: Eq1 (f :: Type -> Type)
   --> 14:1..14:46
    |
 14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord (a :: Type) is in scope
-  trivia: Eq (a :: Type) is in scope
+  trivia: Ord a is in scope
+  trivia: Eq a is in scope

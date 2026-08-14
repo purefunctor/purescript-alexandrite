@@ -4,11 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-useBoth ::
-  forall (s :: Prim.Type) (m :: Prim.Type).
-    Class.Marker (m :: Prim.Type) =>
-    Class.Lookup (s :: Prim.Type) (m :: Prim.Type) =>
-    (s :: Prim.Type) -> Prim.Int
+useBoth :: forall s m. Class.Marker m => Class.Lookup s m => s -> Prim.Int
 test :: Prim.Int
 
 Types

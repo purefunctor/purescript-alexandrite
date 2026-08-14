@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-disj ::
-  forall (@a :: Prim.Type).
-    Main.HeytingAlgebra (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+disj :: forall @a. Main.HeytingAlgebra a => a -> a -> a
 test ::
   Prim.Function Prim.Char Prim.Boolean ->
   Prim.Function Prim.Char Prim.Boolean ->
@@ -16,12 +14,9 @@ Types
 HeytingAlgebra :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.HeytingAlgebra (a :: Prim.Type)
-  disj ::
-  forall (@a :: Prim.Type).
-    Main.HeytingAlgebra (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.HeytingAlgebra a
+  disj :: forall @a. Main.HeytingAlgebra a => a -> a -> a
 
 Instances
 instance Main.HeytingAlgebra Prim.Boolean
-instance forall (b :: Prim.Type) (a :: Prim.Type).
-  Main.HeytingAlgebra (b :: Prim.Type) => Main.HeytingAlgebra ((a :: Prim.Type) -> (b :: Prim.Type))
+instance forall b a. Main.HeytingAlgebra b => Main.HeytingAlgebra (a -> b)

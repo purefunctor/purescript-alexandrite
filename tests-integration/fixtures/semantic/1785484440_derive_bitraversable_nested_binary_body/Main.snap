@@ -3,8 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Nested ::
-  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Nested :: forall k0 k1. (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Nested @p @a @b
   | Nested :: p a b -> Main.Nested p a b
 
@@ -13,7 +12,7 @@ dictionary bifunctorNested ::
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Bifunctor.Bifunctor (Main.Nested @Prim.Type @Prim.Type p)
   where
-  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  bimap :: forall a b c d.
   (a -> b) ->
   (c -> d) ->
   Main.Nested @Prim.Type @Prim.Type p a c ->
@@ -30,8 +29,7 @@ dictionary bifoldableNested ::
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Bifoldable.Bifoldable (Main.Nested @Prim.Type @Prim.Type p)
   where
-  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
   bifoldr = \firstFunction secondFunction accumulator value ->
     case value of
       (Nested field0) -> bifoldr {bifoldableDict}
@@ -39,8 +37,7 @@ dictionary bifoldableNested ::
         (\element accumulator -> secondFunction element accumulator)
         accumulator
         field0
-  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.Nested @Prim.Type @Prim.Type p a b -> c
   bifoldl = \firstFunction secondFunction accumulator value ->
     case value of
       (Nested field0) -> bifoldl {bifoldableDict}
@@ -48,7 +45,7 @@ dictionary bifoldableNested ::
         (\accumulator element -> secondFunction accumulator element)
         accumulator
         field0
-  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bifoldMap :: forall m a b.
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Nested @Prim.Type @Prim.Type p a b -> m
   bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
@@ -65,8 +62,7 @@ dictionary bitraversableNested ::
   where
   superclass bifunctorDict = bifunctorNested {bitraversableDict.bifunctorDict}
   superclass bifoldableDict = bifoldableNested {bitraversableDict.bifoldableDict}
-  bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
-  (d :: Prim.Type).
+  bitraverse :: forall (f :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f =>
   (a -> f c) ->
   (b -> f d) ->
@@ -80,7 +76,7 @@ dictionary bitraversableNested ::
           (bitraverse {bitraversableDict} {applicativeDict} (\element -> firstFunction element)
             (\element -> secondFunction element)
             field0)
-  bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bisequence :: forall (f :: Prim.Type -> Prim.Type) a b.
   Control.Applicative.Applicative f =>
   Main.Nested @Prim.Type @Prim.Type p (f a) (f b) -> f (Main.Nested @Prim.Type @Prim.Type p a b)
   bisequence = \{applicativeDict} ->

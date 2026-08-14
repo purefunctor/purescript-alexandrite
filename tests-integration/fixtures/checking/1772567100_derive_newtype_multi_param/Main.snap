@@ -4,12 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Pair ::
-  forall (t0 :: Prim.Type) (@a :: Prim.Type) (@b :: (t0 :: Prim.Type)).
-    (a :: Prim.Type) -> Main.Pair @(t0 :: Prim.Type) (a :: Prim.Type) (b :: (t0 :: Prim.Type))
+Pair :: forall t0 @a (@b :: t0). a -> Main.Pair @t0 a (b :: t0)
 
 Types
-Pair :: forall (t0 :: Prim.Type). Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
+Pair :: forall t0. Prim.Type -> t0 -> Prim.Type
 
 Derived
 derive Data.Show.Show (Main.Pair @Prim.Type Prim.Int Prim.String)

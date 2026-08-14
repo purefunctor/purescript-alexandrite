@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+unsafeCoerce :: forall a b. a -> b
 consume ::
   forall (given :: Prim.Row Prim.Type) (given_ :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
@@ -23,13 +23,11 @@ merge ::
     {| (r1 :: Prim.Row Prim.Type) } ->
     {| (r2 :: Prim.Row Prim.Type) } ->
     {| (r4 :: Prim.Row Prim.Type) }
-collect ::
-  forall (@a :: Prim.Type).
-    Main.Collect (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Array Prim.String
+collect :: forall @a. Main.Collect a => a -> Prim.Array Prim.String
 combine ::
   forall (partial :: Prim.Row Prim.Type) (duplicated :: Prim.Row Prim.Type)
-    (deduped :: Prim.Row Prim.Type) (deduped_ :: Prim.Row Prim.Type) (items :: Prim.Type).
-    Main.Collect (items :: Prim.Type) =>
+    (deduped :: Prim.Row Prim.Type) (deduped_ :: Prim.Row Prim.Type) items.
+    Main.Collect items =>
     Prim.Row.Union @Prim.Type
       ( key :: Prim.String )
       (partial :: Prim.Row Prim.Type)
@@ -41,10 +39,8 @@ combine ::
       (deduped :: Prim.Row Prim.Type)
       (deduped_ :: Prim.Row Prim.Type)
       Main.Required =>
-    {| (partial :: Prim.Row Prim.Type) } -> (items :: Prim.Type) -> Prim.String
-combine' ::
-  forall (items :: Prim.Type).
-    Main.Collect (items :: Prim.Type) => (items :: Prim.Type) -> Prim.String
+    {| (partial :: Prim.Row Prim.Type) } -> items -> Prim.String
+combine' :: forall items. Main.Collect items => items -> Prim.String
 repro :: Prim.String
 
 Types
@@ -55,10 +51,8 @@ Synonyms
 type Required = ( key :: Prim.String )
 
 Classes
-class forall (a :: Prim.Type). Main.Collect (a :: Prim.Type)
-  collect ::
-  forall (@a :: Prim.Type).
-    Main.Collect (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Array Prim.String
+class forall (a :: Prim.Type). Main.Collect a
+  collect :: forall @a. Main.Collect a => a -> Prim.Array Prim.String
 
 Instances
 instance Main.Collect (Prim.Array Prim.String)

@@ -6,12 +6,12 @@ expression: report
 Terms
 
 Types
-Apply :: forall (k :: Prim.Type). ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
-$ :: forall (k :: Prim.Type). ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+Apply :: forall k. (k -> Prim.Type) -> k -> Prim.Type
+$ :: forall k. (k -> Prim.Type) -> k -> Prim.Type
 Test1 :: Prim.Type
 Test2 :: Prim.Type
 
 Synonyms
-type Apply f = (f :: (k :: Prim.Type) -> Prim.Type)
+type Apply f = (f :: k -> Prim.Type)
 type Test1 = Main.Apply @Prim.Type Prim.Array Prim.Int
 type Test2 = Main.Apply @Prim.Type Prim.Array Prim.Int

@@ -8,21 +8,21 @@ data Product @a
   | Product :: a -> Prim.Int -> a -> Main.Product a
 
 dictionary functorProduct :: Data.Functor.Functor Main.Product where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Product a -> Main.Product b
+  map :: forall a b. (a -> b) -> Main.Product a -> Main.Product b
   map = \function value ->
     case value of
       (Product field0 field1 field2) -> Product (function field0) field1 (function field2)
 
 dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Product a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Product a -> b
   foldr = \function accumulator value ->
     case value of
       (Product field0 field1 field2) -> function field0 (function field2 accumulator)
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Product a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Product a -> b
   foldl = \function accumulator value ->
     case value of
       (Product field0 field1 field2) -> function (function accumulator field0) field2
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Product a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Product a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of
@@ -32,7 +32,7 @@ dictionary foldableProduct :: Data.Foldable.Foldable Main.Product where
 dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
   superclass functorDict = functorProduct
   superclass foldableDict = foldableProduct
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Product a -> m (Main.Product b)
   traverse = \{applicativeDict} ->
     \function value ->
@@ -42,7 +42,7 @@ dictionary traversableProduct :: Data.Traversable.Traversable Main.Product where
             (\field0Result field2Result -> Product field0Result field1 field2Result)
             (function field0))
           (function field2)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Product (m a) -> m (Main.Product a)
   sequence = \{applicativeDict} ->
     \value -> traverse {traversableProduct} {applicativeDict} (\effect0 -> effect0) value

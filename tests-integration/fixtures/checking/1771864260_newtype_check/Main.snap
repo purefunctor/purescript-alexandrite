@@ -4,12 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Tagged ::
-  forall (k :: Prim.Type) (@t :: (k :: Prim.Type)) (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Tagged @(k :: Prim.Type) (t :: (k :: Prim.Type)) (a :: Prim.Type)
+Tagged :: forall k (@t :: k) @a. a -> Main.Tagged @k (t :: k) a
 
 Types
-Tagged :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type -> Prim.Type
+Tagged :: forall k. k -> Prim.Type -> Prim.Type
 
 Roles
 Tagged = [Phantom, Representational]

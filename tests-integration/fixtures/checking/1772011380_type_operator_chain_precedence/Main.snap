@@ -6,31 +6,15 @@ expression: report
 Terms
 
 Types
-Add ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-:+: ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-Mul ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-:*: ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-Chain ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> (t0 :: Prim.Type)
-ChainParen ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> (t0 :: Prim.Type)
+Add :: forall t0 t1. t0 -> t1 -> t0
+:+: :: forall t0 t1. t0 -> t1 -> t0
+Mul :: forall t0 t1. t0 -> t1 -> t0
+:*: :: forall t0 t1. t0 -> t1 -> t0
+Chain :: forall t0 t1 t2. t0 -> t1 -> t2 -> t0
+ChainParen :: forall t0 t1 t2. t0 -> t1 -> t2 -> t0
 
 Synonyms
-type Add a b = (a :: (t0 :: Prim.Type))
-type Mul a b = (a :: (t0 :: Prim.Type))
-type Chain a b c = Main.Add @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-  (a :: (t0 :: Prim.Type))
-  (Main.Mul @(t1 :: Prim.Type) @(t2 :: Prim.Type) (b :: (t1 :: Prim.Type)) (c :: (t2 :: Prim.Type)))
-type ChainParen a b c = Main.Mul @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-  (Main.Add @(t0 :: Prim.Type) @(t2 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t2 :: Prim.Type)))
-  (c :: (t1 :: Prim.Type))
+type Add a b = (a :: t0)
+type Mul a b = (a :: t0)
+type Chain a b c = Main.Add @t0 @t1 (a :: t0) (Main.Mul @t1 @t2 (b :: t1) (c :: t2))
+type ChainParen a b c = Main.Mul @t0 @t1 (Main.Add @t0 @t2 (a :: t0) (b :: t2)) (c :: t1)

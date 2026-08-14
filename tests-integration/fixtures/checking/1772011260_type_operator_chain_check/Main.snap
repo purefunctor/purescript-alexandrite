@@ -12,6 +12,6 @@ Chain :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
 ChainParen :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Add a b = (a :: Prim.Type)
-type Chain a b c = Main.Add (Main.Add (a :: Prim.Type) (b :: Prim.Type)) (c :: Prim.Type)
-type ChainParen a b c = Main.Add (Main.Add (a :: Prim.Type) (b :: Prim.Type)) (c :: Prim.Type)
+type Add a b = a
+type Chain a b c = Main.Add (Main.Add a b) c
+type ChainParen a b c = Main.Add (Main.Add a b) c

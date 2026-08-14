@@ -8,26 +8,22 @@ data RecordPair @a @b
   | RecordPair :: { alpha :: a, fixed :: Prim.Int, zeta :: b } -> Main.RecordPair a b
 
 dictionary bifunctorRecordPair :: Data.Bifunctor.Bifunctor Main.RecordPair where
-  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
-  (a -> b) -> (c -> d) -> Main.RecordPair a c -> Main.RecordPair b d
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.RecordPair a c -> Main.RecordPair b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (RecordPair field0) -> RecordPair
         field0 { alpha = firstFunction field0.alpha, zeta = secondFunction field0.zeta }
 
 dictionary bifoldableRecordPair :: Data.Bifoldable.Bifoldable Main.RecordPair where
-  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (a -> c -> c) -> (b -> c -> c) -> c -> Main.RecordPair a b -> c
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.RecordPair a b -> c
   bifoldr = \firstFunction secondFunction accumulator value ->
     case value of
       (RecordPair field0) -> firstFunction field0.alpha (secondFunction field0.zeta accumulator)
-  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (c -> a -> c) -> (c -> b -> c) -> c -> Main.RecordPair a b -> c
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.RecordPair a b -> c
   bifoldl = \firstFunction secondFunction accumulator value ->
     case value of
       (RecordPair field0) -> secondFunction (firstFunction accumulator field0.alpha) field0.zeta
-  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.RecordPair a b -> m
+  bifoldMap :: forall m a b. Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.RecordPair a b -> m
   bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
@@ -37,8 +33,7 @@ dictionary bifoldableRecordPair :: Data.Bifoldable.Bifoldable Main.RecordPair wh
 dictionary bitraversableRecordPair :: Data.Bitraversable.Bitraversable Main.RecordPair where
   superclass bifunctorDict = bifunctorRecordPair
   superclass bifoldableDict = bifoldableRecordPair
-  bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
-  (d :: Prim.Type).
+  bitraverse :: forall (f :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f =>
   (a -> f c) -> (b -> f d) -> Main.RecordPair a b -> f (Main.RecordPair c d)
   bitraverse = \{applicativeDict} ->
@@ -51,7 +46,7 @@ dictionary bitraversableRecordPair :: Data.Bitraversable.Bitraversable Main.Reco
               (\recordField0 recordField1 -> field0 { alpha = recordField0, zeta = recordField1 })
               (firstFunction field0.alpha))
             (secondFunction field0.zeta))
-  bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bisequence :: forall (f :: Prim.Type -> Prim.Type) a b.
   Control.Applicative.Applicative f => Main.RecordPair (f a) (f b) -> f (Main.RecordPair a b)
   bisequence = \{applicativeDict} ->
     \value ->

@@ -9,11 +9,9 @@ data Tuple @first @second
 
 interface Operations :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Operations effect where
-  pure :: forall (value :: Prim.Type). value -> effect value
-  map :: forall (value :: Prim.Type) (result :: Prim.Type).
-  (value -> result) -> effect value -> effect result
-  apply :: forall (value :: Prim.Type) (result :: Prim.Type).
-  effect (value -> result) -> effect value -> effect result
+  pure :: forall value. value -> effect value
+  map :: forall value result. (value -> result) -> effect value -> effect result
+  apply :: forall value result. effect (value -> result) -> effect value -> effect result
 
 usingMapApply :: forall effect. Main.Operations effect => effect (Main.Tuple Prim.Int Prim.String)
 usingMapApply = \{operationsDict} ->

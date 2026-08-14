@@ -4,16 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 build ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (n :: (t0 :: Prim.Type)) (r :: (t1 :: Prim.Type)).
-    Main.Build @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-      (n :: (t0 :: Prim.Type))
-      (r :: (t1 :: Prim.Type)) =>
-    Main.Proxy @(t0 :: Prim.Type) (n :: (t0 :: Prim.Type)) ->
-    Main.Proxy @(t1 :: Prim.Type) (r :: (t1 :: Prim.Type))
+  forall t0 t1 (n :: t0) (r :: t1).
+    Main.Build @t0 @t1 (n :: t0) (r :: t1) => Main.Proxy @t0 (n :: t0) -> Main.Proxy @t1 (r :: t1)
 test ::
   Main.Proxy @(Prim.Row Prim.Int)
     ( n1 :: 1
@@ -10019,16 +10013,14 @@ test ::
     )
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-Build ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Constraint
+Proxy :: forall k. k -> Prim.Type
+Build :: forall t0 t1. t0 -> t1 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (n :: (t0 :: Prim.Type)) (r :: (t1 :: Prim.Type)). Main.Build @(t0 :: Prim.Type) @(t1 :: Prim.Type) (n :: (t0 :: Prim.Type)) (r :: (t1 :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (n :: t0) (r :: t1). Main.Build @t0 @t1 (n :: t0) (r :: t1)
 
 Instances
-instance forall (t0 :: Prim.Type). Main.Build @Prim.Int @(Prim.Row (t0 :: Prim.Type)) 0 ()
+instance forall t0. Main.Build @Prim.Int @(Prim.Row t0) 0 ()
 instance forall (minusOne :: Prim.Int) (currentId :: Prim.Int) (labelId :: Prim.Symbol)
   (actualLabel :: Prim.Symbol) (minusOneResult :: Prim.Row Prim.Int)
   (finalResult :: Prim.Row Prim.Int).

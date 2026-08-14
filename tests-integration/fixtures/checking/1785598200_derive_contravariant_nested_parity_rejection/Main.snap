@@ -4,11 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Predicate ::
-  forall (@a :: Prim.Type). ((a :: Prim.Type) -> Prim.Boolean) -> Main.Predicate (a :: Prim.Type)
-DoubleNegative ::
-  forall (@a :: Prim.Type).
-    Main.Predicate (Main.Predicate (a :: Prim.Type)) -> Main.DoubleNegative (a :: Prim.Type)
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+DoubleNegative :: forall @a. Main.Predicate (Main.Predicate a) -> Main.DoubleNegative a
 
 Types
 Predicate :: Prim.Type -> Prim.Type
@@ -23,7 +20,7 @@ Predicate = [Representational]
 DoubleNegative = [Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: t0
   --> 9:1..9:45
   |
 9 | derive instance Contravariant DoubleNegative

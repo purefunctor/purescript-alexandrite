@@ -8,25 +8,21 @@ data Pair @a @b
   | Pair :: a -> Prim.Int -> b -> Main.Pair a b
 
 dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
-  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
-  (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Pair field0 field1 field2) -> Pair (firstFunction field0) field1 (secondFunction field2)
 
 dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
-  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Pair a b -> c
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.Pair a b -> c
   bifoldr = \firstFunction secondFunction accumulator value ->
     case value of
       (Pair field0 field1 field2) -> firstFunction field0 (secondFunction field2 accumulator)
-  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Pair a b -> c
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.Pair a b -> c
   bifoldl = \firstFunction secondFunction accumulator value ->
     case value of
       (Pair field0 field1 field2) -> secondFunction (firstFunction accumulator field0) field2
-  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Pair a b -> m
+  bifoldMap :: forall m a b. Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Pair a b -> m
   bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
       case value of
@@ -36,8 +32,7 @@ dictionary bifoldablePair :: Data.Bifoldable.Bifoldable Main.Pair where
 dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
   superclass bifunctorDict = bifunctorPair
   superclass bifoldableDict = bifoldablePair
-  bitraverse :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
-  (d :: Prim.Type).
+  bitraverse :: forall (f :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f =>
   (a -> f c) -> (b -> f d) -> Main.Pair a b -> f (Main.Pair c d)
   bitraverse = \{applicativeDict} ->
@@ -48,7 +43,7 @@ dictionary bitraversablePair :: Data.Bitraversable.Bitraversable Main.Pair where
             (\field0Result field2Result -> Pair field0Result field1 field2Result)
             (firstFunction field0))
           (secondFunction field2)
-  bisequence :: forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bisequence :: forall (f :: Prim.Type -> Prim.Type) a b.
   Control.Applicative.Applicative f => Main.Pair (f a) (f b) -> f (Main.Pair a b)
   bisequence = \{applicativeDict} ->
     \value ->

@@ -4,20 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-# ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    (a :: Prim.Type) -> ((a :: Prim.Type) -> (b :: Prim.Type)) -> (b :: Prim.Type)
+# :: forall a b. a -> (a -> b) -> b
 Unit :: Main.Unit
-First :: forall (@a :: Prim.Type). Main.First (a :: Prim.Type)
-Second :: forall (@a :: Prim.Type). Main.Second (a :: Prim.Type)
-Third :: forall (@a :: Prim.Type). Main.Third (a :: Prim.Type)
+First :: forall @a. Main.First a
+Second :: forall @a. Main.Second a
+Third :: forall @a. Main.Third a
 SpecT ::
   forall (@effect :: Prim.Type -> Prim.Type) (@monad :: Prim.Type -> Prim.Type).
     Main.SpecT (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type)
-identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
-apply ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    (a :: Prim.Type) -> ((a :: Prim.Type) -> (b :: Prim.Type)) -> (b :: Prim.Type)
+identity :: forall a. a -> a
+apply :: forall a b. a -> (a -> b) -> b
 describe ::
   forall (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type).
     Prim.String ->
@@ -51,14 +47,10 @@ First :: Prim.Type -> Prim.Type
 Second :: Prim.Type -> Prim.Type
 Third :: Prim.Type -> Prim.Type
 SpecT :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
-NaturalTransformation ::
-  forall (t0 :: Prim.Type).
-    ((t0 :: Prim.Type) -> Prim.Type) -> ((t0 :: Prim.Type) -> Prim.Type) -> Prim.Type
+NaturalTransformation :: forall t0. (t0 -> Prim.Type) -> (t0 -> Prim.Type) -> Prim.Type
 
 Synonyms
-type NaturalTransformation f g = forall (a :: (t0 :: Prim.Type)).
-  (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-  (g :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+type NaturalTransformation f g = forall (a :: t0). (f :: t0 -> Prim.Type) (a :: t0) -> (g :: t0 -> Prim.Type) (a :: t0)
 
 Roles
 Unit = []

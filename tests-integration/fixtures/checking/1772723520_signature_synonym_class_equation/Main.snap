@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-eqLike ::
-  forall (@a :: Prim.Type).
-    Main.EqLike (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
+eqLike :: forall @a. Main.EqLike a => a -> a -> Prim.Boolean
 
 Types
 ClassHead :: Prim.Type
@@ -16,7 +14,5 @@ Synonyms
 type ClassHead = Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.EqLike (a :: Prim.Type)
-  eqLike ::
-  forall (@a :: Prim.Type).
-    Main.EqLike (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
+class forall (a :: Prim.Type). Main.EqLike a
+  eqLike :: forall @a. Main.EqLike a => a -> a -> Prim.Boolean

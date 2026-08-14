@@ -22,7 +22,7 @@ error[OverlappingInstances]: Overlapping type class instances found for: C X Y
   |
 7 | instance cxy :: C X Y
   | ^~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (t0 :: Type). C X (t0 :: Type) is matching
+  trivia: forall t0. C X t0 is matching
   trivia: C X Y is matching
 warning[MissingInstanceMembers]: Instance is missing class members
   --> 7:1..7:22

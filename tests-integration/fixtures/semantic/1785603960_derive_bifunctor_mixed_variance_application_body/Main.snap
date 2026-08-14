@@ -16,21 +16,19 @@ data Mixed @a @b
   | Mixed :: Main.Function (Main.Predicate a) b -> Main.Mixed a b
 
 dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Predicate a -> Main.Predicate b
+  cmap :: forall a b. (b -> a) -> Main.Predicate a -> Main.Predicate b
   cmap = \function value ->
     case value of
       (Predicate field0) -> Predicate \argument -> field0 (function argument)
 
 dictionary profunctorFunction :: Data.Profunctor.Profunctor Main.Function where
-  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
-  (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Function b c -> Main.Function a d
   dimap = \firstFunction secondFunction value ->
     case value of
       (Function field0) -> Function \argument -> secondFunction (field0 (firstFunction argument))
 
 dictionary bifunctorMixed :: Data.Bifunctor.Bifunctor Main.Mixed where
-  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
-  (a -> b) -> (c -> d) -> Main.Mixed a c -> Main.Mixed b d
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Mixed a c -> Main.Mixed b d
   bimap = \firstFunction secondFunction value ->
     case value of
       (Mixed field0) -> Mixed

@@ -4,40 +4,30 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
-showP ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type)) -> Prim.String
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+showP :: forall k (@a :: k). Main.ShowP @k (a :: k) => Main.Proxy @k (a :: k) -> Prim.String
 value :: Prim.String
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-ShowP :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Constraint
+Proxy :: forall k. k -> Prim.Type
+ShowP :: forall k. k -> Prim.Constraint
 
 Classes
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)). Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type))
-  showP ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.ShowP @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type)) -> Prim.String
+class forall (k :: Prim.Type) (a :: k). Main.ShowP @k (a :: k)
+  showP :: forall k (@a :: k). Main.ShowP @k (a :: k) => Main.Proxy @k (a :: k) -> Prim.String
 
 Instances
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.ShowP @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.ShowP @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+instance forall t0 (a :: t0). Main.ShowP @t0 (a :: t0)
+instance forall t0 (a :: t0). Main.ShowP @t0 (a :: t0)
 
 Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: ShowP @(t0 :: Type) (a :: (t0 :: Type))
+error[OverlappingInstances]: Overlapping type class instances found for: ShowP @t0 (a :: t0)
   --> 13:1..14:21
    |
 13 | instance showPSecond :: ShowP a where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (t1 :: Type) (a1 :: (t1 :: Type)). ShowP @(t1 :: Type) (a1 :: (t1 :: Type)) is matching
-  trivia: forall (t0 :: Type) (a :: (t0 :: Type)). ShowP @(t0 :: Type) (a :: (t0 :: Type)) is matching
+  trivia: forall t1 (a1 :: t1). ShowP @t1 (a1 :: t1) is matching
+  trivia: forall t0 (a :: t0). ShowP @t0 (a :: t0) is matching

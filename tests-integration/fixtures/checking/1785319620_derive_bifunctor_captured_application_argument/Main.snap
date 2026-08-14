@@ -4,23 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Triple ::
-  forall (@x :: Prim.Type) (@a :: Prim.Type) (@b :: Prim.Type).
-    (x :: Prim.Type) ->
-    (a :: Prim.Type) ->
-    (b :: Prim.Type) ->
-    Main.Triple (x :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type)
-Captured ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Triple (a :: Prim.Type) Prim.Int (b :: Prim.Type) ->
-    Main.Captured (a :: Prim.Type) (b :: Prim.Type)
-Outer ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Outer (a :: Prim.Type) (b :: Prim.Type)
+Triple :: forall @x @a @b. x -> a -> b -> Main.Triple x a b
+Captured :: forall @a @b. Main.Triple a Prim.Int b -> Main.Captured a b
+Outer :: forall @a @b. a -> b -> Main.Outer a b
 NestedCaptured ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Outer (Main.Triple (a :: Prim.Type) Prim.Int Prim.Boolean) (b :: Prim.Type) ->
-    Main.NestedCaptured (a :: Prim.Type) (b :: Prim.Type)
+  forall @a @b. Main.Outer (Main.Triple a Prim.Int Prim.Boolean) b -> Main.NestedCaptured a b
 
 Types
 Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
@@ -39,12 +27,12 @@ Outer = [Representational, Representational]
 NestedCaptured = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Triple (t0 :: Type) Int (t1 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Triple t0 Int t1
   --> 8:1..8:35
   |
 8 | derive instance Bifunctor Captured
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Outer (Triple (t2 :: Type) Int Boolean) (t3 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Outer (Triple t2 Int Boolean) t3
   --> 13:1..13:41
    |
 13 | derive instance Bifunctor NestedCaptured

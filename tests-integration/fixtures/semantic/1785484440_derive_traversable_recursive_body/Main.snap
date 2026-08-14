@@ -9,7 +9,7 @@ data Tree @a
   | Branch :: Main.Tree a -> Main.Tree a -> Main.Tree a
 
 dictionary functorTree :: Data.Functor.Functor Main.Tree where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Tree a -> Main.Tree b
+  map :: forall a b. (a -> b) -> Main.Tree a -> Main.Tree b
   map = \function value ->
     case value of
       (Leaf field0) -> Leaf (function field0)
@@ -17,7 +17,7 @@ dictionary functorTree :: Data.Functor.Functor Main.Tree where
         (map {functorTree} (\element -> function element) field1)
 
 dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Tree a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Tree a -> b
   foldr = \function accumulator value ->
     case value of
       (Leaf field0) -> function field0 accumulator
@@ -26,7 +26,7 @@ dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
         (foldr {foldableTree} (\element accumulator -> function element accumulator) accumulator
           field1)
         field0
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Tree a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Tree a -> b
   foldl = \function accumulator value ->
     case value of
       (Leaf field0) -> function accumulator field0
@@ -35,7 +35,7 @@ dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
         (foldl {foldableTree} (\accumulator element -> function accumulator element) accumulator
           field0)
         field1
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of
@@ -47,7 +47,7 @@ dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
 dictionary traversableTree :: Data.Traversable.Traversable Main.Tree where
   superclass functorDict = functorTree
   superclass foldableDict = foldableTree
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Tree a -> m (Main.Tree b)
   traverse = \{applicativeDict} ->
     \function value ->
@@ -60,7 +60,7 @@ dictionary traversableTree :: Data.Traversable.Traversable Main.Tree where
             (\field0Result field1Result -> Branch field0Result field1Result)
             (traverse {traversableTree} {applicativeDict} (\element -> function element) field0))
           (traverse {traversableTree} {applicativeDict} (\element -> function element) field1)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Tree (m a) -> m (Main.Tree a)
   sequence = \{applicativeDict} ->
     \value -> traverse {traversableTree} {applicativeDict} (\effect0 -> effect0) value

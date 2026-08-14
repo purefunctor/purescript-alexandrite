@@ -5,8 +5,8 @@ expression: report
 ---
 Terms
 useLacksEmpty ::
-  forall (t0 :: Prim.Type) (name :: Prim.Symbol).
-    Prim.Row.Lacks @(t0 :: Prim.Type) (name :: Prim.Symbol) () =>
+  forall t0 (name :: Prim.Symbol).
+    Prim.Row.Lacks @t0 (name :: Prim.Symbol) () =>
     Type.Proxy.Proxy @Prim.Symbol (name :: Prim.Symbol) -> Prim.Int
 forwardLacksEmpty ::
   forall (name :: Prim.Symbol). Type.Proxy.Proxy @Prim.Symbol (name :: Prim.Symbol) -> Prim.Int

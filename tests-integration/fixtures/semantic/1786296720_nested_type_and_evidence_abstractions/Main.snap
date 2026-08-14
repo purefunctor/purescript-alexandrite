@@ -9,7 +9,7 @@ interface Eq a where
 
 interface First :: Prim.Type -> Prim.Constraint
 interface First a where
-  interleaved :: forall (b :: Prim.Type). Main.Second b => a -> b
+  interleaved :: forall b. Main.Second b => a -> b
 
 interface Second :: Prim.Type -> Prim.Constraint
 interface Second b where

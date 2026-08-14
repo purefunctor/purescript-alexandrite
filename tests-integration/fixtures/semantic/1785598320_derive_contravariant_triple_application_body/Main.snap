@@ -12,7 +12,7 @@ data TripleNegative @a
   | TripleNegative :: Main.Predicate (Main.Predicate (Main.Predicate a)) -> Main.TripleNegative a
 
 dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.Predicate a -> Main.Predicate b
+  cmap :: forall a b. (b -> a) -> Main.Predicate a -> Main.Predicate b
   cmap = \function value ->
     case value of
       (Predicate field0) -> Predicate \argument -> field0 (function argument)
@@ -20,7 +20,7 @@ dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Ma
 dictionary contravariantTripleNegative ::
   Data.Functor.Contravariant.Contravariant Main.TripleNegative
   where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.TripleNegative a -> Main.TripleNegative b
+  cmap :: forall a b. (b -> a) -> Main.TripleNegative a -> Main.TripleNegative b
   cmap = \function value ->
     case value of
       (TripleNegative field0) -> TripleNegative

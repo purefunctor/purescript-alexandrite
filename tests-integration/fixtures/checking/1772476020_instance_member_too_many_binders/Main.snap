@@ -4,14 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+show :: forall @a. Main.Show a => a -> Prim.String
 
 Types
 Show :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
-  show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
 
 Instances
 instance Main.Show Prim.Int

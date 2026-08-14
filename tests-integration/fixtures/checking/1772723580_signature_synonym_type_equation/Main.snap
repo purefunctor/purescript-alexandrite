@@ -11,4 +11,4 @@ ConstT :: Main.BinaryKind
 
 Synonyms
 type BinaryKind = Prim.Type -> Prim.Type -> Prim.Type
-type ConstT a b = (a :: Prim.Type)
+type ConstT a b = a

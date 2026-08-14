@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data RightNested :: forall (k0 :: Prim.Type). (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
+data RightNested :: forall k0. (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data RightNested @p @a
   | RightNested :: p Prim.Int a -> Main.RightNested p a
 
@@ -12,8 +12,7 @@ dictionary functorRightNested ::
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.RightNested @Prim.Type p)
   where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.RightNested @Prim.Type p a -> Main.RightNested @Prim.Type p b
+  map :: forall a b. (a -> b) -> Main.RightNested @Prim.Type p a -> Main.RightNested @Prim.Type p b
   map = \function -> \(RightNested value) ->
     RightNested (bimap {bifunctorDict} (\fixed -> fixed) function value)
 
@@ -22,14 +21,13 @@ dictionary foldableRightNested ::
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
   where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
   foldr = \function -> \initial -> \(RightNested value) ->
     bifoldr {bifoldableDict} (\_ accumulated -> accumulated) function initial value
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
   foldl = \function -> \initial -> \(RightNested value) ->
     bifoldl {bifoldableDict} (\accumulated _ -> accumulated) function initial value
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
   foldMap = \{monoidDict} -> \function -> \(RightNested value) ->
     bifoldMap {bifoldableDict} {monoidDict} (\_ -> mempty {monoidDict}) function value
 
@@ -40,7 +38,7 @@ dictionary traversableRightNested ::
   where
   superclass functorDict = functorRightNested {bitraversableDict.bifunctorDict}
   superclass foldableDict = foldableRightNested {bitraversableDict.bifoldableDict}
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.RightNested @Prim.Type p a -> m (Main.RightNested @Prim.Type p b)
   traverse = \{applicativeDict} ->
@@ -52,7 +50,7 @@ dictionary traversableRightNested ::
             (\unchanged -> pure {applicativeDict} unchanged)
             (\element -> function element)
             field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.RightNested @Prim.Type p (m a) -> m (Main.RightNested @Prim.Type p a)
   sequence = \{applicativeDict} ->

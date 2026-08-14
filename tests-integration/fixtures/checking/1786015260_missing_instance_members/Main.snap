@@ -4,20 +4,16 @@ assertion_line: 50
 expression: report
 ---
 Terms
-render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-renderWithIndent ::
-  forall (@a :: Prim.Type).
-    Main.Render (a :: Prim.Type) => Prim.Int -> (a :: Prim.Type) -> Prim.String
+render :: forall @a. Main.Render a => a -> Prim.String
+renderWithIndent :: forall @a. Main.Render a => Prim.Int -> a -> Prim.String
 
 Types
 Render :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Render (a :: Prim.Type)
-  render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-  renderWithIndent ::
-  forall (@a :: Prim.Type).
-    Main.Render (a :: Prim.Type) => Prim.Int -> (a :: Prim.Type) -> Prim.String
+class forall (a :: Prim.Type). Main.Render a
+  render :: forall @a. Main.Render a => a -> Prim.String
+  renderWithIndent :: forall @a. Main.Render a => Prim.Int -> a -> Prim.String
 
 Instances
 instance Main.Render Prim.Int

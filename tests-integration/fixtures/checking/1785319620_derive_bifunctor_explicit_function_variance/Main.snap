@@ -4,13 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-ArrowSyntax ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) -> Main.ArrowSyntax (a :: Prim.Type) (b :: Prim.Type)
-ArrowConstructor ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Prim.Function (a :: Prim.Type) (b :: Prim.Type) ->
-    Main.ArrowConstructor (a :: Prim.Type) (b :: Prim.Type)
+ArrowSyntax :: forall @a @b. (a -> b) -> Main.ArrowSyntax a b
+ArrowConstructor :: forall @a @b. Prim.Function a b -> Main.ArrowConstructor a b
 
 Types
 ArrowSyntax :: Prim.Type -> Prim.Type -> Prim.Type
@@ -25,12 +20,12 @@ ArrowSyntax = [Representational, Representational]
 ArrowConstructor = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t0 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: t0
   --> 6:1..6:38
   |
 6 | derive instance Bifunctor ArrowSyntax
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t1 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: t1
   --> 9:1..9:43
   |
 9 | derive instance Bifunctor ArrowConstructor

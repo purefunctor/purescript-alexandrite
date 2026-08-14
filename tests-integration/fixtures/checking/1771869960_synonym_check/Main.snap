@@ -12,5 +12,5 @@ FourtyTwo :: Prim.Int
 
 Synonyms
 type NonZeroInt = Prim.Int
-type Identity a = (a :: Prim.Type)
+type Identity a = a
 type FourtyTwo = 42

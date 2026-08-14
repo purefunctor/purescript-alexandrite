@@ -9,24 +9,24 @@ data Maybe @a
   | Just :: a -> Main.Maybe a
 
 dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Maybe a -> Main.Maybe b
+  map :: forall a b. (a -> b) -> Main.Maybe a -> Main.Maybe b
   map = \function value ->
     case value of
       Nothing -> Nothing
       (Just field0) -> Just (function field0)
 
 dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Maybe a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Maybe a -> b
   foldr = \function accumulator value ->
     case value of
       Nothing -> accumulator
       (Just field0) -> function field0 accumulator
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Maybe a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Maybe a -> b
   foldl = \function accumulator value ->
     case value of
       Nothing -> accumulator
       (Just field0) -> function accumulator field0
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Maybe a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of
@@ -36,7 +36,7 @@ dictionary foldableMaybe :: Data.Foldable.Foldable Main.Maybe where
 dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
   superclass functorDict = functorMaybe
   superclass foldableDict = foldableMaybe
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Maybe a -> m (Main.Maybe b)
   traverse = \{applicativeDict} ->
     \function value ->
@@ -45,7 +45,7 @@ dictionary traversableMaybe :: Data.Traversable.Traversable Main.Maybe where
         (Just field0) -> map {applicativeDict.applyDict.functorDict}
           (\field0Result -> Just field0Result)
           (function field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Maybe (m a) -> m (Main.Maybe a)
   sequence = \{applicativeDict} ->
     \value -> traverse {traversableMaybe} {applicativeDict} (\effect0 -> effect0) value

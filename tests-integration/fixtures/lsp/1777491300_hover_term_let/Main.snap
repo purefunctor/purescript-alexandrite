@@ -13,5 +13,5 @@ Hover at Position { line: 6, character: 4 }
 Range: "identity"
 
 ```purescript
-(t0 :: Type) -> (t0 :: Type)
+t0 -> t0
 ```

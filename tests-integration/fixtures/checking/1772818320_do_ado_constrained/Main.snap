@@ -4,41 +4,36 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Tuple ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
 map ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Functor (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
 apply ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Apply (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (f :: Prim.Type -> Prim.Type) (a -> b) ->
+      (f :: Prim.Type -> Prim.Type) a ->
+      (f :: Prim.Type -> Prim.Type) b)
 pure ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Applicative (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+    (forall a. a -> (f :: Prim.Type -> Prim.Type) a)
 discard ::
   forall (@m :: Prim.Type -> Prim.Type).
     Main.Discard (m :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (m :: Prim.Type -> Prim.Type) a ->
+      (a -> (m :: Prim.Type -> Prim.Type) b) ->
+      (m :: Prim.Type -> Prim.Type) b)
 bind ::
   forall (@m :: Prim.Type -> Prim.Type).
     Main.Bind (m :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (m :: Prim.Type -> Prim.Type) a ->
+      (a -> (m :: Prim.Type -> Prim.Type) b) ->
+      (m :: Prim.Type -> Prim.Type) b)
 testDo ::
   forall (m :: Prim.Type -> Prim.Type).
     Main.Monad (m :: Prim.Type -> Prim.Type) =>
@@ -76,39 +71,36 @@ class forall (f :: Prim.Type -> Prim.Type). Main.Functor (f :: Prim.Type -> Prim
   map ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Functor (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
 class forall (f :: Prim.Type -> Prim.Type). Main.Functor (f :: Prim.Type -> Prim.Type) <= Main.Apply (f :: Prim.Type -> Prim.Type)
   apply ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Apply (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (f :: Prim.Type -> Prim.Type) (a -> b) ->
+      (f :: Prim.Type -> Prim.Type) a ->
+      (f :: Prim.Type -> Prim.Type) b)
 class forall (f :: Prim.Type -> Prim.Type). Main.Apply (f :: Prim.Type -> Prim.Type) <= Main.Applicative (f :: Prim.Type -> Prim.Type)
   pure ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Applicative (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+    (forall a. a -> (f :: Prim.Type -> Prim.Type) a)
 class forall (m :: Prim.Type -> Prim.Type). Main.Applicative (m :: Prim.Type -> Prim.Type) <= Main.Discard (m :: Prim.Type -> Prim.Type)
   discard ::
   forall (@m :: Prim.Type -> Prim.Type).
     Main.Discard (m :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (m :: Prim.Type -> Prim.Type) a ->
+      (a -> (m :: Prim.Type -> Prim.Type) b) ->
+      (m :: Prim.Type -> Prim.Type) b)
 class forall (m :: Prim.Type -> Prim.Type). Main.Applicative (m :: Prim.Type -> Prim.Type) <= Main.Bind (m :: Prim.Type -> Prim.Type)
   bind ::
   forall (@m :: Prim.Type -> Prim.Type).
     Main.Bind (m :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-      (m :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b.
+      (m :: Prim.Type -> Prim.Type) a ->
+      (a -> (m :: Prim.Type -> Prim.Type) b) ->
+      (m :: Prim.Type -> Prim.Type) b)
 class forall (m :: Prim.Type -> Prim.Type). Main.Bind (m :: Prim.Type -> Prim.Type) <= Main.Monad (m :: Prim.Type -> Prim.Type)
 
 Roles

@@ -4,16 +4,12 @@ assertion_line: 50
 expression: report
 ---
 Terms
-clone ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Clone (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+clone :: forall @a @b. Main.Clone a b => a -> b
 testClonePerson ::
   { age :: Prim.Int, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
 testCloneEmpty :: {} -> {}
 testCloneSingle :: { x :: Prim.Int } -> { x :: Prim.Int }
-nest ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Nest (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+nest :: forall @a @b. Main.Nest a b => a -> b
 testNest :: { a :: Prim.String } -> { inner :: { a :: Prim.String }, outer :: Prim.Int }
 
 Types
@@ -21,14 +17,10 @@ Clone :: Prim.Type -> Prim.Type -> Prim.Constraint
 Nest :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type) (b :: Prim.Type). Main.Clone (a :: Prim.Type) (b :: Prim.Type)
-  clone ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Clone (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
-class forall (a :: Prim.Type) (b :: Prim.Type). Main.Nest (a :: Prim.Type) (b :: Prim.Type)
-  nest ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Nest (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Clone a b
+  clone :: forall @a @b. Main.Clone a b => a -> b
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Nest a b
+  nest :: forall @a @b. Main.Nest a b => a -> b
 
 Instances
 instance forall (r :: Prim.Row Prim.Type).

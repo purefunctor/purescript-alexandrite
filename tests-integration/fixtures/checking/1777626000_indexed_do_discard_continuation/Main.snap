@@ -5,20 +5,10 @@ expression: report
 ---
 Terms
 Unit :: Main.Unit
-pure ::
-  forall (hooks :: Prim.Type) (a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Render (hooks :: Prim.Type) (hooks :: Prim.Type) (a :: Prim.Type)
-discard ::
-  forall (a :: Prim.Type) (b :: Prim.Type) (x :: Prim.Type) (y :: Prim.Type) (z :: Prim.Type).
-    Main.Render (x :: Prim.Type) (y :: Prim.Type) (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> Main.Render (y :: Prim.Type) (z :: Prim.Type) (b :: Prim.Type)) ->
-    Main.Render (x :: Prim.Type) (z :: Prim.Type) (b :: Prim.Type)
-use1 ::
-  forall (hooks :: Prim.Type).
-    Main.Render (hooks :: Prim.Type) (Main.Use1 (hooks :: Prim.Type)) Main.Unit
-use2 ::
-  forall (hooks :: Prim.Type).
-    Main.Render (hooks :: Prim.Type) (Main.Use2 (hooks :: Prim.Type)) Main.Unit
+pure :: forall hooks a. a -> Main.Render hooks hooks a
+discard :: forall a b x y z. Main.Render x y a -> (a -> Main.Render y z b) -> Main.Render x z b
+use1 :: forall hooks. Main.Render hooks (Main.Use1 hooks) Main.Unit
+use2 :: forall hooks. Main.Render hooks (Main.Use2 hooks) Main.Unit
 test :: Main.Render Main.Start (Main.Use2 (Main.Use1 Main.Start)) Main.Unit
 
 Types

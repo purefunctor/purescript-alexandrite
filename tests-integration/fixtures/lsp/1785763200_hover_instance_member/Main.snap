@@ -16,10 +16,7 @@ Range: <none>
 map ::
   forall (@f :: Type -> Type).
     Functor (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (f :: Type -> Type) (b :: Type))
+    (forall a b. (a -> b) -> (f :: Type -> Type) a -> (f :: Type -> Type) b)
 ```
 
 
@@ -36,10 +33,7 @@ Range: <none>
 map ::
   forall (@f :: Type -> Type).
     Functor (f :: Type -> Type) =>
-    (forall (a :: Type) (b :: Type).
-      ((a :: Type) -> (b :: Type)) ->
-      (f :: Type -> Type) (a :: Type) ->
-      (f :: Type -> Type) (b :: Type))
+    (forall a b. (a -> b) -> (f :: Type -> Type) a -> (f :: Type -> Type) b)
 ```
 
 

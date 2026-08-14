@@ -7,37 +7,29 @@ Terms
 Age :: Prim.Int -> Main.Age
 coerceFn :: (Main.Age -> Prim.Int) -> Prim.Int -> Main.Age
 over ::
-  forall (t :: Prim.Type) (a :: Prim.Type) (s :: Prim.Type) (b :: Prim.Type).
-    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
-    Data.Newtype.Newtype @Prim.Type (s :: Prim.Type) (b :: Prim.Type) =>
-    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
-    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    (t :: Prim.Type) ->
-    (s :: Prim.Type)
+  forall t a s b.
+    Data.Newtype.Newtype @Prim.Type t a =>
+    Data.Newtype.Newtype @Prim.Type s b =>
+    (a -> t) -> (a -> b) -> t -> s
 under ::
-  forall (t :: Prim.Type) (a :: Prim.Type) (s :: Prim.Type) (b :: Prim.Type).
-    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
-    Data.Newtype.Newtype @Prim.Type (s :: Prim.Type) (b :: Prim.Type) =>
-    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
-    ((t :: Prim.Type) -> (s :: Prim.Type)) ->
-    (a :: Prim.Type) ->
-    (b :: Prim.Type)
+  forall t a s b.
+    Data.Newtype.Newtype @Prim.Type t a =>
+    Data.Newtype.Newtype @Prim.Type s b =>
+    (a -> t) -> (t -> s) -> a -> b
 alaF ::
-  forall (t0 :: Prim.Type) (f :: Prim.Type -> Prim.Type) (g :: (t0 :: Prim.Type) -> Prim.Type)
-    (t :: Prim.Type) (a :: Prim.Type) (s :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)).
+  forall t0 (f :: Prim.Type -> Prim.Type) (g :: t0 -> Prim.Type) t a (s :: t0) (b :: t0).
     Prim.Coerce.Coercible @Prim.Type
-      ((f :: Prim.Type -> Prim.Type) (t :: Prim.Type))
-      ((f :: Prim.Type -> Prim.Type) (a :: Prim.Type)) =>
+      ((f :: Prim.Type -> Prim.Type) t)
+      ((f :: Prim.Type -> Prim.Type) a) =>
     Prim.Coerce.Coercible @Prim.Type
-      ((g :: (t0 :: Prim.Type) -> Prim.Type) (s :: (t0 :: Prim.Type)))
-      ((g :: (t0 :: Prim.Type) -> Prim.Type) (b :: (t0 :: Prim.Type))) =>
-    Data.Newtype.Newtype @Prim.Type (t :: Prim.Type) (a :: Prim.Type) =>
-    Data.Newtype.Newtype @(t0 :: Prim.Type) (s :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)) =>
-    ((a :: Prim.Type) -> (t :: Prim.Type)) ->
-    ((f :: Prim.Type -> Prim.Type) (t :: Prim.Type) ->
-    (g :: (t0 :: Prim.Type) -> Prim.Type) (s :: (t0 :: Prim.Type))) ->
-    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    (g :: (t0 :: Prim.Type) -> Prim.Type) (b :: (t0 :: Prim.Type))
+      ((g :: t0 -> Prim.Type) (s :: t0))
+      ((g :: t0 -> Prim.Type) (b :: t0)) =>
+    Data.Newtype.Newtype @Prim.Type t a =>
+    Data.Newtype.Newtype @t0 (s :: t0) (b :: t0) =>
+    (a -> t) ->
+    ((f :: Prim.Type -> Prim.Type) t -> (g :: t0 -> Prim.Type) (s :: t0)) ->
+    (f :: Prim.Type -> Prim.Type) a ->
+    (g :: t0 -> Prim.Type) (b :: t0)
 
 Types
 Age :: Prim.Type

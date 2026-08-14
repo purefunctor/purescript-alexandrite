@@ -3,10 +3,10 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-interface First :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface First :: forall k0. k0 -> Prim.Constraint
 interface First a where
 
-interface Second :: forall (k0 :: Prim.Type). k0 -> Prim.Constraint
+interface Second :: forall k0. k0 -> Prim.Constraint
 interface Second a where
 
 foreign import apply :: forall argument result. (argument -> result) -> argument -> result

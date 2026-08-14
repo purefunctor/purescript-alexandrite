@@ -5,20 +5,15 @@ expression: report
 ---
 Terms
 Wrap ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
 WrapNoFunctor ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.WrapNoFunctor @(t0 :: Prim.Type)
-      (f :: (t0 :: Prim.Type) -> Prim.Type)
-      (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.WrapNoFunctor @t0 (f :: t0 -> Prim.Type) (a :: t0)
 
 Types
-Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
-WrapNoFunctor ::
-  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+WrapNoFunctor :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
 
 Derived
 derive forall (f :: Prim.Type -> Prim.Type).
@@ -32,7 +27,7 @@ Wrap = [Representational, Nominal]
 WrapNoFunctor = [Representational, Nominal]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) (t0 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) t0
   --> 9:1..9:42
   |
 9 | derive instance Functor (WrapNoFunctor f)

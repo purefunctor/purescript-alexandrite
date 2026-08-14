@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 consOpen ::
   forall (r :: Prim.Row Prim.Type) (row :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type
@@ -16,13 +14,13 @@ consOpen ::
       (row :: Prim.Row Prim.Type) =>
     Main.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
 decomposeOpen ::
-  forall (t :: Prim.Type) (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+  forall t (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type
       "x"
-      (t :: Prim.Type)
+      t
       (tail :: Prim.Row Prim.Type)
       ( a :: Prim.String, x :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
-    Main.Proxy @Prim.Type (t :: Prim.Type)
+    Main.Proxy @Prim.Type t
 extractTail ::
   forall (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type
@@ -42,7 +40,7 @@ forceSolve ::
     }
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 
 Roles
 Proxy = [Phantom]

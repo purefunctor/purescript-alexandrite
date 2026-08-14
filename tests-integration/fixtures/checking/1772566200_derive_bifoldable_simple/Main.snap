@@ -4,36 +4,20 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Pair ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
-Const2 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@e :: Prim.Type) (@a :: (t0 :: Prim.Type))
-    (@b :: (t1 :: Prim.Type)).
-    (e :: Prim.Type) ->
-    Main.Const2 @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-      (e :: Prim.Type)
-      (a :: (t0 :: Prim.Type))
-      (b :: (t1 :: Prim.Type))
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+Const2 :: forall t0 t1 @e (@a :: t0) (@b :: t1). e -> Main.Const2 @t0 @t1 e (a :: t0) (b :: t1)
 
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type
 Pair :: Prim.Type -> Prim.Type -> Prim.Type
-Const2 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Type -> (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
+Const2 :: forall t0 t1. Prim.Type -> t0 -> t1 -> Prim.Type
 
 Derived
 derive Data.Bifoldable.Bifoldable Main.Either
 derive Data.Bifoldable.Bifoldable Main.Pair
-derive forall (e :: Prim.Type).
-  Data.Bifoldable.Bifoldable (Main.Const2 @Prim.Type @Prim.Type (e :: Prim.Type))
+derive forall e. Data.Bifoldable.Bifoldable (Main.Const2 @Prim.Type @Prim.Type e)
 
 Roles
 Either = [Representational, Representational]

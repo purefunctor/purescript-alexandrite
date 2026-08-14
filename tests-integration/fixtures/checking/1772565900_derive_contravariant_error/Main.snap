@@ -4,9 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
-Producer ::
-  forall (@a :: Prim.Type). (Prim.Int -> (a :: Prim.Type)) -> Main.Producer (a :: Prim.Type)
+Identity :: forall @a. a -> Main.Identity a
+Producer :: forall @a. (Prim.Int -> a) -> Main.Producer a
 
 Types
 Identity :: Prim.Type -> Prim.Type
@@ -21,12 +20,12 @@ Identity = [Representational]
 Producer = [Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t0 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: t0
   --> 6:1..6:39
   |
 6 | derive instance Contravariant Identity
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: (t1 :: Type)
+error[CovariantOccurrence]: Type variable occurs in covariant position: t1
   --> 9:1..9:39
   |
 9 | derive instance Contravariant Producer

@@ -3,9 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Wrap ::
-  forall (k0 :: Prim.Type) (k1 :: Prim.Type).
-    (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Wrap :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Wrap @f @g @a @b
   | Wrap :: f a -> g b -> Main.Wrap f g a b
 
@@ -15,8 +13,7 @@ dictionary bifoldableWrap ::
   { foldableDict1 :: Data.Foldable.Foldable g } =>
   Data.Bifoldable.Bifoldable (Main.Wrap @Prim.Type @Prim.Type f g)
   where
-  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
   bifoldr = \firstFunction secondFunction accumulator value ->
     case value of
       (Wrap field0 field1) -> foldr {foldableDict}
@@ -25,8 +22,7 @@ dictionary bifoldableWrap ::
           accumulator
           field1)
         field0
-  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
   bifoldl = \firstFunction secondFunction accumulator value ->
     case value of
       (Wrap field0 field1) -> foldl {foldableDict1}
@@ -35,7 +31,7 @@ dictionary bifoldableWrap ::
           accumulator
           field0)
         field1
-  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bifoldMap :: forall m a b.
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
   bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->

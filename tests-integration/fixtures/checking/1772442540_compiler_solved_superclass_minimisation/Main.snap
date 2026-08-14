@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+unsafeCoerce :: forall a b. a -> b
 useMerge ::
   forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
     Main.Merge @Prim.Type
@@ -37,18 +37,7 @@ testMin ::
     Prim.Int
 
 Types
-Merge ::
-  forall (t0 :: Prim.Type).
-    Prim.Row (t0 :: Prim.Type) ->
-    Prim.Row (t0 :: Prim.Type) ->
-    Prim.Row (t0 :: Prim.Type) ->
-    Prim.Constraint
+Merge :: forall t0. Prim.Row t0 -> Prim.Row t0 -> Prim.Row t0 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (r1 :: Prim.Row (t0 :: Prim.Type)) (r2 :: Prim.Row (t0 :: Prim.Type)) (r3 :: Prim.Row (t0 :: Prim.Type)). Prim.Row.Union @(t0 :: Prim.Type)
-  (r1 :: Prim.Row (t0 :: Prim.Type))
-  (r2 :: Prim.Row (t0 :: Prim.Type))
-  (r3 :: Prim.Row (t0 :: Prim.Type)) <= Main.Merge @(t0 :: Prim.Type)
-  (r1 :: Prim.Row (t0 :: Prim.Type))
-  (r2 :: Prim.Row (t0 :: Prim.Type))
-  (r3 :: Prim.Row (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0). Prim.Row.Union @t0 (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0) <= Main.Merge @t0 (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0)

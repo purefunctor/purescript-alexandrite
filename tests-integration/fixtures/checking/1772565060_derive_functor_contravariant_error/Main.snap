@@ -4,15 +4,9 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Predicate ::
-  forall (@a :: Prim.Type). ((a :: Prim.Type) -> Prim.Boolean) -> Main.Predicate (a :: Prim.Type)
-Reader ::
-  forall (@r :: Prim.Type) (@a :: Prim.Type).
-    ((r :: Prim.Type) -> (a :: Prim.Type)) -> Main.Reader (r :: Prim.Type) (a :: Prim.Type)
-Cont ::
-  forall (@r :: Prim.Type) (@a :: Prim.Type).
-    (((a :: Prim.Type) -> (r :: Prim.Type)) -> (r :: Prim.Type)) ->
-    Main.Cont (r :: Prim.Type) (a :: Prim.Type)
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+Reader :: forall @r @a. (r -> a) -> Main.Reader r a
+Cont :: forall @r @a. ((a -> r) -> r) -> Main.Cont r a
 
 Types
 Predicate :: Prim.Type -> Prim.Type
@@ -21,8 +15,8 @@ Cont :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Functor.Functor Main.Predicate
-derive forall (r :: Prim.Type). Data.Functor.Functor (Main.Reader (r :: Prim.Type))
-derive forall (r :: Prim.Type). Data.Functor.Functor (Main.Cont (r :: Prim.Type))
+derive forall r. Data.Functor.Functor (Main.Reader r)
+derive forall r. Data.Functor.Functor (Main.Cont r)
 
 Roles
 Predicate = [Representational]
@@ -30,7 +24,7 @@ Reader = [Representational, Representational]
 Cont = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: (t0 :: Type)
+error[ContravariantOccurrence]: Type variable occurs in contravariant position: t0
   --> 6:1..6:34
   |
 6 | derive instance Functor Predicate

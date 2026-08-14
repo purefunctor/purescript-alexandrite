@@ -7,21 +7,16 @@ Terms
 defaultOptions :: {| Main.Optional @Prim.Type }
 
 Types
-Optional :: forall (k :: Prim.Type). Prim.Row (k :: Prim.Type)
+Optional :: forall k. Prim.Row k
 All :: Prim.Row Prim.Type
-ConvertOptions ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
+ConvertOptions :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Constraint
 
 Synonyms
 type Optional = ()
 type All = ( value :: Prim.Int | Main.Optional @Prim.Type )
 
 Classes
-class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (defaults :: (t0 :: Prim.Type)) (provided :: (t1 :: Prim.Type)) (all :: (t2 :: Prim.Type)). Main.ConvertOptions @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-  (defaults :: (t0 :: Prim.Type))
-  (provided :: (t1 :: Prim.Type))
-  (all :: (t2 :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (defaults :: t0) (provided :: t1) (all :: t2). Main.ConvertOptions @t0 @t1 @t2 (defaults :: t0) (provided :: t1) (all :: t2)
 
 Instances
 instance forall (provided :: Prim.Row Prim.Type).

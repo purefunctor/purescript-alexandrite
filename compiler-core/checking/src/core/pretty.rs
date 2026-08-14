@@ -437,6 +437,16 @@ where
         false
     }
 
+    fn is_type_kind(&self, id: TypeId) -> bool {
+        if let Type::Constructor(file_id, type_id) = self.lookup_type(id)
+            && file_id == self.queries.prim_id()
+            && let Some(name) = self.lookup_type_name(file_id, type_id)
+        {
+            return name == "Type";
+        }
+        false
+    }
+
     fn parens_if(&self, condition: bool, doc: Doc<'arena>) -> Doc<'arena> {
         if condition { self.arena.text("(").append(doc).append(self.arena.text(")")) } else { doc }
     }
@@ -505,7 +515,7 @@ where
 
             Type::Rigid(name, _, kind) => {
                 let text = self.pretty_names.display_name(self.queries, self.names, name);
-                if self.show_rigid_kinds {
+                if self.show_rigid_kinds && !self.is_type_kind(kind) {
                     let kind = self.traverse(Precedence::Top, kind);
                     self.arena
                         .text(format!("({text} :: "))
@@ -629,7 +639,7 @@ where
             .map(|binder| {
                 let name = self.pretty_names.display_name(self.queries, self.names, binder.name);
                 let text = if binder.visible { format!("@{name}") } else { name.to_string() };
-                if self.show_forall_kinds {
+                if self.show_forall_kinds && !self.is_type_kind(binder.kind) {
                     let kind = self.traverse(Precedence::Top, binder.kind);
                     self.arena
                         .text(format!("({} :: ", text))

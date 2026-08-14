@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+unsafeCoerce :: forall a b. a -> b
 coerceRecord ::
   forall (a :: Prim.Row Prim.Type) (b :: Prim.Row Prim.Type).
     Main.TypeEquals @(Prim.Row Prim.Type) (a :: Prim.Row Prim.Type) (b :: Prim.Row Prim.Type) =>
@@ -16,24 +16,16 @@ transform ::
 test :: { x :: Prim.Int, y :: Prim.String, z :: Prim.Boolean }
 
 Types
-RowApply ::
-  forall (k :: Prim.Type).
-    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
-    Prim.Row (k :: Prim.Type) ->
-    Prim.Row (k :: Prim.Type)
-+ ::
-  forall (k :: Prim.Type).
-    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
-    Prim.Row (k :: Prim.Type) ->
-    Prim.Row (k :: Prim.Type)
+RowApply :: forall k. (Prim.Row k -> Prim.Row k) -> Prim.Row k -> Prim.Row k
++ :: forall k. (Prim.Row k -> Prim.Row k) -> Prim.Row k -> Prim.Row k
 IncludeX :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 IncludeY :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 IncludeZ :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 Include :: Prim.Row Prim.Type
-TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
+TypeEquals :: forall k. k -> k -> Prim.Constraint
 
 Synonyms
-type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type RowApply f a = (f :: Prim.Row k -> Prim.Row k) (a :: Prim.Row k)
 type IncludeX r = ( x :: Prim.Int | (r :: Prim.Row Prim.Type) )
 type IncludeY r = ( y :: Prim.String | (r :: Prim.Row Prim.Type) )
 type IncludeZ r = ( z :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
@@ -42,8 +34,7 @@ type Include = Main.RowApply @Prim.Type
   (Main.RowApply @Prim.Type Main.IncludeY (Main.RowApply @Prim.Type Main.IncludeZ ()))
 
 Classes
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
 
 Instances
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
+instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)

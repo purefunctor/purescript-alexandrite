@@ -4,24 +4,18 @@ assertion_line: 50
 expression: report
 ---
 Terms
-eq ::
-  forall (@a :: Prim.Type).
-    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
+eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
 test :: Prim.Boolean
 test2 :: Prim.Boolean
-test3 ::
-  forall (t0 :: Prim.Type).
-    Main.Eq (t0 :: Prim.Type) => (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Boolean
+test3 :: forall t0. Main.Eq t0 => t0 -> t0 -> Prim.Boolean
 
 Types
 Eq :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
-  eq ::
-  forall (@a :: Prim.Type).
-    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
+class forall (a :: Prim.Type). Main.Eq a
+  eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
 
 Instances
 instance Main.Eq Prim.Int
-instance forall (a :: Prim.Type). Main.Eq (a :: Prim.Type) => Main.Eq (Prim.Array (a :: Prim.Type))
+instance forall a. Main.Eq a => Main.Eq (Prim.Array a)

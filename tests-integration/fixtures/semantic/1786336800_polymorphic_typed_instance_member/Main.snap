@@ -5,12 +5,12 @@ expression: report
 ---
 interface Convert :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Convert f g where
-  convert :: forall (a :: Prim.Type). f a -> g a
-  convertExplicit :: forall (a :: Prim.Type). f a -> g a
+  convert :: forall a. f a -> g a
+  convertExplicit :: forall a. f a -> g a
 
 interface Clash :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Clash f where
-  clash :: forall (a :: Prim.Type). f a -> f a
+  clash :: forall a. f a -> f a
 
 data F :: Prim.Type -> Prim.Type
 data F @a
@@ -21,13 +21,13 @@ data G @a
 foreign import unsafeCoerce :: forall a b. a -> b
 
 dictionary convertG :: Main.Convert Main.F Main.G where
-  convert :: forall (a :: Prim.Type). Main.F a -> Main.G a
+  convert :: forall a. Main.F a -> Main.G a
   convert = unsafeCoerce
-  convertExplicit :: forall (a :: Prim.Type). Main.F a -> Main.G a
+  convertExplicit :: forall a. Main.F a -> Main.G a
   convertExplicit = unsafeCoerce
 
 dictionary clash1 :: forall f. Main.Clash f where
-  clash :: forall (a :: Prim.Type). f a -> f a
+  clash :: forall a. f a -> f a
   clash = \(value :: f a) ->
     case value of
       (matched :: f a) -> local matched

@@ -11,11 +11,7 @@ apply ::
     (g :: Prim.Type -> Prim.Type) Prim.Int
 
 Types
-NatTrans ::
-  forall (t0 :: Prim.Type).
-    ((t0 :: Prim.Type) -> Prim.Type) -> ((t0 :: Prim.Type) -> Prim.Type) -> Prim.Type
+NatTrans :: forall t0. (t0 -> Prim.Type) -> (t0 -> Prim.Type) -> Prim.Type
 
 Synonyms
-type NatTrans f g = forall (a :: (t0 :: Prim.Type)).
-  (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-  (g :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+type NatTrans f g = forall (a :: t0). (f :: t0 -> Prim.Type) (a :: t0) -> (g :: t0 -> Prim.Type) (a :: t0)

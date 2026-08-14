@@ -4,18 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-convert ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+convert :: forall @a @b. Main.Convert a b => a -> b
 
 Types
 Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert (a :: Prim.Type) (b :: Prim.Type)
-  convert ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Convert (a :: Prim.Type) (b :: Prim.Type) => (a :: Prim.Type) -> (b :: Prim.Type)
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert a b
+  convert :: forall @a @b. Main.Convert a b => a -> b
 
 Instances
 instance Main.Convert Prim.String Prim.Int

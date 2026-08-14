@@ -9,7 +9,7 @@ data Tree @a
   | Branch :: Main.Tree a -> Main.Tree a -> Main.Tree a
 
 dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Tree a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Tree a -> b
   foldr = \function accumulator value ->
     case value of
       (Leaf field0) -> function field0 accumulator
@@ -18,7 +18,7 @@ dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
         (foldr {foldableTree} (\element accumulator -> function element accumulator) accumulator
           field1)
         field0
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Tree a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Tree a -> b
   foldl = \function accumulator value ->
     case value of
       (Leaf field0) -> function accumulator field0
@@ -27,7 +27,7 @@ dictionary foldableTree :: Data.Foldable.Foldable Main.Tree where
         (foldl {foldableTree} (\accumulator element -> function accumulator element) accumulator
           field0)
         field1
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Tree a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of

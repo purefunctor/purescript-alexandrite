@@ -24,9 +24,9 @@ whereBinding = \value -> local
 siblingPolymorphicBindings :: forall a. a -> { first :: a, second :: a }
 siblingPolymorphicBindings = \value ->
   let
-    first :: forall (b :: Prim.Type). b -> b
+    first :: forall b. b -> b
     first = \inner -> inner
-    second :: forall (b :: Prim.Type). b -> b
+    second :: forall b. b -> b
     second = \inner -> inner
   in
     { first: first value, second: second value }

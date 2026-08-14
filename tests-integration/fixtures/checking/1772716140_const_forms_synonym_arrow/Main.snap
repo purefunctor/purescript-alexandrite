@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-const0 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.Const (a :: Prim.Type) (b :: Prim.Type)
-const1 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.Const (a :: Prim.Type) (b :: Prim.Type)
-const2 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.Const (a :: Prim.Type) (b :: Prim.Type)
-const3 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.Const (a :: Prim.Type) (b :: Prim.Type)
+const0 :: forall a b. Main.Const a b
+const1 :: forall a b. Main.Const a b
+const2 :: forall a b. Main.Const a b
+const3 :: forall a b. Main.Const a b
 
 Types
 Const :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Const a b = (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+type Const a b = a -> b -> a

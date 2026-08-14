@@ -6,8 +6,8 @@ expression: report
 interface Empty :: Prim.Type -> Prim.Constraint
 interface Empty a where
 
-interface Example :: forall (k :: Prim.Type). k -> Prim.Type -> Prim.Constraint
+interface Example :: forall k. k -> Prim.Type -> Prim.Constraint
 interface Example value result where
   identity :: result -> result
-  alternate :: forall (intermediate :: Prim.Type). intermediate -> result
-  constrained :: forall (intermediate :: Prim.Type). Main.Empty intermediate => intermediate -> result
+  alternate :: forall intermediate. intermediate -> result
+  constrained :: forall intermediate. Main.Empty intermediate => intermediate -> result

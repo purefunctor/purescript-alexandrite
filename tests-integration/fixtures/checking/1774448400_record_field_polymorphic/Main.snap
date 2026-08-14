@@ -4,33 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
 FFIUtil ::
-  { isLeft ::
-      forall (a :: Prim.Type) (b :: Prim.Type).
-        Main.Either (a :: Prim.Type) (b :: Prim.Type) -> Prim.Boolean
-  , isRight ::
-      forall (a1 :: Prim.Type) (b1 :: Prim.Type).
-        Main.Either (a1 :: Prim.Type) (b1 :: Prim.Type) -> Prim.Boolean
-  , left ::
-      forall (a2 :: Prim.Type) (b2 :: Prim.Type).
-        (a2 :: Prim.Type) -> Main.Either (a2 :: Prim.Type) (b2 :: Prim.Type)
-  , right ::
-      forall (a3 :: Prim.Type) (b3 :: Prim.Type).
-        (b3 :: Prim.Type) -> Main.Either (a3 :: Prim.Type) (b3 :: Prim.Type)
+  { isLeft :: forall a b. Main.Either a b -> Prim.Boolean
+  , isRight :: forall a1 b1. Main.Either a1 b1 -> Prim.Boolean
+  , left :: forall a2 b2. a2 -> Main.Either a2 b2
+  , right :: forall a3 b3. b3 -> Main.Either a3 b3
   } ->
   Main.FFIUtil
-isLeft ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Either (a :: Prim.Type) (b :: Prim.Type) -> Prim.Boolean
-isRight ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Either (a :: Prim.Type) (b :: Prim.Type) -> Prim.Boolean
+isLeft :: forall a b. Main.Either a b -> Prim.Boolean
+isRight :: forall a b. Main.Either a b -> Prim.Boolean
 test :: Main.FFIUtil
 
 Types

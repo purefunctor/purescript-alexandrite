@@ -13,7 +13,7 @@ class Functor f
 Range: <none>
 
 ```purescript
-Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+Functor :: forall t0. t0 -> Constraint
 ```
 
 
@@ -51,7 +51,7 @@ instance Functor Identity
 Range: "Functor"
 
 ```purescript
-Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+Functor :: forall t0. t0 -> Constraint
 ```
 
 
@@ -164,7 +164,7 @@ derive instance Functor Derived
 Range: "Functor"
 
 ```purescript
-Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+Functor :: forall t0. t0 -> Constraint
 ```
 
 
@@ -202,7 +202,7 @@ derive newtype instance Functor Wrapper
 Range: "Functor"
 
 ```purescript
-Functor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+Functor :: forall t0. t0 -> Constraint
 ```
 
 
@@ -240,7 +240,7 @@ else instance Lib.ImportedFunctor ChainSecond
 Range: "Lib.ImportedFunctor"
 
 ```purescript
-ImportedFunctor :: forall (t0 :: Type). (t0 :: Type) -> Constraint
+ImportedFunctor :: forall t0. t0 -> Constraint
 ```
 
 

@@ -5,29 +5,28 @@ expression: report
 ---
 Terms
 App ::
-  forall (k :: Prim.Type) (@f :: (k :: Prim.Type) -> Prim.Type) (@a :: (k :: Prim.Type)).
-    (f :: (k :: Prim.Type) -> Prim.Type) (a :: (k :: Prim.Type)) ->
-    Main.App @(k :: Prim.Type) (f :: (k :: Prim.Type) -> Prim.Type) (a :: (k :: Prim.Type))
+  forall k (@f :: k -> Prim.Type) (@a :: k).
+    (f :: k -> Prim.Type) (a :: k) -> Main.App @k (f :: k -> Prim.Type) (a :: k)
 
 Types
-App :: forall (k :: Prim.Type). ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+App :: forall k. (k -> Prim.Type) -> k -> Prim.Type
 
 Derived
-derive forall (t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)).
+derive forall t0 (f :: t0 -> Prim.Type) (a :: t0).
   Data.Newtype.Newtype @Prim.Type
-    (Main.App @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)))
-    ((f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)))
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    (Main.App @t0 (f :: t0 -> Prim.Type) (a :: t0))
+    ((f :: t0 -> Prim.Type) (a :: t0))
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (a :: Prim.Type) =>
-  Data.Eq.Eq (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type) a)
 derive forall (f :: Prim.Type -> Prim.Type).
   Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
   Data.Eq.Eq1 (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type))
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Ord.Ord (a :: Prim.Type) =>
-  Data.Ord.Ord (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+  Data.Ord.Ord a =>
+  Data.Ord.Ord (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type) a)
 derive forall (f :: Prim.Type -> Prim.Type).
   Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
   Data.Ord.Ord1 (Main.App @Prim.Type (f :: Prim.Type -> Prim.Type))

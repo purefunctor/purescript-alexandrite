@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-value :: forall (@a :: Prim.Type). Main.Value (a :: Prim.Type) => (a :: Prim.Type)
+value :: forall @a. Main.Value a => a
 guardedFailure :: Prim.TypeError.Fail (Prim.TypeError.Text "failure was demanded") => Prim.Int
 useFailure :: Prim.Int
 guardedWarning :: Prim.TypeError.Warn (Prim.TypeError.Text "warning was demanded") => Prim.Int
@@ -14,8 +14,8 @@ Types
 Value :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Value (a :: Prim.Type)
-  value :: forall (@a :: Prim.Type). Main.Value (a :: Prim.Type) => (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Value a
+  value :: forall @a. Main.Value a => a
 
 Instances
 instance Main.Value Prim.Int

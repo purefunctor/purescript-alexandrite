@@ -6,6 +6,6 @@ expression: report
 Terms
 testInt :: Prim.Int -> Prim.Int
 testString :: Prim.String -> Prim.String
-testPoly :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+testPoly :: forall a. a -> a
 
 Types

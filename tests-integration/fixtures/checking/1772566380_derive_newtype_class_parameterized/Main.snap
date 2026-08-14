@@ -4,14 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Wrapper :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
+Wrapper :: forall @a. a -> Main.Wrapper a
 
 Types
 Wrapper :: Prim.Type -> Prim.Type
 
 Derived
-derive forall (a :: Prim.Type).
-  Data.Newtype.Newtype @Prim.Type (Main.Wrapper (a :: Prim.Type)) (a :: Prim.Type)
+derive forall a. Data.Newtype.Newtype @Prim.Type (Main.Wrapper a) a
 
 Roles
 Wrapper = [Representational]

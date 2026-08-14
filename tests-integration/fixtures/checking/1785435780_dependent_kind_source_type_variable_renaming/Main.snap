@@ -4,28 +4,23 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
-    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+Proxy :: forall kind (@value :: kind). Main.Proxy @kind (value :: kind)
 dependent ::
-  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
-    Main.Dependent @(kind :: Prim.Type) (value :: (kind :: Prim.Type)) =>
-    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+  forall kind (@value :: kind).
+    Main.Dependent @kind (value :: kind) => Main.Proxy @kind (value :: kind)
 
 Types
-Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
-Dependent :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Constraint
+Proxy :: forall kind. kind -> Prim.Type
+Dependent :: forall kind. kind -> Prim.Constraint
 
 Classes
-class forall (kind :: Prim.Type) (value :: (kind :: Prim.Type)). Main.Dependent @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+class forall (kind :: Prim.Type) (value :: kind). Main.Dependent @kind (value :: kind)
   dependent ::
-  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
-    Main.Dependent @(kind :: Prim.Type) (value :: (kind :: Prim.Type)) =>
-    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+  forall kind (@value :: kind).
+    Main.Dependent @kind (value :: kind) => Main.Proxy @kind (value :: kind)
 
 Instances
-instance forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)).
-  Main.Dependent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+instance forall t0 (value :: t0). Main.Dependent @t0 (value :: t0)
 
 Roles
 Proxy = [Phantom]

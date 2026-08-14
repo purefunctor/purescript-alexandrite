@@ -9,8 +9,7 @@ data RecordPro @a @b
     { consume :: a -> Prim.Int, fixed :: Prim.String, produce :: b } -> Main.RecordPro a b
 
 dictionary profunctorRecordPro :: Data.Profunctor.Profunctor Main.RecordPro where
-  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
-  (a -> b) -> (c -> d) -> Main.RecordPro b c -> Main.RecordPro a d
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.RecordPro b c -> Main.RecordPro a d
   dimap = \firstFunction secondFunction value ->
     case value of
       (RecordPro field0) -> RecordPro

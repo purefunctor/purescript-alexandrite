@@ -4,70 +4,65 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 warnBasic ::
-  forall (a :: Prim.Type).
-    Prim.TypeError.Warn (Prim.TypeError.Text "This function is deprecated") =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+  forall a. Prim.TypeError.Warn (Prim.TypeError.Text "This function is deprecated") => a -> a
 useWarnBasic :: Prim.Int
 warnBeside ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Beside (Prim.TypeError.Text "Left ") (Prim.TypeError.Text "Right")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnBeside :: Prim.Int
 warnAbove ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Above (Prim.TypeError.Text "Line 1") (Prim.TypeError.Text "Line 2")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnAbove :: Prim.Int
 warnQuote ::
-  forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
+  forall t0 (a :: t0).
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Got type: ")
-        (Prim.TypeError.Quote @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)))) =>
-    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+        (Prim.TypeError.Quote @t0 (a :: t0))) =>
+    Main.Proxy @t0 (a :: t0) -> Main.Proxy @t0 (a :: t0)
 useWarnQuote :: Main.Proxy @Prim.Type Prim.Int
 warnQuoteLabel ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Label: ")
         (Prim.TypeError.QuoteLabel "myField")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnQuoteLabel :: Prim.Int
 warnQuoteLabelSpaces ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Label: ")
         (Prim.TypeError.QuoteLabel "h e l l o")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnQuoteLabelSpaces :: Prim.Int
 warnQuoteLabelQuote ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Label: ")
         (Prim.TypeError.QuoteLabel "hel\"lo")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnQuoteLabelQuote :: Prim.Int
 warnQuoteLabelRaw ::
-  forall (a :: Prim.Type).
+  forall a.
     Prim.TypeError.Warn
       (Prim.TypeError.Beside
         (Prim.TypeError.Text "Label: ")
         (Prim.TypeError.QuoteLabel """raw\nstring""")) =>
-    (a :: Prim.Type) -> (a :: Prim.Type)
+    a -> a
 useWarnQuoteLabelRaw :: Prim.Int
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 
 Roles
 Proxy = [Phantom]

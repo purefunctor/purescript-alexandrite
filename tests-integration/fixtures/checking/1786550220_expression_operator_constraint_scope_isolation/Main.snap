@@ -4,21 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-combine ::
-  forall (result :: Prim.Type).
-    (Main.First @Prim.Type Prim.Int => Prim.Int) -> (result :: Prim.Type) -> (result :: Prim.Type)
-<+> ::
-  forall (result :: Prim.Type).
-    (Main.First @Prim.Type Prim.Int => Prim.Int) -> (result :: Prim.Type) -> (result :: Prim.Type)
+combine :: forall result. (Main.First @Prim.Type Prim.Int => Prim.Int) -> result -> result
+<+> :: forall result. (Main.First @Prim.Type Prim.Int => Prim.Int) -> result -> result
 constrainedValue :: Main.First @Prim.Type Prim.Int => Prim.Int
 needsFirst :: Main.First @Prim.Type Prim.Int => Prim.Int
 test :: Prim.Int
 
 Types
-First :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+First :: forall t0. t0 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.First @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: t0). Main.First @t0 (a :: t0)
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: First @Type Int

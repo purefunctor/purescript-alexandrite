@@ -13,29 +13,16 @@ test2 :: Prim.Int
 test2' :: Prim.Int
 test3 :: Prim.Int
 test3' :: Prim.Int
-const ::
-  forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
+const :: forall a b. a -> b -> a
 test4 :: Prim.Int
 test4' :: Prim.Int
 test5 :: Prim.Int
 test5' :: Prim.Int
-apply ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) -> (a :: Prim.Type) -> (b :: Prim.Type)
-chain ::
-  forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-    ((b :: Prim.Type) -> (c :: Prim.Type)) ->
-    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    (a :: Prim.Type) ->
-    (c :: Prim.Type)
+apply :: forall a b. (a -> b) -> a -> b
+chain :: forall a b c. (b -> c) -> (a -> b) -> a -> c
 test6 :: Prim.Int
 test6' :: Prim.Int
-curry ::
-  forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type) -> (c :: Prim.Type)) ->
-    (a :: Prim.Type) ->
-    (b :: Prim.Type) ->
-    (c :: Prim.Type)
+curry :: forall a b c. (a -> b -> c) -> a -> b -> c
 test7 :: Prim.Int -> Prim.Int
 test7' :: Prim.Int -> Prim.Int
 

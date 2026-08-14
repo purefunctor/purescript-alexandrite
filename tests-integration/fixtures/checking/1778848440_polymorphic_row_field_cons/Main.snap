@@ -4,34 +4,30 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 Html :: forall (@slots :: Prim.Row Prim.Type). Main.Html (slots :: Prim.Row Prim.Type)
 _child :: Main.Proxy @Prim.Symbol "child"
 slot ::
-  forall (query :: Prim.Type -> Prim.Type) (output :: Prim.Type) (slots :: Prim.Row Prim.Type)
-    (label :: Prim.Symbol) (key :: Prim.Type) (tail :: Prim.Row Prim.Type).
+  forall (query :: Prim.Type -> Prim.Type) output (slots :: Prim.Row Prim.Type)
+    (label :: Prim.Symbol) key (tail :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type
       (label :: Prim.Symbol)
-      (Main.Slot (query :: Prim.Type -> Prim.Type) (output :: Prim.Type) (key :: Prim.Type))
+      (Main.Slot (query :: Prim.Type -> Prim.Type) output key)
       (tail :: Prim.Row Prim.Type)
       (slots :: Prim.Row Prim.Type) =>
-    Main.Proxy @Prim.Symbol (label :: Prim.Symbol) ->
-    (key :: Prim.Type) ->
-    Main.Html (slots :: Prim.Row Prim.Type)
-test :: forall (key :: Prim.Type). (key :: Prim.Type) -> Main.Html (Main.Slots (key :: Prim.Type))
+    Main.Proxy @Prim.Symbol (label :: Prim.Symbol) -> key -> Main.Html (slots :: Prim.Row Prim.Type)
+test :: forall key. key -> Main.Html (Main.Slots key)
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 Slot :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type -> Prim.Type
 Html :: Prim.Row Prim.Type -> Prim.Type
 Slots :: Prim.Type -> Prim.Row Prim.Type
 
 Synonyms
 type Slots key = ( child ::
-    forall (query :: Prim.Type -> Prim.Type) (output :: Prim.Type).
-      Main.Slot (query :: Prim.Type -> Prim.Type) (output :: Prim.Type) (key :: Prim.Type)
+    forall (query :: Prim.Type -> Prim.Type) output.
+      Main.Slot (query :: Prim.Type -> Prim.Type) output key
 )
 
 Roles

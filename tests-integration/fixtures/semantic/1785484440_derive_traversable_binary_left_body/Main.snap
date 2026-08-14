@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data LeftDuplicate :: forall (k0 :: Prim.Type). (k0 -> Prim.Type -> Prim.Type) -> k0 -> Prim.Type
+data LeftDuplicate :: forall k0. (k0 -> Prim.Type -> Prim.Type) -> k0 -> Prim.Type
 data LeftDuplicate @p @a
   | LeftDuplicate :: p a Prim.Int -> Main.LeftDuplicate p a
 
@@ -12,8 +12,7 @@ dictionary functorLeftDuplicate ::
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.LeftDuplicate @Prim.Type p)
   where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.LeftDuplicate @Prim.Type p a -> Main.LeftDuplicate @Prim.Type p b
+  map :: forall a b. (a -> b) -> Main.LeftDuplicate @Prim.Type p a -> Main.LeftDuplicate @Prim.Type p b
   map = \function -> \(LeftDuplicate value) ->
     LeftDuplicate (bimap {bifunctorDict} function (\fixed -> fixed) value)
 
@@ -22,16 +21,13 @@ dictionary foldableLeftDuplicate ::
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.LeftDuplicate @Prim.Type p)
   where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
   foldr = \function -> \initial -> \(LeftDuplicate value) ->
     bifoldr {bifoldableDict} function (\_ accumulated -> accumulated) initial value
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (b -> a -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.LeftDuplicate @Prim.Type p a -> b
   foldl = \function -> \initial -> \(LeftDuplicate value) ->
     bifoldl {bifoldableDict} function (\accumulated _ -> accumulated) initial value
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> Main.LeftDuplicate @Prim.Type p a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.LeftDuplicate @Prim.Type p a -> m
   foldMap = \{monoidDict} -> \function -> \(LeftDuplicate value) ->
     bifoldMap {bifoldableDict} {monoidDict} function (\_ -> mempty {monoidDict}) value
 
@@ -42,7 +38,7 @@ dictionary traversableLeftDuplicate ::
   where
   superclass functorDict = functorLeftDuplicate {bitraversableDict.bifunctorDict}
   superclass foldableDict = foldableLeftDuplicate {bitraversableDict.bifoldableDict}
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.LeftDuplicate @Prim.Type p a -> m (Main.LeftDuplicate @Prim.Type p b)
   traverse = \{applicativeDict} ->
@@ -53,7 +49,7 @@ dictionary traversableLeftDuplicate ::
           (bitraverse {bitraversableDict} {applicativeDict} (\element -> function element)
             (\unchanged -> pure {applicativeDict} unchanged)
             field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.LeftDuplicate @Prim.Type p (m a) -> m (Main.LeftDuplicate @Prim.Type p a)
   sequence = \{applicativeDict} ->

@@ -13,7 +13,7 @@ Unit :: Prim.Type
 Marker :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (value :: Prim.Type). Main.Marker (value :: Prim.Type)
+class forall (value :: Prim.Type). Main.Marker value
 
 Roles
 Unit = []

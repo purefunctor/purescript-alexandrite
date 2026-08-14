@@ -4,37 +4,30 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
-    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+Proxy :: forall kind (@value :: kind). Main.Proxy @kind (value :: kind)
 grouped ::
-  forall (@left :: Prim.Type) (@right :: Prim.Type).
-    Main.Grouped (left :: Prim.Type) (right :: Prim.Type) =>
-    (forall (value :: Prim.Type).
-      Main.Proxy @Prim.Type (value :: Prim.Type) ->
-      Main.Proxy @Prim.Type (right :: Prim.Type) ->
-      Main.Proxy @Prim.Type (value :: Prim.Type))
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value.
+      Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type right -> Main.Proxy @Prim.Type value)
 
 Types
-Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
+Proxy :: forall kind. kind -> Prim.Type
 Grouped :: Prim.Type -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (left :: Prim.Type) (right :: Prim.Type). Main.Grouped (left :: Prim.Type) (right :: Prim.Type)
+class forall (left :: Prim.Type) (right :: Prim.Type). Main.Grouped left right
   grouped ::
-  forall (@left :: Prim.Type) (@right :: Prim.Type).
-    Main.Grouped (left :: Prim.Type) (right :: Prim.Type) =>
-    (forall (value :: Prim.Type).
-      Main.Proxy @Prim.Type (value :: Prim.Type) ->
-      Main.Proxy @Prim.Type (right :: Prim.Type) ->
-      Main.Proxy @Prim.Type (value :: Prim.Type))
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value.
+      Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type right -> Main.Proxy @Prim.Type value)
 
 Instances
-instance forall (t0 :: Prim.Type) (function :: (t0 :: Prim.Type) -> Prim.Type) (left :: (t0 :: Prim.Type))
-  (right :: (t0 :: Prim.Type)).
+instance forall t0 (function :: t0 -> Prim.Type) (left :: t0) (right :: t0).
   Main.Grouped
-    ((function :: (t0 :: Prim.Type) -> Prim.Type) (left :: (t0 :: Prim.Type)))
-    ((function :: (t0 :: Prim.Type) -> Prim.Type) (right :: (t0 :: Prim.Type)))
+    ((function :: t0 -> Prim.Type) (left :: t0))
+    ((function :: t0 -> Prim.Type) (right :: t0))
 
 Roles
 Proxy = [Phantom]

@@ -4,15 +4,12 @@ assertion_line: 50
 expression: report
 ---
 Terms
-consume ::
-  forall (@a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
-testGiven ::
-  forall (a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+consume :: forall @a. Main.Given a => a -> a
+testGiven :: forall a. Main.Given a => a -> a
 
 Types
 Given :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Given (a :: Prim.Type)
-  consume ::
-  forall (@a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Given a
+  consume :: forall @a. Main.Given a => a -> a

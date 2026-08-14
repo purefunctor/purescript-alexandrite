@@ -4,22 +4,20 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
-Const ::
-  forall (t0 :: Prim.Type) (@e :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (e :: Prim.Type) -> Main.Const @(t0 :: Prim.Type) (e :: Prim.Type) (a :: (t0 :: Prim.Type))
+Identity :: forall @a. a -> Main.Identity a
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
+Const :: forall t0 @e (@a :: t0). e -> Main.Const @t0 e (a :: t0)
 
 Types
 Identity :: Prim.Type -> Prim.Type
 Maybe :: Prim.Type -> Prim.Type
-Const :: forall (t0 :: Prim.Type). Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
+Const :: forall t0. Prim.Type -> t0 -> Prim.Type
 
 Derived
 derive Data.Foldable.Foldable Main.Identity
 derive Data.Foldable.Foldable Main.Maybe
-derive forall (e :: Prim.Type). Data.Foldable.Foldable (Main.Const @Prim.Type (e :: Prim.Type))
+derive forall e. Data.Foldable.Foldable (Main.Const @Prim.Type e)
 
 Roles
 Identity = [Representational]

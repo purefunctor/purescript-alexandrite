@@ -4,20 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
 testBothLeft :: Prim.Int -> Main.Either Prim.Int Prim.String
 testBothRight :: Prim.String -> Main.Either Prim.Int Prim.String
-testLeftLeft :: forall (t0 :: Prim.Type). Prim.Int -> Main.Either Prim.Int (t0 :: Prim.Type)
-testLeftRight ::
-  forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Main.Either (t0 :: Prim.Type) Prim.String
-testRightLeft ::
-  forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Main.Either Prim.Int (t0 :: Prim.Type)
-testRightRight :: forall (t0 :: Prim.Type). Prim.String -> Main.Either (t0 :: Prim.Type) Prim.String
+testLeftLeft :: forall t0. Prim.Int -> Main.Either Prim.Int t0
+testLeftRight :: forall t0. t0 -> Main.Either t0 Prim.String
+testRightLeft :: forall t0. t0 -> Main.Either Prim.Int t0
+testRightRight :: forall t0. Prim.String -> Main.Either t0 Prim.String
 
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type

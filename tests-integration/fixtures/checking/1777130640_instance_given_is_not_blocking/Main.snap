@@ -5,11 +5,8 @@ expression: report
 ---
 Terms
 unsafeSet ::
-  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (a :: Prim.Type).
-    Prim.String ->
-    (a :: Prim.Type) ->
-    {| (r1 :: Prim.Row Prim.Type) } ->
-    {| (r2 :: Prim.Row Prim.Type) }
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) a.
+    Prim.String -> a -> {| (r1 :: Prim.Row Prim.Type) } -> {| (r2 :: Prim.Row Prim.Type) }
 buildIt ::
   forall (@row :: Prim.Row Prim.Type) (@subrow :: Prim.Row Prim.Type).
     Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type) =>
