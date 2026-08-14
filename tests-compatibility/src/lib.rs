@@ -17,8 +17,8 @@ pub mod registry;
 
 pub use package_cache::PackageCache;
 
-const CORE_JSON: &str = include_str!("../purescript-core.json");
-const ACME_JSON: &str = include_str!("../purescript-acme.json");
+const CORE_PACKAGES: &str = include_str!("../purescript-core.txt");
+const ACME_PACKAGES: &str = include_str!("../purescript-acme.txt");
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Preset {
@@ -27,10 +27,10 @@ pub enum Preset {
 }
 
 impl Preset {
-    pub fn packages_json(self) -> &'static str {
+    pub fn packages_text(self) -> &'static str {
         match self {
-            Preset::Core => CORE_JSON,
-            Preset::Acme => ACME_JSON,
+            Preset::Core => CORE_PACKAGES,
+            Preset::Acme => ACME_PACKAGES,
         }
     }
 }
@@ -83,24 +83,20 @@ fn find_purs_files(root: impl AsRef<Path>) -> impl Iterator<Item = PathBuf> {
 }
 
 pub fn core_source_files() -> Vec<PathBuf> {
-    source_files_for(&parse_package_list(CORE_JSON))
+    source_files_for(&parse_package_list(CORE_PACKAGES))
 }
 
 pub fn acme_source_files() -> Vec<PathBuf> {
-    source_files_for(&parse_package_list(ACME_JSON))
+    source_files_for(&parse_package_list(ACME_PACKAGES))
 }
 
 pub fn preset_package_names(presets: &[Preset]) -> HashSet<String> {
-    presets.iter().flat_map(|preset| parse_package_list(preset.packages_json())).collect()
+    presets.iter().flat_map(|preset| parse_package_list(preset.packages_text())).collect()
 }
 
 pub fn parse_package_list(text: &str) -> HashSet<String> {
-    let names: Vec<String> =
-        serde_json::from_str(text).expect("package list must be a JSON array of strings");
-    names
-        .into_iter()
-        .filter_map(|name| name.strip_prefix("purescript-").map(str::to_owned))
-        .collect()
+    let names = text.lines().filter(|name| !name.is_empty()).map(str::to_owned);
+    names.collect()
 }
 
 fn source_files_for(names: &HashSet<String>) -> Vec<PathBuf> {
