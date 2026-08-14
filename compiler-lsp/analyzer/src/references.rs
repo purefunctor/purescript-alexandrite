@@ -3,7 +3,7 @@ use files::FileId;
 use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
-    TermVariableResolution, TypeId, TypeKind,
+    TermVariableResolution, TypeId, TypeKind, TypeVariableBindingId, TypeVariableResolution,
 };
 use lsp_types::*;
 use parsing::ParsedModule;
@@ -89,7 +89,9 @@ pub fn implementation(
         }
         locate::Located::InstanceMember(_, _) => Ok(None),
         locate::Located::RecordAccessLabel(_) => Ok(None),
-        locate::Located::TypeVariableBinding(_) => Ok(None),
+        locate::Located::TypeVariableBinding(binding_id) => {
+            references_type_variable(context, current_file, binding_id)
+        }
         locate::Located::Nothing => Ok(None),
     }
 }
@@ -323,8 +325,43 @@ fn references_type(
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
             references_file_type(context, current_file, *f_id, *t_id)
         }
+        TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(binding_id)), ..
+        } => references_type_variable(context, current_file, *binding_id),
         _ => Ok(None),
     }
+}
+
+fn references_type_variable(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    current_file: FileId,
+    binding_id: TypeVariableBindingId,
+) -> Result<Option<Vec<Location>>, AnalyzerError> {
+    let uri = common::file_uri(context, current_file)?;
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
+
+    let mut locations = vec![];
+    for (type_id, kind) in lowered.tree.iter_type() {
+        let TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(candidate_id)),
+            ..
+        } = kind
+        else {
+            continue;
+        };
+        if *candidate_id != binding_id {
+            continue;
+        }
+
+        let range = id_range(context, &content, &parsed, &stabilized, type_id)
+            .ok_or(AnalyzerError::NonFatal)?;
+        locations.push(Location { uri: uri.clone(), range });
+    }
+
+    Ok(Some(locations))
 }
 
 fn id_range<T>(

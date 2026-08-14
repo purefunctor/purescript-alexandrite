@@ -746,12 +746,18 @@ fn class_functional_dependencies(p: &mut Parser) {
 fn class_functional_dependency(p: &mut Parser) {
     let mut m = p.start();
     if p.eat(SyntaxKind::RIGHT_ARROW) {
-        p.eat_in(names::LOWER, SyntaxKind::LOWER);
+        if p.at_in(names::LOWER) {
+            types::type_variable(p);
+        }
         m.end(p, SyntaxKind::FunctionalDependencyDetermined);
     } else {
-        while p.eat_in(names::LOWER, SyntaxKind::LOWER) {}
+        while p.at_in(names::LOWER) {
+            types::type_variable(p);
+        }
         p.expect(SyntaxKind::RIGHT_ARROW);
-        while p.eat_in(names::LOWER, SyntaxKind::LOWER) {}
+        while p.at_in(names::LOWER) {
+            types::type_variable(p);
+        }
         m.end(p, SyntaxKind::FunctionalDependencyDetermines);
     }
 }

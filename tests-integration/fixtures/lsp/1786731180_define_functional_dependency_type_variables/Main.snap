@@ -10,4 +10,4 @@ class TypeEq a b result | a b -> result where
 --                        @
 ```
 
-file:///tests-integration/fixtures/lsp/1786731180_define_functional_dependency_type_variables/Main.purs @ 4:0..7:47
+file:///tests-integration/fixtures/lsp/1786731180_define_functional_dependency_type_variables/Main.purs @ 5:13..5:14

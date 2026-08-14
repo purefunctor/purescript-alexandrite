@@ -10,4 +10,4 @@ class TypeEq a b result | a b -> result where
 --                        ?
 ```
 
-<empty>
+5:26..5:27 a

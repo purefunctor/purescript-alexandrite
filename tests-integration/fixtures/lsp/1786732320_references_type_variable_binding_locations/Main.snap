@@ -10,7 +10,7 @@ newtype Identity a = Identity a
 --               %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 2:30..2:31
 
 
 References at Position { line: 5, character: 11 }
@@ -20,7 +20,7 @@ data Proxy a = Proxy a
 --         %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 5:21..5:22
 
 
 References at Position { line: 8, character: 13 }
@@ -30,7 +30,7 @@ type Synonym a = a
 --           %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 8:17..8:18
 
 
 References at Position { line: 11, character: 14 }
@@ -40,7 +40,8 @@ class Example a where
 --            %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 13:13..13:14
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 13:18..13:19
 
 
 References at Position { line: 15, character: 16 }
@@ -50,4 +51,5 @@ apply :: forall a. a -> a
 --              %
 ```
 
-<empty>
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 15:24..15:25
+file:///tests-integration/fixtures/lsp/1786732320_references_type_variable_binding_locations/Main.purs @ 15:19..15:20

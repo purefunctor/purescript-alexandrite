@@ -170,6 +170,7 @@ impl State {
 
         let name = SmolStr::from(name);
         bindings.insert(name, id);
+        self.nodes.type_variable_binding_node.insert(id, node);
     }
 
     fn push_binder_scope(&mut self) -> Option<GraphNodeId> {
@@ -766,10 +767,18 @@ fn lower_type_item(
                     .collect();
 
                 let functional_dependencies = recover! {
-                    cst.class_functional_dependencies()?
+                    let dependencies = cst
+                        .class_functional_dependencies()?
                         .children()
-                        .map(|dep| lower_functional_dependency(context, &variable_map, &dep))
-                        .collect()
+                        .map(|dependency| {
+                            lower_functional_dependency(
+                                state,
+                                context,
+                                &variable_map,
+                                &dependency,
+                            )
+                        });
+                    dependencies.collect()
                 };
 
                 Some(ClassDeclaration { constraints, variables, functional_dependencies })
@@ -980,28 +989,41 @@ fn lower_roles(context: &Context, id: TypeRoleId) -> Arc<[Role]> {
 }
 
 fn lower_functional_dependency(
+    state: &mut State,
     context: &Context,
-    var_map: &FxHashMap<&str, u8>,
+    variable_map: &FxHashMap<&str, u8>,
     cst: &cst::FunctionalDependency,
 ) -> FunctionalDependency {
     match cst {
-        cst::FunctionalDependency::FunctionalDependencyDetermined(fd) => {
-            let determined: Arc<[u8]> = fd
-                .children()
-                .filter_map(|t| var_map.get(t.text(context.source)).copied())
-                .collect();
+        cst::FunctionalDependency::FunctionalDependencyDetermined(dependency) => {
+            let determined = dependency.children().filter_map(|variable| {
+                lower_functional_dependency_variable(state, context, variable_map, variable)
+            });
+            let determined = determined.collect();
             FunctionalDependency { determiners: Arc::from([]), determined }
         }
-        cst::FunctionalDependency::FunctionalDependencyDetermines(fd) => {
-            let determiners: Arc<[u8]> = fd
-                .determiners()
-                .filter_map(|t| var_map.get(t.text(context.source)).copied())
-                .collect();
-            let determined: Arc<[u8]> = fd
-                .determined()
-                .filter_map(|t| var_map.get(t.text(context.source)).copied())
-                .collect();
+        cst::FunctionalDependency::FunctionalDependencyDetermines(dependency) => {
+            let determiners = dependency.determiners().filter_map(|variable| {
+                lower_functional_dependency_variable(state, context, variable_map, variable)
+            });
+            let determiners = determiners.collect();
+            let determined = dependency.determined().filter_map(|variable| {
+                lower_functional_dependency_variable(state, context, variable_map, variable)
+            });
+            let determined = determined.collect();
             FunctionalDependency { determiners, determined }
         }
     }
+}
+
+fn lower_functional_dependency_variable(
+    state: &mut State,
+    context: &Context,
+    variable_map: &FxHashMap<&str, u8>,
+    variable: cst::TypeVariable,
+) -> Option<u8> {
+    let name = variable.name_token()?;
+    let variable = cst::Type::cast(variable.syntax().clone())?;
+    recursive::lower_type(state, context, &variable);
+    variable_map.get(name.text(context.source)).copied()
 }

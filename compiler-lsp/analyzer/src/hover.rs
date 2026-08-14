@@ -3,7 +3,9 @@ use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
-use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
+use lowering::{
+    BinderKind, ExpressionKind, TermVariableResolution, TypeKind, TypeVariableResolution,
+};
 use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
@@ -351,6 +353,9 @@ fn hover_type(
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
             hover_file_type(engine, *f_id, *t_id)
         }
+        TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(binding_id)), ..
+        } => hover_type_variable_binding(engine, current_file, *binding_id),
         _ => {
             let checked = engine.checked(current_file)?;
 

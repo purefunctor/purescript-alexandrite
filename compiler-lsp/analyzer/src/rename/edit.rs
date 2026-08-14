@@ -6,7 +6,7 @@ use indexing::{
     ImplicitItems, ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
     TypeItemId, TypeSelection,
 };
-use lowering::{BinderId, LetBindingNameGroupId, RecordPunId};
+use lowering::{BinderId, LetBindingNameGroupId, RecordPunId, TypeVariableBindingId};
 use lsp_types::*;
 use stabilizing::AstId;
 use syntax::ast::AstNode;
@@ -332,6 +332,7 @@ where
             TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(left, right) => {
                 if Self::qualified_name_token(&right, name_kind).is_some()
+                    || Self::type_variable_token(&right, name_kind).is_some()
                     || Self::record_pun(&right, name_kind).is_some()
                 {
                     right
@@ -369,7 +370,9 @@ where
             return Ok((range, new_name.to_string()));
         }
 
-        let token = Self::qualified_name_token(&token, name_kind).ok_or(AnalyzerError::NonFatal)?;
+        let token = Self::qualified_name_token(&token, name_kind)
+            .or_else(|| Self::type_variable_token(&token, name_kind))
+            .ok_or(AnalyzerError::NonFatal)?;
         let range = position::text_range_to_protocol(
             &content,
             token.text_range(),
@@ -422,6 +425,15 @@ where
             NameKind::Module => None,
         }
     }
+
+    fn type_variable_token(token: &SyntaxToken, name_kind: NameKind) -> Option<SyntaxToken> {
+        if !matches!(name_kind, NameKind::Lower) {
+            return None;
+        }
+
+        let variable = token.parent_ancestors().find_map(cst::TypeVariable::cast)?;
+        variable.name_token()
+    }
 }
 
 impl<'edits, 'language, Host> RenameEdits<'edits, 'language, Host>
@@ -452,6 +464,9 @@ where
             }
             RenameTarget::Binder(file_id, binder_id) => {
                 self.binder_declaration_edit(file_id, binder_id, new_name)
+            }
+            RenameTarget::TypeVariable(file_id, binding_id) => {
+                self.type_variable_declaration_edit(file_id, binding_id, new_name)
             }
             RenameTarget::LetBinding(file_id, binding_id) => {
                 self.let_binding_declaration_edits(file_id, binding_id, new_name)
@@ -491,6 +506,20 @@ where
         }
 
         self.push_name_edit(file_id, Some(binder_id), binder_name_range, new_name)
+    }
+
+    fn type_variable_declaration_edit(
+        &mut self,
+        file_id: FileId,
+        binding_id: TypeVariableBindingId,
+        new_name: &str,
+    ) -> Result<(), AnalyzerError> {
+        self.push_name_edit(
+            file_id,
+            Some(binding_id),
+            position::type_variable_binding_name_range,
+            new_name,
+        )
     }
 
     fn let_binding_declaration_edits(
@@ -684,6 +713,7 @@ where
                     }
                 }
                 RenameTarget::Binder(_, _)
+                | RenameTarget::TypeVariable(_, _)
                 | RenameTarget::Instance(_, _)
                 | RenameTarget::Derive(_, _)
                 | RenameTarget::LetBinding(_, _)
@@ -786,6 +816,7 @@ where
                 }
             }
             RenameTarget::Binder(_, _)
+            | RenameTarget::TypeVariable(_, _)
             | RenameTarget::Instance(_, _)
             | RenameTarget::Derive(_, _)
             | RenameTarget::LetBinding(_, _)

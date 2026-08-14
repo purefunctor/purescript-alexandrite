@@ -95,11 +95,14 @@ pub(super) fn type_5(p: &mut Parser) {
 }
 
 pub(super) fn type_atom(p: &mut Parser) {
+    if p.at_in(names::LOWER) {
+        type_variable(p);
+        return;
+    }
+
     let mut m = p.start();
 
-    if p.eat_in(names::LOWER, SyntaxKind::LOWER) {
-        m.end(p, SyntaxKind::TypeVariable);
-    } else if p.at(SyntaxKind::UPPER) {
+    if p.at(SyntaxKind::UPPER) {
         names::upper(p);
         m.end(p, SyntaxKind::TypeConstructor);
     } else if p.at_in(names::OPERATOR_NAME) {
@@ -124,6 +127,12 @@ pub(super) fn type_atom(p: &mut Parser) {
     } else {
         m.cancel(p);
     }
+}
+
+pub(super) fn type_variable(p: &mut Parser) {
+    let mut m = p.start();
+    p.eat_in(names::LOWER, SyntaxKind::LOWER);
+    m.end(p, SyntaxKind::TypeVariable);
 }
 
 pub(super) const TYPE_ATOM_START: TokenSet = TokenSet::new(&[

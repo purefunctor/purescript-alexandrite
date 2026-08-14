@@ -33,7 +33,7 @@ pub enum TermVariableResolution {
 }
 
 /// The result of resolving a type variable.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeVariableResolution {
     Forall(TypeVariableBindingId),
     Implicit(ImplicitTypeVariable),
@@ -62,7 +62,7 @@ pub enum TypeVariableResolution {
 /// enough for use in the type checker.
 ///
 /// [`AstId`]: stabilizing::AstId
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ImplicitTypeVariable {
     /// Determines the 'position' of an implicit type variable.
     ///
@@ -171,6 +171,24 @@ impl LoweringGraph {
             GraphNode::Forall { .. } | GraphNode::Implicit { .. } => None,
         })
     }
+
+    pub fn resolve_type(&self, id: GraphNodeId, name: &str) -> Option<TypeVariableResolution> {
+        let mut scopes = self.traverse(id);
+        scopes.find_map(|(node, graph)| match graph {
+            GraphNode::Forall { bindings, .. } => {
+                bindings.get(name).copied().map(TypeVariableResolution::Forall)
+            }
+            GraphNode::Implicit { bindings, .. } => {
+                let id = bindings.get(name)?;
+                Some(TypeVariableResolution::Implicit(ImplicitTypeVariable {
+                    binding: false,
+                    node,
+                    id,
+                }))
+            }
+            GraphNode::Binder { .. } | GraphNode::Let { .. } => None,
+        })
+    }
 }
 
 impl ops::Index<GraphNodeId> for LoweringGraph {
@@ -187,6 +205,7 @@ pub struct LoweringGraphNodes {
     pub(crate) expression_node: FxHashMap<ExpressionId, GraphNodeId>,
     pub(crate) record_pun_node: FxHashMap<RecordPunId, GraphNodeId>,
     pub(crate) type_node: FxHashMap<TypeId, GraphNodeId>,
+    pub(crate) type_variable_binding_node: FxHashMap<TypeVariableBindingId, GraphNodeId>,
     pub(crate) let_node: FxHashMap<LetBindingNameGroupId, GraphNodeId>,
 }
 
@@ -205,6 +224,10 @@ impl LoweringGraphNodes {
 
     pub fn type_node(&self, id: TypeId) -> Option<GraphNodeId> {
         self.type_node.get(&id).copied()
+    }
+
+    pub fn type_variable_binding_node(&self, id: TypeVariableBindingId) -> Option<GraphNodeId> {
+        self.type_variable_binding_node.get(&id).copied()
     }
 
     pub fn let_node(&self, id: LetBindingNameGroupId) -> Option<GraphNodeId> {

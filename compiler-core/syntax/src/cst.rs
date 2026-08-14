@@ -557,29 +557,26 @@ has_children!(
 );
 
 impl FunctionalDependencyDetermined {
-    pub fn children(&self) -> impl Iterator<Item = crate::SyntaxToken> {
-        self.syntax().children_with_tokens().filter_map(|n| {
-            let t = n.into_token()?;
-            (t.kind() == crate::SyntaxKind::LOWER).then_some(t)
-        })
+    pub fn children(&self) -> impl Iterator<Item = TypeVariable> + '_ {
+        self.syntax().children().filter_map(TypeVariable::cast)
     }
 }
 
 impl FunctionalDependencyDetermines {
-    pub fn determiners(&self) -> impl Iterator<Item = crate::SyntaxToken> + '_ {
+    pub fn determiners(&self) -> impl Iterator<Item = TypeVariable> + '_ {
         self.syntax()
             .children_with_tokens()
             .take_while(|n| n.kind() != crate::SyntaxKind::RIGHT_ARROW)
-            .filter_map(|n| n.into_token())
-            .filter(|t| t.kind() == crate::SyntaxKind::LOWER)
+            .filter_map(|n| n.into_node())
+            .filter_map(TypeVariable::cast)
     }
 
-    pub fn determined(&self) -> impl Iterator<Item = crate::SyntaxToken> + '_ {
+    pub fn determined(&self) -> impl Iterator<Item = TypeVariable> + '_ {
         self.syntax()
             .children_with_tokens()
             .skip_while(|n| n.kind() != crate::SyntaxKind::RIGHT_ARROW)
-            .filter_map(|n| n.into_token())
-            .filter(|t| t.kind() == crate::SyntaxKind::LOWER)
+            .filter_map(|n| n.into_node())
+            .filter_map(TypeVariable::cast)
     }
 }
 

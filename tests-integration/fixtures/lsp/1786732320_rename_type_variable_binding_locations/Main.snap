@@ -10,7 +10,18 @@ newtype Identity a = Identity a
 --               /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,6 +1,6 @@
+ module Main where
+
+-newtype Identity a = Identity a
++newtype Identity renamed = Identity renamed
+ --               /
+
+ data Proxy a = Proxy a
+```
 
 
 Rename at Position { line: 5, character: 11 }
@@ -20,7 +31,19 @@ data Proxy a = Proxy a
 --         /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -3,7 +3,7 @@
+ newtype Identity a = Identity a
+ --               /
+
+-data Proxy a = Proxy a
++data Proxy renamed = Proxy renamed
+ --         /
+
+ type Synonym a = a
+```
 
 
 Rename at Position { line: 8, character: 13 }
@@ -30,7 +53,19 @@ type Synonym a = a
 --           /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -6,7 +6,7 @@
+ data Proxy a = Proxy a
+ --         /
+
+-type Synonym a = a
++type Synonym renamed = renamed
+ --           /
+
+ class Example a where
+```
 
 
 Rename at Position { line: 11, character: 14 }
@@ -40,7 +75,22 @@ class Example a where
 --            /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -9,9 +9,9 @@
+ type Synonym a = a
+ --           /
+
+-class Example a where
++class Example renamed where
+ --            /
+-  example :: a -> a
++  example :: renamed -> renamed
+
+ apply :: forall a. a -> a
+ --              /
+```
 
 
 Rename at Position { line: 15, character: 16 }
@@ -50,4 +100,15 @@ apply :: forall a. a -> a
 --              /
 ```
 
-<empty>
+```diff
+--- Main.purs
++++ Main.purs
+@@ -13,6 +13,6 @@
+ --            /
+   example :: a -> a
+
+-apply :: forall a. a -> a
++apply :: forall renamed. renamed -> renamed
+ --              /
+ apply value = value
+```

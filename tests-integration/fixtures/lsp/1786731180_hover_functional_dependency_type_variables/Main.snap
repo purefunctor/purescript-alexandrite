@@ -13,7 +13,7 @@ class TypeEq a b result | a b -> result where
 Range: <none>
 
 ```purescript
-TypeEq :: forall kind. kind -> kind -> Boolean -> Constraint
+kind
 ```
 
 
@@ -27,7 +27,7 @@ class TypeEq a b result | a b -> result where
 Range: <none>
 
 ```purescript
-TypeEq :: forall kind. kind -> kind -> Boolean -> Constraint
+kind
 ```
 
 
@@ -41,5 +41,5 @@ class TypeEq a b result | a b -> result where
 Range: <none>
 
 ```purescript
-TypeEq :: forall kind. kind -> kind -> Boolean -> Constraint
+Boolean
 ```

@@ -1,6 +1,6 @@
 ---
 source: compiler-core/parsing/tests/parser.rs
-expression: "(node, errors)"
+expression: "(node.debug(&content), errors)"
 ---
 (
     Module@0..208
@@ -54,26 +54,30 @@ expression: "(node, errors)"
               TEXT@73..74 " "
             PIPE@74..75 "|"
             FunctionalDependencyDetermines@75..82
-              Annotation@75..76
-                TEXT@75..76 " "
-              LOWER@76..77 "a"
+              TypeVariable@75..77
+                Annotation@75..76
+                  TEXT@75..76 " "
+                LOWER@76..77 "a"
               Annotation@77..78
                 TEXT@77..78 " "
               RIGHT_ARROW@78..80 "->"
-              Annotation@80..81
-                TEXT@80..81 " "
-              LOWER@81..82 "b"
+              TypeVariable@80..82
+                Annotation@80..81
+                  TEXT@80..81 " "
+                LOWER@81..82 "b"
             COMMA@82..83 ","
             FunctionalDependencyDetermines@83..90
-              Annotation@83..84
-                TEXT@83..84 " "
-              LOWER@84..85 "b"
+              TypeVariable@83..85
+                Annotation@83..84
+                  TEXT@83..84 " "
+                LOWER@84..85 "b"
               Annotation@85..86
                 TEXT@85..86 " "
               RIGHT_ARROW@86..88 "->"
-              Annotation@88..89
-                TEXT@88..89 " "
-              LOWER@89..90 "a"
+              TypeVariable@88..90
+                Annotation@88..89
+                  TEXT@88..89 " "
+                LOWER@89..90 "a"
           Annotation@90..91
             TEXT@90..91 " "
           WHERE@91..96 "where"
@@ -156,18 +160,21 @@ expression: "(node, errors)"
               TEXT@172..173 " "
             PIPE@173..174 "|"
             FunctionalDependencyDetermines@174..183
-              Annotation@174..175
-                TEXT@174..175 " "
-              LOWER@175..176 "a"
-              Annotation@176..177
-                TEXT@176..177 " "
-              LOWER@177..178 "b"
+              TypeVariable@174..176
+                Annotation@174..175
+                  TEXT@174..175 " "
+                LOWER@175..176 "a"
+              TypeVariable@176..178
+                Annotation@176..177
+                  TEXT@176..177 " "
+                LOWER@177..178 "b"
               Annotation@178..179
                 TEXT@178..179 " "
               RIGHT_ARROW@179..181 "->"
-              Annotation@181..182
-                TEXT@181..182 " "
-              LOWER@182..183 "c"
+              TypeVariable@181..183
+                Annotation@181..182
+                  TEXT@181..182 " "
+                LOWER@182..183 "c"
           Annotation@183..184
             TEXT@183..184 " "
           WHERE@184..189 "where"
