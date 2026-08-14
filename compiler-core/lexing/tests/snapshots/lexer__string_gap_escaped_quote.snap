@@ -1,0 +1,32 @@
+---
+source: compiler-core/lexing/tests/lexer.rs
+description: "\"hello\\\n\\\\\"world\"\n"
+expression: snapshot
+---
+annotation : ""
+ qualifier : ""
+      kind : STRING
+      text : "\"hello\\\n\\\\\""
+  position : Position { line: 1, column: 1 }
+     error : None
+
+annotation : ""
+ qualifier : ""
+      kind : LOWER
+      text : "world"
+  position : Position { line: 2, column: 4 }
+     error : None
+
+annotation : ""
+ qualifier : ""
+      kind : STRING
+      text : "\"\n"
+  position : Position { line: 2, column: 9 }
+     error : Some("Unterminated single quoted string literal")
+
+annotation : ""
+ qualifier : ""
+      kind : END_OF_FILE
+      text : ""
+  position : Position { line: 3, column: 1 }
+     error : None
