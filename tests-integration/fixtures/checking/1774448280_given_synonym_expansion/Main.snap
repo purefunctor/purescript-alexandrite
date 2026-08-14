@@ -37,4 +37,4 @@ Classes
 class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
 
 Instances
-instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)
+instance forall k (a :: k). Main.TypeEquals @k (a :: k) (a :: k)

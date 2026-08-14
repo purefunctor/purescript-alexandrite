@@ -17,17 +17,17 @@ class forall (k :: Prim.Type) (a :: k). Main.ShowP @k (a :: k)
   showP :: forall k (@a :: k). Main.ShowP @k (a :: k) => Main.Proxy @k (a :: k) -> Prim.String
 
 Instances
-instance forall t0 (a :: t0). Main.ShowP @t0 (a :: t0)
-instance forall t0 (a :: t0). Main.ShowP @t0 (a :: t0)
+instance forall k (a :: k). Main.ShowP @k (a :: k)
+instance forall k (a :: k). Main.ShowP @k (a :: k)
 
 Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: ShowP @t0 (a :: t0)
+error[OverlappingInstances]: Overlapping type class instances found for: ShowP @k (a :: k)
   --> 13:1..14:21
    |
 13 | instance showPSecond :: ShowP a where
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall t1 (a1 :: t1). ShowP @t1 (a1 :: t1) is matching
-  trivia: forall t0 (a :: t0). ShowP @t0 (a :: t0) is matching
+  trivia: forall k1 (a1 :: k1). ShowP @k1 (a1 :: k1) is matching
+  trivia: forall k (a :: k). ShowP @k (a :: k) is matching

@@ -8,6 +8,7 @@ use indexing::{
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
+    TypeVariableBindingId, TypeVariableResolution,
 };
 use lsp_types::*;
 use smol_str::ToSmolStr;
@@ -96,10 +97,12 @@ pub fn implementation(
         locate::Located::InstanceHead(file_id, type_id) => {
             highlight_file_type(context, current_file, file_id, type_id)
         }
+        locate::Located::TypeVariableBinding(binding_id) => {
+            highlight_type_variable(context, current_file, binding_id)
+        }
         locate::Located::ModuleName(_)
         | locate::Located::InstanceMember(_, _)
         | locate::Located::RecordAccessLabel(_)
-        | locate::Located::TypeVariableBinding(_)
         | locate::Located::Nothing => Ok(None),
     }
 }
@@ -320,8 +323,51 @@ fn highlight_type(
         | TypeKind::Operator { resolution: Some((file_id, type_id)) } => {
             highlight_file_type(context, current_file, *file_id, *type_id)
         }
+        TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(binding_id)), ..
+        } => highlight_type_variable(context, current_file, *binding_id),
         _ => Ok(None),
     }
+}
+
+fn highlight_type_variable(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    current_file: FileId,
+    binding_id: TypeVariableBindingId,
+) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
+    let content = context.queries().content(current_file);
+    let (parsed, _) = context.queries().parsed(current_file)?;
+    let stabilized = context.queries().stabilized(current_file)?;
+    let lowered = context.queries().lowered(current_file)?;
+
+    let mut highlights = vec![];
+    push_name_highlight(
+        context,
+        current_file,
+        &mut highlights,
+        Some(binding_id),
+        position::type_variable_binding_name_range,
+    )?;
+
+    for (type_id, kind) in lowered.tree.iter_type() {
+        let TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(candidate_id)),
+            ..
+        } = kind
+        else {
+            continue;
+        };
+        if *candidate_id != binding_id {
+            continue;
+        }
+
+        highlights
+            .extend(highlight_id_range(&content, &parsed, &stabilized, type_id).and_then(
+                |range| document_highlight(&content, context.position_encoding(), range),
+            ));
+    }
+
+    Ok(finish_highlights(highlights))
 }
 
 fn highlight_file_term(

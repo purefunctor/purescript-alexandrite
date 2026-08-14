@@ -14,4 +14,4 @@ class forall (k :: Prim.Type) (value :: k). Main.Parent @k (value :: k)
 class forall (k :: Prim.Type) (value :: k). Main.Parent @k (value :: k) <= Main.Child @k (value :: k)
 
 Instances
-instance forall t0 (value :: t0). Main.Parent @t0 (value :: t0) => Main.Child @t0 (value :: t0)
+instance forall k (value :: k). Main.Parent @k (value :: k) => Main.Child @k (value :: k)

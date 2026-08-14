@@ -278,6 +278,17 @@ pub fn record_pun_name_range(
     text_range_to_utf8_range(content, token.text_range())
 }
 
+pub fn type_variable_binding_name_range(
+    content: &str,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
+    let node = ptr.try_to_node(root)?;
+    let binding = cst::TypeVariableBinding::cast(node)?;
+    let token = binding.name()?;
+    text_range_to_utf8_range(content, token.text_range())
+}
+
 pub fn qualified_name_text_range(qualified: &cst::QualifiedName) -> Option<TextRange> {
     let qualifier_range = qualified
         .qualifier()

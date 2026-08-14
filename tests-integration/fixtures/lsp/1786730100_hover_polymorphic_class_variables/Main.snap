@@ -1,0 +1,199 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 2, character: 21 }
+
+```
+class InferredTypeEq a b (result :: Boolean) | a b -> result
+--                   $ $  $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 2, character: 23 }
+
+```
+class InferredTypeEq a b (result :: Boolean) | a b -> result
+--                   $ $  $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 2, character: 26 }
+
+```
+class InferredTypeEq a b (result :: Boolean) | a b -> result
+--                   $ $  $
+```
+
+Range: <none>
+
+```purescript
+Boolean
+```
+
+
+Hover at Position { line: 5, character: 24 }
+
+```
+instance InferredTypeEq a a True
+--                      $ $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 5, character: 26 }
+
+```
+instance InferredTypeEq a a True
+--                      $ $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 7, character: 29 }
+
+```
+else instance InferredTypeEq a b False
+--                           $ $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 7, character: 31 }
+
+```
+else instance InferredTypeEq a b False
+--                           $ $
+```
+
+Range: <none>
+
+```purescript
+k0
+```
+
+
+Hover at Position { line: 11, character: 21 }
+
+```
+class ExplicitTypeEq a b result | a b -> result
+--                   $ $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```
+
+
+Hover at Position { line: 11, character: 23 }
+
+```
+class ExplicitTypeEq a b result | a b -> result
+--                   $ $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```
+
+
+Hover at Position { line: 11, character: 25 }
+
+```
+class ExplicitTypeEq a b result | a b -> result
+--                   $ $ $
+```
+
+Range: <none>
+
+```purescript
+Boolean
+```
+
+
+Hover at Position { line: 14, character: 24 }
+
+```
+instance ExplicitTypeEq a a True
+--                      $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```
+
+
+Hover at Position { line: 14, character: 26 }
+
+```
+instance ExplicitTypeEq a a True
+--                      $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```
+
+
+Hover at Position { line: 16, character: 29 }
+
+```
+else instance ExplicitTypeEq a b False
+--                           $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```
+
+
+Hover at Position { line: 16, character: 31 }
+
+```
+else instance ExplicitTypeEq a b False
+--                           $ $
+```
+
+Range: <none>
+
+```purescript
+kind
+```

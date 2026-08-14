@@ -3,7 +3,9 @@ use checking::core::pretty::{Pretty, PrettyConfig};
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
-use lowering::{BinderKind, ExpressionKind, TermVariableResolution, TypeKind};
+use lowering::{
+    BinderKind, ExpressionKind, TermVariableResolution, TypeKind, TypeVariableResolution,
+};
 use lsp_types::*;
 use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
@@ -351,13 +353,16 @@ fn hover_type(
             let (f_id, t_id) = resolution.as_ref().ok_or(AnalyzerError::NonFatal)?;
             hover_file_type(engine, *f_id, *t_id)
         }
+        TypeKind::Variable {
+            resolution: Some(TypeVariableResolution::Forall(binding_id)), ..
+        } => hover_type_variable_binding(engine, current_file, *binding_id),
         _ => {
             let checked = engine.checked(current_file)?;
 
             let type_kind = checked.node_types.lookup_type_kind(type_id);
             let type_kind = type_kind.ok_or(AnalyzerError::NonFatal)?;
 
-            hover_checked_type(engine, current_file, type_kind)
+            hover_checked_kind(engine, current_file, type_kind)
         }
     }
 }
@@ -371,7 +376,7 @@ fn hover_type_variable_binding(
     let binding_kind = checked.node_types.lookup_forall_binding(binding_id);
     let binding_kind = binding_kind.ok_or(AnalyzerError::NonFatal)?;
 
-    hover_checked_type(engine, current_file, binding_kind)
+    hover_checked_kind(engine, current_file, binding_kind)
 }
 
 fn hover_checked_type(
@@ -383,6 +388,23 @@ fn hover_checked_type(
 
     let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
     let value = pretty.render(type_id).to_string();
+    let value = MarkedString::from_language_code("purescript".to_string(), value);
+
+    let contents = HoverContents::Scalar(value);
+    let range = None;
+
+    Ok(Some(Hover { contents, range }))
+}
+
+fn hover_checked_kind(
+    engine: &impl AnalyzerQueries,
+    current_file: FileId,
+    type_id: checking::TypeId,
+) -> Result<Option<Hover>, AnalyzerError> {
+    let checked = engine.checked(current_file)?;
+
+    let pretty = Pretty::with_config(engine, &checked, PRETTY_CONFIG);
+    let value = pretty.render_kind(type_id).to_string();
     let value = MarkedString::from_language_code("purescript".to_string(), value);
 
     let contents = HoverContents::Scalar(value);

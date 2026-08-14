@@ -23,7 +23,7 @@ class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b 
 class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: t0) (g :: t1) (h :: t2). Main.Match3 @t0 @t1 @t2 (f :: t0) (g :: t1) (h :: t2)
 
 Instances
-instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)
+instance forall k (a :: k). Main.TypeEquals @k (a :: k) (a :: k)
 instance forall f g h.
   Main.TypeEquals @Prim.Type f (Main.A -> Prim.String) =>
   Main.TypeEquals @Prim.Type g (Main.B -> Prim.String) =>

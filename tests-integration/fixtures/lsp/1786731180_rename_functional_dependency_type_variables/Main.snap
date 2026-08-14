@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Rename at Position { line: 5, character: 26 }
+
+```
+class TypeEq a b result | a b -> result where
+--                        /
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -3,6 +3,6 @@
+ foreign import data Proxy :: forall kind. kind -> Type
+
+ class TypeEq :: forall kind. kind -> kind -> Boolean -> Constraint
+-class TypeEq a b result | a b -> result where
++class TypeEq renamed b result | renamed b -> result where
+ --                        /
+-  compare :: Proxy a -> Proxy b -> Proxy result
++  compare :: Proxy renamed -> Proxy b -> Proxy result
+```

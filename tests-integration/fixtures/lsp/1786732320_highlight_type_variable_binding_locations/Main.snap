@@ -1,0 +1,60 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+DocumentHighlight at Position { line: 2, character: 17 }
+
+```
+newtype Identity a = Identity a
+--               &
+```
+
+2:17..2:18
+2:30..2:31
+
+
+DocumentHighlight at Position { line: 5, character: 11 }
+
+```
+data Proxy a = Proxy a
+--         &
+```
+
+5:11..5:12
+5:21..5:22
+
+
+DocumentHighlight at Position { line: 8, character: 13 }
+
+```
+type Synonym a = a
+--           &
+```
+
+8:13..8:14
+8:17..8:18
+
+
+DocumentHighlight at Position { line: 11, character: 14 }
+
+```
+class Example a where
+--            &
+```
+
+11:14..11:15
+13:13..13:14
+13:18..13:19
+
+
+DocumentHighlight at Position { line: 15, character: 16 }
+
+```
+apply :: forall a. a -> a
+--              &
+```
+
+15:16..15:17
+15:19..15:20
+15:24..15:25

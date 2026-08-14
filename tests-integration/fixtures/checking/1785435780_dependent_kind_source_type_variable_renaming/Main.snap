@@ -20,7 +20,7 @@ class forall (kind :: Prim.Type) (value :: kind). Main.Dependent @kind (value ::
     Main.Dependent @kind (value :: kind) => Main.Proxy @kind (value :: kind)
 
 Instances
-instance forall t0 (value :: t0). Main.Dependent @t0 (value :: t0)
+instance forall kind (value :: kind). Main.Dependent @kind (value :: kind)
 
 Roles
 Proxy = [Phantom]

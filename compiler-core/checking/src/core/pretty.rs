@@ -243,6 +243,10 @@ where
         self.state().render(id)
     }
 
+    pub fn render_kind(&self, id: TypeId) -> SmolStr {
+        self.state().render_kind(id)
+    }
+
     pub fn render_signature(&self, name: &str, id: TypeId) -> SmolStr {
         self.state().render_signature(name, id)
     }
@@ -288,6 +292,11 @@ where
 
     pub fn render(&mut self, id: TypeId) -> SmolStr {
         self.names.set_default_name("t");
+        self.render_with_signature(None, id, Precedence::Top)
+    }
+
+    pub fn render_kind(&mut self, id: TypeId) -> SmolStr {
+        self.names.set_default_name("k");
         self.render_with_signature(None, id, Precedence::Top)
     }
 

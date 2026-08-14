@@ -33,8 +33,8 @@ class forall (k :: Prim.Type) (a :: k) (b :: k). Main.RowSame @k (a :: k) (b :: 
 Instances
 instance forall a. Main.IsEq a a Main.Output
 instance forall a b. Main.IsEq a b Main.Output
-instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)
-instance forall t0 (a :: t0). Main.RowSame @t0 (a :: t0) (a :: t0)
+instance forall k (a :: k). Main.TypeEquals @k (a :: k) (a :: k)
+instance forall k (a :: k). Main.RowSame @k (a :: k) (a :: k)
 
 Roles
 Unit = []
