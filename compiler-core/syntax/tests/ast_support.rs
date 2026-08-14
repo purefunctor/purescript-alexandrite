@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use syntax::ast::{self, AstNode};
-use syntax::{SyntaxKind, SyntaxNode, SyntaxValue, TreeOwner};
+use syntax::{SyntaxKind, SyntaxNode, SyntaxValue, TreeOwner, cst};
 
 thread_local! {
     static REENTRANT_ROOT: RefCell<Option<SyntaxNode>> = const { RefCell::new(None) };
@@ -52,6 +52,25 @@ impl AstNode for FallibleAstNode {
     }
 }
 
+#[derive(Clone)]
+struct DivergentAstNode {
+    node: SyntaxNode,
+}
+
+impl AstNode for DivergentAstNode {
+    fn can_cast(_kind: SyntaxKind) -> bool {
+        false
+    }
+
+    fn cast(node: SyntaxNode) -> Option<DivergentAstNode> {
+        (node.kind() == SyntaxKind::ModuleHeader).then_some(DivergentAstNode { node })
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        &self.node
+    }
+}
+
 fn root_with_children() -> SyntaxNode {
     let mut builder = syntree::Builder::new();
     builder.open(SyntaxValue::node(SyntaxKind::Module)).unwrap();
@@ -88,4 +107,22 @@ fn child_cast_continues_after_matching_kind_returns_none() {
     let child = ast::support::child::<FallibleAstNode>(&root).unwrap();
 
     assert_eq!(child.syntax().kind(), SyntaxKind::ModuleImports);
+}
+
+#[test]
+fn child_cast_does_not_filter_with_can_cast() {
+    let root = root_with_children();
+
+    let child = ast::support::child::<DivergentAstNode>(&root).unwrap();
+
+    assert_eq!(child.syntax().kind(), SyntaxKind::ModuleHeader);
+}
+
+#[test]
+fn generated_casts_validate_the_node_kind() {
+    let root = root_with_children();
+    let header = root.first_child().unwrap();
+
+    assert!(cst::ModuleImports::cast(header.clone()).is_none());
+    assert!(cst::Declaration::cast(header).is_none());
 }

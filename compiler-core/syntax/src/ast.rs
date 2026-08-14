@@ -5,10 +5,6 @@ use crate::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken};
 pub trait AstNode: Clone {
     fn can_cast(kind: SyntaxKind) -> bool;
     fn cast(node: SyntaxNode) -> Option<Self>;
-    #[doc(hidden)]
-    fn cast_with_kind(node: SyntaxNode, _kind: SyntaxKind) -> Option<Self> {
-        Self::cast(node)
-    }
     fn syntax(&self) -> &SyntaxNode;
 }
 
@@ -67,8 +63,7 @@ pub mod support {
         let mut child = node.first_child();
         while let Some(node) = child {
             child = node.next_sibling();
-            let kind = node.kind();
-            if let Some(node) = N::cast_with_kind(node, kind) {
+            if let Some(node) = N::cast(node) {
                 return Some(node);
             }
         }
