@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+PrepareRename at Position { line: 2, character: 17 }
+
+```
+newtype Identity a = Identity a
+--               ?
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 5, character: 11 }
+
+```
+data Proxy a = Proxy a
+--         ?
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 8, character: 13 }
+
+```
+type Synonym a = a
+--           ?
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 11, character: 14 }
+
+```
+class Example a where
+--            ?
+```
+
+<empty>
+
+
+PrepareRename at Position { line: 15, character: 16 }
+
+```
+apply :: forall a. a -> a
+--              ?
+```
+
+<empty>

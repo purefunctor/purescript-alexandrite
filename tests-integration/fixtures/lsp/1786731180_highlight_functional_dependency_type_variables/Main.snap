@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+DocumentHighlight at Position { line: 5, character: 26 }
+
+```
+class TypeEq a b result | a b -> result where
+--                        &
+```
+
+4:6..4:12
+5:6..5:12

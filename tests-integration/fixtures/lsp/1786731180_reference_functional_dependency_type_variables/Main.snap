@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+References at Position { line: 5, character: 26 }
+
+```
+class TypeEq a b result | a b -> result where
+--                        %
+```
