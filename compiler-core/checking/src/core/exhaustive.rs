@@ -676,10 +676,7 @@ fn specialise_matrix(
     for row in matrix {
         let initial_length = specialised_matrix.cells.len();
         if specialise_vector_into(state, expected, row, &mut specialised_matrix.cells) {
-            debug_assert_eq!(
-                specialised_matrix.cells.len() - initial_length,
-                specialised_matrix.columns
-            );
+            assert_eq!(specialised_matrix.cells.len() - initial_length, specialised_matrix.columns);
             specialised_matrix.rows += 1;
         } else {
             specialised_matrix.cells.truncate(initial_length);
@@ -740,32 +737,16 @@ fn specialise_vector_into(
     // Clone to release any borrow on state.patterns, allowing mutable
     // access later when allocating wildcard patterns for record padding.
     let first_pattern = state.patterns[first_column_id].clone();
+    let initial_length = specialised.len();
 
     if let PatternKind::Wildcard = first_pattern.kind {
-        // Expand wildcard to the expected constructor's arity
-        match expected {
-            PatternConstructor::DataConstructor { fields, .. }
-            | PatternConstructor::Record { fields, .. } => {
-                let wildcards = fields.iter().map(|&pattern_id| {
-                    let t = state.patterns[pattern_id].t;
-                    state.allocate_wildcard(t)
-                });
-                specialised.extend(wildcards);
-            }
-            PatternConstructor::Array { fields } => {
-                let wildcards = fields.iter().map(|&pattern_id| {
-                    let t = state.patterns[pattern_id].t;
-                    state.allocate_wildcard(t)
-                });
-                specialised.extend(wildcards);
-            }
-            _ => {}
-        }
+        normalise_specialised_fields(state, expected, initial_length, specialised);
         specialised.extend_from_slice(tail_columns);
         return true;
     }
 
     let PatternKind::Constructor { constructor } = first_pattern.kind else {
+        normalise_specialised_fields(state, expected, initial_length, specialised);
         specialised.extend_from_slice(tail_columns);
         return true;
     };
@@ -794,8 +775,25 @@ fn specialise_vector_into(
         }
         _ => {}
     }
+    normalise_specialised_fields(state, expected, initial_length, specialised);
     specialised.extend_from_slice(tail_columns);
     true
+}
+
+fn normalise_specialised_fields(
+    state: &mut CheckState,
+    expected: &PatternConstructor,
+    initial_length: usize,
+    specialised: &mut PatternVector,
+) {
+    let expected_fields = expected.fields();
+    specialised.truncate(initial_length + expected_fields.len());
+
+    let actual_fields = specialised.len() - initial_length;
+    for &expected_field in &expected_fields[actual_fields..] {
+        let t = state.patterns[expected_field].t;
+        specialised.push(state.allocate_wildcard(t));
+    }
 }
 
 /// Maps the fields of an actual record pattern to the expected (canonical) label set.
@@ -825,8 +823,12 @@ fn specialise_record_fields_into(
     }
 
     for (expected_label, &expected_field) in expected_labels.iter().zip(expected_fields.iter()) {
-        if let Some(position) = actual_labels.iter().position(|label| label == expected_label) {
-            specialised.push(actual_fields[position]);
+        let actual_field = actual_labels
+            .iter()
+            .position(|label| label == expected_label)
+            .and_then(|position| actual_fields.get(position));
+        if let Some(&actual_field) = actual_field {
+            specialised.push(actual_field);
         } else {
             let t = state.patterns[expected_field].t;
             specialised.push(state.allocate_wildcard(t));

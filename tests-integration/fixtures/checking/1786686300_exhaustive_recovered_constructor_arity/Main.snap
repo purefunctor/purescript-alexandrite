@@ -1,0 +1,70 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+Other :: forall (@a :: Prim.Type). Main.Box (a :: Prim.Type)
+test :: forall (t0 :: Prim.Type). Prim.Partial => Main.Box (t0 :: Prim.Type) -> Prim.Int
+test2 ::
+  forall (t0 :: Prim.Type).
+    Prim.Partial => ((t0 :: Prim.Type) -> Main.Box (t0 :: Prim.Type)) -> Prim.Int
+
+Types
+Box :: Prim.Type -> Prim.Type
+
+Roles
+Box = [Representational]
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Box' with 'Function ?4'
+  --> 5:1..5:17
+  |
+5 | test (Box _) = 0
+  | ^~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Box (t0 :: Type)' with 'Function ?4 (Box ?4)'
+  --> 5:1..5:17
+  |
+5 | test (Box _) = 0
+  | ^~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Box (t0 :: Type)' with '?4 -> Box ?4'
+  --> 5:1..5:17
+  |
+5 | test (Box _) = 0
+  | ^~~~~~~~~~~~~~~~
+warning[RedundantPattern]: Pattern match has redundant patterns: Box
+  --> 5:1..5:17
+  |
+5 | test (Box _) = 0
+  | ^~~~~~~~~~~~~~~~
+warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Other
+  --> 5:1..5:17
+  |
+5 | test (Box _) = 0
+  | ^~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Function (t1 :: Type)' with 'Box'
+  --> 8:1..8:14
+  |
+8 | test2 Box = 0
+  | ^~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Function (t1 :: Type) (Box (t1 :: Type))' with 'Box ?8'
+  --> 8:1..8:14
+  |
+8 | test2 Box = 0
+  | ^~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '(t1 :: Type) -> Box (t1 :: Type)' with 'Box ?8'
+  --> 8:1..8:14
+  |
+8 | test2 Box = 0
+  | ^~~~~~~~~~~~~
+warning[RedundantPattern]: Pattern match has redundant patterns: Box _
+  --> 8:1..8:14
+  |
+8 | test2 Box = 0
+  | ^~~~~~~~~~~~~
+warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Other
+  --> 8:1..8:14
+  |
+8 | test2 Box = 0
+  | ^~~~~~~~~~~~~
