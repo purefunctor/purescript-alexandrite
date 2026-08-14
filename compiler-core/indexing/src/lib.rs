@@ -2,6 +2,8 @@ mod algorithm;
 mod error;
 mod items;
 mod source;
+#[cfg(test)]
+mod tests;
 
 pub use error::*;
 pub use items::*;
@@ -72,13 +74,14 @@ impl IndexedModule {
     }
 
     pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
-        self.items.iter_types().find_map(|(type_id, _)| {
-            if self.data_constructors(type_id).any(|term_id| term_id == id) {
-                Some(type_id)
-            } else {
-                None
-            }
-        })
+        let index = id.into_raw().into_u32() as usize;
+        if index >= self.items.terms.len() {
+            return None;
+        }
+        let IndexedTermItemKind::Constructor { type_id, .. } = self.items[id].kind else {
+            return None;
+        };
+        Some(type_id)
     }
 
     pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {

@@ -114,7 +114,7 @@ impl AnnotationSyntaxRange {
             IndexedTermItemKind::ClassMember { id } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
-            IndexedTermItemKind::Constructor { id } => {
+            IndexedTermItemKind::Constructor { id, .. } => {
                 signature_equation_range(&stabilized, &root, &Some(*id), &Some(*id))
             }
             IndexedTermItemKind::Derive { id } => {

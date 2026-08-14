@@ -15,7 +15,7 @@ pub struct IndexedTermItem {
 #[derive(Debug, PartialEq, Eq)]
 pub enum IndexedTermItemKind {
     ClassMember { id: ClassMemberId },
-    Constructor { id: DataConstructorId },
+    Constructor { id: DataConstructorId, type_id: TypeItemId },
     Derive { id: DeriveId },
     Foreign { id: ForeignValueId },
     Instance { id: InstanceId },

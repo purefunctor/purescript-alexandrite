@@ -672,7 +672,7 @@ fn term_item_highlights(
         IndexedTermItemKind::ClassMember { id } => {
             push_name_highlights!(position::class_member_name_range; Some(*id));
         }
-        IndexedTermItemKind::Constructor { id } => {
+        IndexedTermItemKind::Constructor { id, .. } => {
             push_name_highlights!(position::data_constructor_name_range; Some(*id));
         }
         IndexedTermItemKind::Derive { id } => {
