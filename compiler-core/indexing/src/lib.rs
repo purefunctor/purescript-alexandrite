@@ -2,6 +2,8 @@ mod algorithm;
 mod error;
 mod items;
 mod source;
+#[cfg(test)]
+mod tests;
 
 pub use error::*;
 pub use items::*;
@@ -72,13 +74,14 @@ impl IndexedModule {
     }
 
     pub fn constructor_type(&self, id: TermItemId) -> Option<TypeItemId> {
-        self.items.iter_types().find_map(|(type_id, _)| {
-            if self.data_constructors(type_id).any(|term_id| term_id == id) {
-                Some(type_id)
-            } else {
-                None
-            }
-        })
+        let index = id.into_raw().into_u32() as usize;
+        if index >= self.items.terms.len() {
+            return None;
+        }
+        let IndexedTermItemKind::Constructor { type_id, .. } = self.items[id].kind else {
+            return None;
+        };
+        type_id
     }
 
     pub fn class_members(&self, id: TypeItemId) -> impl Iterator<Item = TermItemId> + '_ {
@@ -256,7 +259,7 @@ impl IndexedImport {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IndexedPairs {
     derive_to_term: Vec<(DeriveId, TermItemId)>,
-    instance_chain: Vec<(InstanceChainId, InstanceId)>,
+    instance_chain: Vec<(InstanceId, InstanceChainId, u32)>,
     instance_to_term: Vec<(InstanceId, TermItemId)>,
     instance_members: Vec<(InstanceId, InstanceMemberId)>,
 
@@ -306,20 +309,20 @@ impl IndexedPairs {
     }
 
     pub fn instance_chain_id(&self, id: InstanceId) -> Option<InstanceChainId> {
-        self.instance_chain.iter().find_map(
-            |(chain_id, instance_id)| {
-                if *instance_id == id { Some(*chain_id) } else { None }
-            },
-        )
+        self.instance_chain_metadata(id).map(|(chain_id, _)| chain_id)
     }
 
     pub fn instance_chain_position(&self, id: InstanceId) -> Option<u32> {
-        let chain_of_id = self.instance_chain_id(id)?;
-        self.instance_chain
-            .iter()
-            .filter(|(chain_id, _)| *chain_id == chain_of_id)
-            .position(|(_, instance_id)| *instance_id == id)
-            .map(|position| position as u32)
+        self.instance_chain_metadata(id).map(|(_, position)| position)
+    }
+
+    pub fn instance_chain_metadata(&self, id: InstanceId) -> Option<(InstanceChainId, u32)> {
+        self.instance_chain.binary_search_by_key(&id, |(instance_id, _, _)| *instance_id).ok().map(
+            |index| {
+                let (_, chain_id, position) = self.instance_chain[index];
+                (chain_id, position)
+            },
+        )
     }
 }
 

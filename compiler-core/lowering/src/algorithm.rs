@@ -814,7 +814,8 @@ fn lower_type_item(
 
 fn lower_constructors(state: &mut State, context: &Context, id: TypeItemId) {
     for item_id in context.indexed.data_constructors(id) {
-        let IndexedTermItemKind::Constructor { id } = context.indexed.items[item_id].kind else {
+        let IndexedTermItemKind::Constructor { id, .. } = context.indexed.items[item_id].kind
+        else {
             unreachable!("invariant violated: expected IndexedTermItemKind::Constructor");
         };
 

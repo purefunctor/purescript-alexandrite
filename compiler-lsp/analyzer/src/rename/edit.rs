@@ -546,7 +546,7 @@ where
             IndexedTermItemKind::ClassMember { id } => {
                 push_name_edits!(self, file_id, new_name, position::class_member_name_range; Some(*id));
             }
-            IndexedTermItemKind::Constructor { id } => {
+            IndexedTermItemKind::Constructor { id, .. } => {
                 push_name_edits!(self, file_id, new_name, position::data_constructor_name_range; Some(*id));
             }
             IndexedTermItemKind::Derive { id } => {

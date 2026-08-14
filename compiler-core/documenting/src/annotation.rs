@@ -64,7 +64,7 @@ pub fn term_documentation(
         IndexedTermItemKind::ClassMember { id } => {
             signature_equation_documentation(stabilized, annotations, &Some(*id), &Some(*id))
         }
-        IndexedTermItemKind::Constructor { id } => {
+        IndexedTermItemKind::Constructor { id, .. } => {
             data_constructor_item_documentation(stabilized, annotations, *id)
         }
         IndexedTermItemKind::Derive { id } => {
