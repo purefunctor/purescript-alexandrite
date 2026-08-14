@@ -4,15 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
-M ::
-  forall (@context :: Prim.Row Prim.Type) (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.M (context :: Prim.Row Prim.Type) (a :: Prim.Type)
+unsafeCoerce :: forall a b. a -> b
+M :: forall (@context :: Prim.Row Prim.Type) @a. a -> Main.M (context :: Prim.Row Prim.Type) a
 bind ::
-  forall (context :: Prim.Row Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
-    Main.M (context :: Prim.Row Prim.Type) (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> Main.M (context :: Prim.Row Prim.Type) (b :: Prim.Type)) ->
-    Main.M (context :: Prim.Row Prim.Type) (b :: Prim.Type)
+  forall (context :: Prim.Row Prim.Type) a b.
+    Main.M (context :: Prim.Row Prim.Type) a ->
+    (a -> Main.M (context :: Prim.Row Prim.Type) b) ->
+    Main.M (context :: Prim.Row Prim.Type) b
 ask ::
   forall (@context :: Prim.Row Prim.Type) (@m :: Prim.Type -> Prim.Type).
     Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type) =>

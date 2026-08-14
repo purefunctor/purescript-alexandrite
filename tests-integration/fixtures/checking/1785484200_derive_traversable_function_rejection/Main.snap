@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Reader :: forall (@a :: Prim.Type). (Prim.Int -> (a :: Prim.Type)) -> Main.Reader (a :: Prim.Type)
+Reader :: forall @a. (Prim.Int -> a) -> Main.Reader a
 
 Types
 Reader :: Prim.Type -> Prim.Type
@@ -20,7 +20,7 @@ Roles
 Reader = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Int -> (t0 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Int -> t0
   --> 16:1..16:35
    |
 16 | derive instance Traversable Reader

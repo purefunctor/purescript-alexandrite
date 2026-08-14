@@ -4,12 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-polymorphic :: forall (value :: Prim.Type). Main.Box (value :: Prim.Type)
+polymorphic :: forall value. Main.Box value
 bind ::
-  forall (result :: Prim.Type).
-    (forall (value :: Prim.Type). Main.Box (value :: Prim.Type)) ->
-    ((forall (value1 :: Prim.Type). Main.Box (value1 :: Prim.Type)) -> (result :: Prim.Type)) ->
-    (result :: Prim.Type)
+  forall result.
+    (forall value. Main.Box value) -> ((forall value1. Main.Box value1) -> result) -> result
 test :: Prim.Int
 test' :: Prim.Int
 

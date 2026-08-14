@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Duplicate :: forall (k0 :: Prim.Type). (k0 -> k0 -> Prim.Type) -> k0 -> Prim.Type
+data Duplicate :: forall k0. (k0 -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data Duplicate @p @a
   | Duplicate :: p a a -> Main.Duplicate p a
 
@@ -12,8 +12,7 @@ dictionary functorDuplicate ::
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.Duplicate @Prim.Type p)
   where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b) -> Main.Duplicate @Prim.Type p a -> Main.Duplicate @Prim.Type p b
+  map :: forall a b. (a -> b) -> Main.Duplicate @Prim.Type p a -> Main.Duplicate @Prim.Type p b
   map = \function -> \(Duplicate value) -> Duplicate (bimap {bifunctorDict} function function value)
 
 dictionary foldableDuplicate ::
@@ -21,14 +20,13 @@ dictionary foldableDuplicate ::
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.Duplicate @Prim.Type p)
   where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
   foldr = \function -> \initial -> \(Duplicate value) ->
     bifoldr {bifoldableDict} function function initial value
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Duplicate @Prim.Type p a -> b
   foldl = \function -> \initial -> \(Duplicate value) ->
     bifoldl {bifoldableDict} function function initial value
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> Main.Duplicate @Prim.Type p a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Duplicate @Prim.Type p a -> m
   foldMap = \{monoidDict} -> \function -> \(Duplicate value) ->
     bifoldMap {bifoldableDict} {monoidDict} function function value
 
@@ -39,7 +37,7 @@ dictionary traversableDuplicate ::
   where
   superclass functorDict = functorDuplicate {bitraversableDict.bifunctorDict}
   superclass foldableDict = foldableDuplicate {bitraversableDict.bifoldableDict}
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.Duplicate @Prim.Type p a -> m (Main.Duplicate @Prim.Type p b)
   traverse = \{applicativeDict} ->
@@ -50,7 +48,7 @@ dictionary traversableDuplicate ::
           (bitraverse {bitraversableDict} {applicativeDict} (\element -> function element)
             (\element -> function element)
             field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.Duplicate @Prim.Type p (m a) -> m (Main.Duplicate @Prim.Type p a)
   sequence = \{applicativeDict} ->

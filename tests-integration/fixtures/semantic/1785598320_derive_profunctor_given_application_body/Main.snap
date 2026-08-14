@@ -3,8 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Nested ::
-  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Nested :: forall k0 k1. (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Nested @p @a @b
   | Nested :: p a b -> Main.Nested p a b
 
@@ -13,7 +12,7 @@ dictionary profunctorNested ::
   { profunctorDict :: Data.Profunctor.Profunctor p } =>
   Data.Profunctor.Profunctor (Main.Nested @Prim.Type @Prim.Type p)
   where
-  dimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  dimap :: forall a b c d.
   (a -> b) ->
   (c -> d) ->
   Main.Nested @Prim.Type @Prim.Type p b c ->

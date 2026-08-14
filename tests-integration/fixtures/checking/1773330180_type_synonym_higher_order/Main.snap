@@ -7,17 +7,13 @@ Terms
 test :: {| Main.Test }
 
 Types
-RowApply ::
-  forall (k :: Prim.Type).
-    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
-    Prim.Row (k :: Prim.Type) ->
-    Prim.Row (k :: Prim.Type)
+RowApply :: forall k. (Prim.Row k -> Prim.Row k) -> Prim.Row k -> Prim.Row k
 AddInt :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 AddString :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 Test :: Prim.Row Prim.Type
 
 Synonyms
-type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type RowApply f a = (f :: Prim.Row k -> Prim.Row k) (a :: Prim.Row k)
 type AddInt r = ( int :: Prim.Int | (r :: Prim.Row Prim.Type) )
 type AddString r = ( string :: Prim.String | (r :: Prim.Row Prim.Type) )
 type Test = Main.RowApply @Prim.Type Main.AddInt (Main.RowApply @Prim.Type Main.AddString ())

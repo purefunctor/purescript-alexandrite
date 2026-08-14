@@ -4,27 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-eq ::
-  forall (@a :: Prim.Type).
-    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
-compare ::
-  forall (@a :: Prim.Type).
-    Main.Ord (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Int
-test1 :: forall (t0 :: Prim.Type). Main.Eq (t0 :: Prim.Type) => (t0 :: Prim.Type) -> Prim.Boolean
-test2 ::
-  forall (t0 :: Prim.Type).
-    Main.Ord (t0 :: Prim.Type) => Main.Eq (t0 :: Prim.Type) => (t0 :: Prim.Type) -> Prim.Int
+eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+compare :: forall @a. Main.Ord a => a -> a -> Prim.Int
+test1 :: forall t0. Main.Eq t0 => t0 -> Prim.Boolean
+test2 :: forall t0. Main.Ord t0 => Main.Eq t0 => t0 -> Prim.Int
 
 Types
 Eq :: Prim.Type -> Prim.Constraint
 Ord :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
-  eq ::
-  forall (@a :: Prim.Type).
-    Main.Eq (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Boolean
-class forall (a :: Prim.Type). Main.Ord (a :: Prim.Type)
-  compare ::
-  forall (@a :: Prim.Type).
-    Main.Ord (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> Prim.Int
+class forall (a :: Prim.Type). Main.Eq a
+  eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+class forall (a :: Prim.Type). Main.Ord a
+  compare :: forall @a. Main.Ord a => a -> a -> Prim.Int

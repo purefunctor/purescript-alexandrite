@@ -5,37 +5,24 @@ expression: report
 ---
 Terms
 choose ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (a :: (t0 :: Prim.Type))
-    (b :: (t1 :: Prim.Type)) (result :: (t2 :: Prim.Type)).
-    Main.Pick @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-      (a :: (t0 :: Prim.Type))
-      (b :: (t1 :: Prim.Type))
-      (result :: (t2 :: Prim.Type)) =>
-    Type.Proxy.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Type.Proxy.Proxy @(t1 :: Prim.Type) (b :: (t1 :: Prim.Type)) ->
-    Type.Proxy.Proxy @(t2 :: Prim.Type) (result :: (t2 :: Prim.Type))
+  forall t0 t1 t2 (a :: t0) (b :: t1) (result :: t2).
+    Main.Pick @t0 @t1 @t2 (a :: t0) (b :: t1) (result :: t2) =>
+    Type.Proxy.Proxy @t0 (a :: t0) ->
+    Type.Proxy.Proxy @t1 (b :: t1) ->
+    Type.Proxy.Proxy @t2 (result :: t2)
 x :: Type.Proxy.Proxy @Prim.Type Prim.Int
 
 Types
-Pick ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
+Pick :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t1 :: Prim.Type)) (result :: (t2 :: Prim.Type)). Main.Pick @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-  (a :: (t0 :: Prim.Type))
-  (b :: (t1 :: Prim.Type))
-  (result :: (t2 :: Prim.Type))
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (a :: t0) (b :: t1) (result :: t2). Main.Pick @t0 @t1 @t2 (a :: t0) (b :: t1) (result :: t2)
 
 Instances
 instance forall (a :: Prim.Int).
   Prim.Int.Compare (a :: Prim.Int) (a :: Prim.Int) Prim.Ordering.EQ =>
   Main.Pick @Prim.Int @Prim.Int @Prim.Int (a :: Prim.Int) (a :: Prim.Int) (a :: Prim.Int)
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t1 :: Prim.Type)).
-  Main.Pick @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t1 :: Prim.Type)
-    (a :: (t0 :: Prim.Type))
-    (b :: (t1 :: Prim.Type))
-    (b :: (t1 :: Prim.Type))
+instance forall t0 t1 (a :: t0) (b :: t1). Main.Pick @t0 @t1 @t1 (a :: t0) (b :: t1) (b :: t1)
 
 Diagnostics
 error[CannotUnify]: Cannot unify 'Type' with 'Int'

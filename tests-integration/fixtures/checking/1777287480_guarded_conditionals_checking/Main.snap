@@ -6,16 +6,12 @@ expression: report
 Terms
 singleton ::
   forall (@f :: Prim.Type -> Prim.Type).
-    Main.Build (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+    Main.Build (f :: Prim.Type -> Prim.Type) => (forall a. a -> (f :: Prim.Type -> Prim.Type) a)
 produce ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Build (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      ((b :: Prim.Type) -> (a :: Prim.Type)) ->
-      (b :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
-identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+    (forall a b. (b -> a) -> b -> (f :: Prim.Type -> Prim.Type) a)
+identity :: forall a. a -> a
 test ::
   forall (f :: Prim.Type -> Prim.Type).
     Main.Build (f :: Prim.Type -> Prim.Type) =>
@@ -28,12 +24,8 @@ Classes
 class forall (f :: Prim.Type -> Prim.Type). Main.Build (f :: Prim.Type -> Prim.Type)
   singleton ::
   forall (@f :: Prim.Type -> Prim.Type).
-    Main.Build (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type). (a :: Prim.Type) -> (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+    Main.Build (f :: Prim.Type -> Prim.Type) => (forall a. a -> (f :: Prim.Type -> Prim.Type) a)
   produce ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Build (f :: Prim.Type -> Prim.Type) =>
-    (forall (a1 :: Prim.Type) (b :: Prim.Type).
-      ((b :: Prim.Type) -> (a1 :: Prim.Type)) ->
-      (b :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (a1 :: Prim.Type))
+    (forall a1 b. (b -> a1) -> b -> (f :: Prim.Type -> Prim.Type) a1)

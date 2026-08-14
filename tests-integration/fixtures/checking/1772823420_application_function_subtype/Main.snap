@@ -5,28 +5,21 @@ expression: report
 ---
 Terms
 identity ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type).
-    Main.Category @(k :: Prim.Type) (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) =>
-    (forall (t :: (k :: Prim.Type)).
-      (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-        (t :: (k :: Prim.Type))
-        (t :: (k :: Prim.Type)))
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Category @k (a :: k -> k -> Prim.Type) =>
+    (forall (t :: k). (a :: k -> k -> Prim.Type) (t :: k) (t :: k))
 test :: Prim.Function Prim.Int Prim.Int
 test' :: Prim.Int -> Prim.Int
 
 Types
-Category ::
-  forall (k :: Prim.Type). ((k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) -> Prim.Constraint
+Category :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type). Main.Category @(k :: Prim.Type) (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
+class forall (k :: Prim.Type) (a :: k -> k -> Prim.Type). Main.Category @k (a :: k -> k -> Prim.Type)
   identity ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type).
-    Main.Category @(k :: Prim.Type) (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) =>
-    (forall (t :: (k :: Prim.Type)).
-      (a :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-        (t :: (k :: Prim.Type))
-        (t :: (k :: Prim.Type)))
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Category @k (a :: k -> k -> Prim.Type) =>
+    (forall (t :: k). (a :: k -> k -> Prim.Type) (t :: k) (t :: k))
 
 Instances
 instance Main.Category @Prim.Type Prim.Function

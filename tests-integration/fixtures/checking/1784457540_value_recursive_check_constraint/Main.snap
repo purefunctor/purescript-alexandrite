@@ -4,17 +4,12 @@ assertion_line: 50
 expression: report
 ---
 Terms
-append ::
-  forall (@a :: Prim.Type).
-    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
-test ::
-  forall (a :: Prim.Type). Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+append :: forall @a. Main.Semigroup a => a -> a -> a
+test :: forall a. Main.Semigroup a => a -> a
 
 Types
 Semigroup :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Semigroup (a :: Prim.Type)
-  append ::
-  forall (@a :: Prim.Type).
-    Main.Semigroup (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Semigroup a
+  append :: forall @a. Main.Semigroup a => a -> a -> a

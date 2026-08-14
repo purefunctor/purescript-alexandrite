@@ -4,14 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-bind ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Effect (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
-    Main.Effect (b :: Prim.Type)
+bind :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
 before :: Main.Effect { field :: Prim.Int }
 expectString :: Prim.String -> Prim.Int
-test :: forall (t0 :: Prim.Type). Main.Effect (t0 :: Prim.Type)
+test :: forall t0. Main.Effect t0
 
 Types
 Effect :: Prim.Type -> Prim.Type

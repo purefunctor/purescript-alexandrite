@@ -11,7 +11,7 @@ Types
 Class :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Class (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Class a
 
 Instances
 instance Main.Class

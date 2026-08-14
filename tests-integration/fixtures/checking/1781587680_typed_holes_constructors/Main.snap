@@ -9,16 +9,16 @@ No :: Main.Option
 localOption :: Main.Option
 option :: Main.Option
 imported :: Lib.ImportedOption
-select :: forall (@a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
-method :: forall (a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
+select :: forall @a. Main.Select a => a -> Main.Option
+method :: forall a. Main.Select a => a -> Main.Option
 
 Types
 Option :: Prim.Type
 Select :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Select (a :: Prim.Type)
-  select :: forall (@a :: Prim.Type). Main.Select (a :: Prim.Type) => (a :: Prim.Type) -> Main.Option
+class forall (a :: Prim.Type). Main.Select a
+  select :: forall @a. Main.Select a => a -> Main.Option
 
 Roles
 Option = []
@@ -42,10 +42,10 @@ error[TermHole]: Hole '?imported' has inferred type: ImportedOption
   trivia: ImportedYes :: ImportedOption is in scope
   trivia: imported :: ImportedOption is in scope
   trivia: importedOption :: ImportedOption is in scope
-error[TermHole]: Hole '?method' has inferred type: (a :: Type) -> Option
+error[TermHole]: Hole '?method' has inferred type: a -> Option
   --> 20:10..20:17
    |
 20 | method = ?method
    |          ^~~~~~~
-  trivia: method :: forall (a1 :: Type). Select (a1 :: Type) => (a1 :: Type) -> Option is in scope
-  trivia: select :: forall (@a2 :: Type). Select (a2 :: Type) => (a2 :: Type) -> Option is in scope
+  trivia: method :: forall a1. Select a1 => a1 -> Option is in scope
+  trivia: select :: forall @a2. Select a2 => a2 -> Option is in scope

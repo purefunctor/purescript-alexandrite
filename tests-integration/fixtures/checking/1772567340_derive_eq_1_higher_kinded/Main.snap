@@ -5,27 +5,23 @@ expression: report
 ---
 Terms
 MkWrap ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.Wrap @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
 MkWrapNoEq1 ::
-  forall (t0 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type) (@a :: (t0 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type)) ->
-    Main.WrapNoEq1 @(t0 :: Prim.Type) (f :: (t0 :: Prim.Type) -> Prim.Type) (a :: (t0 :: Prim.Type))
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.WrapNoEq1 @t0 (f :: t0 -> Prim.Type) (a :: t0)
 
 Types
-Wrap :: forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
-WrapNoEq1 ::
-  forall (t0 :: Prim.Type). ((t0 :: Prim.Type) -> Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+WrapNoEq1 :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
 
 Derived
-derive forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+derive forall (f :: Prim.Type -> Prim.Type) a.
   Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
-  Data.Eq.Eq (a :: Prim.Type) =>
-  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
-derive forall (a :: Prim.Type) (f :: Prim.Type -> Prim.Type).
-  Data.Eq.Eq (a :: Prim.Type) =>
-  Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (f :: Prim.Type -> Prim.Type) (a :: Prim.Type))
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall a (f :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq a => Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (f :: Prim.Type -> Prim.Type) a)
 
 Roles
 Wrap = [Representational, Nominal]
@@ -37,4 +33,4 @@ error[NoInstanceFound]: No instance found for: Eq1 (f :: Type -> Type)
    |
 11 | derive instance Eq a => Eq (WrapNoEq1 f a)
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (a :: Type) is in scope
+  trivia: Eq a is in scope

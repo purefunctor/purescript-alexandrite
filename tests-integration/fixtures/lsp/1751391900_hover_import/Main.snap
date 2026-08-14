@@ -125,7 +125,7 @@ just = Just
 Range: "Just"
 
 ```purescript
-Just :: forall (@a :: Type). (a :: Type) -> Maybe (a :: Type)
+Just :: forall @a. a -> Maybe a
 ```
 
 
@@ -153,7 +153,7 @@ nothing = Nothing
 Range: "Nothing"
 
 ```purescript
-Nothing :: forall (@a :: Type). Maybe (a :: Type)
+Nothing :: forall @a. Maybe a
 ```
 
 

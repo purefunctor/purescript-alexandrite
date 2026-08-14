@@ -4,15 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
-Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+Identity :: forall @a. a -> Main.Identity a
 testProxy :: Main.Proxy @Prim.Int 42
 testIdentity :: Main.Proxy @Prim.Type Prim.Int
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 Identity :: Prim.Type -> Prim.Type
 
 Roles

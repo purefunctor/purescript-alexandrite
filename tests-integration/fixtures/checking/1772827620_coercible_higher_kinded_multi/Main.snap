@@ -4,16 +4,9 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-EitherAlias ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    Main.Either (a :: Prim.Type) (b :: Prim.Type) ->
-    Main.EitherAlias (a :: Prim.Type) (b :: Prim.Type)
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+EitherAlias :: forall @a @b. Main.Either a b -> Main.EitherAlias a b
 coerceContainer ::
   Main.Container @(Prim.Type -> Prim.Type -> Prim.Type) Main.Either ->
   Main.Container @(Prim.Type -> Prim.Type -> Prim.Type) Main.EitherAlias
@@ -21,7 +14,7 @@ coerceContainer ::
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type
 EitherAlias :: Prim.Type -> Prim.Type -> Prim.Type
-Container :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Container :: forall k. k -> Prim.Type
 
 Roles
 Either = [Representational, Representational]

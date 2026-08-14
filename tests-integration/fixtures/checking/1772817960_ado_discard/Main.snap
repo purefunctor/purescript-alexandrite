@@ -5,17 +5,9 @@ expression: report
 ---
 Terms
 Unit :: Main.Unit
-pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
-map ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    Main.Effect (a :: Prim.Type) ->
-    Main.Effect (b :: Prim.Type)
-apply ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Effect ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    Main.Effect (a :: Prim.Type) ->
-    Main.Effect (b :: Prim.Type)
+pure :: forall a. a -> Main.Effect a
+map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
 unit :: Main.Unit
 test :: Main.Effect Main.Unit
 test' :: Main.Effect Main.Unit

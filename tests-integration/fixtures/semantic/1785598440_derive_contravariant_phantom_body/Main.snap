@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Constant :: forall (k0 :: Prim.Type). Prim.Type -> k0 -> Prim.Type
+data Constant :: forall k0. Prim.Type -> k0 -> Prim.Type
 data Constant @value @a
   | Constant :: value -> Main.Constant value a
 
@@ -11,8 +11,7 @@ dictionary contravariantConstant ::
   forall value.
   Data.Functor.Contravariant.Contravariant (Main.Constant @Prim.Type value)
   where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (b -> a) -> Main.Constant @Prim.Type value a -> Main.Constant @Prim.Type value b
+  cmap :: forall a b. (b -> a) -> Main.Constant @Prim.Type value a -> Main.Constant @Prim.Type value b
   cmap = \function value ->
     case value of
       (Constant field0) -> Constant field0

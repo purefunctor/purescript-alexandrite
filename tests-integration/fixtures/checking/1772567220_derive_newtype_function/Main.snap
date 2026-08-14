@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Builder ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) -> Main.Builder (a :: Prim.Type) (b :: Prim.Type)
+Builder :: forall @a @b. (a -> b) -> Main.Builder a b
 
 Types
 Builder :: Prim.Type -> Prim.Type -> Prim.Type

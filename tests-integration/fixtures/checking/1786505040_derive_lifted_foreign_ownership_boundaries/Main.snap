@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Product ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Product (a :: Prim.Type) (b :: Prim.Type)
+Product :: forall @a @b. a -> b -> Main.Product a b
 
 Types
 LocalOpaque :: Prim.Type -> Prim.Type
@@ -19,11 +17,10 @@ ProductInt :: Prim.Type -> Prim.Type
 Synonyms
 type LocalAlias = Main.LocalOpaque
 type ImportedAlias = Library.ImportedOpaque
-type ProductInt a = Main.Product Prim.Int (a :: Prim.Type)
+type ProductInt a = Main.Product Prim.Int a
 
 Instances
-instance forall (a :: Prim.Type).
-  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Main.LocalOpaque (a :: Prim.Type))
+instance forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.LocalOpaque a)
 
 Derived
 derive Data.Eq.Eq1 Main.LocalAlias
@@ -57,9 +54,9 @@ error[CannotDeriveForType]: Cannot derive for type: ?[partial synonym applicatio
    |
 27 | derive instance Eq1 ProductInt
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Eq (NoBase (t0 :: Type))
+error[NoInstanceFound]: No instance found for: Eq (NoBase t0)
   --> 21:1..21:27
    |
 21 | derive instance Eq1 NoBase
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq (t0 :: Type) is in scope
+  trivia: Eq t0 is in scope

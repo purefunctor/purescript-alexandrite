@@ -4,13 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Pair ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
-    Main.Pair @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
+Pair :: forall k (@a :: k) (@b :: k). Main.Pair @k (a :: k) (b :: k)
 
 Types
-Pair :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type
-& :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+Pair :: forall k. k -> k -> Prim.Type
+& :: forall k. k -> k -> Prim.Type
 
 Roles
 Pair = [Phantom, Phantom]

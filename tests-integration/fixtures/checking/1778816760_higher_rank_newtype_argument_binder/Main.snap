@@ -4,18 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Z3 ::
-  forall (@r :: Prim.Type) (@mode :: Prim.Type) (@a :: Prim.Type).
-    Main.Aff (a :: Prim.Type) -> Main.Z3 (r :: Prim.Type) (mode :: Prim.Type) (a :: Prim.Type)
-run ::
-  forall (a :: Prim.Type).
-    (forall (r :: Prim.Type) (mode :: Prim.Type).
-      Main.Z3 (r :: Prim.Type) (mode :: Prim.Type) (a :: Prim.Type)) ->
-    Main.Aff (a :: Prim.Type)
-Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
-unbox ::
-  (forall (a :: Prim.Type). Main.Box (a :: Prim.Type)) ->
-  (forall (a1 :: Prim.Type). (a1 :: Prim.Type))
+Z3 :: forall @r @mode @a. Main.Aff a -> Main.Z3 r mode a
+run :: forall a. (forall r mode. Main.Z3 r mode a) -> Main.Aff a
+Box :: forall @a. a -> Main.Box a
+unbox :: (forall a. Main.Box a) -> (forall a1. a1)
 
 Types
 Aff :: Prim.Type -> Prim.Type

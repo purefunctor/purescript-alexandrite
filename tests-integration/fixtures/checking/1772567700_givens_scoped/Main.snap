@@ -4,18 +4,15 @@ assertion_line: 50
 expression: report
 ---
 Terms
-consume ::
-  forall (@a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
-testGiven ::
-  forall (a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+consume :: forall @a. Main.Given a => a -> a
+testGiven :: forall a. Main.Given a => a -> a
 
 Types
 Given :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Given (a :: Prim.Type)
-  consume ::
-  forall (@a :: Prim.Type). Main.Given (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Given a
+  consume :: forall @a. Main.Given a => a -> a
 
 Diagnostics
 error[NoInstanceFound]: No instance found for: Given Int
@@ -23,4 +20,4 @@ error[NoInstanceFound]: No instance found for: Given Int
   |
 6 | testGiven :: forall a. Given a => a -> a
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Given (a :: Type) is in scope
+  trivia: Given a is in scope

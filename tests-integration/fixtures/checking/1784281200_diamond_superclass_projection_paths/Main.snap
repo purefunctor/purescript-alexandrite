@@ -4,30 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-useBottom ::
-  forall (a :: Prim.Type). Main.Bottom @Prim.Type (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
-useLeft ::
-  forall (a :: Prim.Type). Main.Left @Prim.Type (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
-useRight ::
-  forall (a :: Prim.Type). Main.Right @Prim.Type (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
-useTop ::
-  forall (a :: Prim.Type). Main.Top @Prim.Type (a :: Prim.Type) => (a :: Prim.Type) -> Prim.Int
-testDiamond ::
-  forall (t0 :: Prim.Type). Main.Top @Prim.Type (t0 :: Prim.Type) => (t0 :: Prim.Type) -> Prim.Int
-testShared ::
-  forall (t0 :: Prim.Type).
-    Main.Left @Prim.Type (t0 :: Prim.Type) =>
-    Main.Right @Prim.Type (t0 :: Prim.Type) =>
-    (t0 :: Prim.Type) -> Prim.Int
+useBottom :: forall a. Main.Bottom @Prim.Type a => a -> Prim.Int
+useLeft :: forall a. Main.Left @Prim.Type a => a -> Prim.Int
+useRight :: forall a. Main.Right @Prim.Type a => a -> Prim.Int
+useTop :: forall a. Main.Top @Prim.Type a => a -> Prim.Int
+testDiamond :: forall t0. Main.Top @Prim.Type t0 => t0 -> Prim.Int
+testShared :: forall t0. Main.Left @Prim.Type t0 => Main.Right @Prim.Type t0 => t0 -> Prim.Int
 
 Types
-Bottom :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
-Left :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
-Right :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
-Top :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Bottom :: forall t0. t0 -> Prim.Constraint
+Left :: forall t0. t0 -> Prim.Constraint
+Right :: forall t0. t0 -> Prim.Constraint
+Top :: forall t0. t0 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Bottom @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Bottom @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) <= Main.Left @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Bottom @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) <= Main.Right @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Left @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)), Main.Right @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) <= Main.Top @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: t0). Main.Bottom @t0 (a :: t0)
+class forall (t0 :: Prim.Type) (a :: t0). Main.Bottom @t0 (a :: t0) <= Main.Left @t0 (a :: t0)
+class forall (t0 :: Prim.Type) (a :: t0). Main.Bottom @t0 (a :: t0) <= Main.Right @t0 (a :: t0)
+class forall (t0 :: Prim.Type) (a :: t0). Main.Left @t0 (a :: t0), Main.Right @t0 (a :: t0) <= Main.Top @t0 (a :: t0)

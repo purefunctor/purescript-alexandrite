@@ -4,14 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Cons ::
-  forall (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.List (a :: Prim.Type) -> Main.List (a :: Prim.Type)
-Nil :: forall (@a :: Prim.Type). Main.List (a :: Prim.Type)
-: ::
-  forall (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.List (a :: Prim.Type) -> Main.List (a :: Prim.Type)
-head :: forall (a :: Prim.Type). Main.List (a :: Prim.Type) -> (a :: Prim.Type)
+Cons :: forall @a. a -> Main.List a -> Main.List a
+Nil :: forall @a. Main.List a
+: :: forall @a. a -> Main.List a -> Main.List a
+head :: forall a. Main.List a -> a
 
 Types
 List :: Prim.Type -> Prim.Type

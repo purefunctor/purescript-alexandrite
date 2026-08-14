@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
+Identity :: forall @a. a -> Main.Identity a
 
 Types
 Identity :: Prim.Type -> Prim.Type

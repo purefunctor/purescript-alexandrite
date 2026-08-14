@@ -4,13 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-test ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Prim.Coerce.Coercible @Prim.Type (b :: Prim.Type) (a :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type)
-test' ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Prim.Coerce.Coercible @Prim.Type (b :: Prim.Type) (a :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type)
+test :: forall a b. Prim.Coerce.Coercible @Prim.Type b a => a -> b
+test' :: forall a b. Prim.Coerce.Coercible @Prim.Type b a => a -> b
 
 Types

@@ -8,22 +8,20 @@ Terms
 Types
 
 Derived
-derive forall (a :: Prim.Type).
-  Data.Eq.Eq (a :: Prim.Type) => Data.Eq.Eq (Library.ImportedStructural (a :: Prim.Type))
-derive forall (a :: Prim.Type).
-  Data.Ord.Ord (a :: Prim.Type) => Data.Ord.Ord (Library.ImportedStructural (a :: Prim.Type))
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Library.ImportedStructural a)
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Library.ImportedStructural a)
 derive Data.Eq.Eq1 Library.ImportedLifted
 derive Data.Ord.Ord1 Library.ImportedLifted
 derive Data.Eq.Eq1 Library.ImportedOpaque
 derive Data.Ord.Ord1 Library.ImportedOpaque
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: ImportedStructural (a :: Type)
+error[CannotDeriveForType]: Cannot derive for type: ImportedStructural a
   --> 7:1..7:50
   |
 7 | derive instance Eq a => Eq (ImportedStructural a)
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedStructural (a1 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: ImportedStructural a1
   --> 8:1..8:52
   |
 8 | derive instance Ord a => Ord (ImportedStructural a)

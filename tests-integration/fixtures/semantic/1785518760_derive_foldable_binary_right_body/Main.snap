@@ -3,7 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data RightNested :: forall (k0 :: Prim.Type). (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
+data RightNested :: forall k0. (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data RightNested @p @a
   | RightNested :: p Prim.Int a -> Main.RightNested p a
 
@@ -12,22 +12,21 @@ dictionary foldableRightNested ::
   { foldableDict :: Data.Foldable.Foldable (p Prim.Int) } =>
   Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
   where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.RightNested @Prim.Type p a -> b
   foldr = \function accumulator value ->
     case value of
       (RightNested field0) -> foldr {foldableDict}
         (\element accumulator -> function element accumulator)
         accumulator
         field0
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.RightNested @Prim.Type p a -> b
   foldl = \function accumulator value ->
     case value of
       (RightNested field0) -> foldl {foldableDict}
         (\accumulator element -> function accumulator element)
         accumulator
         field0
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.RightNested @Prim.Type p a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of

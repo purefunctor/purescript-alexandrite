@@ -8,14 +8,14 @@ Representation :: Main.Representation
 Wrapper :: Main.Representation -> Main.Wrapper
 
 Types
-Parent :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
-Child :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+Parent :: forall t0. t0 -> Prim.Constraint
+Child :: forall t0. t0 -> Prim.Constraint
 Representation :: Prim.Type
 Wrapper :: Prim.Type
 
 Classes
-class forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)). Main.Parent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
-class forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)). Main.Parent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type)) <= Main.Child @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (value :: t0). Main.Parent @t0 (value :: t0)
+class forall (t0 :: Prim.Type) (value :: t0). Main.Parent @t0 (value :: t0) <= Main.Child @t0 (value :: t0)
 
 Instances
 instance Main.Parent @Prim.Type Main.Representation

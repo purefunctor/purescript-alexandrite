@@ -4,32 +4,22 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
-use ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Use @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+use :: forall k (@a :: k). Main.Use @k (a :: k) => Main.Proxy @k (a :: k)
 test :: Main.Proxy @Prim.Type Prim.String
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-Use :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Constraint
+Proxy :: forall k. k -> Prim.Type
+Use :: forall k. k -> Prim.Constraint
 
 Classes
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)). Main.Use @(k :: Prim.Type) (a :: (k :: Prim.Type))
-  use ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Use @(k :: Prim.Type) (a :: (k :: Prim.Type)) =>
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+class forall (k :: Prim.Type) (a :: k). Main.Use @k (a :: k)
+  use :: forall k (@a :: k). Main.Use @k (a :: k) => Main.Proxy @k (a :: k)
 
 Instances
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (xs :: Prim.RowList.RowList (t0 :: Prim.Type)).
-  Prim.RowList.RowToList @(t0 :: Prim.Type)
-    ( x :: (a :: (t0 :: Prim.Type)) )
-    (xs :: Prim.RowList.RowList (t0 :: Prim.Type)) =>
-  Main.Use @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+instance forall t0 (a :: t0) (xs :: Prim.RowList.RowList t0).
+  Prim.RowList.RowToList @t0 ( x :: (a :: t0) ) (xs :: Prim.RowList.RowList t0) =>
+  Main.Use @t0 (a :: t0)
 
 Roles
 Proxy = [Phantom]

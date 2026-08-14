@@ -7,9 +7,9 @@ Terms
 Unit :: Main.Unit
 Spec :: forall (@g :: Prim.Type -> Prim.Type). Main.Spec (g :: Prim.Type -> Prim.Type)
 it ::
-  forall (t :: Prim.Type) (g :: Prim.Type -> Prim.Type).
-    Main.Convert (t :: Prim.Type) (g :: Prim.Type -> Prim.Type) =>
-    Prim.String -> (t :: Prim.Type) -> Main.Spec (g :: Prim.Type -> Prim.Type)
+  forall t (g :: Prim.Type -> Prim.Type).
+    Main.Convert t (g :: Prim.Type -> Prim.Type) =>
+    Prim.String -> t -> Main.Spec (g :: Prim.Type -> Prim.Type)
 action :: forall (m :: Prim.Type -> Prim.Type). (m :: Prim.Type -> Prim.Type) Main.Unit
 test :: Main.Spec Effect.Aff.Aff
 test2 :: Main.Spec Effect.Aff.Aff
@@ -21,13 +21,11 @@ Spec :: (Prim.Type -> Prim.Type) -> Prim.Type
 Convert :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
 
 Classes
-class forall (t :: Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Convert (t :: Prim.Type) (m :: Prim.Type -> Prim.Type)
+class forall (t :: Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Convert t (m :: Prim.Type -> Prim.Type)
 
 Instances
-instance forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
-  Main.Convert
-    ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) Main.Unit)
-    (m :: Prim.Type -> Prim.Type)
+instance forall a (m :: Prim.Type -> Prim.Type).
+  Main.Convert (a -> (m :: Prim.Type -> Prim.Type) Main.Unit) (m :: Prim.Type -> Prim.Type)
 instance forall (m :: Prim.Type -> Prim.Type).
   Main.Convert ((m :: Prim.Type -> Prim.Type) Main.Unit) (m :: Prim.Type -> Prim.Type)
 

@@ -4,70 +4,54 @@ assertion_line: 50
 expression: report
 ---
 Terms
-isEq ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type) (@o :: Prim.Type).
-    Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type) -> (o :: Prim.Type)
+isEq :: forall @a @b @o. Main.IsEq a b o => a -> b -> o
 Unit :: Main.Unit
 Output :: Main.Output
 testEqConcrete :: Main.Output
-testSkolemRight :: forall (x :: Prim.Type). (x :: Prim.Type) -> Main.Output
-testSkolemLeft :: forall (x :: Prim.Type). (x :: Prim.Type) -> Main.Output
-testSkolemIsEq ::
-  forall (x :: Prim.Type) (y :: Prim.Type). (x :: Prim.Type) -> (y :: Prim.Type) -> Main.Output
-typeEquals ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)) (@b :: (t0 :: Prim.Type)).
-    Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (b :: (t0 :: Prim.Type)) =>
-    Main.Unit
+testSkolemRight :: forall x. x -> Main.Output
+testSkolemLeft :: forall x. x -> Main.Output
+testSkolemIsEq :: forall x y. x -> y -> Main.Output
+typeEquals :: forall t0 (@a :: t0) (@b :: t0). Main.TypeEquals @t0 (a :: t0) (b :: t0) => Main.Unit
 testOpenRows :: Main.Unit
-rowSame ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
-    Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) => Main.Unit
+rowSame :: forall k (@a :: k) (@b :: k). Main.RowSame @k (a :: k) (b :: k) => Main.Unit
 testOpenRowsNoFd :: Main.Unit
 
 Types
 IsEq :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
 Unit :: Prim.Type
 Output :: Prim.Type
-TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
-RowSame :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
+TypeEquals :: forall k. k -> k -> Prim.Constraint
+RowSame :: forall k. k -> k -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type). Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type)
-  isEq ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type) (@o :: Prim.Type).
-    Main.IsEq (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type) =>
-    (a :: Prim.Type) -> (b :: Prim.Type) -> (o :: Prim.Type)
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
-  rowSame ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)) (@b :: (k :: Prim.Type)).
-    Main.RowSame @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)) => Main.Unit
+class forall (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type). Main.IsEq a b o
+  isEq :: forall @a @b @o. Main.IsEq a b o => a -> b -> o
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.RowSame @k (a :: k) (b :: k)
+  rowSame :: forall k (@a :: k) (@b :: k). Main.RowSame @k (a :: k) (b :: k) => Main.Unit
 
 Instances
-instance forall (a :: Prim.Type). Main.IsEq (a :: Prim.Type) (a :: Prim.Type) Main.Output
-instance forall (a :: Prim.Type) (b :: Prim.Type). Main.IsEq (a :: Prim.Type) (b :: Prim.Type) Main.Output
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.RowSame @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
+instance forall a. Main.IsEq a a Main.Output
+instance forall a b. Main.IsEq a b Main.Output
+instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)
+instance forall t0 (a :: t0). Main.RowSame @t0 (a :: t0) (a :: t0)
 
 Roles
 Unit = []
 Output = []
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: IsEq (x :: Type) Unit Output
+error[NoInstanceFound]: No instance found for: IsEq x Unit Output
   --> 17:1..17:41
    |
 17 | testSkolemRight :: forall x. x -> Output
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq Unit (x1 :: Type) Output
+error[NoInstanceFound]: No instance found for: IsEq Unit x1 Output
   --> 20:1..20:40
    |
 20 | testSkolemLeft :: forall x. x -> Output
    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq (y :: Type) (x2 :: Type) Output
+error[NoInstanceFound]: No instance found for: IsEq y x2 Output
   --> 23:1..23:47
    |
 23 | testSkolemIsEq :: forall x y. x -> y -> Output

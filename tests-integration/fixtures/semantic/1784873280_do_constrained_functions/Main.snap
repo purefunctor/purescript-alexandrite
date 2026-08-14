@@ -5,11 +5,9 @@ expression: report
 ---
 interface Operations :: (Prim.Type -> Prim.Type) -> Prim.Constraint
 interface Operations effect where
-  pure :: forall (value :: Prim.Type). value -> effect value
-  bind :: forall (value :: Prim.Type) (result :: Prim.Type).
-  effect value -> (value -> effect result) -> effect result
-  discard :: forall (value :: Prim.Type) (result :: Prim.Type).
-  effect value -> (value -> effect result) -> effect result
+  pure :: forall value. value -> effect value
+  bind :: forall value result. effect value -> (value -> effect result) -> effect result
+  discard :: forall value result. effect value -> (value -> effect result) -> effect result
 
 usingBind :: forall effect. Main.Operations effect => effect Prim.Int
 usingBind = \{operationsDict} ->

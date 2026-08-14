@@ -4,28 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
-tail ::
-  forall (t0 :: Prim.Type) (r :: (t0 :: Prim.Type)).
-    Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int
-nonTail ::
-  forall (t0 :: Prim.Type) (r :: (t0 :: Prim.Type)).
-    Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int
-asTail ::
-  forall (t0 :: Prim.Type).
-    Prim.Array
-      (forall (r :: (t0 :: Prim.Type)).
-        Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int)
-asNonTail ::
-  forall (t0 :: Prim.Type).
-    Prim.Array
-      (forall (r :: (t0 :: Prim.Type)).
-        Main.Proxy @(t0 :: Prim.Type) (r :: (t0 :: Prim.Type)) -> Prim.Int)
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+tail :: forall t0 (r :: t0). Main.Proxy @t0 (r :: t0) -> Prim.Int
+nonTail :: forall t0 (r :: t0). Main.Proxy @t0 (r :: t0) -> Prim.Int
+asTail :: forall t0. Prim.Array (forall (r :: t0). Main.Proxy @t0 (r :: t0) -> Prim.Int)
+asNonTail :: forall t0. Prim.Array (forall (r :: t0). Main.Proxy @t0 (r :: t0) -> Prim.Int)
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 
 Roles
 Proxy = [Phantom]

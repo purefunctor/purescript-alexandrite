@@ -11,7 +11,7 @@ Add :: Prim.Type -> Prim.Type -> Prim.Type
 Bad :: Prim.Type
 
 Synonyms
-type Add a b = (a :: Prim.Type)
+type Add a b = a
 type Bad = Main.Add Prim.Int "hello"
 
 Diagnostics

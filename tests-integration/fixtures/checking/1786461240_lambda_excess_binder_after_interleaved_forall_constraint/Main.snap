@@ -5,12 +5,8 @@ expression: report
 ---
 Terms
 Unit :: Main.Unit
-Proxy :: forall (@value :: Prim.Type). Main.Proxy (value :: Prim.Type)
-consume ::
-  (Main.Unit ->
-  (forall (value :: Prim.Type).
-    Main.Marker (value :: Prim.Type) => Main.Proxy (value :: Prim.Type))) ->
-  Main.Unit
+Proxy :: forall @value. Main.Proxy value
+consume :: (Main.Unit -> (forall value. Main.Marker value => Main.Proxy value)) -> Main.Unit
 test :: Main.Unit
 
 Types
@@ -19,7 +15,7 @@ Proxy :: Prim.Type -> Prim.Type
 Marker :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (value :: Prim.Type). Main.Marker (value :: Prim.Type)
+class forall (value :: Prim.Type). Main.Marker value
 
 Roles
 Unit = []
@@ -31,12 +27,12 @@ error[CannotUnify]: Cannot unify 'Function ?1' with 'Proxy'
    |
 15 | test = consume \_ extra -> Proxy
    |                ^~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy (value :: Type)'
+error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy value'
   --> 15:16..15:33
    |
 15 | test = consume \_ extra -> Proxy
    |                ^~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy (value :: Type)'
+error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy value'
   --> 15:16..15:33
    |
 15 | test = consume \_ extra -> Proxy

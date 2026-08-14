@@ -5,12 +5,10 @@ expression: report
 ---
 Terms
 Age :: Prim.Int -> Main.Age
-Proxy ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+Proxy :: forall t0 (@a :: t0). Main.Proxy @t0 (a :: t0)
 coerceProxy :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
 coerceMaybe :: Main.Maybe Main.Age -> Main.Maybe Prim.Int
 coerceMaybeReverse :: Main.Maybe Prim.Int -> Main.Maybe Main.Age
 coerceRecord :: { age :: Main.Age, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
@@ -18,7 +16,7 @@ coerceFunction :: (Prim.Int -> Main.Age) -> Prim.Int -> Prim.Int
 
 Types
 Age :: Prim.Type
-Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Proxy :: forall t0. t0 -> Prim.Type
 Maybe :: Prim.Type -> Prim.Type
 
 Roles

@@ -3,9 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Wrap ::
-  forall (k0 :: Prim.Type) (k1 :: Prim.Type).
-    (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Wrap :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Wrap @f @g @a @b
   | Wrap :: f a -> g b -> Main.Wrap f g a b
 
@@ -15,7 +13,7 @@ dictionary bifunctorWrap ::
   { functorDict1 :: Data.Functor.Functor g } =>
   Data.Bifunctor.Bifunctor (Main.Wrap @Prim.Type @Prim.Type f g)
   where
-  bimap :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type) (d :: Prim.Type).
+  bimap :: forall a b c d.
   (a -> b) ->
   (c -> d) ->
   Main.Wrap @Prim.Type @Prim.Type f g a c ->
@@ -31,8 +29,7 @@ dictionary bifoldableWrap ::
   { foldableDict1 :: Data.Foldable.Foldable g } =>
   Data.Bifoldable.Bifoldable (Main.Wrap @Prim.Type @Prim.Type f g)
   where
-  bifoldr :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
   bifoldr = \firstFunction secondFunction accumulator value ->
     case value of
       (Wrap field0 field1) -> foldr {foldableDict}
@@ -41,8 +38,7 @@ dictionary bifoldableWrap ::
           accumulator
           field1)
         field0
-  bifoldl :: forall (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type).
-  (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
   bifoldl = \firstFunction secondFunction accumulator value ->
     case value of
       (Wrap field0 field1) -> foldl {foldableDict1}
@@ -51,7 +47,7 @@ dictionary bifoldableWrap ::
           accumulator
           field0)
         field1
-  bifoldMap :: forall (m :: Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bifoldMap :: forall m a b.
   Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
   bifoldMap = \{monoidDict} ->
     \firstFunction secondFunction value ->
@@ -68,8 +64,7 @@ dictionary bitraversableWrap ::
   where
   superclass bifunctorDict = bifunctorWrap {traversableDict.functorDict} {traversableDict1.functorDict}
   superclass bifoldableDict = bifoldableWrap {traversableDict.foldableDict} {traversableDict1.foldableDict}
-  bitraverse :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
-  (d :: Prim.Type).
+  bitraverse :: forall (f1 :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f1 =>
   (a -> f1 c) ->
   (b -> f1 d) ->
@@ -85,7 +80,7 @@ dictionary bitraversableWrap ::
               field0))
           (traverse {traversableDict1} {applicativeDict} (\element -> secondFunction element)
             field1)
-  bisequence :: forall (f1 :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
+  bisequence :: forall (f1 :: Prim.Type -> Prim.Type) a b.
   Control.Applicative.Applicative f1 =>
   Main.Wrap @Prim.Type @Prim.Type f g (f1 a) (f1 b) -> f1 (Main.Wrap @Prim.Type @Prim.Type f g a b)
   bisequence = \{applicativeDict} ->

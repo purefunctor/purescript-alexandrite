@@ -8,21 +8,21 @@ data Identity @a
   | Identity :: a -> Main.Identity a
 
 dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Identity a -> Main.Identity b
+  map :: forall a b. (a -> b) -> Main.Identity a -> Main.Identity b
   map = \function value ->
     case value of
       (Identity field0) -> Identity (function field0)
 
 dictionary foldableIdentity :: Data.Foldable.Foldable Main.Identity where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b -> b) -> b -> Main.Identity a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Identity a -> b
   foldr = \function accumulator value ->
     case value of
       (Identity field0) -> function field0 accumulator
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a -> b) -> b -> Main.Identity a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Identity a -> b
   foldl = \function accumulator value ->
     case value of
       (Identity field0) -> function accumulator field0
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type). Data.Monoid.Monoid m => (a -> m) -> Main.Identity a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Identity a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of
@@ -31,7 +31,7 @@ dictionary foldableIdentity :: Data.Foldable.Foldable Main.Identity where
 dictionary traversableIdentity :: Data.Traversable.Traversable Main.Identity where
   superclass functorDict = functorIdentity
   superclass foldableDict = foldableIdentity
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => (a -> m b) -> Main.Identity a -> m (Main.Identity b)
   traverse = \{applicativeDict} ->
     \function value ->
@@ -39,7 +39,7 @@ dictionary traversableIdentity :: Data.Traversable.Traversable Main.Identity whe
         (Identity field0) -> map {applicativeDict.applyDict.functorDict}
           (\field0Result -> Identity field0Result)
           (function field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m => Main.Identity (m a) -> m (Main.Identity a)
   sequence = \{applicativeDict} ->
     \value -> traverse {traversableIdentity} {applicativeDict} (\effect0 -> effect0) value

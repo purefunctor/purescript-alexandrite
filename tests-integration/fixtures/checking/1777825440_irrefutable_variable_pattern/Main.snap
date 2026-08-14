@@ -7,7 +7,7 @@ Terms
 variable :: Prim.Array Prim.Int -> Prim.Int
 wildcard :: Prim.Array Prim.Int -> Prim.Int
 refutable :: Prim.Array Prim.Int -> Prim.Int
-arrayLength :: forall (a :: Prim.Type). Prim.Array (a :: Prim.Type) -> Prim.Int
+arrayLength :: forall a. Prim.Array a -> Prim.Int
 
 Types
 

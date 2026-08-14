@@ -8,7 +8,7 @@ dictionary eqOpaque :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.
   eq = \_ -> \_ -> true
 
 dictionary eq1Opaque :: Data.Eq.Eq1 Main.Opaque where
-  eq1 :: forall (a :: Prim.Type). Data.Eq.Eq a => Main.Opaque a -> Main.Opaque a -> Prim.Boolean
+  eq1 :: forall a. Data.Eq.Eq a => Main.Opaque a -> Main.Opaque a -> Prim.Boolean
   eq1 = \{eqDict} -> eq {eqOpaque {eqDict}}
 
 dictionary ordOpaque :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Opaque a)
@@ -19,5 +19,5 @@ dictionary ordOpaque :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord 
 
 dictionary ord1Opaque :: Data.Ord.Ord1 Main.Opaque where
   superclass eq1Dict = eq1Opaque
-  compare1 :: forall (a :: Prim.Type). Data.Ord.Ord a => Main.Opaque a -> Main.Opaque a -> Data.Ordering.Ordering
+  compare1 :: forall a. Data.Ord.Ord a => Main.Opaque a -> Main.Opaque a -> Data.Ordering.Ordering
   compare1 = \{ordDict} -> compare {ordOpaque {ordDict}}

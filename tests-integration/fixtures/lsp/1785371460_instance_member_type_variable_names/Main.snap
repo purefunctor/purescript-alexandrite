@@ -13,7 +13,7 @@ Hover at Position { line: 9, character: 6 }
 Range: "program"
 
 ```purescript
-((a :: Type) -> (r :: Type)) -> (r :: Type)
+(a -> r) -> r
 ```
 
 
@@ -27,7 +27,7 @@ Hover at Position { line: 11, character: 8 }
 Range: "return"
 
 ```purescript
-(b :: Type) -> (r :: Type)
+b -> r
 ```
 
 
@@ -41,5 +41,5 @@ Hover at Position { line: 11, character: 16 }
 Range: "function"
 
 ```purescript
-(a :: Type) -> (b :: Type)
+a -> b
 ```

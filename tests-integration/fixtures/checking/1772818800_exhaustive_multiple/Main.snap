@@ -4,23 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-complete ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Main.Maybe (t0 :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
-incomplete1 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Partial => Main.Maybe (t0 :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
-incomplete2 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Partial => Main.Maybe (t0 :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
-incomplete3 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Partial => Main.Maybe (t0 :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
-incomplete4 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    Prim.Partial => Main.Maybe (t0 :: Prim.Type) -> Main.Maybe (t1 :: Prim.Type) -> Prim.Int
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
+complete :: forall t0 t1. Main.Maybe t0 -> Main.Maybe t1 -> Prim.Int
+incomplete1 :: forall t0 t1. Prim.Partial => Main.Maybe t0 -> Main.Maybe t1 -> Prim.Int
+incomplete2 :: forall t0 t1. Prim.Partial => Main.Maybe t0 -> Main.Maybe t1 -> Prim.Int
+incomplete3 :: forall t0 t1. Prim.Partial => Main.Maybe t0 -> Main.Maybe t1 -> Prim.Int
+incomplete4 :: forall t0 t1. Prim.Partial => Main.Maybe t0 -> Main.Maybe t1 -> Prim.Int
 
 Types
 Maybe :: Prim.Type -> Prim.Type

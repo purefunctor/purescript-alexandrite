@@ -41,13 +41,13 @@ consOpen ::
       (row :: Prim.Row Prim.Type) =>
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
 decomposeOpen ::
-  forall (t :: Prim.Type) (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
+  forall t (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type
       "x"
-      (t :: Prim.Type)
+      t
       (tail :: Prim.Row Prim.Type)
       ( a :: Prim.String, x :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
-    Type.Proxy.Proxy @Prim.Type (t :: Prim.Type)
+    Type.Proxy.Proxy @Prim.Type t
 extractTail ::
   forall (tail :: Prim.Row Prim.Type) (r :: Prim.Row Prim.Type).
     Prim.Row.Cons @Prim.Type

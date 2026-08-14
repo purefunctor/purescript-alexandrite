@@ -4,8 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
 
 Types
 Maybe :: Prim.Type -> Prim.Type

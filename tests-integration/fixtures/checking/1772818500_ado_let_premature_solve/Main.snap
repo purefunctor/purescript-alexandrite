@@ -5,24 +5,12 @@ expression: report
 ---
 Terms
 unit :: Main.Unit
-pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
-map ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    Main.Effect (a :: Prim.Type) ->
-    Main.Effect (b :: Prim.Type)
-apply ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Effect ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-    Main.Effect (a :: Prim.Type) ->
-    Main.Effect (b :: Prim.Type)
-add ::
-  forall (@a :: Prim.Type).
-    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+pure :: forall a. a -> Main.Effect a
+map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+add :: forall @a. Main.Semiring a => a -> a -> a
 addImpl :: Prim.Int -> Prim.Int -> Prim.Int
-+ ::
-  forall (@a :: Prim.Type).
-    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
++ :: forall @a. Main.Semiring a => a -> a -> a
 thing1 :: Main.Effect Prim.String
 test :: Main.Effect Main.Unit
 
@@ -32,10 +20,8 @@ Unit :: Prim.Type
 Semiring :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Semiring (a :: Prim.Type)
-  add ::
-  forall (@a :: Prim.Type).
-    Main.Semiring (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Semiring a
+  add :: forall @a. Main.Semiring a => a -> a -> a
 
 Instances
 instance Main.Semiring Prim.Int

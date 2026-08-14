@@ -5,20 +5,16 @@ expression: report
 ---
 Terms
 interleaved ::
-  forall (a :: Prim.Type).
-    Main.First @Prim.Type (a :: Prim.Type) =>
-    (forall (b :: Prim.Type).
-      Main.Second @Prim.Type (b :: Prim.Type) =>
-      (a :: Prim.Type) -> (b :: Prim.Type) -> Prim.String)
+  forall a. Main.First @Prim.Type a => (forall b. Main.Second @Prim.Type b => a -> b -> Prim.String)
 test :: Prim.String
 
 Types
-First :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
-Second :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Constraint
+First :: forall t0. t0 -> Prim.Constraint
+Second :: forall t0. t0 -> Prim.Constraint
 
 Classes
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.First @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-class forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)). Main.Second @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+class forall (t0 :: Prim.Type) (a :: t0). Main.First @t0 (a :: t0)
+class forall (t0 :: Prim.Type) (a :: t0). Main.Second @t0 (a :: t0)
 
 Instances
 instance Main.First @Prim.Type Prim.Int

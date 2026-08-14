@@ -4,20 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Tuple ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
-pure :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Effect (a :: Prim.Type)
-bind ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Effect (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
-    Main.Effect (b :: Prim.Type)
-discard ::
-  forall (a :: Prim.Type) (b :: Prim.Type).
-    Main.Effect (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> Main.Effect (b :: Prim.Type)) ->
-    Main.Effect (b :: Prim.Type)
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
+pure :: forall a. a -> Main.Effect a
+bind :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
+discard :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
 test :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
 test' :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
 

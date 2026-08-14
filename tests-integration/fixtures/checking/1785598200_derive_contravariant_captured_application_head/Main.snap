@@ -5,25 +5,16 @@ expression: report
 ---
 Terms
 Triple ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (@a :: (t0 :: Prim.Type))
-    (@b :: (t1 :: Prim.Type)) (@c :: (t2 :: Prim.Type)).
-    Main.Triple @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-      (a :: (t0 :: Prim.Type))
-      (b :: (t1 :: Prim.Type))
-      (c :: (t2 :: Prim.Type))
+  forall t0 t1 t2 (@a :: t0) (@b :: t1) (@c :: t2).
+    Main.Triple @t0 @t1 @t2 (a :: t0) (b :: t1) (c :: t2)
 Captured ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    Main.Triple @(t0 :: Prim.Type) @Prim.Type @Prim.Type
-      (a :: (t0 :: Prim.Type))
-      Prim.Int
-      Prim.String ->
-    Main.Captured @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+  forall t0 (@a :: t0).
+    Main.Triple @t0 @Prim.Type @Prim.Type (a :: t0) Prim.Int Prim.String ->
+    Main.Captured @t0 (a :: t0)
 
 Types
-Triple ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
-Captured :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Triple :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Type
+Captured :: forall t0. t0 -> Prim.Type
 
 Derived
 derive Data.Functor.Contravariant.Contravariant (Main.Captured @Prim.Type)
@@ -33,7 +24,7 @@ Triple = [Phantom, Phantom, Phantom]
 Captured = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Triple @Type @Type @Type (t0 :: Type) Int String
+error[CannotDeriveForType]: Cannot derive for type: Triple @Type @Type @Type t0 Int String
   --> 8:1..8:39
   |
 8 | derive instance Contravariant Captured

@@ -4,22 +4,11 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Map ::
-  forall (@key :: Prim.Type) (@value :: Prim.Type). Main.Map (key :: Prim.Type) (value :: Prim.Type)
-Set ::
-  forall (@value :: Prim.Type).
-    Main.Map (value :: Prim.Type) Data.Unit.Unit -> Main.Set (value :: Prim.Type)
+Map :: forall @key @value. Main.Map key value
+Set :: forall @value. Main.Map value Data.Unit.Unit -> Main.Set value
 filterKeys ::
-  forall (key :: Prim.Type).
-    ((key :: Prim.Type) -> Prim.Boolean) ->
-    (forall (value :: Prim.Type).
-      Main.Map (key :: Prim.Type) (value :: Prim.Type) ->
-      Main.Map (key :: Prim.Type) (value :: Prim.Type))
-filter ::
-  forall (value :: Prim.Type).
-    ((value :: Prim.Type) -> Prim.Boolean) ->
-    Main.Set (value :: Prim.Type) ->
-    Main.Set (value :: Prim.Type)
+  forall key. (key -> Prim.Boolean) -> (forall value. Main.Map key value -> Main.Map key value)
+filter :: forall value. (value -> Prim.Boolean) -> Main.Set value -> Main.Set value
 
 Types
 Map :: Prim.Type -> Prim.Type -> Prim.Type

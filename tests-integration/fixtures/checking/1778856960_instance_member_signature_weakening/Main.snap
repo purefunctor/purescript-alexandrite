@@ -7,29 +7,21 @@ Terms
 lift ::
   forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
     Main.Transform (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
-    (forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    (forall (f :: Prim.Type -> Prim.Type) a.
       Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
-        (f :: Prim.Type -> Prim.Type)
-        (a :: Prim.Type))
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
 Wrap ::
-  forall (@f :: Prim.Type -> Prim.Type) (@a :: Prim.Type).
-    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    Main.Wrap (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
-render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-renderer ::
-  forall (@t :: Prim.Type).
-    Main.Renderer (t :: Prim.Type) =>
-    (forall (a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> (t :: Prim.Type))
+  forall (@f :: Prim.Type -> Prim.Type) @a.
+    (f :: Prim.Type -> Prim.Type) a -> Main.Wrap (f :: Prim.Type -> Prim.Type) a
+render :: forall @a. Main.Render a => a -> Prim.String
+renderer :: forall @t. Main.Renderer t => (forall a. Main.Render a => a -> t)
 liftPlain ::
   forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
     Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
-    (forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
-        (f :: Prim.Type -> Prim.Type)
-        (a :: Prim.Type))
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
 
 Types
 Transform :: ((Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) -> Prim.Constraint
@@ -43,28 +35,21 @@ class forall (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type). Main.Tra
   lift ::
   forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
     Main.Transform (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
-    (forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
+    (forall (f :: Prim.Type -> Prim.Type) a.
       Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
-        (f :: Prim.Type -> Prim.Type)
-        (a :: Prim.Type))
-class forall (a :: Prim.Type). Main.Render (a :: Prim.Type)
-  render :: forall (@a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-class forall (t :: Prim.Type). Main.Renderer (t :: Prim.Type)
-  renderer ::
-  forall (@t :: Prim.Type).
-    Main.Renderer (t :: Prim.Type) =>
-    (forall (a :: Prim.Type). Main.Render (a :: Prim.Type) => (a :: Prim.Type) -> (t :: Prim.Type))
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
+class forall (a :: Prim.Type). Main.Render a
+  render :: forall @a. Main.Render a => a -> Prim.String
+class forall (t :: Prim.Type). Main.Renderer t
+  renderer :: forall @t. Main.Renderer t => (forall a. Main.Render a => a -> t)
 class forall (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type). Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
   liftPlain ::
   forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
     Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
-    (forall (f :: Prim.Type -> Prim.Type) (a :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
-        (f :: Prim.Type -> Prim.Type)
-        (a :: Prim.Type))
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
 
 Instances
 instance Main.Transform Main.Wrap

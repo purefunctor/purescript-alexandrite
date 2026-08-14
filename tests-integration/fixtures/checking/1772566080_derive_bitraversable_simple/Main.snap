@@ -4,15 +4,9 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Pair ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+Pair :: forall @a @b. a -> b -> Main.Pair a b
 
 Types
 Either :: Prim.Type -> Prim.Type -> Prim.Type

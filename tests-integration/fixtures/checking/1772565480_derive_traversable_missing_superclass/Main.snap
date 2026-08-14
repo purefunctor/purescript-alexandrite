@@ -5,22 +5,12 @@ expression: report
 ---
 Terms
 Compose ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (@f :: (t0 :: Prim.Type) -> Prim.Type)
-    (@g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type)) (@a :: (t1 :: Prim.Type)).
-    (f :: (t0 :: Prim.Type) -> Prim.Type)
-      ((g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type)) (a :: (t1 :: Prim.Type))) ->
-    Main.Compose @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-      (f :: (t0 :: Prim.Type) -> Prim.Type)
-      (g :: (t1 :: Prim.Type) -> (t0 :: Prim.Type))
-      (a :: (t1 :: Prim.Type))
+  forall t0 t1 (@f :: t0 -> Prim.Type) (@g :: t1 -> t0) (@a :: t1).
+    (f :: t0 -> Prim.Type) ((g :: t1 -> t0) (a :: t1)) ->
+    Main.Compose @t0 @t1 (f :: t0 -> Prim.Type) (g :: t1 -> t0) (a :: t1)
 
 Types
-Compose ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    ((t0 :: Prim.Type) -> Prim.Type) ->
-    ((t1 :: Prim.Type) -> (t0 :: Prim.Type)) ->
-    (t1 :: Prim.Type) ->
-    Prim.Type
+Compose :: forall t0 t1. (t0 -> Prim.Type) -> (t1 -> t0) -> t1 -> Prim.Type
 
 Derived
 derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).

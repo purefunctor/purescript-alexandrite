@@ -5,12 +5,12 @@ expression: report
 ---
 Terms
 Representation ::
-  forall (@parameter :: Prim.Type -> Prim.Type) (@value :: Prim.Type).
-    Main.Representation (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type)
+  forall (@parameter :: Prim.Type -> Prim.Type) @value.
+    Main.Representation (parameter :: Prim.Type -> Prim.Type) value
 Wrapper ::
-  forall (@parameter :: Prim.Type -> Prim.Type) (@value :: Prim.Type).
-    Main.Representation (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type) ->
-    Main.Wrapper (parameter :: Prim.Type -> Prim.Type) (value :: Prim.Type)
+  forall (@parameter :: Prim.Type -> Prim.Type) @value.
+    Main.Representation (parameter :: Prim.Type -> Prim.Type) value ->
+    Main.Wrapper (parameter :: Prim.Type -> Prim.Type) value
 
 Types
 Parent :: (Prim.Type -> Prim.Type) -> Prim.Constraint

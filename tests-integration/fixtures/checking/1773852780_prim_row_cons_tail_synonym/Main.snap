@@ -5,14 +5,14 @@ expression: report
 ---
 Terms
 mk ::
-  forall (a :: Prim.Type) (r :: Prim.Row Prim.Type) (r' :: Prim.Row Prim.Type) (s :: Prim.Symbol).
+  forall a (r :: Prim.Row Prim.Type) (r' :: Prim.Row Prim.Type) (s :: Prim.Symbol).
     Prim.Row.Cons @Prim.Type
       (s :: Prim.Symbol)
-      (a :: Prim.Type)
+      a
       (r' :: Prim.Row Prim.Type)
       (Main.CombinedRow (r :: Prim.Row Prim.Type)) =>
     Type.Proxy.Proxy @Prim.Symbol (s :: Prim.Symbol) ->
-    (a :: Prim.Type) ->
+    a ->
     Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (r :: Prim.Row Prim.Type))
 test ::
   forall (r :: Prim.Row Prim.Type).
@@ -22,22 +22,14 @@ forceSolve ::
     { test :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow (t0 :: Prim.Row Prim.Type)) }
 
 Types
-RowApply ::
-  forall (k :: Prim.Type).
-    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
-    Prim.Row (k :: Prim.Type) ->
-    Prim.Row (k :: Prim.Type)
-+ ::
-  forall (k :: Prim.Type).
-    (Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) ->
-    Prim.Row (k :: Prim.Type) ->
-    Prim.Row (k :: Prim.Type)
+RowApply :: forall k. (Prim.Row k -> Prim.Row k) -> Prim.Row k -> Prim.Row k
++ :: forall k. (Prim.Row k -> Prim.Row k) -> Prim.Row k -> Prim.Row k
 LeftRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 RightRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 CombinedRow :: Prim.Row Prim.Type -> Prim.Row Prim.Type
 
 Synonyms
-type RowApply f a = (f :: Prim.Row (k :: Prim.Type) -> Prim.Row (k :: Prim.Type)) (a :: Prim.Row (k :: Prim.Type))
+type RowApply f a = (f :: Prim.Row k -> Prim.Row k) (a :: Prim.Row k)
 type LeftRow r = ( left :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
 type RightRow r = ( right :: Prim.String | (r :: Prim.Row Prim.Type) )
 type CombinedRow r = Main.RowApply @Prim.Type

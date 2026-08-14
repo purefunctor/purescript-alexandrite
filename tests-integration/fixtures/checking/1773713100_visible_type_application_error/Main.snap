@@ -4,13 +4,13 @@ assertion_line: 50
 expression: report
 ---
 Terms
-identity :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+identity :: forall a. a -> a
 test :: ?[invalid visible type application]
 
 Types
 
 Diagnostics
-error[NoVisibleTypeVariable]: No visible type variable for type application in: forall (a :: Type). (a :: Type) -> (a :: Type)
+error[NoVisibleTypeVariable]: No visible type variable for type application in: forall a. a -> a
   --> 6:8..6:21
   |
 6 | test = identity @Int

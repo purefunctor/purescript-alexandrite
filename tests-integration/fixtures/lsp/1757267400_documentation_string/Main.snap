@@ -13,7 +13,7 @@ test = id
 Range: "id"
 
 ```purescript
-id :: forall (a :: Type). (a :: Type) -> (a :: Type)
+id :: forall a. a -> a
 ```
 ---
 The identity function
@@ -29,8 +29,7 @@ test2 = const
 Range: "const"
 
 ```purescript
-const ::
-  forall (a :: Type) (b :: Type). (a :: Type) -> (b :: Type) -> (a :: Type)
+const :: forall a b. a -> b -> a
 ```
 
 

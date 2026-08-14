@@ -4,24 +4,18 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
 
 Types
 Maybe :: Prim.Type -> Prim.Type
-NaturalTransformation ::
-  forall (k :: Prim.Type).
-    ((k :: Prim.Type) -> Prim.Type) -> ((k :: Prim.Type) -> Prim.Type) -> Prim.Type
-~> ::
-  forall (k :: Prim.Type).
-    ((k :: Prim.Type) -> Prim.Type) -> ((k :: Prim.Type) -> Prim.Type) -> Prim.Type
+NaturalTransformation :: forall k. (k -> Prim.Type) -> (k -> Prim.Type) -> Prim.Type
+~> :: forall k. (k -> Prim.Type) -> (k -> Prim.Type) -> Prim.Type
 Test1 :: Prim.Type
 Test2 :: Prim.Type
 
 Synonyms
-type NaturalTransformation f g = forall (a :: (k :: Prim.Type)).
-  (f :: (k :: Prim.Type) -> Prim.Type) (a :: (k :: Prim.Type)) ->
-  (g :: (k :: Prim.Type) -> Prim.Type) (a :: (k :: Prim.Type))
+type NaturalTransformation f g = forall (a :: k). (f :: k -> Prim.Type) (a :: k) -> (g :: k -> Prim.Type) (a :: k)
 type Test1 = Main.NaturalTransformation @Prim.Type Prim.Array Main.Maybe
 type Test2 = Main.NaturalTransformation @Prim.Type Prim.Array Main.Maybe
 

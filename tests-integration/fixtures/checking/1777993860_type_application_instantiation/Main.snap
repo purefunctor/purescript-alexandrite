@@ -4,20 +4,14 @@ assertion_line: 50
 expression: report
 ---
 Terms
-const ::
-  forall (@a :: Prim.Type) (b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> (a :: Prim.Type)
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
+const :: forall @a b. a -> b -> a
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
 forceSolve ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    { const :: Prim.Int -> (t0 :: Prim.Type) -> Prim.Int
-    , left :: Prim.Int -> Main.Either Prim.Int (t1 :: Prim.Type)
-    , right :: (t2 :: Prim.Type) -> Main.Either Prim.Int (t2 :: Prim.Type)
+  forall t0 t1 t2.
+    { const :: Prim.Int -> t0 -> Prim.Int
+    , left :: Prim.Int -> Main.Either Prim.Int t1
+    , right :: t2 -> Main.Either Prim.Int t2
     }
 
 Types

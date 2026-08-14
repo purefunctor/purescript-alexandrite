@@ -4,21 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-fn0 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
-fn1 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
-fn2 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
-fn3 :: forall (a :: Prim.Type) (b :: Prim.Type). Main.ConstFn (a :: Prim.Type) (b :: Prim.Type)
-fn4 ::
-  forall (b :: Prim.Type) (a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)
-fn5 ::
-  forall (b :: Prim.Type) (a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)
+fn0 :: forall a b. Main.ConstFn a b
+fn1 :: forall a b. Main.ConstFn a b
+fn2 :: forall a b. Main.ConstFn a b
+fn3 :: forall a b. Main.ConstFn a b
+fn4 :: forall b a. a -> Main.Fn b a
+fn5 :: forall b a. a -> Main.Fn b a
 
 Types
 Fn :: Prim.Type -> Prim.Type -> Prim.Type
 ConstFn :: Prim.Type -> Prim.Type -> Prim.Type
 
 Synonyms
-type Fn b a = (b :: Prim.Type) -> (a :: Prim.Type)
-type ConstFn a b = (a :: Prim.Type) -> Main.Fn (b :: Prim.Type) (a :: Prim.Type)
+type Fn b a = b -> a
+type ConstFn a b = a -> Main.Fn b a

@@ -4,12 +4,9 @@ assertion_line: 50
 expression: report
 ---
 Terms
-value :: forall (a :: Prim.Type). (a :: Prim.Type)
-Packed ::
-  (forall (r :: Prim.Type).
-    (forall (z :: Prim.Type). (z :: Prim.Type) -> (r :: Prim.Type)) -> (r :: Prim.Type)) ->
-  Main.Packed
-recover :: forall (a :: Prim.Type). Main.Packed -> (a :: Prim.Type)
+value :: forall a. a
+Packed :: (forall r. (forall z. z -> r) -> r) -> Main.Packed
+recover :: forall a. Main.Packed -> a
 
 Types
 Packed :: Prim.Type

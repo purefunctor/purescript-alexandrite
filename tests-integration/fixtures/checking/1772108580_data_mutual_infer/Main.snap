@@ -4,16 +4,12 @@ assertion_line: 50
 expression: report
 ---
 Terms
-F ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    Main.G (a :: (t0 :: Prim.Type)) -> Main.F @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-G ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    Main.F (a :: (t0 :: Prim.Type)) -> Main.G @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
+F :: forall t0 (@a :: t0). Main.G (a :: t0) -> Main.F @t0 (a :: t0)
+G :: forall t0 (@a :: t0). Main.F (a :: t0) -> Main.G @t0 (a :: t0)
 
 Types
-F :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
-G :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+F :: forall t0. t0 -> Prim.Type
+G :: forall t0. t0 -> Prim.Type
 
 Roles
 F = [Representational]

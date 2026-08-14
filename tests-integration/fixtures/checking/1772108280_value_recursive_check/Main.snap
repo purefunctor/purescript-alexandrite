@@ -4,6 +4,6 @@ assertion_line: 50
 expression: report
 ---
 Terms
-id :: forall (a :: Prim.Type). (a :: Prim.Type) -> (a :: Prim.Type)
+id :: forall a. a -> a
 
 Types

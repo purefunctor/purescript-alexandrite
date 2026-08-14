@@ -27,5 +27,5 @@ data Proxy a = Proxy
 Range: <none>
 
 ```purescript
-(kind :: Type)
+kind
 ```

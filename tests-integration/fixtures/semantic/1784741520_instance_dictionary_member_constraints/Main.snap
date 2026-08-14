@@ -8,7 +8,7 @@ interface Required value where
 
 interface Example :: Prim.Type -> Prim.Constraint
 interface Example a where
-  apply :: forall (b :: Prim.Type). Main.Required b => a -> b -> Prim.Boolean
+  apply :: forall b. Main.Required b => a -> b -> Prim.Boolean
 
 implementation :: forall a b. Main.Required b => a -> b -> Prim.Boolean
 implementation = \{requiredDict} -> \_ -> \_ -> boolean
@@ -16,5 +16,5 @@ implementation = \{requiredDict} -> \_ -> \_ -> boolean
 foreign import boolean :: Prim.Boolean
 
 dictionary exampleInt :: Main.Example Prim.Int where
-  apply :: forall (b :: Prim.Type). Main.Required b => Prim.Int -> b -> Prim.Boolean
+  apply :: forall b. Main.Required b => Prim.Int -> b -> Prim.Boolean
   apply = \{requiredDict} -> implementation {requiredDict}

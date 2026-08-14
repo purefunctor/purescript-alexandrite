@@ -7,10 +7,10 @@ Terms
 
 Types
 NonZeroInt :: Prim.Type
-Identity :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+Identity :: forall t0. t0 -> t0
 FourtyTwo :: Prim.Int
 
 Synonyms
 type NonZeroInt = Prim.Int
-type Identity a = (a :: (t0 :: Prim.Type))
+type Identity a = (a :: t0)
 type FourtyTwo = 42

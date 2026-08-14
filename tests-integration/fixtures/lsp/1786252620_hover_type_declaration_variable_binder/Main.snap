@@ -13,7 +13,7 @@ type Synonym a = a
 Range: <none>
 
 ```purescript
-(t0 :: Type)
+t0
 ```
 
 
@@ -27,5 +27,5 @@ class Example a
 Range: <none>
 
 ```purescript
-(t0 :: Type)
+t0
 ```

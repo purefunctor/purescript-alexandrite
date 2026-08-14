@@ -4,24 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Just ::
-  forall (k :: Prim.Type) (@n :: (k :: Prim.Type)) (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.Maybe @(k :: Prim.Type) (n :: (k :: Prim.Type)) (a :: Prim.Type)
-Nothing ::
-  forall (k :: Prim.Type) (@n :: (k :: Prim.Type)) (@a :: Prim.Type).
-    Main.Maybe @(k :: Prim.Type) (n :: (k :: Prim.Type)) (a :: Prim.Type)
-MaybeAlias ::
-  forall (k :: Prim.Type) (@n :: (k :: Prim.Type)) (@a :: Prim.Type).
-    Main.Maybe @(k :: Prim.Type) (n :: (k :: Prim.Type)) (a :: Prim.Type) ->
-    Main.MaybeAlias @(k :: Prim.Type) (n :: (k :: Prim.Type)) (a :: Prim.Type)
+Just :: forall k (@n :: k) @a. a -> Main.Maybe @k (n :: k) a
+Nothing :: forall k (@n :: k) @a. Main.Maybe @k (n :: k) a
+MaybeAlias :: forall k (@n :: k) @a. Main.Maybe @k (n :: k) a -> Main.MaybeAlias @k (n :: k) a
 coerceContainer ::
   Main.Container (Main.Maybe @Prim.Type) -> Main.Container (Main.MaybeAlias @Prim.Type)
 coerceContainerReverse ::
   Main.Container (Main.MaybeAlias @Prim.Type) -> Main.Container (Main.Maybe @Prim.Type)
 
 Types
-Maybe :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type -> Prim.Type
-MaybeAlias :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type -> Prim.Type
+Maybe :: forall k. k -> Prim.Type -> Prim.Type
+MaybeAlias :: forall k. k -> Prim.Type -> Prim.Type
 Container :: (Prim.Type -> Prim.Type -> Prim.Type) -> Prim.Type
 
 Roles

@@ -4,19 +4,19 @@ assertion_line: 50
 expression: report
 ---
 Terms
-show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+show :: forall @a. Main.Show a => a -> Prim.String
+Box :: forall @a. a -> Main.Box a
 
 Types
 Show :: Prim.Type -> Prim.Constraint
 Box :: Prim.Type -> Prim.Type
 
 Classes
-class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
-  show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
 
 Instances
-instance forall (a :: Prim.Type). Main.Show (a :: Prim.Type) => Main.Show (Main.Box (a :: Prim.Type))
+instance forall a. Main.Show a => Main.Show (Main.Box a)
 
 Roles
 Box = [Representational]

@@ -4,10 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Opaque :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Opaque (a :: Prim.Type)
-Wrapped ::
-  forall (@a :: Prim.Type).
-    Main.Opaque ((a :: Prim.Type) -> Prim.Int) -> Main.Wrapped (a :: Prim.Type)
+Opaque :: forall @a. a -> Main.Opaque a
+Wrapped :: forall @a. Main.Opaque (a -> Prim.Int) -> Main.Wrapped a
 
 Types
 Opaque :: Prim.Type -> Prim.Type
@@ -21,7 +19,7 @@ Opaque = [Representational]
 Wrapped = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Opaque ((t0 :: Type) -> Int)
+error[CannotDeriveForType]: Cannot derive for type: Opaque (t0 -> Int)
   --> 8:1..8:38
   |
 8 | derive instance Contravariant Wrapped

@@ -7,11 +7,8 @@ Terms
 map ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Functor (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
-Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
+Box :: forall @a. a -> Main.Box a
 
 Types
 Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
@@ -22,10 +19,7 @@ class forall (f :: Prim.Type -> Prim.Type). Main.Functor (f :: Prim.Type -> Prim
   map ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Functor (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type) (b :: Prim.Type).
-      ((a :: Prim.Type) -> (b :: Prim.Type)) ->
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (f :: Prim.Type -> Prim.Type) (b :: Prim.Type))
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
 
 Instances
 instance Main.Functor Main.Box

@@ -8,32 +8,19 @@ Terms
 Types
 ResultA :: Prim.Type
 ResultB :: Prim.Type
-Inner ::
-  forall (left :: Prim.Type) (right :: Prim.Type).
-    (left :: Prim.Type) -> (right :: Prim.Type) -> Prim.Type
-Outer ::
-  forall (left :: Prim.Type) (right :: Prim.Type).
-    (left :: Prim.Type) -> (right :: Prim.Type) -> Prim.Type
-Test :: forall (input :: Prim.Type). (input :: Prim.Type) -> Prim.Type -> Prim.Constraint
+Inner :: forall left right. left -> right -> Prim.Type
+Outer :: forall left right. left -> right -> Prim.Type
+Test :: forall input. input -> Prim.Type -> Prim.Constraint
 
 Classes
-class forall (input :: Prim.Type) (input1 :: (input :: Prim.Type)) (output :: Prim.Type). Main.Test @(input :: Prim.Type) (input1 :: (input :: Prim.Type)) (output :: Prim.Type)
+class forall (input :: Prim.Type) (input1 :: input) (output :: Prim.Type). Main.Test @input (input1 :: input) output
 
 Instances
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (left :: (t0 :: Prim.Type)) (right :: (t1 :: Prim.Type)).
+instance forall t0 t1 (left :: t0) (right :: t1).
+  Main.Test @Prim.Type (Main.Outer @t0 @t1 (left :: t0) (right :: t1)) Main.ResultA
+instance forall t0 t1 t2 (left :: t1) (right :: t2) (other :: t0).
   Main.Test @Prim.Type
-    (Main.Outer @(t0 :: Prim.Type) @(t1 :: Prim.Type)
-      (left :: (t0 :: Prim.Type))
-      (right :: (t1 :: Prim.Type)))
-    Main.ResultA
-instance forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (left :: (t1 :: Prim.Type))
-  (right :: (t2 :: Prim.Type)) (other :: (t0 :: Prim.Type)).
-  Main.Test @Prim.Type
-    (Main.Outer @Prim.Type @(t0 :: Prim.Type)
-      (Main.Inner @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-        (left :: (t1 :: Prim.Type))
-        (right :: (t2 :: Prim.Type)))
-      (other :: (t0 :: Prim.Type)))
+    (Main.Outer @Prim.Type @t0 (Main.Inner @t1 @t2 (left :: t1) (right :: t2)) (other :: t0))
     Main.ResultB
 
 Roles

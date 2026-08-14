@@ -11,8 +11,7 @@ dictionary contravariantOpenPredicate ::
   forall r.
   Data.Functor.Contravariant.Contravariant (Main.OpenPredicate r)
   where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (b -> a) -> Main.OpenPredicate r a -> Main.OpenPredicate r b
+  cmap :: forall a b. (b -> a) -> Main.OpenPredicate r a -> Main.OpenPredicate r b
   cmap = \function value ->
     case value of
       (OpenPredicate field0) -> OpenPredicate

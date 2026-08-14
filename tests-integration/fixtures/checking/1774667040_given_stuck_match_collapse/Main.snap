@@ -4,14 +4,8 @@ assertion_line: 50
 expression: report
 ---
 Terms
-show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-use ::
-  forall (f :: Prim.Type) (g :: Prim.Type) (h :: Prim.Type).
-    Main.Match3 @Prim.Type @Prim.Type @Prim.Type
-      (f :: Prim.Type)
-      (g :: Prim.Type)
-      (h :: Prim.Type) =>
-    (f :: Prim.Type) -> (g :: Prim.Type) -> (h :: Prim.Type) -> Prim.Int
+show :: forall @a. Main.Show a => a -> Prim.String
+use :: forall f g h. Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h => f -> g -> h -> Prim.Int
 test :: Main.Show Main.A => Main.Show Main.B => Main.Show Main.C => Prim.Int
 
 Types
@@ -19,28 +13,22 @@ Show :: Prim.Type -> Prim.Constraint
 A :: Prim.Type
 B :: Prim.Type
 C :: Prim.Type
-TypeEquals :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
-Match3 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Constraint
+TypeEquals :: forall k. k -> k -> Prim.Constraint
+Match3 :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Show (a :: Prim.Type)
-  show :: forall (@a :: Prim.Type). Main.Show (a :: Prim.Type) => (a :: Prim.Type) -> Prim.String
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEquals @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
-class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: (t0 :: Prim.Type)) (g :: (t1 :: Prim.Type)) (h :: (t2 :: Prim.Type)). Main.Match3 @(t0 :: Prim.Type) @(t1 :: Prim.Type) @(t2 :: Prim.Type)
-  (f :: (t0 :: Prim.Type))
-  (g :: (t1 :: Prim.Type))
-  (h :: (t2 :: Prim.Type))
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: t0) (g :: t1) (h :: t2). Main.Match3 @t0 @t1 @t2 (f :: t0) (g :: t1) (h :: t2)
 
 Instances
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.TypeEquals @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
-instance forall (f :: Prim.Type) (g :: Prim.Type) (h :: Prim.Type).
-  Main.TypeEquals @Prim.Type (f :: Prim.Type) (Main.A -> Prim.String) =>
-  Main.TypeEquals @Prim.Type (g :: Prim.Type) (Main.B -> Prim.String) =>
-  Main.TypeEquals @Prim.Type (h :: Prim.Type) (Main.C -> Prim.String) =>
-  Main.Match3 @Prim.Type @Prim.Type @Prim.Type (f :: Prim.Type) (g :: Prim.Type) (h :: Prim.Type)
+instance forall t0 (a :: t0). Main.TypeEquals @t0 (a :: t0) (a :: t0)
+instance forall f g h.
+  Main.TypeEquals @Prim.Type f (Main.A -> Prim.String) =>
+  Main.TypeEquals @Prim.Type g (Main.B -> Prim.String) =>
+  Main.TypeEquals @Prim.Type h (Main.C -> Prim.String) =>
+  Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h
 
 Roles
 A = []

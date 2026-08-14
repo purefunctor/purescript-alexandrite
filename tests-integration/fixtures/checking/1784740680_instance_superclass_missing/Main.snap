@@ -12,8 +12,8 @@ Parent :: Prim.Type -> Prim.Constraint
 Child :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type)
-class forall (value :: Prim.Type). Main.Parent (value :: Prim.Type) <= Main.Child (value :: Prim.Type)
+class forall (value :: Prim.Type). Main.Parent value
+class forall (value :: Prim.Type). Main.Parent value <= Main.Child value
 
 Instances
 instance Main.Child Main.Missing

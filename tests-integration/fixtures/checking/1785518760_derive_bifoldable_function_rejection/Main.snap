@@ -4,11 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-ReaderPair ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) ->
-    (Prim.Int -> (b :: Prim.Type)) ->
-    Main.ReaderPair (a :: Prim.Type) (b :: Prim.Type)
+ReaderPair :: forall @a @b. a -> (Prim.Int -> b) -> Main.ReaderPair a b
 
 Types
 ReaderPair :: Prim.Type -> Prim.Type -> Prim.Type
@@ -20,7 +16,7 @@ Roles
 ReaderPair = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Int -> (t0 :: Type)
+error[CannotDeriveForType]: Cannot derive for type: Int -> t0
   --> 6:1..6:38
   |
 6 | derive instance Bifoldable ReaderPair

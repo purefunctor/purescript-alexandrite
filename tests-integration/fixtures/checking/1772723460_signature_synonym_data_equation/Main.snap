@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
+Box :: forall @a. a -> Main.Box a
 
 Types
 UnaryKind :: Prim.Type

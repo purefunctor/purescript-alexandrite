@@ -7,9 +7,9 @@ Terms
 UserId :: Prim.Int -> Main.UserId
 wrapUserId :: Prim.Int -> Main.UserId
 unwrapUserId :: Main.UserId -> Prim.Int
-Wrapper :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
-wrapWrapper :: forall (a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
-unwrapWrapper :: forall (a :: Prim.Type). Main.Wrapper (a :: Prim.Type) -> (a :: Prim.Type)
+Wrapper :: forall @a. a -> Main.Wrapper a
+wrapWrapper :: forall a. a -> Main.Wrapper a
+unwrapWrapper :: forall a. Main.Wrapper a -> a
 
 Types
 UserId :: Prim.Type
@@ -17,8 +17,7 @@ Wrapper :: Prim.Type -> Prim.Type
 
 Derived
 derive Data.Newtype.Newtype @Prim.Type Main.UserId Prim.Int
-derive forall (a :: Prim.Type).
-  Data.Newtype.Newtype @Prim.Type (Main.Wrapper (a :: Prim.Type)) (a :: Prim.Type)
+derive forall a. Data.Newtype.Newtype @Prim.Type (Main.Wrapper a) a
 
 Roles
 UserId = []

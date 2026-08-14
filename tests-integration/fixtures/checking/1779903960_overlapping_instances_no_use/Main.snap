@@ -4,17 +4,17 @@ assertion_line: 50
 expression: report
 ---
 Terms
-test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+test :: forall @a. Main.Test a => a -> a
 
 Types
 Test :: Prim.Type -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
-  test :: forall (@a :: Prim.Type). Main.Test (a :: Prim.Type) => (a :: Prim.Type) -> (a :: Prim.Type)
+class forall (a :: Prim.Type). Main.Test a
+  test :: forall @a. Main.Test a => a -> a
 
 Instances
-instance forall (a :: Prim.Type). Main.Test (a :: Prim.Type)
+instance forall a. Main.Test a
 instance Main.Test Prim.Int
 
 Diagnostics
@@ -23,5 +23,5 @@ error[OverlappingInstances]: Overlapping type class instances found for: Test In
   |
 9 | instance testInt :: Test Int where
   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall (a :: Type). Test (a :: Type) is matching
+  trivia: forall a. Test a is matching
   trivia: Test Int is matching

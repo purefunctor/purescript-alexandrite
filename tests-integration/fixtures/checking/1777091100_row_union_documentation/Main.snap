@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 closedLeftOpenRight ::
   forall (r :: Prim.Row Prim.Type) (u :: Prim.Row Prim.Type).
     Prim.Row.Union @Prim.Type
@@ -89,7 +87,7 @@ forceSolve ::
     }
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 
 Roles
 Proxy = [Phantom]

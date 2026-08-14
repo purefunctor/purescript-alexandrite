@@ -4,12 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Triple ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type) (@c :: Prim.Type).
-    (a :: Prim.Type) ->
-    (b :: Prim.Type) ->
-    (c :: Prim.Type) ->
-    Main.Triple (a :: Prim.Type) (b :: Prim.Type) (c :: Prim.Type)
+Triple :: forall @a @b @c. a -> b -> c -> Main.Triple a b c
 
 Types
 Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type

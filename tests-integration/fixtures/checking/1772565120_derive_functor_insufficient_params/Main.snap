@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Pair ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Pair (a :: Prim.Type) (b :: Prim.Type)
+Pair :: forall @a @b. a -> b -> Main.Pair a b
 Unit :: Main.Unit
 
 Types

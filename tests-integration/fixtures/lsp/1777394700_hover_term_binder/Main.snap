@@ -13,7 +13,7 @@ fromBinder argument = argument
 Range: <none>
 
 ```purescript
-(t0 :: Type)
+t0
 ```
 
 
@@ -41,7 +41,7 @@ fromArray [ element ] = [ element ]
 Range: <none>
 
 ```purescript
-Array (t0 :: Type)
+Array t0
 ```
 
 
@@ -55,5 +55,5 @@ fromRecord { element } = { element }
 Range: <none>
 
 ```purescript
-{ element :: (t0 :: Type) | (t1 :: Row Type) }
+{ element :: t0 | (t1 :: Row Type) }
 ```

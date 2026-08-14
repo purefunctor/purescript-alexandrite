@@ -4,7 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-parenthesized :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
-typed :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
+parenthesized :: forall t0. t0 -> t0
+typed :: forall t0. t0 -> t0
 
 Types

@@ -23,8 +23,7 @@ infixl 6 combine as <+>
 Range: "combine"
 
 ```purescript
-combine ::
-  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+combine :: forall t0 t1. t0 -> t1 -> t0
 ```
 
 
@@ -94,8 +93,7 @@ infixl 6 combine as <+>
 Range: <none>
 
 ```purescript
-<+> ::
-  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+<+> :: forall t0 t1. t0 -> t1 -> t0
 ```
 
 
@@ -233,8 +231,7 @@ infixl 6 Library.combine as <++>
 Range: "Library.combine"
 
 ```purescript
-combine ::
-  forall (t0 :: Type) (t1 :: Type). (t0 :: Type) -> (t1 :: Type) -> (t0 :: Type)
+combine :: forall t0 t1. t0 -> t1 -> t0
 ```
 
 

@@ -5,7 +5,7 @@ expression: report
 ---
 Terms
 test :: Effect.Effect Prim.Int
-test' :: forall (t0 :: Prim.Type). (t0 :: Prim.Type)
+test' :: forall t0. t0
 
 Types
 

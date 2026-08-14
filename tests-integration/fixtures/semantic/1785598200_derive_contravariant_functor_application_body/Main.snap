@@ -12,7 +12,7 @@ data BoxedPredicate @a
   | BoxedPredicate :: Main.Box (a -> Prim.Boolean) -> Main.BoxedPredicate a
 
 dictionary functorBox :: Data.Functor.Functor Main.Box where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type). (a -> b) -> Main.Box a -> Main.Box b
+  map :: forall a b. (a -> b) -> Main.Box a -> Main.Box b
   map = \function value ->
     case value of
       (Box field0) -> Box (function field0)
@@ -20,7 +20,7 @@ dictionary functorBox :: Data.Functor.Functor Main.Box where
 dictionary contravariantBoxedPredicate ::
   Data.Functor.Contravariant.Contravariant Main.BoxedPredicate
   where
-  cmap :: forall (a :: Prim.Type) (b :: Prim.Type). (b -> a) -> Main.BoxedPredicate a -> Main.BoxedPredicate b
+  cmap :: forall a b. (b -> a) -> Main.BoxedPredicate a -> Main.BoxedPredicate b
   cmap = \function value ->
     case value of
       (BoxedPredicate field0) -> BoxedPredicate

@@ -4,28 +4,19 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Fn ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    ((a :: Prim.Type) -> (b :: Prim.Type)) -> Main.Fn (a :: Prim.Type) (b :: Prim.Type)
-ConstR ::
-  forall (t0 :: Prim.Type) (@r :: Prim.Type) (@a :: Prim.Type) (@b :: (t0 :: Prim.Type)).
-    ((a :: Prim.Type) -> (r :: Prim.Type)) ->
-    Main.ConstR @(t0 :: Prim.Type) (r :: Prim.Type) (a :: Prim.Type) (b :: (t0 :: Prim.Type))
-GoLeft ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    ((a :: Prim.Type) -> Prim.Int) -> Main.Choice (a :: Prim.Type) (b :: Prim.Type)
-GoRight ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Choice (a :: Prim.Type) (b :: Prim.Type)
+Fn :: forall @a @b. (a -> b) -> Main.Fn a b
+ConstR :: forall t0 @r @a (@b :: t0). (a -> r) -> Main.ConstR @t0 r a (b :: t0)
+GoLeft :: forall @a @b. (a -> Prim.Int) -> Main.Choice a b
+GoRight :: forall @a @b. b -> Main.Choice a b
 
 Types
 Fn :: Prim.Type -> Prim.Type -> Prim.Type
-ConstR :: forall (t0 :: Prim.Type). Prim.Type -> Prim.Type -> (t0 :: Prim.Type) -> Prim.Type
+ConstR :: forall t0. Prim.Type -> Prim.Type -> t0 -> Prim.Type
 Choice :: Prim.Type -> Prim.Type -> Prim.Type
 
 Derived
 derive Data.Profunctor.Profunctor Main.Fn
-derive forall (r :: Prim.Type). Data.Profunctor.Profunctor (Main.ConstR @Prim.Type (r :: Prim.Type))
+derive forall r. Data.Profunctor.Profunctor (Main.ConstR @Prim.Type r)
 derive Data.Profunctor.Profunctor Main.Choice
 
 Roles

@@ -7,13 +7,12 @@ Terms
 
 Types
 Eq :: Prim.Type -> Prim.Constraint
-TypeEq :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Constraint
+TypeEq :: forall k. k -> k -> Prim.Constraint
 
 Classes
-class forall (a :: Prim.Type). Main.Eq (a :: Prim.Type)
-class forall (k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)). Main.TypeEq @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type))
+class forall (a :: Prim.Type). Main.Eq a
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEq @k (a :: k) (b :: k)
 
 Instances
-instance forall (a :: Prim.Type). Main.Eq (a :: Prim.Type) => Main.Eq (Prim.Array (a :: Prim.Type))
-instance forall (t0 :: Prim.Type) (a :: (t0 :: Prim.Type)).
-  Main.TypeEq @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type)) (a :: (t0 :: Prim.Type))
+instance forall a. Main.Eq a => Main.Eq (Prim.Array a)
+instance forall t0 (a :: t0). Main.TypeEq @t0 (a :: t0) (a :: t0)

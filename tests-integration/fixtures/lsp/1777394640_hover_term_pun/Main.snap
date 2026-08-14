@@ -13,7 +13,7 @@ inferred { argument } = { argument }
 Range: <none>
 
 ```purescript
-(t0 :: Type)
+t0
 ```
 
 
@@ -27,7 +27,7 @@ inferred { argument } = { argument }
 Range: <none>
 
 ```purescript
-(t0 :: Type)
+t0
 ```
 
 
@@ -41,7 +41,7 @@ checked { argument } = { argument }
 Range: <none>
 
 ```purescript
-(ofCourse :: Type)
+ofCourse
 ```
 
 
@@ -55,5 +55,5 @@ checked { argument } = { argument }
 Range: <none>
 
 ```purescript
-(ofCourse :: Type)
+ofCourse
 ```

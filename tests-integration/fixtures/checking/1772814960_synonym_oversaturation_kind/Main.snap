@@ -4,26 +4,21 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 test0 :: Main.Test0 @Prim.Int 42
 test1 :: Main.Test1 @Prim.Type @Prim.Int Prim.Int 42
 test2 :: Main.Test2 @Prim.Type @Prim.Type @Prim.Int Prim.Int Prim.String 42
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-Test0 :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
-Test1 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
-Test2 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
+Test0 :: forall t0. t0 -> Prim.Type
+Test1 :: forall t0 t1. t0 -> t1 -> Prim.Type
+Test2 :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Type
 
 Synonyms
-type Test0 = Main.Proxy @(t0 :: Prim.Type)
-type Test1 a = Main.Proxy @(t0 :: Prim.Type)
-type Test2 a b = Main.Proxy @(t0 :: Prim.Type)
+type Test0 = Main.Proxy @t0
+type Test1 a = Main.Proxy @t0
+type Test2 a b = Main.Proxy @t0
 
 Roles
 Proxy = [Phantom]

@@ -4,12 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Nothing :: forall (@a :: Prim.Type). Main.Maybe (a :: Prim.Type)
-Just :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Maybe (a :: Prim.Type)
-Nil :: forall (@a :: Prim.Type). Main.List (a :: Prim.Type)
-Cons ::
-  forall (@a :: Prim.Type).
-    (a :: Prim.Type) -> Main.List (a :: Prim.Type) -> Main.List (a :: Prim.Type)
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
+Nil :: forall @a. Main.List a
+Cons :: forall @a. a -> Main.List a -> Main.List a
 coerceContainerDifferent :: Main.Container Main.Maybe -> Main.Container Main.List
 
 Types
@@ -23,7 +21,7 @@ List = [Representational]
 Container = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Coercible @Type (Maybe (t0 :: Type)) (List (t0 :: Type))
+error[NoInstanceFound]: No instance found for: Coercible @Type (Maybe t0) (List t0)
   --> 11:1..11:62
    |
 11 | coerceContainerDifferent :: Container Maybe -> Container List

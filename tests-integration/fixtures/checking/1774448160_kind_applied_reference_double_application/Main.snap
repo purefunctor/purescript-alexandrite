@@ -5,22 +5,14 @@ expression: report
 ---
 Terms
 Fix ::
-  forall (k :: Prim.Type) (@f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-    (@a :: (k :: Prim.Type)).
-    (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-      (Main.Fix @(k :: Prim.Type)
-        (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type))
-      (a :: (k :: Prim.Type)) ->
-    Main.Fix @(k :: Prim.Type)
-      (f :: ((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-      (a :: (k :: Prim.Type))
+  forall k (@f :: (k -> Prim.Type) -> k -> Prim.Type) (@a :: k).
+    (f :: (k -> Prim.Type) -> k -> Prim.Type)
+      (Main.Fix @k (f :: (k -> Prim.Type) -> k -> Prim.Type))
+      (a :: k) ->
+    Main.Fix @k (f :: (k -> Prim.Type) -> k -> Prim.Type) (a :: k)
 
 Types
-Fix ::
-  forall (k :: Prim.Type).
-    (((k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type) ->
-    (k :: Prim.Type) ->
-    Prim.Type
+Fix :: forall k. ((k -> Prim.Type) -> k -> Prim.Type) -> k -> Prim.Type
 
 Roles
 Fix = [Representational, Representational]

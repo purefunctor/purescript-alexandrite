@@ -6,20 +6,12 @@ expression: report
 Terms
 
 Types
-Add :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type)
-+ :: forall (k :: Prim.Type). (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type)
-Chain ::
-  forall (k :: Prim.Type).
-    (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type)
-ChainParen ::
-  forall (k :: Prim.Type).
-    (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type) -> (k :: Prim.Type)
+Add :: forall k. k -> k -> k
++ :: forall k. k -> k -> k
+Chain :: forall k. k -> k -> k -> k
+ChainParen :: forall k. k -> k -> k -> k
 
 Synonyms
-type Add a b = (a :: (k :: Prim.Type))
-type Chain a b c = Main.Add @(k :: Prim.Type)
-  (Main.Add @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)))
-  (c :: (k :: Prim.Type))
-type ChainParen a b c = Main.Add @(k :: Prim.Type)
-  (Main.Add @(k :: Prim.Type) (a :: (k :: Prim.Type)) (b :: (k :: Prim.Type)))
-  (c :: (k :: Prim.Type))
+type Add a b = (a :: k)
+type Chain a b c = Main.Add @k (Main.Add @k (a :: k) (b :: k)) (c :: k)
+type ChainParen a b c = Main.Add @k (Main.Add @k (a :: k) (b :: k)) (c :: k)

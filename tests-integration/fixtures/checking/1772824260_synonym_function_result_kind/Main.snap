@@ -5,9 +5,8 @@ expression: report
 ---
 Terms
 Box ::
-  forall (@f :: Prim.Type -> Prim.Type) (@a :: Prim.Type).
-    (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    Main.Box (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+  forall (@f :: Prim.Type -> Prim.Type) @a.
+    (f :: Prim.Type -> Prim.Type) a -> Main.Box (f :: Prim.Type -> Prim.Type) a
 test ::
   forall (f :: Prim.Type -> Prim.Type).
     Main.Wrap (f :: Prim.Type -> Prim.Type) Prim.Int ->

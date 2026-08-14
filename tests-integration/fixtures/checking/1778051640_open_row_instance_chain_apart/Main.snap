@@ -4,38 +4,36 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 K1 :: Main.K1
 Unit :: Main.Unit
 c ::
-  forall (@key :: Prim.Type) (@row :: Prim.Row Prim.Type).
-    Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type) =>
-    Main.Proxy @Prim.Type (key :: Prim.Type) ->
+  forall @key (@row :: Prim.Row Prim.Type).
+    Main.C key (row :: Prim.Row Prim.Type) =>
+    Main.Proxy @Prim.Type key ->
     Main.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type) ->
     Main.Unit
-test :: forall (key :: Prim.Type). Main.Proxy @Prim.Type (key :: Prim.Type) -> Main.Unit
+test :: forall key. Main.Proxy @Prim.Type key -> Main.Unit
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 K1 :: Prim.Type
 Unit :: Prim.Type
 C :: Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
 
 Classes
-class forall (key :: Prim.Type) (row :: Prim.Row Prim.Type). Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type)
+class forall (key :: Prim.Type) (row :: Prim.Row Prim.Type). Main.C key (row :: Prim.Row Prim.Type)
   c ::
-  forall (@key :: Prim.Type) (@row :: Prim.Row Prim.Type).
-    Main.C (key :: Prim.Type) (row :: Prim.Row Prim.Type) =>
-    Main.Proxy @Prim.Type (key :: Prim.Type) ->
+  forall @key (@row :: Prim.Row Prim.Type).
+    Main.C key (row :: Prim.Row Prim.Type) =>
+    Main.Proxy @Prim.Type key ->
     Main.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type) ->
     Main.Unit
 
 Instances
 instance Main.C Main.K1 ( a :: Prim.Int, b :: Prim.Boolean )
-instance forall (key :: Prim.Type) (r :: Prim.Row Prim.Type).
-  Main.C (key :: Prim.Type) ( a :: Prim.String, b :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
+instance forall key (r :: Prim.Row Prim.Type).
+  Main.C key ( a :: Prim.String, b :: Prim.Boolean | (r :: Prim.Row Prim.Type) )
 
 Roles
 Proxy = [Phantom]

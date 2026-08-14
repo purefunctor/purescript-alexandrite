@@ -5,55 +5,32 @@ expression: report
 ---
 Terms
 MyUnit :: Main.MyUnit
-Identity :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Identity (a :: Prim.Type)
-Left ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Right ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (b :: Prim.Type) -> Main.Either (a :: Prim.Type) (b :: Prim.Type)
-Tuple ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
-Wrapper :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Wrapper (a :: Prim.Type)
-Proxy ::
-  forall (t0 :: Prim.Type) (@a :: (t0 :: Prim.Type)).
-    Main.Proxy @(t0 :: Prim.Type) (a :: (t0 :: Prim.Type))
-getVoid ::
-  forall (rep :: Prim.Type).
-    Data.Generic.Rep.Generic Main.Void (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
-getMyUnit ::
-  forall (rep :: Prim.Type).
-    Data.Generic.Rep.Generic Main.MyUnit (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
+Identity :: forall @a. a -> Main.Identity a
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
+Wrapper :: forall @a. a -> Main.Wrapper a
+Proxy :: forall t0 (@a :: t0). Main.Proxy @t0 (a :: t0)
+getVoid :: forall rep. Data.Generic.Rep.Generic Main.Void rep => Main.Proxy @Prim.Type rep
+getMyUnit :: forall rep. Data.Generic.Rep.Generic Main.MyUnit rep => Main.Proxy @Prim.Type rep
 getIdentity ::
-  forall (a :: Prim.Type) (rep :: Prim.Type).
-    Data.Generic.Rep.Generic (Main.Identity (a :: Prim.Type)) (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
+  forall a rep. Data.Generic.Rep.Generic (Main.Identity a) rep => Main.Proxy @Prim.Type rep
 getEither ::
-  forall (a :: Prim.Type) (b :: Prim.Type) (rep :: Prim.Type).
-    Data.Generic.Rep.Generic (Main.Either (a :: Prim.Type) (b :: Prim.Type)) (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
+  forall a b rep. Data.Generic.Rep.Generic (Main.Either a b) rep => Main.Proxy @Prim.Type rep
 getTuple ::
-  forall (a :: Prim.Type) (b :: Prim.Type) (rep :: Prim.Type).
-    Data.Generic.Rep.Generic (Main.Tuple (a :: Prim.Type) (b :: Prim.Type)) (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
+  forall a b rep. Data.Generic.Rep.Generic (Main.Tuple a b) rep => Main.Proxy @Prim.Type rep
 getWrapper ::
-  forall (a :: Prim.Type) (rep :: Prim.Type).
-    Data.Generic.Rep.Generic (Main.Wrapper (a :: Prim.Type)) (rep :: Prim.Type) =>
-    Main.Proxy @Prim.Type (rep :: Prim.Type)
+  forall a rep. Data.Generic.Rep.Generic (Main.Wrapper a) rep => Main.Proxy @Prim.Type rep
 forceSolve ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (t3 :: Prim.Type) (t4 :: Prim.Type)
-    (t5 :: Prim.Type).
+  forall t0 t1 t2 t3 t4 t5.
     { getEither ::
         Main.Proxy @Prim.Type
           (Data.Generic.Rep.Sum
-            (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument (t0 :: Prim.Type)))
-            (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument (t1 :: Prim.Type))))
+            (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument t0))
+            (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument t1)))
     , getIdentity ::
         Main.Proxy @Prim.Type
-          (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument (t2 :: Prim.Type)))
+          (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument t2))
     , getMyUnit ::
         Main.Proxy @Prim.Type (Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments)
     , getTuple ::
@@ -61,12 +38,12 @@ forceSolve ::
           (Data.Generic.Rep.Constructor
             "Tuple"
             (Data.Generic.Rep.Product
-              (Data.Generic.Rep.Argument (t3 :: Prim.Type))
-              (Data.Generic.Rep.Argument (t4 :: Prim.Type))))
+              (Data.Generic.Rep.Argument t3)
+              (Data.Generic.Rep.Argument t4)))
     , getVoid :: Main.Proxy @Prim.Type Data.Generic.Rep.NoConstructors
     , getWrapper ::
         Main.Proxy @Prim.Type
-          (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument (t5 :: Prim.Type)))
+          (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument t5))
     }
 
 Types
@@ -76,35 +53,33 @@ Identity :: Prim.Type -> Prim.Type
 Either :: Prim.Type -> Prim.Type -> Prim.Type
 Tuple :: Prim.Type -> Prim.Type -> Prim.Type
 Wrapper :: Prim.Type -> Prim.Type
-Proxy :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+Proxy :: forall t0. t0 -> Prim.Type
 
 Derived
 derive Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
 derive Data.Generic.Rep.Generic
   Main.MyUnit
   (Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments)
-derive forall (a :: Prim.Type).
+derive forall a.
   Data.Generic.Rep.Generic
-    (Main.Identity (a :: Prim.Type))
-    (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument (a :: Prim.Type)))
-derive forall (a :: Prim.Type) (b :: Prim.Type).
+    (Main.Identity a)
+    (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument a))
+derive forall a b.
   Data.Generic.Rep.Generic
-    (Main.Either (a :: Prim.Type) (b :: Prim.Type))
+    (Main.Either a b)
     (Data.Generic.Rep.Sum
-      (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument (a :: Prim.Type)))
-      (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument (b :: Prim.Type))))
-derive forall (a :: Prim.Type) (b :: Prim.Type).
+      (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument a))
+      (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument b)))
+derive forall a b.
   Data.Generic.Rep.Generic
-    (Main.Tuple (a :: Prim.Type) (b :: Prim.Type))
+    (Main.Tuple a b)
     (Data.Generic.Rep.Constructor
       "Tuple"
-      (Data.Generic.Rep.Product
-        (Data.Generic.Rep.Argument (a :: Prim.Type))
-        (Data.Generic.Rep.Argument (b :: Prim.Type))))
-derive forall (a :: Prim.Type).
+      (Data.Generic.Rep.Product (Data.Generic.Rep.Argument a) (Data.Generic.Rep.Argument b)))
+derive forall a.
   Data.Generic.Rep.Generic
-    (Main.Wrapper (a :: Prim.Type))
-    (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument (a :: Prim.Type)))
+    (Main.Wrapper a)
+    (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument a))
 
 Roles
 Void = []

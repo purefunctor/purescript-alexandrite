@@ -6,27 +6,21 @@ expression: report
 Terms
 termHole :: Prim.Int -> Prim.Int
 recordPunHole :: { punInt :: Prim.Int, punString :: Prim.String } -> Prim.Int
-instanceTypeHoleMember ::
-  forall (@implicit :: Prim.Type).
-    Main.InstanceTypeHole (implicit :: Prim.Type) =>
-    (implicit :: Prim.Type) -> (implicit :: Prim.Type)
+instanceTypeHoleMember :: forall @implicit. Main.InstanceTypeHole implicit => implicit -> implicit
 
 Types
-TypeHole :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
+TypeHole :: forall t0. t0 -> Prim.Type
 InstanceTypeHole :: Prim.Type -> Prim.Constraint
 
 Synonyms
 type TypeHole a = ?3
 
 Classes
-class forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Type)
-  instanceTypeHoleMember ::
-  forall (@implicit :: Prim.Type).
-    Main.InstanceTypeHole (implicit :: Prim.Type) =>
-    (implicit :: Prim.Type) -> (implicit :: Prim.Type)
+class forall (implicit :: Prim.Type). Main.InstanceTypeHole implicit
+  instanceTypeHoleMember :: forall @implicit. Main.InstanceTypeHole implicit => implicit -> implicit
 
 Instances
-instance forall (implicit :: Prim.Type). Main.InstanceTypeHole (implicit :: Prim.Type)
+instance forall implicit. Main.InstanceTypeHole implicit
 
 Diagnostics
 error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type
@@ -34,7 +28,7 @@ error[TypeHole]: Type hole '?type' has inferred type: ?3 :: Type
    |
 14 | type TypeHole a = ?type :: Type
    |                   ^~~~~
-  trivia: a :: (t0 :: Type) is in scope
+  trivia: a :: t0 is in scope
 error[TermHole]: Hole '?term' has inferred type: Int
   --> 12:5..12:10
    |
@@ -48,7 +42,7 @@ error[TermHole]: Hole '?pun' has inferred type: Int
 17 | recordPunHole { punInt, punString } = ?pun
    |                                       ^~~~
   trivia: punInt :: Int is in scope
-error[TypeHole]: Type hole '?implicit' has inferred type: (implicit :: Type) :: Type
+error[TypeHole]: Type hole '?implicit' has inferred type: implicit :: Type
   --> 23:29..23:38
    |
 23 |   instanceTypeHoleMember :: ?implicit -> implicit

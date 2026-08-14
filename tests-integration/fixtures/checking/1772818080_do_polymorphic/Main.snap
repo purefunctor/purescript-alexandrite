@@ -4,22 +4,18 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Tuple ::
-  forall (@a :: Prim.Type) (@b :: Prim.Type).
-    (a :: Prim.Type) -> (b :: Prim.Type) -> Main.Tuple (a :: Prim.Type) (b :: Prim.Type)
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
 bind ::
-  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
-    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-    (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)
+  forall (m :: Prim.Type -> Prim.Type) a b.
+    (m :: Prim.Type -> Prim.Type) a ->
+    (a -> (m :: Prim.Type -> Prim.Type) b) ->
+    (m :: Prim.Type -> Prim.Type) b
 discard ::
-  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) (b :: Prim.Type).
-    (m :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-    ((a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)) ->
-    (m :: Prim.Type -> Prim.Type) (b :: Prim.Type)
-pure ::
-  forall (m :: Prim.Type -> Prim.Type) (a :: Prim.Type).
-    (a :: Prim.Type) -> (m :: Prim.Type -> Prim.Type) (a :: Prim.Type)
+  forall (m :: Prim.Type -> Prim.Type) a b.
+    (m :: Prim.Type -> Prim.Type) a ->
+    (a -> (m :: Prim.Type -> Prim.Type) b) ->
+    (m :: Prim.Type -> Prim.Type) b
+pure :: forall (m :: Prim.Type -> Prim.Type) a. a -> (m :: Prim.Type -> Prim.Type) a
 test ::
   forall (m :: Prim.Type -> Prim.Type).
     (m :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)

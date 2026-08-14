@@ -4,12 +4,10 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Box :: forall (@a :: Prim.Type). (a :: Prim.Type) -> Main.Box (a :: Prim.Type)
-Other :: forall (@a :: Prim.Type). Main.Box (a :: Prim.Type)
-test :: forall (t0 :: Prim.Type). Prim.Partial => Main.Box (t0 :: Prim.Type) -> Prim.Int
-test2 ::
-  forall (t0 :: Prim.Type).
-    Prim.Partial => ((t0 :: Prim.Type) -> Main.Box (t0 :: Prim.Type)) -> Prim.Int
+Box :: forall @a. a -> Main.Box a
+Other :: forall @a. Main.Box a
+test :: forall t0. Prim.Partial => Main.Box t0 -> Prim.Int
+test2 :: forall t0. Prim.Partial => (t0 -> Main.Box t0) -> Prim.Int
 
 Types
 Box :: Prim.Type -> Prim.Type
@@ -23,12 +21,12 @@ error[CannotUnify]: Cannot unify 'Box' with 'Function ?4'
   |
 5 | test (Box _) = 0
   | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Box (t0 :: Type)' with 'Function ?4 (Box ?4)'
+error[CannotUnify]: Cannot unify 'Box t0' with 'Function ?4 (Box ?4)'
   --> 5:1..5:17
   |
 5 | test (Box _) = 0
   | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Box (t0 :: Type)' with '?4 -> Box ?4'
+error[CannotUnify]: Cannot unify 'Box t0' with '?4 -> Box ?4'
   --> 5:1..5:17
   |
 5 | test (Box _) = 0
@@ -43,17 +41,17 @@ warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Other
   |
 5 | test (Box _) = 0
   | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function (t1 :: Type)' with 'Box'
+error[CannotUnify]: Cannot unify 'Function t1' with 'Box'
   --> 8:1..8:14
   |
 8 | test2 Box = 0
   | ^~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function (t1 :: Type) (Box (t1 :: Type))' with 'Box ?8'
+error[CannotUnify]: Cannot unify 'Function t1 (Box t1)' with 'Box ?8'
   --> 8:1..8:14
   |
 8 | test2 Box = 0
   | ^~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '(t1 :: Type) -> Box (t1 :: Type)' with 'Box ?8'
+error[CannotUnify]: Cannot unify 't1 -> Box t1' with 'Box ?8'
   --> 8:1..8:14
   |
 8 | test2 Box = 0

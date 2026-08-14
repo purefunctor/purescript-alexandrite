@@ -6,14 +6,12 @@ expression: report
 Terms
 
 Types
-Parent :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Constraint
-Child :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Constraint
+Parent :: forall k. k -> Prim.Constraint
+Child :: forall k. k -> Prim.Constraint
 
 Classes
-class forall (k :: Prim.Type) (value :: (k :: Prim.Type)). Main.Parent @(k :: Prim.Type) (value :: (k :: Prim.Type))
-class forall (k :: Prim.Type) (value :: (k :: Prim.Type)). Main.Parent @(k :: Prim.Type) (value :: (k :: Prim.Type)) <= Main.Child @(k :: Prim.Type) (value :: (k :: Prim.Type))
+class forall (k :: Prim.Type) (value :: k). Main.Parent @k (value :: k)
+class forall (k :: Prim.Type) (value :: k). Main.Parent @k (value :: k) <= Main.Child @k (value :: k)
 
 Instances
-instance forall (t0 :: Prim.Type) (value :: (t0 :: Prim.Type)).
-  Main.Parent @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type)) =>
-  Main.Child @(t0 :: Prim.Type) (value :: (t0 :: Prim.Type))
+instance forall t0 (value :: t0). Main.Parent @t0 (value :: t0) => Main.Child @t0 (value :: t0)

@@ -4,42 +4,25 @@ assertion_line: 50
 expression: report
 ---
 Terms
-generatedIdentity :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> (t0 :: Prim.Type)
-generatedConst ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-generatedApply ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    ((t0 :: Prim.Type) -> (t1 :: Prim.Type)) -> (t0 :: Prim.Type) -> (t1 :: Prim.Type)
-sourceIdentity :: forall (value :: Prim.Type). (value :: Prim.Type) -> (value :: Prim.Type)
-sourceConst ::
-  forall (first :: Prim.Type) (second :: Prim.Type).
-    (first :: Prim.Type) -> (second :: Prim.Type) -> (first :: Prim.Type)
-sourceNumeric ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t0 :: Prim.Type)
-sourceShadowed ::
-  forall (value :: Prim.Type).
-    (value :: Prim.Type) ->
-    (forall (value1 :: Prim.Type). (value1 :: Prim.Type) -> (value1 :: Prim.Type)) ->
-    (value :: Prim.Type)
-Proxy ::
-  forall (kind :: Prim.Type) (@value :: (kind :: Prim.Type)).
-    Main.Proxy @(kind :: Prim.Type) (value :: (kind :: Prim.Type))
+generatedIdentity :: forall t0. t0 -> t0
+generatedConst :: forall t0 t1. t0 -> t1 -> t0
+generatedApply :: forall t0 t1. (t0 -> t1) -> t0 -> t1
+sourceIdentity :: forall value. value -> value
+sourceConst :: forall first second. first -> second -> first
+sourceNumeric :: forall t0 t1. t0 -> t1 -> t0
+sourceShadowed :: forall value. value -> (forall value1. value1 -> value1) -> value
+Proxy :: forall kind (@value :: kind). Main.Proxy @kind (value :: kind)
 
 Types
-Proxy :: forall (kind :: Prim.Type). (kind :: Prim.Type) -> Prim.Type
-GeneratedKind0 :: forall (t0 :: Prim.Type). (t0 :: Prim.Type) -> Prim.Type
-GeneratedKind1 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type). (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> Prim.Type
-GeneratedKind2 ::
-  forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type).
-    (t0 :: Prim.Type) -> (t1 :: Prim.Type) -> (t2 :: Prim.Type) -> Prim.Type
+Proxy :: forall kind. kind -> Prim.Type
+GeneratedKind0 :: forall t0. t0 -> Prim.Type
+GeneratedKind1 :: forall t0 t1. t0 -> t1 -> Prim.Type
+GeneratedKind2 :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Type
 
 Synonyms
-type GeneratedKind0 = Main.Proxy @(t0 :: Prim.Type)
-type GeneratedKind1 value = Main.Proxy @(t0 :: Prim.Type)
-type GeneratedKind2 first second = Main.Proxy @(t0 :: Prim.Type)
+type GeneratedKind0 = Main.Proxy @t0
+type GeneratedKind1 value = Main.Proxy @t0
+type GeneratedKind2 first second = Main.Proxy @t0
 
 Roles
 Proxy = [Phantom]

@@ -4,6 +4,6 @@ assertion_line: 50
 expression: report
 ---
 Terms
-unsafeCoerce :: forall (a :: Prim.Type) (b :: Prim.Type). (a :: Prim.Type) -> (b :: Prim.Type)
+unsafeCoerce :: forall a b. a -> b
 
 Types

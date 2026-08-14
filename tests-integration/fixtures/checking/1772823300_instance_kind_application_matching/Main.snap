@@ -5,33 +5,18 @@ expression: report
 ---
 Terms
 Endo ::
-  forall (k :: Prim.Type) (@c :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-    (@a :: (k :: Prim.Type)).
-    (c :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-      (a :: (k :: Prim.Type))
-      (a :: (k :: Prim.Type)) ->
-    Main.Endo @(k :: Prim.Type)
-      (c :: (k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type)
-      (a :: (k :: Prim.Type))
-test ::
-  forall (b :: Prim.Type).
-    Main.Endo @Prim.Type Prim.Function (b :: Prim.Type) -> (b :: Prim.Type) -> (b :: Prim.Type)
+  forall k (@c :: k -> k -> Prim.Type) (@a :: k).
+    (c :: k -> k -> Prim.Type) (a :: k) (a :: k) -> Main.Endo @k (c :: k -> k -> Prim.Type) (a :: k)
+test :: forall b. Main.Endo @Prim.Type Prim.Function b -> b -> b
 
 Types
-Endo ::
-  forall (k :: Prim.Type).
-    ((k :: Prim.Type) -> (k :: Prim.Type) -> Prim.Type) -> (k :: Prim.Type) -> Prim.Type
+Endo :: forall k. (k -> k -> Prim.Type) -> k -> Prim.Type
 
 Instances
-instance forall (t0 :: Prim.Type) (c :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
-  (a :: (t0 :: Prim.Type)).
+instance forall t0 (c :: t0 -> t0 -> Prim.Type) (a :: t0).
   Data.Newtype.Newtype @Prim.Type
-    (Main.Endo @(t0 :: Prim.Type)
-      (c :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
-      (a :: (t0 :: Prim.Type)))
-    ((c :: (t0 :: Prim.Type) -> (t0 :: Prim.Type) -> Prim.Type)
-      (a :: (t0 :: Prim.Type))
-      (a :: (t0 :: Prim.Type)))
+    (Main.Endo @t0 (c :: t0 -> t0 -> Prim.Type) (a :: t0))
+    ((c :: t0 -> t0 -> Prim.Type) (a :: t0) (a :: t0))
 
 Roles
 Endo = [Representational, Nominal]

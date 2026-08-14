@@ -7,11 +7,9 @@ Terms
 const ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Const (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (forall (b :: Prim.Type).
-        (f :: Prim.Type -> Prim.Type) (b :: Prim.Type) ->
-        (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)))
+    (forall a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (forall b. (f :: Prim.Type -> Prim.Type) b -> (f :: Prim.Type -> Prim.Type) a))
 
 Types
 Const :: (Prim.Type -> Prim.Type) -> Prim.Constraint
@@ -21,8 +19,6 @@ class forall (f :: Prim.Type -> Prim.Type). Main.Const (f :: Prim.Type -> Prim.T
   const ::
   forall (@f :: Prim.Type -> Prim.Type).
     Main.Const (f :: Prim.Type -> Prim.Type) =>
-    (forall (a :: Prim.Type).
-      (f :: Prim.Type -> Prim.Type) (a :: Prim.Type) ->
-      (forall (b :: Prim.Type).
-        (f :: Prim.Type -> Prim.Type) (b :: Prim.Type) ->
-        (f :: Prim.Type -> Prim.Type) (a :: Prim.Type)))
+    (forall a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (forall b. (f :: Prim.Type -> Prim.Type) b -> (f :: Prim.Type -> Prim.Type) a))

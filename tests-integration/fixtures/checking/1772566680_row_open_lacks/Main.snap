@@ -4,9 +4,7 @@ assertion_line: 50
 expression: report
 ---
 Terms
-Proxy ::
-  forall (k :: Prim.Type) (@a :: (k :: Prim.Type)).
-    Main.Proxy @(k :: Prim.Type) (a :: (k :: Prim.Type))
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
 lacksOpen ::
   forall (r :: Prim.Row Prim.Type).
     Prim.Row.Lacks @Prim.Type
@@ -17,11 +15,11 @@ lacksPresent ::
   forall (r :: Prim.Row Prim.Type).
     Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
     Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
-empty :: forall (t0 :: Prim.Type). Main.Proxy @(Prim.Row (t0 :: Prim.Type)) ()
+empty :: forall t0. Main.Proxy @(Prim.Row t0) ()
 forceSolve :: { lacksOpen :: Prim.Int, lacksPresent :: Prim.Int }
 
 Types
-Proxy :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
+Proxy :: forall k. k -> Prim.Type
 
 Roles
 Proxy = [Phantom]

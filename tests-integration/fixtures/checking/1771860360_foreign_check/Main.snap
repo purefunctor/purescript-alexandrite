@@ -7,10 +7,8 @@ Terms
 
 Types
 M :: Prim.Type -> Prim.Type
-P :: forall (k :: Prim.Type). (k :: Prim.Type) -> Prim.Type
-T ::
-  forall (t0 :: Prim.Type) (k :: (t0 :: Prim.Type)).
-    Main.P @(t0 :: Prim.Type) (k :: (t0 :: Prim.Type)) -> Prim.Type
+P :: forall k. k -> Prim.Type
+T :: forall t0 (k :: t0). Main.P @t0 (k :: t0) -> Prim.Type
 
 Roles
 M = [Nominal]

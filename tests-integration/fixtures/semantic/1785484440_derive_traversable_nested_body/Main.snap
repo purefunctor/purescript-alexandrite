@@ -3,8 +3,7 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 68
 expression: report
 ---
-data Compose ::
-  forall (k0 :: Prim.Type) (k1 :: Prim.Type). (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
+data Compose :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
 data Compose @f @g @a
   | Compose :: f (g a) -> Main.Compose f g a
 
@@ -14,7 +13,7 @@ dictionary functorCompose ::
   { functorDict1 :: Data.Functor.Functor g } =>
   Data.Functor.Functor (Main.Compose @Prim.Type @Prim.Type f g)
   where
-  map :: forall (a :: Prim.Type) (b :: Prim.Type).
+  map :: forall a b.
   (a -> b) -> Main.Compose @Prim.Type @Prim.Type f g a -> Main.Compose @Prim.Type @Prim.Type f g b
   map = \function value ->
     case value of
@@ -28,8 +27,7 @@ dictionary foldableCompose ::
   { foldableDict1 :: Data.Foldable.Foldable g } =>
   Data.Foldable.Foldable (Main.Compose @Prim.Type @Prim.Type f g)
   where
-  foldr :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (a -> b -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
   foldr = \function accumulator value ->
     case value of
       (Compose field0) -> foldr {foldableDict}
@@ -38,8 +36,7 @@ dictionary foldableCompose ::
             element)
         accumulator
         field0
-  foldl :: forall (a :: Prim.Type) (b :: Prim.Type).
-  (b -> a -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Compose @Prim.Type @Prim.Type f g a -> b
   foldl = \function accumulator value ->
     case value of
       (Compose field0) -> foldl {foldableDict}
@@ -48,8 +45,7 @@ dictionary foldableCompose ::
             element)
         accumulator
         field0
-  foldMap :: forall (a :: Prim.Type) (m :: Prim.Type).
-  Data.Monoid.Monoid m => (a -> m) -> Main.Compose @Prim.Type @Prim.Type f g a -> m
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Compose @Prim.Type @Prim.Type f g a -> m
   foldMap = \{monoidDict} ->
     \function value ->
       case value of
@@ -65,7 +61,7 @@ dictionary traversableCompose ::
   where
   superclass functorDict = functorCompose {traversableDict.functorDict} {traversableDict1.functorDict}
   superclass foldableDict = foldableCompose {traversableDict.foldableDict} {traversableDict1.foldableDict}
-  traverse :: forall (a :: Prim.Type) (b :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) ->
   Main.Compose @Prim.Type @Prim.Type f g a ->
@@ -79,7 +75,7 @@ dictionary traversableCompose ::
             (\element ->
               traverse {traversableDict1} {applicativeDict} (\element -> function element) element)
             field0)
-  sequence :: forall (a :: Prim.Type) (m :: Prim.Type -> Prim.Type).
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   Main.Compose @Prim.Type @Prim.Type f g (m a) -> m (Main.Compose @Prim.Type @Prim.Type f g a)
   sequence = \{applicativeDict} ->

@@ -13,7 +13,7 @@ Hover at Position { line: 6, character: 3 }
 Range: <none>
 
 ```purescript
-execute :: forall (@a :: Type). Alpha (a :: Type) => (a :: Type) -> Int
+execute :: forall @a. Alpha a => a -> Int
 ```
 
 
@@ -37,7 +37,7 @@ Hover at Position { line: 10, character: 3 }
 Range: <none>
 
 ```purescript
-execute :: forall (@a :: Type). Beta (a :: Type) => (a :: Type) -> Int
+execute :: forall @a. Beta a => a -> Int
 ```
 
 
