@@ -170,8 +170,88 @@ pub type PatternId = interner::Id<Pattern>;
 pub type PatternInterner = interner::Interner<Pattern>;
 
 type PatternVector = Vec<PatternId>;
-type PatternMatrix = Vec<PatternVector>;
 pub type WitnessVector = Vec<PatternId>;
+
+struct PatternMatrix {
+    cells: Vec<PatternId>,
+    rows: usize,
+    columns: usize,
+}
+
+impl PatternMatrix {
+    fn new(columns: usize) -> PatternMatrix {
+        PatternMatrix { cells: vec![], rows: 0, columns }
+    }
+
+    fn with_capacity(columns: usize, rows: usize) -> PatternMatrix {
+        let cells = Vec::with_capacity(columns * rows);
+        PatternMatrix { cells, rows: 0, columns }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.rows == 0
+    }
+
+    fn row(&self, index: usize) -> &[PatternId] {
+        assert!(index < self.rows);
+        let start = index * self.columns;
+        let end = start + self.columns;
+        &self.cells[start..end]
+    }
+
+    fn iter(&self) -> PatternRows<'_> {
+        PatternRows { matrix: self, row: 0 }
+    }
+
+    fn push(&mut self, row: &[PatternId]) {
+        assert_eq!(row.len(), self.columns);
+        self.cells.extend_from_slice(row);
+        self.rows += 1;
+    }
+
+    fn normalise_recovery_row<F>(&self, row: &mut PatternVector, mut missing: F)
+    where
+        F: FnMut(usize) -> PatternId,
+    {
+        row.truncate(self.columns);
+        let missing_columns = row.len()..self.columns;
+        row.extend(missing_columns.map(&mut missing));
+    }
+}
+
+struct PatternRows<'a> {
+    matrix: &'a PatternMatrix,
+    row: usize,
+}
+
+impl<'a> Iterator for PatternRows<'a> {
+    type Item = &'a [PatternId];
+
+    fn next(&mut self) -> Option<&'a [PatternId]> {
+        if self.row == self.matrix.rows {
+            return None;
+        }
+        let row = self.matrix.row(self.row);
+        self.row += 1;
+        Some(row)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.matrix.rows - self.row;
+        (remaining, Some(remaining))
+    }
+}
+
+impl ExactSizeIterator for PatternRows<'_> {}
+
+impl<'a> IntoIterator for &'a PatternMatrix {
+    type Item = &'a [PatternId];
+    type IntoIter = PatternRows<'a>;
+
+    fn into_iter(self) -> PatternRows<'a> {
+        self.iter()
+    }
+}
 
 /// Determines if a [`PatternVector`] is useful with respect to a [`PatternMatrix`].
 ///
@@ -184,7 +264,7 @@ fn algorithm_u<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
 ) -> QueryResult<bool>
 where
     Q: ExternalQueries,
@@ -220,7 +300,7 @@ fn algorithm_u_constructor<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     constructor: PatternConstructor,
 ) -> QueryResult<bool>
 where
@@ -253,7 +333,7 @@ fn algorithm_u_wildcard<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     t: TypeId,
 ) -> QueryResult<bool>
 where
@@ -273,7 +353,7 @@ fn algorithm_u_wildcard_complete<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     sigma: Sigma,
 ) -> QueryResult<bool>
 where
@@ -297,7 +377,7 @@ fn algorithm_u_wildcard_incomplete<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
 ) -> QueryResult<bool>
 where
     Q: ExternalQueries,
@@ -329,14 +409,14 @@ fn algorithm_m<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
 ) -> QueryResult<Option<Vec<WitnessVector>>>
 where
     Q: ExternalQueries,
 {
     // Base case: any pattern is its own witness against an empty matrix
     if matrix.is_empty() {
-        let vector = vector.clone();
+        let vector = vector.to_vec();
         return Ok(Some(vec![vector]));
     }
 
@@ -372,7 +452,7 @@ fn algorithm_m_constructor<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     constructor: PatternConstructor,
     t: TypeId,
 ) -> QueryResult<Option<Vec<WitnessVector>>>
@@ -436,7 +516,7 @@ fn algorithm_m_wildcard<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     t: TypeId,
 ) -> QueryResult<Option<Vec<WitnessVector>>>
 where
@@ -455,7 +535,7 @@ fn algorithm_m_wildcard_complete<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     t: TypeId,
     sigma: &Sigma,
 ) -> QueryResult<Option<Vec<WitnessVector>>>
@@ -496,7 +576,7 @@ fn algorithm_m_wildcard_incomplete<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     matrix: &PatternMatrix,
-    vector: &PatternVector,
+    vector: &[PatternId],
     t: TypeId,
     sigma: &Sigma,
 ) -> QueryResult<Option<Vec<WitnessVector>>>
@@ -590,7 +670,41 @@ fn specialise_matrix(
     expected: &PatternConstructor,
     matrix: &PatternMatrix,
 ) -> PatternMatrix {
-    matrix.iter().filter_map(|row| specialise_vector(state, expected, row)).collect()
+    let columns = matrix.columns - 1 + expected.arity();
+    let mut specialised_matrix = if columns == 0 {
+        PatternMatrix::new(0)
+    } else {
+        let matching_rows =
+            matrix.iter().filter(|row| vector_matches_constructor(state, expected, row)).count();
+        PatternMatrix::with_capacity(columns, matching_rows)
+    };
+    for row in matrix {
+        let initial_length = specialised_matrix.cells.len();
+        if specialise_vector_into(state, expected, row, &mut specialised_matrix.cells) {
+            debug_assert_eq!(
+                specialised_matrix.cells.len() - initial_length,
+                specialised_matrix.columns
+            );
+            specialised_matrix.rows += 1;
+        } else {
+            specialised_matrix.cells.truncate(initial_length);
+        }
+    }
+    specialised_matrix
+}
+
+fn vector_matches_constructor(
+    state: &CheckState,
+    expected: &PatternConstructor,
+    vector: &[PatternId],
+) -> bool {
+    let [first_column_id, ..] = vector else {
+        unreachable!("invariant violated: vector_matches_constructor processed empty row");
+    };
+    match &state.patterns[*first_column_id].kind {
+        PatternKind::Wildcard => true,
+        PatternKind::Constructor { constructor } => constructor.matches(expected),
+    }
 }
 
 /// Specialises a [`PatternVector`] given a [`PatternConstructor`].
@@ -608,8 +722,22 @@ fn specialise_matrix(
 fn specialise_vector(
     state: &mut CheckState,
     expected: &PatternConstructor,
-    vector: &PatternVector,
+    vector: &[PatternId],
 ) -> Option<PatternVector> {
+    let mut specialised = Vec::with_capacity(vector.len() - 1 + expected.arity());
+    if specialise_vector_into(state, expected, vector, &mut specialised) {
+        Some(specialised)
+    } else {
+        None
+    }
+}
+
+fn specialise_vector_into(
+    state: &mut CheckState,
+    expected: &PatternConstructor,
+    vector: &[PatternId],
+    specialised: &mut PatternVector,
+) -> bool {
     let [first_column_id, ref tail_columns @ ..] = vector[..] else {
         unreachable!("invariant violated: specialise_vector processed empty row");
     };
@@ -627,45 +755,52 @@ fn specialise_vector(
                     let t = state.patterns[pattern_id].t;
                     state.allocate_wildcard(t)
                 });
-                let tail_columns = tail_columns.iter().copied();
-                return Some(iter::chain(wildcards, tail_columns).collect());
+                specialised.extend(wildcards);
             }
             PatternConstructor::Array { fields } => {
                 let wildcards = fields.iter().map(|&pattern_id| {
                     let t = state.patterns[pattern_id].t;
                     state.allocate_wildcard(t)
                 });
-                let tail_columns = tail_columns.iter().copied();
-                return Some(iter::chain(wildcards, tail_columns).collect());
+                specialised.extend(wildcards);
             }
-            _ => {
-                return Some(tail_columns.to_vec());
-            }
+            _ => {}
         }
+        specialised.extend_from_slice(tail_columns);
+        return true;
     }
 
     let PatternKind::Constructor { constructor } = first_pattern.kind else {
-        return Some(tail_columns.to_vec());
+        specialised.extend_from_slice(tail_columns);
+        return true;
     };
 
     // Check if constructors match
     if !constructor.matches(expected) {
-        return None;
+        return false;
     }
 
     // Splat fields for constructors with arity
     match &constructor {
         PatternConstructor::DataConstructor { fields, .. } => {
-            Some(fields.iter().copied().chain(tail_columns.iter().copied()).collect())
+            specialised.extend_from_slice(fields);
         }
         PatternConstructor::Record { labels: actual_labels, fields: actual_fields } => {
-            specialise_record_fields(state, expected, actual_labels, actual_fields, tail_columns)
+            specialise_record_fields_into(
+                state,
+                expected,
+                actual_labels,
+                actual_fields,
+                specialised,
+            );
         }
         PatternConstructor::Array { fields } => {
-            Some(fields.iter().copied().chain(tail_columns.iter().copied()).collect())
+            specialised.extend_from_slice(fields);
         }
-        _ => Some(tail_columns.to_vec()),
+        _ => {}
     }
+    specialised.extend_from_slice(tail_columns);
+    true
 }
 
 /// Maps the fields of an actual record pattern to the expected (canonical) label set.
@@ -675,52 +810,55 @@ fn specialise_vector(
 /// This function aligns the actual fields to the expected label positions, inserting
 /// wildcard patterns for any labels present in the expected set but absent from the
 /// actual pattern.
-fn specialise_record_fields(
+fn specialise_record_fields_into(
     state: &mut CheckState,
     expected: &PatternConstructor,
     actual_labels: &[SmolStr],
     actual_fields: &[PatternId],
-    tail_columns: &[PatternId],
-) -> Option<PatternVector> {
+    specialised: &mut PatternVector,
+) {
     let PatternConstructor::Record { labels: expected_labels, fields: expected_fields } = expected
     else {
-        return Some(
-            iter::chain(actual_fields.iter().copied(), tail_columns.iter().copied()).collect(),
-        );
+        specialised.extend_from_slice(actual_fields);
+        return;
     };
 
     // Fast path: labels match exactly.
     if actual_labels == expected_labels.as_slice() {
-        return Some(
-            iter::chain(actual_fields.iter().copied(), tail_columns.iter().copied()).collect(),
-        );
+        specialised.extend_from_slice(actual_fields);
+        return;
     }
 
-    let mut mapped_fields = Vec::with_capacity(expected_labels.len());
     for (expected_label, &expected_field) in expected_labels.iter().zip(expected_fields.iter()) {
         if let Some(position) = actual_labels.iter().position(|label| label == expected_label) {
-            mapped_fields.push(actual_fields[position]);
+            specialised.push(actual_fields[position]);
         } else {
             let t = state.patterns[expected_field].t;
-            mapped_fields.push(state.allocate_wildcard(t));
+            specialised.push(state.allocate_wildcard(t));
         }
     }
-
-    Some(mapped_fields.into_iter().chain(tail_columns.iter().copied()).collect())
 }
 
 fn default_matrix(state: &CheckState, matrix: &PatternMatrix) -> PatternMatrix {
-    let filter_map = matrix.iter().filter_map(|row| {
+    let columns = matrix.columns - 1;
+    let mut default = if columns == 0 {
+        PatternMatrix::new(0)
+    } else {
+        let default_rows = matrix
+            .iter()
+            .filter(|row| matches!(state.patterns[row[0]].kind, PatternKind::Wildcard))
+            .count();
+        PatternMatrix::with_capacity(columns, default_rows)
+    };
+    for row in matrix {
         let [first_column, ref default_columns @ ..] = row[..] else {
             unreachable!("invariant violated: default_matrix processed empty row");
         };
         if let PatternKind::Wildcard = state.patterns[first_column].kind {
-            Some(default_columns.to_vec())
-        } else {
-            None
+            default.push(default_columns);
         }
-    });
-    filter_map.collect()
+    }
+    default
 }
 
 /// Key for identifying a unique constructor.
@@ -1227,12 +1365,12 @@ fn collect_unconditional_rows<Q, T, F>(
     items: &[T],
     pattern_types: &[TypeId],
     to_binders: F,
-) -> QueryResult<Vec<PatternVector>>
+) -> QueryResult<PatternMatrix>
 where
     Q: ExternalQueries,
     F: Fn(&T) -> (&[lowering::BinderId], &Option<lowering::GuardedExpression>),
 {
-    let mut pattern_rows = vec![];
+    let mut pattern_rows = PatternMatrix::new(pattern_types.len());
     for item in items {
         let (binders, guarded) = to_binders(item);
 
@@ -1250,11 +1388,12 @@ where
             pattern_row.push(convert::convert_binder(state, context, binder_id)?);
         }
 
-        let additional = pattern_types.iter().skip(pattern_row.len());
-        pattern_row.extend(additional.map(|&t| state.allocate_wildcard(t)));
+        pattern_rows.normalise_recovery_row(&mut pattern_row, |column| {
+            state.allocate_wildcard(pattern_types[column])
+        });
 
         if !pattern_row.is_empty() {
-            pattern_rows.push(pattern_row);
+            pattern_rows.push(&pattern_row);
         }
     }
     Ok(pattern_rows)
@@ -1270,17 +1409,17 @@ where
     Q: ExternalQueries,
 {
     let mut redundant = vec![];
-    let mut matrix = vec![];
+    let mut matrix = PatternMatrix::new(unconditional.columns);
     for vector in &unconditional {
         let useful = algorithm_u(state, context, &matrix, vector)?;
         if useful {
-            matrix.push(PatternVector::clone(vector));
+            matrix.push(vector);
         } else {
             redundant.push(pretty::pretty_witness(context, state, vector));
         }
     }
 
-    let query = pattern_types.iter().map(|&t| state.allocate_wildcard(t)).collect();
+    let query: PatternVector = pattern_types.iter().map(|&t| state.allocate_wildcard(t)).collect();
     let witnesses = algorithm_m(state, context, &unconditional, &query)?;
     let missing = witnesses.map(|witnesses| {
         witnesses
@@ -1291,4 +1430,64 @@ where
     });
 
     Ok(ExhaustivenessReport { missing, redundant })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::{PatternId, PatternMatrix};
+
+    fn pattern_id(value: u32) -> PatternId {
+        PatternId::new(NonZeroU32::new(value).unwrap())
+    }
+
+    #[test]
+    fn nonempty_zero_column_matrix_preserves_its_row() {
+        let mut matrix = PatternMatrix::new(0);
+        matrix.push(&[]);
+        matrix.push(&[]);
+
+        assert!(!matrix.is_empty());
+        assert_eq!(matrix.rows, 2);
+        assert_eq!(matrix.iter().collect::<Vec<_>>(), vec![&[][..], &[][..]]);
+    }
+
+    #[test]
+    fn ragged_recovery_row_preserves_the_declared_width() {
+        let mut matrix = PatternMatrix::new(2);
+        let mut short_row = vec![pattern_id(1)];
+        let mut long_row = vec![pattern_id(2), pattern_id(3), pattern_id(4)];
+
+        matrix.normalise_recovery_row(&mut short_row, |column| pattern_id(column as u32 + 4));
+        matrix.normalise_recovery_row(&mut long_row, |_| unreachable!());
+        matrix.push(&short_row);
+        matrix.push(&long_row);
+
+        assert_eq!(short_row, vec![pattern_id(1), pattern_id(5)]);
+        assert_eq!(long_row, vec![pattern_id(2), pattern_id(3)]);
+        assert_eq!(matrix.iter().collect::<Vec<_>>(), vec![short_row, long_row]);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion `left == right` failed")]
+    fn matrix_rejects_nonrectangular_rows() {
+        let mut matrix = PatternMatrix::new(2);
+        matrix.push(&[pattern_id(1)]);
+    }
+
+    #[test]
+    fn row_iterator_reports_its_remaining_length() {
+        let mut matrix = PatternMatrix::new(1);
+        matrix.push(&[pattern_id(1)]);
+        matrix.push(&[pattern_id(2)]);
+
+        let mut rows = matrix.iter();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows.next(), Some(&[pattern_id(1)][..]));
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows.next(), Some(&[pattern_id(2)][..]));
+        assert_eq!(rows.len(), 0);
+        assert_eq!(rows.next(), None);
+    }
 }

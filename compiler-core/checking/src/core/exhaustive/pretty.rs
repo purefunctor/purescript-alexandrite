@@ -6,13 +6,13 @@ use smol_str::{SmolStr, SmolStrBuilder};
 
 use crate::ExternalQueries;
 use crate::context::CheckContext;
-use crate::core::exhaustive::{PatternConstructor, PatternId, PatternKind, WitnessVector};
+use crate::core::exhaustive::{PatternConstructor, PatternId, PatternKind};
 use crate::state::CheckState;
 
 pub fn pretty_witness<Q>(
     context: &CheckContext<Q>,
     state: &CheckState,
-    witness: &WitnessVector,
+    witness: &[PatternId],
 ) -> SmolStr
 where
     Q: ExternalQueries,
