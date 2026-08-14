@@ -6,8 +6,8 @@ pub trait AstNode: Clone {
     fn can_cast(kind: SyntaxKind) -> bool;
     fn cast(node: SyntaxNode) -> Option<Self>;
     #[doc(hidden)]
-    fn cast_with_kind(node: SyntaxNode, kind: SyntaxKind) -> Option<Self> {
-        if Self::can_cast(kind) { Self::cast(node) } else { None }
+    fn cast_with_kind(node: SyntaxNode, _kind: SyntaxKind) -> Option<Self> {
+        Self::cast(node)
     }
     fn syntax(&self) -> &SyntaxNode;
 }
@@ -64,8 +64,15 @@ pub mod support {
     use super::*;
 
     pub fn child<N: AstNode>(node: &SyntaxNode) -> Option<N> {
-        let (node, kind) = node.child_matching(N::can_cast)?;
-        N::cast_with_kind(node, kind)
+        let mut child = node.first_child();
+        while let Some(node) = child {
+            child = node.next_sibling();
+            let kind = node.kind();
+            if let Some(node) = N::cast_with_kind(node, kind) {
+                return Some(node);
+            }
+        }
+        None
     }
 
     pub fn children<N: AstNode>(node: &SyntaxNode) -> AstChildren<N> {

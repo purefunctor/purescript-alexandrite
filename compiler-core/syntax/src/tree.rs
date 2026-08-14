@@ -163,20 +163,6 @@ impl SyntaxNode {
         SyntaxElementChildren(self.elements(true).into_iter())
     }
 
-    pub(crate) fn child_matching(
-        &self,
-        predicate: fn(SyntaxKind) -> bool,
-    ) -> Option<(SyntaxNode, SyntaxKind)> {
-        let tree = self.owner.tree.lock();
-        let child = tree.get(self.id)?.children().find(|child| {
-            let value = child.value();
-            value.category == ElementCategory::Node && predicate(value.kind)
-        })?;
-        let kind = child.value().kind;
-        let node = SyntaxNode { owner: Arc::clone(&self.owner), id: child.id() };
-        Some((node, kind))
-    }
-
     pub(crate) fn token(&self, kind: SyntaxKind) -> Option<SyntaxToken> {
         let tree = self.owner.tree.lock();
         let token = tree.get(self.id)?.children().find(|child| {
@@ -434,12 +420,17 @@ fn collect_node_events(
     node: syntree::Node<'_, SyntaxValue, syntree::FlavorDefault>,
     out: &mut Vec<WalkEvent<SyntaxNode>>,
 ) {
-    let current = SyntaxNode { owner: Arc::clone(owner), id: node.id() };
-    out.push(WalkEvent::Enter(current.clone()));
-    for child in node.children().filter(|child| child.value().category == ElementCategory::Node) {
+    let current = (node.value().category == ElementCategory::Node)
+        .then(|| SyntaxNode { owner: Arc::clone(owner), id: node.id() });
+    if let Some(current) = &current {
+        out.push(WalkEvent::Enter(current.clone()));
+    }
+    for child in node.children() {
         collect_node_events(owner, child, out);
     }
-    out.push(WalkEvent::Leave(current));
+    if let Some(current) = current {
+        out.push(WalkEvent::Leave(current));
+    }
 }
 
 fn sibling(owner: &Arc<TreeOwner>, id: PointerUsize, next: bool) -> Option<SyntaxElement> {
@@ -703,5 +694,33 @@ mod tests {
 
         assert!(root.first_child().is_none());
         assert_eq!(root.token(SyntaxKind::UPPER).unwrap().kind(), SyntaxKind::UPPER);
+    }
+
+    #[test]
+    fn preorder_finds_nodes_nested_under_raw_token_elements() {
+        let mut builder = syntree::Builder::new();
+        builder.open(SyntaxValue::node(SyntaxKind::Module)).unwrap();
+        builder.open(SyntaxValue::token(SyntaxKind::TEXT)).unwrap();
+        builder.open(SyntaxValue::node(SyntaxKind::ModuleHeader)).unwrap();
+        builder.close().unwrap();
+        builder.close().unwrap();
+        builder.close().unwrap();
+        let root = SyntaxNode::new_root(TreeOwner::new(builder.build().unwrap()));
+
+        let events = root.preorder().map(|event| match event {
+            WalkEvent::Enter(node) => WalkEvent::Enter(node.kind()),
+            WalkEvent::Leave(node) => WalkEvent::Leave(node.kind()),
+        });
+        let events = events.collect::<Vec<_>>();
+
+        assert_eq!(
+            events,
+            vec![
+                WalkEvent::Enter(SyntaxKind::Module),
+                WalkEvent::Enter(SyntaxKind::ModuleHeader),
+                WalkEvent::Leave(SyntaxKind::ModuleHeader),
+                WalkEvent::Leave(SyntaxKind::Module),
+            ]
+        );
     }
 }
