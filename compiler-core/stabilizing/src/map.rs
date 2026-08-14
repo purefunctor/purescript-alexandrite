@@ -25,6 +25,10 @@ impl Default for StabilizedModule {
 impl StabilizedModule {
     pub fn allocate(&mut self, node: &SyntaxNode) {
         let ptr = SyntaxNodePtr::new(node);
+        self.allocate_ptr(ptr);
+    }
+
+    pub(crate) fn allocate_ptr(&mut self, ptr: SyntaxNodePtr) {
         let hash = FxBuildHasher.hash_one(ptr);
 
         let id = {

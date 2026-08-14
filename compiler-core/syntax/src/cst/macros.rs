@@ -18,7 +18,15 @@ macro_rules! create_cst_struct {
                 where
                     Self: Sized,
                 {
-                    if Self::can_cast(node.kind()) {
+                    let kind = node.kind();
+                    Self::cast_with_kind(node, kind)
+                }
+
+                fn cast_with_kind(node: crate::SyntaxNode, kind: crate::SyntaxKind) -> Option<Self>
+                where
+                    Self: Sized,
+                {
+                    if Self::can_cast(kind) {
                         Some(Self { node })
                     } else {
                         None
@@ -60,10 +68,18 @@ macro_rules! create_cst_enum {
             where
                 Self: Sized,
             {
-                if $key_0::can_cast(node.kind()) {
-                    Some($kind::$key_0($key_0::cast(node)?))
-                } $(else if $key::can_cast(node.kind()) {
-                    Some($kind::$key($key::cast(node)?))
+                let kind = node.kind();
+                Self::cast_with_kind(node, kind)
+            }
+
+            fn cast_with_kind(node: crate::SyntaxNode, kind: crate::SyntaxKind) -> Option<Self>
+            where
+                Self: Sized,
+            {
+                if $key_0::can_cast(kind) {
+                    Some($kind::$key_0($key_0::cast_with_kind(node, kind)?))
+                } $(else if $key::can_cast(kind) {
+                    Some($kind::$key($key::cast_with_kind(node, kind)?))
                 })* else {
                     None
                 }
@@ -98,10 +114,7 @@ macro_rules! has_token_set {
         impl $kind {
             $(
                 pub fn $name(&self) -> Option<crate::SyntaxToken> {
-                    self.syntax()
-                        .children_with_tokens()
-                        .filter_map(|element| element.into_token())
-                        .find(|token| $set.contains(token.kind()))
+                    self.syntax().token_in_set($set)
                 }
             )+
         }

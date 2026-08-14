@@ -5,6 +5,10 @@ use crate::{SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken};
 pub trait AstNode: Clone {
     fn can_cast(kind: SyntaxKind) -> bool;
     fn cast(node: SyntaxNode) -> Option<Self>;
+    #[doc(hidden)]
+    fn cast_with_kind(node: SyntaxNode, kind: SyntaxKind) -> Option<Self> {
+        if Self::can_cast(kind) { Self::cast(node) } else { None }
+    }
     fn syntax(&self) -> &SyntaxNode;
 }
 
@@ -60,7 +64,8 @@ pub mod support {
     use super::*;
 
     pub fn child<N: AstNode>(node: &SyntaxNode) -> Option<N> {
-        node.children().find_map(N::cast)
+        let (node, kind) = node.child_matching(N::can_cast)?;
+        N::cast_with_kind(node, kind)
     }
 
     pub fn children<N: AstNode>(node: &SyntaxNode) -> AstChildren<N> {
@@ -68,8 +73,6 @@ pub mod support {
     }
 
     pub fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
-        node.children_with_tokens()
-            .filter_map(|element| element.into_token())
-            .find(|token| token.kind() == kind)
+        node.token(kind)
     }
 }
