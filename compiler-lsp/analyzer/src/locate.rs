@@ -339,6 +339,10 @@ fn locate_node(
             };
         let (file_id, type_id) = resolution?;
         Some(Located::InstanceHead(file_id, type_id))
+    } else if cst::InstanceDeclaration::can_cast(kind) {
+        let ptr = ptr.cast()?;
+        let id = stabilized.lookup_ptr(&ptr)?;
+        indexed.pairs.instance_to_item(id).map(Located::InstanceItem)
     } else if cst::Declaration::can_cast(kind) {
         let ptr = ptr.cast()?;
         let id = stabilized.lookup_ptr(&ptr)?;
