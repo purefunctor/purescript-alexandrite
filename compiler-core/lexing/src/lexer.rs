@@ -418,7 +418,14 @@ impl Lexer<'_> {
                 '"' => {
                     break;
                 }
-                '\\' if self.first() == '\\' || self.first() == '"' => {
+                '\\' if self.second().is_whitespace() => {
+                    self.take();
+                    self.take_while(char::is_whitespace);
+                    if self.first() == '\\' {
+                        self.take();
+                    }
+                }
+                '\\' if self.second() == '\\' || self.second() == '"' => {
                     self.take();
                     self.take();
                 }
