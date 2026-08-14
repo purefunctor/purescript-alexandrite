@@ -18,4 +18,4 @@ class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEq @k (a :: k) (b :: k
 
 Instances
 instance Main.Convert Prim.Int Prim.String
-instance forall t0 (a :: t0). Main.TypeEq @t0 (a :: t0) (a :: t0)
+instance forall k (a :: k). Main.TypeEq @k (a :: k) (a :: k)

@@ -230,6 +230,8 @@ where
             continue;
         };
 
+        inherit_instance_kind_names(state, context, (class_file, class_id), &instance.arguments)?;
+
         check_instance_member_groups(
             state,
             context,
@@ -239,6 +241,38 @@ where
             checked_instance.signature,
             &instance,
         )?;
+    }
+
+    Ok(())
+}
+
+fn inherit_instance_kind_names<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    resolution: (FileId, TypeItemId),
+    instance_arguments: &[ApplicationArgument],
+) -> QueryResult<()>
+where
+    Q: ExternalQueries,
+{
+    let Some(class) = toolkit::lookup_file_class(state, context, resolution.0, resolution.1)?
+    else {
+        return Ok(());
+    };
+
+    let mut arguments = instance_arguments.iter().copied();
+    for &binder_id in class.kind_binders.iter() {
+        let Some(ApplicationArgument::Kind(argument)) = arguments.next() else {
+            break;
+        };
+        let binder = context.lookup_forall_binder(binder_id);
+        let Some(text) = toolkit::lookup_name(state, context, binder.name)? else {
+            continue;
+        };
+        let Type::Rigid(name, _, _) = context.lookup_type(argument) else {
+            continue;
+        };
+        state.checked.names.entry(name).or_insert(text);
     }
 
     Ok(())
