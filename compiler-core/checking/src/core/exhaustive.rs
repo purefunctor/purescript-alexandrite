@@ -192,15 +192,8 @@ impl PatternMatrix {
         self.rows == 0
     }
 
-    fn row(&self, index: usize) -> &[PatternId] {
-        assert!(index < self.rows);
-        let start = index * self.columns;
-        let end = start + self.columns;
-        &self.cells[start..end]
-    }
-
     fn iter(&self) -> PatternRows<'_> {
-        PatternRows { matrix: self, row: 0 }
+        PatternRows { matrix: self, remaining: self.rows, cell: 0 }
     }
 
     fn push(&mut self, row: &[PatternId]) {
@@ -221,24 +214,26 @@ impl PatternMatrix {
 
 struct PatternRows<'a> {
     matrix: &'a PatternMatrix,
-    row: usize,
+    remaining: usize,
+    cell: usize,
 }
 
 impl<'a> Iterator for PatternRows<'a> {
     type Item = &'a [PatternId];
 
     fn next(&mut self) -> Option<&'a [PatternId]> {
-        if self.row == self.matrix.rows {
+        if self.remaining == 0 {
             return None;
         }
-        let row = self.matrix.row(self.row);
-        self.row += 1;
+        let end = self.cell + self.matrix.columns;
+        let row = &self.matrix.cells[self.cell..end];
+        self.cell = end;
+        self.remaining -= 1;
         Some(row)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.matrix.rows - self.row;
-        (remaining, Some(remaining))
+        (self.remaining, Some(self.remaining))
     }
 }
 
