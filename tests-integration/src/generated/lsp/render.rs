@@ -117,7 +117,7 @@ fn display_text_edits(edits: &Option<Vec<TextEdit>>) -> String {
                     edit.range.start.character,
                     edit.range.end.line,
                     edit.range.end.character,
-                    edit.new_text.trim()
+                    edit.new_text.trim_end()
                 )
             })
             .join("\n")

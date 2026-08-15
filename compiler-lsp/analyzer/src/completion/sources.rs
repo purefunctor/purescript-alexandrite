@@ -721,15 +721,18 @@ impl SuggestionsHelper for SuggestedTerms {
         let (import_text, import_range) =
             edit::term_import_item(context, &module_name, name, file_id, item_id);
 
-        let range_new_text =
-            import_range.or_else(|| context.insert_import_range()).zip(import_text);
+        let import_edit = match (import_range, import_text) {
+            (Some(range), Some(new_text)) => Some(TextEdit { range, new_text }),
+            (None, Some(new_text)) => context.insert_import_edit(new_text),
+            (_, None) => None,
+        };
 
         item.label_detail(format!(" (import {module_name})"));
         item.label_description(module_name.to_string());
         item.sort_text(format!("{module_name}.{name}"));
 
-        if let Some((range, new_text)) = range_new_text {
-            item.additional_text_edits(vec![TextEdit { range, new_text }]);
+        if let Some(import_edit) = import_edit {
+            item.additional_text_edits(vec![import_edit]);
         }
 
         Ok(Some(item.build()))
@@ -824,14 +827,18 @@ fn suggested_type_candidate(
     );
 
     let (import_text, import_range) = import_edit;
-    let range_new_text = import_range.or_else(|| context.insert_import_range()).zip(import_text);
+    let import_edit = match (import_range, import_text) {
+        (Some(range), Some(new_text)) => Some(TextEdit { range, new_text }),
+        (None, Some(new_text)) => context.insert_import_edit(new_text),
+        (_, None) => None,
+    };
 
     item.label_detail(format!(" (import {module_name})"));
     item.label_description(module_name.to_string());
     item.sort_text(format!("{module_name}.{name}"));
 
-    if let Some((range, new_text)) = range_new_text {
-        item.additional_text_edits(vec![TextEdit { range, new_text }]);
+    if let Some(import_edit) = import_edit {
+        item.additional_text_edits(vec![import_edit]);
     }
 
     item.build()
@@ -1061,9 +1068,9 @@ impl SuggestionsHelper for QualifiedTermsSuggestions<'_> {
         item.edit_text(format!("{}.{name}", self.0));
         item.sort_text(format!("{module_name}.{name}"));
 
-        if let Some(range) = context.insert_import_range() {
-            let new_text = format!("import {module_name} as {}\n", self.0);
-            item.additional_text_edits(vec![TextEdit { range, new_text }]);
+        let new_text = format!("import {module_name} as {}\n", self.0);
+        if let Some(import_edit) = context.insert_import_edit(new_text) {
+            item.additional_text_edits(vec![import_edit]);
         }
 
         Ok(Some(item.build()))
@@ -1147,9 +1154,9 @@ fn qualified_type_candidate(
     item.edit_text(format!("{qualifier}.{name}"));
     item.sort_text(format!("{module_name}.{name}"));
 
-    if let Some(range) = context.insert_import_range() {
-        let new_text = format!("import {module_name} as {qualifier}\n");
-        item.additional_text_edits(vec![TextEdit { range, new_text }]);
+    let new_text = format!("import {module_name} as {qualifier}\n");
+    if let Some(import_edit) = context.insert_import_edit(new_text) {
+        item.additional_text_edits(vec![import_edit]);
     }
 
     item.build()

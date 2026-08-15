@@ -14,10 +14,12 @@ refQ = Lib.l
 │  label  │  label_detail          │  label_description  │  sort_text  │  filter_text  │  detail                     │  text_edit  │  additional_text_edits  │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼─────────────────────────────┼─────────────┼─────────────────────────┤
 │  plus   │   (import Lib as Lib)  │  Lib                │  Lib.plus   │  Lib.plus     │  plus :: Int -> Int -> Int  │  3:7..3:12  │  1:0..1:0               │
-│         │                        │                     │             │               │                             │  Lib.plus   │  import Lib as Lib      │
+│         │                        │                     │             │               │                             │  Lib.plus   │                         │
+│         │                        │                     │             │               │                             │             │  import Lib as Lib      │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼─────────────────────────────┼─────────────┼─────────────────────────┤
 │  life   │   (import Lib as Lib)  │  Lib                │  Lib.life   │  Lib.life     │  life :: Int                │  3:7..3:12  │  1:0..1:0               │
-│         │                        │                     │             │               │                             │  Lib.life   │  import Lib as Lib      │
+│         │                        │                     │             │               │                             │  Lib.life   │                         │
+│         │                        │                     │             │               │                             │             │  import Lib as Lib      │
 ╰─────────┴────────────────────────┴─────────────────────┴─────────────┴───────────────┴─────────────────────────────┴─────────────┴─────────────────────────╯
 
 
@@ -32,7 +34,8 @@ justQ :: forall a. a -> Lib.M
 │  label  │  label_detail          │  label_description  │  sort_text  │  filter_text  │  text_edit   │  additional_text_edits  │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼──────────────┼─────────────────────────┤
 │  Maybe  │   (import Lib as Lib)  │  Lib                │  Lib.Maybe  │  Lib.Maybe    │  6:24..6:29  │  1:0..1:0               │
-│         │                        │                     │             │               │  Lib.Maybe   │  import Lib as Lib      │
+│         │                        │                     │             │               │  Lib.Maybe   │                         │
+│         │                        │                     │             │               │              │  import Lib as Lib      │
 ╰─────────┴────────────────────────┴─────────────────────┴─────────────┴───────────────┴──────────────┴─────────────────────────╯
 
 
@@ -47,7 +50,8 @@ justQ = Lib.J
 │  label  │  label_detail          │  label_description  │  sort_text  │  filter_text  │  detail                           │  text_edit  │  additional_text_edits  │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼───────────────────────────────────┼─────────────┼─────────────────────────┤
 │  Just   │   (import Lib as Lib)  │  Lib                │  Lib.Just   │  Lib.Just     │  Just :: forall @a. a -> Maybe a  │  8:8..8:13  │  1:0..1:0               │
-│         │                        │                     │             │               │                                   │  Lib.Just   │  import Lib as Lib      │
+│         │                        │                     │             │               │                                   │  Lib.Just   │                         │
+│         │                        │                     │             │               │                                   │             │  import Lib as Lib      │
 ╰─────────┴────────────────────────┴─────────────────────┴─────────────┴───────────────┴───────────────────────────────────┴─────────────┴─────────────────────────╯
 
 
@@ -62,7 +66,8 @@ nothingQ :: forall a. Lib.M
 │  label  │  label_detail          │  label_description  │  sort_text  │  filter_text  │  text_edit     │  additional_text_edits  │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼────────────────┼─────────────────────────┤
 │  Maybe  │   (import Lib as Lib)  │  Lib                │  Lib.Maybe  │  Lib.Maybe    │  11:22..11:27  │  1:0..1:0               │
-│         │                        │                     │             │               │  Lib.Maybe     │  import Lib as Lib      │
+│         │                        │                     │             │               │  Lib.Maybe     │                         │
+│         │                        │                     │             │               │                │  import Lib as Lib      │
 ╰─────────┴────────────────────────┴─────────────────────┴─────────────┴───────────────┴────────────────┴─────────────────────────╯
 
 
@@ -77,7 +82,8 @@ nothingQ = Lib.J
 │  label  │  label_detail          │  label_description  │  sort_text  │  filter_text  │  detail                           │  text_edit     │  additional_text_edits  │
 ├─────────┼────────────────────────┼─────────────────────┼─────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  Just   │   (import Lib as Lib)  │  Lib                │  Lib.Just   │  Lib.Just     │  Just :: forall @a. a -> Maybe a  │  13:11..13:16  │  1:0..1:0               │
-│         │                        │                     │             │               │                                   │  Lib.Just      │  import Lib as Lib      │
+│         │                        │                     │             │               │                                   │  Lib.Just      │                         │
+│         │                        │                     │             │               │                                   │                │  import Lib as Lib      │
 ╰─────────┴────────────────────────┴─────────────────────┴─────────────┴───────────────┴───────────────────────────────────┴────────────────┴─────────────────────────╯
 
 
@@ -92,10 +98,12 @@ clsQ :: Lib.C
 │  label      │  label_detail          │  label_description  │  sort_text      │  filter_text    │  text_edit      │  additional_text_edits  │
 ├─────────────┼────────────────────────┼─────────────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────────────┤
 │  Cons       │   (import Lib as Lib)  │  Lib                │  Lib.Cons       │  Lib.Cons       │  16:8..16:13    │  1:0..1:0               │
-│             │                        │                     │                 │                 │  Lib.Cons       │  import Lib as Lib      │
+│             │                        │                     │                 │                 │  Lib.Cons       │                         │
+│             │                        │                     │                 │                 │                 │  import Lib as Lib      │
 ├─────────────┼────────────────────────┼─────────────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────────────┤
 │  ClassName  │   (import Lib as Lib)  │  Lib                │  Lib.ClassName  │  Lib.ClassName  │  16:8..16:13    │  1:0..1:0               │
-│             │                        │                     │                 │                 │  Lib.ClassName  │  import Lib as Lib      │
+│             │                        │                     │                 │                 │  Lib.ClassName  │                         │
+│             │                        │                     │                 │                 │                 │  import Lib as Lib      │
 ╰─────────────┴────────────────────────┴─────────────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────────────╯
 
 
@@ -110,7 +118,8 @@ fullQ = Data.Maybe.j
 │  label  │  label_detail                        │  label_description  │  sort_text        │  filter_text      │  detail       │  text_edit        │  additional_text_edits            │
 ├─────────┼──────────────────────────────────────┼─────────────────────┼───────────────────┼───────────────────┼───────────────┼───────────────────┼───────────────────────────────────┤
 │  just   │   (import Data.Maybe as Data.Maybe)  │  Data.Maybe         │  Data.Maybe.just  │  Data.Maybe.just  │  just :: Int  │  21:8..21:20      │  1:0..1:0                         │
-│         │                                      │                     │                   │                   │               │  Data.Maybe.just  │  import Data.Maybe as Data.Maybe  │
+│         │                                      │                     │                   │                   │               │  Data.Maybe.just  │                                   │
+│         │                                      │                     │                   │                   │               │                   │  import Data.Maybe as Data.Maybe  │
 ╰─────────┴──────────────────────────────────────┴─────────────────────┴───────────────────┴───────────────────┴───────────────┴───────────────────┴───────────────────────────────────╯
 
 
@@ -125,19 +134,24 @@ libEmpty = Lib.
 │  label    │  label_detail          │  label_description  │  sort_text    │  filter_text  │  detail                           │  text_edit     │  additional_text_edits  │
 ├───────────┼────────────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  plus     │   (import Lib as Lib)  │  Lib                │  Lib.plus     │  Lib.plus     │  plus :: Int -> Int -> Int        │  25:11..25:15  │  1:0..1:0               │
-│           │                        │                     │               │               │                                   │  Lib.plus      │  import Lib as Lib      │
+│           │                        │                     │               │               │                                   │  Lib.plus      │                         │
+│           │                        │                     │               │               │                                   │                │  import Lib as Lib      │
 ├───────────┼────────────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  Just     │   (import Lib as Lib)  │  Lib                │  Lib.Just     │  Lib.Just     │  Just :: forall @a. a -> Maybe a  │  25:11..25:15  │  1:0..1:0               │
-│           │                        │                     │               │               │                                   │  Lib.Just      │  import Lib as Lib      │
+│           │                        │                     │               │               │                                   │  Lib.Just      │                         │
+│           │                        │                     │               │               │                                   │                │  import Lib as Lib      │
 ├───────────┼────────────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  life     │   (import Lib as Lib)  │  Lib                │  Lib.life     │  Lib.life     │  life :: Int                      │  25:11..25:15  │  1:0..1:0               │
-│           │                        │                     │               │               │                                   │  Lib.life      │  import Lib as Lib      │
+│           │                        │                     │               │               │                                   │  Lib.life      │                         │
+│           │                        │                     │               │               │                                   │                │  import Lib as Lib      │
 ├───────────┼────────────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  Nothing  │   (import Lib as Lib)  │  Lib                │  Lib.Nothing  │  Lib.Nothing  │  Nothing :: forall @a. Maybe a    │  25:11..25:15  │  1:0..1:0               │
-│           │                        │                     │               │               │                                   │  Lib.Nothing   │  import Lib as Lib      │
+│           │                        │                     │               │               │                                   │  Lib.Nothing   │                         │
+│           │                        │                     │               │               │                                   │                │  import Lib as Lib      │
 ├───────────┼────────────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────────────────────────┼────────────────┼─────────────────────────┤
 │  +        │   (import Lib as Lib)  │  Lib                │  Lib.+        │  Lib.+        │  + :: Int -> Int -> Int           │  25:11..25:15  │  1:0..1:0               │
-│           │                        │                     │               │               │                                   │  Lib.+         │  import Lib as Lib      │
+│           │                        │                     │               │               │                                   │  Lib.+         │                         │
+│           │                        │                     │               │               │                                   │                │  import Lib as Lib      │
 ╰───────────┴────────────────────────┴─────────────────────┴───────────────┴───────────────┴───────────────────────────────────┴────────────────┴─────────────────────────╯
 
 
@@ -152,5 +166,6 @@ fullEmpty = Data.Maybe.
 │  label  │  label_detail                        │  label_description  │  sort_text        │  filter_text      │  detail       │  text_edit        │  additional_text_edits            │
 ├─────────┼──────────────────────────────────────┼─────────────────────┼───────────────────┼───────────────────┼───────────────┼───────────────────┼───────────────────────────────────┤
 │  just   │   (import Data.Maybe as Data.Maybe)  │  Data.Maybe         │  Data.Maybe.just  │  Data.Maybe.just  │  just :: Int  │  29:12..29:23     │  1:0..1:0                         │
-│         │                                      │                     │                   │                   │               │  Data.Maybe.just  │  import Data.Maybe as Data.Maybe  │
+│         │                                      │                     │                   │                   │               │  Data.Maybe.just  │                                   │
+│         │                                      │                     │                   │                   │               │                   │  import Data.Maybe as Data.Maybe  │
 ╰─────────┴──────────────────────────────────────┴─────────────────────┴───────────────────┴───────────────────┴───────────────┴───────────────────┴───────────────────────────────────╯

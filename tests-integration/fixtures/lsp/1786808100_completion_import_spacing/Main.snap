@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Completion at Position { line: 1, character: 15 }
+
+```
+test = external
+--             ^
+```
+
+╭─────────────────┬─────────────────────┬─────────────────────┬─────────────────────────┬─────────────────┬────────────────────────┬─────────────────┬──────────────────────────────────╮
+│  label          │  label_detail       │  label_description  │  sort_text              │  filter_text    │  detail                │  text_edit      │  additional_text_edits           │
+├─────────────────┼─────────────────────┼─────────────────────┼─────────────────────────┼─────────────────┼────────────────────────┼─────────────────┼──────────────────────────────────┤
+│  externalValue  │   (import Library)  │  Library            │  Library.externalValue  │  externalValue  │  externalValue :: Int  │  1:7..1:15      │  1:0..1:0                        │
+│                 │                     │                     │                         │                 │                        │  externalValue  │                                  │
+│                 │                     │                     │                         │                 │                        │                 │  import Library (externalValue)  │
+╰─────────────────┴─────────────────────┴─────────────────────┴─────────────────────────┴─────────────────┴────────────────────────┴─────────────────┴──────────────────────────────────╯

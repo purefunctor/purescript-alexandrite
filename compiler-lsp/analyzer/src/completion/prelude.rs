@@ -32,15 +32,15 @@ pub struct CompletionContext<'c, 'a, Host> {
 }
 
 impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
-    pub fn insert_import_range(&self) -> Option<Range> {
+    pub fn insert_import_edit(&self, mut new_text: String) -> Option<TextEdit> {
         let cst = self.parsed.cst();
 
-        let range = cst.imports().map_or_else(
+        let (range, follows_header) = cst.imports().map_or_else(
             || {
                 let header = cst.header()?;
-                Some(header.syntax().text_range())
+                Some((header.syntax().text_range(), true))
             },
-            |cst| Some(cst.syntax().text_range()),
+            |cst| Some((cst.syntax().text_range(), false)),
         )?;
 
         let mut position = position::offset_to_utf8_position(self.content, range.end())?;
@@ -53,7 +53,13 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             position,
             self.language.position_encoding(),
         )?;
-        Some(Range::new(position, position))
+
+        if follows_header {
+            new_text.insert(0, '\n');
+        }
+
+        let range = Range::new(position, position);
+        Some(TextEdit { range, new_text })
     }
 
     pub fn collect_modules(&self) -> bool {
