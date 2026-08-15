@@ -5,14 +5,13 @@ import { createHmac, createSign, timingSafeEqual } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 
 export const description =
-  "Reviews Alexandrite pull requests and marks Amp threads from merged commits as archive candidates.";
+  "Reviews Alexandrite pull requests and archives Amp threads from merged commits.";
 
 const repository = "purefunctor/purescript-alexandrite";
 const reviewAuthor = "purefunctor";
 const botLogin = "purefunctor[bot]";
 const markerNamespace = "amp-pr-review-state";
 const stateVersion = 2;
-const archiveCandidateLabel = "archive-candidate";
 const handledActions = new Set([
   "opened",
   "reopened",
@@ -275,7 +274,7 @@ async function handleDelivery(
   const token = await createInstallationToken(credentials, context.signal);
   if (context.signal.aborted) return;
   if (payload.action === "closed" && payload.pull_request.merged) {
-    await markMergedThreadsAsArchiveCandidates(amp, payload.number, token, context.signal);
+    await archiveMergedThreads(amp, payload.number, token, context.signal);
   }
   if (context.signal.aborted) return;
   await reconcilePullRequest(
@@ -291,7 +290,7 @@ async function handleDelivery(
   );
 }
 
-async function markMergedThreadsAsArchiveCandidates(
+async function archiveMergedThreads(
   amp: PluginAPI,
   number: number,
   token: string,
@@ -308,10 +307,10 @@ async function markMergedThreadsAsArchiveCandidates(
   }
   for (const threadId of threadIds) {
     if (signal.aborted) return;
-    const result = await amp.$`amp threads label ${threadId} ${archiveCandidateLabel}`;
+    const result = await amp.$`amp threads archive ${threadId}`;
     if (result.exitCode !== 0) {
       const details = result.stderr.trim().slice(0, 1_000);
-      throw new Error(`Could not mark thread ${threadId} as an archive candidate: ${details}`);
+      throw new Error(`Could not archive thread ${threadId}: ${details}`);
     }
   }
 }
