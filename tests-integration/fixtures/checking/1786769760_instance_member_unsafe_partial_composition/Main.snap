@@ -26,35 +26,3 @@ instance Main.ContentOverload (Prim.Array Prim.String)
 
 Roles
 Content = []
-
-Diagnostics
-error[CannotUnify]: Cannot unify 'String' with 'Partial => String'
-  --> 14:35..15:32
-   |
-14 |   fromContent = unsafePartial <<< case _ of
-   |                                   ^~~~~~~~~
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Paragraph _
-  --> 14:35..15:32
-   |
-14 |   fromContent = unsafePartial <<< case _ of
-   |                                   ^~~~~~~~~
-error[NoInstanceFound]: No instance found for: Partial
-  --> 13:1..19:28
-   |
-13 | instance ContentOverload String where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Array String' with 'Partial => Array String'
-  --> 22:35..23:33
-   |
-22 |   fromContent = unsafePartial <<< case _ of
-   |                                   ^~~~~~~~~
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Sentence _
-  --> 22:35..23:33
-   |
-22 |   fromContent = unsafePartial <<< case _ of
-   |                                   ^~~~~~~~~
-error[NoInstanceFound]: No instance found for: Partial
-  --> 21:1..27:29
-   |
-21 | instance ContentOverload (Array String) where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

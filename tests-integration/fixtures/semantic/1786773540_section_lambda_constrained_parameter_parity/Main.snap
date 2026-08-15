@@ -12,7 +12,7 @@ foreign import consume :: (Main.Unit -> (Prim.Partial => Prim.Int -> Prim.Int)) 
 foreign import use :: Main.Unit -> Prim.Int -> Prim.Int
 
 sectioned :: Main.Unit
-sectioned = consume \v36 v38 -> use v36 v38
+sectioned = consume \v36 -> \{partialDict} -> \v38 -> use v36 v38
 
 lowered :: Main.Unit
 lowered = consume \unit -> \{partialDict} -> \value -> use unit value

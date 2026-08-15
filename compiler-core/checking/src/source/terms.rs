@@ -200,7 +200,7 @@ fn check_sectioned_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     expression: lowering::ExpressionId,
-    section_result: &sugar::SectionResult,
+    sections: &[lowering::ExpressionId],
     expected: TypeId,
 ) -> QueryResult<ElaboratedExpression>
 where
@@ -210,7 +210,18 @@ where
     let mut parameters = vec![];
     let mut binders = vec![];
 
-    for &section_id in section_result.iter() {
+    for &section_id in sections {
+        if !parameters.is_empty() {
+            let expanded = normalise::expand(state, context, current)?;
+            let requires_abstraction = matches!(
+                context.lookup_type(expanded),
+                Type::Forall(_, _) | Type::Constrained(_, _)
+            );
+            if requires_abstraction {
+                break;
+            }
+        }
+
         let decomposed = toolkit::decompose_function(state, context, current)?;
         let parameter = if let Some((argument_type, result_type)) = decomposed {
             current = result_type;
@@ -233,11 +244,19 @@ where
         binders.push(binder);
     }
 
-    let result = infer_expression_core(state, context, expression)?;
-    let ElaboratedExpression { type_id, expression } =
-        application::instantiate_expression(state, context, result)?;
-
-    unification::subtype(state, context, type_id, current)?;
+    let (_, remaining_sections) = sections.split_at(parameters.len());
+    let ElaboratedExpression { type_id, expression } = if remaining_sections.is_empty() {
+        check_expected_expression(state, context, current, |state, expected| {
+            let inferred = infer_expression_core(state, context, expression)?;
+            let inferred = application::instantiate_expression(state, context, inferred)?;
+            unification::subtype(state, context, inferred.type_id, expected)?;
+            Ok(inferred)
+        })?
+    } else {
+        check_expected_expression(state, context, current, |state, expected| {
+            check_sectioned_expression(state, context, expression, remaining_sections, expected)
+        })?
+    };
 
     let function_type = context.intern_function_list(&parameters, type_id);
     let kind = tree::ExpressionKind::Lambda { binders: Arc::from(binders), expression };

@@ -15,15 +15,3 @@ Unit :: Prim.Type
 
 Roles
 Unit = []
-
-Diagnostics
-error[CannotUnify]: Cannot unify 'Int -> (Partial => Int -> Int)' with 'Partial => Int -> Int'
-  --> 9:22..9:29
-  |
-9 | sectioned = consume (use _ _)
-  |                      ^~~~~~~
-error[CannotUnify]: Cannot unify 'Int' with 'Partial => Int -> Int'
-  --> 9:22..9:29
-  |
-9 | sectioned = consume (use _ _)
-  |                      ^~~~~~~

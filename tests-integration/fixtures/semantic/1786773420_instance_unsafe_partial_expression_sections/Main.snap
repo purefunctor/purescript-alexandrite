@@ -18,8 +18,9 @@ dictionary contentOverloadString :: Main.ContentOverload Prim.String where
   fromContent :: Main.Content -> Prim.String
   fromContent =
     compose {semigroupoidFn} unsafePartial \v54 ->
-      (case v54 of
-        (Sentence content) -> content) {error}
+      \{partialDict} ->
+        (case v54 of
+          (Sentence content) -> content) {partialDict}
   fromContentPartialLambda :: Main.Content -> Prim.String
   fromContentPartialLambda =
     unsafePartial \{partialDict} ->
@@ -36,8 +37,9 @@ dictionary contentOverloadArray :: Main.ContentOverload (Prim.Array Prim.String)
   fromContent :: Main.Content -> Prim.Array Prim.String
   fromContent =
     compose {semigroupoidFn} unsafePartial \v120 ->
-      (case v120 of
-        (Paragraph content) -> content) {error}
+      \{partialDict} ->
+        (case v120 of
+          (Paragraph content) -> content) {partialDict}
   fromContentPartialLambda :: Main.Content -> Prim.Array Prim.String
   fromContentPartialLambda =
     unsafePartial \{partialDict} ->
