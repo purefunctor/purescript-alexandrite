@@ -1,7 +1,7 @@
 use std::mem;
 use std::sync::Arc;
 
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 use petgraph::algo::tarjan_scc;
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, StrExt};
@@ -367,7 +367,7 @@ fn lower_expression_kind(
                 let mut has_discard = false;
 
                 for (position, statement) in statements.children().with_position() {
-                    let is_final = matches!(position, Position::Last | Position::Only);
+                    let is_final = position.is_last();
                     match statement {
                         cst::DoStatement::DoStatementBind(_) => has_bind = true,
                         cst::DoStatement::DoStatementDiscard(_) if !is_final => has_discard = true,

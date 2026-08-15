@@ -9,19 +9,19 @@ anyhow = "1"
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4", features = ["derive"] }
-criterion = { version = "0.6.0", features = ["html_reports"] }
+criterion = { version = "0.8.2", features = ["html_reports"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 flate2 = "1"
-git2 = "0.20"
-globset = "0.4.18"
-indicatif = "0.18.3"
+git2 = { version = "0.21", features = ["https"] }
+globset = "0.4.20"
+indicatif = "0.18.6"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 lexing = { version = "0.1.0", path = "../compiler-core/lexing" }
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 parsing = { version = "0.1.0", path = "../compiler-core/parsing" }
-rayon = "1.11.0"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+rayon = "1.12.0"
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }
 resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -30,7 +30,7 @@ stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
 tar = "0.4.46"
 thiserror = "2"
-url = "2.5.7"
+url = "2.5.8"
 walkdir = "2.5.0"
 
 [dev-dependencies]

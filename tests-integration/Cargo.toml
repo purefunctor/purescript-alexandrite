@@ -5,29 +5,29 @@ edition = "2024"
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
-async-lsp = "0.2.2"
+async-lsp = "0.2.4"
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
-glob = "0.3.3"
+glob = "0.3.4"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
-itertools = "0.14.0"
-insta = "1.45.1"
+itertools = "0.15.0"
+insta = "1.48.0"
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 lsp-types.workspace = true
 prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
 serde_json = "1.0"
-similar = "2"
+similar = "3"
 stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-core/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-core/syntax" }
-tabled = "0.20.0"
-tempfile = "3.24.0"
-url = "2.5.7"
+tabled = "0.21.0"
+tempfile = "3.27.0"
+url = "2.5.8"
 
 [dev-dependencies]
 datatest-stable = "0.3"

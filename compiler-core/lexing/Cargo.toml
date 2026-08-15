@@ -8,6 +8,5 @@ syntax = { version = "0.1.0", path = "../syntax" }
 unicode_categories = "0.1.1"
 
 [dev-dependencies]
-insta = "1.45.1"
-test_each_file = "0.3.6"
-
+insta = "1.48.0"
+test_each_file = "0.3.7"
