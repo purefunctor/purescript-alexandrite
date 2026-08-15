@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 9, character: 3 }
+
+```
+instance Convert Int String
+-- $
+```
+
+Range: <none>
+
+```purescript
+<unknown> :: Convert Int String
+```
+
+
+Hover at Position { line: 12, character: 3 }
+
+```
+instance Convert (Int :+: String) Boolean
+-- $
+```
+
+Range: <none>
+
+```purescript
+<unknown> :: Convert (Pair Int String) Boolean
+```
