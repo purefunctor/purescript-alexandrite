@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+foreign import consume :: (Main.Unit -> (Prim.Partial => Prim.Int -> Prim.Int)) -> Main.Unit
+
+foreign import use :: Main.Unit -> Prim.Int -> Prim.Int
+
+sectioned :: Main.Unit
+sectioned = consume \v36 -> \{partialDict} -> \v38 -> use v36 v38
+
+lowered :: Main.Unit
+lowered = consume \unit -> \{partialDict} -> \value -> use unit value

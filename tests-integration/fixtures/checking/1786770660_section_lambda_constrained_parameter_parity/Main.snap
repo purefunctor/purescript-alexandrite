@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+consume :: (Main.Unit -> (Prim.Partial => Prim.Int -> Prim.Int)) -> Main.Unit
+use :: Main.Unit -> Prim.Int -> Prim.Int
+sectioned :: Main.Unit
+lowered :: Main.Unit
+
+Types
+Unit :: Prim.Type
+
+Roles
+Unit = []

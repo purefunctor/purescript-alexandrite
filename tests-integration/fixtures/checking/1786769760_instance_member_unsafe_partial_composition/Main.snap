@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Sentence :: Prim.String -> Main.Content
+Paragraph :: Prim.Array Prim.String -> Main.Content
+fromContent :: forall @a. Main.ContentOverload a => Main.Content -> a
+fromContentPartialLambda :: forall @a. Main.ContentOverload a => Main.Content -> a
+fromContentLambdaPartial :: forall @a. Main.ContentOverload a => Main.Content -> a
+
+Types
+Content :: Prim.Type
+ContentOverload :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.ContentOverload a
+  fromContent :: forall @a. Main.ContentOverload a => Main.Content -> a
+  fromContentPartialLambda :: forall @a. Main.ContentOverload a => Main.Content -> a
+  fromContentLambdaPartial :: forall @a. Main.ContentOverload a => Main.Content -> a
+
+Instances
+instance Main.ContentOverload Prim.String
+instance Main.ContentOverload (Prim.Array Prim.String)
+
+Roles
+Content = []
