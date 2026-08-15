@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module UnterminatedRawString
+
+Expressions:
+
+"""unterminated@2:7
+  -> string RawString "\"\"\"unterminated\n"
+
+Types:

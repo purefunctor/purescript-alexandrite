@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+00@3:14
+  -> integer 0
+""""""@4:10
+  -> string RawString ""
+
+Types:

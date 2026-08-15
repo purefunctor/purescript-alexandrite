@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+value@3:25
+  -> record pun@3:14
+1@5:19
+  -> integer 1
+value@2:22
+  -> binder@2:13
+1@6:27
+  -> integer 1
+
+Types:
