@@ -12,3 +12,9 @@ instance Convert Int String
 
 instance Convert (Int :+: String) Boolean
 -- $
+
+instance Convert value value
+-- $
+
+instance Convert value (value :+: value)
+-- $

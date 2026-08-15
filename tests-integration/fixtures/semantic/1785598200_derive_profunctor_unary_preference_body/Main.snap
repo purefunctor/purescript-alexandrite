@@ -23,7 +23,8 @@ dictionary functorFunction :: forall a. Data.Functor.Functor (Main.Function a) w
     case value of
       (Function field0) -> Function \argument -> function (field0 argument)
 
-dictionary profunctorNestedRight :: Data.Profunctor.Profunctor (Main.NestedRight @Prim.Type) where
+dictionary profunctorNestedRightType :: Data.Profunctor.Profunctor (Main.NestedRight @Prim.Type)
+  where
   dimap :: forall a b c d.
   (a -> b) -> (c -> d) -> Main.NestedRight @Prim.Type b c -> Main.NestedRight @Prim.Type a d
   dimap = \firstFunction secondFunction value ->

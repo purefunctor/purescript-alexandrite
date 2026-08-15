@@ -7,7 +7,7 @@ data Constant :: forall k0. Prim.Type -> k0 -> Prim.Type
 data Constant @value @a
   | Constant :: value -> Main.Constant value a
 
-dictionary contravariantConstant ::
+dictionary contravariantConstantType ::
   forall value.
   Data.Functor.Contravariant.Contravariant (Main.Constant @Prim.Type value)
   where

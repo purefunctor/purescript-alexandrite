@@ -7,7 +7,7 @@ data Nested :: forall k0 k1. (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Nested @p @a @b
   | Nested :: p a b -> Main.Nested p a b
 
-dictionary bifoldableNested ::
+dictionary bifoldableNestedTypeType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Bifoldable.Bifoldable (Main.Nested @Prim.Type @Prim.Type p)

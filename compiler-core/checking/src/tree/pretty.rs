@@ -149,6 +149,26 @@ where
             .expect("critical failure: failed to render checked semantic tree");
         Ok(output.finish())
     }
+
+    pub fn render_instance_name(
+        &self,
+        file_id: FileId,
+        origin: InstanceCandidateOrigin,
+    ) -> QueryResult<SmolStr> {
+        let indexed = self.queries.indexed(file_id)?;
+        let lowered = self.queries.lowered(file_id)?;
+        let arena = Arena::new();
+        let printer = Printer::new(
+            &arena,
+            self.queries,
+            file_id,
+            &indexed,
+            &lowered,
+            self.checked,
+            self.config,
+        );
+        printer.instance_dictionary_name(origin)
+    }
 }
 
 struct Printer<'arena, 'context, 'module, Q>
@@ -248,19 +268,14 @@ where
             declarations.push(signature.append(self.arena.hardline()).append(declaration));
         }
 
-        let mut term_names = PrettyNames::new();
-        for (_, IndexedTermItem { name, .. }) in self.indexed.items.iter_terms() {
-            if let Some(name) = name {
-                term_names.allocate_display_name(SmolStr::clone(name));
-            }
-        }
+        let mut dictionary_names = PrettyNames::new();
         for item_id in self.indexed.items.instance_sources() {
             let name = match item_id {
                 InstanceSourceItemId::Instance(id) => &self.indexed.items[*id].name,
                 InstanceSourceItemId::Derive(id) => &self.indexed.items[*id].name,
             };
             if let Some(name) = name {
-                term_names.allocate_display_name(SmolStr::clone(name));
+                dictionary_names.allocate_display_name(SmolStr::clone(name));
             }
         }
 
@@ -298,7 +313,7 @@ where
                     let declaration_id = self.checked.tree.lookup_instance(id);
                     self.push_instance_declaration(
                         &mut declarations,
-                        &mut term_names,
+                        &mut dictionary_names,
                         name,
                         declaration_id,
                     )?;
@@ -308,7 +323,7 @@ where
                     let declaration_id = self.checked.tree.lookup_derive(id);
                     self.push_instance_declaration(
                         &mut declarations,
-                        &mut term_names,
+                        &mut dictionary_names,
                         name,
                         declaration_id,
                     )?;
@@ -796,40 +811,62 @@ where
         let mut base = format!("{first}{}", characters.as_str());
 
         let mut current = type_id;
+        let mut arguments = vec![];
         loop {
             match self.queries.lookup_type(current) {
                 Type::Forall(_, inner) | Type::Constrained(_, inner) | Type::Kinded(inner, _) => {
                     current = inner;
                 }
-                Type::Application(_, argument) => {
-                    if let Some(argument_name) = self.outer_type_constructor_name(argument)? {
-                        base.push_str(&argument_name);
-                    }
-                    break;
+                Type::Application(function, argument) => {
+                    arguments.push(argument);
+                    current = function;
                 }
-                Type::KindApplication(function, _) => current = function,
+                Type::KindApplication(function, argument) => {
+                    arguments.push(argument);
+                    current = function;
+                }
                 _ => break,
             }
+        }
+        for argument in arguments.into_iter().rev() {
+            self.append_type_constructor_names(&mut base, argument)?;
         }
 
         Ok(SmolStr::new(base))
     }
 
-    fn outer_type_constructor_name(
+    fn append_type_constructor_names(
         &self,
-        mut type_id: crate::TypeId,
-    ) -> QueryResult<Option<String>> {
-        loop {
-            match self.queries.lookup_type(type_id) {
-                Type::Application(function, _)
-                | Type::KindApplication(function, _)
-                | Type::Kinded(function, _) => type_id = function,
-                Type::Constructor(file_id, item_id) => {
-                    return self.type_name(file_id, item_id);
-                }
-                _ => return Ok(None),
+        name: &mut String,
+        type_id: crate::TypeId,
+    ) -> QueryResult<()> {
+        match self.queries.lookup_type(type_id) {
+            Type::Application(function, argument) | Type::KindApplication(function, argument) => {
+                self.append_type_constructor_names(name, function)?;
+                self.append_type_constructor_names(name, argument)?;
             }
+            Type::Forall(_, inner) | Type::Kinded(inner, _) => {
+                self.append_type_constructor_names(name, inner)?;
+            }
+            Type::Constrained(_, inner) => {
+                self.append_type_constructor_names(name, inner)?;
+            }
+            Type::Function(parameter, result) => {
+                name.push_str("Function");
+                self.append_type_constructor_names(name, parameter)?;
+                self.append_type_constructor_names(name, result)?;
+            }
+            Type::Constructor(file_id, item_id) => {
+                if let Some(constructor_name) = self.type_name(file_id, item_id)? {
+                    name.push_str(&constructor_name);
+                }
+            }
+            Type::Integer(value) => name.push_str(&value.to_string()),
+            Type::String(_, value) => name.push_str(&self.queries.lookup_smol_str(value)),
+            Type::Row(_) => name.push_str("Row"),
+            Type::Rigid(..) | Type::Unification(_) | Type::Free(_) | Type::Unknown(_) => {}
         }
+        Ok(())
     }
 
     fn equation_declarations(
@@ -1776,11 +1813,6 @@ where
             if file_id == self.file_id { None } else { Some(self.queries.checked(file_id)?) };
         let checked = checked.as_deref().unwrap_or(self.checked);
         let mut names = PrettyNames::new();
-        for (_, item) in indexed.items.iter_terms() {
-            if let Some(name) = &item.name {
-                names.allocate_display_name(SmolStr::clone(name));
-            }
-        }
         for &candidate_id in indexed.items.instance_sources() {
             let name = match candidate_id {
                 InstanceSourceItemId::Instance(id) => &indexed.items[id].name,

@@ -7,7 +7,7 @@ data Wrap :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 ->
 data Wrap @f @g @a @b
   | Wrap :: f a -> g b -> Main.Wrap f g a b
 
-dictionary bifoldableWrap ::
+dictionary bifoldableWrapTypeType ::
   forall f g.
   { foldableDict :: Data.Foldable.Foldable f } =>
   { foldableDict1 :: Data.Foldable.Foldable g } =>

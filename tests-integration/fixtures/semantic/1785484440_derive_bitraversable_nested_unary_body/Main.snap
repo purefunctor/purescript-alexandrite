@@ -7,7 +7,7 @@ data Wrap :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 ->
 data Wrap @f @g @a @b
   | Wrap :: f a -> g b -> Main.Wrap f g a b
 
-dictionary bifunctorWrap ::
+dictionary bifunctorWrapTypeType ::
   forall f g.
   { functorDict :: Data.Functor.Functor f } =>
   { functorDict1 :: Data.Functor.Functor g } =>
@@ -23,7 +23,7 @@ dictionary bifunctorWrap ::
       (Wrap field0 field1) -> Wrap (map {functorDict} (\element -> firstFunction element) field0)
         (map {functorDict1} (\element -> secondFunction element) field1)
 
-dictionary bifoldableWrap ::
+dictionary bifoldableWrapTypeType ::
   forall f g.
   { foldableDict :: Data.Foldable.Foldable f } =>
   { foldableDict1 :: Data.Foldable.Foldable g } =>
@@ -56,14 +56,14 @@ dictionary bifoldableWrap ::
           (foldMap {foldableDict} {monoidDict} (\element -> firstFunction element) field0)
           (foldMap {foldableDict1} {monoidDict} (\element -> secondFunction element) field1)
 
-dictionary bitraversableWrap ::
+dictionary bitraversableWrapTypeType ::
   forall f g.
   { traversableDict :: Data.Traversable.Traversable f } =>
   { traversableDict1 :: Data.Traversable.Traversable g } =>
   Data.Bitraversable.Bitraversable (Main.Wrap @Prim.Type @Prim.Type f g)
   where
-  superclass bifunctorDict = bifunctorWrap {traversableDict.functorDict} {traversableDict1.functorDict}
-  superclass bifoldableDict = bifoldableWrap {traversableDict.foldableDict} {traversableDict1.foldableDict}
+  superclass bifunctorDict = bifunctorWrapTypeType {traversableDict.functorDict} {traversableDict1.functorDict}
+  superclass bifoldableDict = bifoldableWrapTypeType {traversableDict.foldableDict} {traversableDict1.foldableDict}
   bitraverse :: forall (f1 :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f1 =>
   (a -> f1 c) ->
@@ -85,7 +85,7 @@ dictionary bitraversableWrap ::
   Main.Wrap @Prim.Type @Prim.Type f g (f1 a) (f1 b) -> f1 (Main.Wrap @Prim.Type @Prim.Type f g a b)
   bisequence = \{applicativeDict} ->
     \value ->
-      bitraverse {bitraversableWrap {traversableDict} {traversableDict1}} {applicativeDict}
+      bitraverse {bitraversableWrapTypeType {traversableDict} {traversableDict1}} {applicativeDict}
         (\effect0 -> effect0)
         (\effect1 -> effect1)
         value

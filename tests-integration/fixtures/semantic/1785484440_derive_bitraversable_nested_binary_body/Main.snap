@@ -7,7 +7,7 @@ data Nested :: forall k0 k1. (k0 -> k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
 data Nested @p @a @b
   | Nested :: p a b -> Main.Nested p a b
 
-dictionary bifunctorNested ::
+dictionary bifunctorNestedTypeType ::
   forall p.
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Bifunctor.Bifunctor (Main.Nested @Prim.Type @Prim.Type p)
@@ -24,7 +24,7 @@ dictionary bifunctorNested ::
           (\element -> secondFunction element)
           field0)
 
-dictionary bifoldableNested ::
+dictionary bifoldableNestedTypeType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Bifoldable.Bifoldable (Main.Nested @Prim.Type @Prim.Type p)
@@ -55,13 +55,13 @@ dictionary bifoldableNested ::
           (\element -> secondFunction element)
           field0
 
-dictionary bitraversableNested ::
+dictionary bitraversableNestedTypeType ::
   forall p.
   { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
   Data.Bitraversable.Bitraversable (Main.Nested @Prim.Type @Prim.Type p)
   where
-  superclass bifunctorDict = bifunctorNested {bitraversableDict.bifunctorDict}
-  superclass bifoldableDict = bifoldableNested {bitraversableDict.bifoldableDict}
+  superclass bifunctorDict = bifunctorNestedTypeType {bitraversableDict.bifunctorDict}
+  superclass bifoldableDict = bifoldableNestedTypeType {bitraversableDict.bifoldableDict}
   bitraverse :: forall (f :: Prim.Type -> Prim.Type) a b c d.
   Control.Applicative.Applicative f =>
   (a -> f c) ->
@@ -81,6 +81,7 @@ dictionary bitraversableNested ::
   Main.Nested @Prim.Type @Prim.Type p (f a) (f b) -> f (Main.Nested @Prim.Type @Prim.Type p a b)
   bisequence = \{applicativeDict} ->
     \value ->
-      bitraverse {bitraversableNested {bitraversableDict}} {applicativeDict} (\effect0 -> effect0)
+      bitraverse {bitraversableNestedTypeType {bitraversableDict}} {applicativeDict}
+        (\effect0 -> effect0)
         (\effect1 -> effect1)
         value

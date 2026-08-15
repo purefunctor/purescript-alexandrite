@@ -13,7 +13,7 @@ instance Convert Int String
 Range: <none>
 
 ```purescript
-<unknown> :: Convert Int String
+convertIntString :: Convert Int String
 ```
 
 
@@ -27,5 +27,33 @@ instance Convert (Int :+: String) Boolean
 Range: <none>
 
 ```purescript
-<unknown> :: Convert (Pair Int String) Boolean
+convertPairIntStringBoolean :: Convert (Pair Int String) Boolean
+```
+
+
+Hover at Position { line: 15, character: 3 }
+
+```
+instance Convert value value
+-- $
+```
+
+Range: <none>
+
+```purescript
+convert :: forall value. Convert value value
+```
+
+
+Hover at Position { line: 18, character: 3 }
+
+```
+instance Convert value (value :+: value)
+-- $
+```
+
+Range: <none>
+
+```purescript
+convertPair :: forall value. Convert value (Pair value value)
 ```

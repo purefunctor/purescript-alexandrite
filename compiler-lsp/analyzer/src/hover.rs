@@ -1,5 +1,7 @@
 use building_types::QueryProxy;
 use checking::core::pretty::{Pretty, PrettyConfig};
+use checking::evidence::InstanceCandidateOrigin;
+use checking::tree::pretty::Pretty as TreePretty;
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
@@ -88,7 +90,10 @@ pub fn implementation(
             let checked = engine.checked(current_file)?;
             let item = &indexed.items[item_id];
             let signature = checked.lookup_instance(item.id).map(|instance| instance.signature);
-            hover_instance_signature(engine, &checked, item.name.as_deref(), signature)
+            let pretty = TreePretty::new(engine, &checked);
+            let origin = InstanceCandidateOrigin::Instance(current_file, item.id);
+            let name = pretty.render_instance_name(current_file, origin)?;
+            hover_instance_signature(engine, &checked, Some(&name), signature)
         }
         locate::Located::DeriveItem(item_id) => {
             let indexed = engine.indexed(current_file)?;
@@ -96,7 +101,10 @@ pub fn implementation(
             let item = &indexed.items[item_id];
             let signature =
                 checked.lookup_derived_instance(item.id).map(|instance| instance.signature);
-            hover_instance_signature(engine, &checked, item.name.as_deref(), signature)
+            let pretty = TreePretty::new(engine, &checked);
+            let origin = InstanceCandidateOrigin::Derive(current_file, item.id);
+            let name = pretty.render_instance_name(current_file, origin)?;
+            hover_instance_signature(engine, &checked, Some(&name), signature)
         }
         locate::Located::LetBinding(let_id) => hover_let(engine, current_file, let_id),
         locate::Located::Nothing => Ok(None),

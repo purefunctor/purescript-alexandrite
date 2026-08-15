@@ -7,13 +7,13 @@ data Const :: forall k0. Prim.Type -> k0 -> Prim.Type
 data Const @e @a
   | Const :: e -> Main.Const e a
 
-dictionary functorConst :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
+dictionary functorConstType :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
   map :: forall a b. (a -> b) -> Main.Const @Prim.Type e a -> Main.Const @Prim.Type e b
   map = \function value ->
     case value of
       (Const field0) -> Const field0
 
-dictionary foldableConst :: forall e. Data.Foldable.Foldable (Main.Const @Prim.Type e) where
+dictionary foldableConstType :: forall e. Data.Foldable.Foldable (Main.Const @Prim.Type e) where
   foldr :: forall a b. (a -> b -> b) -> b -> Main.Const @Prim.Type e a -> b
   foldr = \function accumulator value ->
     case value of
@@ -28,10 +28,10 @@ dictionary foldableConst :: forall e. Data.Foldable.Foldable (Main.Const @Prim.T
       case value of
         (Const field0) -> mempty {monoidDict}
 
-dictionary traversableConst :: forall e. Data.Traversable.Traversable (Main.Const @Prim.Type e)
+dictionary traversableConstType :: forall e. Data.Traversable.Traversable (Main.Const @Prim.Type e)
   where
-  superclass functorDict = functorConst
-  superclass foldableDict = foldableConst
+  superclass functorDict = functorConstType
+  superclass foldableDict = foldableConstType
   traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.Const @Prim.Type e a -> m (Main.Const @Prim.Type e b)
@@ -43,4 +43,4 @@ dictionary traversableConst :: forall e. Data.Traversable.Traversable (Main.Cons
   Control.Applicative.Applicative m =>
   Main.Const @Prim.Type e (m a) -> m (Main.Const @Prim.Type e a)
   sequence = \{applicativeDict} ->
-    \value -> traverse {traversableConst} {applicativeDict} (\effect0 -> effect0) value
+    \value -> traverse {traversableConstType} {applicativeDict} (\effect0 -> effect0) value

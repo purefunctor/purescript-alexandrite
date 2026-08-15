@@ -7,7 +7,7 @@ data Compose :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
 data Compose @f @g @a
   | Compose :: f (g a) -> Main.Compose f g a
 
-dictionary functorCompose ::
+dictionary functorComposeTypeType ::
   forall f g.
   { functorDict :: Data.Functor.Functor f } =>
   { functorDict1 :: Data.Functor.Functor g } =>
@@ -21,7 +21,7 @@ dictionary functorCompose ::
         (map {functorDict} (\element -> map {functorDict1} (\element -> function element) element)
           field0)
 
-dictionary foldableCompose ::
+dictionary foldableComposeTypeType ::
   forall f g.
   { foldableDict :: Data.Foldable.Foldable f } =>
   { foldableDict1 :: Data.Foldable.Foldable g } =>
@@ -53,14 +53,14 @@ dictionary foldableCompose ::
           (\element -> foldMap {foldableDict1} {monoidDict} (\element -> function element) element)
           field0
 
-dictionary traversableCompose ::
+dictionary traversableComposeTypeType ::
   forall f g.
   { traversableDict :: Data.Traversable.Traversable f } =>
   { traversableDict1 :: Data.Traversable.Traversable g } =>
   Data.Traversable.Traversable (Main.Compose @Prim.Type @Prim.Type f g)
   where
-  superclass functorDict = functorCompose {traversableDict.functorDict} {traversableDict1.functorDict}
-  superclass foldableDict = foldableCompose {traversableDict.foldableDict} {traversableDict1.foldableDict}
+  superclass functorDict = functorComposeTypeType {traversableDict.functorDict} {traversableDict1.functorDict}
+  superclass foldableDict = foldableComposeTypeType {traversableDict.foldableDict} {traversableDict1.foldableDict}
   traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) ->
@@ -80,6 +80,6 @@ dictionary traversableCompose ::
   Main.Compose @Prim.Type @Prim.Type f g (m a) -> m (Main.Compose @Prim.Type @Prim.Type f g a)
   sequence = \{applicativeDict} ->
     \value ->
-      traverse {traversableCompose {traversableDict} {traversableDict1}} {applicativeDict}
+      traverse {traversableComposeTypeType {traversableDict} {traversableDict1}} {applicativeDict}
         (\effect0 -> effect0)
         value

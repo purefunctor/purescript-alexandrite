@@ -7,7 +7,7 @@ data RightNested :: forall k0. (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data RightNested @p @a
   | RightNested :: p Prim.Int a -> Main.RightNested p a
 
-dictionary functorRightNested ::
+dictionary functorRightNestedType ::
   forall p.
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.RightNested @Prim.Type p)
@@ -16,7 +16,7 @@ dictionary functorRightNested ::
   map = \function -> \(RightNested value) ->
     RightNested (bimap {bifunctorDict} (\fixed -> fixed) function value)
 
-dictionary foldableRightNested ::
+dictionary foldableRightNestedType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.RightNested @Prim.Type p)
@@ -31,13 +31,13 @@ dictionary foldableRightNested ::
   foldMap = \{monoidDict} -> \function -> \(RightNested value) ->
     bifoldMap {bifoldableDict} {monoidDict} (\_ -> mempty {monoidDict}) function value
 
-dictionary traversableRightNested ::
+dictionary traversableRightNestedType ::
   forall p.
   { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
   Data.Traversable.Traversable (Main.RightNested @Prim.Type p)
   where
-  superclass functorDict = functorRightNested {bitraversableDict.bifunctorDict}
-  superclass foldableDict = foldableRightNested {bitraversableDict.bifoldableDict}
+  superclass functorDict = functorRightNestedType {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableRightNestedType {bitraversableDict.bifoldableDict}
   traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.RightNested @Prim.Type p a -> m (Main.RightNested @Prim.Type p b)
@@ -55,5 +55,6 @@ dictionary traversableRightNested ::
   Main.RightNested @Prim.Type p (m a) -> m (Main.RightNested @Prim.Type p a)
   sequence = \{applicativeDict} ->
     \value ->
-      traverse {traversableRightNested {bitraversableDict}} {applicativeDict} (\effect0 -> effect0)
+      traverse {traversableRightNestedType {bitraversableDict}} {applicativeDict}
+        (\effect0 -> effect0)
         value

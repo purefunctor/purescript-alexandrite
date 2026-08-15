@@ -13,3 +13,9 @@ instance Convert Int String where
 
 instance Convert (Int :+: String) Boolean where
   convert _ = true
+
+instance Convert value value where
+  convert value = value
+
+instance Convert value (value :+: value) where
+  convert value = Pair value value

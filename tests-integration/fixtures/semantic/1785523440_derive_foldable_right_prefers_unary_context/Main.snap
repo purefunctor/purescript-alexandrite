@@ -7,7 +7,7 @@ data RightNested :: forall k0. (Prim.Type -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data RightNested @p @a
   | RightNested :: p Prim.Int a -> Main.RightNested p a
 
-dictionary foldableRightNested ::
+dictionary foldableRightNestedType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   { foldableDict :: Data.Foldable.Foldable (p Prim.Int) } =>
