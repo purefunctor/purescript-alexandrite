@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface NamedSymbol :: Prim.Symbol -> Prim.Constraint
+interface NamedSymbol symbol where
+
+dictionary namedSymbolfoo bar :: Main.NamedSymbol "foo bar"
