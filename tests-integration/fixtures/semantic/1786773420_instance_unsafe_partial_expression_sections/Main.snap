@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Content :: Prim.Type
+data Content
+  | Sentence :: Prim.String -> Main.Content
+  | Paragraph :: Prim.Array Prim.String -> Main.Content
+
+interface ContentOverload :: Prim.Type -> Prim.Constraint
+interface ContentOverload a where
+  fromContent :: Main.Content -> a
+  fromContentPartialLambda :: Main.Content -> a
+  fromContentLambdaPartial :: Main.Content -> a
+
+dictionary contentOverloadString :: Main.ContentOverload Prim.String where
+  fromContent :: Main.Content -> Prim.String
+  fromContent =
+    compose {semigroupoidFn} unsafePartial \v54 ->
+      (case v54 of
+        (Sentence content) -> content) {error}
+  fromContentPartialLambda :: Main.Content -> Prim.String
+  fromContentPartialLambda =
+    unsafePartial \{partialDict} ->
+      \content ->
+        case content of
+          (Sentence value) -> value
+  fromContentLambdaPartial :: Main.Content -> Prim.String
+  fromContentLambdaPartial = \content ->
+    unsafePartial \{partialDict} ->
+      case content of
+        (Sentence value) -> value
+
+dictionary contentOverloadArray :: Main.ContentOverload (Prim.Array Prim.String) where
+  fromContent :: Main.Content -> Prim.Array Prim.String
+  fromContent =
+    compose {semigroupoidFn} unsafePartial \v120 ->
+      (case v120 of
+        (Paragraph content) -> content) {error}
+  fromContentPartialLambda :: Main.Content -> Prim.Array Prim.String
+  fromContentPartialLambda =
+    unsafePartial \{partialDict} ->
+      \content ->
+        case content of
+          (Paragraph value) -> value
+  fromContentLambdaPartial :: Main.Content -> Prim.Array Prim.String
+  fromContentLambdaPartial = \content ->
+    unsafePartial \{partialDict} ->
+      case content of
+        (Paragraph value) -> value

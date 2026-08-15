@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Unit :: Main.Unit
+consume :: (Main.Unit -> (Prim.Partial => Prim.Int -> Prim.Int)) -> Main.Unit
+use :: Main.Unit -> Prim.Int -> Prim.Int
+sectioned :: Main.Unit
+lowered :: Main.Unit
+
+Types
+Unit :: Prim.Type
+
+Roles
+Unit = []
+
+Diagnostics
+error[CannotUnify]: Cannot unify 'Int -> (Partial => Int -> Int)' with 'Partial => Int -> Int'
+  --> 9:22..9:29
+  |
+9 | sectioned = consume (use _ _)
+  |                      ^~~~~~~
+error[CannotUnify]: Cannot unify 'Int' with 'Partial => Int -> Int'
+  --> 9:22..9:29
+  |
+9 | sectioned = consume (use _ _)
+  |                      ^~~~~~~
