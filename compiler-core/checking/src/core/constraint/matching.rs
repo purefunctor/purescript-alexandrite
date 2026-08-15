@@ -401,7 +401,7 @@ where
 
     let mut outcome = MatchType::Match { bindings };
     for substitution in map.values() {
-        for (&left, &right) in substitution.iter().tuple_combinations() {
+        for [&left, &right] in substitution.iter().array_combinations() {
             outcome = outcome.combine(types_equal(state, context, left, right)?);
         }
     }

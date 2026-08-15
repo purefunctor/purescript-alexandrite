@@ -11,5 +11,5 @@ syntree = "0.18.0"
 syntax = { version = "0.1.0", path = "../syntax" }
 
 [dev-dependencies]
-insta = "1.45.1"
-test_each_file = "0.3.6"
+insta = "1.48.0"
+test_each_file = "0.3.7"

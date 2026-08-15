@@ -1,7 +1,7 @@
 use std::iter;
 
 use building_types::QueryResult;
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 
 use crate::context::CheckContext;
 use crate::core::{TypeId, toolkit, unification};
@@ -250,7 +250,7 @@ where
         let mut has_bind = false;
         let mut has_discard = false;
         for (position, statement) in steps.iter().with_position() {
-            let is_final = matches!(position, Position::Last | Position::Only);
+            let is_final = position.is_last();
             match statement {
                 DoStep::Bind { .. } => has_bind = true,
                 DoStep::Discard { .. } if !is_final => has_discard = true,

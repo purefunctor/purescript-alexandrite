@@ -14,5 +14,5 @@ syntax = { version = "0.1.0", path = "../syntax" }
 
 lsp-types.workspace = true
 line-index = "0.1.2"
-itertools = "0.14.0"
+itertools = "0.15.0"
 smol_str = "0.3.2"
