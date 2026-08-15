@@ -25,3 +25,9 @@ finalLet =
 
 missingDoAction :: forall t0. t0
 missingDoAction = <error> \value -> pure value
+
+missingFinalBindAction :: ?[empty do block]
+missingFinalBindAction = <error>
+
+missingFinalDiscardAction :: ?[empty do block]
+missingFinalDiscardAction = <error>
