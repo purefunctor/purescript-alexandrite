@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Completion at Position { line: 4, character: 30 }
+
+```
+type QualifiedType = Library.B
+--                            ^
+```
+
+╭─────────┬────────────────┬─────────────────────┬───────────────┬───────────────┬───────────────┬─────────────────────────╮
+│  label  │  label_detail  │  label_description  │  sort_text    │  filter_text  │  text_edit    │  additional_text_edits  │
+├─────────┼────────────────┼─────────────────────┼───────────────┼───────────────┼───────────────┼─────────────────────────┤
+│  Box    │   ...          │  Library            │  Library.Box  │  Library.Box  │  4:21..4:30   │  ...                    │
+│         │                │                     │               │               │  Library.Box  │                         │
+╰─────────┴────────────────┴─────────────────────┴───────────────┴───────────────┴───────────────┴─────────────────────────╯
+
+
+Completion at Position { line: 7, character: 36 }
+
+```
+instance qualifiedClass :: Library.W
+--                                  ^
+```
+
+╭─────────┬────────────────┬─────────────────────┬────────────────┬────────────────┬────────────────┬─────────────────────────╮
+│  label  │  label_detail  │  label_description  │  sort_text     │  filter_text   │  text_edit     │  additional_text_edits  │
+├─────────┼────────────────┼─────────────────────┼────────────────┼────────────────┼────────────────┼─────────────────────────┤
+│  Wrap   │   ...          │  Library            │  Library.Wrap  │  Library.Wrap  │  7:27..7:36    │  ...                    │
+│         │                │                     │                │                │  Library.Wrap  │                         │
+╰─────────┴────────────────┴─────────────────────┴────────────────┴────────────────┴────────────────┴─────────────────────────╯

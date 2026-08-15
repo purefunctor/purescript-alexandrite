@@ -1,0 +1,77 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 6, character: 16 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+Range: <none>
+
+```purescript
+derivedWrap :: Wrap @Type Box
+```
+
+
+GotoDefinition at Position { line: 6, character: 17 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+file:///tests-integration/fixtures/lsp/1786810380_named_derive_editor_features/Main.purs @ 6:0..6:39
+
+
+References at Position { line: 6, character: 18 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+file:///tests-integration/fixtures/lsp/1786810380_named_derive_editor_features/Main.purs @ 6:0..6:39
+
+
+DocumentHighlight at Position { line: 6, character: 19 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+6:16..6:27
+
+
+Rename at Position { line: 6, character: 20 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -4,5 +4,5 @@
+
+ data Box = Box
+
+-derive instance derivedWrap :: Wrap Box
++derive instance renamed :: Wrap Box
+ --              $@%&/?
+```
+
+
+PrepareRename at Position { line: 6, character: 21 }
+
+```
+derive instance derivedWrap :: Wrap Box
+--              $@%&/?
+```
+
+6:16..6:27 derivedWrap
