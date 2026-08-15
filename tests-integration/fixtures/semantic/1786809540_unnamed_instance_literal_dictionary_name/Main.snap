@@ -6,4 +6,4 @@ expression: report
 interface NamedSymbol :: Prim.Symbol -> Prim.Constraint
 interface NamedSymbol symbol where
 
-dictionary namedSymbolfoo bar :: Main.NamedSymbol "foo bar"
+dictionary namedSymbol :: Main.NamedSymbol "foo bar"

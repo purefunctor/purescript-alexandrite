@@ -861,10 +861,13 @@ where
                     name.push_str(&constructor_name);
                 }
             }
-            Type::Integer(value) => name.push_str(&value.to_string()),
-            Type::String(_, value) => name.push_str(&self.queries.lookup_smol_str(value)),
             Type::Row(_) => name.push_str("Row"),
-            Type::Rigid(..) | Type::Unification(_) | Type::Free(_) | Type::Unknown(_) => {}
+            Type::Integer(_)
+            | Type::String(..)
+            | Type::Rigid(..)
+            | Type::Unification(_)
+            | Type::Free(_)
+            | Type::Unknown(_) => {}
         }
         Ok(())
     }
