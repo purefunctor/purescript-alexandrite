@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+symbol :: Prim.String
+symbol = reflectType {reflectable("symbol")} Proxy
+
+integer :: Prim.Int
+integer = reflectType {reflectable(42)} Proxy
+
+booleanTrue :: Prim.Boolean
+booleanTrue = reflectType {reflectable(true)} Proxy
+
+booleanFalse :: Prim.Boolean
+booleanFalse = reflectType {reflectable(false)} Proxy
+
+orderingLess :: Data.Ordering.Ordering
+orderingLess = reflectType {reflectable(LT)} Proxy
+
+orderingEqual :: Data.Ordering.Ordering
+orderingEqual = reflectType {reflectable(EQ)} Proxy
+
+orderingGreater :: Data.Ordering.Ordering
+orderingGreater = reflectType {reflectable(GT)} Proxy
