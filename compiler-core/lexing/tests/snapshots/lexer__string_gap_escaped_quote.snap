@@ -1,0 +1,18 @@
+---
+source: compiler-core/lexing/tests/lexer.rs
+description: "\"hello\\\n\\\\\"world\"\n"
+expression: snapshot
+---
+annotation : ""
+ qualifier : ""
+      kind : STRING
+      text : "\"hello\\\n\\\\\"world\""
+  position : Position { line: 1, column: 1 }
+     error : None
+
+annotation : "\n"
+ qualifier : ""
+      kind : END_OF_FILE
+      text : ""
+  position : Position { line: 3, column: 1 }
+     error : None
