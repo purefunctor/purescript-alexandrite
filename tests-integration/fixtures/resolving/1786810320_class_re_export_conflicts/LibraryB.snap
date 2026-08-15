@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 102
+expression: report
+---
+module LibraryB
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - sharedB
+
+Exported Types:
+
+Exported Classes:
+  - Shared
+
+Local Terms:
+  - sharedB
+
+Local Types:
+
+Local Classes:
+  - Shared
+
+Class Members:
+  - Shared.sharedB
+
+Errors:

@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 102
+expression: report
+---
+module SameItem
+
+Unqualified Imports:
+
+Qualified Imports:
+
+First Terms:
+  - sharedA is Implicit
+
+First Types:
+
+First Classes:
+  - Shared is Implicit
+
+Again Terms:
+  - sharedA is Implicit
+
+Again Types:
+
+Again Classes:
+  - Shared is Implicit
+
+Exported Terms:
+  - sharedA
+
+Exported Types:
+
+Exported Classes:
+  - Shared
+
+Local Terms:
+
+Local Types:
+
+Local Classes:
+
+Class Members:
+  - Shared.sharedA (imported)
+
+Errors:

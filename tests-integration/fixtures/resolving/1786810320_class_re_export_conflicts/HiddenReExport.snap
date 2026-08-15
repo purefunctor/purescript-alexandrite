@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 102
+expression: report
+---
+module HiddenReExport
+
+Unqualified Imports:
+
+Terms:
+  - sharedA is Implicit
+
+Types:
+
+Classes:
+
+Qualified Imports:
+
+Exported Terms:
+  - sharedA
+
+Exported Types:
+
+Exported Classes:
+
+Local Terms:
+
+Local Types:
+
+Local Classes:
+
+Class Members:
+
+Errors:

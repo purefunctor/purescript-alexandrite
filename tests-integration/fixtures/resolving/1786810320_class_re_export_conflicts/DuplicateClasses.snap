@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 102
+expression: report
+---
+module DuplicateClasses
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+
+Exported Types:
+  - Between
+
+Exported Classes:
+  - Shared
+
+Local Terms:
+
+Local Types:
+  - Between
+
+Local Classes:
+  - Shared
+
+Class Members:
+
+Errors:
+  - ExistingType { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0)), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(2)) }
+  - TypeExportConflict { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0), Local), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(2), Local) }
