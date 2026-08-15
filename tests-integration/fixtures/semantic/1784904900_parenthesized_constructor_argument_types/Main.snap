@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Marker :: forall k0. k0 -> Prim.Constraint
+interface Marker a where
+
+data Complex :: Prim.Type
+data Complex
+  | Complex ::
+    (Prim.Int -> Prim.Int) ->
+      (forall value. value -> value) ->
+        (Main.Marker @Prim.Type Prim.Int => Prim.Int) -> Prim.Int -> Main.Complex
