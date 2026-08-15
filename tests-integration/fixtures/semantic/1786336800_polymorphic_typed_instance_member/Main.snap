@@ -26,7 +26,7 @@ dictionary convertFG :: Main.Convert Main.F Main.G where
   convertExplicit :: forall a. Main.F a -> Main.G a
   convertExplicit = unsafeCoerce
 
-dictionary clash :: forall f. Main.Clash f where
+dictionary clash1 :: forall f. Main.Clash f where
   clash :: forall a. f a -> f a
   clash = \(value :: f a) ->
     case value of

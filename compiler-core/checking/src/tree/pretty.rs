@@ -269,6 +269,12 @@ where
         }
 
         let mut dictionary_names = PrettyNames::new();
+        for (_, IndexedTermItem { name, .. }) in self.indexed.items.iter_terms() {
+            if let Some(name) = name {
+                dictionary_names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+
         for item_id in self.indexed.items.instance_sources() {
             let name = match item_id {
                 InstanceSourceItemId::Instance(id) => &self.indexed.items[*id].name,
@@ -803,10 +809,12 @@ where
         let Some(class_name) = class_name else {
             return Ok(SmolStr::new("dictionary"));
         };
+
         let mut characters = class_name.chars();
         let Some(first) = characters.next() else {
             return Ok(SmolStr::new("dictionary"));
         };
+
         let first = first.to_lowercase().collect::<String>();
         let mut base = format!("{first}{}", characters.as_str());
 
@@ -828,6 +836,7 @@ where
                 _ => break,
             }
         }
+
         for argument in arguments.into_iter().rev() {
             self.append_type_constructor_names(&mut base, argument)?;
         }
@@ -869,6 +878,7 @@ where
             | Type::Free(_)
             | Type::Unknown(_) => {}
         }
+
         Ok(())
     }
 
@@ -1793,6 +1803,7 @@ where
         let indexed =
             if file_id == self.file_id { None } else { Some(self.queries.indexed(file_id)?) };
         let indexed = indexed.as_deref().unwrap_or(self.indexed);
+
         let item_id = match origin {
             InstanceCandidateOrigin::Instance(_, id) => {
                 indexed.pairs.instance_to_item(id).map(InstanceSourceItemId::Instance)
@@ -1804,6 +1815,7 @@ where
         let Some(item_id) = item_id else {
             return Ok(UNKNOWN_INSTANCE_EVIDENCE);
         };
+
         let item_name = match item_id {
             InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
             InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
@@ -1815,7 +1827,14 @@ where
         let checked =
             if file_id == self.file_id { None } else { Some(self.queries.checked(file_id)?) };
         let checked = checked.as_deref().unwrap_or(self.checked);
+
         let mut names = PrettyNames::new();
+        for (_, item) in indexed.items.iter_terms() {
+            if let Some(name) = &item.name {
+                names.allocate_display_name(SmolStr::clone(name));
+            }
+        }
+
         for &candidate_id in indexed.items.instance_sources() {
             let name = match candidate_id {
                 InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
@@ -1825,6 +1844,7 @@ where
                 names.allocate_display_name(SmolStr::clone(name));
             }
         }
+
         for &candidate_id in indexed.items.instance_sources() {
             let (candidate_name, declaration_id) = match candidate_id {
                 InstanceSourceItemId::Instance(id) => {

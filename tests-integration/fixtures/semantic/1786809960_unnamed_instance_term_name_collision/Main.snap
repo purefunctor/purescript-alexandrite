@@ -10,9 +10,9 @@ interface Convert value where
 convertInt :: Prim.Int
 convertInt = 0
 
-dictionary convertInt :: Main.Convert Prim.Int where
+dictionary convertInt1 :: Main.Convert Prim.Int where
   convert :: Prim.Int -> Prim.Int
   convert = \value -> value
 
 test :: Prim.Int
-test = convert {convertInt} 42
+test = convert {convertInt1} 42

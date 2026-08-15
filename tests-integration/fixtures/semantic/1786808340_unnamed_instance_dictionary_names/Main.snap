@@ -20,7 +20,7 @@ dictionary convertPairIntStringBoolean :: Main.Convert (Main.Pair Prim.Int Prim.
   convert :: Main.Pair Prim.Int Prim.String -> Prim.Boolean
   convert = \_ -> true
 
-dictionary convert :: forall value. Main.Convert value value where
+dictionary convert1 :: forall value. Main.Convert value value where
   convert :: value -> value
   convert = \value -> value
 
