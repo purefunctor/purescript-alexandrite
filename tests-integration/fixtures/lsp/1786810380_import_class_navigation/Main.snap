@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 134
+expression: report
+---
+Hover at Position { line: 2, character: 22 }
+
+```
+import Library (class Render)
+--                    $@
+```
+
+Range: <none>
+
+```purescript
+Render :: Type -> Constraint
+```
+
+
+GotoDefinition at Position { line: 2, character: 23 }
+
+```
+import Library (class Render)
+--                    $@
+```
+
+file:///tests-integration/fixtures/lsp/1786810380_import_class_navigation/Library.purs @ 2:0..3:23
