@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 102
+expression: report
+---
+module Main
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - foreignValue
+  - example
+
+Exported Types:
+  - Foreign
+  - Data
+  - Newtype
+  - Synonym
+
+Exported Classes:
+  - Example
+
+Local Terms:
+  - foreignValue
+  - Data
+  - Newtype
+  - example
+
+Local Types:
+  - Foreign
+  - Data
+  - Newtype
+  - Synonym
+
+Local Classes:
+  - Example
+
+Class Members:
+  - Example.example
+
+Errors:
