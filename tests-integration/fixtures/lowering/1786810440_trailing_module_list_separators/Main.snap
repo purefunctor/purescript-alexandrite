@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+1@4:7
+  -> integer 1
+
+Types:

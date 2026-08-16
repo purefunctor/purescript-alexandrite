@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+value@3:14
+  -> binder@3:6
+
+Types:
+
+a@2:12
+  -> nothing
+a@2:26
+  -> nothing
