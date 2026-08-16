@@ -17,3 +17,9 @@ finalLet = do
 missingDoAction = do
   value <-
   pure value
+
+missingFinalBindAction = do
+  value <-
+
+missingFinalDiscardAction = do
+  (

@@ -17,3 +17,6 @@ missingAdoAction = <error> <error>
 
 missingAdoResult :: forall t0. Main.Effect t0
 missingAdoResult = map (\value -> <error>) (pure 1)
+
+missingAdoActionBeforeValidAction :: Main.Effect Prim.Int
+missingAdoActionBeforeValidAction = map (\value -> <error>) (pure 1)

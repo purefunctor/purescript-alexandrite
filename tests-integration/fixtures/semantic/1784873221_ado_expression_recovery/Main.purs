@@ -15,3 +15,8 @@ missingAdoAction = ado
 missingAdoResult = ado
   value <- pure 1
   in
+
+missingAdoActionBeforeValidAction = ado
+  missing <-
+  value <- pure 1
+  in value
