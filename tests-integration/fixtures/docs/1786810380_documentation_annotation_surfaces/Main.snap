@@ -1,0 +1,643 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: report
+---
+{
+  "manifest": {
+    "dependencies": {},
+    "description": null,
+    "license": null,
+    "location": null,
+    "modules": [
+      "Main"
+    ],
+    "name": "docs-fixture",
+    "version": "0.0.0"
+  },
+  "modules": [
+    {
+      "documentation": "Documentation across\nmultiple module lines.",
+      "name": "Main",
+      "terms": [
+        {
+          "documentation": "Foreign value documentation.",
+          "kind": "Foreign",
+          "name": "foreignValue",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Int",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": null,
+          "kind": "Value",
+          "name": "append",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "String",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "String",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "String",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "tag": "function"
+            },
+            "tag": "function"
+          }
+        },
+        {
+          "documentation": "Value operator documentation.",
+          "kind": "Operator",
+          "name": "<>",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Prim",
+                "name": "String",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "result": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "String",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "String",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "tag": "function"
+            },
+            "tag": "function"
+          }
+        },
+        {
+          "documentation": "Equation documentation.",
+          "kind": "Value",
+          "name": "equationDocumented",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Int",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "Signature documentation takes precedence.",
+          "kind": "Value",
+          "name": "signatureDocumented",
+          "signature": {
+            "reference": {
+              "module": "Prim",
+              "name": "Int",
+              "package": null
+            },
+            "tag": "constructor"
+          }
+        },
+        {
+          "documentation": "Type literals and open rows.",
+          "kind": "Foreign",
+          "name": "typeShapes",
+          "signature": {
+            "binder": {
+              "kind": {
+                "argument": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "function": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Row",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "application"
+              },
+              "name": "row",
+              "visible": false
+            },
+            "body": {
+              "argument": {
+                "argument": {
+                  "fields": [
+                    {
+                      "label": "field",
+                      "type": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Int",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      }
+                    }
+                  ],
+                  "tag": "row",
+                  "tail": {
+                    "kind": {
+                      "argument": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "function": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Row",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "tag": "application"
+                    },
+                    "name": "row",
+                    "tag": "rigid"
+                  }
+                },
+                "function": {
+                  "argument": {
+                    "argument": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Row",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "application"
+                  },
+                  "function": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Proxy",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "tag": "kindApplication"
+                },
+                "tag": "application"
+              },
+              "result": {
+                "argument": {
+                  "argument": {
+                    "tag": "integer",
+                    "value": 42
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Int",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "Proxy",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "kindApplication"
+                  },
+                  "tag": "application"
+                },
+                "result": {
+                  "argument": {
+                    "argument": {
+                      "kind": "string",
+                      "tag": "string",
+                      "value": "label"
+                    },
+                    "function": {
+                      "argument": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Symbol",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "function": {
+                        "reference": {
+                          "module": "Main",
+                          "name": "Proxy",
+                          "package": "docs-fixture"
+                        },
+                        "tag": "constructor"
+                      },
+                      "tag": "kindApplication"
+                    },
+                    "tag": "application"
+                  },
+                  "result": {
+                    "argument": {
+                      "argument": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Int",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "function": {
+                        "argument": {
+                          "reference": {
+                            "module": "Prim",
+                            "name": "Type",
+                            "package": null
+                          },
+                          "tag": "constructor"
+                        },
+                        "function": {
+                          "reference": {
+                            "module": "Main",
+                            "name": "Proxy",
+                            "package": "docs-fixture"
+                          },
+                          "tag": "constructor"
+                        },
+                        "tag": "kindApplication"
+                      },
+                      "tag": "application"
+                    },
+                    "result": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Int",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "function"
+                  },
+                  "tag": "function"
+                },
+                "tag": "function"
+              },
+              "tag": "function"
+            },
+            "tag": "forall"
+          }
+        }
+      ],
+      "types": [
+        {
+          "documentation": null,
+          "form": {
+            "instances": [],
+            "signature": {
+              "binder": {
+                "kind": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "name": "k",
+                "visible": false
+              },
+              "body": {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "k",
+                  "tag": "rigid"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "forall"
+            },
+            "tag": "foreign"
+          },
+          "name": "Proxy"
+        },
+        {
+          "documentation": "Pair type documentation.",
+          "form": {
+            "constructors": [
+              {
+                "documentation": null,
+                "kind": "Constructor",
+                "name": "Pair",
+                "signature": {
+                  "binder": {
+                    "kind": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "name": "a",
+                    "visible": true
+                  },
+                  "body": {
+                    "binder": {
+                      "kind": {
+                        "reference": {
+                          "module": "Prim",
+                          "name": "Type",
+                          "package": null
+                        },
+                        "tag": "constructor"
+                      },
+                      "name": "b",
+                      "visible": true
+                    },
+                    "body": {
+                      "argument": {
+                        "kind": {
+                          "reference": {
+                            "module": "Prim",
+                            "name": "Type",
+                            "package": null
+                          },
+                          "tag": "constructor"
+                        },
+                        "name": "a",
+                        "tag": "rigid"
+                      },
+                      "result": {
+                        "argument": {
+                          "kind": {
+                            "reference": {
+                              "module": "Prim",
+                              "name": "Type",
+                              "package": null
+                            },
+                            "tag": "constructor"
+                          },
+                          "name": "b",
+                          "tag": "rigid"
+                        },
+                        "result": {
+                          "argument": {
+                            "kind": {
+                              "reference": {
+                                "module": "Prim",
+                                "name": "Type",
+                                "package": null
+                              },
+                              "tag": "constructor"
+                            },
+                            "name": "b",
+                            "tag": "rigid"
+                          },
+                          "function": {
+                            "argument": {
+                              "kind": {
+                                "reference": {
+                                  "module": "Prim",
+                                  "name": "Type",
+                                  "package": null
+                                },
+                                "tag": "constructor"
+                              },
+                              "name": "a",
+                              "tag": "rigid"
+                            },
+                            "function": {
+                              "reference": {
+                                "module": "Main",
+                                "name": "Pair",
+                                "package": "docs-fixture"
+                              },
+                              "tag": "constructor"
+                            },
+                            "tag": "application"
+                          },
+                          "tag": "application"
+                        },
+                        "tag": "function"
+                      },
+                      "tag": "function"
+                    },
+                    "tag": "forall"
+                  },
+                  "tag": "forall"
+                }
+              }
+            ],
+            "declaration": {
+              "binders": [
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "a",
+                  "visible": true
+                },
+                {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "b",
+                  "visible": true
+                }
+              ]
+            },
+            "instances": [],
+            "signature": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "argument": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "function"
+            },
+            "tag": "data"
+          },
+          "name": "Pair"
+        },
+        {
+          "documentation": "Type operator documentation.",
+          "form": {
+            "signature": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "result": {
+                "argument": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "function"
+            },
+            "tag": "operator"
+          },
+          "name": ":+:"
+        },
+        {
+          "documentation": "Choice type documentation.",
+          "form": {
+            "constructors": [
+              {
+                "documentation": "First constructor documentation.",
+                "kind": "Constructor",
+                "name": "First",
+                "signature": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Choice",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                }
+              },
+              {
+                "documentation": "Second constructor documentation.",
+                "kind": "Constructor",
+                "name": "Second",
+                "signature": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Choice",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                }
+              }
+            ],
+            "declaration": {
+              "binders": []
+            },
+            "instances": [],
+            "signature": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "data"
+          },
+          "name": "Choice"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+missingVariable :: ?[missing expression]
+missingConstructor :: ?[missing expression]
+missingOperator :: forall t0. t0
+missingNegate :: ?[missing expression]
+missingDo :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingDiscard :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingAdo :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingPure :: forall (t0 :: Prim.Type -> Prim.Type). (t0 :: Prim.Type -> Prim.Type) Prim.Int
+missingType :: ?[missing constructor]
+
+Types
+MissingTypeOperator :: ?[invalid operator kind]
+
+Synonyms
+type MissingTypeOperator = ?[invalid operator chain]
+
+Diagnostics
+error[NotInScope]: 'absent' is not in scope
+  --> 4:19..4:25
+  |
+4 | missingVariable = absent
+  |                   ^~~~~~
+error[NotInScope]: 'Missing' is not in scope
+  --> 5:22..5:29
+  |
+5 | missingConstructor = Missing
+  |                      ^~~~~~~
+error[NotInScope]: '+' is not in scope
+  --> 6:21..6:22
+  |
+6 | missingOperator = 1 + 2
+  |                     ^
+error[NotInScope]: 'negate' is not in scope
+  --> 7:17..7:19
+  |
+7 | missingNegate = -1
+  |                 ^~
+error[NotInScope]: 'bind' is not in scope
+  --> 9:13..11:8
+  |
+9 | missingDo = do
+  |             ^~
+error[NotInScope]: 'absent' is not in scope
+  --> 10:12..10:18
+   |
+10 |   value <- absent
+   |            ^~~~~~
+error[NotInScope]: 'discard' is not in scope
+  --> 13:18..15:9
+   |
+13 | missingDiscard = do
+   |                  ^~
+error[NotInScope]: 'absent' is not in scope
+  --> 14:3..14:9
+   |
+14 |   absent
+   |   ^~~~~~
+error[NotInScope]: 'absent' is not in scope
+  --> 15:3..15:9
+   |
+15 |   absent
+   |   ^~~~~~
+error[NotInScope]: 'map' is not in scope
+  --> 17:14..20:11
+   |
+17 | missingAdo = ado
+   |              ^~~
+error[NotInScope]: 'apply' is not in scope
+  --> 17:14..20:11
+   |
+17 | missingAdo = ado
+   |              ^~~
+error[NotInScope]: 'absent' is not in scope
+  --> 18:12..18:18
+   |
+18 |   value <- absent
+   |            ^~~~~~
+error[NotInScope]: 'absent' is not in scope
+  --> 19:13..19:19
+   |
+19 |   second <- absent
+   |             ^~~~~~
+error[NotInScope]: 'pure' is not in scope
+  --> 22:15..23:7
+   |
+22 | missingPure = ado
+   |               ^~~
+error[NotInScope]: 'MissingType' is not in scope
+  --> 25:16..25:27
+   |
+25 | missingType :: MissingType
+   |                ^~~~~~~~~~~
+error[NotInScope]: 'absent' is not in scope
+  --> 26:15..26:21
+   |
+26 | missingType = absent
+   |               ^~~~~~
+error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
+  --> 28:28..28:40
+   |
+28 | type MissingTypeOperator = Int + String
+   |                            ^~~~~~~~~~~~
+error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
+  --> 4:19..4:25
+  |
+4 | missingVariable = absent
+  |                   ^~~~~~
+error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
+  --> 5:22..5:29
+  |
+5 | missingConstructor = Missing
+  |                      ^~~~~~~
+error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
+  --> 7:17..7:19
+  |
+7 | missingNegate = -1
+  |                 ^~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '(t0 :: Type -> Type) ((t0 :: Type -> Type) t1)'
+  --> 10:3..10:18
+   |
+10 |   value <- absent
+   |   ^~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) ?24'
+  --> 14:3..14:9
+   |
+14 |   absent
+   |   ^~~~~~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) t3'
+  --> 15:3..15:9
+   |
+15 |   absent
+   |   ^~~~~~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) t5'
+  --> 18:3..18:18
+   |
+18 |   value <- absent
+   |   ^~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) ?34'
+  --> 19:3..19:19
+   |
+19 |   second <- absent
+   |   ^~~~~~~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?[missing constructor]' with 'Type'
+  --> 25:16..25:27
+   |
+25 | missingType :: MissingType
+   |                ^~~~~~~~~~~
+error[CannotUnify]: Cannot unify '?[missing expression]' with '?[missing constructor]'
+  --> 26:15..26:21
+   |
+26 | missingType = absent
+   |               ^~~~~~
