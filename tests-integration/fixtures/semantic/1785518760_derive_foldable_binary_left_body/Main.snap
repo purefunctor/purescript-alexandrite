@@ -7,7 +7,7 @@ data LeftDuplicate :: forall k0. (k0 -> Prim.Type -> Prim.Type) -> k0 -> Prim.Ty
 data LeftDuplicate @p @a
   | LeftDuplicate :: p a Prim.Int -> Main.LeftDuplicate p a
 
-dictionary foldableLeftDuplicate ::
+dictionary foldableLeftDuplicateType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.LeftDuplicate @Prim.Type p)

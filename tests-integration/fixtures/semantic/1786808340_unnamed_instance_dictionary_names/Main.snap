@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+data Pair :: Prim.Type -> Prim.Type -> Prim.Type
+data Pair @a @b
+  | Pair :: a -> b -> Main.Pair a b
+
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert source target where
+  convert :: source -> target
+
+dictionary convertIntString :: Main.Convert Prim.Int Prim.String where
+  convert :: Prim.Int -> Prim.String
+  convert = \_ -> ""
+
+dictionary convertPairIntStringBoolean :: Main.Convert (Main.Pair Prim.Int Prim.String) Prim.Boolean
+  where
+  convert :: Main.Pair Prim.Int Prim.String -> Prim.Boolean
+  convert = \_ -> true
+
+dictionary convert1 :: forall value. Main.Convert value value where
+  convert :: value -> value
+  convert = \value -> value
+
+dictionary convertPair :: forall value. Main.Convert value (Main.Pair value value) where
+  convert :: value -> Main.Pair value value
+  convert = \value -> Pair value value

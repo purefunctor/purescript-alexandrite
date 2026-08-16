@@ -7,7 +7,7 @@ data Nested :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
 data Nested @f @a
   | Nested :: f a -> Main.Nested f a
 
-dictionary contravariantNested ::
+dictionary contravariantNestedType ::
   forall f.
   { contravariantDict :: Data.Functor.Contravariant.Contravariant f } =>
   Data.Functor.Contravariant.Contravariant (Main.Nested @Prim.Type f)

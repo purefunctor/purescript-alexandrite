@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 68
+expression: report
+---
+interface Convert :: Prim.Type -> Prim.Constraint
+interface Convert value where
+  convert :: value -> Prim.Int
+
+convertInt :: Prim.Int
+convertInt = 0
+
+dictionary convertInt1 :: Main.Convert Prim.Int where
+  convert :: Prim.Int -> Prim.Int
+  convert = \value -> value
+
+test :: Prim.Int
+test = convert {convertInt1} 42

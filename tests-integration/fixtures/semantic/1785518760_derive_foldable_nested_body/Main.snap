@@ -7,7 +7,7 @@ data Compose :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
 data Compose @f @g @a
   | Compose :: f (g a) -> Main.Compose f g a
 
-dictionary foldableCompose ::
+dictionary foldableComposeTypeType ::
   forall f g.
   { foldableDict :: Data.Foldable.Foldable f } =>
   { foldableDict1 :: Data.Foldable.Foldable g } =>

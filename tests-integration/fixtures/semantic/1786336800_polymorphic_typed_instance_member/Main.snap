@@ -20,7 +20,7 @@ data G @a
 
 foreign import unsafeCoerce :: forall a b. a -> b
 
-dictionary convertG :: Main.Convert Main.F Main.G where
+dictionary convertFG :: Main.Convert Main.F Main.G where
   convert :: forall a. Main.F a -> Main.G a
   convert = unsafeCoerce
   convertExplicit :: forall a. Main.F a -> Main.G a

@@ -74,7 +74,7 @@ dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
     case value of
       (Pair field0 field1) -> Pair (firstFunction field0) (secondFunction field1)
 
-dictionary bifunctorConst2 ::
+dictionary bifunctorConst2TypeType ::
   forall value.
   Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type value)
   where
@@ -87,7 +87,7 @@ dictionary bifunctorConst2 ::
     case value of
       (Const2 field0) -> Const2 field0
 
-dictionary bifunctorWrapBoth ::
+dictionary bifunctorWrapBothTypeType ::
   forall f g.
   { functorDict :: Data.Functor.Functor f } =>
   { functorDict1 :: Data.Functor.Functor g } =>
@@ -174,7 +174,8 @@ dictionary bifunctorNestedTriple :: Data.Bifunctor.Bifunctor Main.NestedTriple w
           (\element -> secondFunction element)
           field0)
 
-dictionary bifunctorNestedTripleLast :: Data.Bifunctor.Bifunctor (Main.NestedTripleLast @Prim.Type)
+dictionary bifunctorNestedTripleLastType ::
+  Data.Bifunctor.Bifunctor (Main.NestedTripleLast @Prim.Type)
   where
   bimap :: forall a b c d.
   (a -> b) ->

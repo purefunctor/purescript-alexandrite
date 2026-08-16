@@ -6,7 +6,8 @@ expression: report
 data Empty :: forall k0. k0 -> Prim.Type
 data Empty @a
 
-dictionary contravariantEmpty :: Data.Functor.Contravariant.Contravariant (Main.Empty @Prim.Type)
+dictionary contravariantEmptyType ::
+  Data.Functor.Contravariant.Contravariant (Main.Empty @Prim.Type)
   where
   cmap :: forall a b. (b -> a) -> Main.Empty @Prim.Type a -> Main.Empty @Prim.Type b
   cmap = \function value ->

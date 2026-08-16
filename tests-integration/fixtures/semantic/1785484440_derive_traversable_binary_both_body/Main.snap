@@ -7,7 +7,7 @@ data Duplicate :: forall k0. (k0 -> k0 -> Prim.Type) -> k0 -> Prim.Type
 data Duplicate @p @a
   | Duplicate :: p a a -> Main.Duplicate p a
 
-dictionary functorDuplicate ::
+dictionary functorDuplicateType ::
   forall p.
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.Duplicate @Prim.Type p)
@@ -15,7 +15,7 @@ dictionary functorDuplicate ::
   map :: forall a b. (a -> b) -> Main.Duplicate @Prim.Type p a -> Main.Duplicate @Prim.Type p b
   map = \function -> \(Duplicate value) -> Duplicate (bimap {bifunctorDict} function function value)
 
-dictionary foldableDuplicate ::
+dictionary foldableDuplicateType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.Duplicate @Prim.Type p)
@@ -30,13 +30,13 @@ dictionary foldableDuplicate ::
   foldMap = \{monoidDict} -> \function -> \(Duplicate value) ->
     bifoldMap {bifoldableDict} {monoidDict} function function value
 
-dictionary traversableDuplicate ::
+dictionary traversableDuplicateType ::
   forall p.
   { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
   Data.Traversable.Traversable (Main.Duplicate @Prim.Type p)
   where
-  superclass functorDict = functorDuplicate {bitraversableDict.bifunctorDict}
-  superclass foldableDict = foldableDuplicate {bitraversableDict.bifoldableDict}
+  superclass functorDict = functorDuplicateType {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableDuplicateType {bitraversableDict.bifoldableDict}
   traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.Duplicate @Prim.Type p a -> m (Main.Duplicate @Prim.Type p b)
@@ -53,5 +53,6 @@ dictionary traversableDuplicate ::
   Main.Duplicate @Prim.Type p (m a) -> m (Main.Duplicate @Prim.Type p a)
   sequence = \{applicativeDict} ->
     \value ->
-      traverse {traversableDuplicate {bitraversableDict}} {applicativeDict} (\effect0 -> effect0)
+      traverse {traversableDuplicateType {bitraversableDict}} {applicativeDict}
+        (\effect0 -> effect0)
         value

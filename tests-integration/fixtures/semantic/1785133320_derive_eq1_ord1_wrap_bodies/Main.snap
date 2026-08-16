@@ -7,7 +7,7 @@ data Wrap :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
 data Wrap @f @a
   | Wrap :: f a -> Main.Wrap f a
 
-dictionary eqWrap ::
+dictionary eqWrapType ::
   forall f a.
   { eq1Dict :: Data.Eq.Eq1 f } =>
   { eqDict :: Data.Eq.Eq a } =>
@@ -19,18 +19,21 @@ dictionary eqWrap ::
       (Wrap left0), (Wrap right0) ->
         if eq1 {eq1Dict} {eqDict} left0 right0 then true else false
 
-dictionary eq1Wrap :: forall f. { eq1Dict :: Data.Eq.Eq1 f } => Data.Eq.Eq1 (Main.Wrap @Prim.Type f)
+dictionary eq1WrapType ::
+  forall f.
+  { eq1Dict :: Data.Eq.Eq1 f } =>
+  Data.Eq.Eq1 (Main.Wrap @Prim.Type f)
   where
   eq1 :: forall a. Data.Eq.Eq a => Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Prim.Boolean
-  eq1 = \{eqDict} -> eq {eqWrap {eq1Dict} {eqDict}}
+  eq1 = \{eqDict} -> eq {eqWrapType {eq1Dict} {eqDict}}
 
-dictionary ordWrap ::
+dictionary ordWrapType ::
   forall f a.
   { ord1Dict :: Data.Ord.Ord1 f } =>
   { ordDict :: Data.Ord.Ord a } =>
   Data.Ord.Ord (Main.Wrap @Prim.Type f a)
   where
-  superclass eqDict = eqWrap {ord1Dict.eq1Dict} {ordDict.eqDict}
+  superclass eqDict = eqWrapType {ord1Dict.eq1Dict} {ordDict.eqDict}
   compare :: Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Data.Ordering.Ordering
   compare = \left right ->
     case left, right of
@@ -39,12 +42,12 @@ dictionary ordWrap ::
           EQ -> EQ
           ordering -> ordering
 
-dictionary ord1Wrap ::
+dictionary ord1WrapType ::
   forall f.
   { ord1Dict :: Data.Ord.Ord1 f } =>
   Data.Ord.Ord1 (Main.Wrap @Prim.Type f)
   where
-  superclass eq1Dict = eq1Wrap {ord1Dict.eq1Dict}
+  superclass eq1Dict = eq1WrapType {ord1Dict.eq1Dict}
   compare1 :: forall a.
   Data.Ord.Ord a => Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Data.Ordering.Ordering
-  compare1 = \{ordDict} -> compare {ordWrap {ord1Dict} {ordDict}}
+  compare1 = \{ordDict} -> compare {ordWrapType {ord1Dict} {ordDict}}

@@ -50,7 +50,7 @@ dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
     case value of
       (Identity field0) -> Identity (function field0)
 
-dictionary functorConst :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
+dictionary functorConstType :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
   map :: forall a b. (a -> b) -> Main.Const @Prim.Type e a -> Main.Const @Prim.Type e b
   map = \function value ->
     case value of
@@ -63,7 +63,7 @@ dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
       Nothing -> Nothing
       (Just field0) -> Just (function field0)
 
-dictionary functorWrap ::
+dictionary functorWrapType ::
   forall f.
   { functorDict :: Data.Functor.Functor f } =>
   Data.Functor.Functor (Main.Wrap @Prim.Type f)
@@ -73,7 +73,7 @@ dictionary functorWrap ::
     case value of
       (Wrap field0) -> Wrap (map {functorDict} (\element -> function element) field0)
 
-dictionary functorCompose ::
+dictionary functorComposeTypeType ::
   forall f g.
   { functorDict :: Data.Functor.Functor f } =>
   { functorDict1 :: Data.Functor.Functor g } =>

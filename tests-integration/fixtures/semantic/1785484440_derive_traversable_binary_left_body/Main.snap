@@ -7,7 +7,7 @@ data LeftDuplicate :: forall k0. (k0 -> Prim.Type -> Prim.Type) -> k0 -> Prim.Ty
 data LeftDuplicate @p @a
   | LeftDuplicate :: p a Prim.Int -> Main.LeftDuplicate p a
 
-dictionary functorLeftDuplicate ::
+dictionary functorLeftDuplicateType ::
   forall p.
   { bifunctorDict :: Data.Bifunctor.Bifunctor p } =>
   Data.Functor.Functor (Main.LeftDuplicate @Prim.Type p)
@@ -16,7 +16,7 @@ dictionary functorLeftDuplicate ::
   map = \function -> \(LeftDuplicate value) ->
     LeftDuplicate (bimap {bifunctorDict} function (\fixed -> fixed) value)
 
-dictionary foldableLeftDuplicate ::
+dictionary foldableLeftDuplicateType ::
   forall p.
   { bifoldableDict :: Data.Bifoldable.Bifoldable p } =>
   Data.Foldable.Foldable (Main.LeftDuplicate @Prim.Type p)
@@ -31,13 +31,13 @@ dictionary foldableLeftDuplicate ::
   foldMap = \{monoidDict} -> \function -> \(LeftDuplicate value) ->
     bifoldMap {bifoldableDict} {monoidDict} function (\_ -> mempty {monoidDict}) value
 
-dictionary traversableLeftDuplicate ::
+dictionary traversableLeftDuplicateType ::
   forall p.
   { bitraversableDict :: Data.Bitraversable.Bitraversable p } =>
   Data.Traversable.Traversable (Main.LeftDuplicate @Prim.Type p)
   where
-  superclass functorDict = functorLeftDuplicate {bitraversableDict.bifunctorDict}
-  superclass foldableDict = foldableLeftDuplicate {bitraversableDict.bifoldableDict}
+  superclass functorDict = functorLeftDuplicateType {bitraversableDict.bifunctorDict}
+  superclass foldableDict = foldableLeftDuplicateType {bitraversableDict.bifoldableDict}
   traverse :: forall a b (m :: Prim.Type -> Prim.Type).
   Control.Applicative.Applicative m =>
   (a -> m b) -> Main.LeftDuplicate @Prim.Type p a -> m (Main.LeftDuplicate @Prim.Type p b)
@@ -54,6 +54,6 @@ dictionary traversableLeftDuplicate ::
   Main.LeftDuplicate @Prim.Type p (m a) -> m (Main.LeftDuplicate @Prim.Type p a)
   sequence = \{applicativeDict} ->
     \value ->
-      traverse {traversableLeftDuplicate {bitraversableDict}} {applicativeDict}
+      traverse {traversableLeftDuplicateType {bitraversableDict}} {applicativeDict}
         (\effect0 -> effect0)
         value

@@ -33,7 +33,7 @@ dictionary contentOverloadString :: Main.ContentOverload Prim.String where
       case content of
         (Sentence value) -> value
 
-dictionary contentOverloadArray :: Main.ContentOverload (Prim.Array Prim.String) where
+dictionary contentOverloadArrayString :: Main.ContentOverload (Prim.Array Prim.String) where
   fromContent :: Main.Content -> Prim.Array Prim.String
   fromContent =
     compose {semigroupoidFn} unsafePartial \v120 ->
