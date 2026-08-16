@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 85
+expression: report
+---
+module Main
+
+Expressions:
+
+{ whole, name, value, head, tail }@8:84
+  -> binder@8:9
+{ whole, name, value, head, tail }@8:84
+  -> record pun@8:22
+{ whole, name, value, head, tail }@8:84
+  -> binder@8:37
+{ whole, name, value, head, tail }@8:84
+  -> binder@8:70
+{ whole, name, value, head, tail }@8:84
+  -> binder@8:76
+1@11:13
+  -> integer 1
+2@12:17
+  -> integer 2
+input@19:17
+  -> binder@18:7
+5@15:16
+  -> integer 5
+value@19:32
+  -> binder@19:8
+0@22:12
+  -> integer 0
+3@13:17
+  -> integer 3
+6@16:12
+  -> integer 6
+value@19:24
+  -> binder@19:8
+fallback@20:10
+  -> equation@21:7
+4@14:14
+  -> integer 4
+
+Types:
+
+a@4:26
+  -> forall@4:9
+a@2:19
+  -> forall@2:10
+a@4:18
+  -> forall@4:9
