@@ -9,9 +9,7 @@ Expressions:
 
 0@2:21
   -> integer 0
-0@3:24
+0@3:20
   -> integer 0
-{ class }@6:18
-  -> nothing
 
 Types:

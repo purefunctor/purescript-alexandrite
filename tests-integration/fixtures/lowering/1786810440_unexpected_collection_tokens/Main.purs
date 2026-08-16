@@ -1,10 +1,10 @@
 module Main where
 
 arrayBinder [class] = 0
-recordBinder { class } = 0
+recordBinder { @ } = 0
 
 arrayExpression = [class]
-recordExpression = { class }
+recordExpression = { @ }
 
-type Row = ( class )
-type Record = { class }
+type Row = ( value :: Int, @ )
+type Record = { value :: Int, @ }
