@@ -1,0 +1,21 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+forward = later
+
+later = 42
+
+recursive[2] first = \argument0%0 ->
+  case argument0%0 of
+    true ->
+      1
+    false ->
+      second true
+
+recursive[2] second = \argument0%1 ->
+  case argument0%1 of
+    true ->
+      2
+    false ->
+      first true

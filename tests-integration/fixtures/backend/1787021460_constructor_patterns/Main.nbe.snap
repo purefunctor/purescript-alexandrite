@@ -1,0 +1,18 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+first = \argument0%0 ->
+  case argument0%0 of
+    Empty ->
+      Empty
+    One value%1 ->
+      One value%1
+    whole%2@(Pair left%3 _) ->
+      case whole%2 of
+        Pair _ _ ->
+          One left%3
+        _ ->
+          Empty
+
+unwrap = \Identity value%4 -> value%4

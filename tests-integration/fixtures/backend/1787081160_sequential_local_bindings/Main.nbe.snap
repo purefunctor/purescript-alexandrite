@@ -1,0 +1,10 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+sequence = \input%2 ->
+  let
+    first%1 = input%2
+  in let
+    second%0 = first%1
+  in second%0

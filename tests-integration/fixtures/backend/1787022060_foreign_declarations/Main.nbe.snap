@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+foreign foreignValue
+
+foreign foreignFunction
+
+value = foreignFunction foreignValue

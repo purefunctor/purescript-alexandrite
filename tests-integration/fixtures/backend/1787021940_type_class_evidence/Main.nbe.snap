@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+foreign equalInt
+
+foreign lessThanInt
+
+instance equalInt1 = { equal: equalInt }
+
+instance orderedInt = { superclass17: equalInt1, lessThan: lessThanInt }
+
+genericEqual = \dictionary0%0 -> \left%1 right%2 -> dictionary0%0.equal left%1 right%2
+
+concreteEqual = equalInt1.equal 1 2
+
+concreteLessThan = orderedInt.lessThan 1 2
+
+superclassEqual = \dictionary1%3 ->
+  \left%4 right%5 -> dictionary1%3.superclass17.equal left%4 right%5

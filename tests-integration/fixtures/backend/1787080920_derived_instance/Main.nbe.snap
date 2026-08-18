@@ -1,0 +1,17 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+instance eqBox = {
+  eq:
+    \left%0 right%1 ->
+      case left%0, right%1 of
+        Box, Box ->
+          true
+}
+
+equal = eqBox.eq Box Box
+
+instance showIdentity = \dictionary1%2 -> dictionary1%2
+
+rendered = (showIdentity showInt).show (Identity 42)

@@ -1,0 +1,12 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+choose = \first%0 second%1 ->
+  case first%0, second%1 of
+    true, true ->
+      2
+    true, false ->
+      1
+    false, _ ->
+      0

@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+booleanGuard = \value%0 ->
+  | value%0 -> 1
+  | true -> 0
+
+patternGuard = \choice%1 ->
+  | One value%2 <- choice%1 -> value%2
+  | true -> 0

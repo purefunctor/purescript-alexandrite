@@ -1,0 +1,13 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+foreign await
+
+arguments = await
+
+default = { "hyphen-label": arguments }
+
+readLabel = \record%0 -> record%0."hyphen-label"
+
+tagged = Tagged default

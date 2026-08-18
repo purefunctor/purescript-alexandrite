@@ -1,0 +1,15 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+add = \left%0 right%1 -> left%0
+
+identity = \value%2 -> value%2
+
+operatorApplication = add 1 2
+
+visibleTypeApplication = identity 42
+
+increment = \section60%3 -> add section60%3 1
+
+accessValue = \section79%4 -> section79%4.value

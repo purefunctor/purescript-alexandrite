@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+unbox = \Box value%0 -> value%0
+
+fromLibrary = unbox box
+
+directReference = libraryValue
