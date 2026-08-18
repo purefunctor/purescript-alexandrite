@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+const model = initialize {
+  entry() {
+    const literal = 0;
+    const literal$1 = true;
+    const literal$2 = "before";
+    const record = { enabled: literal$1, label: literal$2 };
+    const record$1 = { count: literal, nested: record };
+    return record$1;
+  }
+}
+
+const updated = initialize {
+  entry() {
+    const model = global(model);
+    const literal = 1;
+    const literal$1 = false;
+    const literal$2 = "after";
+    const updated = record.update(model, {
+      count: literal,
+      nested: { enabled: literal$1, label: literal$2 }
+    });
+    return updated;
+  }
+}

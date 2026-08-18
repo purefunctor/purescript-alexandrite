@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function add(left, right) {
+  entry() {
+    return left;
+  }
+}
+
+function identity(value) {
+  entry() {
+    return value;
+  }
+}
+
+const operatorApplication = initialize {
+  entry() {
+    const add = global(add);
+    const literal = 1;
+    const call = source.call(add, literal);
+    const literal$1 = 2;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+const visibleTypeApplication = initialize {
+  entry() {
+    const identity = global(identity);
+    const literal = 42;
+    const call = source.call(identity, literal);
+    return call;
+  }
+}
+
+function increment(section60) {
+  entry() {
+    const add = global(add);
+    const call = source.call(add, section60);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    return call$1;
+  }
+}
+
+function accessValue(section79) {
+  entry() {
+    const value = section79.value;
+    return value;
+  }
+}

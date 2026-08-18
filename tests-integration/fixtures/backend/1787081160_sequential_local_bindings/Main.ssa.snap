@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function sequence(input) {
+  entry() {
+    return input;
+  }
+}

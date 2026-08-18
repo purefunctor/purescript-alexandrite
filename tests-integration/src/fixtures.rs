@@ -42,12 +42,19 @@ pub fn backend(path: &Path) -> FixtureResult {
         return Err(missing_module(path, &file).into());
     };
 
-    let report = crate::generated::basic::report_checked(&engine, id);
+    let checking_report = crate::generated::basic::report_checked(&engine, id);
+    let functional = nbe::convert_module(&engine, id)?;
+    let control_flow = ssa::convert_module(&functional)?;
+    let ssa_report = ssa::pretty::render(&control_flow);
+    let ssa_snapshot = format!("{file}.ssa");
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(snapshot_path(folder));
     settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| insta::assert_snapshot!(file, report));
+    settings.bind(|| {
+        insta::assert_snapshot!(file, checking_report);
+        insta::assert_snapshot!(ssa_snapshot, ssa_report);
+    });
 
     Ok(())
 }

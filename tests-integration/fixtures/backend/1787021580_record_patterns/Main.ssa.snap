@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function select(argument0) {
+  entry() {
+    const first = argument0.first;
+    const nested = argument0.nested;
+    const second = nested.second;
+    return second;
+  }
+}

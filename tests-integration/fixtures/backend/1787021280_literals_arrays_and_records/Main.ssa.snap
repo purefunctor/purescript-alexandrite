@@ -1,0 +1,68 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+const integer = initialize {
+  entry() {
+    const literal = 42;
+    return literal;
+  }
+}
+
+const number = initialize {
+  entry() {
+    const literal = 1.5;
+    return literal;
+  }
+}
+
+const character = initialize {
+  entry() {
+    const literal = 'a';
+    return literal;
+  }
+}
+
+const string = initialize {
+  entry() {
+    const literal = "alexandrite";
+    return literal;
+  }
+}
+
+const boolean = initialize {
+  entry() {
+    const literal = true;
+    return literal;
+  }
+}
+
+const array = initialize {
+  entry() {
+    const literal = 1;
+    const literal$1 = 2;
+    const literal$2 = 3;
+    const array = [literal, literal$1, literal$2];
+    return array;
+  }
+}
+
+const record = initialize {
+  entry() {
+    const literal = 42;
+    const literal$1 = "nested";
+    const record = { value: literal$1 };
+    const record$1 = { integer: literal, nested: record };
+    return record$1;
+  }
+}
+
+const projection = initialize {
+  entry() {
+    const record = global(record);
+    const nested = record.nested;
+    const value = nested.value;
+    return value;
+  }
+}

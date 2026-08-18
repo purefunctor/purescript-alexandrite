@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function unbox(argument0) {
+  entry() {
+    const matches = pattern.constructor(argument0, Box);
+    if (matches) {
+      match$success();
+    } else {
+      parameter$failure();
+    }
+  }
+  parameter$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument(argument0, Box, 0);
+    return value;
+  }
+}
+
+const fromLibrary = initialize {
+  entry() {
+    const unbox = global(unbox);
+    const box = global(box);
+    const call = source.call(unbox, box);
+    return call;
+  }
+}
+
+const directReference = initialize {
+  entry() {
+    const libraryValue = global(libraryValue);
+    return libraryValue;
+  }
+}

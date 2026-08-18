@@ -1,0 +1,75 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function booleanGuard(value) {
+  entry() {
+    guard$0();
+  }
+  guard$0() {
+    if (value) {
+      guard$success();
+    } else {
+      guard$1();
+    }
+  }
+  guard$1() {
+    const literal$1 = true;
+    if (literal$1) {
+      guard$success$1();
+    } else {
+      guard$failure();
+    }
+  }
+  guard$failure() {
+    throw patternMatchFailure();
+  }
+  guard$join(result) {
+    return result;
+  }
+  guard$success() {
+    const literal = 1;
+    guard$join(literal);
+  }
+  guard$success$1() {
+    const literal$2 = 0;
+    guard$join(literal$2);
+  }
+}
+
+function patternGuard(choice) {
+  entry() {
+    guard$0();
+  }
+  guard$0() {
+    const matches = pattern.constructor(choice, One);
+    if (matches) {
+      match$success();
+    } else {
+      guard$1();
+    }
+  }
+  guard$1() {
+    const literal = true;
+    if (literal) {
+      guard$success();
+    } else {
+      guard$failure();
+    }
+  }
+  guard$failure() {
+    throw patternMatchFailure();
+  }
+  guard$join(result) {
+    return result;
+  }
+  match$success() {
+    const value = pattern.argument(choice, One, 0);
+    guard$join(value);
+  }
+  guard$success() {
+    const literal$1 = 0;
+    guard$join(literal$1);
+  }
+}

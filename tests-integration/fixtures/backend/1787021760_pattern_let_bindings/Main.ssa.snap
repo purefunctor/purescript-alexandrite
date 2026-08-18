@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function unwrap(wrapped) {
+  entry() {
+    const matches = pattern.constructor(wrapped, Identity);
+    if (matches) {
+      match$success();
+    } else {
+      let$failure();
+    }
+  }
+  let$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument(wrapped, Identity, 0);
+    return value;
+  }
+}
+
+function select(record) {
+  entry() {
+    const first = record.first;
+    const second = record.second;
+    return second;
+  }
+}

@@ -2576,6 +2576,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ssa"
+version = "0.1.0"
+dependencies = [
+ "files",
+ "indexing",
+ "itertools 0.15.0",
+ "la-arena",
+ "lowering",
+ "nbe",
+ "pretty",
+ "rustc-hash",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
 name = "stabilizing"
 version = "0.1.0"
 dependencies = [
@@ -2824,6 +2840,7 @@ dependencies = [
  "prim-constants",
  "serde_json",
  "similar 3.1.2",
+ "ssa",
  "stabilizing",
  "sugar",
  "syntax",

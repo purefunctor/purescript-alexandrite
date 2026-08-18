@@ -1,0 +1,82 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+foreign const equalInt;
+
+foreign const lessThanInt;
+
+const equalInt1 = initialize {
+  entry() {
+    const equalInt = global(equalInt);
+    const record = { equal: equalInt };
+    return record;
+  }
+}
+
+const orderedInt = initialize {
+  entry() {
+    const equalInt1 = global(equalInt1);
+    const lessThanInt = global(lessThanInt);
+    const record = { superclass17: equalInt1, lessThan: lessThanInt };
+    return record;
+  }
+}
+
+function genericEqual(dictionary0) {
+  entry() {
+    const closure = closure(genericEqual$closure, dictionary0);
+    return closure;
+  }
+}
+
+const concreteEqual = initialize {
+  entry() {
+    const equalInt1 = global(equalInt1);
+    const equal = equalInt1.equal;
+    const literal = 1;
+    const call = source.call(equal, literal);
+    const literal$1 = 2;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+const concreteLessThan = initialize {
+  entry() {
+    const orderedInt = global(orderedInt);
+    const lessThan = orderedInt.lessThan;
+    const literal = 1;
+    const call = source.call(lessThan, literal);
+    const literal$1 = 2;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+function superclassEqual(dictionary1) {
+  entry() {
+    const closure = closure(superclassEqual$closure, dictionary1);
+    return closure;
+  }
+}
+
+closure genericEqual$closure[dictionary0](left, right) {
+  entry() {
+    const equal = dictionary0.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure superclassEqual$closure[dictionary1](left, right) {
+  entry() {
+    const superclass17 = dictionary1.superclass17;
+    const equal = superclass17.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
