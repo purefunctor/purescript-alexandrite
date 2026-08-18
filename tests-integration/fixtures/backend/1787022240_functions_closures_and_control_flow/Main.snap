@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+apply :: forall a b. (a -> b) -> a -> b
+capture :: Prim.Int -> Prim.Int -> Prim.Int
+choose :: Prim.Boolean -> Prim.Int -> Prim.Int -> Prim.Int
+partial :: Prim.Int -> Prim.Int
+literalCase :: Prim.Int -> Prim.String
+higherOrder :: Prim.Int
+
+Types

@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+lessThan :: forall @a. Main.Ordered a => a -> a -> Prim.Boolean
+equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+lessThanInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+genericEqual :: forall a. Main.Equal a => a -> a -> Prim.Boolean
+concreteEqual :: Prim.Boolean
+concreteLessThan :: Prim.Boolean
+superclassEqual :: forall a. Main.Ordered a => a -> a -> Prim.Boolean
+
+Types
+Equal :: Prim.Type -> Prim.Constraint
+Ordered :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Equal a
+  equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+class forall (a :: Prim.Type). Main.Equal a <= Main.Ordered a
+  lessThan :: forall @a. Main.Ordered a => a -> a -> Prim.Boolean
+
+Instances
+instance Main.Equal Prim.Int
+instance Main.Ordered Prim.Int

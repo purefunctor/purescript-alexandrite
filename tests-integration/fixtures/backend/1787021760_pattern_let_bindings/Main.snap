@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+unwrap :: forall a. Main.Identity a -> a
+select :: { first :: Prim.Int, second :: Prim.String } -> Prim.String
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Roles
+Identity = [Representational]

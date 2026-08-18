@@ -60,7 +60,10 @@ pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
     let mut files = Files::default();
     configure_materialized_prim(&engine, &mut files);
 
-    if folder.starts_with("fixtures/checking/") || folder.starts_with("fixtures/semantic/") {
+    if folder.starts_with("fixtures/backend/")
+        || folder.starts_with("fixtures/checking/")
+        || folder.starts_with("fixtures/semantic/")
+    {
         let prelude = Path::new("fixtures/checking/prelude");
         load_folder(prelude).for_each(|path| {
             load_file(&mut engine, &mut files, &path);

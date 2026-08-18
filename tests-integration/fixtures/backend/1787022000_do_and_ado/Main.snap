@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+firstAction :: Effect.Effect Prim.Int
+secondAction :: Prim.Int -> Effect.Effect Prim.String
+independentAction :: Effect.Effect Prim.Boolean
+sequential :: Effect.Effect Prim.String
+independent :: Effect.Effect { first :: Prim.Int, second :: Prim.Boolean }
+
+Types

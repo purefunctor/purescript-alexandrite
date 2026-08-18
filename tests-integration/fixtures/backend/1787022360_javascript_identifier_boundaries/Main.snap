@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+await :: Prim.Int
+arguments :: Prim.Int
+default :: { hyphen-label :: Prim.Int }
+readLabel :: { hyphen-label :: Prim.Int } -> Prim.Int
+Tagged :: { hyphen-label :: Prim.Int } -> Main.Tagged
+tagged :: Main.Tagged
+
+Types
+Tagged :: Prim.Type
+
+Roles
+Tagged = []

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+add :: Prim.Int -> Prim.Int -> Prim.Int
++ :: Prim.Int -> Prim.Int -> Prim.Int
+identity :: forall @a. a -> a
+operatorApplication :: Prim.Int
+visibleTypeApplication :: Prim.Int
+increment :: Prim.Int -> Prim.Int
+accessValue ::
+  forall value (row :: Prim.Row Prim.Type).
+    { value :: value | (row :: Prim.Row Prim.Type) } -> value
+
+Types

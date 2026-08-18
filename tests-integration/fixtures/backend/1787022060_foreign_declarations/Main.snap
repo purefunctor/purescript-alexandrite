@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+foreignValue :: Main.Opaque
+foreignFunction :: Main.Opaque -> Prim.Int
+value :: Prim.Int
+
+Types
+Opaque :: Prim.Type
+
+Roles
+Opaque = []

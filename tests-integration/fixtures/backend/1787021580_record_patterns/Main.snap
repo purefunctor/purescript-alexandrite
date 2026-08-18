@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+select :: { first :: Prim.Int, nested :: { second :: Prim.String } } -> Prim.String
+
+Types

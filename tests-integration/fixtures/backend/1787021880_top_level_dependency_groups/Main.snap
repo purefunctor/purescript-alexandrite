@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+forward :: Prim.Int
+later :: Prim.Int
+first :: Prim.Boolean -> Prim.Int
+second :: Prim.Boolean -> Prim.Int
+
+Types

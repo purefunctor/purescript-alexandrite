@@ -33,6 +33,10 @@ url = "2.5.8"
 datatest-stable = "0.3"
 
 [[test]]
+name = "backend"
+harness = false
+
+[[test]]
 name = "checking"
 harness = false
 
