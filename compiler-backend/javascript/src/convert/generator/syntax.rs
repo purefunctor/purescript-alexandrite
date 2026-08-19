@@ -16,15 +16,17 @@ pub(super) fn literal_expression(
         Literal::Boolean { value } => Ok(tree.boolean(*value)),
         Literal::Integer { value } => Ok(integer_expression(tree, *value)),
         Literal::Number { value } => {
-            let valid = value.parse::<f64>().is_ok_and(f64::is_finite);
-            if valid {
-                Ok(tree.number(value.to_string()))
-            } else {
-                Err(ModuleError::Unsupported {
+            let number = value.parse::<f64>().map_err(|_| ModuleError::Unsupported {
+                file_id,
+                state: UnsupportedState::InvalidNumber { value: value.to_string() },
+            })?;
+            if !number.is_finite() {
+                return Err(ModuleError::Unsupported {
                     file_id,
                     state: UnsupportedState::InvalidNumber { value: value.to_string() },
-                })
+                });
             }
+            Ok(tree.number(number.to_string()))
         }
     }
 }

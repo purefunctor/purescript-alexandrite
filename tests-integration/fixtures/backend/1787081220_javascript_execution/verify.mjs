@@ -1,3 +1,4 @@
+import { deepStrictEqual } from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as Library from "./output/Library/index.js";
 import * as Main from "./output/Main/index.js";
@@ -91,8 +92,4 @@ const expected = {
   patternFailure: true,
 };
 
-if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-  throw new Error(
-    `unexpected output\nactual: ${JSON.stringify(actual)}\nexpected: ${JSON.stringify(expected)}`,
-  );
-}
+deepStrictEqual(actual, expected, "unexpected output");

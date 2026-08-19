@@ -211,6 +211,11 @@ impl Generator<'_> {
         helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
     ) -> ModuleResult<()> {
         let block = &self.module.storage[target.block];
+        debug_assert_eq!(
+            block.parameters.len(),
+            target.arguments.len(),
+            "invariant violated: SSA block target arity does not match block parameters"
+        );
         if block.instructions.is_empty() {
             match &block.terminator {
                 Terminator::Return { value } => {
@@ -486,6 +491,7 @@ impl Generator<'_> {
         let captures = closure.captures.iter().map(|capture| context.expression(tree, *capture));
         let captures = captures.collect_vec();
         let function = tree.identifier(self.function_name(closure.function));
+        // Defer capture evaluation until every binding in the recursive group has been initialized.
         let function = tree.call(function, captures);
         let argument = tree.identifier(&parameter);
         let body = tree.call(function, vec![argument]);

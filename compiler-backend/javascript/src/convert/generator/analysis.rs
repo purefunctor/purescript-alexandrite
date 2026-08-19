@@ -294,38 +294,16 @@ pub(super) fn function_globals(
     function: FunctionId,
 ) -> FxHashSet<GlobalIdentity> {
     let mut globals = FxHashSet::default();
-    let mut visited = FxHashSet::default();
-    collect_function_globals(module, function, &mut visited, &mut globals);
-    globals
-}
-
-fn collect_function_globals(
-    module: &ssa::tree::Module,
-    function: FunctionId,
-    visited: &mut FxHashSet<FunctionId>,
-    globals: &mut FxHashSet<GlobalIdentity>,
-) {
-    if !visited.insert(function) {
-        return;
-    }
     for block in module.storage[function].blocks.iter().copied() {
         for instruction in &module.storage[block].instructions {
-            match instruction {
-                Instruction::Assign { value: InstructionValue::Global { global }, .. } => {
-                    globals.insert(global.identity);
-                }
-                Instruction::Assign {
-                    value: InstructionValue::Closure { function, .. }, ..
-                } => collect_function_globals(module, *function, visited, globals),
-                Instruction::RecursiveClosures { bindings } => {
-                    for binding in bindings.iter() {
-                        collect_function_globals(module, binding.function, visited, globals);
-                    }
-                }
-                _ => {}
+            if let Instruction::Assign { value: InstructionValue::Global { global }, .. } =
+                instruction
+            {
+                globals.insert(global.identity);
             }
         }
     }
+    globals
 }
 
 #[derive(Debug, Clone, Copy)]
