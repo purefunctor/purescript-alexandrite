@@ -43,9 +43,10 @@ pub fn backend(path: &Path) -> FixtureResult {
     };
 
     let checking_report = crate::generated::basic::report_checked(&engine, id);
-    let functional = nbe::convert_module(&engine, id)?;
-    let control_flow = ssa::convert_module(&functional)?;
-    let ssa_report = ssa::pretty::render(&control_flow);
+    let ssa_report = match engine.ssa(id)? {
+        Ok(module) => ssa::pretty::render(&module),
+        Err(error) => error.to_string(),
+    };
     let ssa_snapshot = format!("{file}.ssa");
 
     let mut settings = insta::Settings::clone_current();

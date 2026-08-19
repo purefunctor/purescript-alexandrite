@@ -21,6 +21,8 @@ pub enum QueryKey {
     CheckedCore,
     Checked(FileId),
     Documented(FileId),
+    Nbe(FileId),
+    Ssa(FileId),
 }
 
 #[derive(Error, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

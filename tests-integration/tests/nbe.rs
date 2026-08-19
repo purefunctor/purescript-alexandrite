@@ -2,8 +2,10 @@ fn nbe(path: &std::path::Path) -> datatest_stable::Result<()> {
     let folder = path.parent().ok_or("fixture path has no parent")?;
     let (engine, _) = tests_integration::load_compiler(folder);
     let id = engine.module_file("Main").ok_or("fixture has no Main module")?;
-    let module = nbe::convert_module(&engine, id)?;
-    let report = nbe::pretty::render(&module);
+    let report = match engine.nbe(id)? {
+        Ok(module) => nbe::pretty::render(&module),
+        Err(error) => error.to_string(),
+    };
 
     let snapshot_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(folder);
     let mut settings = insta::Settings::clone_current();

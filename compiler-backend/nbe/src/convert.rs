@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use building_types::QueryResult;
+use building_types::{QueryError, QueryResult};
 use checking::evidence::{
     Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
 };
@@ -12,8 +12,9 @@ use indexing::{DeriveItemId, IndexedTermItemKind, InstanceItemId, OrderedTermIte
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
+use thiserror::Error;
 
-use crate::error::{ConversionError, ConversionResult, UnsupportedState};
+use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, Expression, ExpressionId,
     ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard, GuardedAlternative,
@@ -21,6 +22,16 @@ use crate::tree::{
     RecordField, RecordPatternField, RecordUpdate, RecursiveGroupId, ReflectableEvidence,
     ReflectableOrdering, Storage, SuperclassIdentity, SynthesizedEvidence,
 };
+
+type ConversionResult<T> = Result<T, ConversionError>;
+
+#[derive(Debug, Error)]
+enum ConversionError {
+    #[error(transparent)]
+    Query(#[from] QueryError),
+    #[error(transparent)]
+    Module(#[from] ModuleError),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum BindingSource {
@@ -32,6 +43,17 @@ enum BindingSource {
 }
 
 pub fn convert_module(
+    queries: &impl checking::ExternalQueries,
+    file_id: FileId,
+) -> QueryResult<ModuleResult<Module>> {
+    match convert_module_inner(queries, file_id) {
+        Ok(module) => Ok(Ok(module)),
+        Err(ConversionError::Query(error)) => Err(error),
+        Err(ConversionError::Module(error)) => Ok(Err(error)),
+    }
+}
+
+fn convert_module_inner(
     queries: &impl checking::ExternalQueries,
     file_id: FileId,
 ) -> ConversionResult<Module> {
@@ -1007,6 +1029,6 @@ where
     }
 
     fn unsupported(&self, state: UnsupportedState) -> ConversionError {
-        ConversionError::Unsupported { file_id: self.file_id, state }
+        crate::ModuleError::Unsupported { file_id: self.file_id, state }.into()
     }
 }
