@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 142
+expression: javascript_report
+---
+// Main/index.js
+export function first(argument0) {
+  const matches = argument0 === true;
+  if (matches) {
+    const literal = 1 | 0;
+    return literal;
+  } else {
+    const matches$1 = argument0 === false;
+    if (matches$1) {
+      const second$1 = second;
+      const literal$1 = true;
+      const call = second$1(literal$1);
+      return call;
+    } else {
+      throw new Error("Pattern match failure");
+    }
+  }
+}
+
+export function second(argument0) {
+  const matches = argument0 === true;
+  if (matches) {
+    const literal = 2 | 0;
+    return literal;
+  } else {
+    const matches$1 = argument0 === false;
+    if (matches$1) {
+      const first$1 = first;
+      const literal$1 = true;
+      const call = first$1(literal$1);
+      return call;
+    } else {
+      throw new Error("Pattern match failure");
+    }
+  }
+}
+
+export const later = 42 | 0;
+
+export const forward = later;

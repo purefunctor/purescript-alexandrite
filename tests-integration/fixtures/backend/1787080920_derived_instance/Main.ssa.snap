@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 57
+assertion_line: 142
 expression: ssa_report
 ---
 @export constructor Box/0;

@@ -1,0 +1,593 @@
+use itertools::Itertools;
+use rustc_hash::{FxHashMap, FxHashSet};
+use ssa::tree::{
+    BlockId, BlockTarget, Failure, Function, Instruction, InstructionValue, PatternTest,
+    RecordUpdate, RecursiveClosure, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence,
+    Terminator, ValueId,
+};
+
+use super::Generator;
+use super::analysis::{
+    ControlFlow, FunctionContext, ValueExpressionContext, block_is_transparent_terminal,
+    helper_captures, substitute_block_parameter,
+};
+use super::names::NameAllocator;
+use super::syntax::{
+    call_expression, integer_expression, literal_expression, project_field, projection_expression,
+};
+use crate::error::ModuleResult;
+use crate::pretty::Writer;
+use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree};
+
+struct RenderingOutput<'o, 'd> {
+    tree: &'o mut Tree,
+    writer: &'o mut Writer<'d>,
+}
+
+impl Generator<'_> {
+    pub(super) fn render_function(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        name: &str,
+        function: &Function,
+        exported: bool,
+    ) -> ModuleResult<()> {
+        let context = FunctionContext::new(self, function);
+        let captures = function.captures.iter().map(|capture| context.value(*capture).to_owned());
+        let captures = captures.collect_vec();
+        let parameters =
+            function.parameters.iter().map(|parameter| context.value(*parameter).to_owned());
+        let parameters = parameters.collect_vec();
+        let (function_parameters, arrow_parameters) = if captures.is_empty() {
+            match parameters.split_first() {
+                Some((first, rest)) => (vec![first.clone()], rest.to_vec()),
+                None => (vec![], vec![]),
+            }
+        } else {
+            (captures, parameters)
+        };
+
+        let export = if exported { "export " } else { "" };
+        writer.line(format!("{export}function {name}({}) {{", function_parameters.join(", ")));
+        writer.indent();
+        for parameter in &arrow_parameters {
+            writer.line(format!("return {parameter} => {{"));
+            writer.indent();
+        }
+        self.render_function_body(tree, writer, function, &context)?;
+        for _ in arrow_parameters.iter().rev() {
+            writer.dedent();
+            writer.line("};");
+        }
+        writer.dedent();
+        writer.line("}");
+        Ok(())
+    }
+
+    pub(super) fn render_function_body(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        function: &Function,
+        context: &FunctionContext,
+    ) -> ModuleResult<()> {
+        let control_flow = ControlFlow::new(self.module, function);
+        if control_flow.cyclic {
+            // Expanding a cyclic CFG cannot terminate. Keep its dispatcher inside this function;
+            // source recursion is represented by ordinary calls and never reaches this path.
+            self.render_cyclic_function(tree, writer, function, context, &control_flow)
+        } else {
+            self.render_acyclic_function(tree, writer, function, context, &control_flow)
+        }
+    }
+
+    fn render_acyclic_function(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        function: &Function,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+    ) -> ModuleResult<()> {
+        let helpers = function.blocks.iter().copied().filter(|block| {
+            let block_value = &self.module.storage[*block];
+            control_flow.needs_helper(function.entry, *block)
+                && !block_is_transparent_terminal(block_value)
+        });
+        let helpers = helpers.collect::<FxHashSet<_>>();
+        let helper_captures = helper_captures(self.module, function, &helpers);
+        for block_id in function.blocks.iter().copied() {
+            if !helpers.contains(&block_id) {
+                continue;
+            }
+            let block = &self.module.storage[block_id];
+            let parameters = block.parameters.iter().map(|parameter| context.value(*parameter));
+            let parameters = parameters.collect_vec();
+            let captures = helper_captures[&block_id].iter().map(|capture| context.value(*capture));
+            let parameters = parameters.into_iter().chain(captures);
+            let parameters = parameters.collect_vec();
+            writer.line(format!(
+                "function {}({}) {{",
+                context.block(block_id),
+                parameters.join(", ")
+            ));
+            writer.indent();
+            let mut output = RenderingOutput { tree, writer };
+            self.render_acyclic_block(
+                &mut output,
+                block_id,
+                context,
+                control_flow,
+                &helpers,
+                &helper_captures,
+            )?;
+            writer.dedent();
+            writer.line("}");
+            writer.blank();
+        }
+        let mut output = RenderingOutput { tree, writer };
+        self.render_acyclic_block(
+            &mut output,
+            function.entry,
+            context,
+            control_flow,
+            &helpers,
+            &helper_captures,
+        )
+    }
+
+    fn render_acyclic_block(
+        &self,
+        output: &mut RenderingOutput<'_, '_>,
+        block_id: BlockId,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+        helpers: &FxHashSet<BlockId>,
+        helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
+    ) -> ModuleResult<()> {
+        let block = &self.module.storage[block_id];
+        for instruction in &block.instructions {
+            self.render_instruction(output.tree, output.writer, instruction, context, true)?;
+        }
+        match &block.terminator {
+            Terminator::Return { value } => {
+                let value = context.expression(output.tree, *value);
+                output.writer.expression_line("return ", output.tree, value, ";");
+            }
+            Terminator::Jump { target } => {
+                self.render_acyclic_target(
+                    output,
+                    target,
+                    context,
+                    control_flow,
+                    helpers,
+                    helper_captures,
+                )?;
+            }
+            Terminator::Branch { condition, then_target, else_target } => {
+                let condition = context.expression(output.tree, *condition);
+                output.writer.expression_line("if (", output.tree, condition, ") {");
+                output.writer.indent();
+                self.render_acyclic_target(
+                    output,
+                    then_target,
+                    context,
+                    control_flow,
+                    helpers,
+                    helper_captures,
+                )?;
+                output.writer.dedent();
+                output.writer.line("} else {");
+                output.writer.indent();
+                self.render_acyclic_target(
+                    output,
+                    else_target,
+                    context,
+                    control_flow,
+                    helpers,
+                    helper_captures,
+                )?;
+                output.writer.dedent();
+                output.writer.line("}");
+            }
+            Terminator::Fail { failure } => self.render_failure(output.writer, *failure),
+            Terminator::Unreachable => {
+                output.writer.line("throw new Error(\"unreachable SSA block\");");
+            }
+        }
+        Ok(())
+    }
+
+    fn render_acyclic_target(
+        &self,
+        output: &mut RenderingOutput<'_, '_>,
+        target: &BlockTarget,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+        helpers: &FxHashSet<BlockId>,
+        helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
+    ) -> ModuleResult<()> {
+        let block = &self.module.storage[target.block];
+        if block.instructions.is_empty() {
+            match &block.terminator {
+                Terminator::Return { value } => {
+                    let value = substitute_block_parameter(block, target, *value).unwrap_or(*value);
+                    let value = context.expression(output.tree, value);
+                    output.writer.expression_line("return ", output.tree, value, ";");
+                    return Ok(());
+                }
+                Terminator::Fail { failure } if block.parameters.is_empty() => {
+                    self.render_failure(output.writer, *failure);
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
+        if helpers.contains(&target.block) {
+            let arguments =
+                target.arguments.iter().map(|argument| context.expression(output.tree, *argument));
+            let mut arguments = arguments.collect_vec();
+            let captures = helper_captures[&target.block]
+                .iter()
+                .map(|capture| context.expression(output.tree, *capture));
+            arguments.extend(captures);
+            let function = output.tree.identifier(context.block(target.block));
+            let call = output.tree.call(function, arguments);
+            output.writer.expression_line("return ", output.tree, call, ";");
+            return Ok(());
+        }
+        for (&parameter, &argument) in block.parameters.iter().zip(target.arguments.iter()) {
+            let argument = context.expression(output.tree, argument);
+            output.writer.expression_line(
+                format!("const {} = ", context.value(parameter)),
+                output.tree,
+                argument,
+                ";",
+            );
+        }
+        self.render_acyclic_block(
+            output,
+            target.block,
+            context,
+            control_flow,
+            helpers,
+            helper_captures,
+        )
+    }
+
+    fn render_cyclic_function(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        function: &Function,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+    ) -> ModuleResult<()> {
+        for value in context.mutable_values(function) {
+            writer.line(format!("let {value};"));
+        }
+        writer.line(format!(
+            "let {} = {};",
+            context.dispatch_block,
+            control_flow.index(function.entry)
+        ));
+        writer.line(format!("let {} = [];", context.dispatch_arguments));
+        writer.line("while (true) {");
+        writer.indent();
+        writer.line(format!("switch ({}) {{", context.dispatch_block));
+        writer.indent();
+        for block_id in function.blocks.iter().copied() {
+            let block = &self.module.storage[block_id];
+            writer.line(format!("case {}: {{", control_flow.index(block_id)));
+            writer.indent();
+            for (position, parameter) in block.parameters.iter().enumerate() {
+                writer.line(format!(
+                    "{} = {}[{}];",
+                    context.value(*parameter),
+                    context.dispatch_arguments,
+                    position
+                ));
+            }
+            for instruction in &block.instructions {
+                self.render_instruction(tree, writer, instruction, context, false)?;
+            }
+            self.render_cyclic_terminator(tree, writer, &block.terminator, context, control_flow);
+            writer.dedent();
+            writer.line("}");
+        }
+        writer.dedent();
+        writer.line("}");
+        writer.dedent();
+        writer.line("}");
+        Ok(())
+    }
+
+    fn render_cyclic_terminator(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        terminator: &Terminator,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+    ) {
+        match terminator {
+            Terminator::Return { value } => {
+                let value = context.expression(tree, *value);
+                writer.expression_line("return ", tree, value, ";");
+            }
+            Terminator::Jump { target } => {
+                self.render_cyclic_target(tree, writer, target, context, control_flow);
+            }
+            Terminator::Branch { condition, then_target, else_target } => {
+                let condition = context.expression(tree, *condition);
+                writer.expression_line("if (", tree, condition, ") {");
+                writer.indent();
+                self.render_cyclic_target(tree, writer, then_target, context, control_flow);
+                writer.dedent();
+                writer.line("} else {");
+                writer.indent();
+                self.render_cyclic_target(tree, writer, else_target, context, control_flow);
+                writer.dedent();
+                writer.line("}");
+            }
+            Terminator::Fail { failure } => self.render_failure(writer, *failure),
+            Terminator::Unreachable => {
+                writer.line("throw new Error(\"unreachable SSA block\");");
+            }
+        }
+    }
+
+    fn render_cyclic_target(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        target: &BlockTarget,
+        context: &FunctionContext,
+        control_flow: &ControlFlow,
+    ) {
+        let arguments = target.arguments.iter().map(|argument| context.expression(tree, *argument));
+        let arguments = arguments.collect_vec();
+        let arguments = tree.array(arguments);
+        writer.expression_line(format!("{} = ", context.dispatch_arguments), tree, arguments, ";");
+        writer.line(format!("{} = {};", context.dispatch_block, control_flow.index(target.block)));
+        writer.line("continue;");
+    }
+
+    fn render_instruction(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        instruction: &Instruction,
+        context: &FunctionContext,
+        declare: bool,
+    ) -> ModuleResult<()> {
+        match instruction {
+            Instruction::Assign { result, value } => {
+                let expression = self.instruction_expression(tree, value, context)?;
+                let binding = if declare { "const " } else { "" };
+                writer.expression_line(
+                    format!("{binding}{} = ", context.value(*result)),
+                    tree,
+                    expression,
+                    ";",
+                );
+            }
+            Instruction::RecursiveClosures { bindings } => {
+                for binding in bindings.iter() {
+                    let expression = self.recursive_closure_expression(tree, binding, context);
+                    let declaration = if declare { "const " } else { "" };
+                    writer.expression_line(
+                        format!("{declaration}{} = ", context.value(binding.result)),
+                        tree,
+                        expression,
+                        ";",
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn instruction_expression(
+        &self,
+        tree: &mut Tree,
+        value: &InstructionValue,
+        context: &dyn ValueExpressionContext,
+    ) -> ModuleResult<ExpressionId> {
+        match value {
+            InstructionValue::Literal { literal } => {
+                literal_expression(tree, literal, self.module.file_id)
+            }
+            InstructionValue::Array { elements } => {
+                let elements = elements.iter().map(|element| context.expression(tree, *element));
+                let elements = elements.collect_vec();
+                Ok(tree.array(elements))
+            }
+            InstructionValue::Record { fields } => {
+                let fields = fields.iter().map(|field| ObjectProperty::Field {
+                    name: field.field.name.to_string(),
+                    value: context.expression(tree, field.value),
+                });
+                let fields = fields.collect_vec();
+                Ok(tree.object(fields))
+            }
+            InstructionValue::RecordUpdate { record, updates } => {
+                let record = context.expression(tree, *record);
+                Ok(self.record_update_expression(tree, record, updates, context))
+            }
+            InstructionValue::Project { record, field } => {
+                let record = context.expression(tree, *record);
+                Ok(project_field(tree, record, field))
+            }
+            InstructionValue::Constructor { global } => Ok(self.global_expression(tree, global)),
+            InstructionValue::Global { global } => Ok(self.global_expression(tree, global)),
+            InstructionValue::Closure { function, captures } => {
+                let name = tree.identifier(self.function_name(*function));
+                if captures.is_empty() {
+                    Ok(name)
+                } else {
+                    let captures =
+                        captures.iter().map(|capture| context.expression(tree, *capture));
+                    let captures = captures.collect_vec();
+                    Ok(tree.call(name, captures))
+                }
+            }
+            InstructionValue::Call { calling_convention, function, arguments } => {
+                let function = context.expression(tree, *function);
+                let arguments =
+                    arguments.iter().map(|argument| context.expression(tree, *argument));
+                let arguments = arguments.collect_vec();
+                Ok(call_expression(tree, *calling_convention, function, arguments))
+            }
+            InstructionValue::Test { value, test } => {
+                let value = context.expression(tree, *value);
+                self.pattern_test_expression(tree, value, test)
+            }
+            InstructionValue::Extract { value, projection } => {
+                let value = context.expression(tree, *value);
+                Ok(projection_expression(tree, value, projection))
+            }
+            InstructionValue::EffectPure { value } => {
+                let value = context.expression(tree, *value);
+                Ok(tree.arrow(vec![], value))
+            }
+            InstructionValue::EffectBind { action, continuation } => {
+                let action = context.expression(tree, *action);
+                let action = tree.call(action, vec![]);
+                let continuation = context.expression(tree, *continuation);
+                let continuation = tree.call(continuation, vec![action]);
+                let result = tree.call(continuation, vec![]);
+                Ok(tree.arrow(vec![], result))
+            }
+            InstructionValue::SynthesizedEvidence { evidence } => {
+                self.synthesized_evidence_expression(tree, evidence)
+            }
+            InstructionValue::TrivialEvidence => Ok(tree.object(vec![])),
+        }
+    }
+
+    fn recursive_closure_expression(
+        &self,
+        tree: &mut Tree,
+        closure: &RecursiveClosure,
+        context: &FunctionContext,
+    ) -> ExpressionId {
+        let function = &self.module.storage[closure.function];
+        let parameter = function
+            .parameters
+            .first()
+            .expect("invariant violated: recursive SSA closure has no source parameter");
+        let mut allocator = NameAllocator::with_reserved(context.names.values().cloned());
+        let parameter = allocator.allocate(&self.module.storage[*parameter].name);
+        let captures = closure.captures.iter().map(|capture| context.expression(tree, *capture));
+        let captures = captures.collect_vec();
+        let function = tree.identifier(self.function_name(closure.function));
+        let function = tree.call(function, captures);
+        let argument = tree.identifier(&parameter);
+        let body = tree.call(function, vec![argument]);
+        tree.arrow(vec![parameter], body)
+    }
+
+    fn record_update_expression(
+        &self,
+        tree: &mut Tree,
+        record: ExpressionId,
+        updates: &[RecordUpdate],
+        context: &dyn ValueExpressionContext,
+    ) -> ExpressionId {
+        let mut properties = vec![ObjectProperty::Spread(record)];
+        for update in updates {
+            match update {
+                RecordUpdate::Leaf { field, value } => {
+                    properties.push(ObjectProperty::Field {
+                        name: field.name.to_string(),
+                        value: context.expression(tree, *value),
+                    });
+                }
+                RecordUpdate::Branch { field, updates } => {
+                    let nested = project_field(tree, record, field);
+                    let nested = self.record_update_expression(tree, nested, updates, context);
+                    properties.push(ObjectProperty::Field {
+                        name: field.name.to_string(),
+                        value: nested,
+                    });
+                }
+            }
+        }
+        tree.object(properties)
+    }
+
+    fn pattern_test_expression(
+        &self,
+        tree: &mut Tree,
+        value: ExpressionId,
+        test: &PatternTest,
+    ) -> ModuleResult<ExpressionId> {
+        match test {
+            PatternTest::Literal { literal } => {
+                let literal = literal_expression(tree, literal, self.module.file_id)?;
+                Ok(tree.binary(BinaryOperator::StrictEqual, value, literal))
+            }
+            PatternTest::ArrayLength { length } => {
+                let array = tree.identifier("Array");
+                let is_array = tree.member(array, "isArray");
+                let is_array = tree.call(is_array, vec![value]);
+                let actual_length = tree.member(value, "length");
+                let expected_length = tree.number(length.to_string());
+                let length =
+                    tree.binary(BinaryOperator::StrictEqual, actual_length, expected_length);
+                Ok(tree.binary(BinaryOperator::LogicalAnd, is_array, length))
+            }
+            PatternTest::Constructor { global } => {
+                let array = tree.identifier("Array");
+                let is_array = tree.member(array, "isArray");
+                let is_array = tree.call(is_array, vec![value]);
+                let zero = tree.number("0");
+                let actual_tag = tree.index(value, zero);
+                let expected_tag = tree.string(global.item_name.as_str());
+                let tagged = tree.binary(BinaryOperator::StrictEqual, actual_tag, expected_tag);
+                Ok(tree.binary(BinaryOperator::LogicalAnd, is_array, tagged))
+            }
+        }
+    }
+
+    fn synthesized_evidence_expression(
+        &self,
+        tree: &mut Tree,
+        evidence: &SynthesizedEvidence,
+    ) -> ModuleResult<ExpressionId> {
+        let (field, value) = match evidence {
+            SynthesizedEvidence::IsSymbol { symbol } => {
+                ("reflectSymbol", tree.string(symbol.as_str()))
+            }
+            SynthesizedEvidence::Reflectable { evidence } => {
+                let value = match evidence {
+                    ReflectableEvidence::Integer { value } => integer_expression(tree, *value),
+                    ReflectableEvidence::String { value } => tree.string(value.as_str()),
+                    ReflectableEvidence::Boolean { value } => tree.boolean(*value),
+                    ReflectableEvidence::Ordering { ordering } => {
+                        let tag = match ordering {
+                            ReflectableOrdering::Less => "LT",
+                            ReflectableOrdering::Equal => "EQ",
+                            ReflectableOrdering::Greater => "GT",
+                        };
+                        let tag = tree.string(tag);
+                        tree.array(vec![tag])
+                    }
+                };
+                ("reflectType", value)
+            }
+        };
+        let reflection = tree.arrow(vec!["$proxy".into()], value);
+        Ok(tree.object(vec![ObjectProperty::Field { name: field.into(), value: reflection }]))
+    }
+
+    fn render_failure(&self, writer: &mut Writer<'_>, failure: Failure) {
+        match failure {
+            Failure::PatternMatch => {
+                writer.line("throw new Error(\"Pattern match failure\");");
+            }
+        }
+    }
+}

@@ -16,6 +16,7 @@ indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
 itertools = "0.15.0"
 insta = "1.48.0"
+javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 lsp-types.workspace = true
@@ -32,7 +33,9 @@ tempfile = "3.27.0"
 url = "2.5.8"
 
 [dev-dependencies]
+building-types = { version = "0.1.0", path = "../compiler-core/building-types" }
 datatest-stable = "0.3"
+la-arena = "0.3.1"
 
 [[test]]
 name = "backend"

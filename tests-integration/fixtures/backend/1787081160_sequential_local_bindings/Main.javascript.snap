@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 142
+expression: javascript_report
+---
+// Main/index.js
+export function sequence(input) {
+  return input;
+}

@@ -1,0 +1,104 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export foreign addInt
+
+@export foreign decrementInt
+
+@export foreign equalInt
+
+@export foreign foreignValue
+
+@export foreign effectValue
+
+@export foreign await
+
+@export integer = 42
+
+@export number = 1.5
+
+@export string = "alexandrite"
+
+@export array = [1, 2, 3]
+
+@export model = {
+  count: 0,
+  nested: { enabled: true },
+  "hostile-field": await,
+  __proto__: "data, not a prototype"
+}
+
+@export updated = model { count = 1, nested { enabled = false } }
+
+@export readHostile = \value%0 -> value%0."hostile-field"
+
+@export readProto = \value%1 -> value%1.__proto__
+
+@export capture = \captured%2 -> \_ -> captured%2
+
+@export apply = \function%3 value%4 -> function%3 value%4
+
+@export addCaptured = \amount%6 -> \value%5 -> addInt amount%6 value%5
+
+@export curried = apply (addCaptured 2) 40
+
+@export nestedJoin = \outer%7 inner%10 ->
+  if outer%7
+    then let
+      captured%8 = foreignValue
+    in let
+      result%9 = if inner%10 then 1 else 2
+    in addInt captured%8 result%9
+    else 0
+
+@export recursive[19] countdown = \value%11 ->
+  if equalInt value%11 0 then 0 else addInt 1 (countdown (decrementInt value%11))
+
+@export recursive[20] isEven = \value%12 ->
+  if equalInt value%12 0 then true else isOdd (decrementInt value%12)
+
+@export recursive[20] isOdd = \value%13 ->
+  if equalInt value%13 0 then false else isEven (decrementInt value%13)
+
+@export capturedMutual = \captured%18 condition%15 ->
+  let
+    rec localSecond%16 = \argument0%17 ->
+      case argument0%17 of
+        true ->
+          captured%18
+        false ->
+          localFirst%14 true
+    rec localFirst%14 = \argument0%19 ->
+      case argument0%19 of
+        true ->
+          captured%18
+        false ->
+          localSecond%16 true
+  in localFirst%14 condition%15
+
+@export constructor None/0
+
+@export constructor Pair/2
+
+@export pair = Pair 7 8
+
+@export first = \choice%20 ->
+  case choice%20 of
+    None ->
+      0
+    Pair left%21 _ ->
+      left%21
+
+@export partialPattern = \(Pair left%22 _) -> left%22
+
+@export unwrapWrapped = \(Wrapped value%23) -> value%23
+
+@export crossModule = unwrapWrapped wrapped
+
+@export forwardReference = forward
+
+@export instance measureInt = { measure: addInt 1 }
+
+@export evidenceValue = measureInt.measure 41

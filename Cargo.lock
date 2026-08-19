@@ -265,6 +265,7 @@ dependencies = [
  "files",
  "indexing",
  "interner",
+ "javascript",
  "la-arena",
  "lexing",
  "lock_api",
@@ -1356,6 +1357,20 @@ name = "itoa"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+
+[[package]]
+name = "javascript"
+version = "0.1.0"
+dependencies = [
+ "building-types",
+ "files",
+ "itertools 0.15.0",
+ "la-arena",
+ "pretty",
+ "rustc-hash",
+ "ssa",
+ "thiserror",
+]
 
 [[package]]
 name = "jni"
@@ -2827,6 +2842,7 @@ dependencies = [
  "analyzer",
  "async-lsp",
  "building",
+ "building-types",
  "checking",
  "datatest-stable",
  "diagnostics",
@@ -2837,6 +2853,8 @@ dependencies = [
  "insta",
  "interner",
  "itertools 0.15.0",
+ "javascript",
+ "la-arena",
  "line-index",
  "lowering",
  "lsp-types",

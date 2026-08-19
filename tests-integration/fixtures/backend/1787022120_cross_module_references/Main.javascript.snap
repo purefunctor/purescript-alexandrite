@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 142
+expression: javascript_report
+---
+// Main/index.js
+import * as Library from "../Library/index.js";
+
+export function unbox(argument0) {
+  const matches = Array.isArray(argument0) && argument0[0] === "Box";
+  if (matches) {
+    const value = argument0[1];
+    return value;
+  } else {
+    throw new Error("Pattern match failure");
+  }
+}
+
+export const fromLibrary = unbox(Library.box);
+
+export const directReference = Library.libraryValue;
+
+
+// Library/index.js
+export const Box = $value0 => ["Box", $value0];
+
+export const libraryValue = 42 | 0;
+
+export const box = Box(libraryValue);

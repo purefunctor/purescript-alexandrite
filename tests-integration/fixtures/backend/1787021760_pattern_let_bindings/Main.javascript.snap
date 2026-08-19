@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 142
+expression: javascript_report
+---
+// Main/index.js
+export function unwrap(wrapped) {
+  return wrapped;
+}
+
+export function select(record) {
+  const first = record.first;
+  const second = record.second;
+  return second;
+}
