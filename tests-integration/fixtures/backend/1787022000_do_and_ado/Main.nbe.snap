@@ -1,6 +1,5 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 14
 expression: report
 ---
 @export foreign firstAction
@@ -14,3 +13,5 @@ expression: report
 @export independent = applyEffect1.apply
   (functorEffect.map (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
   independentAction
+
+@export pureValue = applicativeEffect.pure 42

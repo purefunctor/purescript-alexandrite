@@ -20,3 +20,6 @@ independent = ado
   first <- firstAction
   second <- independentAction
   in { first, second }
+
+pureValue :: Effect Int
+pureValue = pure 42

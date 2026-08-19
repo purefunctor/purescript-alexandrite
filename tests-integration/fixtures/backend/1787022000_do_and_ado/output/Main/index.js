@@ -23,3 +23,5 @@ export const sequential = Effect.bindEffect1.bind(firstAction)(sequential$initia
 export const independent = Effect.applyEffect1.apply(
   Effect.functorEffect.map(independent$initialize$closure)(firstAction)
 )(independentAction);
+
+export const pureValue = Effect.applicativeEffect.pure(42 | 0);
