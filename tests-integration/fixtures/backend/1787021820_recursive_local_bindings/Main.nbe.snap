@@ -1,8 +1,9 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-mutual = \condition%1 ->
+@export mutual = \condition%1 ->
   let
     rec second%2 = \argument0%3 ->
       case argument0%3 of

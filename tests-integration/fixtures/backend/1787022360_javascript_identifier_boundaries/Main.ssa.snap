@@ -1,18 +1,18 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-foreign const await;
+@export foreign const await;
 
-const arguments = initialize {
+@export const arguments = initialize {
   entry() {
     const await = global(await);
     return await;
   }
 }
 
-const default = initialize {
+@export const default = initialize {
   entry() {
     const arguments = global(arguments);
     const record = { "hyphen-label": arguments };
@@ -20,14 +20,14 @@ const default = initialize {
   }
 }
 
-function readLabel(record) {
+@export function readLabel(record) {
   entry() {
     const hyphen_label = record["hyphen-label"];
     return hyphen_label;
   }
 }
 
-const emptyLabel = initialize {
+@export const emptyLabel = initialize {
   entry() {
     const arguments = global(arguments);
     const record = { "": arguments };
@@ -35,14 +35,16 @@ const emptyLabel = initialize {
   }
 }
 
-function readEmptyLabel(record) {
+@export function readEmptyLabel(record) {
   entry() {
     const value = record[""];
     return value;
   }
 }
 
-const tagged = initialize {
+@export constructor Tagged/1;
+
+@export const tagged = initialize {
   entry() {
     const Tagged = constructor(Tagged);
     const default = global(default);

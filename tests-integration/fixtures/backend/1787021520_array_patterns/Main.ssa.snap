@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function describe(argument0) {
+@export function describe(argument0) {
   entry() {
     case$0();
   }

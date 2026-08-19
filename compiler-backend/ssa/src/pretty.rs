@@ -6,9 +6,9 @@ use rustc_hash::FxHashSet;
 
 use crate::tree::{
     Block, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field, Function,
-    Global, Instruction, InstructionValue, Literal, Module, PatternTest, Projection, RecordUpdate,
-    RecursiveClosure, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence, Terminator,
-    ValueId,
+    Global, GlobalIdentity, IndirectModuleExports, Instruction, InstructionValue, Literal, Module,
+    PatternTest, Projection, RecordUpdate, RecursiveClosure, ReflectableEvidence,
+    ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -22,7 +22,7 @@ pub fn render(module: &Module) -> String {
         module.declarations.iter().filter_map(|declaration| match declaration.kind {
             DeclarationKind::Function { function } => Some(function),
             DeclarationKind::Value { initializer } => Some(initializer),
-            DeclarationKind::Foreign => None,
+            DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => None,
         });
     let root_functions = root_functions.collect::<FxHashSet<_>>();
 
@@ -33,7 +33,8 @@ pub fn render(module: &Module) -> String {
         .functions()
         .filter(|(function, _)| !root_functions.contains(function))
         .map(|(_, function)| printer.nested_function(function));
-    let documents = declarations.chain(nested_functions);
+    let indirect = module.surface.indirect.iter().map(|exports| printer.indirect_exports(exports));
+    let documents = indirect.chain(declarations).chain(nested_functions);
     let separator = arena.hardline().append(arena.hardline());
     let document = arena.intersperse(documents, separator);
 
@@ -50,7 +51,29 @@ struct Printer<'a, 'm> {
 }
 
 impl<'a> Printer<'a, '_> {
+    fn indirect_exports(&self, exports: &IndirectModuleExports) -> Doc<'a> {
+        let dependency = self
+            .module
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.file_id == exports.file_id)
+            .expect("invariant violated: indirect exports have no module dependency");
+        let globals =
+            exports.globals.iter().map(|global| self.arena.text(global.item_name.to_string()));
+        let globals = self.arena.intersperse(globals, ", ");
+        self.arena
+            .text(format!("@export {} {{ ", dependency.module_name))
+            .append(globals)
+            .append(" }")
+    }
+
     fn declaration(&self, declaration: &Declaration) -> Doc<'a> {
+        let export = if declaration.exported { "@export " } else { "" };
+        let instance = if matches!(declaration.global.identity, GlobalIdentity::Instance { .. }) {
+            "instance "
+        } else {
+            ""
+        };
         let recursion = declaration
             .recursive_group
             .map(|group| format!("recursive[{}] ", group.index))
@@ -61,20 +84,29 @@ impl<'a> Printer<'a, '_> {
                 let parameters = self.values(&function.parameters);
                 let header = self
                     .arena
-                    .text(format!("{recursion}function {}", declaration.global.name))
+                    .text(format!(
+                        "{export}{instance}{recursion}function {}",
+                        declaration.global.item_name
+                    ))
                     .append(self.parenthesized(parameters));
                 self.function_body(header, function)
             }
             DeclarationKind::Value { initializer } => {
                 let function = &self.module.storage[initializer];
-                let header = self
-                    .arena
-                    .text(format!("{recursion}const {} = initialize", declaration.global.name));
+                let header = self.arena.text(format!(
+                    "{export}{instance}{recursion}const {} = initialize",
+                    declaration.global.item_name
+                ));
                 self.function_body(header, function)
             }
-            DeclarationKind::Foreign => {
-                self.arena.text(format!("{recursion}foreign const {};", declaration.global.name))
-            }
+            DeclarationKind::Constructor { arity } => self.arena.text(format!(
+                "{export}{instance}{recursion}constructor {}/{arity};",
+                declaration.global.item_name
+            )),
+            DeclarationKind::Foreign => self.arena.text(format!(
+                "{export}{instance}{recursion}foreign const {};",
+                declaration.global.item_name
+            )),
         }
     }
 
@@ -355,7 +387,7 @@ impl<'a> Printer<'a, '_> {
     }
 
     fn global(&self, global: &Global) -> Doc<'a> {
-        self.arena.text(global.name.to_string())
+        self.arena.text(global.item_name.to_string())
     }
 
     fn field(&self, field: &Field) -> String {

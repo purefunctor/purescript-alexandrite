@@ -44,7 +44,7 @@ use lowering::{GroupedModule, LoweredModule};
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use parsing::FullParsedModule;
 use promise::{Future, Promise};
-use resolving::ResolvedModule;
+use resolving::{ExportedModule, ResolvedModule};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use stabilizing::StabilizedModule;
 use thread_local::ThreadLocal;
@@ -128,6 +128,7 @@ struct DerivedStorage {
     lowered: Shards<FileId, DerivedState<Arc<LoweredModule>>>,
     grouped: Shards<FileId, DerivedState<Arc<GroupedModule>>>,
     resolved: Shards<FileId, DerivedState<Arc<ResolvedModule>>>,
+    exported: Shards<FileId, DerivedState<Arc<ExportedModule>>>,
     bracketed: Shards<FileId, DerivedState<Arc<sugar::Bracketed>>>,
     sectioned: Shards<FileId, DerivedState<Arc<sugar::Sectioned>>>,
     checked_core: Shards<(), DerivedState<Arc<checking::context::CheckedCore>>>,
@@ -502,6 +503,7 @@ impl QueryEngine {
                 QueryKey::Lowered(k) => derived_changed!(lowered, k),
                 QueryKey::Grouped(k) => derived_changed!(grouped, k),
                 QueryKey::Resolved(k) => derived_changed!(resolved, k),
+                QueryKey::Exported(k) => derived_changed!(exported, k),
                 QueryKey::Bracketed(k) => derived_changed!(bracketed, k),
                 QueryKey::Sectioned(k) => derived_changed!(sectioned, k),
                 QueryKey::CheckedCore => {
@@ -863,6 +865,19 @@ impl QueryEngine {
         )
     }
 
+    pub fn exported(&self, id: FileId) -> QueryResult<Arc<ExportedModule>> {
+        self.query(
+            QueryKey::Exported(id),
+            id,
+            |derived| &derived.exported,
+            |this| {
+                let resolved = this.resolved(id)?;
+                let exported = resolving::export_module(&resolved);
+                Ok(Arc::new(exported))
+            },
+        )
+    }
+
     pub fn bracketed(&self, id: FileId) -> QueryResult<Arc<sugar::Bracketed>> {
         self.query(
             QueryKey::Bracketed(id),
@@ -972,6 +987,8 @@ impl QueryProxy for QueryEngine {
 
     type Resolved = Arc<ResolvedModule>;
 
+    type Exported = Arc<ExportedModule>;
+
     type Bracketed = Arc<sugar::Bracketed>;
 
     type Sectioned = Arc<sugar::Sectioned>;
@@ -1006,6 +1023,10 @@ impl QueryProxy for QueryEngine {
 
     fn resolved(&self, id: FileId) -> QueryResult<Self::Resolved> {
         QueryEngine::resolved(self, id)
+    }
+
+    fn exported(&self, id: FileId) -> QueryResult<Self::Exported> {
+        QueryEngine::exported(self, id)
     }
 
     fn bracketed(&self, id: FileId) -> QueryResult<Self::Bracketed> {
@@ -1399,6 +1420,7 @@ mod tests {
             let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
                 unreachable!("invariant violated: expected computed query");
             };
+            assert!(dependencies.contains(&QueryKey::Exported(main)));
             assert!(dependencies.contains(&QueryKey::Indexed(main)));
             assert!(dependencies.contains(&QueryKey::Lowered(main)));
             assert!(dependencies.contains(&QueryKey::Grouped(main)));
@@ -2077,6 +2099,31 @@ mod tests {
         let groups_a = engine.grouped(id).unwrap();
         let groups_b = engine.grouped(id).unwrap();
         assert!(Arc::ptr_eq(&groups_a, &groups_b));
+    }
+
+    #[test]
+    fn test_exported_identity() {
+        let mut engine = QueryEngine::default();
+        let mut files = Files::default();
+        prim::configure(&mut engine, &mut files);
+
+        let id = files.insert("./src/Main.purs", "module Main (x) where\n\nx = 1\ny = 2");
+        let content = files.content(id);
+        engine.set_content(id, content);
+
+        let exported_a = engine.exported(id).unwrap();
+        let exported_b = engine.exported(id).unwrap();
+        assert!(Arc::ptr_eq(&exported_a, &exported_b));
+        let indexed = engine.indexed(id).unwrap();
+        let x = indexed.names.terms.lookup("x").unwrap();
+        assert_eq!(exported_a.local.as_ref(), &[x]);
+        assert!(exported_a.indirect.is_empty());
+
+        let shard = engine.derived.exported.shard(&id).read();
+        let DerivedState::Computed { dependencies, .. } = shard.get(&id).unwrap() else {
+            unreachable!("invariant violated: expected computed query");
+        };
+        assert_eq!(dependencies.as_ref(), &[QueryKey::Resolved(id)]);
     }
 
     #[test]

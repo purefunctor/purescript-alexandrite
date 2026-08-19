@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-foreign const addInt;
+@export foreign const addInt;
 
-foreign const multiplyInt;
+@export foreign const multiplyInt;
 
-const constantAdd = initialize {
+@export const constantAdd = initialize {
   entry() {
     const addInt = global(addInt);
     const literal = 20;
@@ -18,7 +18,7 @@ const constantAdd = initialize {
   }
 }
 
-const constantMultiply = initialize {
+@export const constantMultiply = initialize {
   entry() {
     const multiplyInt = global(multiplyInt);
     const literal = 6;
@@ -29,7 +29,7 @@ const constantMultiply = initialize {
   }
 }
 
-const overflowAdd = initialize {
+@export const overflowAdd = initialize {
   entry() {
     const addInt = global(addInt);
     const literal = 2147483647;
@@ -40,7 +40,7 @@ const overflowAdd = initialize {
   }
 }
 
-const unknownAdd = initialize {
+@export const unknownAdd = initialize {
   entry() {
     const addInt = global(addInt);
     return addInt;

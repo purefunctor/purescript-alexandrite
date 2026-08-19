@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function choose(argument0, argument1) {
+@export function choose(argument0, argument1) {
   entry() {
     case$0();
   }

@@ -4,6 +4,8 @@ use files::FileId;
 use indexing::TermItemId;
 use thiserror::Error;
 
+use crate::tree::GlobalId;
+
 pub type ModuleResult<T> = Result<T, ModuleError>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -36,6 +38,12 @@ pub enum UnsupportedState {
     MissingLocalDeclaration(lowering::LetBindingNameGroupId),
     #[error("checked value declaration has no equations")]
     MissingEquation,
+    #[error(
+        "runtime export name {name:?} refers to conflicting globals {existing:?} and {duplicate:?}"
+    )]
+    ConflictingRuntimeExport { name: String, existing: GlobalId, duplicate: GlobalId },
+    #[error("exported operator {term_id:?} has no runtime resolution")]
+    MissingRuntimeExportOperatorResolution { term_id: TermItemId },
     #[error("instance prerequisite is not represented by given evidence")]
     InvalidInstancePrerequisite,
     #[error("local identity space is exhausted")]

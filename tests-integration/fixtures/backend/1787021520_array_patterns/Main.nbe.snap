@@ -1,8 +1,9 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-describe = \argument0%0 ->
+@export describe = \argument0%0 ->
   case argument0%0 of
     [] ->
       0

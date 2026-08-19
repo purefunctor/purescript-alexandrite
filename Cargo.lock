@@ -1637,6 +1637,7 @@ dependencies = [
  "la-arena",
  "lowering",
  "pretty",
+ "resolving",
  "rustc-hash",
  "smol_str",
  "thiserror",

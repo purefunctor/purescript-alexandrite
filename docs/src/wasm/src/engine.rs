@@ -11,7 +11,7 @@ use indexing::IndexedModule;
 use lowering::{GroupedModule, LoweredModule};
 use parsing::FullParsedModule;
 use prim_constants::MODULE_MAP;
-use resolving::ResolvedModule;
+use resolving::{ExportedModule, ResolvedModule};
 use rustc_hash::FxHashMap;
 use stabilizing::StabilizedModule;
 use url::Url;
@@ -30,6 +30,7 @@ struct DerivedStorage {
     lowered: FxHashMap<FileId, Arc<LoweredModule>>,
     grouped: FxHashMap<FileId, Arc<GroupedModule>>,
     resolved: FxHashMap<FileId, Arc<ResolvedModule>>,
+    exported: FxHashMap<FileId, Arc<ExportedModule>>,
     bracketed: FxHashMap<FileId, Arc<sugar::Bracketed>>,
     sectioned: FxHashMap<FileId, Arc<sugar::Sectioned>>,
     checked: FxHashMap<FileId, Arc<checking::CheckedModule>>,
@@ -120,6 +121,7 @@ impl WasmQueryEngine {
             derived.lowered.remove(&id);
             derived.grouped.remove(&id);
             derived.resolved.remove(&id);
+            derived.exported.remove(&id);
             derived.bracketed.remove(&id);
             derived.sectioned.remove(&id);
             derived.checked.remove(&id);
@@ -133,6 +135,7 @@ impl WasmQueryEngine {
             derived.lowered.remove(&user_id);
             derived.grouped.remove(&user_id);
             derived.resolved.remove(&user_id);
+            derived.exported.remove(&user_id);
             derived.bracketed.remove(&user_id);
             derived.sectioned.remove(&user_id);
             derived.checked.remove(&user_id);
@@ -151,6 +154,7 @@ impl WasmQueryEngine {
             derived.lowered.remove(&existing_id);
             derived.grouped.remove(&existing_id);
             derived.resolved.remove(&existing_id);
+            derived.exported.remove(&existing_id);
             derived.bracketed.remove(&existing_id);
             derived.sectioned.remove(&existing_id);
             derived.checked.remove(&existing_id);
@@ -208,6 +212,7 @@ impl QueryProxy for WasmQueryEngine {
     type Lowered = Arc<LoweredModule>;
     type Grouped = Arc<GroupedModule>;
     type Resolved = Arc<ResolvedModule>;
+    type Exported = Arc<ExportedModule>;
     type Bracketed = Arc<sugar::Bracketed>;
     type Sectioned = Arc<sugar::Sectioned>;
     type Checked = Arc<checking::CheckedModule>;
@@ -309,6 +314,18 @@ impl QueryProxy for WasmQueryEngine {
 
         self.derived.borrow_mut().resolved.insert(id, resolved.clone());
         Ok(resolved)
+    }
+
+    fn exported(&self, id: FileId) -> QueryResult<Self::Exported> {
+        if let Some(cached) = self.derived.borrow().exported.get(&id) {
+            return Ok(Arc::clone(cached));
+        }
+
+        let resolved = self.resolved(id)?;
+        let exported = Arc::new(resolving::export_module(&resolved));
+
+        self.derived.borrow_mut().exported.insert(id, Arc::clone(&exported));
+        Ok(exported)
     }
 
     fn bracketed(&self, id: FileId) -> QueryResult<Self::Bracketed> {
@@ -427,3 +444,23 @@ impl checking::ExternalQueries for WasmQueryEngine {
 
 impl resolving::ExternalQueries for WasmQueryEngine {}
 impl sugar::ExternalQueries for WasmQueryEngine {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replacing_user_source_invalidates_exported_module() {
+        let mut engine = WasmQueryEngine::new();
+        let id = engine.set_user_source("module Main (x) where\n\nx = 1\ny = 2");
+
+        let exported = engine.exported(id).unwrap();
+        assert_eq!(exported.local.len(), 1);
+
+        let replacement_id = engine.set_user_source("module Main (x, y) where\n\nx = 1\ny = 2");
+        assert_eq!(replacement_id, id);
+
+        let exported = engine.exported(replacement_id).unwrap();
+        assert_eq!(exported.local.len(), 2);
+    }
+}

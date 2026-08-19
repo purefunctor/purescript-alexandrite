@@ -1,9 +1,17 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 12
+assertion_line: 14
 expression: report
 ---
-first = \argument0%0 ->
+@export constructor Empty/0
+
+@export constructor One/1
+
+@export constructor Pair/2
+
+@export constructor Outer/1
+
+@export first = \argument0%0 ->
   case argument0%0 of
     Empty ->
       Empty
@@ -16,15 +24,15 @@ first = \argument0%0 ->
         _ ->
           Empty
 
-unwrap = \(Identity value%4) -> value%4
+@export unwrap = \value%4 -> value%4
 
-nested = \argument0%5 ->
+@export nested = \argument0%5 ->
   case argument0%5 of
     Outer (One value%6) ->
       One value%6
     _ ->
       Empty
 
-bind = \value%8 continuation%7 -> continuation%7 value%8
+@export bind = \value%8 continuation%7 -> continuation%7 value%8
 
-ordinaryBind = \identity%9 -> bind identity%9 (\(Identity value%10) -> value%10)
+@export ordinaryBind = \identity%9 -> bind identity%9 (\value%10 -> value%10)

@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-const symbol = initialize {
+@export const symbol = initialize {
   entry() {
     const evidence = evidence.symbol("alexandrite");
     const reflectSymbol = evidence.reflectSymbol;
@@ -13,7 +13,7 @@ const symbol = initialize {
   }
 }
 
-const reflectedString = initialize {
+@export const reflectedString = initialize {
   entry() {
     const evidence = evidence.reflectable("reflected");
     const reflectType = evidence.reflectType;
@@ -23,7 +23,7 @@ const reflectedString = initialize {
   }
 }
 
-const reflectedInteger = initialize {
+@export const reflectedInteger = initialize {
   entry() {
     const evidence = evidence.reflectable(42);
     const reflectType = evidence.reflectType;
@@ -33,7 +33,7 @@ const reflectedInteger = initialize {
   }
 }
 
-const reflectedTrue = initialize {
+@export const reflectedTrue = initialize {
   entry() {
     const evidence = evidence.reflectable(true);
     const reflectType = evidence.reflectType;
@@ -43,7 +43,7 @@ const reflectedTrue = initialize {
   }
 }
 
-const reflectedFalse = initialize {
+@export const reflectedFalse = initialize {
   entry() {
     const evidence = evidence.reflectable(false);
     const reflectType = evidence.reflectType;
@@ -53,7 +53,7 @@ const reflectedFalse = initialize {
   }
 }
 
-const reflectedLess = initialize {
+@export const reflectedLess = initialize {
   entry() {
     const evidence = evidence.reflectable(LT);
     const reflectType = evidence.reflectType;
@@ -63,7 +63,7 @@ const reflectedLess = initialize {
   }
 }
 
-const reflectedEqual = initialize {
+@export const reflectedEqual = initialize {
   entry() {
     const evidence = evidence.reflectable(EQ);
     const reflectType = evidence.reflectType;
@@ -73,7 +73,7 @@ const reflectedEqual = initialize {
   }
 }
 
-const reflectedGreater = initialize {
+@export const reflectedGreater = initialize {
   entry() {
     const evidence = evidence.reflectable(GT);
     const reflectType = evidence.reflectType;

@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-foreign const equalInt;
+@export foreign const equalInt;
 
-foreign const lessThanInt;
+@export foreign const lessThanInt;
 
-const equalInt1 = initialize {
+@export instance const equalInt1 = initialize {
   entry() {
     const equalInt = global(equalInt);
     const record = { equal: equalInt };
@@ -15,7 +15,7 @@ const equalInt1 = initialize {
   }
 }
 
-const orderedInt = initialize {
+@export instance const orderedInt = initialize {
   entry() {
     const equalInt1 = global(equalInt1);
     const lessThanInt = global(lessThanInt);
@@ -24,14 +24,14 @@ const orderedInt = initialize {
   }
 }
 
-function genericEqual(dictionary0) {
+@export function genericEqual(dictionary0) {
   entry() {
     const closure = closure(genericEqual$closure, dictionary0);
     return closure;
   }
 }
 
-const concreteEqual = initialize {
+@export const concreteEqual = initialize {
   entry() {
     const equalInt1 = global(equalInt1);
     const equal = equalInt1.equal;
@@ -43,7 +43,7 @@ const concreteEqual = initialize {
   }
 }
 
-const concreteLessThan = initialize {
+@export const concreteLessThan = initialize {
   entry() {
     const orderedInt = global(orderedInt);
     const lessThan = orderedInt.lessThan;
@@ -55,7 +55,7 @@ const concreteLessThan = initialize {
   }
 }
 
-function superclassEqual(dictionary1) {
+@export function superclassEqual(dictionary1) {
   entry() {
     const closure = closure(superclassEqual$closure, dictionary1);
     return closure;

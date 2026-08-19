@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function unbox(argument0) {
+@export function unbox(argument0) {
   entry() {
     const matches = pattern.constructor(argument0, Box);
     if (matches) {
@@ -21,7 +21,7 @@ function unbox(argument0) {
   }
 }
 
-const fromLibrary = initialize {
+@export const fromLibrary = initialize {
   entry() {
     const unbox = global(unbox);
     const box = global(box);
@@ -30,7 +30,7 @@ const fromLibrary = initialize {
   }
 }
 
-const directReference = initialize {
+@export const directReference = initialize {
   entry() {
     const libraryValue = global(libraryValue);
     return libraryValue;

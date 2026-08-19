@@ -1,8 +1,9 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-choose = \first%0 second%1 ->
+@export choose = \first%0 second%1 ->
   case first%0, second%1 of
     true, true ->
       2

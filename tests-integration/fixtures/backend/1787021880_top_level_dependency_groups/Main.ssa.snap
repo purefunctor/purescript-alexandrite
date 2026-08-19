@@ -1,23 +1,23 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-const forward = initialize {
+@export const forward = initialize {
   entry() {
     const later = global(later);
     return later;
   }
 }
 
-const later = initialize {
+@export const later = initialize {
   entry() {
     const literal = 42;
     return literal;
   }
 }
 
-recursive[2] function first(argument0) {
+@export recursive[2] function first(argument0) {
   entry() {
     case$0();
   }
@@ -55,7 +55,7 @@ recursive[2] function first(argument0) {
   }
 }
 
-recursive[2] function second(argument0) {
+@export recursive[2] function second(argument0) {
   entry() {
     case$0();
   }

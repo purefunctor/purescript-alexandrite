@@ -1,0 +1,24 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export Direct { append }
+
+@export Origin { Just, await, foreignValue, visible }
+
+@export Transitive { marker }
+
+@export constructorValue = Just 42
+
+@export operatorValue = append (visible 23) 9
+
+@export localCollision = append
+
+@export foreignResult = foreignValue
+
+@export hostileResult = await
+
+@export measured = measureInt.measure 41
+
+@export transitiveMarker = marker

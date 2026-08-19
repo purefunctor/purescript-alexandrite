@@ -16,6 +16,7 @@ pub enum QueryKey {
     Lowered(FileId),
     Grouped(FileId),
     Resolved(FileId),
+    Exported(FileId),
     Bracketed(FileId),
     Sectioned(FileId),
     CheckedCore,
@@ -42,6 +43,7 @@ pub trait QueryProxy {
     type Lowered;
     type Grouped;
     type Resolved;
+    type Exported;
     type Bracketed;
     type Sectioned;
     type Checked;
@@ -60,6 +62,8 @@ pub trait QueryProxy {
     fn grouped(&self, id: FileId) -> QueryResult<Self::Grouped>;
 
     fn resolved(&self, id: FileId) -> QueryResult<Self::Resolved>;
+
+    fn exported(&self, id: FileId) -> QueryResult<Self::Exported>;
 
     fn bracketed(&self, id: FileId) -> QueryResult<Self::Bracketed>;
 

@@ -1,9 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function booleanGuard(value) {
+@export constructor Empty/0;
+
+@export constructor One/1;
+
+@export function booleanGuard(value) {
   entry() {
     guard$0();
   }
@@ -38,7 +42,7 @@ function booleanGuard(value) {
   }
 }
 
-function patternGuard(choice) {
+@export function patternGuard(choice) {
   entry() {
     guard$0();
   }
@@ -74,7 +78,7 @@ function patternGuard(choice) {
   }
 }
 
-function caseBooleanGuard(value) {
+@export function caseBooleanGuard(value) {
   entry() {
     case$0();
   }
@@ -108,7 +112,7 @@ function caseBooleanGuard(value) {
   }
 }
 
-function casePatternGuard(choice) {
+@export function casePatternGuard(choice) {
   entry() {
     case$0();
   }
@@ -142,7 +146,7 @@ function casePatternGuard(choice) {
   }
 }
 
-function nestedCaseGuard(value) {
+@export function nestedCaseGuard(value) {
   entry() {
     case$0();
   }

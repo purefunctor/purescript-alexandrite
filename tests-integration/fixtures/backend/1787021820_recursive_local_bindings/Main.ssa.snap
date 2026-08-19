@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function mutual(condition) {
+@export function mutual(condition) {
   entry() {
     const [second, first] = closures.recursive({
       second: closure(second$function, first),

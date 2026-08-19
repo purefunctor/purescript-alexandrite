@@ -1,21 +1,21 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function add(left, right) {
+@export function add(left, right) {
   entry() {
     return left;
   }
 }
 
-function identity(value) {
+@export function identity(value) {
   entry() {
     return value;
   }
 }
 
-const operatorApplication = initialize {
+@export const operatorApplication = initialize {
   entry() {
     const add = global(add);
     const literal = 1;
@@ -26,7 +26,7 @@ const operatorApplication = initialize {
   }
 }
 
-const visibleTypeApplication = initialize {
+@export const visibleTypeApplication = initialize {
   entry() {
     const identity = global(identity);
     const literal = 42;
@@ -35,7 +35,7 @@ const visibleTypeApplication = initialize {
   }
 }
 
-function increment(section60) {
+@export function increment(section60) {
   entry() {
     const add = global(add);
     const call = source.call(add, section60);
@@ -45,7 +45,7 @@ function increment(section60) {
   }
 }
 
-function accessValue(section79) {
+@export function accessValue(section79) {
   entry() {
     const value = section79.value;
     return value;

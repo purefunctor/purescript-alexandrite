@@ -16,8 +16,28 @@ pub type ValueId = Idx<Value>;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Module {
     pub file_id: FileId,
+    pub name: SmolStr,
+    pub dependencies: Arc<[ModuleDependency]>,
+    pub surface: ModuleSurface,
     pub declarations: Arc<[Declaration]>,
     pub storage: Storage,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct ModuleSurface {
+    pub indirect: Arc<[IndirectModuleExports]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndirectModuleExports {
+    pub file_id: FileId,
+    pub globals: Arc<[Global]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ModuleDependency {
+    pub file_id: FileId,
+    pub module_name: SmolStr,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -88,6 +108,7 @@ impl Index<ValueId> for Storage {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Declaration {
     pub global: Global,
+    pub exported: bool,
     pub recursive_group: Option<RecursiveGroupId>,
     pub kind: DeclarationKind,
 }
@@ -96,13 +117,14 @@ pub struct Declaration {
 pub enum DeclarationKind {
     Function { function: FunctionId },
     Value { initializer: FunctionId },
+    Constructor { arity: usize },
     Foreign,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Global {
     pub identity: GlobalIdentity,
-    pub name: SmolStr,
+    pub item_name: SmolStr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -1,15 +1,16 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-foreign addInt
+@export foreign addInt
 
-foreign multiplyInt
+@export foreign multiplyInt
 
-constantAdd = addInt 20 22
+@export constantAdd = addInt 20 22
 
-constantMultiply = multiplyInt 6 7
+@export constantMultiply = multiplyInt 6 7
 
-overflowAdd = addInt 2147483647 1
+@export overflowAdd = addInt 2147483647 1
 
-unknownAdd = addInt
+@export unknownAdd = addInt

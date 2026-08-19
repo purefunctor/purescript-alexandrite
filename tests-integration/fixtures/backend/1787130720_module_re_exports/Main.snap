@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 141
+expression: checking_report
+---
+Terms
+constructorValue :: Origin.Option
+operatorValue :: Prim.Int
+localCollision :: Prim.Int
+foreignResult :: Prim.Int
+hostileResult :: Prim.Int
+measured :: Prim.Int
+transitiveMarker :: Prim.Int
+
+Types

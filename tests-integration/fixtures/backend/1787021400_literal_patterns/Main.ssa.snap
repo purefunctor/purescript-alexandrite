@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function integer(argument0) {
+@export function integer(argument0) {
   entry() {
     case$0();
   }
@@ -31,7 +31,7 @@ function integer(argument0) {
   }
 }
 
-function number(argument0) {
+@export function number(argument0) {
   entry() {
     case$0();
   }
@@ -59,7 +59,7 @@ function number(argument0) {
   }
 }
 
-function character(argument0) {
+@export function character(argument0) {
   entry() {
     case$0();
   }
@@ -87,7 +87,7 @@ function character(argument0) {
   }
 }
 
-function string(argument0) {
+@export function string(argument0) {
   entry() {
     case$0();
   }
@@ -115,7 +115,7 @@ function string(argument0) {
   }
 }
 
-function boolean(argument0) {
+@export function boolean(argument0) {
   entry() {
     case$0();
   }

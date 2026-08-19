@@ -8,7 +8,10 @@ use checking::evidence::{
 };
 use checking::tree as checking_tree;
 use files::FileId;
-use indexing::{DeriveItemId, IndexedTermItemKind, InstanceItemId, OrderedTermItemId, TermItemId};
+use indexing::{
+    DeriveItemId, IndexedTermItemKind, IndexedTypeItemKind, InstanceItemId, OrderedTermItemId,
+    TermItemId,
+};
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
@@ -18,9 +21,10 @@ use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, Expression, ExpressionId,
     ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard, GuardedAlternative,
-    InstanceIdentity, Literal, LocalId, Module, Parameter, Pattern, PatternId, PatternKind,
-    RecordField, RecordPatternField, RecordUpdate, RecursiveGroupId, ReflectableEvidence,
-    ReflectableOrdering, Storage, SuperclassIdentity, SynthesizedEvidence,
+    IndirectModuleExports, InstanceIdentity, Literal, LocalId, Module, ModuleDependency,
+    ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecordField, RecordPatternField,
+    RecordUpdate, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
+    SuperclassIdentity, SynthesizedEvidence,
 };
 
 type ConversionResult<T> = Result<T, ConversionError>;
@@ -64,11 +68,13 @@ fn convert_module_inner(
 struct Context<'c, Q> {
     queries: &'c Q,
     file_id: FileId,
+    module_name: SmolStr,
     indexed: Arc<indexing::IndexedModule>,
     lowered: Arc<lowering::LoweredModule>,
     checked: Arc<checking::CheckedModule>,
     recursive_groups: FxHashMap<TermItemId, RecursiveGroupId>,
     record_pun_names: FxHashMap<lowering::RecordPunId, SmolStr>,
+    dependencies: FxHashMap<FileId, SmolStr>,
 
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
@@ -82,6 +88,11 @@ where
     Q: checking::ExternalQueries,
 {
     fn new(queries: &'c Q, file_id: FileId) -> ConversionResult<Context<'c, Q>> {
+        let content = queries.content(file_id);
+        let (parsed, _) = queries.parsed(file_id)?;
+        let module_name = parsed
+            .module_name(&content)
+            .expect("invariant violated: checked module has no source module name");
         let indexed = queries.indexed(file_id)?;
         let lowered = queries.lowered(file_id)?;
         let grouped = queries.grouped(file_id)?;
@@ -115,11 +126,13 @@ where
         Ok(Context {
             queries,
             file_id,
+            module_name,
             indexed,
             lowered,
             checked,
             recursive_groups,
             record_pun_names,
+            dependencies: FxHashMap::default(),
 
             parameters: FxHashMap::default(),
             next_local: 0,
@@ -131,12 +144,16 @@ where
 }
 
 fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> ConversionResult<Module> {
+    let exported = context.queries.exported(context.file_id)?;
+    let RuntimeExports { local, surface } = runtime_exports(&mut context, &exported)?;
     let ordered_terms = context.indexed.items.ordered_terms().iter().copied();
     let ordered_terms = ordered_terms.collect_vec();
     let mut declarations = Vec::new();
     for item_id in ordered_terms {
         let declaration = match item_id {
-            OrderedTermItemId::Term(term_id) => term_declaration(&mut context, term_id)?,
+            OrderedTermItemId::Term(term_id) => {
+                term_declaration(&mut context, term_id, local.contains(&term_id))?
+            }
             OrderedTermItemId::Instance(instance_id) => {
                 Some(instance_declaration(&mut context, instance_id)?)
             }
@@ -146,50 +163,184 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
         };
         declarations.extend(declaration);
     }
+    validate_runtime_exports(&context, &declarations, &surface)?;
+
+    let dependencies = context.dependencies.iter().map(|(&file_id, module_name)| {
+        ModuleDependency { file_id, module_name: SmolStr::clone(module_name) }
+    });
+    let mut dependencies = dependencies.collect_vec();
+    dependencies.sort_by(|left, right| {
+        left.module_name.cmp(&right.module_name).then_with(|| {
+            left.file_id.into_raw().into_u32().cmp(&right.file_id.into_raw().into_u32())
+        })
+    });
 
     Ok(Module {
         file_id: context.file_id,
+        name: context.module_name,
+        dependencies: dependencies.into(),
+        surface,
         declarations: declarations.into(),
         storage: context.storage,
     })
 }
 
+struct RuntimeExports {
+    local: FxHashSet<TermItemId>,
+    surface: ModuleSurface,
+}
+
+fn runtime_exports(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    exports: &resolving::ExportedModule,
+) -> ConversionResult<RuntimeExports> {
+    let mut local = FxHashSet::default();
+    for &term_id in exports.local.iter() {
+        let Some(global) = local_runtime_export(context, term_id)? else {
+            continue;
+        };
+        let GlobalId::Term(file_id, term_id) = global.id else {
+            unreachable!("invariant violated: resolved term export became an instance")
+        };
+        if file_id == context.file_id {
+            local.insert(term_id);
+        }
+    }
+
+    let mut indirect = Vec::new();
+    for exports in exports.indirect.iter() {
+        let mut globals = Vec::new();
+        for &term_id in exports.terms.iter() {
+            if let Some(global) = runtime_term_global(context, exports.file_id, term_id)? {
+                globals.push(global);
+            }
+        }
+        globals.sort_by(|left, right| left.item_name.cmp(&right.item_name));
+        if !globals.is_empty() {
+            indirect
+                .push(IndirectModuleExports { file_id: exports.file_id, globals: globals.into() });
+        }
+    }
+    indirect.sort_by(|left, right| {
+        context.dependencies[&left.file_id].cmp(&context.dependencies[&right.file_id]).then_with(
+            || left.file_id.into_raw().into_u32().cmp(&right.file_id.into_raw().into_u32()),
+        )
+    });
+
+    let surface = ModuleSurface { indirect: indirect.into() };
+    Ok(RuntimeExports { local, surface })
+}
+
+fn local_runtime_export(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    term_id: TermItemId,
+) -> ConversionResult<Option<Global>> {
+    let indexed = Arc::clone(&context.indexed);
+    if !matches!(indexed.items[term_id].kind, IndexedTermItemKind::Operator { .. }) {
+        return runtime_term_global(context, context.file_id, term_id);
+    }
+
+    let resolution = context.lowered.tree.get_term_item_kind(term_id).and_then(|kind| match kind {
+        lowering::TermItemKind::Operator { resolution, .. } => *resolution,
+        _ => None,
+    });
+    let Some((file_id, term_id)) = resolution else {
+        let state = UnsupportedState::MissingRuntimeExportOperatorResolution { term_id };
+        return Err(context.unsupported(state));
+    };
+    if file_id != context.file_id {
+        return Ok(None);
+    }
+    runtime_term_global(context, file_id, term_id)
+}
+
+fn runtime_term_global(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    file_id: FileId,
+    term_id: TermItemId,
+) -> ConversionResult<Option<Global>> {
+    let indexed = context.indexed_module(file_id)?;
+    match &indexed.items[term_id].kind {
+        IndexedTermItemKind::Value { .. } | IndexedTermItemKind::Foreign { .. } => {
+            Ok(Some(context.term_global(file_id, term_id)?))
+        }
+        IndexedTermItemKind::Constructor { .. } => {
+            if context.constructor_is_newtype(file_id, term_id)? {
+                Ok(None)
+            } else {
+                Ok(Some(context.term_global(file_id, term_id)?))
+            }
+        }
+        IndexedTermItemKind::ClassMember { .. } | IndexedTermItemKind::Operator { .. } => Ok(None),
+    }
+}
+
+fn validate_runtime_exports(
+    context: &Context<'_, impl checking::ExternalQueries>,
+    declarations: &[Declaration],
+    surface: &ModuleSurface,
+) -> ConversionResult<()> {
+    let local = declarations.iter().filter(|declaration| declaration.exported);
+    let local = local.map(|declaration| &declaration.global);
+    let indirect = surface.indirect.iter().flat_map(|exports| exports.globals.iter());
+    let globals = local.chain(indirect);
+    let mut names = FxHashMap::default();
+    for global in globals {
+        if let Some(existing) = names.insert(SmolStr::clone(&global.item_name), global.id)
+            && existing != global.id
+        {
+            let state = UnsupportedState::ConflictingRuntimeExport {
+                name: global.item_name.to_string(),
+                existing,
+                duplicate: global.id,
+            };
+            return Err(context.unsupported(state));
+        }
+    }
+    Ok(())
+}
+
 fn term_declaration(
     context: &mut Context<'_, impl checking::ExternalQueries>,
     term_id: TermItemId,
+    exported: bool,
 ) -> ConversionResult<Option<Declaration>> {
     let indexed_module = Arc::clone(&context.indexed);
     let checked = Arc::clone(&context.checked);
     let indexed = &indexed_module.items[term_id];
-    match indexed.kind {
-        IndexedTermItemKind::Constructor { .. }
-        | IndexedTermItemKind::ClassMember { .. }
-        | IndexedTermItemKind::Operator { .. } => Ok(None),
-        IndexedTermItemKind::Foreign { .. } | IndexedTermItemKind::Value { .. } => {
-            let declaration_id = checked.tree.lookup_term(term_id).ok_or_else(|| {
-                context.unsupported(UnsupportedState::MissingTermDeclaration(term_id))
-            })?;
-            let declaration = &checked.tree[declaration_id];
-            let name = if let Some(name) = &indexed.name {
-                name.clone()
-            } else {
-                context.term_fallback(term_id)
-            };
-            let global = Global { id: GlobalId::Term(context.file_id, term_id), name };
-            let recursive_group = context.recursive_groups.get(&term_id).copied();
-            let kind = match &declaration.kind {
-                checking_tree::TermDeclarationKind::Value(value) => {
-                    DeclarationKind::Value(value_declaration(context, value)?)
-                }
-                checking_tree::TermDeclarationKind::Foreign => DeclarationKind::Foreign,
-                checking_tree::TermDeclarationKind::Constructor(_) => return Ok(None),
-                checking_tree::TermDeclarationKind::Instance(_) => {
-                    unreachable!("invariant violated: instance stored as a term declaration")
-                }
-            };
-            Ok(Some(Declaration { global, recursive_group, kind }))
-        }
+    if matches!(
+        indexed.kind,
+        IndexedTermItemKind::ClassMember { .. } | IndexedTermItemKind::Operator { .. }
+    ) {
+        return Ok(None);
     }
+    let declaration_id = checked
+        .tree
+        .lookup_term(term_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingTermDeclaration(term_id)))?;
+    let declaration = &checked.tree[declaration_id];
+    let item_name = match &indexed.name {
+        Some(name) => SmolStr::clone(name),
+        None => context.term_fallback(term_id),
+    };
+    let global = Global { id: GlobalId::Term(context.file_id, term_id), item_name };
+    let recursive_group = context.recursive_groups.get(&term_id).copied();
+    let kind = match &declaration.kind {
+        checking_tree::TermDeclarationKind::Value(value) => {
+            DeclarationKind::Value(value_declaration(context, value)?)
+        }
+        checking_tree::TermDeclarationKind::Foreign => DeclarationKind::Foreign,
+        checking_tree::TermDeclarationKind::Constructor(constructor) => {
+            if context.constructor_is_newtype(context.file_id, term_id)? {
+                return Ok(None);
+            }
+            DeclarationKind::Constructor { arity: constructor.arguments.len() }
+        }
+        checking_tree::TermDeclarationKind::Instance(_) => {
+            unreachable!("invariant violated: instance stored as a term declaration")
+        }
+    };
+    Ok(Some(Declaration { global, exported, recursive_group, kind }))
 }
 
 fn instance_declaration(
@@ -257,10 +408,10 @@ fn convert_instance_declaration(
         }
     };
     let value = context.parameter_abstraction(parameters, body);
-    let name = context.instance_name(identity)?;
-    let global = Global { id: GlobalId::Instance(identity), name };
+    let item_name = context.instance_name(identity)?;
+    let global = Global { id: GlobalId::Instance(identity), item_name };
     let kind = DeclarationKind::Value(value);
-    Ok(Declaration { global, recursive_group: None, kind })
+    Ok(Declaration { global, exported: true, recursive_group: None, kind })
 }
 
 fn member_declaration(
@@ -475,7 +626,14 @@ fn convert_expression(
             ExpressionKind::RecordUpdate { record, updates: updates.into() }
         }
         checking_tree::ExpressionKind::Constructor { resolution } => {
-            ExpressionKind::Constructor { global: context.term_global(resolution.0, resolution.1)? }
+            let &(file_id, term_id) = resolution;
+            if context.constructor_is_newtype(file_id, term_id)? {
+                let parameter = context.fresh_parameter("value".into())?;
+                let body =
+                    context.expression(ExpressionKind::Local { parameter: parameter.clone() });
+                return Ok(context.parameter_abstraction([parameter], body));
+            }
+            ExpressionKind::Constructor { global: context.term_global(file_id, term_id)? }
         }
         checking_tree::ExpressionKind::Variable { resolution }
         | checking_tree::ExpressionKind::RecordPun { resolution, .. } => {
@@ -659,8 +817,15 @@ fn convert_pattern(
             PatternKind::Record(converted.into())
         }
         checking_tree::BinderKind::Constructor { resolution, arguments } => {
+            let &(file_id, term_id) = resolution;
+            if context.constructor_is_newtype(file_id, term_id)? {
+                let [argument] = arguments.as_ref() else {
+                    return Err(context.unsupported(UnsupportedState::BinderError(binder_id)));
+                };
+                return convert_pattern(context, *argument);
+            }
             PatternKind::Constructor {
-                global: context.term_global(resolution.0, resolution.1)?,
+                global: context.term_global(file_id, term_id)?,
                 arguments: patterns(context, arguments)?.into(),
             }
         }
@@ -938,12 +1103,16 @@ where
     }
 
     fn label_field(&self, label: SmolStr) -> Field {
-        Field { identity: FieldIdentity::Label(label.clone()), name: label }
+        Field { identity: FieldIdentity::Label(SmolStr::clone(&label)), name: label }
     }
 
-    fn member_field(&self, resolution: (FileId, TermItemId)) -> QueryResult<Field> {
-        let global = self.term_global_readonly(resolution.0, resolution.1)?;
-        Ok(Field { identity: FieldIdentity::Member(resolution.0, resolution.1), name: global.name })
+    fn member_field(&self, (file_id, term_id): (FileId, TermItemId)) -> QueryResult<Field> {
+        let indexed = self.indexed_module(file_id)?;
+        let name = match &indexed.items[term_id].name {
+            Some(name) => SmolStr::clone(name),
+            None => self.term_fallback(term_id),
+        };
+        Ok(Field { identity: FieldIdentity::Member(file_id, term_id), name })
     }
 
     fn superclass_field(&self, superclass: checking::evidence::SuperclassId) -> Field {
@@ -956,33 +1125,69 @@ where
         Field { identity: FieldIdentity::Superclass(identity), name }
     }
 
-    fn term_global(&self, file_id: FileId, term_id: TermItemId) -> ConversionResult<Global> {
-        Ok(self.term_global_readonly(file_id, term_id)?)
+    fn source_module_name(&self, file_id: FileId) -> QueryResult<SmolStr> {
+        if file_id == self.file_id {
+            return Ok(SmolStr::clone(&self.module_name));
+        }
+        let content = self.queries.content(file_id);
+        let (parsed, _) = self.queries.parsed(file_id)?;
+        let name = parsed
+            .module_name(&content)
+            .expect("invariant violated: referenced checked module has no source module name");
+        Ok(name)
     }
 
-    fn term_global_readonly(&self, file_id: FileId, term_id: TermItemId) -> QueryResult<Global> {
-        let indexed = if file_id == self.file_id {
-            Arc::clone(&self.indexed)
+    fn indexed_module(&self, file_id: FileId) -> QueryResult<Arc<indexing::IndexedModule>> {
+        if file_id == self.file_id {
+            Ok(Arc::clone(&self.indexed))
         } else {
-            self.queries.indexed(file_id)?
-        };
-        let name = if let Some(name) = &indexed.items[term_id].name {
-            name.clone()
+            self.queries.indexed(file_id)
+        }
+    }
+
+    fn term_global(&mut self, file_id: FileId, term_id: TermItemId) -> ConversionResult<Global> {
+        let indexed = self.indexed_module(file_id)?;
+        let item_name = if let Some(name) = &indexed.items[term_id].name {
+            SmolStr::clone(name)
         } else {
             self.term_fallback(term_id)
         };
-        Ok(Global { id: GlobalId::Term(file_id, term_id), name })
+        self.register_dependency(file_id)?;
+        Ok(Global { id: GlobalId::Term(file_id, term_id), item_name })
     }
 
-    fn instance_global(&self, origin: InstanceCandidateOrigin) -> ConversionResult<Global> {
+    fn constructor_is_newtype(&self, file_id: FileId, term_id: TermItemId) -> QueryResult<bool> {
+        let indexed = self.indexed_module(file_id)?;
+        let Some(type_id) = indexed.constructor_type(term_id) else {
+            return Ok(false);
+        };
+        Ok(matches!(indexed.items[type_id].kind, IndexedTypeItemKind::Newtype { .. }))
+    }
+
+    fn instance_global(&mut self, origin: InstanceCandidateOrigin) -> ConversionResult<Global> {
         let identity = match origin {
             InstanceCandidateOrigin::Instance(file_id, id) => {
                 InstanceIdentity::Declared(file_id, id)
             }
             InstanceCandidateOrigin::Derive(file_id, id) => InstanceIdentity::Derived(file_id, id),
         };
-        let name = self.instance_name(identity)?;
-        Ok(Global { id: GlobalId::Instance(identity), name })
+        let item_name = self.instance_name(identity)?;
+        let file_id = match identity {
+            InstanceIdentity::Declared(file_id, _) | InstanceIdentity::Derived(file_id, _) => {
+                file_id
+            }
+        };
+        self.register_dependency(file_id)?;
+        Ok(Global { id: GlobalId::Instance(identity), item_name })
+    }
+
+    fn register_dependency(&mut self, file_id: FileId) -> QueryResult<()> {
+        if file_id == self.file_id || self.dependencies.contains_key(&file_id) {
+            return Ok(());
+        }
+        let module_name = self.source_module_name(file_id)?;
+        self.dependencies.insert(file_id, module_name);
+        Ok(())
     }
 
     fn instance_name(&self, identity: InstanceIdentity) -> QueryResult<SmolStr> {
