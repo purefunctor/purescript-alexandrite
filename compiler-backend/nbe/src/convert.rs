@@ -296,10 +296,13 @@ fn equations(
     let mut alternatives = Vec::with_capacity(equations.len());
     for equation in equations {
         let mut patterns = patterns(context, &equation.binders)?;
+        let supplied = patterns.len();
         while patterns.len() < arity {
             patterns.push(context.pattern(PatternKind::Wildcard));
         }
         let expression = guarded_expression(context, &equation.guarded_expression)?;
+        let remaining_arguments = scrutinees.iter().skip(supplied).copied();
+        let expression = context.application(expression, remaining_arguments);
         alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
     }
     let body = context.expression(ExpressionKind::Case {
