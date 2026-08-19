@@ -295,7 +295,7 @@ fn lower_expression(
             lower_case(state, context, scrutinees, alternatives)
         }
         nbe::tree::ExpressionKind::Guarded { alternatives } => {
-            lower_guarded(state, context, alternatives)
+            lower_guarded(state, context, alternatives, None)
         }
         nbe::tree::ExpressionKind::Let { recursive, bindings, body } => {
             lower_let(state, context, *recursive, bindings, *body)
@@ -418,7 +418,13 @@ fn lower_case(
         for (&pattern, value) in alternative.patterns.iter().zip(scrutinees.iter().copied()) {
             compile_pattern(state, context, pattern, value, Some(next))?;
         }
-        let value = lower_expression(state, context, alternative.expression)?;
+        let expression = &context.functional.storage[alternative.expression];
+        let value = match &expression.kind {
+            nbe::tree::ExpressionKind::Guarded { alternatives } => {
+                lower_guarded(state, context, alternatives, Some(next))?
+            }
+            _ => lower_expression(state, context, alternative.expression)?,
+        };
         let target = state.target(join, vec![value]);
         state.terminate(Terminator::Jump { target });
     }
@@ -434,6 +440,7 @@ fn lower_guarded(
     state: &mut State,
     context: &Context<'_>,
     alternatives: &[nbe::tree::GuardedAlternative],
+    failure: Option<BlockId>,
 ) -> ConversionResult<ValueId> {
     if alternatives.is_empty() {
         return Err(context.unsupported(UnsupportedState::MissingGuardedAlternative));
@@ -446,7 +453,9 @@ fn lower_guarded(
         .first()
         .copied()
         .expect("invariant violated: guarded expression has no alternative block");
-    let failure = state.create_block("guard$failure", vec![]);
+    let local_failure = failure.is_none().then(|| state.create_block("guard$failure", vec![]));
+    let failure =
+        failure.or(local_failure).expect("invariant violated: guard has no failure block");
     let result = state.fresh_value("result".into());
     let join = state.create_block("guard$join", vec![result]);
     let target = state.target(first_alternative, vec![]);
@@ -480,8 +489,10 @@ fn lower_guarded(
         state.terminate(Terminator::Jump { target });
     }
 
-    state.switch_to(failure);
-    state.terminate(Terminator::Fail { failure: Failure::PatternMatch });
+    if let Some(local_failure) = local_failure {
+        state.switch_to(local_failure);
+        state.terminate(Terminator::Fail { failure: Failure::PatternMatch });
+    }
     state.switch_to(join);
     state.set_scope(outer_scope);
     Ok(result)
