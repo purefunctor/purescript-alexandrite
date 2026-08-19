@@ -18,3 +18,19 @@ expression: report
         false ->
           second%2 true
   in first%0 condition%1
+
+@export capturedMutual = \captured%9 condition%6 ->
+  let
+    rec second%7 = \argument0%8 ->
+      case argument0%8 of
+        true ->
+          captured%9
+        false ->
+          first%5 true
+    rec first%5 = \argument0%10 ->
+      case argument0%10 of
+        true ->
+          captured%9
+        false ->
+          second%7 true
+  in first%5 condition%6

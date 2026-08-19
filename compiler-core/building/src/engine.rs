@@ -136,6 +136,7 @@ struct DerivedStorage {
     documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
     nbe: Shards<FileId, DerivedState<nbe::ModuleResult<Arc<nbe::tree::Module>>>>,
     ssa: Shards<FileId, DerivedState<ssa::ModuleResult<Arc<ssa::tree::Module>>>>,
+    javascript: Shards<FileId, DerivedState<javascript::ModuleResult<Arc<javascript::Module>>>>,
 }
 
 #[derive(Default)]
@@ -517,6 +518,7 @@ impl QueryEngine {
                 QueryKey::Documented(k) => derived_changed!(documented, k),
                 QueryKey::Nbe(k) => derived_changed!(nbe, k),
                 QueryKey::Ssa(k) => derived_changed!(ssa, k),
+                QueryKey::JavaScript(k) => derived_changed!(javascript, k),
             }
         }
 
@@ -952,6 +954,21 @@ impl QueryEngine {
         )
     }
 
+    pub fn javascript(
+        &self,
+        id: FileId,
+    ) -> QueryResult<javascript::ModuleResult<Arc<javascript::Module>>> {
+        self.query(
+            QueryKey::JavaScript(id),
+            id,
+            |derived| &derived.javascript,
+            |this| {
+                let converted = javascript::convert_module(this, id)?;
+                Ok(converted.map(Arc::new))
+            },
+        )
+    }
+
     pub fn documented(&self, id: FileId) -> QueryResult<Arc<DocumentedModule>> {
         self.query(
             QueryKey::Documented(id),
@@ -1057,6 +1074,12 @@ impl QueryProxy for QueryEngine {
 impl nbe::ExternalQueries for QueryEngine {
     fn nbe(&self, file_id: FileId) -> QueryResult<nbe::ModuleResult<Arc<nbe::tree::Module>>> {
         QueryEngine::nbe(self, file_id)
+    }
+}
+
+impl ssa::ExternalQueries for QueryEngine {
+    fn ssa(&self, file_id: FileId) -> QueryResult<ssa::ModuleResult<Arc<ssa::tree::Module>>> {
+        QueryEngine::ssa(self, file_id)
     }
 }
 
@@ -1181,13 +1204,13 @@ mod tests {
         };
 
         engine.set_content(SOURCE, initial_content);
-        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, compute).unwrap();
 
         let revision_before = engine.control.global.revision.load(Ordering::Relaxed);
         let recomputations_before = recomputations.load(Ordering::Relaxed);
 
         engine.set_content(SOURCE, equal_content);
-        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, compute).unwrap();
 
         let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
         let recomputations_after = recomputations.load(Ordering::Relaxed);
@@ -1197,7 +1220,7 @@ mod tests {
         );
 
         engine.set_content(SOURCE, "module Main where\n\nvalue = 43");
-        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, &compute).unwrap();
+        engine.query(QueryKey::Parsed(QUERY), QUERY, |derived| &derived.parsed, compute).unwrap();
 
         let revision_after_change = engine.control.global.revision.load(Ordering::Relaxed);
         let recomputations_after_change = recomputations.load(Ordering::Relaxed);
@@ -1410,10 +1433,13 @@ mod tests {
 
         let nbe_initial = engine.nbe(main).unwrap().unwrap();
         let ssa_initial = engine.ssa(main).unwrap().unwrap();
+        let javascript_initial = engine.javascript(main).unwrap().unwrap();
         let nbe_repeated = engine.nbe(main).unwrap().unwrap();
         let ssa_repeated = engine.ssa(main).unwrap().unwrap();
+        let javascript_repeated = engine.javascript(main).unwrap().unwrap();
         assert!(Arc::ptr_eq(&nbe_initial, &nbe_repeated));
         assert!(Arc::ptr_eq(&ssa_initial, &ssa_repeated));
+        assert!(Arc::ptr_eq(&javascript_initial, &javascript_repeated));
 
         {
             let shard = engine.derived.nbe.shard(&main).read();
@@ -1433,6 +1459,13 @@ mod tests {
             };
             assert_eq!(dependencies.as_ref(), &[QueryKey::Nbe(main)]);
         }
+        {
+            let shard = engine.derived.javascript.shard(&main).read();
+            let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
+                unreachable!("invariant violated: expected computed query");
+            };
+            assert_eq!(dependencies.as_ref(), &[QueryKey::Ssa(main)]);
+        }
 
         let unrelated = files.insert("Unrelated.purs", "module Unrelated where\n\nvalue = 1");
         engine.set_content(unrelated, files.content(unrelated));
@@ -1440,17 +1473,22 @@ mod tests {
 
         let ssa_after_unrelated = engine.ssa(main).unwrap().unwrap();
         let nbe_after_unrelated = engine.nbe(main).unwrap().unwrap();
+        let javascript_after_unrelated = engine.javascript(main).unwrap().unwrap();
         assert!(Arc::ptr_eq(&nbe_initial, &nbe_after_unrelated));
         assert!(Arc::ptr_eq(&ssa_initial, &ssa_after_unrelated));
+        assert!(Arc::ptr_eq(&javascript_initial, &javascript_after_unrelated));
 
         engine.set_content(main, "module Main where\n\nlife = 43");
 
         let ssa_changed = engine.ssa(main).unwrap().unwrap();
         let nbe_changed = engine.nbe(main).unwrap().unwrap();
+        let javascript_changed = engine.javascript(main).unwrap().unwrap();
         assert!(!Arc::ptr_eq(&nbe_initial, &nbe_changed));
         assert!(!Arc::ptr_eq(&ssa_initial, &ssa_changed));
+        assert!(!Arc::ptr_eq(&javascript_initial, &javascript_changed));
         assert_ne!(nbe_initial, nbe_changed);
         assert_ne!(ssa_initial, ssa_changed);
+        assert_ne!(javascript_initial, javascript_changed);
     }
 
     #[test]
@@ -1472,10 +1510,19 @@ mod tests {
             ssa::ModuleError::Functional(nbe::ModuleError::Unsupported { .. })
         ));
 
+        let javascript_error = engine.javascript(main).unwrap().unwrap_err();
+        assert!(matches!(
+            javascript_error,
+            javascript::ModuleError::ControlFlow(ssa::ModuleError::Functional(
+                nbe::ModuleError::Unsupported { .. }
+            ))
+        ));
+
         engine.set_content(main, "module Main where\n\nlife = 42");
 
         engine.nbe(main).unwrap().unwrap();
         engine.ssa(main).unwrap().unwrap();
+        engine.javascript(main).unwrap().unwrap();
     }
 
     #[test]

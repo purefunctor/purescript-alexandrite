@@ -24,6 +24,7 @@ pub enum QueryKey {
     Documented(FileId),
     Nbe(FileId),
     Ssa(FileId),
+    JavaScript(FileId),
 }
 
 #[derive(Error, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

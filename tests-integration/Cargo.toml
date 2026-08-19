@@ -16,11 +16,13 @@ indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
 itertools = "0.15.0"
 insta = "1.48.0"
+javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 lsp-types.workspace = true
 nbe = { version = "0.1.0", path = "../compiler-backend/nbe" }
 prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
+process_control = "5.2"
 serde_json = "1.0"
 similar = "3"
 ssa = { version = "0.1.0", path = "../compiler-backend/ssa" }

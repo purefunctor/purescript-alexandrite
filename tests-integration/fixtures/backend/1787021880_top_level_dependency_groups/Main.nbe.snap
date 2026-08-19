@@ -20,3 +20,15 @@ expression: report
       2
     false ->
       first true
+
+@export recursive[3] recursiveValue = {
+  run:
+    \value%2 ->
+      if value%2 then 3 else recursivePeer.run true
+}
+
+@export recursive[3] recursivePeer = {
+  run:
+    \value%3 ->
+      if value%3 then 4 else recursiveValue.run true
+}

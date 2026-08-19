@@ -1,12 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
-expression: report
+assertion_line: 259
+expression: checking_report
 ---
 Terms
 forward :: Prim.Int
 later :: Prim.Int
 first :: Prim.Boolean -> Prim.Int
 second :: Prim.Boolean -> Prim.Int
+recursiveValue :: { run :: Prim.Boolean -> Prim.Int }
+recursivePeer :: { run :: Prim.Boolean -> Prim.Int }
 
 Types

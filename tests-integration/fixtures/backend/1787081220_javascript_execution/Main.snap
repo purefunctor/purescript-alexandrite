@@ -1,0 +1,68 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 131
+expression: checking_report
+---
+Terms
+addInt :: Prim.Int -> Prim.Int -> Prim.Int
+decrementInt :: Prim.Int -> Prim.Int
+equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+foreignValue :: Prim.Int
+effectValue :: Effect.Effect Prim.Int
+await :: Prim.Int
+integer :: Prim.Int
+number :: Prim.Number
+string :: Prim.String
+array :: Prim.Array Prim.Int
+model :: Main.Model
+updated :: Main.Model
+readHostile :: Main.Model -> Prim.Int
+readProto :: Main.Model -> Prim.String
+capture :: Prim.Int -> Prim.Int -> Prim.Int
+apply :: forall a b. (a -> b) -> a -> b
+addCaptured :: Prim.Int -> Prim.Int -> Prim.Int
+curried :: Prim.Int
+nestedJoin :: Prim.Boolean -> Prim.Boolean -> Prim.Int
+countdown :: Prim.Int -> Prim.Int
+isEven :: Prim.Int -> Prim.Boolean
+isOdd :: Prim.Int -> Prim.Boolean
+capturedMutual :: Prim.Int -> Prim.Boolean -> Prim.Int
+None :: Main.Choice
+Pair :: Prim.Int -> Prim.Int -> Main.Choice
+pair :: Main.Choice
+first :: Main.Choice -> Prim.Int
+partialPattern :: Main.Choice -> Prim.Int
+unwrapWrapped :: Library.Wrapped -> Prim.Int
+crossModule :: Prim.Int
+forwardReference :: Prim.Int
+measure :: forall @a. Main.Measure a => a -> Prim.Int
+evidenceValue :: Prim.Int
+
+Types
+Model :: Prim.Type
+Choice :: Prim.Type
+Measure :: Prim.Type -> Prim.Constraint
+
+Synonyms
+type Model = { __proto__ :: Prim.String
+, count :: Prim.Int
+, hostile-field :: Prim.Int
+, nested :: { enabled :: Prim.Boolean }
+}
+
+Classes
+class forall (a :: Prim.Type). Main.Measure a
+  measure :: forall @a. Main.Measure a => a -> Prim.Int
+
+Instances
+instance Main.Measure Prim.Int
+
+Roles
+Choice = []
+
+Diagnostics
+warning[MissingPatterns]: Pattern match is not exhaustive. Missing: None
+  --> 106:1..106:32
+    |
+106 | partialPattern :: Choice -> Int
+    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

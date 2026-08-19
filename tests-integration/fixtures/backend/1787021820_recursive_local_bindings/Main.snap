@@ -1,9 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
-expression: report
+assertion_line: 131
+expression: checking_report
 ---
 Terms
 mutual :: Prim.Boolean -> Prim.Int
+capturedMutual :: Prim.Int -> Prim.Boolean -> Prim.Int
 
 Types
