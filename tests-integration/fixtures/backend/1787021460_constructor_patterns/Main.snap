@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Empty :: forall @a. Main.Choice a
+One :: forall @a. a -> Main.Choice a
+Pair :: forall @a. a -> a -> Main.Choice a
+Identity :: forall @a. a -> Main.Identity a
+first :: forall a. Main.Choice a -> Main.Choice a
+unwrap :: forall a. Main.Identity a -> a
+
+Types
+Choice :: Prim.Type -> Prim.Type
+Identity :: Prim.Type -> Prim.Type
+
+Roles
+Choice = [Representational]
+Identity = [Representational]

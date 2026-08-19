@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 55
+expression: checking_report
+---
+Terms
+symbol :: Prim.String
+reflectedString :: Prim.String
+reflectedInteger :: Prim.Int
+reflectedTrue :: Prim.Boolean
+reflectedFalse :: Prim.Boolean
+reflectedLess :: Data.Ordering.Ordering
+reflectedEqual :: Data.Ordering.Ordering
+reflectedGreater :: Data.Ordering.Ordering
+
+Types

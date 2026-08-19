@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+Empty :: forall @a. Main.Choice a
+One :: forall @a. a -> Main.Choice a
+booleanGuard :: Prim.Boolean -> Prim.Int
+patternGuard :: Main.Choice Prim.Int -> Prim.Int
+
+Types
+Choice :: Prim.Type -> Prim.Type
+
+Roles
+Choice = [Representational]

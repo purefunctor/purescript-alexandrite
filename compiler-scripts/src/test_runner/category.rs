@@ -4,6 +4,7 @@ use anyhow::bail;
 
 #[derive(Copy, Clone, Debug)]
 pub enum TestCategory {
+    Backend,
     Checking,
     Semantic,
     Lowering,
@@ -15,6 +16,7 @@ pub enum TestCategory {
 impl TestCategory {
     pub fn as_str(&self) -> &'static str {
         match self {
+            TestCategory::Backend => "backend",
             TestCategory::Checking => "checking",
             TestCategory::Semantic => "semantic",
             TestCategory::Lowering => "lowering",
@@ -41,6 +43,7 @@ impl FromStr for TestCategory {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "backend" | "b" => Ok(TestCategory::Backend),
             "checking" | "c" => Ok(TestCategory::Checking),
             "semantic" | "s" => Ok(TestCategory::Semantic),
             "lowering" | "l" => Ok(TestCategory::Lowering),
@@ -48,7 +51,7 @@ impl FromStr for TestCategory {
             "lsp" => Ok(TestCategory::Lsp),
             "docs" => Ok(TestCategory::Docs),
             _ => bail!(
-                "unknown test category '{}', expected: checking (c), semantic (s), lowering (l), resolving (r), lsp, docs",
+                "unknown test category '{}', expected: backend (b), checking (c), semantic (s), lowering (l), resolving (r), lsp, docs",
                 s
             ),
         }

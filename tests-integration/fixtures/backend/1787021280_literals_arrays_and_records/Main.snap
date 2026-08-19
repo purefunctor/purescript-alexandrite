@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+integer :: Prim.Int
+number :: Prim.Number
+character :: Prim.Char
+string :: Prim.String
+boolean :: Prim.Boolean
+array :: Prim.Array Prim.Int
+record :: { integer :: Prim.Int, nested :: { value :: Prim.String } }
+projection :: Prim.String
+
+Types

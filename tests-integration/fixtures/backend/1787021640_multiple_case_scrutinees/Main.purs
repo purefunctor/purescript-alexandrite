@@ -1,0 +1,7 @@
+module Main where
+
+choose :: Boolean -> Boolean -> Int
+choose first second = case first, second of
+  true, true -> 2
+  true, false -> 1
+  false, _ -> 0

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 55
+expression: checking_report
+---
+Terms
+Box :: Main.Box
+equal :: Prim.Boolean
+Identity :: forall @a. a -> Main.Identity a
+rendered :: Prim.String
+
+Types
+Box :: Prim.Type
+Identity :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Eq.Eq Main.Box
+derive forall a. Data.Show.Show a => Data.Show.Show (Main.Identity a)
+
+Roles
+Box = []
+Identity = [Representational]

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+integer :: Prim.Int -> Prim.Boolean
+number :: Prim.Number -> Prim.Boolean
+character :: Prim.Char -> Prim.Boolean
+string :: Prim.String -> Prim.Boolean
+boolean :: Prim.Boolean -> Prim.Boolean
+
+Types

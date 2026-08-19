@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 50
+expression: report
+---
+Terms
+addInt :: Prim.Int -> Prim.Int -> Prim.Int
+multiplyInt :: Prim.Int -> Prim.Int -> Prim.Int
+constantAdd :: Prim.Int
+constantMultiply :: Prim.Int
+overflowAdd :: Prim.Int
+unknownAdd :: Prim.Int -> Prim.Int -> Prim.Int
+
+Types
