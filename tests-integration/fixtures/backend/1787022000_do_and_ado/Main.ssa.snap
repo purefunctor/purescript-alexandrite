@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 233
 expression: ssa_report
 ---
 @export foreign const firstAction;
@@ -35,6 +35,16 @@ expression: ssa_report
     const independentAction = global(independentAction);
     const call$3 = source.call(call$2, independentAction);
     return call$3;
+  }
+}
+
+@export const pureValue = initialize {
+  entry() {
+    const applicativeEffect = global(applicativeEffect);
+    const pure = applicativeEffect.pure;
+    const literal = 42;
+    const call = source.call(pure, literal);
+    return call;
   }
 }
 
