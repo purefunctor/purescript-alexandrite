@@ -69,9 +69,9 @@ impl<'a> Printer<'a, '_> {
             | ExpressionKind::Guarded { .. }
             | ExpressionKind::Let { .. }
             | ExpressionKind::LetPattern { .. } => ExpressionPrecedence::Abstraction,
-            ExpressionKind::Application { .. } | ExpressionKind::Effect { .. } => {
-                ExpressionPrecedence::Application
-            }
+            ExpressionKind::Application { .. }
+            | ExpressionKind::Effect { .. }
+            | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
             _ => ExpressionPrecedence::Atom,
         };
