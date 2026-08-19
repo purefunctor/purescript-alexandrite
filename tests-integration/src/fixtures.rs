@@ -109,7 +109,7 @@ fn javascript_modules(
 fn collect_output_files(
     root: &Path,
     directory: &Path,
-    files: &mut BTreeMap<PathBuf, Vec<u8>>,
+    files: &mut BTreeMap<PathBuf, String>,
 ) -> io::Result<()> {
     for entry in std::fs::read_dir(directory)? {
         let entry = entry?;
@@ -120,13 +120,15 @@ fn collect_output_files(
             let relative = path.strip_prefix(root).map_err(|_| {
                 invalid_data(format!("output path is outside its root: {}", path.display()))
             })?;
-            files.insert(relative.to_owned(), std::fs::read(path)?);
+            let contents = std::fs::read_to_string(&path)?;
+            let contents = contents.replace("\r\n", "\n");
+            files.insert(relative.to_owned(), contents);
         }
     }
     Ok(())
 }
 
-fn output_files(root: &Path) -> io::Result<BTreeMap<PathBuf, Vec<u8>>> {
+fn output_files(root: &Path) -> io::Result<BTreeMap<PathBuf, String>> {
     let mut files = BTreeMap::new();
     if root.exists() {
         collect_output_files(root, root, &mut files)?;
