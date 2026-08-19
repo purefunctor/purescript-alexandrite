@@ -8,13 +8,19 @@ Empty :: forall @a. Main.Choice a
 One :: forall @a. a -> Main.Choice a
 Pair :: forall @a. a -> a -> Main.Choice a
 Identity :: forall @a. a -> Main.Identity a
+Outer :: forall @a. Main.Choice a -> Main.Nested a
 first :: forall a. Main.Choice a -> Main.Choice a
 unwrap :: forall a. Main.Identity a -> a
+nested :: forall a. Main.Nested a -> Main.Choice a
+bind :: forall a b. a -> (a -> b) -> b
+ordinaryBind :: Main.Identity Prim.Int -> Prim.Int
 
 Types
 Choice :: Prim.Type -> Prim.Type
 Identity :: Prim.Type -> Prim.Type
+Nested :: Prim.Type -> Prim.Type
 
 Roles
 Choice = [Representational]
 Identity = [Representational]
+Nested = [Representational]

@@ -1,0 +1,7 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+model = { count: 0, nested: { enabled: true, label: "before" } }
+
+updated = model { count = 1, nested { enabled = false, label = "after" } }

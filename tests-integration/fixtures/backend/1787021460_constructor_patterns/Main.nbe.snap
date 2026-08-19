@@ -1,0 +1,30 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 12
+expression: report
+---
+first = \argument0%0 ->
+  case argument0%0 of
+    Empty ->
+      Empty
+    One value%1 ->
+      One value%1
+    whole%2@(Pair left%3 _) ->
+      case whole%2 of
+        Pair _ _ ->
+          One left%3
+        _ ->
+          Empty
+
+unwrap = \(Identity value%4) -> value%4
+
+nested = \argument0%5 ->
+  case argument0%5 of
+    Outer (One value%6) ->
+      One value%6
+    _ ->
+      Empty
+
+bind = \value%8 continuation%7 -> continuation%7 value%8
+
+ordinaryBind = \identity%9 -> bind identity%9 (\(Identity value%10) -> value%10)

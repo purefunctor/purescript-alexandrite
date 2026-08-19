@@ -11,6 +11,12 @@ default = { "hyphen-label": arguments }
 readLabel :: { "hyphen-label" :: Int } -> Int
 readLabel record = record."hyphen-label"
 
+emptyLabel :: { "" :: Int }
+emptyLabel = { "": arguments }
+
+readEmptyLabel :: { "" :: Int } -> Int
+readEmptyLabel record = record.""
+
 data Tagged = Tagged { "hyphen-label" :: Int }
 
 tagged :: Tagged

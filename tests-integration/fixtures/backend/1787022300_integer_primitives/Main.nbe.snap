@@ -1,0 +1,15 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+foreign addInt
+
+foreign multiplyInt
+
+constantAdd = addInt 20 22
+
+constantMultiply = multiplyInt 6 7
+
+overflowAdd = addInt 2147483647 1
+
+unknownAdd = addInt

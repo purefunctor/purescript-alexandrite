@@ -1,0 +1,14 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+describe = \argument0%0 ->
+  case argument0%0 of
+    [] ->
+      0
+    [value%1] ->
+      value%1
+    [first%2, second%3] ->
+      first%2
+    _ ->
+      3

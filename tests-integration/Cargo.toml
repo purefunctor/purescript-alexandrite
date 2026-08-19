@@ -31,6 +31,7 @@ url = "2.5.8"
 
 [dev-dependencies]
 datatest-stable = "0.3"
+nbe = { version = "0.1.0", path = "../compiler-backend/nbe" }
 
 [[test]]
 name = "backend"
@@ -54,6 +55,10 @@ harness = false
 
 [[test]]
 name = "lsp"
+harness = false
+
+[[test]]
+name = "nbe"
 harness = false
 
 [[test]]

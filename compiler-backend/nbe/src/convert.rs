@@ -1,0 +1,1012 @@
+//! Conversion from the checked semantic tree into the owned functional tree.
+
+use std::sync::Arc;
+
+use building_types::QueryResult;
+use checking::evidence::{
+    Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
+};
+use checking::tree as checking_tree;
+use files::FileId;
+use indexing::{DeriveItemId, IndexedTermItemKind, InstanceItemId, OrderedTermItemId, TermItemId};
+use itertools::Itertools;
+use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::{SmolStr, format_smolstr};
+
+use crate::error::{ConversionError, ConversionResult, UnsupportedState};
+use crate::tree::{
+    Binding, CaseAlternative, Declaration, DeclarationKind, Expression, ExpressionId,
+    ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard, GuardedAlternative,
+    InstanceIdentity, Literal, LocalId, Module, Parameter, Pattern, PatternId, PatternKind,
+    RecordField, RecordPatternField, RecordUpdate, RecursiveGroupId, ReflectableEvidence,
+    ReflectableOrdering, Storage, SuperclassIdentity, SynthesizedEvidence,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum BindingSource {
+    SourceBinder(lowering::BinderId),
+    CheckedBinder(checking_tree::BinderId),
+    Let(lowering::LetBindingNameGroupId),
+    RecordPun(lowering::RecordPunId),
+    Evidence(EvidenceBinderId),
+}
+
+pub fn convert_module(
+    queries: &impl checking::ExternalQueries,
+    file_id: FileId,
+) -> ConversionResult<Module> {
+    let context = Context::new(queries, file_id)?;
+    convert(context)
+}
+
+struct Context<'c, Q> {
+    queries: &'c Q,
+    file_id: FileId,
+    indexed: Arc<indexing::IndexedModule>,
+    lowered: Arc<lowering::LoweredModule>,
+    checked: Arc<checking::CheckedModule>,
+    recursive_groups: FxHashMap<TermItemId, RecursiveGroupId>,
+    record_pun_names: FxHashMap<lowering::RecordPunId, SmolStr>,
+
+    parameters: FxHashMap<BindingSource, Parameter>,
+    next_local: u32,
+    lowering_evidence: FxHashSet<EvidenceVarId>,
+
+    storage: Storage,
+}
+
+impl<'c, Q> Context<'c, Q>
+where
+    Q: checking::ExternalQueries,
+{
+    fn new(queries: &'c Q, file_id: FileId) -> ConversionResult<Context<'c, Q>> {
+        let indexed = queries.indexed(file_id)?;
+        let lowered = queries.lowered(file_id)?;
+        let grouped = queries.grouped(file_id)?;
+        let checked = queries.checked(file_id)?;
+
+        let mut recursive_groups = FxHashMap::default();
+        for (position, group) in grouped.term_scc.iter().enumerate() {
+            if !group.is_recursive() {
+                continue;
+            }
+            let group_id = RecursiveGroupId(position as u32);
+            for &term_id in group.as_slice() {
+                recursive_groups.insert(term_id, group_id);
+            }
+        }
+
+        let binders = lowered.tree.iter_binder();
+        let mut binders = binders.collect_vec();
+        binders.sort_unstable_by_key(|(binder_id, _)| *binder_id);
+        let mut record_pun_names = FxHashMap::default();
+        for (_, binder) in binders {
+            let lowering::BinderKind::Record { record } = binder else { continue };
+            for field in record.iter() {
+                let lowering::BinderRecordItem::RecordPun { id, name: Some(name) } = field else {
+                    continue;
+                };
+                record_pun_names.insert(*id, SmolStr::clone(name));
+            }
+        }
+
+        Ok(Context {
+            queries,
+            file_id,
+            indexed,
+            lowered,
+            checked,
+            recursive_groups,
+            record_pun_names,
+
+            parameters: FxHashMap::default(),
+            next_local: 0,
+            lowering_evidence: FxHashSet::default(),
+
+            storage: Storage::default(),
+        })
+    }
+}
+
+fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> ConversionResult<Module> {
+    let ordered_terms = context.indexed.items.ordered_terms().iter().copied();
+    let ordered_terms = ordered_terms.collect_vec();
+    let mut declarations = Vec::new();
+    for item_id in ordered_terms {
+        let declaration = match item_id {
+            OrderedTermItemId::Term(term_id) => term_declaration(&mut context, term_id)?,
+            OrderedTermItemId::Instance(instance_id) => {
+                Some(instance_declaration(&mut context, instance_id)?)
+            }
+            OrderedTermItemId::Derive(derive_id) => {
+                Some(derive_declaration(&mut context, derive_id)?)
+            }
+        };
+        declarations.extend(declaration);
+    }
+
+    Ok(Module {
+        file_id: context.file_id,
+        declarations: declarations.into(),
+        storage: context.storage,
+    })
+}
+
+fn term_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    term_id: TermItemId,
+) -> ConversionResult<Option<Declaration>> {
+    let indexed_module = Arc::clone(&context.indexed);
+    let checked = Arc::clone(&context.checked);
+    let indexed = &indexed_module.items[term_id];
+    match indexed.kind {
+        IndexedTermItemKind::Constructor { .. }
+        | IndexedTermItemKind::ClassMember { .. }
+        | IndexedTermItemKind::Operator { .. } => Ok(None),
+        IndexedTermItemKind::Foreign { .. } | IndexedTermItemKind::Value { .. } => {
+            let declaration_id = checked.tree.lookup_term(term_id).ok_or_else(|| {
+                context.unsupported(UnsupportedState::MissingTermDeclaration(term_id))
+            })?;
+            let declaration = &checked.tree[declaration_id];
+            let name = if let Some(name) = &indexed.name {
+                name.clone()
+            } else {
+                context.term_fallback(term_id)
+            };
+            let global = Global { id: GlobalId::Term(context.file_id, term_id), name };
+            let recursive_group = context.recursive_groups.get(&term_id).copied();
+            let kind = match &declaration.kind {
+                checking_tree::TermDeclarationKind::Value(value) => {
+                    DeclarationKind::Value(value_declaration(context, value)?)
+                }
+                checking_tree::TermDeclarationKind::Foreign => DeclarationKind::Foreign,
+                checking_tree::TermDeclarationKind::Constructor(_) => return Ok(None),
+                checking_tree::TermDeclarationKind::Instance(_) => {
+                    unreachable!("invariant violated: instance stored as a term declaration")
+                }
+            };
+            Ok(Some(Declaration { global, recursive_group, kind }))
+        }
+    }
+}
+
+fn instance_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    item_id: InstanceItemId,
+) -> ConversionResult<Declaration> {
+    let indexed = &context.indexed.items[item_id];
+    let identity = InstanceIdentity::Declared(context.file_id, indexed.id);
+    let declaration_id = context
+        .checked
+        .tree
+        .lookup_instance(item_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingInstanceDeclaration))?;
+    convert_instance_declaration(context, identity, declaration_id)
+}
+
+fn derive_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    item_id: DeriveItemId,
+) -> ConversionResult<Declaration> {
+    let indexed = &context.indexed.items[item_id];
+    let identity = InstanceIdentity::Derived(context.file_id, indexed.id);
+    let declaration_id = context
+        .checked
+        .tree
+        .lookup_derive(item_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingInstanceDeclaration))?;
+    convert_instance_declaration(context, identity, declaration_id)
+}
+
+fn convert_instance_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    identity: InstanceIdentity,
+    declaration_id: checking_tree::TermDeclarationId,
+) -> ConversionResult<Declaration> {
+    let checked = Arc::clone(&context.checked);
+    let declaration = &checked.tree[declaration_id];
+    let checking_tree::TermDeclarationKind::Instance(instance) = &declaration.kind else {
+        unreachable!("invariant violated: instance identity has non-instance declaration")
+    };
+
+    let parameters = instance.evidences.iter().map(|evidence| match evidence.evidence {
+        Evidence::Given(binder) => context.evidence_parameter(binder),
+        _ => Err(context.unsupported(UnsupportedState::InvalidInstancePrerequisite)),
+    });
+    let parameters = parameters.collect::<ConversionResult<Vec<_>>>()?;
+
+    let body = match &instance.implementation {
+        checking_tree::InstanceImplementation::Delegate { evidence, .. } => {
+            evidence_variable(context, *evidence)?
+        }
+        checking_tree::InstanceImplementation::Members(members) => {
+            let mut fields = Vec::new();
+            for superclass in instance.superclasses.iter() {
+                let expression = evidence_variable(context, superclass.evidence)?;
+                let field = context.superclass_field(superclass.id);
+                fields.push(RecordField { field, expression });
+            }
+            for member in members.iter() {
+                let expression = member_declaration(context, member)?;
+                let field = context.member_field(member.resolution)?;
+                fields.push(RecordField { field, expression });
+            }
+            context.expression(ExpressionKind::Record { fields: fields.into() })
+        }
+    };
+    let value = context.parameter_abstraction(parameters, body);
+    let name = context.instance_name(identity)?;
+    let global = Global { id: GlobalId::Instance(identity), name };
+    let kind = DeclarationKind::Value(value);
+    Ok(Declaration { global, recursive_group: None, kind })
+}
+
+fn member_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    member: &checking_tree::InstanceMember,
+) -> ConversionResult<ExpressionId> {
+    let value = checking_tree::ValueDeclaration {
+        abstractions: Arc::clone(&member.abstractions),
+        equations: Arc::clone(&member.equations),
+    };
+    value_declaration(context, &value)
+}
+
+fn value_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    value: &checking_tree::ValueDeclaration,
+) -> ConversionResult<ExpressionId> {
+    let body = equations(context, &value.equations)?;
+    let mut evidence_parameters = Vec::new();
+    for abstraction in value.abstractions.iter() {
+        if let checking_tree::DeclarationAbstraction::Evidence { evidence, .. } = abstraction {
+            let Evidence::Given(binder) = evidence else {
+                return Err(context.unsupported(UnsupportedState::InvalidInstancePrerequisite));
+            };
+            evidence_parameters.push(context.evidence_parameter(*binder)?);
+        }
+    }
+    Ok(context.parameter_abstraction(evidence_parameters, body))
+}
+
+fn equations(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    equations: &[checking_tree::Equation],
+) -> ConversionResult<ExpressionId> {
+    let Some(first) = equations.first() else {
+        return Err(context.unsupported(UnsupportedState::MissingEquation));
+    };
+    if equations.len() == 1 {
+        let body = guarded_expression(context, &first.guarded_expression)?;
+        let patterns = patterns(context, &first.binders)?;
+        return Ok(context.abstraction(patterns, body));
+    }
+
+    let arity = equations.iter().map(|equation| equation.binders.len()).max().unwrap_or(0);
+    let mut parameter_patterns = Vec::with_capacity(arity);
+    let mut scrutinees = Vec::with_capacity(arity);
+    for position in 0..arity {
+        let parameter = context.fresh_parameter(format_smolstr!("argument{position}"))?;
+        let pattern = context.pattern(PatternKind::Variable(parameter.clone()));
+        let scrutinee = context.expression(ExpressionKind::Local { parameter: parameter.clone() });
+        parameter_patterns.push(pattern);
+        scrutinees.push(scrutinee);
+    }
+
+    let mut alternatives = Vec::with_capacity(equations.len());
+    for equation in equations {
+        let mut patterns = patterns(context, &equation.binders)?;
+        let supplied = patterns.len();
+        while patterns.len() < arity {
+            patterns.push(context.pattern(PatternKind::Wildcard));
+        }
+        let expression = guarded_expression(context, &equation.guarded_expression)?;
+        let remaining_arguments = scrutinees.iter().skip(supplied).copied();
+        let expression = context.application(expression, remaining_arguments);
+        alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
+    }
+    let body = context.expression(ExpressionKind::Case {
+        scrutinees: scrutinees.into(),
+        alternatives: alternatives.into(),
+    });
+    Ok(context.abstraction(parameter_patterns, body))
+}
+
+fn guarded_expression(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    guarded: &checking_tree::GuardedExpression,
+) -> ConversionResult<ExpressionId> {
+    if let [alternative] = guarded.alternatives.as_ref()
+        && alternative.pattern_guards.is_empty()
+    {
+        return where_expression(context, &alternative.where_expression);
+    }
+
+    let alternatives =
+        guarded.alternatives.iter().map(|alternative| guarded_alternative(context, alternative));
+    let alternatives = alternatives.collect::<ConversionResult<Vec<_>>>()?;
+    Ok(context.expression(ExpressionKind::Guarded { alternatives: alternatives.into() }))
+}
+
+fn guarded_alternative(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    alternative: &checking_tree::GuardedAlternative,
+) -> ConversionResult<GuardedAlternative> {
+    let mut guards = Vec::new();
+    for guard in alternative.pattern_guards.iter() {
+        let guard = match guard {
+            checking_tree::PatternGuard::Boolean { expression } => {
+                Guard::Boolean(convert_expression(context, *expression)?)
+            }
+            checking_tree::PatternGuard::Pattern { binder, expression } => Guard::Pattern {
+                expression: convert_expression(context, *expression)?,
+                pattern: convert_pattern(context, *binder)?,
+            },
+        };
+        guards.push(guard);
+    }
+    let expression = where_expression(context, &alternative.where_expression)?;
+    Ok(GuardedAlternative { guards: guards.into(), expression })
+}
+
+fn where_expression(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    where_expression: &checking_tree::WhereExpression,
+) -> ConversionResult<ExpressionId> {
+    let expression = convert_expression(context, where_expression.expression)?;
+    let_bindings(context, &where_expression.bindings, expression)
+}
+
+fn let_bindings(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    bindings: &checking_tree::LetBindings,
+    mut body: ExpressionId,
+) -> ConversionResult<ExpressionId> {
+    let checked = Arc::clone(&context.checked);
+    for chunk in bindings.chunks.iter().rev() {
+        match chunk {
+            checking_tree::LetBindingChunk::Pattern { binder, where_expression: value, .. } => {
+                let value = where_expression(context, value)?;
+                let pattern = convert_pattern(context, *binder)?;
+                body = context.expression(ExpressionKind::LetPattern { pattern, value, body });
+            }
+            checking_tree::LetBindingChunk::PatternError { source, .. } => {
+                return Err(context.unsupported(UnsupportedState::PatternBindingError(*source)));
+            }
+            checking_tree::LetBindingChunk::Names { groups, .. } => {
+                for group in groups.iter().rev() {
+                    let mut converted = Vec::new();
+                    for &source in group.as_slice() {
+                        let Some(declaration_id) = checked.tree.lookup_let(source) else {
+                            return Err(context
+                                .unsupported(UnsupportedState::MissingLocalDeclaration(source)));
+                        };
+                        let declaration = &checked.tree[declaration_id];
+                        let parameter = context.local_parameter(source)?;
+                        let expression = value_declaration(context, &declaration.value)?;
+                        converted.push(Binding { parameter, expression });
+                    }
+                    body = context.expression(ExpressionKind::Let {
+                        recursive: group.is_recursive(),
+                        bindings: converted.into(),
+                        body,
+                    });
+                }
+            }
+        }
+    }
+    Ok(body)
+}
+
+fn convert_expression(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    expression_id: checking_tree::ExpressionId,
+) -> ConversionResult<ExpressionId> {
+    let checked = Arc::clone(&context.checked);
+    let expression = &checked.tree[expression_id];
+    let kind = match &expression.kind {
+        checking_tree::ExpressionKind::String { value, .. } => {
+            ExpressionKind::Literal { literal: Literal::String(value.clone()) }
+        }
+        checking_tree::ExpressionKind::Char { value } => {
+            ExpressionKind::Literal { literal: Literal::Char(*value) }
+        }
+        checking_tree::ExpressionKind::Boolean { value } => {
+            ExpressionKind::Literal { literal: Literal::Boolean(*value) }
+        }
+        checking_tree::ExpressionKind::Integer { value } => {
+            ExpressionKind::Literal { literal: Literal::Integer(*value) }
+        }
+        checking_tree::ExpressionKind::Number { value } => {
+            ExpressionKind::Literal { literal: Literal::Number(value.clone()) }
+        }
+        checking_tree::ExpressionKind::Array { elements } => {
+            let elements = expressions(context, elements)?;
+            ExpressionKind::Array { elements: elements.into() }
+        }
+        checking_tree::ExpressionKind::Record { fields } => {
+            let mut converted = Vec::new();
+            for field in fields.iter() {
+                let (label, expression) = match field {
+                    checking_tree::RecordExpressionField::Field { label, expression }
+                    | checking_tree::RecordExpressionField::Pun { label, expression, .. } => {
+                        (label, expression)
+                    }
+                };
+                let field = context.label_field(label.clone());
+                let expression = convert_expression(context, *expression)?;
+                converted.push(RecordField { field, expression });
+            }
+            ExpressionKind::Record { fields: converted.into() }
+        }
+        checking_tree::ExpressionKind::RecordAccess { record, labels } => {
+            let mut record = convert_expression(context, *record)?;
+            for label in labels.iter() {
+                let field = context.label_field(label.clone());
+                record = context.expression(ExpressionKind::Project { record, field });
+            }
+            return Ok(record);
+        }
+        checking_tree::ExpressionKind::RecordUpdate { record, updates } => {
+            let record = convert_expression(context, *record)?;
+            let updates = record_updates(context, updates)?;
+            ExpressionKind::RecordUpdate { record, updates: updates.into() }
+        }
+        checking_tree::ExpressionKind::Constructor { resolution } => {
+            ExpressionKind::Constructor { global: context.term_global(resolution.0, resolution.1)? }
+        }
+        checking_tree::ExpressionKind::Variable { resolution }
+        | checking_tree::ExpressionKind::RecordPun { resolution, .. } => {
+            return variable(context, *resolution);
+        }
+        checking_tree::ExpressionKind::Section { binder } => {
+            let parameter = context.checked_binder_parameter(*binder)?;
+            ExpressionKind::Local { parameter }
+        }
+        checking_tree::ExpressionKind::TermApplication { function, argument } => {
+            let function = convert_expression(context, *function)?;
+            let argument = convert_expression(context, *argument)?;
+            return Ok(context.application(function, [argument]));
+        }
+        checking_tree::ExpressionKind::EvidenceApplication { function, evidence, .. } => {
+            let evidence = evidence_variable(context, *evidence)?;
+            if let Some(resolution) = class_member_resolution(context, *function)? {
+                let field = context.member_field(resolution)?;
+                return Ok(context.expression(ExpressionKind::Project { record: evidence, field }));
+            }
+            let function = convert_expression(context, *function)?;
+            return Ok(context.application(function, [evidence]));
+        }
+        checking_tree::ExpressionKind::EvidenceAbstraction { binder, expression } => {
+            let parameter = context.evidence_parameter(*binder)?;
+            let body = convert_expression(context, *expression)?;
+            return Ok(context.parameter_abstraction([parameter], body));
+        }
+        checking_tree::ExpressionKind::Lambda { binders, expression } => {
+            let parameters = patterns(context, binders)?;
+            let body = convert_expression(context, *expression)?;
+            return Ok(context.abstraction(parameters, body));
+        }
+        checking_tree::ExpressionKind::IfThenElse { condition, then, else_ } => {
+            ExpressionKind::IfThenElse {
+                condition: convert_expression(context, *condition)?,
+                then: convert_expression(context, *then)?,
+                else_: convert_expression(context, *else_)?,
+            }
+        }
+        checking_tree::ExpressionKind::Case { scrutinees, alternatives } => {
+            let scrutinees = expressions(context, scrutinees)?;
+            let alternatives =
+                alternatives.iter().map(|alternative| case_alternative(context, alternative));
+            let alternatives = alternatives.collect::<ConversionResult<Vec<_>>>()?;
+            ExpressionKind::Case {
+                scrutinees: scrutinees.into(),
+                alternatives: alternatives.into(),
+            }
+        }
+        checking_tree::ExpressionKind::Let { bindings, expression } => {
+            let body = convert_expression(context, *expression)?;
+            return let_bindings(context, bindings, body);
+        }
+        checking_tree::ExpressionKind::Error => {
+            return Err(context.unsupported(UnsupportedState::ExpressionError(expression_id)));
+        }
+    };
+    Ok(context.expression(kind))
+}
+
+fn class_member_resolution(
+    context: &Context<'_, impl checking::ExternalQueries>,
+    expression_id: checking_tree::ExpressionId,
+) -> QueryResult<Option<(FileId, TermItemId)>> {
+    let expression = &context.checked.tree[expression_id];
+    let resolution = match expression.kind {
+        checking_tree::ExpressionKind::Variable { resolution }
+        | checking_tree::ExpressionKind::RecordPun { resolution, .. } => resolution,
+        _ => return Ok(None),
+    };
+    let checking_tree::VariableResolution::Source(resolution) = resolution else {
+        return Ok(None);
+    };
+    let lowering::TermVariableResolution::Reference(file_id, term_id) = resolution else {
+        return Ok(None);
+    };
+    let indexed = if file_id == context.file_id {
+        Arc::clone(&context.indexed)
+    } else {
+        context.queries.indexed(file_id)?
+    };
+    let is_class_member =
+        matches!(indexed.items[term_id].kind, IndexedTermItemKind::ClassMember { .. });
+    Ok(is_class_member.then_some((file_id, term_id)))
+}
+
+fn case_alternative(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    alternative: &checking_tree::CaseAlternative,
+) -> ConversionResult<CaseAlternative> {
+    let patterns = patterns(context, &alternative.binders)?;
+    let expression = guarded_expression(context, &alternative.guarded_expression)?;
+    Ok(CaseAlternative { patterns: patterns.into(), expression })
+}
+
+fn expressions(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    expressions: &[checking_tree::ExpressionId],
+) -> ConversionResult<Vec<ExpressionId>> {
+    let expressions = expressions.iter().map(|&expression| convert_expression(context, expression));
+    expressions.collect::<ConversionResult<Vec<_>>>()
+}
+
+fn record_updates(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    updates: &[checking_tree::RecordExpressionUpdate],
+) -> ConversionResult<Vec<RecordUpdate>> {
+    let mut converted = Vec::new();
+    for update in updates {
+        let update = match update {
+            checking_tree::RecordExpressionUpdate::Leaf { label, expression } => {
+                RecordUpdate::Leaf {
+                    field: context.label_field(label.clone()),
+                    expression: convert_expression(context, *expression)?,
+                }
+            }
+            checking_tree::RecordExpressionUpdate::Branch { label, updates } => {
+                let updates = record_updates(context, updates)?;
+                RecordUpdate::Branch {
+                    field: context.label_field(label.clone()),
+                    updates: updates.into(),
+                }
+            }
+            checking_tree::RecordExpressionUpdate::Error => {
+                return Err(context.unsupported(UnsupportedState::RecordUpdateError));
+            }
+        };
+        converted.push(update);
+    }
+    Ok(converted)
+}
+
+fn patterns(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    binders: &[checking_tree::BinderId],
+) -> ConversionResult<Vec<PatternId>> {
+    let patterns = binders.iter().map(|&binder| convert_pattern(context, binder));
+    patterns.collect::<ConversionResult<Vec<_>>>()
+}
+
+fn convert_pattern(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    binder_id: checking_tree::BinderId,
+) -> ConversionResult<PatternId> {
+    let checked = Arc::clone(&context.checked);
+    let binder = &checked.tree[binder_id];
+    let kind = match &binder.kind {
+        checking_tree::BinderKind::Typed { binder, .. } => {
+            return convert_pattern(context, *binder);
+        }
+        checking_tree::BinderKind::Integer { value } => {
+            PatternKind::Literal(Literal::Integer(*value))
+        }
+        checking_tree::BinderKind::Number { negative, value } => {
+            let value = if *negative { format_smolstr!("-{value}") } else { value.clone() };
+            PatternKind::Literal(Literal::Number(value))
+        }
+        checking_tree::BinderKind::Variable => {
+            PatternKind::Variable(context.checked_binder_parameter(binder_id)?)
+        }
+        checking_tree::BinderKind::Named { name, binder } => PatternKind::Named {
+            parameter: context.parameter(context.binding_source(binder_id), name.clone())?,
+            pattern: convert_pattern(context, *binder)?,
+        },
+        checking_tree::BinderKind::Wildcard => PatternKind::Wildcard,
+        checking_tree::BinderKind::String { value } => {
+            PatternKind::Literal(Literal::String(value.clone()))
+        }
+        checking_tree::BinderKind::Char { value } => PatternKind::Literal(Literal::Char(*value)),
+        checking_tree::BinderKind::Boolean { value } => {
+            PatternKind::Literal(Literal::Boolean(*value))
+        }
+        checking_tree::BinderKind::Array { elements } => {
+            PatternKind::Array(patterns(context, elements)?.into())
+        }
+        checking_tree::BinderKind::Record { fields } => {
+            let converted =
+                fields.iter().map(|field| record_pattern_field(context, binder_id, field));
+            let converted = converted.collect::<ConversionResult<Vec<_>>>()?;
+            PatternKind::Record(converted.into())
+        }
+        checking_tree::BinderKind::Constructor { resolution, arguments } => {
+            PatternKind::Constructor {
+                global: context.term_global(resolution.0, resolution.1)?,
+                arguments: patterns(context, arguments)?.into(),
+            }
+        }
+        checking_tree::BinderKind::Error => {
+            return Err(context.unsupported(UnsupportedState::BinderError(binder_id)));
+        }
+    };
+    Ok(context.pattern(kind))
+}
+
+fn record_pattern_field(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    binder_id: checking_tree::BinderId,
+    field: &checking_tree::RecordBinderField,
+) -> ConversionResult<RecordPatternField> {
+    let (label, pattern) = match field {
+        checking_tree::RecordBinderField::Field { label, binder } => {
+            (label.clone(), convert_pattern(context, *binder)?)
+        }
+        checking_tree::RecordBinderField::Pun { label } => {
+            let Some(source) = context.record_pun_source(binder_id, label) else {
+                return Err(context.unsupported(UnsupportedState::BinderError(binder_id)));
+            };
+            let parameter = context.record_pun_parameter(source, label.clone())?;
+            (label.clone(), context.pattern(PatternKind::Variable(parameter)))
+        }
+    };
+    Ok(RecordPatternField { field: context.label_field(label), pattern })
+}
+
+fn variable(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    resolution: checking_tree::VariableResolution,
+) -> ConversionResult<ExpressionId> {
+    match resolution {
+        checking_tree::VariableResolution::Generated(binder) => {
+            let parameter = context.checked_binder_parameter(binder)?;
+            Ok(context.expression(ExpressionKind::Local { parameter }))
+        }
+        checking_tree::VariableResolution::Source(resolution) => match resolution {
+            lowering::TermVariableResolution::Binder(binder) => {
+                let name = context.source_binder_name(binder);
+                let parameter = context.parameter(BindingSource::SourceBinder(binder), name)?;
+                Ok(context.expression(ExpressionKind::Local { parameter }))
+            }
+            lowering::TermVariableResolution::Let(source) => {
+                let parameter = context.local_parameter(source)?;
+                Ok(context.expression(ExpressionKind::Local { parameter }))
+            }
+            lowering::TermVariableResolution::RecordPun(source) => {
+                let name = context.record_pun_name(source);
+                let parameter = context.record_pun_parameter(source, name)?;
+                Ok(context.expression(ExpressionKind::Local { parameter }))
+            }
+            lowering::TermVariableResolution::Reference(file_id, term_id) => {
+                let global = context.term_global(file_id, term_id)?;
+                Ok(context.expression(ExpressionKind::Global { global }))
+            }
+        },
+    }
+}
+
+fn evidence_variable(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    variable: EvidenceVarId,
+) -> ConversionResult<ExpressionId> {
+    if !context.lowering_evidence.insert(variable) {
+        return Err(context.unsupported(UnsupportedState::CyclicEvidence(variable)));
+    }
+    let result = match context.checked.evidence[variable].state {
+        EvidenceState::Unsolved => {
+            Err(context.unsupported(UnsupportedState::UnsolvedEvidence(variable)))
+        }
+        EvidenceState::Solved(evidence) => convert_evidence(context, evidence),
+        EvidenceState::Error => Err(context.unsupported(UnsupportedState::EvidenceError(variable))),
+    };
+    context.lowering_evidence.remove(&variable);
+    result
+}
+
+fn convert_evidence(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    evidence_id: EvidenceId,
+) -> ConversionResult<ExpressionId> {
+    let checked = Arc::clone(&context.checked);
+    match &checked.evidence[evidence_id] {
+        Evidence::Variable(variable) => evidence_variable(context, *variable),
+        Evidence::Given(binder) => {
+            let parameter = context.evidence_parameter(*binder)?;
+            Ok(context.expression(ExpressionKind::Local { parameter }))
+        }
+        Evidence::Instance { origin, subgoals } => {
+            let global = context.instance_global(*origin)?;
+            let function = context.expression(ExpressionKind::Global { global });
+            let arguments = subgoals.iter().map(|&subgoal| evidence_variable(context, subgoal));
+            let arguments = arguments.collect::<ConversionResult<Vec<_>>>()?;
+            Ok(context.application(function, arguments))
+        }
+        Evidence::Superclass { parent, superclass } => {
+            let record = convert_evidence(context, *parent)?;
+            let field = context.superclass_field(*superclass);
+            Ok(context.expression(ExpressionKind::Project { record, field }))
+        }
+        Evidence::Trivial => Ok(context.expression(ExpressionKind::TrivialEvidence)),
+        Evidence::Synthesized(evidence) => {
+            let evidence = synthesized_evidence(context, evidence);
+            Ok(context.expression(ExpressionKind::SynthesizedEvidence { evidence }))
+        }
+    }
+}
+
+fn synthesized_evidence(
+    _context: &Context<'_, impl checking::ExternalQueries>,
+    evidence: &checking::evidence::SynthesizedEvidence,
+) -> SynthesizedEvidence {
+    match evidence {
+        checking::evidence::SynthesizedEvidence::IsSymbol(symbol) => {
+            SynthesizedEvidence::IsSymbol(symbol.clone())
+        }
+        checking::evidence::SynthesizedEvidence::Reflectable(reflectable) => {
+            let reflectable = match reflectable {
+                checking::evidence::ReflectableEvidence::Integer(value) => {
+                    ReflectableEvidence::Integer(*value)
+                }
+                checking::evidence::ReflectableEvidence::String(value) => {
+                    ReflectableEvidence::String(value.clone())
+                }
+                checking::evidence::ReflectableEvidence::Boolean(value) => {
+                    ReflectableEvidence::Boolean(*value)
+                }
+                checking::evidence::ReflectableEvidence::Ordering(ordering) => {
+                    let ordering = match ordering {
+                        checking::evidence::ReflectableOrdering::Less => ReflectableOrdering::Less,
+                        checking::evidence::ReflectableOrdering::Equal => {
+                            ReflectableOrdering::Equal
+                        }
+                        checking::evidence::ReflectableOrdering::Greater => {
+                            ReflectableOrdering::Greater
+                        }
+                    };
+                    ReflectableEvidence::Ordering(ordering)
+                }
+            };
+            SynthesizedEvidence::Reflectable(reflectable)
+        }
+    }
+}
+
+impl<'c, Q> Context<'c, Q>
+where
+    Q: checking::ExternalQueries,
+{
+    fn checked_binder_parameter(
+        &mut self,
+        binder_id: checking_tree::BinderId,
+    ) -> ConversionResult<Parameter> {
+        let source = self.binding_source(binder_id);
+        let name = self.checked_binder_name(binder_id);
+        self.parameter(source, name)
+    }
+
+    fn binding_source(&self, binder_id: checking_tree::BinderId) -> BindingSource {
+        match self.checked.tree[binder_id].source {
+            checking_tree::BinderSource::Binder(source) => BindingSource::SourceBinder(source),
+            _ => BindingSource::CheckedBinder(binder_id),
+        }
+    }
+
+    fn checked_binder_name(&self, binder_id: checking_tree::BinderId) -> SmolStr {
+        let binder = &self.checked.tree[binder_id];
+        match &binder.kind {
+            checking_tree::BinderKind::Named { name, .. } => name.clone(),
+            _ => match binder.source {
+                checking_tree::BinderSource::Binder(source) => self.source_binder_name(source),
+                checking_tree::BinderSource::Generated { name, .. } => {
+                    self.queries.lookup_smol_str(name)
+                }
+                checking_tree::BinderSource::Section(source) => {
+                    format_smolstr!("section{}", source.into_raw().get())
+                }
+                _ => format_smolstr!("local{}", binder_id.into_raw().into_u32()),
+            },
+        }
+    }
+
+    fn source_binder_name(&self, binder: lowering::BinderId) -> SmolStr {
+        match self.lowered.tree.get_binder_kind(binder) {
+            Some(lowering::BinderKind::Variable { variable: Some(name) }) => name.clone(),
+            Some(lowering::BinderKind::Named { named: Some(name), .. }) => name.clone(),
+            _ => format_smolstr!("binder{}", binder.into_raw().get()),
+        }
+    }
+
+    fn local_parameter(
+        &mut self,
+        source: lowering::LetBindingNameGroupId,
+    ) -> ConversionResult<Parameter> {
+        let group = self.lowered.tree.get_let_binding_group(source);
+        let name = group
+            .name
+            .clone()
+            .unwrap_or_else(|| format_smolstr!("binding{}", source.into_raw().into_u32()));
+        self.parameter(BindingSource::Let(source), name)
+    }
+
+    fn record_pun_parameter(
+        &mut self,
+        source: lowering::RecordPunId,
+        name: SmolStr,
+    ) -> ConversionResult<Parameter> {
+        self.parameter(BindingSource::RecordPun(source), name)
+    }
+
+    fn evidence_parameter(&mut self, binder: EvidenceBinderId) -> ConversionResult<Parameter> {
+        self.parameter(BindingSource::Evidence(binder), format_smolstr!("dictionary{}", binder.0))
+    }
+
+    fn parameter(&mut self, source: BindingSource, name: SmolStr) -> ConversionResult<Parameter> {
+        if let Some(parameter) = self.parameters.get(&source) {
+            return Ok(parameter.clone());
+        }
+        let parameter = self.fresh_parameter(name)?;
+        self.parameters.insert(source, parameter.clone());
+        Ok(parameter)
+    }
+
+    fn fresh_parameter(&mut self, name: SmolStr) -> ConversionResult<Parameter> {
+        let id = LocalId(self.next_local);
+        self.next_local = self
+            .next_local
+            .checked_add(1)
+            .ok_or_else(|| self.unsupported(UnsupportedState::LocalIdentityOverflow))?;
+        Ok(Parameter { id, name })
+    }
+
+    fn parameter_abstraction(
+        &mut self,
+        parameters: impl IntoIterator<Item = Parameter>,
+        body: ExpressionId,
+    ) -> ExpressionId {
+        let patterns =
+            parameters.into_iter().map(|parameter| self.pattern(PatternKind::Variable(parameter)));
+        let patterns = patterns.collect_vec();
+        self.abstraction(patterns, body)
+    }
+
+    fn abstraction(&mut self, parameters: Vec<PatternId>, body: ExpressionId) -> ExpressionId {
+        if parameters.is_empty() {
+            body
+        } else {
+            self.expression(ExpressionKind::Abstraction { parameters: parameters.into(), body })
+        }
+    }
+
+    fn application(
+        &mut self,
+        function: ExpressionId,
+        arguments: impl IntoIterator<Item = ExpressionId>,
+    ) -> ExpressionId {
+        let arguments = arguments.into_iter();
+        let arguments = arguments.collect_vec();
+        if arguments.is_empty() {
+            function
+        } else {
+            self.expression(ExpressionKind::Application { function, arguments: arguments.into() })
+        }
+    }
+
+    fn expression(&mut self, kind: ExpressionKind) -> ExpressionId {
+        self.storage.allocate_expression(Expression { kind })
+    }
+
+    fn pattern(&mut self, kind: PatternKind) -> PatternId {
+        self.storage.allocate_pattern(Pattern { kind })
+    }
+
+    fn label_field(&self, label: SmolStr) -> Field {
+        Field { identity: FieldIdentity::Label(label.clone()), name: label }
+    }
+
+    fn member_field(&self, resolution: (FileId, TermItemId)) -> QueryResult<Field> {
+        let global = self.term_global_readonly(resolution.0, resolution.1)?;
+        Ok(Field { identity: FieldIdentity::Member(resolution.0, resolution.1), name: global.name })
+    }
+
+    fn superclass_field(&self, superclass: checking::evidence::SuperclassId) -> Field {
+        let identity = SuperclassIdentity {
+            file_id: superclass.file_id,
+            class: superclass.type_id,
+            source: superclass.source_id,
+        };
+        let name = format_smolstr!("superclass{}", superclass.source_id.into_raw().get());
+        Field { identity: FieldIdentity::Superclass(identity), name }
+    }
+
+    fn term_global(&self, file_id: FileId, term_id: TermItemId) -> ConversionResult<Global> {
+        Ok(self.term_global_readonly(file_id, term_id)?)
+    }
+
+    fn term_global_readonly(&self, file_id: FileId, term_id: TermItemId) -> QueryResult<Global> {
+        let indexed = if file_id == self.file_id {
+            Arc::clone(&self.indexed)
+        } else {
+            self.queries.indexed(file_id)?
+        };
+        let name = if let Some(name) = &indexed.items[term_id].name {
+            name.clone()
+        } else {
+            self.term_fallback(term_id)
+        };
+        Ok(Global { id: GlobalId::Term(file_id, term_id), name })
+    }
+
+    fn instance_global(&self, origin: InstanceCandidateOrigin) -> ConversionResult<Global> {
+        let identity = match origin {
+            InstanceCandidateOrigin::Instance(file_id, id) => {
+                InstanceIdentity::Declared(file_id, id)
+            }
+            InstanceCandidateOrigin::Derive(file_id, id) => InstanceIdentity::Derived(file_id, id),
+        };
+        let name = self.instance_name(identity)?;
+        Ok(Global { id: GlobalId::Instance(identity), name })
+    }
+
+    fn instance_name(&self, identity: InstanceIdentity) -> QueryResult<SmolStr> {
+        let origin = match identity {
+            InstanceIdentity::Declared(file_id, id) => {
+                InstanceCandidateOrigin::Instance(file_id, id)
+            }
+            InstanceIdentity::Derived(file_id, id) => InstanceCandidateOrigin::Derive(file_id, id),
+        };
+        let pretty = checking::tree::pretty::Pretty::new(self.queries, &self.checked);
+        pretty.render_instance_name(self.file_id, origin)
+    }
+
+    fn record_pun_source(
+        &self,
+        binder_id: checking_tree::BinderId,
+        label: &str,
+    ) -> Option<lowering::RecordPunId> {
+        let checking_tree::BinderSource::Binder(source) = self.checked.tree[binder_id].source
+        else {
+            return None;
+        };
+        let lowering::BinderKind::Record { record } = self.lowered.tree.get_binder_kind(source)?
+        else {
+            return None;
+        };
+        record.iter().find_map(|field| {
+            let lowering::BinderRecordItem::RecordPun { id, name } = field else {
+                return None;
+            };
+            name.as_deref().filter(|name| *name == label).map(|_| *id)
+        })
+    }
+
+    fn record_pun_name(&self, source: lowering::RecordPunId) -> SmolStr {
+        match self.record_pun_names.get(&source) {
+            Some(name) => SmolStr::clone(name),
+            None => format_smolstr!("pun{}", source.into_raw().get()),
+        }
+    }
+
+    fn term_fallback(&self, term_id: TermItemId) -> SmolStr {
+        format_smolstr!("term{}", term_id.into_raw().into_u32())
+    }
+
+    fn unsupported(&self, state: UnsupportedState) -> ConversionError {
+        ConversionError::Unsupported { file_id: self.file_id, state }
+    }
+}

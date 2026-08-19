@@ -1,0 +1,15 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+foreign firstAction
+
+foreign secondAction
+
+foreign independentAction
+
+sequential = bindEffect1.bind firstAction (\first%0 -> secondAction first%0)
+
+independent = applyEffect1.apply
+  (functorEffect.map (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
+  independentAction

@@ -1,0 +1,21 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+apply = \function%0 value%1 -> function%0 value%1
+
+capture = \captured%2 -> \_ -> captured%2
+
+choose = \condition%3 left%4 right%5 ->
+  if condition%3 then left%4 else right%5
+
+partial = choose true 42
+
+literalCase = \value%6 ->
+  case value%6 of
+    0 ->
+      "zero"
+    _ ->
+      "other"
+
+higherOrder = apply (capture 42) 0

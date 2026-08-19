@@ -1,0 +1,38 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+integer = \argument0%0 ->
+  case argument0%0 of
+    0 ->
+      true
+    _ ->
+      false
+
+number = \argument0%1 ->
+  case argument0%1 of
+    1.5 ->
+      true
+    _ ->
+      false
+
+character = \argument0%2 ->
+  case argument0%2 of
+    'a' ->
+      true
+    _ ->
+      false
+
+string = \argument0%3 ->
+  case argument0%3 of
+    "alexandrite" ->
+      true
+    _ ->
+      false
+
+boolean = \argument0%4 ->
+  case argument0%4 of
+    true ->
+      true
+    false ->
+      false

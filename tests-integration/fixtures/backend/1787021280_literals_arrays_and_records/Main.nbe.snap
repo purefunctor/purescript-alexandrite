@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+integer = 42
+
+number = 1.5
+
+character = 'a'
+
+string = "alexandrite"
+
+boolean = true
+
+array = [1, 2, 3]
+
+record = { integer: 42, nested: { value: "nested" } }
+
+projection = record.nested.value

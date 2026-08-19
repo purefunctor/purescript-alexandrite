@@ -8,6 +8,8 @@ await :: Prim.Int
 arguments :: Prim.Int
 default :: { hyphen-label :: Prim.Int }
 readLabel :: { hyphen-label :: Prim.Int } -> Prim.Int
+emptyLabel :: {  :: Prim.Int }
+readEmptyLabel :: {  :: Prim.Int } -> Prim.Int
 Tagged :: { hyphen-label :: Prim.Int } -> Main.Tagged
 tagged :: Main.Tagged
 

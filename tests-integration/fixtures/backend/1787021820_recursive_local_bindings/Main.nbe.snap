@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/nbe.rs
+expression: report
+---
+mutual = \condition%1 ->
+  let
+    rec second%2 = \argument0%3 ->
+      case argument0%3 of
+        true ->
+          2
+        false ->
+          first%0 true
+    rec first%0 = \argument0%4 ->
+      case argument0%4 of
+        true ->
+          1
+        false ->
+          second%2 true
+  in first%0 condition%1
