@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-select = \{ first: first%1, nested: { second: second%0 } } -> second%0
+@export select = \{ first: first%1, nested: { second: second%0 } } -> second%0

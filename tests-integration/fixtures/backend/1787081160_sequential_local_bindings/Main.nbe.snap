@@ -1,8 +1,9 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-sequence = \input%2 ->
+@export sequence = \input%2 ->
   let
     first%1 = input%2
   in let

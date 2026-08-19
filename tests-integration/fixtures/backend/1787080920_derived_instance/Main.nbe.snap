@@ -1,8 +1,11 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-instance eqBox = {
+@export constructor Box/0
+
+@export instance eqBox = {
   eq:
     \left%0 right%1 ->
       case left%0, right%1 of
@@ -10,8 +13,8 @@ instance eqBox = {
           true
 }
 
-equal = eqBox.eq Box Box
+@export equal = eqBox.eq Box Box
 
-instance showIdentity = \dictionary1%2 -> dictionary1%2
+@export instance showIdentity = \dictionary1%2 -> dictionary1%2
 
-rendered = (showIdentity showInt).show (Identity 42)
+@export rendered = (showIdentity showInt).show ((\value%3 -> value%3) 42)

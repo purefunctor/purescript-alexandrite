@@ -1,9 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-const eqBox = initialize {
+@export constructor Box/0;
+
+@export instance const eqBox = initialize {
   entry() {
     const closure = closure(eqBox$initialize$closure);
     const record = { eq: closure };
@@ -11,7 +13,7 @@ const eqBox = initialize {
   }
 }
 
-const equal = initialize {
+@export const equal = initialize {
   entry() {
     const eqBox = global(eqBox);
     const eq = eqBox.eq;
@@ -23,21 +25,21 @@ const equal = initialize {
   }
 }
 
-function showIdentity(dictionary1) {
+@export instance function showIdentity(dictionary1) {
   entry() {
     return dictionary1;
   }
 }
 
-const rendered = initialize {
+@export const rendered = initialize {
   entry() {
     const showIdentity = global(showIdentity);
     const showInt = global(showInt);
     const call = source.call(showIdentity, showInt);
     const show = call.show;
-    const Identity = constructor(Identity);
+    const closure = closure(rendered$initialize$closure);
     const literal = 42;
-    const call$1 = source.call(Identity, literal);
+    const call$1 = source.call(closure, literal);
     const call$2 = source.call(show, call$1);
     return call$2;
   }
@@ -72,5 +74,11 @@ closure eqBox$initialize$closure[](left, right) {
   match$success$1() {
     const literal = true;
     case$join(literal);
+  }
+}
+
+closure rendered$initialize$closure[](value) {
+  entry() {
+    return value;
   }
 }

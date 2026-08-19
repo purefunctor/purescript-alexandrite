@@ -313,6 +313,41 @@ pub enum ExportSource {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
+pub struct ExportedModule {
+    pub local: Arc<[TermItemId]>,
+    pub indirect: Arc<[IndirectExports]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndirectExports {
+    pub file_id: FileId,
+    pub terms: Arc<[TermItemId]>,
+}
+
+pub fn export_module(module: &ResolvedModule) -> ExportedModule {
+    let mut local = Vec::new();
+    let mut indirect = FxHashMap::<FileId, Vec<TermItemId>>::default();
+    for &(file_id, term_id, source) in module.exports.terms.values() {
+        match source {
+            ExportSource::Local => local.push(term_id),
+            ExportSource::Import(_) => indirect.entry(file_id).or_default().push(term_id),
+        }
+    }
+
+    local.sort_by_key(|term_id| term_id.into_raw().into_u32());
+    local.dedup();
+    let indirect = indirect.into_iter().map(|(file_id, mut terms)| {
+        terms.sort_by_key(|term_id| term_id.into_raw().into_u32());
+        terms.dedup();
+        IndirectExports { file_id, terms: terms.into() }
+    });
+    let mut indirect = indirect.collect::<Vec<_>>();
+    indirect.sort_by_key(|exports| exports.file_id.into_raw().into_u32());
+
+    ExportedModule { local: local.into(), indirect: indirect.into() }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResolvedExports {
     terms: FxHashMap<SmolStr, (FileId, TermItemId, ExportSource)>,
     types: FxHashMap<SmolStr, (FileId, TypeItemId, ExportSource)>,

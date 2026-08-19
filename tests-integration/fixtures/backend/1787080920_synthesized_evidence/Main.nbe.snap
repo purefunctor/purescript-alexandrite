@@ -1,20 +1,20 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 12
+assertion_line: 14
 expression: report
 ---
-symbol = (symbol "alexandrite").reflectSymbol Proxy
+@export symbol = (symbol "alexandrite").reflectSymbol Proxy
 
-reflectedString = (reflectable "reflected").reflectType Proxy
+@export reflectedString = (reflectable "reflected").reflectType Proxy
 
-reflectedInteger = (reflectable 42).reflectType Proxy
+@export reflectedInteger = (reflectable 42).reflectType Proxy
 
-reflectedTrue = (reflectable true).reflectType Proxy
+@export reflectedTrue = (reflectable true).reflectType Proxy
 
-reflectedFalse = (reflectable false).reflectType Proxy
+@export reflectedFalse = (reflectable false).reflectType Proxy
 
-reflectedLess = (reflectable LT).reflectType Proxy
+@export reflectedLess = (reflectable LT).reflectType Proxy
 
-reflectedEqual = (reflectable EQ).reflectType Proxy
+@export reflectedEqual = (reflectable EQ).reflectType Proxy
 
-reflectedGreater = (reflectable GT).reflectType Proxy
+@export reflectedGreater = (reflectable GT).reflectType Proxy

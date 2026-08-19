@@ -1,30 +1,35 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-booleanGuard = \value%0 ->
+@export constructor Empty/0
+
+@export constructor One/1
+
+@export booleanGuard = \value%0 ->
   | value%0 -> 1
   | true -> 0
 
-patternGuard = \choice%1 ->
+@export patternGuard = \choice%1 ->
   | One value%2 <- choice%1 -> value%2
   | true -> 0
 
-caseBooleanGuard = \value%3 ->
+@export caseBooleanGuard = \value%3 ->
   case value%3 of
     _ ->
       | false -> 1
     _ ->
       2
 
-casePatternGuard = \choice%4 ->
+@export casePatternGuard = \choice%4 ->
   case choice%4 of
     _ ->
       | One value%5 <- choice%4 -> value%5
     _ ->
       0
 
-nestedCaseGuard = \value%6 ->
+@export nestedCaseGuard = \value%6 ->
   case value%6 of
     true ->
       | true ->

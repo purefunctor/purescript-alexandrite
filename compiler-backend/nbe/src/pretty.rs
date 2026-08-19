@@ -4,8 +4,8 @@ use pretty::{Arena, DocAllocator, DocBuilder};
 
 use crate::tree::{
     Declaration, DeclarationKind, EffectExpression, ExpressionId, ExpressionKind, Field, GlobalId,
-    Guard, Literal, Module, Parameter, PatternId, PatternKind, RecordUpdate, ReflectableEvidence,
-    ReflectableOrdering, SynthesizedEvidence,
+    Guard, IndirectModuleExports, Literal, Module, Parameter, PatternId, PatternKind, RecordUpdate,
+    ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -15,10 +15,12 @@ const DEFAULT_WIDTH: usize = 100;
 pub fn render(module: &Module) -> String {
     let arena = Arena::new();
     let printer = Printer { arena: &arena, module };
+    let indirect = module.surface.indirect.iter().map(|exports| printer.indirect_exports(exports));
     let declarations =
         module.declarations.iter().map(|declaration| printer.declaration(declaration));
+    let documents = indirect.chain(declarations);
     let declaration_separator = arena.hardline().append(arena.hardline());
-    let document = arena.intersperse(declarations, declaration_separator);
+    let document = arena.intersperse(documents, declaration_separator);
     let mut output = String::new();
     document
         .render_fmt(DEFAULT_WIDTH, &mut output)
@@ -32,10 +34,30 @@ struct Printer<'a, 'm> {
 }
 
 impl<'a> Printer<'a, '_> {
+    fn indirect_exports(&self, exports: &IndirectModuleExports) -> Doc<'a> {
+        let dependency = self
+            .module
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.file_id == exports.file_id)
+            .expect("invariant violated: indirect exports have no module dependency");
+        let globals =
+            exports.globals.iter().map(|global| self.arena.text(global.item_name.to_string()));
+        let globals = self.arena.intersperse(globals, ", ");
+        self.arena
+            .text(format!("@export {} {{ ", dependency.module_name))
+            .append(globals)
+            .append(" }")
+    }
+
     fn declaration(&self, declaration: &Declaration) -> Doc<'a> {
-        let name = &declaration.global.name;
+        let name = &declaration.global.item_name;
+        let export = if declaration.exported { "@export " } else { "" };
         match declaration.kind {
-            DeclarationKind::Foreign => self.arena.text(format!("foreign {name}")),
+            DeclarationKind::Foreign => self.arena.text(format!("{export}foreign {name}")),
+            DeclarationKind::Constructor { arity } => {
+                self.arena.text(format!("{export}constructor {name}/{arity}"))
+            }
             DeclarationKind::Value(expression) => {
                 let prefix = match declaration.global.id {
                     GlobalId::Term(..) => "",
@@ -45,7 +67,7 @@ impl<'a> Printer<'a, '_> {
                     .recursive_group
                     .map(|group| format!("recursive[{}] ", group.0))
                     .unwrap_or_default();
-                let declaration = self.arena.text(format!("{prefix}{recursion}{name} ="));
+                let declaration = self.arena.text(format!("{export}{prefix}{recursion}{name} ="));
                 let expression = self.expression(expression);
                 declaration.append(self.arena.space()).append(expression)
             }
@@ -112,7 +134,7 @@ impl<'a> Printer<'a, '_> {
                 record.append(self.arena.text(format!(".{field}")))
             }
             ExpressionKind::Constructor { global } | ExpressionKind::Global { global } => {
-                self.arena.text(global.name.to_string())
+                self.arena.text(global.item_name.to_string())
             }
             ExpressionKind::Local { parameter } => self.parameter(parameter),
             ExpressionKind::Abstraction { parameters, body } => {
@@ -247,7 +269,7 @@ impl<'a> Printer<'a, '_> {
                     .map(|argument| self.pattern_at(*argument, PatternPrecedence::Atom));
                 let arguments = arguments.map(|argument| self.arena.space().append(argument));
                 let arguments = self.arena.concat(arguments);
-                self.arena.text(global.name.to_string()).append(arguments)
+                self.arena.text(global.item_name.to_string()).append(arguments)
             }
         };
         if precedence < required_precedence {

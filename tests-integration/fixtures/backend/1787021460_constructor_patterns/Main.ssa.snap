@@ -1,9 +1,17 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function first(argument0) {
+@export constructor Empty/0;
+
+@export constructor One/1;
+
+@export constructor Pair/2;
+
+@export constructor Outer/1;
+
+@export function first(argument0) {
   entry() {
     case$0();
   }
@@ -79,25 +87,13 @@ function first(argument0) {
   }
 }
 
-function unwrap(argument0) {
+@export function unwrap(value) {
   entry() {
-    const matches = pattern.constructor(argument0, Identity);
-    if (matches) {
-      match$success();
-    } else {
-      parameter$failure();
-    }
-  }
-  parameter$failure() {
-    throw patternMatchFailure();
-  }
-  match$success() {
-    const value = pattern.argument(argument0, Identity, 0);
     return value;
   }
 }
 
-function nested(argument0) {
+@export function nested(argument0) {
   entry() {
     case$0();
   }
@@ -136,14 +132,14 @@ function nested(argument0) {
   }
 }
 
-function bind(value, continuation) {
+@export function bind(value, continuation) {
   entry() {
     const call = source.call(continuation, value);
     return call;
   }
 }
 
-function ordinaryBind(identity) {
+@export function ordinaryBind(identity) {
   entry() {
     const bind = global(bind);
     const call = source.call(bind, identity);
@@ -153,20 +149,8 @@ function ordinaryBind(identity) {
   }
 }
 
-closure ordinaryBind$closure[](argument0) {
+closure ordinaryBind$closure[](value) {
   entry() {
-    const matches = pattern.constructor(argument0, Identity);
-    if (matches) {
-      match$success();
-    } else {
-      parameter$failure();
-    }
-  }
-  parameter$failure() {
-    throw patternMatchFailure();
-  }
-  match$success() {
-    const value = pattern.argument(argument0, Identity, 0);
     return value;
   }
 }

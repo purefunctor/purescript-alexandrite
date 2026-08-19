@@ -1,19 +1,20 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-integer = 42
+@export integer = 42
 
-number = 1.5
+@export number = 1.5
 
-character = 'a'
+@export character = 'a'
 
-string = "alexandrite"
+@export string = "alexandrite"
 
-boolean = true
+@export boolean = true
 
-array = [1, 2, 3]
+@export array = [1, 2, 3]
 
-record = { integer: 42, nested: { value: "nested" } }
+@export record = { integer: 42, nested: { value: "nested" } }
 
-projection = record.nested.value
+@export projection = record.nested.value

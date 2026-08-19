@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function sequence(input) {
+@export function sequence(input) {
   entry() {
     return input;
   }

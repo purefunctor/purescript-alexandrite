@@ -1,9 +1,10 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-foreign foreignValue
+@export foreign foreignValue
 
-foreign foreignFunction
+@export foreign foreignFunction
 
-value = foreignFunction foreignValue
+@export value = foreignFunction foreignValue

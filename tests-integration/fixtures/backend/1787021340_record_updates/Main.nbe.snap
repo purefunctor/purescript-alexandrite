@@ -1,7 +1,8 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
-model = { count: 0, nested: { enabled: true, label: "before" } }
+@export model = { count: 0, nested: { enabled: true, label: "before" } }
 
-updated = model { count = 1, nested { enabled = false, label = "after" } }
+@export updated = model { count = 1, nested { enabled = false, label = "after" } }

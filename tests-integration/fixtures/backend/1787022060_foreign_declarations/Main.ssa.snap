@@ -1,13 +1,13 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-foreign const foreignValue;
+@export foreign const foreignValue;
 
-foreign const foreignFunction;
+@export foreign const foreignFunction;
 
-const value = initialize {
+@export const value = initialize {
   entry() {
     const foreignFunction = global(foreignFunction);
     const foreignValue = global(foreignValue);

@@ -1,18 +1,20 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 12
+assertion_line: 14
 expression: report
 ---
-foreign await
+@export foreign await
 
-arguments = await
+@export arguments = await
 
-default = { "hyphen-label": arguments }
+@export default = { "hyphen-label": arguments }
 
-readLabel = \record%0 -> record%0."hyphen-label"
+@export readLabel = \record%0 -> record%0."hyphen-label"
 
-emptyLabel = { "": arguments }
+@export emptyLabel = { "": arguments }
 
-readEmptyLabel = \record%1 -> record%1.""
+@export readEmptyLabel = \record%1 -> record%1.""
 
-tagged = Tagged default
+@export constructor Tagged/1
+
+@export tagged = Tagged default

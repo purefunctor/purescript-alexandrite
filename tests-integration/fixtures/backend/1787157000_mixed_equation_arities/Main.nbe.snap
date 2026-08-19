@@ -1,9 +1,9 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 12
+assertion_line: 14
 expression: report
 ---
-choose = \argument0%0 argument1%1 ->
+@export choose = \argument0%0 argument1%1 ->
   case argument0%0, argument1%1 of
     0, _ ->
       (\value%2 -> value%2) argument1%1

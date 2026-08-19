@@ -1,23 +1,23 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function apply(function, value) {
+@export function apply(function, value) {
   entry() {
     const call = source.call(function, value);
     return call;
   }
 }
 
-function capture(captured) {
+@export function capture(captured) {
   entry() {
     const closure = closure(capture$closure, captured);
     return closure;
   }
 }
 
-function choose(condition, left, right) {
+@export function choose(condition, left, right) {
   entry() {
     if (condition) {
       then();
@@ -36,7 +36,7 @@ function choose(condition, left, right) {
   }
 }
 
-const partial = initialize {
+@export const partial = initialize {
   entry() {
     const choose = global(choose);
     const literal = true;
@@ -47,7 +47,7 @@ const partial = initialize {
   }
 }
 
-function literalCase(value) {
+@export function literalCase(value) {
   entry() {
     case$0();
   }
@@ -75,7 +75,7 @@ function literalCase(value) {
   }
 }
 
-const higherOrder = initialize {
+@export const higherOrder = initialize {
   entry() {
     const apply = global(apply);
     const capture = global(capture);

@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-function select(argument0) {
+@export function select(argument0) {
   entry() {
     const first = argument0.first;
     const nested = argument0.nested;

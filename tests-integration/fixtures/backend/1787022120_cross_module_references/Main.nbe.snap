@@ -1,10 +1,10 @@
 ---
 source: tests-integration/tests/nbe.rs
-assertion_line: 12
+assertion_line: 14
 expression: report
 ---
-unbox = \(Box value%0) -> value%0
+@export unbox = \(Box value%0) -> value%0
 
-fromLibrary = unbox box
+@export fromLibrary = unbox box
 
-directReference = libraryValue
+@export directReference = libraryValue

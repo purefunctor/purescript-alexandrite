@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 56
+assertion_line: 57
 expression: ssa_report
 ---
-const model = initialize {
+@export const model = initialize {
   entry() {
     const literal = 0;
     const literal$1 = true;
@@ -14,7 +14,7 @@ const model = initialize {
   }
 }
 
-const updated = initialize {
+@export const updated = initialize {
   entry() {
     const model = global(model);
     const literal = 1;

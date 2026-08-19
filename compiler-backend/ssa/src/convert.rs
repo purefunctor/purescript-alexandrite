@@ -11,10 +11,11 @@ use smol_str::{SmolStr, format_smolstr};
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
     Block, BlockId, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field,
-    FieldIdentity, Function, FunctionId, Global, GlobalIdentity, InstanceIdentity, Instruction,
-    InstructionValue, Literal, Module, PatternTest, Projection, RecordField, RecordUpdate,
-    RecursiveClosure, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
-    SuperclassIdentity, SynthesizedEvidence, Terminator, Value, ValueId,
+    FieldIdentity, Function, FunctionId, Global, GlobalIdentity, IndirectModuleExports,
+    InstanceIdentity, Instruction, InstructionValue, Literal, Module, ModuleDependency,
+    ModuleSurface, PatternTest, Projection, RecordField, RecordUpdate, RecursiveClosure,
+    RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage, SuperclassIdentity,
+    SynthesizedEvidence, Terminator, Value, ValueId,
 };
 
 type ConversionResult<T> = ModuleResult<T>;
@@ -36,8 +37,22 @@ fn convert(functional: &nbe::tree::Module) -> ConversionResult<Module> {
     for declaration in functional.declarations.iter() {
         convert_declaration(&mut state, &context, declaration)?;
     }
+    let dependencies = functional.dependencies.iter().map(|dependency| ModuleDependency {
+        file_id: dependency.file_id,
+        module_name: SmolStr::clone(&dependency.module_name),
+    });
+    let dependencies = dependencies.collect_vec();
+    let indirect = functional.surface.indirect.iter().map(|exports| {
+        let globals = exports.globals.iter().map(convert_global);
+        let globals = globals.collect_vec();
+        IndirectModuleExports { file_id: exports.file_id, globals: globals.into() }
+    });
+    let indirect = indirect.collect_vec();
     Ok(Module {
         file_id: functional.file_id,
+        name: SmolStr::clone(&functional.name),
+        dependencies: dependencies.into(),
+        surface: ModuleSurface { indirect: indirect.into() },
         declarations: state.output.declarations.into(),
         storage: state.output.storage,
     })
@@ -113,14 +128,14 @@ fn convert_declaration(
                 let built = build_function(
                     state,
                     context,
-                    global.name.clone(),
+                    SmolStr::clone(&global.item_name),
                     CallingConvention::Source,
                     parameters,
                     *body,
                 )?;
                 DeclarationKind::Function { function: built.function }
             } else {
-                let name = format_smolstr!("{}$initialize", global.name);
+                let name = format_smolstr!("{}$initialize", global.item_name);
                 let built = build_function(
                     state,
                     context,
@@ -132,9 +147,15 @@ fn convert_declaration(
                 DeclarationKind::Value { initializer: built.function }
             }
         }
+        nbe::tree::DeclarationKind::Constructor { arity } => DeclarationKind::Constructor { arity },
         nbe::tree::DeclarationKind::Foreign => DeclarationKind::Foreign,
     };
-    state.output.declarations.push(Declaration { global, recursive_group, kind });
+    state.output.declarations.push(Declaration {
+        global,
+        exported: declaration.exported,
+        recursive_group,
+        kind,
+    });
     Ok(())
 }
 
@@ -267,12 +288,12 @@ fn lower_expression(
         }
         nbe::tree::ExpressionKind::Constructor { global } => {
             let global = convert_global(global);
-            let name = global.name.clone();
+            let name = SmolStr::clone(&global.item_name);
             Ok(state.emit(name, InstructionValue::Constructor { global }))
         }
         nbe::tree::ExpressionKind::Global { global } => {
             let global = convert_global(global);
-            let name = global.name.clone();
+            let name = SmolStr::clone(&global.item_name);
             Ok(state.emit(name, InstructionValue::Global { global }))
         }
         nbe::tree::ExpressionKind::Local { parameter } => state.lookup_local(context, parameter),
@@ -967,7 +988,7 @@ fn convert_global(global: &nbe::tree::Global) -> Global {
             GlobalIdentity::Instance { identity: convert_instance_identity(identity) }
         }
     };
-    Global { identity, name: global.name.clone() }
+    Global { identity, item_name: SmolStr::clone(&global.item_name) }
 }
 
 fn convert_instance_identity(identity: nbe::tree::InstanceIdentity) -> InstanceIdentity {

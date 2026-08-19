@@ -39,6 +39,7 @@ pub trait ExternalQueries:
         Lowered = Arc<lowering::LoweredModule>,
         Grouped = Arc<lowering::GroupedModule>,
         Resolved = Arc<ResolvedModule>,
+        Exported = Arc<resolving::ExportedModule>,
         Bracketed = Arc<sugar::Bracketed>,
         Sectioned = Arc<sugar::Sectioned>,
         Checked = Arc<CheckedModule>,

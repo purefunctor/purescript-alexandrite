@@ -1,0 +1,70 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 57
+expression: ssa_report
+---
+@export Direct { append }
+
+@export Origin { Just, await, foreignValue, visible }
+
+@export Transitive { marker }
+
+@export const constructorValue = initialize {
+  entry() {
+    const Just = constructor(Just);
+    const literal = 42;
+    const call = source.call(Just, literal);
+    return call;
+  }
+}
+
+@export const operatorValue = initialize {
+  entry() {
+    const append = global(append);
+    const visible = global(visible);
+    const literal = 23;
+    const call = source.call(visible, literal);
+    const call$1 = source.call(append, call);
+    const literal$1 = 9;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
+  }
+}
+
+@export const localCollision = initialize {
+  entry() {
+    const append = global(append);
+    return append;
+  }
+}
+
+@export const foreignResult = initialize {
+  entry() {
+    const foreignValue = global(foreignValue);
+    return foreignValue;
+  }
+}
+
+@export const hostileResult = initialize {
+  entry() {
+    const await = global(await);
+    return await;
+  }
+}
+
+@export const measured = initialize {
+  entry() {
+    const measureInt = global(measureInt);
+    const measure = measureInt.measure;
+    const literal = 41;
+    const call = source.call(measure, literal);
+    return call;
+  }
+}
+
+@export const transitiveMarker = initialize {
+  entry() {
+    const marker = global(marker);
+    return marker;
+  }
+}
