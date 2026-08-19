@@ -19,3 +19,9 @@ unwrap (Identity value) = value
 nested :: forall a. Nested a -> Choice a
 nested (Outer (One value)) = One value
 nested _ = Empty
+
+bind :: forall a b. a -> (a -> b) -> b
+bind value continuation = continuation value
+
+ordinaryBind :: Identity Int -> Int
+ordinaryBind identity = bind identity (\(Identity value) -> value)

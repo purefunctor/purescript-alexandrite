@@ -16,7 +16,7 @@ first = \argument0%0 ->
         _ ->
           Empty
 
-unwrap = \Identity value%4 -> value%4
+unwrap = \(Identity value%4) -> value%4
 
 nested = \argument0%5 ->
   case argument0%5 of
@@ -24,3 +24,7 @@ nested = \argument0%5 ->
       One value%6
     _ ->
       Empty
+
+bind = \value%8 continuation%7 -> continuation%7 value%8
+
+ordinaryBind = \identity%9 -> bind identity%9 (\(Identity value%10) -> value%10)

@@ -46,6 +46,7 @@ struct Context<'c, Q> {
     lowered: Arc<lowering::LoweredModule>,
     checked: Arc<checking::CheckedModule>,
     recursive_groups: FxHashMap<TermItemId, RecursiveGroupId>,
+    record_pun_names: FxHashMap<lowering::RecordPunId, SmolStr>,
 
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
@@ -75,6 +76,20 @@ where
             }
         }
 
+        let binders = lowered.tree.iter_binder();
+        let mut binders = binders.collect_vec();
+        binders.sort_unstable_by_key(|(binder_id, _)| *binder_id);
+        let mut record_pun_names = FxHashMap::default();
+        for (_, binder) in binders {
+            let lowering::BinderKind::Record { record } = binder else { continue };
+            for field in record.iter() {
+                let lowering::BinderRecordItem::RecordPun { id, name: Some(name) } = field else {
+                    continue;
+                };
+                record_pun_names.insert(*id, SmolStr::clone(name));
+            }
+        }
+
         Ok(Context {
             queries,
             file_id,
@@ -82,6 +97,7 @@ where
             lowered,
             checked,
             recursive_groups,
+            record_pun_names,
 
             parameters: FxHashMap::default(),
             next_local: 0,
@@ -977,19 +993,10 @@ where
     }
 
     fn record_pun_name(&self, source: lowering::RecordPunId) -> SmolStr {
-        self.lowered
-            .tree
-            .iter_binder()
-            .find_map(|(_, binder)| {
-                let lowering::BinderKind::Record { record } = binder else { return None };
-                record.iter().find_map(|field| {
-                    let lowering::BinderRecordItem::RecordPun { id, name } = field else {
-                        return None;
-                    };
-                    (*id == source).then(|| name.clone()).flatten()
-                })
-            })
-            .unwrap_or_else(|| format_smolstr!("pun{:?}", source))
+        match self.record_pun_names.get(&source) {
+            Some(name) => SmolStr::clone(name),
+            None => format_smolstr!("pun{}", source.into_raw().get()),
+        }
     }
 
     fn term_fallback(&self, term_id: TermItemId) -> SmolStr {

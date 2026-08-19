@@ -116,7 +116,9 @@ impl<'a> Printer<'a, '_> {
             }
             ExpressionKind::Local { parameter } => self.parameter(parameter),
             ExpressionKind::Abstraction { parameters, body } => {
-                let parameters = parameters.iter().map(|pattern| self.pattern(*pattern));
+                let parameters = parameters
+                    .iter()
+                    .map(|pattern| self.pattern_at(*pattern, PatternPrecedence::Atom));
                 let parameters = self.arena.intersperse(parameters, self.arena.space());
                 let abstraction = self.arena.text("\\").append(parameters).append(" ->");
                 let body_document = self.expression(*body);
@@ -129,17 +131,13 @@ impl<'a> Printer<'a, '_> {
                 }
             }
             ExpressionKind::Application { function, arguments } => {
-                if let Some(application) = self.try_render_bind_application(*function, arguments) {
-                    application
-                } else {
-                    let function = self.expression_at(*function, ExpressionPrecedence::Application);
-                    let arguments = arguments
-                        .iter()
-                        .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
-                    let arguments = self.arena.intersperse(arguments, self.arena.line());
-                    let arguments = self.arena.line().append(arguments).nest(2);
-                    function.append(arguments).group()
-                }
+                let function = self.expression_at(*function, ExpressionPrecedence::Application);
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
+                let arguments = self.arena.intersperse(arguments, self.arena.line());
+                let arguments = self.arena.line().append(arguments).nest(2);
+                function.append(arguments).group()
             }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression(*condition);
@@ -285,53 +283,6 @@ impl<'a> Printer<'a, '_> {
                 self.arena.text(field).append(self.arena.space()).append(updates)
             }
         }
-    }
-
-    fn try_render_bind_application(
-        &self,
-        function: ExpressionId,
-        arguments: &[ExpressionId],
-    ) -> Option<Doc<'a>> {
-        let (function, mut all_arguments) = self.application_spine(function);
-        all_arguments.extend_from_slice(arguments);
-        let ExpressionKind::Global { global } = &self.module.storage[function].kind else {
-            return None;
-        };
-        if global.name != "bind" {
-            return None;
-        }
-        let (&continuation, arguments) = all_arguments.split_last()?;
-        let ExpressionKind::Abstraction { parameters, body } =
-            &self.module.storage[continuation].kind
-        else {
-            return None;
-        };
-        let arguments = arguments
-            .iter()
-            .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
-        let arguments = arguments.map(|argument| self.arena.line().append(argument));
-        let arguments = self.arena.concat(arguments);
-        let function = self.expression_at(function, ExpressionPrecedence::Application);
-        let application = function.append(arguments);
-        let parameters = parameters.iter().map(|parameter| self.pattern(*parameter));
-        let parameters = self.arena.intersperse(parameters, self.arena.space());
-        let continuation = self.arena.text("\\").append(parameters).append(" ->");
-        let continuation = self.arena.line().append(continuation).nest(2);
-        let application = application.append(continuation).group();
-        let body = self.expression(*body);
-        let body = self.arena.hardline().append(body).nest(2);
-        Some(application.append(body))
-    }
-
-    fn application_spine(&self, expression: ExpressionId) -> (ExpressionId, Vec<ExpressionId>) {
-        let ExpressionKind::Application { function, arguments } =
-            &self.module.storage[expression].kind
-        else {
-            return (expression, Vec::new());
-        };
-        let (function, mut spine) = self.application_spine(*function);
-        spine.extend_from_slice(arguments);
-        (function, spine)
     }
 
     fn effect(&self, effect: &EffectExpression) -> Doc<'a> {
