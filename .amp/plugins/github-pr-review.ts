@@ -46,6 +46,13 @@ interface PullRequest {
   user: { login: string };
   head: { sha: string };
 }
+interface Commit {
+  commit: {
+    author: { date: string };
+    committer: { date: string };
+  };
+  committer: GitHubActor | null;
+}
 interface ReviewCheck {
   name: string;
   result: "passed" | "failed" | "not-run";
@@ -273,7 +280,8 @@ async function handleDelivery(
     token,
     payload.number,
     payload.pull_request.head.sha,
-    context.signal
+    context.signal,
+    payload.action === "synchronize"
   );
   void reconcileClaims(amp, credentials).catch((error) =>
     amp.logger.log("PR review reconciliation failed.", error)
@@ -295,7 +303,15 @@ async function reconcileClaims(amp: PluginAPI, credentials: Credentials) {
   for (const number of numbers) {
     const pull = await getPullRequest(number, token);
     if (pull.user.login !== reviewAuthor) continue;
-    await reconcilePullRequest(amp, credentials, token, pull.number, pull.head.sha);
+    await reconcilePullRequest(
+      amp,
+      credentials,
+      token,
+      pull.number,
+      pull.head.sha,
+      undefined,
+      true
+    );
   }
 }
 
@@ -305,7 +321,8 @@ async function reconcilePullRequest(
   token: string,
   number: number,
   expectedHead: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  ignoreAutomaticRebase = false
 ) {
   const lock = `${number}:${expectedHead}`;
   if (locks.has(lock) || signal?.aborted) return;
@@ -343,6 +360,8 @@ async function reconcilePullRequest(
       pull.head.sha !== expectedHead ||
       signal?.aborted
     )
+      return;
+    if (ignoreAutomaticRebase && (await isAutomaticGitHubRebase(expectedHead, token, signal)))
       return;
     const currentClaims = claims.filter((entry) => entry.state.head === expectedHead);
     if (await completedReviewExists(number, expectedHead, token, signal)) {
@@ -949,6 +968,19 @@ async function getPullRequest(
   signal?: AbortSignal
 ): Promise<PullRequest> {
   return githubRequest(token, `/repos/${repository}/pulls/${number}`, { signal });
+}
+async function isAutomaticGitHubRebase(
+  head: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<boolean> {
+  const commit = await githubRequest<Commit>(token, `/repos/${repository}/commits/${head}`, {
+    signal,
+  });
+  return (
+    commit.committer?.login === "web-flow" &&
+    commit.commit.author.date !== commit.commit.committer.date
+  );
 }
 async function listIssueComments(
   number: number,
