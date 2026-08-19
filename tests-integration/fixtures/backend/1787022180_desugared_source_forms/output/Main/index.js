@@ -1,0 +1,26 @@
+export function add(left) {
+  return right => {
+    return left;
+  };
+}
+
+export function identity(value) {
+  return value;
+}
+
+export function increment(section60) {
+  const add$1 = add;
+  const call = add$1(section60);
+  const literal = 1 | 0;
+  const call$1 = call(literal);
+  return call$1;
+}
+
+export function accessValue(section79) {
+  const value = section79.value;
+  return value;
+}
+
+export const operatorApplication = add(1 | 0)(2 | 0);
+
+export const visibleTypeApplication = identity(42 | 0);

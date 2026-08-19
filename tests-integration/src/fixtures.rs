@@ -1,12 +1,15 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
+use std::time::Duration;
+use std::{env, io};
 
 use building::QueryEngine;
 use files::{FileId, Files};
 use itertools::Itertools;
+use process_control::{ChildExt, Control};
 use url::Url;
 
 pub type FixtureResult<T = ()> = Result<T, Box<dyn Error>>;
@@ -41,29 +44,15 @@ fn missing_module(path: &Path, module: &str) -> io::Error {
     ))
 }
 
-pub struct JavaScriptModules {
+const UPDATE_JAVASCRIPT_OUTPUT: &str = "ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT";
+const JAVASCRIPT_VERIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
+
+struct JavaScriptModules {
     modules: Vec<Arc<javascript::Module>>,
 }
 
 impl JavaScriptModules {
-    pub fn entry(&self) -> &javascript::Module {
-        &self.modules[0]
-    }
-
-    pub fn get(&self, file_id: FileId) -> Option<&javascript::Module> {
-        self.modules.iter().find(|module| module.file_id() == file_id).map(Arc::as_ref)
-    }
-
-    pub fn render(&self) -> String {
-        let modules = self
-            .modules
-            .iter()
-            .map(|module| format!("// {}\n{}", module.filename(), module.source()));
-        let modules = modules.collect_vec();
-        modules.join("\n")
-    }
-
-    pub fn write_to(&self, files: &Files, output: &Path) -> FixtureResult {
+    fn write_to(&self, files: &Files, output: &Path) -> FixtureResult {
         for module in &self.modules {
             let output_path = output.join(module.filename());
             let output_parent = output_path.parent().expect("module filename has no parent");
@@ -77,6 +66,9 @@ impl JavaScriptModules {
                     ))
                 })?;
                 let foreign_path = source_path.with_extension("js");
+                if !foreign_path.exists() {
+                    continue;
+                }
                 let output_path = output.join(module.foreign_filename());
                 let output_parent = output_path.parent().expect("foreign filename has no parent");
                 std::fs::create_dir_all(output_parent)?;
@@ -93,7 +85,7 @@ impl JavaScriptModules {
     }
 }
 
-pub fn javascript_modules(
+fn javascript_modules(
     engine: &QueryEngine,
     entry: FileId,
 ) -> FixtureResult<javascript::ModuleResult<JavaScriptModules>> {
@@ -114,10 +106,128 @@ pub fn javascript_modules(
     Ok(Ok(JavaScriptModules { modules }))
 }
 
+fn collect_output_files(
+    root: &Path,
+    directory: &Path,
+    files: &mut BTreeMap<PathBuf, Vec<u8>>,
+) -> io::Result<()> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_output_files(root, &path, files)?;
+        } else {
+            let relative = path.strip_prefix(root).map_err(|_| {
+                invalid_data(format!("output path is outside its root: {}", path.display()))
+            })?;
+            files.insert(relative.to_owned(), std::fs::read(path)?);
+        }
+    }
+    Ok(())
+}
+
+fn output_files(root: &Path) -> io::Result<BTreeMap<PathBuf, Vec<u8>>> {
+    let mut files = BTreeMap::new();
+    if root.exists() {
+        collect_output_files(root, root, &mut files)?;
+    }
+    Ok(files)
+}
+
+fn copy_output(source: &Path, destination: &Path) -> io::Result<()> {
+    if destination.exists() {
+        std::fs::remove_dir_all(destination)?;
+    }
+    for (path, contents) in output_files(source)? {
+        let destination = destination.join(path);
+        let parent = destination
+            .parent()
+            .ok_or_else(|| invalid_data("output file has no parent directory"))?;
+        std::fs::create_dir_all(parent)?;
+        std::fs::write(destination, contents)?;
+    }
+    Ok(())
+}
+
+fn verify_output(expected: &Path, generated: &Path) -> FixtureResult {
+    if env::var_os(UPDATE_JAVASCRIPT_OUTPUT).is_some() {
+        copy_output(generated, expected)?;
+        return Ok(());
+    }
+
+    let expected_files = output_files(expected)?;
+    let generated_files = output_files(generated)?;
+    if expected_files == generated_files {
+        return Ok(());
+    }
+
+    let expected_paths = expected_files.keys().cloned();
+    let expected_paths = expected_paths.collect::<BTreeSet<_>>();
+    let generated_paths = generated_files.keys().cloned();
+    let generated_paths = generated_paths.collect::<BTreeSet<_>>();
+    let created =
+        generated_paths.difference(&expected_paths).map(|path| path.display().to_string());
+    let removed =
+        expected_paths.difference(&generated_paths).map(|path| path.display().to_string());
+    let changed = expected_paths
+        .intersection(&generated_paths)
+        .filter(|path| expected_files[*path] != generated_files[*path]);
+    let changed = changed.map(|path| path.display().to_string());
+    let changes = created
+        .map(|path| format!("created {path}"))
+        .chain(removed.map(|path| format!("removed {path}")))
+        .chain(changed.map(|path| format!("changed {path}")));
+    let changes = changes.collect_vec();
+    let changes = changes.join("\n  ");
+    let message = format!(
+        "generated JavaScript differs from {}:\n  {changes}\nrun \
+         `{UPDATE_JAVASCRIPT_OUTPUT}=1 just t backend` to update fixture output",
+        expected.display()
+    );
+    Err(invalid_data(message).into())
+}
+
+fn run_javascript_verification(folder: &Path) -> FixtureResult {
+    let script = folder.join("verify.mjs");
+    if !script.exists() {
+        return Ok(());
+    }
+
+    let output = Command::new("node")
+        .arg("verify.mjs")
+        .current_dir(folder)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?
+        .controlled_with_output()
+        .time_limit(JAVASCRIPT_VERIFICATION_TIMEOUT)
+        .terminate_for_timeout()
+        .wait()?;
+    let Some(output) = output else {
+        let message = format!(
+            "Node verification timed out after {} seconds for {}",
+            JAVASCRIPT_VERIFICATION_TIMEOUT.as_secs(),
+            script.display()
+        );
+        return Err(invalid_data(message).into());
+    };
+    if output.status.success() {
+        return Ok(());
+    }
+    let message = format!(
+        "Node verification failed for {}\nstdout:\n{}\nstderr:\n{}",
+        script.display(),
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    Err(invalid_data(message).into())
+}
+
 pub fn backend(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
+    let fixture = snapshot_path(folder);
     let file = module_name(path)?;
-    let (engine, _) = crate::load_compiler(folder);
+    let (engine, files) = crate::load_compiler(folder);
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -127,20 +237,21 @@ pub fn backend(path: &Path) -> FixtureResult {
         Ok(module) => ssa::pretty::render(&module),
         Err(error) => error.to_string(),
     };
-    let javascript_report = match javascript_modules(&engine, id)? {
-        Ok(modules) => modules.render(),
-        Err(error) => error.to_string(),
-    };
+    let generated = tempfile::tempdir()?;
+    match javascript_modules(&engine, id)? {
+        Ok(modules) => modules.write_to(&files, generated.path())?,
+        Err(error) => std::fs::write(generated.path().join("error.txt"), error.to_string())?,
+    }
+    verify_output(&fixture.join("output"), generated.path())?;
+    run_javascript_verification(&fixture)?;
     let ssa_snapshot = format!("{file}.ssa");
-    let javascript_snapshot = format!("{file}.javascript");
 
     let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_path(snapshot_path(folder));
+    settings.set_snapshot_path(fixture);
     settings.set_prepend_module_to_snapshot(false);
     settings.bind(|| {
         insta::assert_snapshot!(file, checking_report);
         insta::assert_snapshot!(ssa_snapshot, ssa_report);
-        insta::assert_snapshot!(javascript_snapshot, javascript_report);
     });
 
     Ok(())

@@ -1,3 +1,5 @@
+use std::iter;
+
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
@@ -478,7 +480,8 @@ impl Generator<'_> {
             .parameters
             .first()
             .expect("invariant violated: recursive SSA closure has no source parameter");
-        let mut allocator = NameAllocator::with_reserved(context.names.values().cloned());
+        let reserved = iter::chain(context.names.values(), &self.reserved_module_names).cloned();
+        let mut allocator = NameAllocator::with_reserved(reserved);
         let parameter = allocator.allocate(&self.module.storage[*parameter].name);
         let captures = closure.captures.iter().map(|capture| context.expression(tree, *capture));
         let captures = captures.collect_vec();

@@ -58,7 +58,9 @@ fn normalize_identifier(preferred: &str) -> String {
 fn identifier_is_reserved(identifier: &str) -> bool {
     matches!(
         identifier,
-        "arguments"
+        "Array"
+            | "Error"
+            | "arguments"
             | "await"
             | "break"
             | "case"

@@ -1,0 +1,12 @@
+import * as $foreign from "./foreign.js";
+
+export const addInt = $foreign["addInt"];
+export const multiplyInt = $foreign["multiplyInt"];
+
+export const constantAdd = addInt(20 | 0)(22 | 0);
+
+export const constantMultiply = multiplyInt(6 | 0)(7 | 0);
+
+export const overflowAdd = addInt(2147483647 | 0)(1 | 0);
+
+export const unknownAdd = addInt;

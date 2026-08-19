@@ -311,7 +311,10 @@ impl<'a> Writer<'a> {
             .expect("invariant violated: JavaScript writer indentation underflow");
     }
 
-    pub(crate) fn finish(self) -> String {
+    pub(crate) fn finish(mut self) -> String {
+        if self.lines.last().is_some_and(Option::is_none) {
+            self.lines.pop();
+        }
         if self.lines.is_empty() {
             return String::new();
         }
