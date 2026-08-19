@@ -1,21 +1,18 @@
-use building_types::QueryError;
 use checking::evidence::EvidenceVarId;
 use checking::tree as checked_tree;
 use files::FileId;
 use indexing::TermItemId;
 use thiserror::Error;
 
-pub type ConversionResult<T> = Result<T, ConversionError>;
+pub type ModuleResult<T> = Result<T, ModuleError>;
 
-#[derive(Debug, Error)]
-pub enum ConversionError {
-    #[error(transparent)]
-    Query(#[from] QueryError),
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum ModuleError {
     #[error("cannot convert checked module {file_id:?}: {state}")]
     Unsupported { file_id: FileId, state: UnsupportedState },
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum UnsupportedState {
     #[error("checked expression {0:?} contains an error")]
     ExpressionError(checked_tree::ExpressionId),

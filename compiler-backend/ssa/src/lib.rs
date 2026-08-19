@@ -6,4 +6,4 @@ pub mod pretty;
 pub mod tree;
 
 pub use convert::convert_module;
-pub use error::{ConversionError, ConversionResult, UnsupportedState};
+pub use error::{ModuleError, ModuleResult, UnsupportedState};

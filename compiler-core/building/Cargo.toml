@@ -13,6 +13,7 @@ interner = { version = "0.1.0", path = "../interner" }
 lexing = { version = "0.1.0", path = "../lexing" }
 lock_api = "0.4.14"
 lowering = { version = "0.1.0", path = "../lowering" }
+nbe = { version = "0.1.0", path = "../../compiler-backend/nbe" }
 parking_lot = "0.12.5"
 parsing = { version = "0.1.0", path = "../parsing" }
 prim-constants = { version = "0.1.0", path = "../prim-constants" }
@@ -21,6 +22,7 @@ rustc-hash = "2.1.3"
 stabilizing = { version = "0.1.0", path = "../stabilizing" }
 sugar = { version = "0.1.0", path = "../sugar" }
 smol_str = "0.3.2"
+ssa = { version = "0.1.0", path = "../../compiler-backend/ssa" }
 thread_local = "1.1.10"
 
 [dev-dependencies]

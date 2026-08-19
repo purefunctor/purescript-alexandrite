@@ -2,11 +2,13 @@
 
 use std::sync::Arc;
 
+use building_types::QueryResult;
+use files::FileId;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
 
-use crate::error::{ConversionError, ConversionResult, UnsupportedState};
+use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
     Block, BlockId, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field,
     FieldIdentity, Function, FunctionId, Global, GlobalIdentity, InstanceIdentity, Instruction,
@@ -15,7 +17,20 @@ use crate::tree::{
     SuperclassIdentity, SynthesizedEvidence, Terminator, Value, ValueId,
 };
 
-pub fn convert_module(functional: &nbe::tree::Module) -> ConversionResult<Module> {
+type ConversionResult<T> = ModuleResult<T>;
+
+pub fn convert_module(
+    queries: &impl nbe::ExternalQueries,
+    file_id: FileId,
+) -> QueryResult<ModuleResult<Module>> {
+    let functional = match queries.nbe(file_id)? {
+        Ok(functional) => functional,
+        Err(error) => return Ok(Err(error.into())),
+    };
+    Ok(convert(&functional))
+}
+
+fn convert(functional: &nbe::tree::Module) -> ConversionResult<Module> {
     let mut state = State::default();
     let context = Context { functional };
     for declaration in functional.declarations.iter() {
@@ -1129,8 +1144,8 @@ impl State {
 }
 
 impl Context<'_> {
-    fn unsupported(&self, state: UnsupportedState) -> ConversionError {
-        ConversionError::Unsupported { file_id: self.functional.file_id, state }
+    fn unsupported(&self, state: UnsupportedState) -> ModuleError {
+        ModuleError::Unsupported { file_id: self.functional.file_id, state }
     }
 }
 

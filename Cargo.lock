@@ -269,12 +269,14 @@ dependencies = [
  "lexing",
  "lock_api",
  "lowering",
+ "nbe",
  "parking_lot",
  "parsing",
  "prim-constants",
  "resolving",
  "rustc-hash",
  "smol_str",
+ "ssa",
  "stabilizing",
  "sugar",
  "thread_local",
@@ -2579,6 +2581,7 @@ dependencies = [
 name = "ssa"
 version = "0.1.0"
 dependencies = [
+ "building-types",
  "files",
  "indexing",
  "itertools 0.15.0",

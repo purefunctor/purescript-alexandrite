@@ -6,4 +6,13 @@ pub mod pretty;
 pub mod tree;
 
 pub use convert::convert_module;
-pub use error::{ConversionError, ConversionResult, UnsupportedState};
+pub use error::{ModuleError, ModuleResult, UnsupportedState};
+
+use std::sync::Arc;
+
+use building_types::QueryResult;
+use files::FileId;
+
+pub trait ExternalQueries {
+    fn nbe(&self, file_id: FileId) -> QueryResult<ModuleResult<Arc<tree::Module>>>;
+}
