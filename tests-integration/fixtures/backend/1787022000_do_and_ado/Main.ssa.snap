@@ -1,0 +1,54 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+foreign const firstAction;
+
+foreign const secondAction;
+
+foreign const independentAction;
+
+const sequential = initialize {
+  entry() {
+    const bindEffect1 = global(bindEffect1);
+    const bind = bindEffect1.bind;
+    const firstAction = global(firstAction);
+    const call = source.call(bind, firstAction);
+    const closure = closure(sequential$initialize$closure);
+    const call$1 = source.call(call, closure);
+    return call$1;
+  }
+}
+
+const independent = initialize {
+  entry() {
+    const applyEffect1 = global(applyEffect1);
+    const apply = applyEffect1.apply;
+    const functorEffect = global(functorEffect);
+    const map = functorEffect.map;
+    const closure = closure(independent$initialize$closure);
+    const call = source.call(map, closure);
+    const firstAction = global(firstAction);
+    const call$1 = source.call(call, firstAction);
+    const call$2 = source.call(apply, call$1);
+    const independentAction = global(independentAction);
+    const call$3 = source.call(call$2, independentAction);
+    return call$3;
+  }
+}
+
+closure sequential$initialize$closure[](first) {
+  entry() {
+    const secondAction = global(secondAction);
+    const call = source.call(secondAction, first);
+    return call;
+  }
+}
+
+closure independent$initialize$closure[](first, second) {
+  entry() {
+    const record = { first: first, second: second };
+    return record;
+  }
+}

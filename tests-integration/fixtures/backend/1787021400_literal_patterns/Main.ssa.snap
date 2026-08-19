@@ -1,0 +1,152 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function integer(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, 0);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+}
+
+function number(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, 1.5);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+}
+
+function character(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, 'a');
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+}
+
+function string(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, "alexandrite");
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+}
+
+function boolean(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, true);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal(argument0, false);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+  match$success$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+}

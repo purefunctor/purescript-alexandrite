@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function choose(argument0, argument1) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, 0);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    case$join(argument0);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const closure = closure(choose$closure);
+    const call = source.call(closure, argument1);
+    case$join(call);
+  }
+}
+
+closure choose$closure[](value) {
+  entry() {
+    return value;
+  }
+}

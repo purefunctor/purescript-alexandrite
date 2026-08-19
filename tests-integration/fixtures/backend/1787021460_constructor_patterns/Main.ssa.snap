@@ -1,0 +1,172 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function first(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(argument0, Empty);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.constructor(argument0, One);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$2();
+    }
+  }
+  case$2() {
+    const matches$2 = pattern.constructor(argument0, Pair);
+    if (matches$2) {
+      match$success$2();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const Empty = constructor(Empty);
+    case$join(Empty);
+  }
+  match$success$1() {
+    const value = pattern.argument(argument0, One, 0);
+    const One = constructor(One);
+    const call = source.call(One, value);
+    case$join(call);
+  }
+  match$success$2() {
+    const left = pattern.argument(argument0, Pair, 0);
+    const argument = pattern.argument(argument0, Pair, 1);
+    case$0$1();
+  }
+  case$0$1() {
+    const matches$3 = pattern.constructor(argument0, Pair);
+    if (matches$3) {
+      match$success$3();
+    } else {
+      case$1$1();
+    }
+  }
+  case$1$1() {
+    const Empty$1 = constructor(Empty);
+    case$join$1(Empty$1);
+  }
+  case$failure$1() {
+    throw patternMatchFailure();
+  }
+  case$join$1(result$1) {
+    case$join(result$1);
+  }
+  match$success$3() {
+    const argument$1 = pattern.argument(argument0, Pair, 0);
+    const argument$2 = pattern.argument(argument0, Pair, 1);
+    const One$1 = constructor(One);
+    const call$1 = source.call(One$1, left);
+    case$join$1(call$1);
+  }
+}
+
+function unwrap(argument0) {
+  entry() {
+    const matches = pattern.constructor(argument0, Identity);
+    if (matches) {
+      match$success();
+    } else {
+      parameter$failure();
+    }
+  }
+  parameter$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument(argument0, Identity, 0);
+    return value;
+  }
+}
+
+function nested(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(argument0, Outer);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const Empty = constructor(Empty);
+    case$join(Empty);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const argument = pattern.argument(argument0, Outer, 0);
+    const matches$1 = pattern.constructor(argument, One);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$1();
+    }
+  }
+  match$success$1() {
+    const value = pattern.argument(argument, One, 0);
+    const One = constructor(One);
+    const call = source.call(One, value);
+    case$join(call);
+  }
+}
+
+function bind(value, continuation) {
+  entry() {
+    const call = source.call(continuation, value);
+    return call;
+  }
+}
+
+function ordinaryBind(identity) {
+  entry() {
+    const bind = global(bind);
+    const call = source.call(bind, identity);
+    const closure = closure(ordinaryBind$closure);
+    const call$1 = source.call(call, closure);
+    return call$1;
+  }
+}
+
+closure ordinaryBind$closure[](argument0) {
+  entry() {
+    const matches = pattern.constructor(argument0, Identity);
+    if (matches) {
+      match$success();
+    } else {
+      parameter$failure();
+    }
+  }
+  parameter$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument(argument0, Identity, 0);
+    return value;
+  }
+}

@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+foreign const addInt;
+
+foreign const multiplyInt;
+
+const constantAdd = initialize {
+  entry() {
+    const addInt = global(addInt);
+    const literal = 20;
+    const call = source.call(addInt, literal);
+    const literal$1 = 22;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+const constantMultiply = initialize {
+  entry() {
+    const multiplyInt = global(multiplyInt);
+    const literal = 6;
+    const call = source.call(multiplyInt, literal);
+    const literal$1 = 7;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+const overflowAdd = initialize {
+  entry() {
+    const addInt = global(addInt);
+    const literal = 2147483647;
+    const call = source.call(addInt, literal);
+    const literal$1 = 1;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+const unknownAdd = initialize {
+  entry() {
+    const addInt = global(addInt);
+    return addInt;
+  }
+}

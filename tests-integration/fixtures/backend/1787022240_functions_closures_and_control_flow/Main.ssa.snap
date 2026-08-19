@@ -1,0 +1,95 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+function apply(function, value) {
+  entry() {
+    const call = source.call(function, value);
+    return call;
+  }
+}
+
+function capture(captured) {
+  entry() {
+    const closure = closure(capture$closure, captured);
+    return closure;
+  }
+}
+
+function choose(condition, left, right) {
+  entry() {
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    if$join(left);
+  }
+  else() {
+    if$join(right);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+const partial = initialize {
+  entry() {
+    const choose = global(choose);
+    const literal = true;
+    const call = source.call(choose, literal);
+    const literal$1 = 42;
+    const call$1 = source.call(call, literal$1);
+    return call$1;
+  }
+}
+
+function literalCase(value) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(value, 0);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = "other";
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = "zero";
+    case$join(literal);
+  }
+}
+
+const higherOrder = initialize {
+  entry() {
+    const apply = global(apply);
+    const capture = global(capture);
+    const literal = 42;
+    const call = source.call(capture, literal);
+    const call$1 = source.call(apply, call);
+    const literal$1 = 0;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
+  }
+}
+
+closure capture$closure[captured](argument0) {
+  entry() {
+    return captured;
+  }
+}

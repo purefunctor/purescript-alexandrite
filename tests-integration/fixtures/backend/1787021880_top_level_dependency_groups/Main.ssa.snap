@@ -1,0 +1,94 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+const forward = initialize {
+  entry() {
+    const later = global(later);
+    return later;
+  }
+}
+
+const later = initialize {
+  entry() {
+    const literal = 42;
+    return literal;
+  }
+}
+
+recursive[2] function first(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, true);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal(argument0, false);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = 1;
+    case$join(literal);
+  }
+  match$success$1() {
+    const second = global(second);
+    const literal$1 = true;
+    const call = source.call(second, literal$1);
+    case$join(call);
+  }
+}
+
+recursive[2] function second(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, true);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal(argument0, false);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = 2;
+    case$join(literal);
+  }
+  match$success$1() {
+    const first = global(first);
+    const literal$1 = true;
+    const call = source.call(first, literal$1);
+    case$join(call);
+  }
+}

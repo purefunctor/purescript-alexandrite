@@ -1,0 +1,52 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 56
+expression: ssa_report
+---
+foreign const await;
+
+const arguments = initialize {
+  entry() {
+    const await = global(await);
+    return await;
+  }
+}
+
+const default = initialize {
+  entry() {
+    const arguments = global(arguments);
+    const record = { "hyphen-label": arguments };
+    return record;
+  }
+}
+
+function readLabel(record) {
+  entry() {
+    const hyphen_label = record["hyphen-label"];
+    return hyphen_label;
+  }
+}
+
+const emptyLabel = initialize {
+  entry() {
+    const arguments = global(arguments);
+    const record = { "": arguments };
+    return record;
+  }
+}
+
+function readEmptyLabel(record) {
+  entry() {
+    const value = record[""];
+    return value;
+  }
+}
+
+const tagged = initialize {
+  entry() {
+    const Tagged = constructor(Tagged);
+    const default = global(default);
+    const call = source.call(Tagged, default);
+    return call;
+  }
+}
