@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 12
 expression: report
 ---
 first = \argument0%0 ->
@@ -16,3 +17,10 @@ first = \argument0%0 ->
           Empty
 
 unwrap = \Identity value%4 -> value%4
+
+nested = \argument0%5 ->
+  case argument0%5 of
+    Outer (One value%6) ->
+      One value%6
+    _ ->
+      Empty

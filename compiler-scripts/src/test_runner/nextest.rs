@@ -9,12 +9,11 @@ use crate::test_runner::cli::RunArgs;
 
 pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command {
     let mut cmd = Command::new("cargo");
-    cmd.arg("nextest")
-        .arg("run")
-        .arg("-p")
-        .arg("tests-integration")
-        .arg("--test")
-        .arg(category.as_str());
+    cmd.arg("nextest").arg("run").arg("-p").arg("tests-integration");
+
+    for target in category.test_targets() {
+        cmd.arg("--test").arg(target);
+    }
 
     for filter in &args.filters {
         cmd.arg(filter);
@@ -64,5 +63,65 @@ pub fn run_nextest(category: TestCategory, args: &RunArgs) -> anyhow::Result<boo
         }
 
         Ok(status.success())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsStr;
+
+    use super::*;
+
+    fn args(filters: &[&str], verbose: bool) -> RunArgs {
+        RunArgs {
+            create: None,
+            delete: None,
+            confirm: false,
+            accept: false,
+            reject: false,
+            filters: filters.iter().map(|filter| (*filter).to_string()).collect(),
+            verbose,
+            diff: false,
+            count: 3,
+            exclude: Vec::new(),
+        }
+    }
+
+    fn command_arguments(command: &Command) -> Vec<&OsStr> {
+        command.get_args().collect()
+    }
+
+    #[test]
+    fn backend_runs_backend_and_nbe_reporters_with_filters() {
+        let command = build_nextest_command(TestCategory::Backend, &args(&["constructor"], false));
+        let arguments = command_arguments(&command);
+
+        assert_eq!(
+            arguments,
+            [
+                "nextest",
+                "run",
+                "-p",
+                "tests-integration",
+                "--test",
+                "backend",
+                "--test",
+                "nbe",
+                "constructor",
+                "--status-level=none",
+            ]
+        );
+    }
+
+    #[test]
+    fn other_categories_keep_their_single_reporter_and_verbose_options() {
+        let command = build_nextest_command(TestCategory::Checking, &args(&[], true));
+        let arguments = command_arguments(&command);
+
+        assert_eq!(
+            &arguments[..6],
+            ["nextest", "run", "-p", "tests-integration", "--test", "checking"]
+        );
+        assert!(arguments.contains(&OsStr::new("--status-level=fail")));
     }
 }

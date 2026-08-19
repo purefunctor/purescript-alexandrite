@@ -211,8 +211,18 @@ impl<'a> Printer<'a, '_> {
     }
 
     fn pattern(&self, pattern_id: PatternId) -> Doc<'a> {
+        self.pattern_at(pattern_id, PatternPrecedence::Application)
+    }
+
+    fn pattern_at(&self, pattern_id: PatternId, required_precedence: PatternPrecedence) -> Doc<'a> {
         let pattern = &self.module.storage[pattern_id];
-        match &pattern.kind {
+        let precedence = match &pattern.kind {
+            PatternKind::Constructor { arguments, .. } if !arguments.is_empty() => {
+                PatternPrecedence::Application
+            }
+            _ => PatternPrecedence::Atom,
+        };
+        let document = match &pattern.kind {
             PatternKind::Variable(parameter) => self.parameter(parameter),
             PatternKind::Named { parameter, pattern } => {
                 let parameter = self.parameter(parameter);
@@ -234,11 +244,18 @@ impl<'a> Printer<'a, '_> {
                 self.braced(fields)
             }
             PatternKind::Constructor { global, arguments } => {
-                let arguments = arguments.iter().map(|argument| self.pattern(*argument));
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.pattern_at(*argument, PatternPrecedence::Atom));
                 let arguments = arguments.map(|argument| self.arena.space().append(argument));
                 let arguments = self.arena.concat(arguments);
                 self.arena.text(global.name.to_string()).append(arguments)
             }
+        };
+        if precedence < required_precedence {
+            self.arena.text("(").append(document).append(")")
+        } else {
+            document
         }
     }
 
@@ -380,13 +397,14 @@ impl<'a> Printer<'a, '_> {
 
     fn field(&self, field: &Field) -> String {
         let name = field.name.as_str();
-        let is_valid_identifier = name.chars().enumerate().all(|(position, character)| {
-            if position == 0 {
-                character.is_ascii_lowercase() || character == '_'
-            } else {
-                character.is_ascii_alphanumeric() || character == '_' || character == '\''
-            }
-        });
+        let is_valid_identifier = !name.is_empty()
+            && name.chars().enumerate().all(|(position, character)| {
+                if position == 0 {
+                    character.is_ascii_lowercase() || character == '_'
+                } else {
+                    character.is_ascii_alphanumeric() || character == '_' || character == '\''
+                }
+            });
         if is_valid_identifier { name.to_string() } else { format!("{name:?}") }
     }
 
@@ -428,6 +446,12 @@ impl<'a> Printer<'a, '_> {
 enum ExpressionPrecedence {
     Abstraction,
     RecordUpdate,
+    Application,
+    Atom,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum PatternPrecedence {
     Application,
     Atom,
 }

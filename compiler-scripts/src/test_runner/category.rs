@@ -30,6 +30,18 @@ impl TestCategory {
         format!("tests-integration/fixtures/{}", self.as_str())
     }
 
+    pub fn test_targets(&self) -> &'static [&'static str] {
+        match self {
+            TestCategory::Backend => &["backend", "nbe"],
+            TestCategory::Checking => &["checking"],
+            TestCategory::Semantic => &["semantic"],
+            TestCategory::Lowering => &["lowering"],
+            TestCategory::Resolving => &["resolving"],
+            TestCategory::Lsp => &["lsp"],
+            TestCategory::Docs => &["docs"],
+        }
+    }
+
     pub fn snapshot_path_fragments(&self) -> Vec<String> {
         vec![
             format!("tests-integration/fixtures/{}", self.as_str()),
