@@ -12,7 +12,7 @@ use indexing::{
 use indexmap::IndexMap;
 use itertools::Itertools;
 use petgraph::prelude::DiGraphMap;
-use resolving::ResolvedModule;
+use resolving::{ResolvedModule, ResolvedVisibleImports};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 use stabilizing::{ExpectId, StabilizedModule};
@@ -60,6 +60,7 @@ struct Context<'c> {
     stabilized: &'c StabilizedModule,
     indexed: &'c IndexedModule,
     resolved: &'c ResolvedModule,
+    visible: ResolvedVisibleImports,
 }
 
 impl State {
@@ -364,7 +365,7 @@ impl Context<'_> {
     {
         let qualifier = qualifier.as_ref().map(Q::as_ref);
         let name = name.as_ref();
-        self.resolved.lookup_term(self.prim, qualifier, name)
+        self.visible.lookup_term(self.resolved, self.prim, qualifier, name)
     }
 
     fn lookup_type<Q, N>(&self, qualifier: Option<Q>, name: N) -> Option<(FileId, TypeItemId)>
@@ -374,7 +375,7 @@ impl Context<'_> {
     {
         let qualifier = qualifier.as_ref().map(Q::as_ref);
         let name = name.as_ref();
-        self.resolved.lookup_type(self.prim, qualifier, name)
+        self.visible.lookup_type(self.resolved, self.prim, qualifier, name)
     }
 
     fn lookup_class<Q, N>(&self, qualifier: Option<Q>, name: N) -> Option<(FileId, TypeItemId)>
@@ -384,7 +385,7 @@ impl Context<'_> {
     {
         let qualifier = qualifier.as_ref().map(Q::as_ref);
         let name = name.as_ref();
-        self.resolved.lookup_class(self.prim, qualifier, name)
+        self.visible.lookup_class(self.resolved, self.prim, qualifier, name)
     }
 }
 
@@ -400,7 +401,8 @@ pub(super) fn lower_module(
     let mut state = State::default();
 
     let root = module.syntax();
-    let context = Context { file_id, root, source, prim, stabilized, indexed, resolved };
+    let visible = ResolvedVisibleImports::new(resolved);
+    let context = Context { file_id, root, source, prim, stabilized, indexed, resolved, visible };
 
     for (id, item) in context.indexed.items.iter_terms() {
         state.with_scope(|state| {
