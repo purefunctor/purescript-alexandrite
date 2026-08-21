@@ -113,6 +113,13 @@ where
         let hash = FxBuildHasher.hash_one(key);
         &self.inner[(hash as usize) & SHARD_MASK]
     }
+
+    fn remove(&self, key: &K) -> Option<V>
+    where
+        K: Eq,
+    {
+        self.shard(key).write().remove(key)
+    }
 }
 
 #[derive(Default)]
@@ -125,7 +132,7 @@ struct InputStorage {
 
 #[derive(Default)]
 struct DerivedStorage {
-    foreign_module: Shards<ForeignFileId, DerivedState<Arc<ForeignModule>>>,
+    foreign_module: Shards<ForeignFileId, DerivedState<Option<Arc<ForeignModule>>>>,
     foreign_validation: Shards<FileId, DerivedState<Arc<ForeignValidation>>>,
     parsed: Shards<FileId, DerivedState<FullParsedModule>>,
     stabilized: Shards<FileId, DerivedState<Arc<StabilizedModule>>>,
@@ -749,39 +756,59 @@ impl QueryEngine {
         self.set_input(id, |input| &input.foreign_content, content.into());
     }
 
-    pub fn foreign_content(&self, id: ForeignFileId) -> Arc<str> {
+    pub fn foreign_content(&self, id: ForeignFileId) -> Option<Arc<str>> {
         self.get_input(QueryKey::ForeignContent(id), id, |input| &input.foreign_content)
-            .unwrap_or_else(|| {
-                panic!("invariant violated: set_foreign_content({id:?}, ..)");
-            })
     }
 
     pub fn set_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
         self.set_input(source_id, |input| &input.foreign, Some(foreign_id));
     }
 
-    pub fn remove_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
-        let current =
-            self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign);
-        if current != Some(Some(foreign_id)) {
-            return;
+    pub fn remove_foreign_file(&self, foreign_id: ForeignFileId) {
+        self.control.global.cancelled.store(true, Ordering::Relaxed);
+        let _query_lock = self.control.global.query_lock.write();
+
+        let changed = self.control.global.revision.fetch_add(1, Ordering::Relaxed) + 1;
+        for shard in &self.input.foreign.inner {
+            let mut associations = shard.write();
+            for state in associations.values_mut() {
+                if state.value == Some(foreign_id) {
+                    state.value = None;
+                    state.changed = changed;
+                }
+            }
         }
 
-        self.set_input(source_id, |input| &input.foreign, None);
+        self.input.foreign_content.remove(&foreign_id);
+        self.derived.foreign_module.remove(&foreign_id);
+        let dependency = QueryKey::ForeignModule(foreign_id);
+        for shard in &self.derived.foreign_validation.inner {
+            let mut validations = shard.write();
+            validations.retain(|_, state| {
+                let DerivedState::Computed { dependencies, .. } = state else {
+                    return true;
+                };
+                !dependencies.contains(&dependency)
+            });
+        }
+
+        self.control.global.cancelled.store(false, Ordering::Relaxed);
     }
 
     pub fn foreign_file(&self, source_id: FileId) -> Option<ForeignFileId> {
         self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign).flatten()
     }
 
-    pub fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Arc<ForeignModule>> {
+    pub fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Option<Arc<ForeignModule>>> {
         self.query(
             QueryKey::ForeignModule(id),
             id,
             |derived| &derived.foreign_module,
             |this| {
-                let content = this.foreign_content(id);
-                Ok(Arc::new(foreign_javascript::parse_module(&content)))
+                let module = this
+                    .foreign_content(id)
+                    .map(|content| Arc::new(foreign_javascript::parse_module(&content)));
+                Ok(module)
             },
         )
     }
@@ -794,7 +821,7 @@ impl QueryEngine {
             |this| {
                 let indexed = this.indexed(id)?;
                 let foreign = if let Some(foreign_id) = this.foreign_file(id) {
-                    Some(this.foreign_module(foreign_id)?)
+                    this.foreign_module(foreign_id)?
                 } else {
                     None
                 };
@@ -1202,7 +1229,7 @@ impl resolving::ExternalQueries for QueryEngine {}
 impl sugar::ExternalQueries for QueryEngine {}
 
 impl foreign_javascript::ForeignQueries for QueryEngine {
-    fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Arc<ForeignModule>> {
+    fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Option<Arc<ForeignModule>>> {
         QueryEngine::foreign_module(self, id)
     }
 
@@ -1506,24 +1533,35 @@ mod tests {
         let mut files = Files::default();
         let mut foreign_files = ForeignFiles::default();
 
-        let source_id = files.insert("src/Main.purs", "module Main where");
-        let first_id = foreign_files.insert("src/Main.js", "export const first = 1;");
-        let second_id = foreign_files.insert("src/Other.js", "export const second = 2;");
+        let source = "module Main where\n\nforeign import life :: Int";
+        let source_id = files.insert("src/Main.purs", source);
+        let first_id = foreign_files.insert("src/Main.js", "export const life = 1;");
+        let second_id = foreign_files.insert("src/Other.js", "export const life = 2;");
+        engine.set_content(source_id, source);
 
         assert_eq!(engine.foreign_file(source_id), None);
 
         engine.set_foreign_content(first_id, foreign_files.content(first_id));
         engine.set_foreign_file(source_id, first_id);
         assert_eq!(engine.foreign_file(source_id), Some(first_id));
-        assert_eq!(engine.foreign_content(first_id).as_ref(), "export const first = 1;");
+        assert_eq!(engine.foreign_content(first_id).as_deref(), Some("export const life = 1;"));
+        assert!(engine.foreign_validation(source_id).unwrap().errors.is_empty());
 
         engine.set_foreign_content(second_id, foreign_files.content(second_id));
         engine.set_foreign_file(source_id, second_id);
-        engine.remove_foreign_file(source_id, first_id);
+        engine.remove_foreign_file(first_id);
         assert_eq!(engine.foreign_file(source_id), Some(second_id));
+        assert_eq!(engine.foreign_content(first_id), None);
+        assert_eq!(engine.foreign_module(first_id).unwrap(), None);
+        assert!(
+            !engine.derived.foreign_validation.shard(&source_id).read().contains_key(&source_id)
+        );
+        assert!(engine.foreign_validation(source_id).unwrap().errors.is_empty());
 
-        engine.remove_foreign_file(source_id, second_id);
+        engine.remove_foreign_file(second_id);
         assert_eq!(engine.foreign_file(source_id), None);
+        let validation = engine.foreign_validation(source_id).unwrap();
+        assert!(matches!(validation.errors.as_ref(), [ForeignError::MissingModule { .. }]));
     }
 
     #[test]
@@ -1562,6 +1600,42 @@ mod tests {
         );
         let body_changed = engine.foreign_validation(source_id).unwrap();
         assert!(Arc::ptr_eq(&valid, &body_changed));
+
+        engine.remove_foreign_file(foreign_id);
+        assert_eq!(foreign_files.remove("src/Main.js"), Some(foreign_id));
+
+        for number in 0..32 {
+            let path = format!("src/Main-{number}.js");
+            let foreign_id = foreign_files.insert(path.as_str(), "export const life = 42;");
+            engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
+            engine.set_foreign_file(source_id, foreign_id);
+
+            let valid = engine.foreign_validation(source_id).unwrap();
+            assert!(valid.errors.is_empty());
+
+            engine.remove_foreign_file(foreign_id);
+            assert_eq!(foreign_files.remove(&path), Some(foreign_id));
+            assert!(
+                !engine.input.foreign_content.shard(&foreign_id).read().contains_key(&foreign_id)
+            );
+            assert!(
+                !engine.derived.foreign_module.shard(&foreign_id).read().contains_key(&foreign_id)
+            );
+            assert!(
+                !engine
+                    .derived
+                    .foreign_validation
+                    .shard(&source_id)
+                    .read()
+                    .contains_key(&source_id)
+            );
+
+            let missing_module = engine.foreign_validation(source_id).unwrap();
+            assert!(matches!(
+                missing_module.errors.as_ref(),
+                [ForeignError::MissingModule { name, .. }] if name == "life"
+            ));
+        }
     }
 
     #[test]

@@ -30,7 +30,7 @@ pub enum ForeignError {
 }
 
 pub trait ForeignQueries {
-    fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Arc<ForeignModule>>;
+    fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Option<Arc<ForeignModule>>>;
 
     fn foreign_validation(&self, id: FileId) -> QueryResult<Arc<ForeignValidation>>;
 }
