@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 255
+expression: checking_report
+---
+Terms
+compareTwice :: forall a. Data.Eq.Eq a => a -> a -> Prim.Boolean
+compareIntsTwice :: Prim.Int -> Prim.Int -> Prim.Boolean
+compareArraysTwice :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareArraysOnce :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareGenericArraysTwice :: forall a. Data.Eq.Eq a => Prim.Array a -> Prim.Array a -> Prim.Boolean
+compareNestedArraysTwice ::
+  Prim.Array Prim.Int ->
+  Prim.Array Prim.Int ->
+  Prim.Array (Prim.Array Prim.Int) ->
+  Prim.Array (Prim.Array Prim.Int) ->
+  Prim.Boolean
+distinctGivens ::
+  forall a b.
+    Data.Eq.Eq a =>
+    Data.Eq.Eq b =>
+    Prim.Array a -> Prim.Array a -> Prim.Array b -> Prim.Array b -> Prim.Boolean
+distinctSubgoals ::
+  Prim.Array Prim.Int ->
+  Prim.Array Prim.Int ->
+  Prim.Array Prim.Boolean ->
+  Prim.Array Prim.Boolean ->
+  Prim.Boolean
+compareArraysThrice :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareNestedArraysWhole ::
+  Prim.Array (Prim.Array Prim.Int) -> Prim.Array (Prim.Array Prim.Int) -> Prim.Boolean
+compareSuperclassArraysTwice ::
+  forall a. Data.Eq.Ordered a => Prim.Array a -> Prim.Array a -> Prim.Boolean
+compareSuperclassTwice :: forall a. Data.Eq.Ordered a => a -> a -> Prim.Boolean
+lambdaScope :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+whereIsolation :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+equationScope :: Prim.Boolean -> Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+firstComparison :: Prim.Boolean
+secondComparison :: Prim.Boolean
+
+Types
