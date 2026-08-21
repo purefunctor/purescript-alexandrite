@@ -49,7 +49,8 @@ pub(super) fn call_expression(
             tree.call(function, arguments)
         }
         CallingConvention::Source | CallingConvention::Effect => {
-            arguments.into_iter().fold(function, |function, argument| {
+            let arguments = arguments.into_iter();
+            arguments.fold(function, |function, argument| {
                 let function = tree.unbound_callee(function);
                 tree.call(function, vec![argument])
             })

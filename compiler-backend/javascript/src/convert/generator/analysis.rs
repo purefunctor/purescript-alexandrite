@@ -581,7 +581,7 @@ struct EvaluationOperation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EvaluationContext {
     Eager,
-    Prohibited,
+    ConditionalOrLazy,
 }
 
 struct EvaluationTracer<'b> {
@@ -612,7 +612,7 @@ impl<'b> EvaluationTracer<'b> {
         };
         let operation_count = self.operations.len();
         self.instruction(value, definition);
-        if matches!(context, EvaluationContext::Prohibited)
+        if matches!(context, EvaluationContext::ConditionalOrLazy)
             && self.operations.len() != operation_count
         {
             self.valid = false;
@@ -640,8 +640,8 @@ impl<'b> EvaluationTracer<'b> {
             }
             InstructionValue::RecordUpdate { record, updates } => {
                 if record_updates_have_branches(updates) {
-                    self.expression(*record, EvaluationContext::Prohibited);
-                    self.record_updates(updates, EvaluationContext::Prohibited);
+                    self.expression(*record, EvaluationContext::ConditionalOrLazy);
+                    self.record_updates(updates, EvaluationContext::ConditionalOrLazy);
                     self.operation(result, 0);
                 } else {
                     self.expression(*record, EvaluationContext::Eager);
@@ -683,7 +683,7 @@ impl<'b> EvaluationTracer<'b> {
                 let context = match test {
                     PatternTest::Literal { .. } => EvaluationContext::Eager,
                     PatternTest::ArrayLength { .. } | PatternTest::Constructor { .. } => {
-                        EvaluationContext::Prohibited
+                        EvaluationContext::ConditionalOrLazy
                     }
                 };
                 self.expression(*value, context);
@@ -694,12 +694,12 @@ impl<'b> EvaluationTracer<'b> {
                 self.operation(result, 0);
             }
             InstructionValue::EffectPure { value } => {
-                self.expression(*value, EvaluationContext::Prohibited);
+                self.expression(*value, EvaluationContext::ConditionalOrLazy);
                 self.operation(result, 0);
             }
             InstructionValue::EffectBind { action, continuation } => {
-                self.expression(*action, EvaluationContext::Prohibited);
-                self.expression(*continuation, EvaluationContext::Prohibited);
+                self.expression(*action, EvaluationContext::ConditionalOrLazy);
+                self.expression(*continuation, EvaluationContext::ConditionalOrLazy);
                 self.operation(result, 0);
             }
             InstructionValue::SynthesizedEvidence { .. } | InstructionValue::TrivialEvidence => {
@@ -752,7 +752,7 @@ fn block_evaluation_trace(
         Terminator::Branch { condition, then_target, else_target } => {
             tracer.expression(*condition, EvaluationContext::Eager);
             for argument in then_target.arguments.iter().chain(else_target.arguments.iter()) {
-                tracer.expression(*argument, EvaluationContext::Prohibited);
+                tracer.expression(*argument, EvaluationContext::ConditionalOrLazy);
             }
         }
         Terminator::Fail { .. } | Terminator::Unreachable => {}

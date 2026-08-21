@@ -26,6 +26,11 @@ struct RenderingOutput<'o, 'd> {
     writer: &'o mut Writer<'d>,
 }
 
+struct AcyclicHelpers<'a> {
+    blocks: &'a FxHashSet<BlockId>,
+    captures: &'a FxHashMap<BlockId, Vec<ValueId>>,
+}
+
 impl Generator<'_> {
     pub(super) fn render_function(
         &self,
@@ -99,14 +104,16 @@ impl Generator<'_> {
         });
         let helpers = helpers.collect::<FxHashSet<_>>();
         let helper_captures = helper_captures(self.module, function, &helpers);
+        let helpers = AcyclicHelpers { blocks: &helpers, captures: &helper_captures };
         for block_id in function.blocks.iter().copied() {
-            if !helpers.contains(&block_id) {
+            if !helpers.blocks.contains(&block_id) {
                 continue;
             }
             let block = &self.module.storage[block_id];
             let parameters = block.parameters.iter().map(|parameter| context.value(*parameter));
             let parameters = parameters.collect_vec();
-            let captures = helper_captures[&block_id].iter().map(|capture| context.value(*capture));
+            let captures =
+                helpers.captures[&block_id].iter().map(|capture| context.value(*capture));
             let parameters = parameters.into_iter().chain(captures);
             let parameters = parameters.collect_vec();
             writer.line(format!(
@@ -116,27 +123,13 @@ impl Generator<'_> {
             ));
             writer.indent();
             let mut output = RenderingOutput { tree, writer };
-            self.render_acyclic_block(
-                &mut output,
-                block_id,
-                context,
-                control_flow,
-                &helpers,
-                &helper_captures,
-            )?;
+            self.render_acyclic_block(&mut output, block_id, context, control_flow, &helpers)?;
             writer.dedent();
             writer.line("}");
             writer.blank();
         }
         let mut output = RenderingOutput { tree, writer };
-        self.render_acyclic_block(
-            &mut output,
-            function.entry,
-            context,
-            control_flow,
-            &helpers,
-            &helper_captures,
-        )
+        self.render_acyclic_block(&mut output, function.entry, context, control_flow, &helpers)
     }
 
     fn render_acyclic_block(
@@ -145,8 +138,7 @@ impl Generator<'_> {
         block_id: BlockId,
         context: &FunctionContext,
         control_flow: &ControlFlow,
-        helpers: &FxHashSet<BlockId>,
-        helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
+        helpers: &AcyclicHelpers<'_>,
     ) -> ModuleResult<()> {
         let block = &self.module.storage[block_id];
         let inlineable = context.inlineable_values(block_id);
@@ -181,7 +173,6 @@ impl Generator<'_> {
                     &expressions,
                     control_flow,
                     helpers,
-                    helper_captures,
                 )?;
             }
             Terminator::Branch { condition, then_target, else_target } => {
@@ -195,7 +186,6 @@ impl Generator<'_> {
                     &expressions,
                     control_flow,
                     helpers,
-                    helper_captures,
                 )?;
                 output.writer.dedent();
                 output.writer.line("} else {");
@@ -207,7 +197,6 @@ impl Generator<'_> {
                     &expressions,
                     control_flow,
                     helpers,
-                    helper_captures,
                 )?;
                 output.writer.dedent();
                 output.writer.line("}");
@@ -231,8 +220,7 @@ impl Generator<'_> {
         context: &FunctionContext,
         expressions: &dyn ValueExpressionContext,
         control_flow: &ControlFlow,
-        helpers: &FxHashSet<BlockId>,
-        helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
+        helpers: &AcyclicHelpers<'_>,
     ) -> ModuleResult<()> {
         let block = &self.module.storage[target.block];
         debug_assert_eq!(
@@ -255,13 +243,13 @@ impl Generator<'_> {
                 _ => {}
             }
         }
-        if helpers.contains(&target.block) {
+        if helpers.blocks.contains(&target.block) {
             let arguments = target
                 .arguments
                 .iter()
                 .map(|argument| expressions.expression(output.tree, *argument));
             let mut arguments = arguments.collect_vec();
-            let captures = helper_captures[&target.block]
+            let captures = helpers.captures[&target.block]
                 .iter()
                 .map(|capture| expressions.expression(output.tree, *capture));
             arguments.extend(captures);
@@ -279,14 +267,7 @@ impl Generator<'_> {
                 ";",
             );
         }
-        self.render_acyclic_block(
-            output,
-            target.block,
-            context,
-            control_flow,
-            helpers,
-            helper_captures,
-        )
+        self.render_acyclic_block(output, target.block, context, control_flow, helpers)
     }
 
     fn render_cyclic_function(
