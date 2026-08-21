@@ -4,46 +4,6 @@ import * as $foreign from "./foreign.js";
 export const None = ["None"];
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 
-function capture$closure(captured) {
-  return argument0 => {
-    return captured;
-  };
-}
-
-function addCaptured$closure(amount) {
-  return value => {
-    return addInt(amount)(value);
-  };
-}
-
-function localSecond$function(captured, localFirst) {
-  return argument0 => {
-    if (argument0 === true) {
-      return captured;
-    } else {
-      if (argument0 === false) {
-        return localFirst(true);
-      } else {
-        throw new Error("Pattern match failure");
-      }
-    }
-  };
-}
-
-function localFirst$function(captured, localSecond) {
-  return argument0 => {
-    if (argument0 === true) {
-      return captured;
-    } else {
-      if (argument0 === false) {
-        return localSecond(true);
-      } else {
-        throw new Error("Pattern match failure");
-      }
-    }
-  };
-}
-
 export function readHostile(value) {
   return value["hostile-field"];
 }
@@ -53,6 +13,11 @@ export function readProto(value) {
 }
 
 export function capture(captured) {
+  function capture$closure(captured) {
+    return argument0 => {
+      return captured;
+    };
+  }
   return capture$closure(captured);
 }
 
@@ -63,6 +28,11 @@ export function apply($function) {
 }
 
 export function addCaptured(amount) {
+  function addCaptured$closure(amount) {
+    return value => {
+      return addInt(amount)(value);
+    };
+  }
   return addCaptured$closure(amount);
 }
 
@@ -111,6 +81,32 @@ export function isOdd(value) {
 
 export function capturedMutual(captured) {
   return condition => {
+    function localSecond$function(captured, localFirst) {
+      return argument0 => {
+        if (argument0 === true) {
+          return captured;
+        } else {
+          if (argument0 === false) {
+            return localFirst(true);
+          } else {
+            throw new Error("Pattern match failure");
+          }
+        }
+      };
+    }
+    function localFirst$function(captured, localSecond) {
+      return argument0 => {
+        if (argument0 === true) {
+          return captured;
+        } else {
+          if (argument0 === false) {
+            return localSecond(true);
+          } else {
+            throw new Error("Pattern match failure");
+          }
+        }
+      };
+    }
     const localSecond = argument0 => localSecond$function(captured, localFirst)(argument0);
     const localFirst = argument0 => localFirst$function(captured, localSecond)(argument0);
     return localFirst(condition);

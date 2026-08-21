@@ -10,8 +10,8 @@ use itertools::Itertools;
 use pretty::Arena as DocumentArena;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    CallingConvention, Declaration, DeclarationKind, Function, FunctionId, Global, GlobalIdentity,
-    Instruction, Terminator, ValueId,
+    CallingConvention, Declaration, DeclarationKind, Function, Global, GlobalIdentity, Instruction,
+    Terminator, ValueId,
 };
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
@@ -31,9 +31,7 @@ pub(super) struct Generator<'m> {
     module: &'m ssa::tree::Module,
     global_names: FxHashMap<GlobalIdentity, String>,
     external_module_namespaces: FxHashMap<FileId, String>,
-    function_names: FxHashMap<FunctionId, String>,
     external_references: Vec<&'m Global>,
-    root_functions: FxHashSet<FunctionId>,
     foreign_namespace: Option<String>,
     reserved_module_names: FxHashSet<String>,
 }
@@ -42,22 +40,10 @@ impl<'m> Generator<'m> {
     pub(super) fn new(module: &'m ssa::tree::Module) -> Generator<'m> {
         let mut allocator = NameAllocator::default();
         let mut global_names = FxHashMap::default();
-        let mut function_names = FxHashMap::default();
-        let mut root_functions = FxHashSet::default();
 
         for declaration in module.declarations.iter() {
             let name = allocator.allocate(&declaration.global.item_name);
             global_names.insert(declaration.global.identity, name.clone());
-            match declaration.kind {
-                DeclarationKind::Function { function } => {
-                    function_names.insert(function, name);
-                    root_functions.insert(function);
-                }
-                DeclarationKind::Value { initializer } => {
-                    root_functions.insert(initializer);
-                }
-                DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => {}
-            }
         }
 
         let external_references = collect_module_references(module);
@@ -74,14 +60,6 @@ impl<'m> Generator<'m> {
                 .or_insert_with(|| allocator.allocate(&dependency.module_name.replace('.', "_")));
         }
 
-        for (function_id, function) in module.storage.functions() {
-            if root_functions.contains(&function_id) {
-                continue;
-            }
-            let name = allocator.allocate(&function.name);
-            function_names.insert(function_id, name);
-        }
-
         let has_foreign = module
             .declarations
             .iter()
@@ -94,9 +72,7 @@ impl<'m> Generator<'m> {
             module,
             global_names,
             external_module_namespaces,
-            function_names,
             external_references,
-            root_functions,
             foreign_namespace,
             reserved_module_names,
         }
@@ -108,7 +84,6 @@ impl<'m> Generator<'m> {
         let mut writer = Writer::new(&documents);
         self.render_imports(&mut tree, &mut writer);
         self.render_constructors(&mut tree, &mut writer);
-        self.render_nested_functions(&mut tree, &mut writer)?;
         self.render_source_functions(&mut tree, &mut writer)?;
         self.render_foreign_declarations(&mut tree, &mut writer);
         self.render_value_declarations(&mut tree, &mut writer)?;
@@ -164,22 +139,6 @@ impl<'m> Generator<'m> {
         if rendered {
             writer.blank();
         }
-    }
-
-    fn render_nested_functions(
-        &self,
-        tree: &mut Tree,
-        writer: &mut Writer<'_>,
-    ) -> ModuleResult<()> {
-        for (function_id, function) in self.module.storage.functions() {
-            if self.root_functions.contains(&function_id) {
-                continue;
-            }
-            let name = self.function_name(function_id);
-            self.render_function(tree, writer, name, function, false)?;
-            writer.blank();
-        }
-        Ok(())
     }
 
     fn render_source_functions(
@@ -414,13 +373,6 @@ impl<'m> Generator<'m> {
             let namespace = tree.identifier(namespace);
             tree.member(namespace, global.item_name.as_str())
         }
-    }
-
-    fn function_name(&self, function: FunctionId) -> &str {
-        self.function_names
-            .get(&function)
-            .map(String::as_str)
-            .expect("invariant violated: JavaScript function has no allocated name")
     }
 
     fn unsupported(&self, state: UnsupportedState) -> ModuleError {

@@ -1,26 +1,24 @@
 import * as $foreign from "./foreign.js";
 
-function genericEqual$closure(dictionary0) {
-  return left => {
-    return right => {
-      return dictionary0.equal(left)(right);
-    };
-  };
-}
-
-function superclassEqual$closure(dictionary1) {
-  return left => {
-    return right => {
-      return dictionary1.superclass17.equal(left)(right);
-    };
-  };
-}
-
 export function genericEqual(dictionary0) {
+  function genericEqual$closure(dictionary0) {
+    return left => {
+      return right => {
+        return dictionary0.equal(left)(right);
+      };
+    };
+  }
   return genericEqual$closure(dictionary0);
 }
 
 export function superclassEqual(dictionary1) {
+  function superclassEqual$closure(dictionary1) {
+    return left => {
+      return right => {
+        return dictionary1.superclass17.equal(left)(right);
+      };
+    };
+  }
   return superclassEqual$closure(dictionary1);
 }
 

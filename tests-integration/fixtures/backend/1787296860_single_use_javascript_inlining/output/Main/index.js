@@ -1,13 +1,3 @@
-function inlineClosure$closure(item) {
-  return item;
-}
-
-function inlineCapturedClosure$closure(captured) {
-  return argument0 => {
-    return captured;
-  };
-}
-
 export function identity(value) {
   return value;
 }
@@ -29,6 +19,9 @@ export function inlineLiteral(condition) {
 }
 
 export function inlineClosure(value) {
+  function inlineClosure$closure(item) {
+    return item;
+  }
   return inlineClosure$closure(value);
 }
 
@@ -47,6 +40,11 @@ export function inlineRecord(value) {
 }
 
 export function inlineCapturedClosure(captured) {
+  function inlineCapturedClosure$closure(captured) {
+    return argument0 => {
+      return captured;
+    };
+  }
   return inlineCapturedClosure$closure(captured);
 }
 

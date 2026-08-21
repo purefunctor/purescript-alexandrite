@@ -1,99 +1,17 @@
 import * as Data_Eq from "../Data.Eq/index.js";
 
-function compareTwice$closure(dictionary0) {
-  return left => {
-    return right => {
-      if (dictionary0.eq(left)(right)) {
-        return dictionary0.eq(right)(left);
-      } else {
-        return false;
-      }
-    };
-  };
-}
-
-function compareGenericArraysTwice$closure(dictionary1) {
-  return left => {
-    return right => {
-      const call = Data_Eq.eqArray(dictionary1);
-      if (call.eq(left)(right)) {
-        return call.eq(right)(left);
-      } else {
-        return false;
-      }
-    };
-  };
-}
-
-function distinctGivens$closure(dictionary2, dictionary3) {
-  return leftA => {
-    return rightA => {
-      return leftB => {
-        return rightB => {
-          function if$join$1(result$1) {
-            return result$1;
-          }
-
-          const call = Data_Eq.eqArray(dictionary2);
-          const call$1 = Data_Eq.eqArray(dictionary3);
-          if (call.eq(leftA)(rightA)) {
-            return call.eq(rightA)(leftA);
-          } else {
-            if (call$1.eq(leftB)(rightB)) {
-              return if$join$1(call$1.eq(rightB)(leftB));
-            } else {
-              return if$join$1(false);
-            }
-          }
-        };
+export function compareTwice(dictionary0) {
+  function compareTwice$closure(dictionary0) {
+    return left => {
+      return right => {
+        if (dictionary0.eq(left)(right)) {
+          return dictionary0.eq(right)(left);
+        } else {
+          return false;
+        }
       };
     };
-  };
-}
-
-function compareSuperclassArraysTwice$closure(dictionary4) {
-  return left => {
-    return right => {
-      const call = Data_Eq.eqArray(dictionary4.superclass62);
-      if (call.eq(left)(right)) {
-        return call.eq(right)(left);
-      } else {
-        return false;
-      }
-    };
-  };
-}
-
-function compareSuperclassTwice$closure(dictionary5) {
-  return left => {
-    return right => {
-      if (dictionary5.superclass62.eq(left)(right)) {
-        return dictionary5.superclass62.eq(right)(left);
-      } else {
-        return false;
-      }
-    };
-  };
-}
-
-function lambdaScope$closure(lambdaLeft) {
-  return lambdaRight => {
-    const call = Data_Eq.eqArray(Data_Eq.eqInt);
-    if (call.eq(lambdaLeft)(lambdaRight)) {
-      return call.eq(lambdaRight)(lambdaLeft);
-    } else {
-      return false;
-    }
-  };
-}
-
-function whereIsolation$closure(helperLeft) {
-  return helperRight => {
-    return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(helperLeft)(helperRight);
-  };
-}
-
-export function compareTwice(dictionary0) {
+  }
   return compareTwice$closure(dictionary0);
 }
 
@@ -125,6 +43,18 @@ export function compareArraysOnce(left) {
 }
 
 export function compareGenericArraysTwice(dictionary1) {
+  function compareGenericArraysTwice$closure(dictionary1) {
+    return left => {
+      return right => {
+        const call = Data_Eq.eqArray(dictionary1);
+        if (call.eq(left)(right)) {
+          return call.eq(right)(left);
+        } else {
+          return false;
+        }
+      };
+    };
+  }
   return compareGenericArraysTwice$closure(dictionary1);
 }
 
@@ -146,6 +76,31 @@ export function compareNestedArraysTwice(left) {
 
 export function distinctGivens(dictionary2) {
   return dictionary3 => {
+    function distinctGivens$closure(dictionary2, dictionary3) {
+      return leftA => {
+        return rightA => {
+          return leftB => {
+            return rightB => {
+              function if$join$1(result$1) {
+                return result$1;
+              }
+
+              const call = Data_Eq.eqArray(dictionary2);
+              const call$1 = Data_Eq.eqArray(dictionary3);
+              if (call.eq(leftA)(rightA)) {
+                return call.eq(rightA)(leftA);
+              } else {
+                if (call$1.eq(leftB)(rightB)) {
+                  return if$join$1(call$1.eq(rightB)(leftB));
+                } else {
+                  return if$join$1(false);
+                }
+              }
+            };
+          };
+        };
+      };
+    }
     return distinctGivens$closure(dictionary2, dictionary3);
   };
 }
@@ -205,16 +160,49 @@ export function compareNestedArraysWhole(left) {
 }
 
 export function compareSuperclassArraysTwice(dictionary4) {
+  function compareSuperclassArraysTwice$closure(dictionary4) {
+    return left => {
+      return right => {
+        const call = Data_Eq.eqArray(dictionary4.superclass62);
+        if (call.eq(left)(right)) {
+          return call.eq(right)(left);
+        } else {
+          return false;
+        }
+      };
+    };
+  }
   return compareSuperclassArraysTwice$closure(dictionary4);
 }
 
 export function compareSuperclassTwice(dictionary5) {
+  function compareSuperclassTwice$closure(dictionary5) {
+    return left => {
+      return right => {
+        if (dictionary5.superclass62.eq(left)(right)) {
+          return dictionary5.superclass62.eq(right)(left);
+        } else {
+          return false;
+        }
+      };
+    };
+  }
   return compareSuperclassTwice$closure(dictionary5);
 }
 
 export function lambdaScope(left) {
   return right => {
     if ((Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right)) {
+      function lambdaScope$closure(lambdaLeft) {
+        return lambdaRight => {
+          const call = Data_Eq.eqArray(Data_Eq.eqInt);
+          if (call.eq(lambdaLeft)(lambdaRight)) {
+            return call.eq(lambdaRight)(lambdaLeft);
+          } else {
+            return false;
+          }
+        };
+      }
       return lambdaScope$closure(left)(right);
     } else {
       return false;
@@ -224,6 +212,11 @@ export function lambdaScope(left) {
 
 export function whereIsolation(left) {
   return right => {
+    function whereIsolation$closure(helperLeft) {
+      return helperRight => {
+        return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(helperLeft)(helperRight);
+      };
+    }
     if (whereIsolation$closure(left)(right)) {
       return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right);
     } else {

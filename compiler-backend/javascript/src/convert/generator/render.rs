@@ -147,6 +147,7 @@ impl Generator<'_> {
             if let Instruction::Assign { result, value } = instruction
                 && inlineable.contains(result)
             {
+                self.render_closure_function(output.tree, output.writer, value, context)?;
                 let expression = self.instruction_expression(output.tree, value, &expressions)?;
                 expressions.insert(*result, expression);
             } else {
@@ -379,6 +380,7 @@ impl Generator<'_> {
     ) -> ModuleResult<()> {
         match instruction {
             Instruction::Assign { result, value } => {
+                self.render_closure_function(tree, writer, value, context)?;
                 let expression = self.instruction_expression(tree, value, expressions)?;
                 let binding = if declare { "const " } else { "" };
                 writer.expression_line(
@@ -389,6 +391,11 @@ impl Generator<'_> {
                 );
             }
             Instruction::RecursiveClosures { bindings } => {
+                for binding in bindings.iter() {
+                    let name = context.closure(binding.function);
+                    let function = &self.module.storage[binding.function];
+                    self.render_function(tree, writer, name, function, false)?;
+                }
                 for binding in bindings.iter() {
                     let expression = self.recursive_closure_expression(tree, binding, context);
                     let declaration = if declare { "const " } else { "" };
@@ -402,6 +409,21 @@ impl Generator<'_> {
             }
         }
         Ok(())
+    }
+
+    fn render_closure_function(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        value: &InstructionValue,
+        context: &FunctionContext,
+    ) -> ModuleResult<()> {
+        let InstructionValue::Closure { function, .. } = value else {
+            return Ok(());
+        };
+        let name = context.closure(*function);
+        let function = &self.module.storage[*function];
+        self.render_function(tree, writer, name, function, false)
     }
 
     pub(super) fn instruction_expression(
@@ -438,7 +460,7 @@ impl Generator<'_> {
             InstructionValue::Constructor { global } => Ok(self.global_expression(tree, global)),
             InstructionValue::Global { global } => Ok(self.global_expression(tree, global)),
             InstructionValue::Closure { function, captures } => {
-                let name = tree.identifier(self.function_name(*function));
+                let name = tree.identifier(context.closure(*function));
                 if captures.is_empty() {
                     Ok(name)
                 } else {
@@ -498,7 +520,7 @@ impl Generator<'_> {
         let parameter = allocator.allocate(&self.module.storage[*parameter].name);
         let captures = closure.captures.iter().map(|capture| context.expression(tree, *capture));
         let captures = captures.collect_vec();
-        let function = tree.identifier(self.function_name(closure.function));
+        let function = tree.identifier(context.closure(closure.function));
         // Defer capture evaluation until every binding in the recursive group has been initialized.
         let function = tree.call(function, captures);
         let argument = tree.identifier(&parameter);
