@@ -7,6 +7,8 @@ use console::style;
 use crate::test_runner::category::TestCategory;
 use crate::test_runner::cli::RunArgs;
 
+const UPDATE_JAVASCRIPT_OUTPUT: &str = "ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT";
+
 pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command {
     let mut cmd = Command::new("cargo");
     cmd.arg("nextest").arg("run").arg("-p").arg("tests-integration");
@@ -29,6 +31,10 @@ pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command 
     }
 
     cmd.env("INSTA_FORCE_PASS", "1");
+    cmd.env_remove(UPDATE_JAVASCRIPT_OUTPUT);
+    if matches!(category, TestCategory::Backend) && args.update_output {
+        cmd.env(UPDATE_JAVASCRIPT_OUTPUT, "1");
+    }
 
     cmd
 }
@@ -52,6 +58,7 @@ pub fn run_nextest(category: TestCategory, args: &RunArgs) -> anyhow::Result<boo
                 confirm: false,
                 accept: false,
                 reject: false,
+                update_output: args.update_output,
                 filters: args.filters.clone(),
                 verbose: true,
                 diff: args.diff,
@@ -79,6 +86,7 @@ mod tests {
             confirm: false,
             accept: false,
             reject: false,
+            update_output: false,
             filters: filters.iter().map(|filter| (*filter).to_string()).collect(),
             verbose,
             diff: false,
@@ -89,6 +97,10 @@ mod tests {
 
     fn command_arguments(command: &Command) -> Vec<&OsStr> {
         command.get_args().collect()
+    }
+
+    fn environment_setting<'a>(command: &'a Command, name: &str) -> Option<Option<&'a OsStr>> {
+        command.get_envs().find(|(variable, _)| *variable == name).map(|(_, value)| value)
     }
 
     #[test]
@@ -123,5 +135,25 @@ mod tests {
             ["nextest", "run", "-p", "tests-integration", "--test", "checking"]
         );
         assert!(arguments.contains(&OsStr::new("--status-level=fail")));
+    }
+
+    #[test]
+    fn backend_output_updates_are_explicitly_enabled_for_nextest() {
+        let mut run_args = args(&["javascript_execution"], false);
+        run_args.update_output = true;
+
+        let command = build_nextest_command(TestCategory::Backend, &run_args);
+
+        assert_eq!(
+            environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT),
+            Some(Some(OsStr::new("1")))
+        );
+    }
+
+    #[test]
+    fn ordinary_test_runs_do_not_update_backend_output() {
+        let command = build_nextest_command(TestCategory::Backend, &args(&[], false));
+
+        assert_eq!(environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT), Some(None));
     }
 }
