@@ -1,0 +1,107 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export compareTwice = \dictionary0%0 ->
+  \left%1 right%2 ->
+    if dictionary0%0.eq left%1 right%2 then dictionary0%0.eq right%2 left%1 else false
+
+@export compareIntsTwice = \left%3 right%4 ->
+  if eqInt.eq left%3 right%4 then eqInt.eq right%4 left%3 else false
+
+@export compareArraysTwice = \left%5 right%6 ->
+  let
+    eqArrayDict%7 = eqArray eqInt
+  in if eqArrayDict%7.eq left%5 right%6 then eqArrayDict%7.eq right%6 left%5 else false
+
+@export compareArraysOnce = \left%8 right%9 -> (eqArray eqInt).eq left%8 right%9
+
+@export compareGenericArraysTwice = \dictionary1%10 ->
+  \left%11 right%12 ->
+    let
+      eqArrayDict%13 = eqArray dictionary1%10
+    in if eqArrayDict%13.eq left%11 right%12 then eqArrayDict%13.eq right%12 left%11 else false
+
+@export compareNestedArraysTwice = \left%18 right%19 nestedLeft%14 nestedRight%15 ->
+  let
+    eqArrayDict%17 = eqArray eqInt
+    eqArrayDict%16 = eqArray eqArrayDict%17
+  in if eqArrayDict%16.eq nestedLeft%14 nestedRight%15
+    then eqArrayDict%16.eq nestedRight%15 nestedLeft%14
+    else eqArrayDict%17.eq left%18 right%19
+
+@export distinctGivens = \dictionary2%20 dictionary3%24 ->
+  \leftA%21 rightA%22 leftB%25 rightB%26 ->
+    let
+      eqArrayDict%23 = eqArray dictionary2%20
+      eqArrayDict%27 = eqArray dictionary3%24
+    in if eqArrayDict%23.eq leftA%21 rightA%22
+      then eqArrayDict%23.eq rightA%22 leftA%21
+      else if eqArrayDict%27.eq leftB%25 rightB%26
+        then eqArrayDict%27.eq rightB%26 leftB%25
+        else false
+
+@export distinctSubgoals = \leftInt%28 rightInt%29 leftBoolean%31 rightBoolean%32 ->
+  let
+    eqArrayDict%30 = eqArray eqInt
+    eqArrayDict%33 = eqArray eqBoolean
+  in if eqArrayDict%30.eq leftInt%28 rightInt%29
+    then eqArrayDict%30.eq rightInt%29 leftInt%28
+    else if eqArrayDict%33.eq leftBoolean%31 rightBoolean%32
+      then eqArrayDict%33.eq rightBoolean%32 leftBoolean%31
+      else false
+
+@export compareArraysThrice = \left%34 right%35 ->
+  let
+    eqArrayDict%36 = eqArray eqInt
+  in if eqArrayDict%36.eq left%34 right%35
+    then if eqArrayDict%36.eq right%35 left%34 then eqArrayDict%36.eq left%34 right%35 else false
+    else false
+
+@export compareNestedArraysWhole = \left%37 right%38 ->
+  let
+    eqArrayDict%39 = eqArray (eqArray eqInt)
+  in if eqArrayDict%39.eq left%37 right%38 then eqArrayDict%39.eq right%38 left%37 else false
+
+@export compareSuperclassArraysTwice = \dictionary4%40 ->
+  \left%41 right%42 ->
+    let
+      eqArrayDict%43 = eqArray dictionary4%40.superclass62
+    in if eqArrayDict%43.eq left%41 right%42 then eqArrayDict%43.eq right%42 left%41 else false
+
+@export compareSuperclassTwice = \dictionary5%44 ->
+  \left%45 right%46 ->
+    if dictionary5%44.superclass62.eq left%45 right%46
+      then dictionary5%44.superclass62.eq right%46 left%45
+      else false
+
+@export lambdaScope = \left%47 right%48 ->
+  if (eqArray eqInt).eq left%47 right%48
+    then (\lambdaLeft%49 lambdaRight%50 ->
+      let
+        eqArrayDict%51 = eqArray eqInt
+      in if eqArrayDict%51.eq lambdaLeft%49 lambdaRight%50
+        then eqArrayDict%51.eq lambdaRight%50 lambdaLeft%49
+        else false)
+      left%47
+      right%48
+    else false
+
+@export whereIsolation = \left%53 right%54 ->
+  let
+    helper%52 = \helperLeft%55 helperRight%56 -> (eqArray eqInt).eq helperLeft%55 helperRight%56
+  in if helper%52 left%53 right%54 then (eqArray eqInt).eq left%53 right%54 else false
+
+@export equationScope = \argument0%57 argument1%58 argument2%59 ->
+  let
+    eqArrayDict%64 = eqArray eqInt
+  in case argument0%57, argument1%58, argument2%59 of
+    true, left%60, right%61 ->
+      eqArrayDict%64.eq left%60 right%61
+    false, left%62, right%63 ->
+      eqArrayDict%64.eq right%63 left%62
+
+@export firstComparison = eqInt.eq 1 2
+
+@export secondComparison = eqInt.eq 3 4

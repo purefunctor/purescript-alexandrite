@@ -79,8 +79,47 @@ struct Context<'c, Q> {
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
     lowering_evidence: FxHashSet<EvidenceVarId>,
+    evidence_scopes: Vec<EvidenceScope>,
 
     storage: Storage,
+}
+
+#[derive(Default)]
+struct EvidenceScope {
+    constructions: FxHashMap<EvidenceKey, EvidenceConstruction>,
+    bindings: Vec<EvidenceBinding>,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum EvidenceKey {
+    Given(EvidenceBinderId),
+    Instance { origin: InstanceCandidateOrigin, subgoals: Vec<EvidenceKey> },
+    Superclass { parent: Box<EvidenceKey>, superclass: checking::evidence::SuperclassId },
+    Opaque(EvidenceId),
+}
+
+impl EvidenceKey {
+    fn dependency_order(&self) -> usize {
+        match self {
+            EvidenceKey::Given(_) | EvidenceKey::Opaque(_) => 0,
+            EvidenceKey::Instance { subgoals, .. } => {
+                let orders = subgoals.iter().map(EvidenceKey::dependency_order);
+                orders.max().unwrap_or(0).saturating_add(1)
+            }
+            EvidenceKey::Superclass { parent, .. } => parent.dependency_order().saturating_add(1),
+        }
+    }
+}
+
+#[derive(Clone)]
+enum EvidenceConstruction {
+    Inline { expression: ExpressionId, name: SmolStr },
+    Shared(Parameter),
+}
+
+struct EvidenceBinding {
+    evidence: EvidenceKey,
+    binding: Binding,
 }
 
 impl<'c, Q> Context<'c, Q>
@@ -137,6 +176,7 @@ where
             parameters: FxHashMap::default(),
             next_local: 0,
             lowering_evidence: FxHashSet::default(),
+            evidence_scopes: Vec::new(),
 
             storage: Storage::default(),
         })
@@ -388,9 +428,9 @@ fn convert_instance_declaration(
     });
     let parameters = parameters.collect::<ConversionResult<Vec<_>>>()?;
 
-    let body = match &instance.implementation {
+    let body = context.evidence_scope(|context| match &instance.implementation {
         checking_tree::InstanceImplementation::Delegate { evidence, .. } => {
-            evidence_variable(context, *evidence)?
+            evidence_variable(context, *evidence)
         }
         checking_tree::InstanceImplementation::Members(members) => {
             let mut fields = Vec::new();
@@ -404,9 +444,9 @@ fn convert_instance_declaration(
                 let field = context.member_field(member.resolution)?;
                 fields.push(RecordField { field, expression });
             }
-            context.expression(ExpressionKind::Record { fields: fields.into() })
+            Ok(context.expression(ExpressionKind::Record { fields: fields.into() }))
         }
-    };
+    })?;
     let value = context.parameter_abstraction(parameters, body);
     let item_name = context.instance_name(identity)?;
     let global = Global { id: GlobalId::Instance(identity), item_name };
@@ -450,7 +490,8 @@ fn equations(
         return Err(context.unsupported(UnsupportedState::MissingEquation));
     };
     if equations.len() == 1 {
-        let body = guarded_expression(context, &first.guarded_expression)?;
+        let body = context
+            .evidence_scope(|context| guarded_expression(context, &first.guarded_expression))?;
         let patterns = patterns(context, &first.binders)?;
         return Ok(context.abstraction(patterns, body));
     }
@@ -466,22 +507,24 @@ fn equations(
         scrutinees.push(scrutinee);
     }
 
-    let mut alternatives = Vec::with_capacity(equations.len());
-    for equation in equations {
-        let mut patterns = patterns(context, &equation.binders)?;
-        let supplied = patterns.len();
-        while patterns.len() < arity {
-            patterns.push(context.pattern(PatternKind::Wildcard));
+    let body = context.evidence_scope(|context| {
+        let mut alternatives = Vec::with_capacity(equations.len());
+        for equation in equations {
+            let mut patterns = patterns(context, &equation.binders)?;
+            let supplied = patterns.len();
+            while patterns.len() < arity {
+                patterns.push(context.pattern(PatternKind::Wildcard));
+            }
+            let expression = guarded_expression(context, &equation.guarded_expression)?;
+            let remaining_arguments = scrutinees.iter().skip(supplied).copied();
+            let expression = context.application(expression, remaining_arguments);
+            alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
         }
-        let expression = guarded_expression(context, &equation.guarded_expression)?;
-        let remaining_arguments = scrutinees.iter().skip(supplied).copied();
-        let expression = context.application(expression, remaining_arguments);
-        alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
-    }
-    let body = context.expression(ExpressionKind::Case {
-        scrutinees: scrutinees.into(),
-        alternatives: alternatives.into(),
-    });
+        Ok(context.expression(ExpressionKind::Case {
+            scrutinees: scrutinees.into(),
+            alternatives: alternatives.into(),
+        }))
+    })?;
     Ok(context.abstraction(parameter_patterns, body))
 }
 
@@ -659,12 +702,14 @@ fn convert_expression(
         }
         checking_tree::ExpressionKind::EvidenceAbstraction { binder, expression } => {
             let parameter = context.evidence_parameter(*binder)?;
-            let body = convert_expression(context, *expression)?;
+            let body =
+                context.evidence_scope(|context| convert_expression(context, *expression))?;
             return Ok(context.parameter_abstraction([parameter], body));
         }
         checking_tree::ExpressionKind::Lambda { binders, expression } => {
             let parameters = patterns(context, binders)?;
-            let body = convert_expression(context, *expression)?;
+            let body =
+                context.evidence_scope(|context| convert_expression(context, *expression))?;
             return Ok(context.abstraction(parameters, body));
         }
         checking_tree::ExpressionKind::IfThenElse { condition, then, else_ } => {
@@ -918,11 +963,21 @@ fn convert_evidence(
             Ok(context.expression(ExpressionKind::Local { parameter }))
         }
         Evidence::Instance { origin, subgoals } => {
+            let evidence = context.evidence_key(evidence_id);
+            if let Some(expression) = context.shared_evidence(&evidence)? {
+                return Ok(expression);
+            }
             let global = context.instance_global(*origin)?;
+            let name = format_smolstr!("{}Dict", global.item_name);
             let function = context.expression(ExpressionKind::Global { global });
             let arguments = subgoals.iter().map(|&subgoal| evidence_variable(context, subgoal));
             let arguments = arguments.collect::<ConversionResult<Vec<_>>>()?;
-            Ok(context.application(function, arguments))
+            let construction = context.application(function, arguments);
+            if subgoals.is_empty() {
+                Ok(construction)
+            } else {
+                context.record_evidence(evidence, construction, name)
+            }
         }
         Evidence::Superclass { parent, superclass } => {
             let record = convert_evidence(context, *parent)?;
@@ -974,10 +1029,129 @@ fn synthesized_evidence(
     }
 }
 
+fn order_evidence_bindings(mut bindings: Vec<EvidenceBinding>) -> Vec<Binding> {
+    // Every prerequisite precedes the evidence that consumes it, so this order places inputs
+    // before the non-recursive bindings that reference them.
+    bindings.sort_by_key(|binding| binding.evidence.dependency_order());
+    let bindings = bindings.into_iter().map(|binding| binding.binding);
+    bindings.collect()
+}
+
 impl<'c, Q> Context<'c, Q>
 where
     Q: checking::ExternalQueries,
 {
+    fn evidence_scope(
+        &mut self,
+        convert: impl FnOnce(&mut Context<'c, Q>) -> ConversionResult<ExpressionId>,
+    ) -> ConversionResult<ExpressionId> {
+        self.evidence_scopes.push(EvidenceScope::default());
+        let result = convert(self);
+        let scope = self
+            .evidence_scopes
+            .pop()
+            .expect("invariant violated: evidence scope disappeared during conversion");
+        let body = result?;
+        if scope.bindings.is_empty() {
+            return Ok(body);
+        }
+        let bindings = order_evidence_bindings(scope.bindings);
+        Ok(self.expression(ExpressionKind::Let {
+            recursive: false,
+            bindings: bindings.into(),
+            body,
+        }))
+    }
+
+    fn shared_evidence(
+        &mut self,
+        evidence: &EvidenceKey,
+    ) -> ConversionResult<Option<ExpressionId>> {
+        let Some(scope) = self.evidence_scopes.last() else { return Ok(None) };
+        let Some(construction) = scope.constructions.get(evidence).cloned() else {
+            return Ok(None);
+        };
+        let parameter = match construction {
+            EvidenceConstruction::Shared(parameter) => parameter,
+            EvidenceConstruction::Inline { expression, name } => {
+                // The first occurrence stays inline until repetition justifies a binding. Replacing
+                // its arena node with a local updates that occurrence without a separate tree pass.
+                let parameter = self.fresh_parameter(name)?;
+                let local = ExpressionKind::Local { parameter: parameter.clone() };
+                let construction = self.storage.replace_expression_kind(expression, local);
+                let construction = self.expression(construction);
+                let scope = self
+                    .evidence_scopes
+                    .last_mut()
+                    .expect("invariant violated: evidence scope disappeared during conversion");
+                scope
+                    .constructions
+                    .insert(evidence.clone(), EvidenceConstruction::Shared(parameter.clone()));
+                scope.bindings.push(EvidenceBinding {
+                    evidence: evidence.clone(),
+                    binding: Binding { parameter: parameter.clone(), expression: construction },
+                });
+                parameter
+            }
+        };
+        Ok(Some(self.expression(ExpressionKind::Local { parameter })))
+    }
+
+    fn record_evidence(
+        &mut self,
+        evidence: EvidenceKey,
+        construction: ExpressionId,
+        name: SmolStr,
+    ) -> ConversionResult<ExpressionId> {
+        let Some(scope) = self.evidence_scopes.last_mut() else { return Ok(construction) };
+        scope
+            .constructions
+            .insert(evidence, EvidenceConstruction::Inline { expression: construction, name });
+        Ok(construction)
+    }
+
+    fn evidence_key(&self, evidence: EvidenceId) -> EvidenceKey {
+        self.evidence_key_inner(evidence, &mut FxHashSet::default())
+            .unwrap_or(EvidenceKey::Opaque(evidence))
+    }
+
+    fn evidence_key_inner(
+        &self,
+        evidence: EvidenceId,
+        visiting: &mut FxHashSet<EvidenceId>,
+    ) -> Option<EvidenceKey> {
+        if !visiting.insert(evidence) {
+            return None;
+        }
+        let key = match &self.checked.evidence[evidence] {
+            Evidence::Variable(variable) => {
+                let EvidenceState::Solved(evidence) = self.checked.evidence[*variable].state else {
+                    return None;
+                };
+                self.evidence_key_inner(evidence, visiting)?
+            }
+            Evidence::Given(binder) => EvidenceKey::Given(*binder),
+            Evidence::Instance { origin, subgoals } => {
+                let mut keys = Vec::with_capacity(subgoals.len());
+                for &subgoal in subgoals {
+                    let EvidenceState::Solved(evidence) = self.checked.evidence[subgoal].state
+                    else {
+                        return None;
+                    };
+                    keys.push(self.evidence_key_inner(evidence, visiting)?);
+                }
+                EvidenceKey::Instance { origin: *origin, subgoals: keys }
+            }
+            Evidence::Superclass { parent, superclass } => EvidenceKey::Superclass {
+                parent: Box::new(self.evidence_key_inner(*parent, visiting)?),
+                superclass: *superclass,
+            },
+            Evidence::Trivial | Evidence::Synthesized(_) => EvidenceKey::Opaque(evidence),
+        };
+        visiting.remove(&evidence);
+        Some(key)
+    }
+
     fn checked_binder_parameter(
         &mut self,
         binder_id: checking_tree::BinderId,
