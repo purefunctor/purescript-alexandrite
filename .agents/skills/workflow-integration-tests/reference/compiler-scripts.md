@@ -21,6 +21,7 @@ just t backend --update-output [filters...] # Update generated JavaScript fixtur
 
 | Category | Alias | Description |
 |----------|-------|-------------|
+| backend | b | SSA and JavaScript backend tests |
 | checking | c | Type checker tests |
 | semantic | s | Checked semantic tree tests |
 | lowering | l | Lowering tests |

@@ -31,6 +31,7 @@ pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command 
     }
 
     cmd.env("INSTA_FORCE_PASS", "1");
+    cmd.env_remove(UPDATE_JAVASCRIPT_OUTPUT);
     if matches!(category, TestCategory::Backend) && args.update_output {
         cmd.env(UPDATE_JAVASCRIPT_OUTPUT, "1");
     }
@@ -98,10 +99,8 @@ mod tests {
         command.get_args().collect()
     }
 
-    fn environment_value<'a>(command: &'a Command, name: &str) -> Option<&'a OsStr> {
-        command
-            .get_envs()
-            .find_map(|(variable, value)| (variable == name).then_some(value).flatten())
+    fn environment_setting<'a>(command: &'a Command, name: &str) -> Option<Option<&'a OsStr>> {
+        command.get_envs().find(|(variable, _)| *variable == name).map(|(_, value)| value)
     }
 
     #[test]
@@ -145,13 +144,16 @@ mod tests {
 
         let command = build_nextest_command(TestCategory::Backend, &run_args);
 
-        assert_eq!(environment_value(&command, UPDATE_JAVASCRIPT_OUTPUT), Some(OsStr::new("1")));
+        assert_eq!(
+            environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT),
+            Some(Some(OsStr::new("1")))
+        );
     }
 
     #[test]
     fn ordinary_test_runs_do_not_update_backend_output() {
         let command = build_nextest_command(TestCategory::Backend, &args(&[], false));
 
-        assert_eq!(environment_value(&command, UPDATE_JAVASCRIPT_OUTPUT), None);
+        assert_eq!(environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT), Some(None));
     }
 }

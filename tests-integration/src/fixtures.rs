@@ -181,9 +181,16 @@ fn verify_output(expected: &Path, generated: &Path) -> FixtureResult {
         .chain(changed.map(|path| format!("changed {path}")));
     let changes = changes.collect_vec();
     let changes = changes.join("\n  ");
+    let fixture_name = expected
+        .parent()
+        .and_then(|fixture| fixture.file_name())
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            invalid_data(format!("fixture output has no valid parent: {}", expected.display()))
+        })?;
     let message = format!(
         "generated JavaScript differs from {}:\n  {changes}\nrun \
-         `just t backend --update-output` to update fixture output",
+         `just t backend {fixture_name} --update-output` to update fixture output",
         expected.display()
     );
     Err(invalid_data(message).into())
