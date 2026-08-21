@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 255
+expression: checking_report
+---
+Terms
+equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+convert :: forall @source @target. Main.Convert source target => source -> target
+available :: Main.Available => Prim.Boolean
+Wrapper :: forall @a. a -> Main.Wrapper a
+genericEqual :: forall value. Main.Equal value => value -> value -> Prim.Boolean
+arrayEqual ::
+  forall value.
+    Main.Equal (Prim.Array value) => Prim.Array value -> Prim.Array value -> Prim.Boolean
+wrapperEqual ::
+  forall value.
+    Main.Equal (Main.Wrapper value) => Main.Wrapper value -> Main.Wrapper value -> Prim.Boolean
+concreteEqual :: Main.Equal Prim.Int => Prim.Int -> Prim.Int -> Prim.Boolean
+convertToInt :: forall value. Main.Convert value Prim.Int => value -> Prim.Int
+distinctEqual ::
+  forall left right.
+    Main.Equal left =>
+    Main.Equal right =>
+    left -> left -> right -> right -> { left :: Prim.Boolean, right :: Prim.Boolean }
+duplicateEqual ::
+  forall value. Main.Equal value => Main.Equal value => value -> value -> Prim.Boolean
+parameterCollision ::
+  forall value. Main.Equal value => Prim.Boolean -> value -> value -> Prim.Boolean
+isAvailable :: Main.Available => Prim.Boolean
+
+Types
+Equal :: Prim.Type -> Prim.Constraint
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+Available :: Prim.Constraint
+Wrapper :: Prim.Type -> Prim.Type
+
+Classes
+class forall (a :: Prim.Type). Main.Equal a
+  equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+class forall (source :: Prim.Type) (target :: Prim.Type). Main.Convert source target
+  convert :: forall @source @target. Main.Convert source target => source -> target
+class Main.Available
+  available :: Main.Available => Prim.Boolean
+
+Roles
+Wrapper = [Representational]

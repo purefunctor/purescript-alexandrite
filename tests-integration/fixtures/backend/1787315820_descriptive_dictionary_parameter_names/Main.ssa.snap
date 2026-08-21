@@ -1,0 +1,158 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 256
+expression: ssa_report
+---
+@export constructor Wrapper/1;
+
+@export function genericEqual(dictionary0) {
+  entry() {
+    const closure = closure(genericEqual$closure, dictionary0);
+    return closure;
+  }
+}
+
+@export function arrayEqual(dictionary1) {
+  entry() {
+    const closure = closure(arrayEqual$closure, dictionary1);
+    return closure;
+  }
+}
+
+@export function wrapperEqual(dictionary2) {
+  entry() {
+    const closure = closure(wrapperEqual$closure, dictionary2);
+    return closure;
+  }
+}
+
+@export function concreteEqual(dictionary3) {
+  entry() {
+    const closure = closure(concreteEqual$closure, dictionary3);
+    return closure;
+  }
+}
+
+@export function convertToInt(dictionary4) {
+  entry() {
+    const closure = closure(convertToInt$closure, dictionary4);
+    return closure;
+  }
+}
+
+@export function distinctEqual(dictionary5, dictionary6) {
+  entry() {
+    const closure = closure(distinctEqual$closure, dictionary5, dictionary6);
+    return closure;
+  }
+}
+
+@export function duplicateEqual(dictionary7, dictionary8) {
+  entry() {
+    const closure = closure(duplicateEqual$closure, dictionary8);
+    return closure;
+  }
+}
+
+@export function parameterCollision(dictionary9) {
+  entry() {
+    const closure = closure(parameterCollision$closure, dictionary9);
+    return closure;
+  }
+}
+
+@export function isAvailable(dictionary10) {
+  entry() {
+    const available = dictionary10.available;
+    return available;
+  }
+}
+
+closure genericEqual$closure[dictionary0](left, right) {
+  entry() {
+    const equal = dictionary0.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure arrayEqual$closure[dictionary1](left, right) {
+  entry() {
+    const equal = dictionary1.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure wrapperEqual$closure[dictionary2](left, right) {
+  entry() {
+    const equal = dictionary2.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure concreteEqual$closure[dictionary3](left, right) {
+  entry() {
+    const equal = dictionary3.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure convertToInt$closure[dictionary4](value) {
+  entry() {
+    const convert = dictionary4.convert;
+    const call = source.call(convert, value);
+    return call;
+  }
+}
+
+closure distinctEqual$closure[dictionary5, dictionary6](left1, left2, right1, right2) {
+  entry() {
+    const equal = dictionary5.equal;
+    const call = source.call(equal, left1);
+    const call$1 = source.call(call, left2);
+    const equal$1 = dictionary6.equal;
+    const call$2 = source.call(equal$1, right1);
+    const call$3 = source.call(call$2, right2);
+    const record = { left: call$1, right: call$3 };
+    return record;
+  }
+}
+
+closure duplicateEqual$closure[dictionary8](left, right) {
+  entry() {
+    const equal = dictionary8.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure parameterCollision$closure[dictionary9](equalValueDict, left, right) {
+  entry() {
+    if (equalValueDict) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const equal = dictionary9.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    if$join(call$1);
+  }
+  else() {
+    const literal = false;
+    if$join(literal);
+  }
+  if$join(result) {
+    return result;
+  }
+}
