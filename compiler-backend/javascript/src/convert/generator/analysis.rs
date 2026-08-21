@@ -548,7 +548,9 @@ fn locally_inlineable_values(
         let baseline = block_evaluation_trace(block, &FxHashSet::default())
             .expect("invariant violated: materialized JavaScript block has an invalid trace");
         let mut values = FxHashSet::default();
-        loop {
+        // Every changing pass accepts at least one candidate permanently, so one pass per
+        // candidate plus a final convergence check is sufficient.
+        for _ in 0..=candidates.len() {
             let mut changed = false;
             for candidate in candidates.iter().rev().copied() {
                 if values.contains(&candidate) {
