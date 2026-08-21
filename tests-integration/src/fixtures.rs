@@ -242,6 +242,8 @@ pub fn backend(path: &Path) -> FixtureResult {
     };
 
     let checking_report = crate::generated::basic::report_checked(&engine, id);
+    let foreign_report = crate::generated::basic::report_foreign(&engine, id);
+    let diagnostics_report = format!("{checking_report}{foreign_report}");
     let ssa_report = match engine.ssa(id)? {
         Ok(module) => ssa::pretty::render(&module),
         Err(error) => error.to_string(),
@@ -259,7 +261,7 @@ pub fn backend(path: &Path) -> FixtureResult {
     settings.set_snapshot_path(fixture);
     settings.set_prepend_module_to_snapshot(false);
     settings.bind(|| {
-        insta::assert_snapshot!(file, checking_report);
+        insta::assert_snapshot!(file, diagnostics_report);
         insta::assert_snapshot!(ssa_snapshot, ssa_report);
     });
 

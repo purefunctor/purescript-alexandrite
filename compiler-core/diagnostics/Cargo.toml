@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 files = { version = "0.1.0", path = "../files" }
+foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign-javascript" }
 indexing = { version = "0.1.0", path = "../indexing" }
 lowering = { version = "0.1.0", path = "../lowering" }
 resolving = { version = "0.1.0", path = "../resolving" }

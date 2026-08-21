@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use building::QueryEngine;
-use files::Files;
+use files::{Files, ForeignFiles};
 use glob::glob;
 use prim_constants::MODULE_MAP;
 use tempfile::TempDir;
@@ -29,7 +29,12 @@ fn configure_materialized_prim(engine: &QueryEngine, files: &mut Files) {
     }
 }
 
-fn load_file(engine: &mut QueryEngine, files: &mut Files, path: &Path) {
+fn load_file(
+    engine: &mut QueryEngine,
+    files: &mut Files,
+    foreign_files: &mut ForeignFiles,
+    path: &Path,
+) {
     let url = Url::from_file_path(path).unwrap();
     let file = fs::read_to_string(path).unwrap();
     let file = file.replace("\r\n", "\n");
@@ -46,6 +51,16 @@ fn load_file(engine: &mut QueryEngine, files: &mut Files, path: &Path) {
     if let Some(name) = parsed.module_name(&content) {
         engine.set_module_file(&name, id);
     }
+
+    let foreign_path = path.with_extension("js");
+    if foreign_path.is_file() {
+        let foreign_url = Url::from_file_path(&foreign_path).unwrap();
+        let foreign_content = fs::read_to_string(foreign_path).unwrap();
+        let foreign_content = foreign_content.replace("\r\n", "\n");
+        let foreign_id = foreign_files.insert(foreign_url.as_str(), foreign_content);
+        engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
+        engine.set_foreign_file(id, foreign_id);
+    }
 }
 
 fn load_folder(folder: &Path) -> impl Iterator<Item = PathBuf> {
@@ -58,6 +73,7 @@ fn load_folder(folder: &Path) -> impl Iterator<Item = PathBuf> {
 pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
+    let mut foreign_files = ForeignFiles::default();
     configure_materialized_prim(&engine, &mut files);
 
     if folder.starts_with("fixtures/backend/")
@@ -66,12 +82,12 @@ pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
     {
         let prelude = Path::new("fixtures/checking/prelude");
         load_folder(prelude).for_each(|path| {
-            load_file(&mut engine, &mut files, &path);
+            load_file(&mut engine, &mut files, &mut foreign_files, &path);
         });
     }
 
     load_folder(folder).for_each(|path| {
-        load_file(&mut engine, &mut files, &path);
+        load_file(&mut engine, &mut files, &mut foreign_files, &path);
     });
     (engine, files)
 }

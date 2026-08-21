@@ -1,7 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 131
-expression: checking_report
+expression: diagnostics_report
 ---
 Terms
 mutual :: Prim.Boolean -> Prim.Int

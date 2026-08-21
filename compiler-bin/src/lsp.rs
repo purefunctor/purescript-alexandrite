@@ -18,9 +18,9 @@ use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::panic::CatchUnwindLayer;
 use async_lsp::router::Router;
 use async_lsp::server::LifecycleLayer;
-use async_lsp::{ClientSocket, ResponseError};
+use async_lsp::{ClientSocket, LanguageClient, ResponseError};
 use building::QueryEngine;
-use files::{FileId, Files};
+use files::{FileId, Files, ForeignFiles};
 use itertools::Itertools;
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
@@ -67,6 +67,7 @@ pub struct State {
 
     pub engine: QueryEngine,
     pub files: Arc<RwLock<LspFiles>>,
+    pub foreign_files: Arc<RwLock<ForeignFiles>>,
 
     pub workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
@@ -74,6 +75,7 @@ pub struct State {
     pub root: Option<PathBuf>,
     pub position_encoding: PositionEncoding,
     pub analyzer_capabilities: AnalyzerCapabilities,
+    pub watched_files_dynamic_registration: bool,
 }
 
 impl State {
@@ -85,6 +87,9 @@ impl State {
         let files = LspFiles::new(files);
         let files = Arc::new(RwLock::new(files));
 
+        let foreign_files = ForeignFiles::default();
+        let foreign_files = Arc::new(RwLock::new(foreign_files));
+
         let workspace_symbols_cache = WorkspaceSymbolsCache::default();
         let workspace_symbols_cache = Arc::new(RwLock::new(workspace_symbols_cache));
 
@@ -94,17 +99,20 @@ impl State {
         let root = None;
         let position_encoding = PositionEncoding::Utf16;
         let analyzer_capabilities = AnalyzerCapabilities::default();
+        let watched_files_dynamic_registration = false;
 
         State {
             config,
             client,
             engine,
             files,
+            foreign_files,
             workspace_symbols_cache,
             suggestions_cache,
             root,
             position_encoding,
             analyzer_capabilities,
+            watched_files_dynamic_registration,
         }
     }
 
@@ -237,6 +245,8 @@ fn initialize(
     let position_encoding = negotiate_position_encoding(&p.initialize_params);
     state.position_encoding = position_encoding;
     state.analyzer_capabilities = negotiate_analyzer_capabilities(&p.initialize_params);
+    state.watched_files_dynamic_registration =
+        watched_files_dynamic_registration(&p.initialize_params.capabilities);
 
     state.root = p
         .initialize_params
@@ -313,18 +323,60 @@ fn initialize(
     }
 }
 
+fn watched_files_dynamic_registration(capabilities: &ClientCapabilities) -> bool {
+    capabilities
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.did_change_watched_files.as_ref())
+        .and_then(|watched_files| watched_files.dynamic_registration)
+        .unwrap_or(false)
+}
+
 fn shutdown(_state: &mut State, (): ()) -> impl Future<Output = Result<(), ResponseError>> + use<> {
     async { Ok(()) }
 }
 
 fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> {
     let _span = tracing::info_span!("initialization").entered();
+    register_foreign_file_watcher(state);
+
     let config = Arc::clone(&state.config);
     if let Some(command) = config.source_command.as_deref() {
         initialized_manual(state, command)
     } else {
         initialized_spago(state)
     }
+}
+
+fn register_foreign_file_watcher(state: &State) {
+    if !state.watched_files_dynamic_registration {
+        return;
+    }
+
+    let parameters = foreign_file_watcher_registration();
+    let mut client = state.client.clone();
+    task::spawn(async move {
+        if let Err(error) = client.register_capability(parameters).await {
+            tracing::warn!("Failed to register JavaScript FFI file watcher: {error}");
+        }
+    });
+}
+
+fn foreign_file_watcher_registration() -> RegistrationParams {
+    let options = DidChangeWatchedFilesRegistrationOptions {
+        watchers: vec![FileSystemWatcher {
+            glob_pattern: GlobPattern::String("**/*.js".to_string()),
+            kind: None,
+        }],
+    };
+    let register_options = serde_json::to_value(options)
+        .expect("invariant violated: watched file registration options must serialize");
+    let registration = Registration {
+        id: "javascript-ffi-files".to_string(),
+        method: notification::DidChangeWatchedFiles::METHOD.to_string(),
+        register_options: Some(register_options),
+    };
+    RegistrationParams { registrations: vec![registration] }
 }
 
 fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
@@ -389,6 +441,7 @@ fn load_files(
 
         let text = fs::read_to_string(file)?;
         on_change(state, &uri, &text, Some(*editable))?;
+        load_sibling_foreign(state, &url)?;
     }
 
     tracing::info!("Loaded {} files.", files.len());
@@ -562,30 +615,42 @@ fn semantic_tokens(
 }
 
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
-    let uri = p.text_document.uri.as_str();
+    let uri = &p.text_document.uri;
 
     for content_change in &p.content_changes {
         let text = content_change.text.as_str();
-        on_change(state, uri, text, None)?;
+        if is_javascript_uri(uri) {
+            on_foreign_change(state, uri, text)?;
+        } else {
+            on_change(state, uri.as_str(), text, None)?;
+        }
     }
 
     state.invalidate_workspace_symbols();
     state.invalidate_suggestions_cache();
 
     if state.config.diagnostics_on_change {
-        event::emit_collect_diagnostics(state, p.text_document.uri)?;
+        emit_associated_diagnostics(state, p.text_document.uri)?;
     }
 
     Ok(())
 }
 
 fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspError> {
-    let uri = p.text_document.uri.as_str();
+    let uri = &p.text_document.uri;
     let text = p.text_document.text.as_str();
+
+    if is_javascript_uri(uri) {
+        on_foreign_change(state, uri, text)?;
+        if state.config.diagnostics_on_open {
+            emit_associated_diagnostics(state, uri.clone())?;
+        }
+        return Ok(());
+    }
 
     let editable = {
         let files = state.files.read();
-        let previous_id = files.id(uri);
+        let previous_id = files.id(uri.as_str());
         previous_id.map(|file_id| files.is_editable(file_id))
     }
     .unwrap_or_else(|| {
@@ -594,7 +659,8 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
         };
         p.text_document.uri.to_file_path().is_ok_and(|path| path.starts_with(root))
     });
-    on_change(state, uri, text, Some(editable))?;
+    on_change(state, uri.as_str(), text, Some(editable))?;
+    load_sibling_foreign(state, uri)?;
 
     state.invalidate_workspace_symbols();
     state.invalidate_suggestions_cache();
@@ -610,9 +676,119 @@ fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspEr
     state.invalidate_suggestions_cache();
 
     if state.config.diagnostics_on_save {
-        event::emit_collect_diagnostics(state, p.text_document.uri)?;
+        emit_associated_diagnostics(state, p.text_document.uri)?;
     }
     Ok(())
+}
+
+fn did_change_watched_files(
+    state: &mut State,
+    p: DidChangeWatchedFilesParams,
+) -> Result<(), LspError> {
+    for change in p.changes {
+        if !is_javascript_uri(&change.uri) {
+            continue;
+        }
+
+        let Some(source_uri) = source_uri_from_foreign(&change.uri) else {
+            continue;
+        };
+        let source_tracked = state.files.read().id(source_uri.as_str()).is_some();
+        if !source_tracked && state.foreign_files.read().id(change.uri.as_str()).is_none() {
+            continue;
+        }
+
+        if change.typ == FileChangeType::DELETED {
+            remove_foreign_file(state, &change.uri);
+        } else if let Ok(path) = change.uri.to_file_path() {
+            match fs::read_to_string(path) {
+                Ok(content) => on_foreign_change(state, &change.uri, &content)?,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    remove_foreign_file(state, &change.uri);
+                }
+                Err(error) => return Err(error.into()),
+            }
+        }
+
+        if source_tracked {
+            event::emit_collect_diagnostics(state, source_uri)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn is_javascript_uri(uri: &Url) -> bool {
+    uri.path().ends_with(".js")
+}
+
+fn source_uri_from_foreign(uri: &Url) -> Option<Url> {
+    let path = uri.to_file_path().ok()?;
+    Url::from_file_path(path.with_extension("purs")).ok()
+}
+
+fn load_sibling_foreign(state: &mut State, source_uri: &Url) -> Result<(), LspError> {
+    let Ok(source_path) = source_uri.to_file_path() else {
+        return Ok(());
+    };
+    let foreign_path = source_path.with_extension("js");
+    let foreign_uri = Url::from_file_path(&foreign_path)
+        .map_err(|()| LspError::PathParseFail(foreign_path.clone()))?;
+
+    let foreign_id = state.foreign_files.read().id(foreign_uri.as_str());
+    if let Some(foreign_id) = foreign_id {
+        let source_id = state.files.read().id(source_uri.as_str());
+        if let Some(source_id) = source_id {
+            state.engine.set_foreign_file(source_id, foreign_id);
+        }
+        return Ok(());
+    }
+
+    if !foreign_path.is_file() {
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(foreign_path)?;
+    on_foreign_change(state, &foreign_uri, &content)
+}
+
+fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
+    let uri = if is_javascript_uri(&uri) {
+        let Some(source_uri) = source_uri_from_foreign(&uri) else {
+            return Ok(());
+        };
+        source_uri
+    } else {
+        uri
+    };
+    event::emit_collect_diagnostics(state, uri)
+}
+
+fn on_foreign_change(state: &mut State, uri: &Url, content: &str) -> Result<(), LspError> {
+    state.engine.request_cancel();
+
+    let foreign_id = state.foreign_files.write().insert(uri.as_str(), content);
+    state.engine.set_foreign_content(foreign_id, content);
+
+    let Some(source_uri) = source_uri_from_foreign(uri) else {
+        return Ok(());
+    };
+    let Some(source_id) = state.files.read().id(source_uri.as_str()) else {
+        return Ok(());
+    };
+
+    state.engine.set_foreign_file(source_id, foreign_id);
+
+    Ok(())
+}
+
+fn remove_foreign_file(state: &mut State, uri: &Url) {
+    let foreign_id = state.foreign_files.write().remove(uri.as_str());
+    let Some(foreign_id) = foreign_id else {
+        return;
+    };
+
+    state.engine.remove_foreign_file(foreign_id);
 }
 
 fn on_change(
@@ -732,7 +908,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .notification_ext::<notification::DidCloseTextDocument>(|_, _| Ok(()))
             .notification_ext::<notification::DidChangeConfiguration>(|_, _| Ok(()))
             .notification_ext::<notification::DidChangeTextDocument>(did_change)
-            .notification_ext::<notification::DidChangeWatchedFiles>(|_, _| Ok(()))
+            .notification_ext::<notification::DidChangeWatchedFiles>(did_change_watched_files)
             .event_ext::<event::CollectDiagnostics>(event::collect_diagnostics);
 
         ServiceBuilder::new()

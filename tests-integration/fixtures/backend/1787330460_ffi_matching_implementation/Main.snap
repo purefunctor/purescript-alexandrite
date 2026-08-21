@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+expression: diagnostics_report
+---
+Terms
+requested :: Prim.Int
+
+Types

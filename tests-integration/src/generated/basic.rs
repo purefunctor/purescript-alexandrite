@@ -351,6 +351,33 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     out
 }
 
+pub fn report_foreign(engine: &QueryEngine, id: FileId) -> String {
+    let validation = engine.foreign_validation(id).unwrap();
+    if validation.errors.is_empty() {
+        return String::new();
+    }
+
+    let content = engine.content(id);
+    let (parsed, _) = engine.parsed(id).unwrap();
+    let root = parsed.syntax_node();
+    let stabilized = engine.stabilized(id).unwrap();
+    let indexed = engine.indexed(id).unwrap();
+    let lowered = engine.lowered(id).unwrap();
+    let checked = engine.checked(id).unwrap();
+    let context =
+        DiagnosticsContext::new(engine, &content, &root, &stabilized, &indexed, &lowered, &checked);
+
+    let mut diagnostics = Vec::new();
+    for error in validation.errors.iter() {
+        diagnostics.extend(error.to_diagnostics(&context));
+    }
+
+    let mut out = String::new();
+    heading(&mut out, "Diagnostics");
+    out.push_str(&format_rustc(&diagnostics, &content));
+    out
+}
+
 fn write_literal_expression(
     content: &str,
     stabilized: &stabilizing::StabilizedModule,
