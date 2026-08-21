@@ -2,28 +2,28 @@ export const None = ["None"];
 export const Some = $value0 => ["Some", $value0];
 export const Box = $value0 => ["Box", $value0];
 
-export function multiEquation(argument0) {
-  if (Array.isArray(argument0) && argument0[0] === "None") {
+export function multiEquation($choice) {
+  if (Array.isArray($choice) && $choice[0] === "None") {
     return 0 | 0;
   } else {
-    if (Array.isArray(argument0) && argument0[0] === "Some") {
-      return argument0[1];
+    if (Array.isArray($choice) && $choice[0] === "Some") {
+      return $choice[1];
     } else {
       throw new Error("Pattern match failure");
     }
   }
 }
 
-export function mixedArity(argument0) {
-  return argument1 => {
-    if (argument0 === true) {
+export function mixedArity($boolean) {
+  return $int => {
+    if ($boolean === true) {
       function mixedArity$closure(value) {
         return value;
       }
-      return mixedArity$closure(argument1);
+      return mixedArity$closure($int);
     } else {
-      if (argument0 === false) {
-        return argument1;
+      if ($boolean === false) {
+        return $int;
       } else {
         throw new Error("Pattern match failure");
       }
@@ -31,25 +31,25 @@ export function mixedArity(argument0) {
   };
 }
 
-export function singleConstructor(argument0) {
-  if (Array.isArray(argument0) && argument0[0] === "Box") {
-    return argument0[1];
+export function singleConstructor($box) {
+  if (Array.isArray($box) && $box[0] === "Box") {
+    return $box[1];
   } else {
     throw new Error("Pattern match failure");
   }
 }
 
-export function singleWildcards(argument0) {
-  return argument1 => {
+export function singleWildcards($int) {
+  return $int$1 => {
     return true;
   };
 }
 
-export function functionWildcard(argument0) {
+export function functionWildcard($function) {
   return 0 | 0;
 }
 
-export function rigidWildcard(argument0) {
+export function rigidWildcard($value) {
   return true;
 }
 
@@ -59,7 +59,7 @@ export function namedPattern(record) {
 }
 
 export function capture(captured) {
-  return argument1 => {
+  return $boolean => {
     return captured;
   };
 }

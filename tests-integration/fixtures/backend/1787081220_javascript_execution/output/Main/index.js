@@ -14,7 +14,7 @@ export function readProto(value) {
 
 export function capture(captured) {
   function capture$closure(captured) {
-    return argument0 => {
+    return $int => {
       return captured;
     };
   }
@@ -82,11 +82,11 @@ export function isOdd(value) {
 export function capturedMutual(captured) {
   return condition => {
     function localSecond$function(captured, localFirst) {
-      return argument0 => {
-        if (argument0 === true) {
+      return $boolean => {
+        if ($boolean === true) {
           return captured;
         } else {
-          if (argument0 === false) {
+          if ($boolean === false) {
             return localFirst(true);
           } else {
             throw new Error("Pattern match failure");
@@ -95,11 +95,11 @@ export function capturedMutual(captured) {
       };
     }
     function localFirst$function(captured, localSecond) {
-      return argument0 => {
-        if (argument0 === true) {
+      return $boolean => {
+        if ($boolean === true) {
           return captured;
         } else {
-          if (argument0 === false) {
+          if ($boolean === false) {
             return localSecond(true);
           } else {
             throw new Error("Pattern match failure");
@@ -107,8 +107,8 @@ export function capturedMutual(captured) {
         }
       };
     }
-    const localSecond = argument0 => localSecond$function(captured, localFirst)(argument0);
-    const localFirst = argument0 => localFirst$function(captured, localSecond)(argument0);
+    const localSecond = $boolean => localSecond$function(captured, localFirst)($boolean);
+    const localFirst = $boolean => localFirst$function(captured, localSecond)($boolean);
     return localFirst(condition);
   };
 }
@@ -127,19 +127,19 @@ export function first(choice) {
   }
 }
 
-export function partialPattern(argument0) {
-  if (Array.isArray(argument0) && argument0[0] === "Pair") {
-    const left = argument0[1];
-    const argument = argument0[2];
+export function partialPattern($choice) {
+  if (Array.isArray($choice) && $choice[0] === "Pair") {
+    const left = $choice[1];
+    const argument = $choice[2];
     return left;
   } else {
     throw new Error("Pattern match failure");
   }
 }
 
-export function unwrapWrapped(argument0) {
-  if (Array.isArray(argument0) && argument0[0] === "Wrapped") {
-    return argument0[1];
+export function unwrapWrapped($wrapped) {
+  if (Array.isArray($wrapped) && $wrapped[0] === "Wrapped") {
+    return $wrapped[1];
   } else {
     throw new Error("Pattern match failure");
   }

@@ -27,6 +27,8 @@ use crate::tree::{
     SuperclassIdentity, SynthesizedEvidence,
 };
 
+const MAX_EVIDENCE_NAME_FRAGMENTS: usize = 4;
+
 type ConversionResult<T> = Result<T, ConversionError>;
 
 #[derive(Debug, Error)]
@@ -492,7 +494,7 @@ fn equations(
     if equations.len() == 1 {
         let body = context
             .evidence_scope(|context| guarded_expression(context, &first.guarded_expression))?;
-        let patterns = patterns(context, &first.binders)?;
+        let patterns = function_patterns(context, &first.binders)?;
         return Ok(context.abstraction(patterns, body));
     }
 
@@ -500,7 +502,16 @@ fn equations(
     let mut parameter_patterns = Vec::with_capacity(arity);
     let mut scrutinees = Vec::with_capacity(arity);
     for position in 0..arity {
-        let parameter = context.fresh_parameter(format_smolstr!("argument{position}"))?;
+        let fallback = format_smolstr!("argument{position}");
+        let type_id = equations
+            .iter()
+            .find_map(|equation| equation.binders.get(position))
+            .map(|&binder| context.checked.tree[binder].type_id);
+        let name = match type_id {
+            Some(type_id) => context.type_parameter_name(type_id, fallback)?,
+            None => fallback,
+        };
+        let parameter = context.fresh_parameter(name)?;
         let pattern = context.pattern(PatternKind::Variable(parameter.clone()));
         let scrutinee = context.expression(ExpressionKind::Local { parameter: parameter.clone() });
         parameter_patterns.push(pattern);
@@ -526,6 +537,30 @@ fn equations(
         }))
     })?;
     Ok(context.abstraction(parameter_patterns, body))
+}
+
+fn function_patterns(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    binders: &[checking_tree::BinderId],
+) -> ConversionResult<Vec<PatternId>> {
+    let mut converted = Vec::with_capacity(binders.len());
+    for (position, &binder) in binders.iter().enumerate() {
+        let pattern = convert_pattern(context, binder)?;
+        let named = matches!(
+            context.storage[pattern].kind,
+            PatternKind::Variable(_) | PatternKind::Named { .. }
+        );
+        if named {
+            converted.push(pattern);
+            continue;
+        }
+        let fallback = format_smolstr!("argument{position}");
+        let type_id = context.checked.tree[binder].type_id;
+        let name = context.type_parameter_name(type_id, fallback)?;
+        let parameter = context.fresh_parameter(name)?;
+        converted.push(context.pattern(PatternKind::Named { parameter, pattern }));
+    }
+    Ok(converted)
 }
 
 fn guarded_expression(
@@ -707,7 +742,7 @@ fn convert_expression(
             return Ok(context.parameter_abstraction([parameter], body));
         }
         checking_tree::ExpressionKind::Lambda { binders, expression } => {
-            let parameters = patterns(context, binders)?;
+            let parameters = function_patterns(context, binders)?;
             let body =
                 context.evidence_scope(|context| convert_expression(context, *expression))?;
             return Ok(context.abstraction(parameters, body));
@@ -1214,7 +1249,120 @@ where
     }
 
     fn evidence_parameter(&mut self, binder: EvidenceBinderId) -> ConversionResult<Parameter> {
-        self.parameter(BindingSource::Evidence(binder), format_smolstr!("dictionary{}", binder.0))
+        let constraint = self.checked.evidence[binder].constraint;
+        let name = self.evidence_parameter_name(constraint)?;
+        self.parameter(BindingSource::Evidence(binder), name)
+    }
+
+    fn evidence_parameter_name(&self, constraint: checking::TypeId) -> QueryResult<SmolStr> {
+        let mut current = constraint;
+        let mut arguments = vec![];
+        loop {
+            match self.queries.lookup_type(current) {
+                checking::Type::Application(function, argument) => {
+                    arguments.push(argument);
+                    current = function;
+                }
+                checking::Type::KindApplication(function, _)
+                | checking::Type::Kinded(function, _) => current = function,
+                checking::Type::Constructor(file_id, type_id) => {
+                    let Some(class_name) = self.type_item_name(file_id, type_id)? else {
+                        return Ok(SmolStr::new("dictionary"));
+                    };
+                    let Some(mut name) = lowercase_initial(&class_name) else {
+                        return Ok(SmolStr::new("dictionary"));
+                    };
+                    let mut fragments = 0;
+                    for argument in arguments.into_iter().rev() {
+                        self.append_evidence_type_name(&mut name, argument, &mut fragments)?;
+                    }
+                    name.push_str("Dict");
+                    return Ok(SmolStr::new(name));
+                }
+                _ => return Ok(SmolStr::new("dictionary")),
+            }
+        }
+    }
+
+    fn append_evidence_type_name(
+        &self,
+        name: &mut String,
+        type_id: checking::TypeId,
+        fragments: &mut usize,
+    ) -> QueryResult<()> {
+        if *fragments >= MAX_EVIDENCE_NAME_FRAGMENTS {
+            return Ok(());
+        }
+        match self.queries.lookup_type(type_id) {
+            checking::Type::Application(function, argument) => {
+                self.append_evidence_type_name(name, function, fragments)?;
+                self.append_evidence_type_name(name, argument, fragments)?;
+            }
+            checking::Type::KindApplication(function, _) | checking::Type::Kinded(function, _) => {
+                self.append_evidence_type_name(name, function, fragments)?;
+            }
+            checking::Type::Forall(_, inner) | checking::Type::Constrained(_, inner) => {
+                self.append_evidence_type_name(name, inner, fragments)?;
+            }
+            checking::Type::Function(_, _) => {
+                append_evidence_name_fragment(name, "Function", fragments)
+            }
+            checking::Type::Constructor(file_id, type_id) => {
+                if let Some(type_name) = self.type_item_name(file_id, type_id)? {
+                    append_evidence_name_fragment(name, &type_name, fragments);
+                }
+            }
+            checking::Type::Row(_) => append_evidence_name_fragment(name, "Row", fragments),
+            checking::Type::Rigid(rigid, _, _) => {
+                if let Some(type_name) = self.rigid_type_name(rigid)? {
+                    append_evidence_name_fragment(name, &type_name, fragments);
+                }
+            }
+            checking::Type::Integer(_)
+            | checking::Type::String(..)
+            | checking::Type::Unification(_)
+            | checking::Type::Free(_)
+            | checking::Type::Unknown(_) => {}
+        }
+        Ok(())
+    }
+
+    fn type_parameter_name(
+        &self,
+        type_id: checking::TypeId,
+        fallback: SmolStr,
+    ) -> QueryResult<SmolStr> {
+        let name = match self.queries.lookup_type(type_id) {
+            checking::Type::Application(function, _)
+            | checking::Type::KindApplication(function, _)
+            | checking::Type::Kinded(function, _)
+            | checking::Type::Forall(_, function)
+            | checking::Type::Constrained(_, function) => {
+                return self.type_parameter_name(function, fallback);
+            }
+            checking::Type::Function(_, _) => Some(SmolStr::new("function")),
+            checking::Type::Constructor(file_id, type_id) => self
+                .type_item_name(file_id, type_id)?
+                .and_then(|name| lowercase_initial(&name).map(SmolStr::new)),
+            checking::Type::Row(_) => Some(SmolStr::new("record")),
+            checking::Type::Rigid(rigid, _, _) => self.rigid_type_name(rigid)?,
+            checking::Type::Integer(_)
+            | checking::Type::String(..)
+            | checking::Type::Unification(_)
+            | checking::Type::Free(_)
+            | checking::Type::Unknown(_) => None,
+        };
+        let name = name.unwrap_or(fallback);
+        Ok(format_smolstr!("${name}"))
+    }
+
+    fn rigid_type_name(&self, rigid: checking::core::Name) -> QueryResult<Option<SmolStr>> {
+        let checked = if rigid.file == self.file_id {
+            Arc::clone(&self.checked)
+        } else {
+            self.queries.checked(rigid.file)?
+        };
+        Ok(checked.lookup_name(rigid).map(|name| self.queries.lookup_smol_str(name)))
     }
 
     fn parameter(&mut self, source: BindingSource, name: SmolStr) -> ConversionResult<Parameter> {
@@ -1319,6 +1467,15 @@ where
         }
     }
 
+    fn type_item_name(
+        &self,
+        file_id: FileId,
+        type_id: indexing::TypeItemId,
+    ) -> QueryResult<Option<SmolStr>> {
+        let indexed = self.indexed_module(file_id)?;
+        Ok(indexed.items[type_id].name.clone())
+    }
+
     fn term_global(&mut self, file_id: FileId, term_id: TermItemId) -> ConversionResult<Global> {
         let indexed = self.indexed_module(file_id)?;
         let item_name = if let Some(name) = &indexed.items[term_id].name {
@@ -1410,4 +1567,22 @@ where
     fn unsupported(&self, state: UnsupportedState) -> ConversionError {
         crate::ModuleError::Unsupported { file_id: self.file_id, state }.into()
     }
+}
+
+fn append_evidence_name_fragment(name: &mut String, fragment: &str, fragments: &mut usize) {
+    if *fragments >= MAX_EVIDENCE_NAME_FRAGMENTS {
+        return;
+    }
+    let mut characters = fragment.chars();
+    let Some(first) = characters.next() else { return };
+    name.extend(first.to_uppercase());
+    name.push_str(characters.as_str());
+    *fragments += 1;
+}
+
+fn lowercase_initial(name: &str) -> Option<String> {
+    let mut characters = name.chars();
+    let first = characters.next()?;
+    let first = first.to_lowercase().collect::<String>();
+    Some(format!("{first}{}", characters.as_str()))
 }

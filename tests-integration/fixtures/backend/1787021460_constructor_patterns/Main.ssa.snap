@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export constructor Empty/0;
@@ -11,12 +11,12 @@ expression: ssa_report
 
 @export constructor Outer/1;
 
-@export function first(argument0) {
+@export function first($choice) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.constructor(argument0, Empty);
+    const matches = pattern.constructor($choice, Empty);
     if (matches) {
       match$success();
     } else {
@@ -24,7 +24,7 @@ expression: ssa_report
     }
   }
   case$1() {
-    const matches$1 = pattern.constructor(argument0, One);
+    const matches$1 = pattern.constructor($choice, One);
     if (matches$1) {
       match$success$1();
     } else {
@@ -32,7 +32,7 @@ expression: ssa_report
     }
   }
   case$2() {
-    const matches$2 = pattern.constructor(argument0, Pair);
+    const matches$2 = pattern.constructor($choice, Pair);
     if (matches$2) {
       match$success$2();
     } else {
@@ -50,18 +50,18 @@ expression: ssa_report
     case$join(Empty);
   }
   match$success$1() {
-    const value = pattern.argument(argument0, One, 0);
+    const value = pattern.argument($choice, One, 0);
     const One = constructor(One);
     const call = source.call(One, value);
     case$join(call);
   }
   match$success$2() {
-    const left = pattern.argument(argument0, Pair, 0);
-    const argument = pattern.argument(argument0, Pair, 1);
+    const left = pattern.argument($choice, Pair, 0);
+    const argument = pattern.argument($choice, Pair, 1);
     case$0$1();
   }
   case$0$1() {
-    const matches$3 = pattern.constructor(argument0, Pair);
+    const matches$3 = pattern.constructor($choice, Pair);
     if (matches$3) {
       match$success$3();
     } else {
@@ -79,8 +79,8 @@ expression: ssa_report
     case$join(result$1);
   }
   match$success$3() {
-    const argument$1 = pattern.argument(argument0, Pair, 0);
-    const argument$2 = pattern.argument(argument0, Pair, 1);
+    const argument$1 = pattern.argument($choice, Pair, 0);
+    const argument$2 = pattern.argument($choice, Pair, 1);
     const One$1 = constructor(One);
     const call$1 = source.call(One$1, left);
     case$join$1(call$1);
@@ -93,12 +93,12 @@ expression: ssa_report
   }
 }
 
-@export function nested(argument0) {
+@export function nested($nested) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.constructor(argument0, Outer);
+    const matches = pattern.constructor($nested, Outer);
     if (matches) {
       match$success();
     } else {
@@ -116,7 +116,7 @@ expression: ssa_report
     return result;
   }
   match$success() {
-    const argument = pattern.argument(argument0, Outer, 0);
+    const argument = pattern.argument($nested, Outer, 0);
     const matches$1 = pattern.constructor(argument, One);
     if (matches$1) {
       match$success$1();

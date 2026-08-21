@@ -2,8 +2,8 @@ import * as Data_Show from "../Data.Show/index.js";
 
 export const Box = ["Box"];
 
-export function showIdentity(dictionary1) {
-  return dictionary1;
+export function showIdentity(showADict) {
+  return showADict;
 }
 
 export const eqBox = (() => {

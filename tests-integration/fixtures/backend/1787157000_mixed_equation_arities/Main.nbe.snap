@@ -3,9 +3,9 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export choose = \argument0%0 argument1%1 ->
-  case argument0%0, argument1%1 of
+@export choose = \$int%0 $int%1 ->
+  case $int%0, $int%1 of
     0, _ ->
-      (\value%2 -> value%2) argument1%1
+      (\value%2 -> value%2) $int%1
     left%3, _ ->
       left%3

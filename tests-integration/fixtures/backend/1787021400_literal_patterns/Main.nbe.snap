@@ -3,36 +3,36 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export integer = \argument0%0 ->
-  case argument0%0 of
+@export integer = \$int%0 ->
+  case $int%0 of
     0 ->
       true
     _ ->
       false
 
-@export number = \argument0%1 ->
-  case argument0%1 of
+@export number = \$number%1 ->
+  case $number%1 of
     1.5 ->
       true
     _ ->
       false
 
-@export character = \argument0%2 ->
-  case argument0%2 of
+@export character = \$char%2 ->
+  case $char%2 of
     'a' ->
       true
     _ ->
       false
 
-@export string = \argument0%3 ->
-  case argument0%3 of
+@export string = \$string%3 ->
+  case $string%3 of
     "alexandrite" ->
       true
     _ ->
       false
 
-@export boolean = \argument0%4 ->
-  case argument0%4 of
+@export boolean = \$boolean%4 ->
+  case $boolean%4 of
     true ->
       true
     false ->

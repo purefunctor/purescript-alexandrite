@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export constructor Box/0;
@@ -25,9 +25,9 @@ expression: ssa_report
   }
 }
 
-@export instance function showIdentity(dictionary1) {
+@export instance function showIdentity(showADict) {
   entry() {
-    return dictionary1;
+    return showADict;
   }
 }
 

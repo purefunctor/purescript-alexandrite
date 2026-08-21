@@ -1,12 +1,12 @@
-export function choose(argument0) {
-  return argument1 => {
-    if (argument0 === (0 | 0)) {
+export function choose($int) {
+  return $int$1 => {
+    if ($int === (0 | 0)) {
       function choose$closure(value) {
         return value;
       }
-      return choose$closure(argument1);
+      return choose$closure($int$1);
     } else {
-      return argument0;
+      return $int;
     }
   };
 }

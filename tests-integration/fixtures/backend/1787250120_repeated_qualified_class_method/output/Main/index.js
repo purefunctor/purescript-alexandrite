@@ -1,18 +1,18 @@
 import * as Data_Eq from "../Data.Eq/index.js";
 
-export function compareTwice(dictionary0) {
-  function compareTwice$closure(dictionary0) {
+export function compareTwice(eqADict) {
+  function compareTwice$closure(eqADict) {
     return left => {
       return right => {
-        if (dictionary0.eq(left)(right)) {
-          return dictionary0.eq(right)(left);
+        if (eqADict.eq(left)(right)) {
+          return eqADict.eq(right)(left);
         } else {
           return false;
         }
       };
     };
   }
-  return compareTwice$closure(dictionary0);
+  return compareTwice$closure(eqADict);
 }
 
 export function compareIntsTwice(left) {
@@ -42,11 +42,11 @@ export function compareArraysOnce(left) {
   };
 }
 
-export function compareGenericArraysTwice(dictionary1) {
-  function compareGenericArraysTwice$closure(dictionary1) {
+export function compareGenericArraysTwice(eqADict) {
+  function compareGenericArraysTwice$closure(eqADict) {
     return left => {
       return right => {
-        const call = Data_Eq.eqArray(dictionary1);
+        const call = Data_Eq.eqArray(eqADict);
         if (call.eq(left)(right)) {
           return call.eq(right)(left);
         } else {
@@ -55,7 +55,7 @@ export function compareGenericArraysTwice(dictionary1) {
       };
     };
   }
-  return compareGenericArraysTwice$closure(dictionary1);
+  return compareGenericArraysTwice$closure(eqADict);
 }
 
 export function compareNestedArraysTwice(left) {
@@ -74,9 +74,9 @@ export function compareNestedArraysTwice(left) {
   };
 }
 
-export function distinctGivens(dictionary2) {
-  return dictionary3 => {
-    function distinctGivens$closure(dictionary2, dictionary3) {
+export function distinctGivens(eqADict) {
+  return eqBDict => {
+    function distinctGivens$closure(eqADict, eqBDict) {
       return leftA => {
         return rightA => {
           return leftB => {
@@ -85,8 +85,8 @@ export function distinctGivens(dictionary2) {
                 return result$1;
               }
 
-              const call = Data_Eq.eqArray(dictionary2);
-              const call$1 = Data_Eq.eqArray(dictionary3);
+              const call = Data_Eq.eqArray(eqADict);
+              const call$1 = Data_Eq.eqArray(eqBDict);
               if (call.eq(leftA)(rightA)) {
                 return call.eq(rightA)(leftA);
               } else {
@@ -101,7 +101,7 @@ export function distinctGivens(dictionary2) {
         };
       };
     }
-    return distinctGivens$closure(dictionary2, dictionary3);
+    return distinctGivens$closure(eqADict, eqBDict);
   };
 }
 
@@ -159,11 +159,11 @@ export function compareNestedArraysWhole(left) {
   };
 }
 
-export function compareSuperclassArraysTwice(dictionary4) {
-  function compareSuperclassArraysTwice$closure(dictionary4) {
+export function compareSuperclassArraysTwice(orderedADict) {
+  function compareSuperclassArraysTwice$closure(orderedADict) {
     return left => {
       return right => {
-        const call = Data_Eq.eqArray(dictionary4.superclass62);
+        const call = Data_Eq.eqArray(orderedADict.superclass62);
         if (call.eq(left)(right)) {
           return call.eq(right)(left);
         } else {
@@ -172,22 +172,22 @@ export function compareSuperclassArraysTwice(dictionary4) {
       };
     };
   }
-  return compareSuperclassArraysTwice$closure(dictionary4);
+  return compareSuperclassArraysTwice$closure(orderedADict);
 }
 
-export function compareSuperclassTwice(dictionary5) {
-  function compareSuperclassTwice$closure(dictionary5) {
+export function compareSuperclassTwice(orderedADict) {
+  function compareSuperclassTwice$closure(orderedADict) {
     return left => {
       return right => {
-        if (dictionary5.superclass62.eq(left)(right)) {
-          return dictionary5.superclass62.eq(right)(left);
+        if (orderedADict.superclass62.eq(left)(right)) {
+          return orderedADict.superclass62.eq(right)(left);
         } else {
           return false;
         }
       };
     };
   }
-  return compareSuperclassTwice$closure(dictionary5);
+  return compareSuperclassTwice$closure(orderedADict);
 }
 
 export function lambdaScope(left) {
@@ -225,15 +225,15 @@ export function whereIsolation(left) {
   };
 }
 
-export function equationScope(argument0) {
-  return argument1 => {
-    return argument2 => {
+export function equationScope($boolean) {
+  return $array => {
+    return $array$1 => {
       const call = Data_Eq.eqArray(Data_Eq.eqInt);
-      if (argument0 === true) {
-        return call.eq(argument1)(argument2);
+      if ($boolean === true) {
+        return call.eq($array)($array$1);
       } else {
-        if (argument0 === false) {
-          return call.eq(argument2)(argument1);
+        if ($boolean === false) {
+          return call.eq($array$1)($array);
         } else {
           throw new Error("Pattern match failure");
         }

@@ -1,11 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
-@export function unbox(argument0) {
+@export function unbox($box) {
   entry() {
-    const matches = pattern.constructor(argument0, Box);
+    const matches = pattern.constructor($box, Box);
     if (matches) {
       match$success();
     } else {
@@ -16,7 +16,7 @@ expression: ssa_report
     throw patternMatchFailure();
   }
   match$success() {
-    const value = pattern.argument(argument0, Box, 0);
+    const value = pattern.argument($box, Box, 0);
     return value;
   }
 }

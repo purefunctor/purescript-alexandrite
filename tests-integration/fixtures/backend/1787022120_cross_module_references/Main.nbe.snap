@@ -3,7 +3,7 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export unbox = \(Box value%0) -> value%0
+@export unbox = \$box%1@(Box value%0) -> value%0
 
 @export fromLibrary = unbox box
 

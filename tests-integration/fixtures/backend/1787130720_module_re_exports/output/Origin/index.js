@@ -9,7 +9,7 @@ export function visible(value) {
 }
 
 export function append(left) {
-  return argument1 => {
+  return $int => {
     return left;
   };
 }

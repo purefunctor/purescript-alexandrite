@@ -3,8 +3,8 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export describe = \argument0%0 ->
-  case argument0%0 of
+@export describe = \$array%0 ->
+  case $array%0 of
     [] ->
       0
     [value%1] ->

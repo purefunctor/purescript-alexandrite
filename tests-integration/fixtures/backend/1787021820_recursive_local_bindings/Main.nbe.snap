@@ -5,14 +5,14 @@ expression: report
 ---
 @export mutual = \condition%1 ->
   let
-    rec second%2 = \argument0%3 ->
-      case argument0%3 of
+    rec second%2 = \$boolean%3 ->
+      case $boolean%3 of
         true ->
           2
         false ->
           first%0 true
-    rec first%0 = \argument0%4 ->
-      case argument0%4 of
+    rec first%0 = \$boolean%4 ->
+      case $boolean%4 of
         true ->
           1
         false ->
@@ -21,14 +21,14 @@ expression: report
 
 @export capturedMutual = \captured%9 condition%6 ->
   let
-    rec second%7 = \argument0%8 ->
-      case argument0%8 of
+    rec second%7 = \$boolean%8 ->
+      case $boolean%8 of
         true ->
           captured%9
         false ->
           first%5 true
-    rec first%5 = \argument0%10 ->
-      case argument0%10 of
+    rec first%5 = \$boolean%10 ->
+      case $boolean%10 of
         true ->
           captured%9
         false ->

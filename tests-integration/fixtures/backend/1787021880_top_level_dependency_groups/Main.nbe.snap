@@ -7,15 +7,15 @@ expression: report
 
 @export later = 42
 
-@export recursive[2] first = \argument0%0 ->
-  case argument0%0 of
+@export recursive[2] first = \$boolean%0 ->
+  case $boolean%0 of
     true ->
       1
     false ->
       second true
 
-@export recursive[2] second = \argument0%1 ->
-  case argument0%1 of
+@export recursive[2] second = \$boolean%1 ->
+  case $boolean%1 of
     true ->
       2
     false ->

@@ -1,7 +1,7 @@
-export function eqRec(dictionary0) {
-  return dictionary1 => {
-    function eqRec$closure(argument0) {
-      return argument1 => {
+export function eqRec(rowToListRowListDict) {
+  return eqRecordListRowDict => {
+    function eqRec$closure($record) {
+      return $record$1 => {
         return true;
       };
     }
@@ -9,13 +9,13 @@ export function eqRec(dictionary0) {
   };
 }
 
-export function eqRecordConsType(dictionary2) {
-  return dictionary3 => {
-    return dictionary4 => {
-      return dictionary5 => {
-        function eqRecordConsType$closure(argument0) {
-          return argument1 => {
-            return argument2 => {
+export function eqRecordConsType(eqRecordRowlistTailRowDict) {
+  return consKeyFocusRowTailRowDict => {
+    return isSymbolKeyDict => {
+      return eqFocusDict => {
+        function eqRecordConsType$closure($cons) {
+          return $record => {
+            return $record$1 => {
               return true;
             };
           };
@@ -27,8 +27,8 @@ export function eqRecordConsType(dictionary2) {
 }
 
 export const eqInt = (() => {
-  function eqInt$initialize$closure(argument0) {
-    return argument1 => {
+  function eqInt$initialize$closure($int) {
+    return $int$1 => {
       return true;
     };
   }
@@ -36,8 +36,8 @@ export const eqInt = (() => {
 })();
 
 export const eqBoolean = (() => {
-  function eqBoolean$initialize$closure(argument0) {
-    return argument1 => {
+  function eqBoolean$initialize$closure($boolean) {
+    return $boolean$1 => {
       return true;
     };
   }
@@ -45,9 +45,9 @@ export const eqBoolean = (() => {
 })();
 
 export const eqRecordNilType = (() => {
-  function eqRecordNilType$initialize$closure(argument0) {
-    return argument1 => {
-      return argument2 => {
+  function eqRecordNilType$initialize$closure($nil) {
+    return $record => {
+      return $record$1 => {
         return true;
       };
     };

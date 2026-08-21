@@ -186,7 +186,7 @@ closure inlineClosure$closure[](item) {
   }
 }
 
-closure inlineCapturedClosure$closure[captured](argument0) {
+closure inlineCapturedClosure$closure[captured]($boolean) {
   entry() {
     return captured;
   }

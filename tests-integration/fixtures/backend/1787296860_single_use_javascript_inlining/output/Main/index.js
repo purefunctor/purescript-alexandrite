@@ -41,7 +41,7 @@ export function inlineRecord(value) {
 
 export function inlineCapturedClosure(captured) {
   function inlineCapturedClosure$closure(captured) {
-    return argument0 => {
+    return $boolean => {
       return captured;
     };
   }

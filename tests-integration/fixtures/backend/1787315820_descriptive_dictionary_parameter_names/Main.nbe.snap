@@ -5,28 +5,32 @@ expression: report
 ---
 @export constructor Wrapper/1
 
-@export genericEqual = \dictionary0%0 -> \left%1 right%2 -> dictionary0%0.equal left%1 right%2
+@export genericEqual = \equalValueDict%0 -> \left%1 right%2 -> equalValueDict%0.equal left%1 right%2
 
-@export arrayEqual = \dictionary1%3 -> \left%4 right%5 -> dictionary1%3.equal left%4 right%5
+@export arrayEqual = \equalArrayValueDict%3 ->
+  \left%4 right%5 -> equalArrayValueDict%3.equal left%4 right%5
 
-@export wrapperEqual = \dictionary2%6 -> \left%7 right%8 -> dictionary2%6.equal left%7 right%8
+@export wrapperEqual = \equalWrapperValueDict%6 ->
+  \left%7 right%8 -> equalWrapperValueDict%6.equal left%7 right%8
 
-@export concreteEqual = \dictionary3%9 -> \left%10 right%11 -> dictionary3%9.equal left%10 right%11
+@export concreteEqual = \equalIntDict%9 ->
+  \left%10 right%11 -> equalIntDict%9.equal left%10 right%11
 
-@export convertToInt = \dictionary4%12 -> \value%13 -> dictionary4%12.convert value%13
+@export convertToInt = \convertValueIntDict%12 ->
+  \value%13 -> convertValueIntDict%12.convert value%13
 
-@export distinctEqual = \dictionary5%14 dictionary6%17 ->
+@export distinctEqual = \equalLeftDict%14 equalRightDict%17 ->
   \left1%15 left2%16 right1%18 right2%19 ->
     {
-      left: dictionary5%14.equal left1%15 left2%16,
-      right: dictionary6%17.equal right1%18 right2%19
+      left: equalLeftDict%14.equal left1%15 left2%16,
+      right: equalRightDict%17.equal right1%18 right2%19
     }
 
-@export duplicateEqual = \dictionary7%23 dictionary8%20 ->
-  \left%21 right%22 -> dictionary8%20.equal left%21 right%22
+@export duplicateEqual = \equalValueDict%23 equalValueDict%20 ->
+  \left%21 right%22 -> equalValueDict%20.equal left%21 right%22
 
-@export parameterCollision = \dictionary9%25 ->
+@export parameterCollision = \equalValueDict%25 ->
   \equalValueDict%24 left%26 right%27 ->
-    if equalValueDict%24 then dictionary9%25.equal left%26 right%27 else false
+    if equalValueDict%24 then equalValueDict%25.equal left%26 right%27 else false
 
-@export isAvailable = \dictionary10%28 -> dictionary10%28.available
+@export isAvailable = \availableDict%28 -> availableDict%28.available

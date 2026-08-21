@@ -9,28 +9,28 @@ expression: report
 
 @export constructor Box/1
 
-@export multiEquation = \argument0%0 ->
-  case argument0%0 of
+@export multiEquation = \$choice%0 ->
+  case $choice%0 of
     None ->
       0
     Some value%1 ->
       value%1
 
-@export mixedArity = \argument0%2 argument1%3 ->
-  case argument0%2, argument1%3 of
+@export mixedArity = \$boolean%2 $int%3 ->
+  case $boolean%2, $int%3 of
     true, _ ->
-      (\value%4 -> value%4) argument1%3
+      (\value%4 -> value%4) $int%3
     false, value%5 ->
       value%5
 
-@export singleConstructor = \(Box value%6) -> value%6
+@export singleConstructor = \$box%7@(Box value%6) -> value%6
 
-@export singleWildcards = \_ _ -> true
+@export singleWildcards = \$int%8@(_) $int%9@(_) -> true
 
-@export functionWildcard = \_ -> 0
+@export functionWildcard = \$function%10@(_) -> 0
 
-@export rigidWildcard = \_ -> true
+@export rigidWildcard = \$value%11@(_) -> true
 
-@export namedPattern = \record%7@({ value: _ }) -> record%7
+@export namedPattern = \record%12@({ value: _ }) -> record%12
 
-@export capture = \captured%8 _ -> captured%8
+@export capture = \captured%13 $boolean%14@(_) -> captured%13

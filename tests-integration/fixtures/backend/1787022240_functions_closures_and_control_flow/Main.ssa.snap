@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export function apply(function, value) {
@@ -88,7 +88,7 @@ expression: ssa_report
   }
 }
 
-closure capture$closure[captured](argument0) {
+closure capture$closure[captured]($int) {
   entry() {
     return captured;
   }

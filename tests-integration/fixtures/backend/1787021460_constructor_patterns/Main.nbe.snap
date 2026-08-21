@@ -11,8 +11,8 @@ expression: report
 
 @export constructor Outer/1
 
-@export first = \argument0%0 ->
-  case argument0%0 of
+@export first = \$choice%0 ->
+  case $choice%0 of
     Empty ->
       Empty
     One value%1 ->
@@ -26,8 +26,8 @@ expression: report
 
 @export unwrap = \value%4 -> value%4
 
-@export nested = \argument0%5 ->
-  case argument0%5 of
+@export nested = \$nested%5 ->
+  case $nested%5 of
     Outer (One value%6) ->
       One value%6
     _ ->

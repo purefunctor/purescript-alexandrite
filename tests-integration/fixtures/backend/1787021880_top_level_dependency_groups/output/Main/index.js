@@ -1,8 +1,8 @@
-export function first(argument0) {
-  if (argument0 === true) {
+export function first($boolean) {
+  if ($boolean === true) {
     return 1 | 0;
   } else {
-    if (argument0 === false) {
+    if ($boolean === false) {
       return second(true);
     } else {
       throw new Error("Pattern match failure");
@@ -10,11 +10,11 @@ export function first(argument0) {
   }
 }
 
-export function second(argument0) {
-  if (argument0 === true) {
+export function second($boolean) {
+  if ($boolean === true) {
     return 2 | 0;
   } else {
-    if (argument0 === false) {
+    if ($boolean === false) {
       return first(true);
     } else {
       throw new Error("Pattern match failure");

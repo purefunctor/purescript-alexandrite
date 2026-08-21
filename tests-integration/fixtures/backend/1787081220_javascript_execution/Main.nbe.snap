@@ -36,47 +36,47 @@ expression: report
 
 @export readProto = \value%1 -> value%1.__proto__
 
-@export capture = \captured%2 -> \_ -> captured%2
+@export capture = \captured%3 -> \$int%2@(_) -> captured%3
 
-@export apply = \function%3 value%4 -> function%3 value%4
+@export apply = \function%4 value%5 -> function%4 value%5
 
-@export addCaptured = \amount%6 -> \value%5 -> addInt amount%6 value%5
+@export addCaptured = \amount%7 -> \value%6 -> addInt amount%7 value%6
 
 @export curried = apply (addCaptured 2) 40
 
-@export nestedJoin = \outer%7 inner%10 ->
-  if outer%7
+@export nestedJoin = \outer%8 inner%11 ->
+  if outer%8
     then let
-      captured%8 = foreignValue
+      captured%9 = foreignValue
     in let
-      result%9 = if inner%10 then 1 else 2
-    in addInt captured%8 result%9
+      result%10 = if inner%11 then 1 else 2
+    in addInt captured%9 result%10
     else 0
 
-@export recursive[19] countdown = \value%11 ->
-  if equalInt value%11 0 then 0 else addInt 1 (countdown (decrementInt value%11))
+@export recursive[19] countdown = \value%12 ->
+  if equalInt value%12 0 then 0 else addInt 1 (countdown (decrementInt value%12))
 
-@export recursive[20] isEven = \value%12 ->
-  if equalInt value%12 0 then true else isOdd (decrementInt value%12)
+@export recursive[20] isEven = \value%13 ->
+  if equalInt value%13 0 then true else isOdd (decrementInt value%13)
 
-@export recursive[20] isOdd = \value%13 ->
-  if equalInt value%13 0 then false else isEven (decrementInt value%13)
+@export recursive[20] isOdd = \value%14 ->
+  if equalInt value%14 0 then false else isEven (decrementInt value%14)
 
-@export capturedMutual = \captured%18 condition%15 ->
+@export capturedMutual = \captured%19 condition%16 ->
   let
-    rec localSecond%16 = \argument0%17 ->
-      case argument0%17 of
+    rec localSecond%17 = \$boolean%18 ->
+      case $boolean%18 of
         true ->
-          captured%18
+          captured%19
         false ->
-          localFirst%14 true
-    rec localFirst%14 = \argument0%19 ->
-      case argument0%19 of
+          localFirst%15 true
+    rec localFirst%15 = \$boolean%20 ->
+      case $boolean%20 of
         true ->
-          captured%18
+          captured%19
         false ->
-          localSecond%16 true
-  in localFirst%14 condition%15
+          localSecond%17 true
+  in localFirst%15 condition%16
 
 @export constructor None/0
 
@@ -84,16 +84,16 @@ expression: report
 
 @export pair = Pair 7 8
 
-@export first = \choice%20 ->
-  case choice%20 of
+@export first = \choice%21 ->
+  case choice%21 of
     None ->
       0
-    Pair left%21 _ ->
-      left%21
+    Pair left%22 _ ->
+      left%22
 
-@export partialPattern = \(Pair left%22 _) -> left%22
+@export partialPattern = \$choice%24@(Pair left%23 _) -> left%23
 
-@export unwrapWrapped = \(Wrapped value%23) -> value%23
+@export unwrapWrapped = \$wrapped%26@(Wrapped value%25) -> value%25
 
 @export crossModule = unwrapWrapped wrapped
 

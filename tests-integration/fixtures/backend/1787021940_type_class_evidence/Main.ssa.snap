@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export foreign const equalInt;
@@ -24,9 +24,9 @@ expression: ssa_report
   }
 }
 
-@export function genericEqual(dictionary0) {
+@export function genericEqual(equalADict) {
   entry() {
-    const closure = closure(genericEqual$closure, dictionary0);
+    const closure = closure(genericEqual$closure, equalADict);
     return closure;
   }
 }
@@ -55,25 +55,25 @@ expression: ssa_report
   }
 }
 
-@export function superclassEqual(dictionary1) {
+@export function superclassEqual(orderedADict) {
   entry() {
-    const closure = closure(superclassEqual$closure, dictionary1);
+    const closure = closure(superclassEqual$closure, orderedADict);
     return closure;
   }
 }
 
-closure genericEqual$closure[dictionary0](left, right) {
+closure genericEqual$closure[equalADict](left, right) {
   entry() {
-    const equal = dictionary0.equal;
+    const equal = equalADict.equal;
     const call = source.call(equal, left);
     const call$1 = source.call(call, right);
     return call$1;
   }
 }
 
-closure superclassEqual$closure[dictionary1](left, right) {
+closure superclassEqual$closure[orderedADict](left, right) {
   entry() {
-    const superclass17 = dictionary1.superclass17;
+    const superclass17 = orderedADict.superclass17;
     const equal = superclass17.equal;
     const call = source.call(equal, left);
     const call$1 = source.call(call, right);

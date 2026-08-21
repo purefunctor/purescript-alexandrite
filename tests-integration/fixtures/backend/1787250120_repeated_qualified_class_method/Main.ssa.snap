@@ -3,9 +3,9 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 256
 expression: ssa_report
 ---
-@export function compareTwice(dictionary0) {
+@export function compareTwice(eqADict) {
   entry() {
-    const closure = closure(compareTwice$closure, dictionary0);
+    const closure = closure(compareTwice$closure, eqADict);
     return closure;
   }
 }
@@ -79,9 +79,9 @@ expression: ssa_report
   }
 }
 
-@export function compareGenericArraysTwice(dictionary1) {
+@export function compareGenericArraysTwice(eqADict) {
   entry() {
-    const closure = closure(compareGenericArraysTwice$closure, dictionary1);
+    const closure = closure(compareGenericArraysTwice$closure, eqADict);
     return closure;
   }
 }
@@ -119,9 +119,9 @@ expression: ssa_report
   }
 }
 
-@export function distinctGivens(dictionary2, dictionary3) {
+@export function distinctGivens(eqADict, eqBDict) {
   entry() {
-    const closure = closure(distinctGivens$closure, dictionary2, dictionary3);
+    const closure = closure(distinctGivens$closure, eqADict, eqBDict);
     return closure;
   }
 }
@@ -254,16 +254,16 @@ expression: ssa_report
   }
 }
 
-@export function compareSuperclassArraysTwice(dictionary4) {
+@export function compareSuperclassArraysTwice(orderedADict) {
   entry() {
-    const closure = closure(compareSuperclassArraysTwice$closure, dictionary4);
+    const closure = closure(compareSuperclassArraysTwice$closure, orderedADict);
     return closure;
   }
 }
 
-@export function compareSuperclassTwice(dictionary5) {
+@export function compareSuperclassTwice(orderedADict) {
   entry() {
-    const closure = closure(compareSuperclassTwice$closure, dictionary5);
+    const closure = closure(compareSuperclassTwice$closure, orderedADict);
     return closure;
   }
 }
@@ -326,7 +326,7 @@ expression: ssa_report
   }
 }
 
-@export function equationScope(argument0, argument1, argument2) {
+@export function equationScope($boolean, $array, $array$1) {
   entry() {
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
@@ -334,7 +334,7 @@ expression: ssa_report
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -342,7 +342,7 @@ expression: ssa_report
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {
@@ -357,14 +357,14 @@ expression: ssa_report
   }
   match$success() {
     const eq = call.eq;
-    const call$1 = source.call(eq, argument1);
-    const call$2 = source.call(call$1, argument2);
+    const call$1 = source.call(eq, $array);
+    const call$2 = source.call(call$1, $array$1);
     case$join(call$2);
   }
   match$success$1() {
     const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, argument2);
-    const call$4 = source.call(call$3, argument1);
+    const call$3 = source.call(eq$1, $array$1);
+    const call$4 = source.call(call$3, $array);
     case$join(call$4);
   }
 }
@@ -393,9 +393,9 @@ expression: ssa_report
   }
 }
 
-closure compareTwice$closure[dictionary0](left, right) {
+closure compareTwice$closure[eqADict](left, right) {
   entry() {
-    const eq = dictionary0.eq;
+    const eq = eqADict.eq;
     const call = source.call(eq, left);
     const call$1 = source.call(call, right);
     if (call$1) {
@@ -405,7 +405,7 @@ closure compareTwice$closure[dictionary0](left, right) {
     }
   }
   then() {
-    const eq$1 = dictionary0.eq;
+    const eq$1 = eqADict.eq;
     const call$2 = source.call(eq$1, right);
     const call$3 = source.call(call$2, left);
     if$join(call$3);
@@ -419,10 +419,10 @@ closure compareTwice$closure[dictionary0](left, right) {
   }
 }
 
-closure compareGenericArraysTwice$closure[dictionary1](left, right) {
+closure compareGenericArraysTwice$closure[eqADict](left, right) {
   entry() {
     const eqArray = global(eqArray);
-    const call = source.call(eqArray, dictionary1);
+    const call = source.call(eqArray, eqADict);
     const eq = call.eq;
     const call$1 = source.call(eq, left);
     const call$2 = source.call(call$1, right);
@@ -447,12 +447,12 @@ closure compareGenericArraysTwice$closure[dictionary1](left, right) {
   }
 }
 
-closure distinctGivens$closure[dictionary2, dictionary3](leftA, rightA, leftB, rightB) {
+closure distinctGivens$closure[eqADict, eqBDict](leftA, rightA, leftB, rightB) {
   entry() {
     const eqArray = global(eqArray);
-    const call = source.call(eqArray, dictionary2);
+    const call = source.call(eqArray, eqADict);
     const eqArray$1 = global(eqArray);
-    const call$1 = source.call(eqArray$1, dictionary3);
+    const call$1 = source.call(eqArray$1, eqBDict);
     const eq = call.eq;
     const call$2 = source.call(eq, leftA);
     const call$3 = source.call(call$2, rightA);
@@ -496,10 +496,10 @@ closure distinctGivens$closure[dictionary2, dictionary3](leftA, rightA, leftB, r
   }
 }
 
-closure compareSuperclassArraysTwice$closure[dictionary4](left, right) {
+closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
   entry() {
     const eqArray = global(eqArray);
-    const superclass62 = dictionary4.superclass62;
+    const superclass62 = orderedADict.superclass62;
     const call = source.call(eqArray, superclass62);
     const eq = call.eq;
     const call$1 = source.call(eq, left);
@@ -525,9 +525,9 @@ closure compareSuperclassArraysTwice$closure[dictionary4](left, right) {
   }
 }
 
-closure compareSuperclassTwice$closure[dictionary5](left, right) {
+closure compareSuperclassTwice$closure[orderedADict](left, right) {
   entry() {
-    const superclass62 = dictionary5.superclass62;
+    const superclass62 = orderedADict.superclass62;
     const eq = superclass62.eq;
     const call = source.call(eq, left);
     const call$1 = source.call(call, right);
@@ -538,7 +538,7 @@ closure compareSuperclassTwice$closure[dictionary5](left, right) {
     }
   }
   then() {
-    const superclass62$1 = dictionary5.superclass62;
+    const superclass62$1 = orderedADict.superclass62;
     const eq$1 = superclass62$1.eq;
     const call$2 = source.call(eq$1, right);
     const call$3 = source.call(call$2, left);
