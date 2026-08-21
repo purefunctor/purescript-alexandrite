@@ -28,12 +28,10 @@ function compareGenericArraysTwice$closure(dictionary1) {
       const call$1 = eq(left);
       const call$2 = call$1(right);
       if (call$2) {
-        const eqArray$1 = Data_Eq.eqArray;
-        const call$3 = eqArray$1(dictionary1);
-        const eq$1 = call$3.eq;
-        const call$4 = eq$1(right);
-        const call$5 = call$4(left);
-        return call$5;
+        const eq$1 = call.eq;
+        const call$3 = eq$1(right);
+        const call$4 = call$3(left);
+        return call$4;
       } else {
         const literal = false;
         return literal;
@@ -53,29 +51,25 @@ function distinctGivens$closure(dictionary2, dictionary3) {
 
           const eqArray = Data_Eq.eqArray;
           const call = eqArray(dictionary2);
+          const eqArray$1 = Data_Eq.eqArray;
+          const call$1 = eqArray$1(dictionary3);
           const eq = call.eq;
-          const call$1 = eq(leftA);
-          const call$2 = call$1(rightA);
-          if (call$2) {
-            const eqArray$1 = Data_Eq.eqArray;
-            const call$3 = eqArray$1(dictionary2);
-            const eq$1 = call$3.eq;
+          const call$2 = eq(leftA);
+          const call$3 = call$2(rightA);
+          if (call$3) {
+            const eq$1 = call.eq;
             const call$4 = eq$1(rightA);
             const call$5 = call$4(leftA);
             return call$5;
           } else {
-            const eqArray$2 = Data_Eq.eqArray;
-            const call$6 = eqArray$2(dictionary3);
-            const eq$2 = call$6.eq;
-            const call$7 = eq$2(leftB);
-            const call$8 = call$7(rightB);
-            if (call$8) {
-              const eqArray$3 = Data_Eq.eqArray;
-              const call$9 = eqArray$3(dictionary3);
-              const eq$3 = call$9.eq;
-              const call$10 = eq$3(rightB);
-              const call$11 = call$10(leftB);
-              return if$join$1(call$11);
+            const eq$2 = call$1.eq;
+            const call$6 = eq$2(leftB);
+            const call$7 = call$6(rightB);
+            if (call$7) {
+              const eq$3 = call$1.eq;
+              const call$8 = eq$3(rightB);
+              const call$9 = call$8(leftB);
+              return if$join$1(call$9);
             } else {
               const literal = false;
               return if$join$1(literal);
@@ -97,13 +91,10 @@ function compareSuperclassArraysTwice$closure(dictionary4) {
       const call$1 = eq(left);
       const call$2 = call$1(right);
       if (call$2) {
-        const eqArray$1 = Data_Eq.eqArray;
-        const superclass62$1 = dictionary4.superclass62;
-        const call$3 = eqArray$1(superclass62$1);
-        const eq$1 = call$3.eq;
-        const call$4 = eq$1(right);
-        const call$5 = call$4(left);
-        return call$5;
+        const eq$1 = call.eq;
+        const call$3 = eq$1(right);
+        const call$4 = call$3(left);
+        return call$4;
       } else {
         const literal = false;
         return literal;
@@ -142,13 +133,10 @@ function lambdaScope$closure(lambdaLeft) {
     const call$1 = eq(lambdaLeft);
     const call$2 = call$1(lambdaRight);
     if (call$2) {
-      const eqArray$1 = Data_Eq.eqArray;
-      const eqInt$1 = Data_Eq.eqInt;
-      const call$3 = eqArray$1(eqInt$1);
-      const eq$1 = call$3.eq;
-      const call$4 = eq$1(lambdaRight);
-      const call$5 = call$4(lambdaLeft);
-      return call$5;
+      const eq$1 = call.eq;
+      const call$3 = eq$1(lambdaRight);
+      const call$4 = call$3(lambdaLeft);
+      return call$4;
     } else {
       const literal = false;
       return literal;
@@ -201,13 +189,10 @@ export function compareArraysTwice(left) {
     const call$1 = eq(left);
     const call$2 = call$1(right);
     if (call$2) {
-      const eqArray$1 = Data_Eq.eqArray;
-      const eqInt$1 = Data_Eq.eqInt;
-      const call$3 = eqArray$1(eqInt$1);
-      const eq$1 = call$3.eq;
-      const call$4 = eq$1(right);
-      const call$5 = call$4(left);
-      return call$5;
+      const eq$1 = call.eq;
+      const call$3 = eq$1(right);
+      const call$4 = call$3(left);
+      return call$4;
     } else {
       const literal = false;
       return literal;
@@ -237,31 +222,23 @@ export function compareNestedArraysTwice(left) {
     return nestedLeft => {
       return nestedRight => {
         const eqArray = Data_Eq.eqArray;
-        const eqArray$1 = Data_Eq.eqArray;
         const eqInt = Data_Eq.eqInt;
-        const call = eqArray$1(eqInt);
-        const call$1 = eqArray(call);
+        const call = eqArray(eqInt);
+        const eqArray$1 = Data_Eq.eqArray;
+        const call$1 = eqArray$1(call);
         const eq = call$1.eq;
         const call$2 = eq(nestedLeft);
         const call$3 = call$2(nestedRight);
         if (call$3) {
-          const eqArray$2 = Data_Eq.eqArray;
-          const eqArray$3 = Data_Eq.eqArray;
-          const eqInt$1 = Data_Eq.eqInt;
-          const call$4 = eqArray$3(eqInt$1);
-          const call$5 = eqArray$2(call$4);
-          const eq$1 = call$5.eq;
-          const call$6 = eq$1(nestedRight);
-          const call$7 = call$6(nestedLeft);
-          return call$7;
+          const eq$1 = call$1.eq;
+          const call$4 = eq$1(nestedRight);
+          const call$5 = call$4(nestedLeft);
+          return call$5;
         } else {
-          const eqArray$4 = Data_Eq.eqArray;
-          const eqInt$2 = Data_Eq.eqInt;
-          const call$8 = eqArray$4(eqInt$2);
-          const eq$2 = call$8.eq;
-          const call$9 = eq$2(left);
-          const call$10 = call$9(right);
-          return call$10;
+          const eq$2 = call.eq;
+          const call$6 = eq$2(left);
+          const call$7 = call$6(right);
+          return call$7;
         }
       };
     };
@@ -286,32 +263,26 @@ export function distinctSubgoals(leftInt) {
         const eqArray = Data_Eq.eqArray;
         const eqInt = Data_Eq.eqInt;
         const call = eqArray(eqInt);
+        const eqArray$1 = Data_Eq.eqArray;
+        const eqBoolean = Data_Eq.eqBoolean;
+        const call$1 = eqArray$1(eqBoolean);
         const eq = call.eq;
-        const call$1 = eq(leftInt);
-        const call$2 = call$1(rightInt);
-        if (call$2) {
-          const eqArray$1 = Data_Eq.eqArray;
-          const eqInt$1 = Data_Eq.eqInt;
-          const call$3 = eqArray$1(eqInt$1);
-          const eq$1 = call$3.eq;
+        const call$2 = eq(leftInt);
+        const call$3 = call$2(rightInt);
+        if (call$3) {
+          const eq$1 = call.eq;
           const call$4 = eq$1(rightInt);
           const call$5 = call$4(leftInt);
           return call$5;
         } else {
-          const eqArray$2 = Data_Eq.eqArray;
-          const eqBoolean = Data_Eq.eqBoolean;
-          const call$6 = eqArray$2(eqBoolean);
-          const eq$2 = call$6.eq;
-          const call$7 = eq$2(leftBoolean);
-          const call$8 = call$7(rightBoolean);
-          if (call$8) {
-            const eqArray$3 = Data_Eq.eqArray;
-            const eqBoolean$1 = Data_Eq.eqBoolean;
-            const call$9 = eqArray$3(eqBoolean$1);
-            const eq$3 = call$9.eq;
-            const call$10 = eq$3(rightBoolean);
-            const call$11 = call$10(leftBoolean);
-            return if$join$1(call$11);
+          const eq$2 = call$1.eq;
+          const call$6 = eq$2(leftBoolean);
+          const call$7 = call$6(rightBoolean);
+          if (call$7) {
+            const eq$3 = call$1.eq;
+            const call$8 = eq$3(rightBoolean);
+            const call$9 = call$8(leftBoolean);
+            return if$join$1(call$9);
           } else {
             const literal = false;
             return if$join$1(literal);
@@ -335,20 +306,14 @@ export function compareArraysThrice(left) {
     const call$1 = eq(left);
     const call$2 = call$1(right);
     if (call$2) {
-      const eqArray$1 = Data_Eq.eqArray;
-      const eqInt$1 = Data_Eq.eqInt;
-      const call$3 = eqArray$1(eqInt$1);
-      const eq$1 = call$3.eq;
-      const call$4 = eq$1(right);
-      const call$5 = call$4(left);
-      if (call$5) {
-        const eqArray$2 = Data_Eq.eqArray;
-        const eqInt$2 = Data_Eq.eqInt;
-        const call$6 = eqArray$2(eqInt$2);
-        const eq$2 = call$6.eq;
-        const call$7 = eq$2(left);
-        const call$8 = call$7(right);
-        return if$join$1(call$8);
+      const eq$1 = call.eq;
+      const call$3 = eq$1(right);
+      const call$4 = call$3(left);
+      if (call$4) {
+        const eq$2 = call.eq;
+        const call$5 = eq$2(left);
+        const call$6 = call$5(right);
+        return if$join$1(call$6);
       } else {
         const literal = false;
         return if$join$1(literal);
@@ -371,15 +336,10 @@ export function compareNestedArraysWhole(left) {
     const call$2 = eq(left);
     const call$3 = call$2(right);
     if (call$3) {
-      const eqArray$2 = Data_Eq.eqArray;
-      const eqArray$3 = Data_Eq.eqArray;
-      const eqInt$1 = Data_Eq.eqInt;
-      const call$4 = eqArray$3(eqInt$1);
-      const call$5 = eqArray$2(call$4);
-      const eq$1 = call$5.eq;
-      const call$6 = eq$1(right);
-      const call$7 = call$6(left);
-      return call$7;
+      const eq$1 = call$1.eq;
+      const call$4 = eq$1(right);
+      const call$5 = call$4(left);
+      return call$5;
     } else {
       const literal = false;
       return literal;
@@ -440,11 +400,11 @@ export function whereIsolation(left) {
 export function equationScope(argument0) {
   return argument1 => {
     return argument2 => {
+      const eqArray = Data_Eq.eqArray;
+      const eqInt = Data_Eq.eqInt;
+      const call = eqArray(eqInt);
       const matches = argument0 === true;
       if (matches) {
-        const eqArray = Data_Eq.eqArray;
-        const eqInt = Data_Eq.eqInt;
-        const call = eqArray(eqInt);
         const eq = call.eq;
         const call$1 = eq(argument1);
         const call$2 = call$1(argument2);
@@ -452,13 +412,10 @@ export function equationScope(argument0) {
       } else {
         const matches$1 = argument0 === false;
         if (matches$1) {
-          const eqArray$1 = Data_Eq.eqArray;
-          const eqInt$1 = Data_Eq.eqInt;
-          const call$3 = eqArray$1(eqInt$1);
-          const eq$1 = call$3.eq;
-          const call$4 = eq$1(argument2);
-          const call$5 = call$4(argument1);
-          return call$5;
+          const eq$1 = call.eq;
+          const call$3 = eq$1(argument2);
+          const call$4 = call$3(argument1);
+          return call$4;
         } else {
           throw new Error("Pattern match failure");
         }

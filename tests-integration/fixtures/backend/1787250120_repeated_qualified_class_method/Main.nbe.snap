@@ -11,79 +11,96 @@ expression: report
   if eqInt.eq left%3 right%4 then eqInt.eq right%4 left%3 else false
 
 @export compareArraysTwice = \left%5 right%6 ->
-  if (eqArray eqInt).eq left%5 right%6 then (eqArray eqInt).eq right%6 left%5 else false
+  let
+    eqArrayDict%7 = eqArray eqInt
+  in if eqArrayDict%7.eq left%5 right%6 then eqArrayDict%7.eq right%6 left%5 else false
 
-@export compareArraysOnce = \left%7 right%8 -> (eqArray eqInt).eq left%7 right%8
+@export compareArraysOnce = \left%8 right%9 -> (eqArray eqInt).eq left%8 right%9
 
-@export compareGenericArraysTwice = \dictionary1%9 ->
-  \left%10 right%11 ->
-    if (eqArray dictionary1%9).eq left%10 right%11
-      then (eqArray dictionary1%9).eq right%11 left%10
-      else false
+@export compareGenericArraysTwice = \dictionary1%10 ->
+  \left%11 right%12 ->
+    let
+      eqArrayDict%13 = eqArray dictionary1%10
+    in if eqArrayDict%13.eq left%11 right%12 then eqArrayDict%13.eq right%12 left%11 else false
 
-@export compareNestedArraysTwice = \left%14 right%15 nestedLeft%12 nestedRight%13 ->
-  if (eqArray (eqArray eqInt)).eq nestedLeft%12 nestedRight%13
-    then (eqArray (eqArray eqInt)).eq nestedRight%13 nestedLeft%12
-    else (eqArray eqInt).eq left%14 right%15
+@export compareNestedArraysTwice = \left%18 right%19 nestedLeft%14 nestedRight%15 ->
+  let
+    eqArrayDict%17 = eqArray eqInt
+    eqArrayDict%16 = eqArray eqArrayDict%17
+  in if eqArrayDict%16.eq nestedLeft%14 nestedRight%15
+    then eqArrayDict%16.eq nestedRight%15 nestedLeft%14
+    else eqArrayDict%17.eq left%18 right%19
 
-@export distinctGivens = \dictionary2%16 dictionary3%19 ->
-  \leftA%17 rightA%18 leftB%20 rightB%21 ->
-    if (eqArray dictionary2%16).eq leftA%17 rightA%18
-      then (eqArray dictionary2%16).eq rightA%18 leftA%17
-      else if (eqArray dictionary3%19).eq leftB%20 rightB%21
-        then (eqArray dictionary3%19).eq rightB%21 leftB%20
+@export distinctGivens = \dictionary2%20 dictionary3%24 ->
+  \leftA%21 rightA%22 leftB%25 rightB%26 ->
+    let
+      eqArrayDict%23 = eqArray dictionary2%20
+      eqArrayDict%27 = eqArray dictionary3%24
+    in if eqArrayDict%23.eq leftA%21 rightA%22
+      then eqArrayDict%23.eq rightA%22 leftA%21
+      else if eqArrayDict%27.eq leftB%25 rightB%26
+        then eqArrayDict%27.eq rightB%26 leftB%25
         else false
 
-@export distinctSubgoals = \leftInt%22 rightInt%23 leftBoolean%24 rightBoolean%25 ->
-  if (eqArray eqInt).eq leftInt%22 rightInt%23
-    then (eqArray eqInt).eq rightInt%23 leftInt%22
-    else if (eqArray eqBoolean).eq leftBoolean%24 rightBoolean%25
-      then (eqArray eqBoolean).eq rightBoolean%25 leftBoolean%24
-      else false
-
-@export compareArraysThrice = \left%26 right%27 ->
-  if (eqArray eqInt).eq left%26 right%27
-    then if (eqArray eqInt).eq right%27 left%26 then (eqArray eqInt).eq left%26 right%27 else false
-    else false
-
-@export compareNestedArraysWhole = \left%28 right%29 ->
-  if (eqArray (eqArray eqInt)).eq left%28 right%29
-    then (eqArray (eqArray eqInt)).eq right%29 left%28
-    else false
-
-@export compareSuperclassArraysTwice = \dictionary4%30 ->
-  \left%31 right%32 ->
-    if (eqArray dictionary4%30.superclass62).eq left%31 right%32
-      then (eqArray dictionary4%30.superclass62).eq right%32 left%31
-      else false
-
-@export compareSuperclassTwice = \dictionary5%33 ->
-  \left%34 right%35 ->
-    if dictionary5%33.superclass62.eq left%34 right%35
-      then dictionary5%33.superclass62.eq right%35 left%34
-      else false
-
-@export lambdaScope = \left%36 right%37 ->
-  if (eqArray eqInt).eq left%36 right%37
-    then (\lambdaLeft%38 lambdaRight%39 ->
-      if (eqArray eqInt).eq lambdaLeft%38 lambdaRight%39
-        then (eqArray eqInt).eq lambdaRight%39 lambdaLeft%38
-        else false)
-      left%36
-      right%37
-    else false
-
-@export whereIsolation = \left%41 right%42 ->
+@export distinctSubgoals = \leftInt%28 rightInt%29 leftBoolean%31 rightBoolean%32 ->
   let
-    helper%40 = \helperLeft%43 helperRight%44 -> (eqArray eqInt).eq helperLeft%43 helperRight%44
-  in if helper%40 left%41 right%42 then (eqArray eqInt).eq left%41 right%42 else false
+    eqArrayDict%30 = eqArray eqInt
+    eqArrayDict%33 = eqArray eqBoolean
+  in if eqArrayDict%30.eq leftInt%28 rightInt%29
+    then eqArrayDict%30.eq rightInt%29 leftInt%28
+    else if eqArrayDict%33.eq leftBoolean%31 rightBoolean%32
+      then eqArrayDict%33.eq rightBoolean%32 leftBoolean%31
+      else false
 
-@export equationScope = \argument0%45 argument1%46 argument2%47 ->
-  case argument0%45, argument1%46, argument2%47 of
-    true, left%48, right%49 ->
-      (eqArray eqInt).eq left%48 right%49
-    false, left%50, right%51 ->
-      (eqArray eqInt).eq right%51 left%50
+@export compareArraysThrice = \left%34 right%35 ->
+  let
+    eqArrayDict%36 = eqArray eqInt
+  in if eqArrayDict%36.eq left%34 right%35
+    then if eqArrayDict%36.eq right%35 left%34 then eqArrayDict%36.eq left%34 right%35 else false
+    else false
+
+@export compareNestedArraysWhole = \left%37 right%38 ->
+  let
+    eqArrayDict%39 = eqArray (eqArray eqInt)
+  in if eqArrayDict%39.eq left%37 right%38 then eqArrayDict%39.eq right%38 left%37 else false
+
+@export compareSuperclassArraysTwice = \dictionary4%40 ->
+  \left%41 right%42 ->
+    let
+      eqArrayDict%43 = eqArray dictionary4%40.superclass62
+    in if eqArrayDict%43.eq left%41 right%42 then eqArrayDict%43.eq right%42 left%41 else false
+
+@export compareSuperclassTwice = \dictionary5%44 ->
+  \left%45 right%46 ->
+    if dictionary5%44.superclass62.eq left%45 right%46
+      then dictionary5%44.superclass62.eq right%46 left%45
+      else false
+
+@export lambdaScope = \left%47 right%48 ->
+  if (eqArray eqInt).eq left%47 right%48
+    then (\lambdaLeft%49 lambdaRight%50 ->
+      let
+        eqArrayDict%51 = eqArray eqInt
+      in if eqArrayDict%51.eq lambdaLeft%49 lambdaRight%50
+        then eqArrayDict%51.eq lambdaRight%50 lambdaLeft%49
+        else false)
+      left%47
+      right%48
+    else false
+
+@export whereIsolation = \left%53 right%54 ->
+  let
+    helper%52 = \helperLeft%55 helperRight%56 -> (eqArray eqInt).eq helperLeft%55 helperRight%56
+  in if helper%52 left%53 right%54 then (eqArray eqInt).eq left%53 right%54 else false
+
+@export equationScope = \argument0%57 argument1%58 argument2%59 ->
+  let
+    eqArrayDict%64 = eqArray eqInt
+  in case argument0%57, argument1%58, argument2%59 of
+    true, left%60, right%61 ->
+      eqArrayDict%64.eq left%60 right%61
+    false, left%62, right%63 ->
+      eqArrayDict%64.eq right%63 left%62
 
 @export firstComparison = eqInt.eq 1 2
 

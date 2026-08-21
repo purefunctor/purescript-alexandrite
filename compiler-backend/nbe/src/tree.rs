@@ -61,6 +61,14 @@ impl Storage {
     pub fn patterns(&self) -> impl Iterator<Item = (PatternId, &Pattern)> {
         self.patterns.iter()
     }
+
+    pub(crate) fn replace_expression_kind(
+        &mut self,
+        expression: ExpressionId,
+        kind: ExpressionKind,
+    ) -> ExpressionKind {
+        std::mem::replace(&mut self.expressions[expression].kind, kind)
+    }
 }
 
 impl Index<ExpressionId> for Storage {
