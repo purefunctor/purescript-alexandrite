@@ -1,0 +1,140 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 256
+expression: ssa_report
+---
+@export constructor None/0;
+
+@export constructor Some/1;
+
+@export constructor Box/1;
+
+@export function multiEquation(argument0) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(argument0, None);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.constructor(argument0, Some);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = 0;
+    case$join(literal);
+  }
+  match$success$1() {
+    const value = pattern.argument(argument0, Some, 0);
+    case$join(value);
+  }
+}
+
+@export function mixedArity(argument0, argument1) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(argument0, true);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal(argument0, false);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const closure = closure(mixedArity$closure);
+    const call = source.call(closure, argument1);
+    case$join(call);
+  }
+  match$success$1() {
+    case$join(argument1);
+  }
+}
+
+@export function singleConstructor(argument0) {
+  entry() {
+    const matches = pattern.constructor(argument0, Box);
+    if (matches) {
+      match$success();
+    } else {
+      parameter$failure();
+    }
+  }
+  parameter$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument(argument0, Box, 0);
+    return value;
+  }
+}
+
+@export function singleWildcards(argument0, argument1) {
+  entry() {
+    const literal = true;
+    return literal;
+  }
+}
+
+@export function functionWildcard(argument0) {
+  entry() {
+    const literal = 0;
+    return literal;
+  }
+}
+
+@export function rigidWildcard(argument0) {
+  entry() {
+    const literal = true;
+    return literal;
+  }
+}
+
+@export function namedPattern(record) {
+  entry() {
+    const value = record.value;
+    return record;
+  }
+}
+
+@export function capture(captured, argument1) {
+  entry() {
+    return captured;
+  }
+}
+
+closure mixedArity$closure[](value) {
+  entry() {
+    return value;
+  }
+}

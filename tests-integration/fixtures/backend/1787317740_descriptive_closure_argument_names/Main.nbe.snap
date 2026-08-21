@@ -1,0 +1,36 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export constructor None/0
+
+@export constructor Some/1
+
+@export constructor Box/1
+
+@export multiEquation = \argument0%0 ->
+  case argument0%0 of
+    None ->
+      0
+    Some value%1 ->
+      value%1
+
+@export mixedArity = \argument0%2 argument1%3 ->
+  case argument0%2, argument1%3 of
+    true, _ ->
+      (\value%4 -> value%4) argument1%3
+    false, value%5 ->
+      value%5
+
+@export singleConstructor = \(Box value%6) -> value%6
+
+@export singleWildcards = \_ _ -> true
+
+@export functionWildcard = \_ -> 0
+
+@export rigidWildcard = \_ -> true
+
+@export namedPattern = \record%7@({ value: _ }) -> record%7
+
+@export capture = \captured%8 _ -> captured%8
