@@ -3,13 +3,10 @@ export const One = $value0 => ["One", $value0];
 
 export function booleanGuard(value) {
   if (value) {
-    const literal = 1 | 0;
-    return literal;
+    return 1 | 0;
   } else {
-    const literal$1 = true;
-    if (literal$1) {
-      const literal$2 = 0 | 0;
-      return literal$2;
+    if (true) {
+      return 0 | 0;
     } else {
       throw new Error("Pattern match failure");
     }
@@ -17,15 +14,11 @@ export function booleanGuard(value) {
 }
 
 export function patternGuard(choice) {
-  const matches = Array.isArray(choice) && choice[0] === "One";
-  if (matches) {
-    const value = choice[1];
-    return value;
+  if (Array.isArray(choice) && choice[0] === "One") {
+    return choice[1];
   } else {
-    const literal = true;
-    if (literal) {
-      const literal$1 = 0 | 0;
-      return literal$1;
+    if (true) {
+      return 0 | 0;
     } else {
       throw new Error("Pattern match failure");
     }
@@ -33,33 +26,26 @@ export function patternGuard(choice) {
 }
 
 export function caseBooleanGuard(value) {
-  const literal = false;
-  if (literal) {
-    const literal$1 = 1 | 0;
-    const result$1 = literal$1;
+  if (false) {
+    const result$1 = 1 | 0;
     return result$1;
   } else {
-    const literal$2 = 2 | 0;
-    return literal$2;
+    return 2 | 0;
   }
 }
 
 export function casePatternGuard(choice) {
-  const matches = Array.isArray(choice) && choice[0] === "One";
-  if (matches) {
-    const value = choice[1];
-    const result$1 = value;
+  if (Array.isArray(choice) && choice[0] === "One") {
+    const result$1 = choice[1];
     return result$1;
   } else {
-    const literal = 0 | 0;
-    return literal;
+    return 0 | 0;
   }
 }
 
 export function nestedCaseGuard(value) {
   function case$1() {
-    const literal$4 = 3 | 0;
-    return literal$4;
+    return 3 | 0;
   }
 
   function case$join$1(result$2) {
@@ -67,18 +53,13 @@ export function nestedCaseGuard(value) {
     return result$1;
   }
 
-  const matches = value === true;
-  if (matches) {
-    const literal = true;
-    if (literal) {
-      const literal$1 = false;
-      if (literal$1) {
-        const literal$2 = 1 | 0;
-        const result$3 = literal$2;
+  if (value === true) {
+    if (true) {
+      if (false) {
+        const result$3 = 1 | 0;
         return case$join$1(result$3);
       } else {
-        const literal$3 = 2 | 0;
-        return case$join$1(literal$3);
+        return case$join$1(2 | 0);
       }
     } else {
       return case$1();

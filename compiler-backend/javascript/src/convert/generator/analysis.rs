@@ -4,8 +4,9 @@ use files::FileId;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    Block, BlockId, BlockTarget, Function, FunctionId, Global, GlobalIdentity, InstanceIdentity,
-    Instruction, InstructionValue, PatternTest, Projection, RecordUpdate, Terminator, ValueId,
+    Block, BlockId, BlockTarget, CallingConvention, Function, FunctionId, Global, GlobalIdentity,
+    InstanceIdentity, Instruction, InstructionValue, PatternTest, Projection, RecordUpdate,
+    Terminator, ValueId,
 };
 
 use super::Generator;
@@ -16,6 +17,7 @@ use crate::tree::{ExpressionId, Tree};
 pub(super) struct FunctionContext {
     pub(super) names: FxHashMap<ValueId, String>,
     block_names: FxHashMap<BlockId, String>,
+    inlineable_values: FxHashMap<BlockId, FxHashSet<ValueId>>,
     pub(super) dispatch_block: String,
     pub(super) dispatch_arguments: String,
 }
@@ -49,6 +51,34 @@ impl ValueExpressionContext for InlineExpressionContext {
     }
 }
 
+pub(super) struct BlockExpressionContext<'c> {
+    function: &'c FunctionContext,
+    expressions: RefCell<FxHashMap<ValueId, ExpressionId>>,
+}
+
+impl<'c> BlockExpressionContext<'c> {
+    pub(super) fn new(function: &'c FunctionContext) -> BlockExpressionContext<'c> {
+        BlockExpressionContext { function, expressions: RefCell::new(FxHashMap::default()) }
+    }
+
+    pub(super) fn insert(&self, value: ValueId, expression: ExpressionId) {
+        self.expressions.borrow_mut().insert(value, expression);
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.expressions.borrow().is_empty()
+    }
+}
+
+impl ValueExpressionContext for BlockExpressionContext<'_> {
+    fn expression(&self, tree: &mut Tree, value: ValueId) -> ExpressionId {
+        self.expressions
+            .borrow_mut()
+            .remove(&value)
+            .unwrap_or_else(|| self.function.expression(tree, value))
+    }
+}
+
 impl FunctionContext {
     pub(super) fn new(generator: &Generator<'_>, function: &Function) -> FunctionContext {
         let mut allocator =
@@ -64,9 +94,16 @@ impl FunctionContext {
             let name = allocator.allocate(&generator.module.storage[block].name);
             block_names.insert(block, name);
         }
+        let inlineable_values = locally_inlineable_values(generator.module, function);
         let dispatch_block = allocator.allocate("$block");
         let dispatch_arguments = allocator.allocate("$arguments");
-        FunctionContext { names, block_names, dispatch_block, dispatch_arguments }
+        FunctionContext {
+            names,
+            block_names,
+            inlineable_values,
+            dispatch_block,
+            dispatch_arguments,
+        }
     }
 
     pub(super) fn value(&self, value: ValueId) -> &str {
@@ -81,6 +118,12 @@ impl FunctionContext {
             .get(&block)
             .map(String::as_str)
             .expect("invariant violated: JavaScript SSA block has no allocated name")
+    }
+
+    pub(super) fn inlineable_values(&self, block: BlockId) -> &FxHashSet<ValueId> {
+        self.inlineable_values
+            .get(&block)
+            .expect("invariant violated: JavaScript SSA block has no inlining analysis")
     }
 
     pub(super) fn mutable_values(&self, function: &Function) -> Vec<&str> {
@@ -449,6 +492,292 @@ pub(super) fn instruction_value_uses(value: &InstructionValue) -> Vec<ValueId> {
         | InstructionValue::Global { .. }
         | InstructionValue::SynthesizedEvidence { .. }
         | InstructionValue::TrivialEvidence => vec![],
+    }
+}
+
+fn locally_inlineable_values(
+    module: &ssa::tree::Module,
+    function: &Function,
+) -> FxHashMap<BlockId, FxHashSet<ValueId>> {
+    let mut function_uses = FxHashMap::<ValueId, usize>::default();
+    for block in function.blocks.iter().copied() {
+        let block = &module.storage[block];
+        for instruction in &block.instructions {
+            match instruction {
+                Instruction::Assign { value, .. } => {
+                    for value in instruction_value_uses(value) {
+                        *function_uses.entry(value).or_default() += 1;
+                    }
+                }
+                Instruction::RecursiveClosures { bindings } => {
+                    for binding in bindings.iter() {
+                        for capture in binding.captures.iter().copied() {
+                            *function_uses.entry(capture).or_default() += 1;
+                        }
+                    }
+                }
+            }
+        }
+        for value in terminator_value_uses(&block.terminator) {
+            *function_uses.entry(value).or_default() += 1;
+        }
+    }
+
+    let mut inlineable = FxHashMap::default();
+    for block_id in function.blocks.iter().copied() {
+        let block = &module.storage[block_id];
+        let mut local_uses = FxHashSet::default();
+        for instruction in &block.instructions {
+            if let Instruction::Assign { value, .. } = instruction {
+                local_uses.extend(instruction_value_uses(value));
+            }
+        }
+        local_uses.extend(terminator_value_uses(&block.terminator));
+
+        let candidates = block.instructions.iter().filter_map(|instruction| {
+            let Instruction::Assign { result, .. } = instruction else {
+                return None;
+            };
+            (function_uses.get(result) == Some(&1) && local_uses.contains(result))
+                .then_some(*result)
+        });
+        let candidates = candidates.collect_vec();
+        // A substitution is valid exactly when JavaScript evaluates the same observable operations
+        // in the same order. Trying candidates from consumers toward definitions lets complete
+        // expression trees form without making calls, allocations, or accesses globally movable.
+        let baseline = block_evaluation_trace(block, &FxHashSet::default())
+            .expect("invariant violated: materialized JavaScript block has an invalid trace");
+        let mut values = FxHashSet::default();
+        // Every changing pass accepts at least one candidate permanently, so one pass per
+        // candidate plus a final convergence check is sufficient.
+        for _ in 0..=candidates.len() {
+            let mut changed = false;
+            for candidate in candidates.iter().rev().copied() {
+                if values.contains(&candidate) {
+                    continue;
+                }
+                let mut proposed = values.clone();
+                proposed.insert(candidate);
+                if block_evaluation_trace(block, &proposed).as_ref() == Some(&baseline) {
+                    values = proposed;
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        inlineable.insert(block_id, values);
+    }
+    inlineable
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct EvaluationOperation {
+    value: ValueId,
+    stage: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EvaluationContext {
+    Eager,
+    ConditionalOrLazy,
+}
+
+struct EvaluationTracer<'b> {
+    definitions: FxHashMap<ValueId, &'b InstructionValue>,
+    inlineable: &'b FxHashSet<ValueId>,
+    operations: Vec<EvaluationOperation>,
+    valid: bool,
+}
+
+impl<'b> EvaluationTracer<'b> {
+    fn new(block: &'b Block, inlineable: &'b FxHashSet<ValueId>) -> EvaluationTracer<'b> {
+        let definitions = block.instructions.iter().filter_map(|instruction| {
+            let Instruction::Assign { result, value } = instruction else {
+                return None;
+            };
+            Some((*result, value))
+        });
+        let definitions = definitions.collect();
+        EvaluationTracer { definitions, inlineable, operations: Vec::new(), valid: true }
+    }
+
+    fn expression(&mut self, value: ValueId, context: EvaluationContext) {
+        if !self.inlineable.contains(&value) {
+            return;
+        }
+        let Some(definition) = self.definitions.get(&value).copied() else {
+            return;
+        };
+        let operation_count = self.operations.len();
+        self.instruction(value, definition);
+        if matches!(context, EvaluationContext::ConditionalOrLazy)
+            && self.operations.len() != operation_count
+        {
+            self.valid = false;
+        }
+    }
+
+    fn instruction(&mut self, result: ValueId, value: &InstructionValue) {
+        // Operand visits follow the order used by instruction_expression. Operations mark the
+        // points at which the generated JavaScript can call, allocate, access, or throw.
+        match value {
+            InstructionValue::Literal { .. }
+            | InstructionValue::Constructor { .. }
+            | InstructionValue::Global { .. } => {}
+            InstructionValue::Array { elements } => {
+                for element in elements.iter().copied() {
+                    self.expression(element, EvaluationContext::Eager);
+                }
+                self.operation(result, 0);
+            }
+            InstructionValue::Record { fields } => {
+                for field in fields.iter() {
+                    self.expression(field.value, EvaluationContext::Eager);
+                }
+                self.operation(result, 0);
+            }
+            InstructionValue::RecordUpdate { record, updates } => {
+                if record_updates_have_branches(updates) {
+                    self.expression(*record, EvaluationContext::ConditionalOrLazy);
+                    self.record_updates(updates, EvaluationContext::ConditionalOrLazy);
+                    self.operation(result, 0);
+                } else {
+                    self.expression(*record, EvaluationContext::Eager);
+                    self.operation(result, 0);
+                    self.record_updates(updates, EvaluationContext::Eager);
+                    self.operation(result, 1);
+                }
+            }
+            InstructionValue::Project { record, .. } => {
+                self.expression(*record, EvaluationContext::Eager);
+                self.operation(result, 0);
+            }
+            InstructionValue::Closure { captures, .. } => {
+                for capture in captures.iter().copied() {
+                    self.expression(capture, EvaluationContext::Eager);
+                }
+                if !captures.is_empty() {
+                    self.operation(result, 0);
+                }
+            }
+            InstructionValue::Call { calling_convention, function, arguments } => {
+                self.expression(*function, EvaluationContext::Eager);
+                match calling_convention {
+                    CallingConvention::Initializer => {
+                        for argument in arguments.iter().copied() {
+                            self.expression(argument, EvaluationContext::Eager);
+                        }
+                        self.operation(result, 0);
+                    }
+                    CallingConvention::Source | CallingConvention::Effect => {
+                        for (stage, argument) in arguments.iter().copied().enumerate() {
+                            self.expression(argument, EvaluationContext::Eager);
+                            self.operation(result, stage);
+                        }
+                    }
+                }
+            }
+            InstructionValue::Test { value, test } => {
+                let context = match test {
+                    PatternTest::Literal { .. } => EvaluationContext::Eager,
+                    PatternTest::ArrayLength { .. } | PatternTest::Constructor { .. } => {
+                        EvaluationContext::ConditionalOrLazy
+                    }
+                };
+                self.expression(*value, context);
+                self.operation(result, 0);
+            }
+            InstructionValue::Extract { value, .. } => {
+                self.expression(*value, EvaluationContext::Eager);
+                self.operation(result, 0);
+            }
+            InstructionValue::EffectPure { value } => {
+                self.expression(*value, EvaluationContext::ConditionalOrLazy);
+                self.operation(result, 0);
+            }
+            InstructionValue::EffectBind { action, continuation } => {
+                self.expression(*action, EvaluationContext::ConditionalOrLazy);
+                self.expression(*continuation, EvaluationContext::ConditionalOrLazy);
+                self.operation(result, 0);
+            }
+            InstructionValue::SynthesizedEvidence { .. } | InstructionValue::TrivialEvidence => {
+                self.operation(result, 0)
+            }
+        }
+    }
+
+    fn record_updates(&mut self, updates: &[RecordUpdate], context: EvaluationContext) {
+        for update in updates {
+            match update {
+                RecordUpdate::Leaf { value, .. } => {
+                    self.expression(*value, context);
+                }
+                RecordUpdate::Branch { updates, .. } => self.record_updates(updates, context),
+            }
+        }
+    }
+
+    fn operation(&mut self, value: ValueId, stage: usize) {
+        self.operations.push(EvaluationOperation { value, stage });
+    }
+}
+
+fn block_evaluation_trace(
+    block: &Block,
+    inlineable: &FxHashSet<ValueId>,
+) -> Option<Vec<EvaluationOperation>> {
+    let mut tracer = EvaluationTracer::new(block, inlineable);
+    for instruction in &block.instructions {
+        match instruction {
+            Instruction::Assign { result, value } if !inlineable.contains(result) => {
+                tracer.instruction(*result, value);
+            }
+            Instruction::Assign { .. } => {}
+            Instruction::RecursiveClosures { bindings } => {
+                for binding in bindings.iter() {
+                    tracer.operation(binding.result, 0);
+                }
+            }
+        }
+    }
+    match &block.terminator {
+        Terminator::Return { value } => tracer.expression(*value, EvaluationContext::Eager),
+        Terminator::Jump { target } => {
+            for argument in target.arguments.iter().copied() {
+                tracer.expression(argument, EvaluationContext::Eager);
+            }
+        }
+        Terminator::Branch { condition, then_target, else_target } => {
+            tracer.expression(*condition, EvaluationContext::Eager);
+            for argument in then_target.arguments.iter().chain(else_target.arguments.iter()) {
+                tracer.expression(*argument, EvaluationContext::ConditionalOrLazy);
+            }
+        }
+        Terminator::Fail { .. } | Terminator::Unreachable => {}
+    }
+    tracer.valid.then_some(tracer.operations)
+}
+
+fn record_updates_have_branches(updates: &[RecordUpdate]) -> bool {
+    updates.iter().any(|update| match update {
+        RecordUpdate::Leaf { .. } => false,
+        RecordUpdate::Branch { .. } => true,
+    })
+}
+
+fn terminator_value_uses(terminator: &Terminator) -> Vec<ValueId> {
+    match terminator {
+        Terminator::Return { value } => vec![*value],
+        Terminator::Jump { target } => target.arguments.to_vec(),
+        Terminator::Branch { condition, then_target, else_target } => {
+            let mut values = vec![*condition];
+            values.extend(then_target.arguments.iter().copied());
+            values.extend(else_target.arguments.iter().copied());
+            values
+        }
+        Terminator::Fail { .. } | Terminator::Unreachable => vec![],
     }
 }
 

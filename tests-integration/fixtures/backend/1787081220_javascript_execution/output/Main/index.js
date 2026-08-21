@@ -12,24 +12,17 @@ function capture$closure(captured) {
 
 function addCaptured$closure(amount) {
   return value => {
-    const addInt$1 = addInt;
-    const call = addInt$1(amount);
-    const call$1 = call(value);
-    return call$1;
+    return addInt(amount)(value);
   };
 }
 
 function localSecond$function(captured, localFirst) {
   return argument0 => {
-    const matches = argument0 === true;
-    if (matches) {
+    if (argument0 === true) {
       return captured;
     } else {
-      const matches$1 = argument0 === false;
-      if (matches$1) {
-        const literal = true;
-        const call = localFirst(literal);
-        return call;
+      if (argument0 === false) {
+        return localFirst(true);
       } else {
         throw new Error("Pattern match failure");
       }
@@ -39,15 +32,11 @@ function localSecond$function(captured, localFirst) {
 
 function localFirst$function(captured, localSecond) {
   return argument0 => {
-    const matches = argument0 === true;
-    if (matches) {
+    if (argument0 === true) {
       return captured;
     } else {
-      const matches$1 = argument0 === false;
-      if (matches$1) {
-        const literal = true;
-        const call = localSecond(literal);
-        return call;
+      if (argument0 === false) {
+        return localSecond(true);
       } else {
         throw new Error("Pattern match failure");
       }
@@ -56,109 +45,67 @@ function localFirst$function(captured, localSecond) {
 }
 
 export function readHostile(value) {
-  const hostile_field = value["hostile-field"];
-  return hostile_field;
+  return value["hostile-field"];
 }
 
 export function readProto(value) {
-  const __proto__ = value.__proto__;
-  return __proto__;
+  return value.__proto__;
 }
 
 export function capture(captured) {
-  const closure = capture$closure(captured);
-  return closure;
+  return capture$closure(captured);
 }
 
 export function apply($function) {
   return value => {
-    const call = $function(value);
-    return call;
+    return $function(value);
   };
 }
 
 export function addCaptured(amount) {
-  const closure = addCaptured$closure(amount);
-  return closure;
+  return addCaptured$closure(amount);
 }
 
 export function nestedJoin(outer) {
   return inner => {
     function if$join$1(result$1, foreignValue$1) {
-      const addInt$1 = addInt;
-      const call = addInt$1(foreignValue$1);
-      const call$1 = call(result$1);
-      return call$1;
+      return addInt(foreignValue$1)(result$1);
     }
 
     if (outer) {
       const foreignValue$1 = foreignValue;
       if (inner) {
-        const literal = 1 | 0;
-        return if$join$1(literal, foreignValue$1);
+        return if$join$1(1 | 0, foreignValue$1);
       } else {
-        const literal$1 = 2 | 0;
-        return if$join$1(literal$1, foreignValue$1);
+        return if$join$1(2 | 0, foreignValue$1);
       }
     } else {
-      const literal$2 = 0 | 0;
-      return literal$2;
+      return 0 | 0;
     }
   };
 }
 
 export function countdown(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
-  if (call$1) {
-    const literal$1 = 0 | 0;
-    return literal$1;
+  if (equalInt(value)(0 | 0)) {
+    return 0 | 0;
   } else {
-    const addInt$1 = addInt;
-    const literal$2 = 1 | 0;
-    const call$2 = addInt$1(literal$2);
-    const countdown$1 = countdown;
-    const decrementInt$1 = decrementInt;
-    const call$3 = decrementInt$1(value);
-    const call$4 = countdown$1(call$3);
-    const call$5 = call$2(call$4);
-    return call$5;
+    return addInt(1 | 0)(countdown(decrementInt(value)));
   }
 }
 
 export function isEven(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
-  if (call$1) {
-    const literal$1 = true;
-    return literal$1;
+  if (equalInt(value)(0 | 0)) {
+    return true;
   } else {
-    const isOdd$1 = isOdd;
-    const decrementInt$1 = decrementInt;
-    const call$2 = decrementInt$1(value);
-    const call$3 = isOdd$1(call$2);
-    return call$3;
+    return isOdd(decrementInt(value));
   }
 }
 
 export function isOdd(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
-  if (call$1) {
-    const literal$1 = false;
-    return literal$1;
+  if (equalInt(value)(0 | 0)) {
+    return false;
   } else {
-    const isEven$1 = isEven;
-    const decrementInt$1 = decrementInt;
-    const call$2 = decrementInt$1(value);
-    const call$3 = isEven$1(call$2);
-    return call$3;
+    return isEven(decrementInt(value));
   }
 }
 
@@ -166,19 +113,15 @@ export function capturedMutual(captured) {
   return condition => {
     const localSecond = argument0 => localSecond$function(captured, localFirst)(argument0);
     const localFirst = argument0 => localFirst$function(captured, localSecond)(argument0);
-    const call = localFirst(condition);
-    return call;
+    return localFirst(condition);
   };
 }
 
 export function first(choice) {
-  const matches = Array.isArray(choice) && choice[0] === "None";
-  if (matches) {
-    const literal = 0 | 0;
-    return literal;
+  if (Array.isArray(choice) && choice[0] === "None") {
+    return 0 | 0;
   } else {
-    const matches$1 = Array.isArray(choice) && choice[0] === "Pair";
-    if (matches$1) {
+    if (Array.isArray(choice) && choice[0] === "Pair") {
       const left = choice[1];
       const argument = choice[2];
       return left;
@@ -189,8 +132,7 @@ export function first(choice) {
 }
 
 export function partialPattern(argument0) {
-  const matches = Array.isArray(argument0) && argument0[0] === "Pair";
-  if (matches) {
+  if (Array.isArray(argument0) && argument0[0] === "Pair") {
     const left = argument0[1];
     const argument = argument0[2];
     return left;
@@ -200,10 +142,8 @@ export function partialPattern(argument0) {
 }
 
 export function unwrapWrapped(argument0) {
-  const matches = Array.isArray(argument0) && argument0[0] === "Wrapped";
-  if (matches) {
-    const value = argument0[1];
-    return value;
+  if (Array.isArray(argument0) && argument0[0] === "Wrapped") {
+    return argument0[1];
   } else {
     throw new Error("Pattern match failure");
   }
@@ -232,15 +172,7 @@ export const model = {
 };
 
 export const updated = (() => {
-  const model$1 = model;
-  const literal = 1 | 0;
-  const literal$1 = false;
-  const updated$1 = {
-    ...model$1,
-    count: literal,
-    nested: { ...model$1.nested, enabled: literal$1 }
-  };
-  return updated$1;
+  return { ...model, count: 1 | 0, nested: { ...model.nested, enabled: false } };
 })();
 
 export const curried = apply(addCaptured(2 | 0))(40 | 0);

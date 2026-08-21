@@ -3,10 +3,7 @@ import * as $foreign from "./foreign.js";
 function genericEqual$closure(dictionary0) {
   return left => {
     return right => {
-      const equal = dictionary0.equal;
-      const call = equal(left);
-      const call$1 = call(right);
-      return call$1;
+      return dictionary0.equal(left)(right);
     };
   };
 }
@@ -14,23 +11,17 @@ function genericEqual$closure(dictionary0) {
 function superclassEqual$closure(dictionary1) {
   return left => {
     return right => {
-      const superclass17 = dictionary1.superclass17;
-      const equal = superclass17.equal;
-      const call = equal(left);
-      const call$1 = call(right);
-      return call$1;
+      return dictionary1.superclass17.equal(left)(right);
     };
   };
 }
 
 export function genericEqual(dictionary0) {
-  const closure = genericEqual$closure(dictionary0);
-  return closure;
+  return genericEqual$closure(dictionary0);
 }
 
 export function superclassEqual(dictionary1) {
-  const closure = superclassEqual$closure(dictionary1);
-  return closure;
+  return superclassEqual$closure(dictionary1);
 }
 
 export const equalInt = $foreign["equalInt"];

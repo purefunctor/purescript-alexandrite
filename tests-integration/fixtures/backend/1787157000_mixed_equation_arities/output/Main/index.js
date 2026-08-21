@@ -4,11 +4,8 @@ function choose$closure(value) {
 
 export function choose(argument0) {
   return argument1 => {
-    const matches = argument0 === (0 | 0);
-    if (matches) {
-      const closure = choose$closure;
-      const call = closure(argument1);
-      return call;
+    if (argument0 === (0 | 0)) {
+      return choose$closure(argument1);
     } else {
       return argument0;
     }

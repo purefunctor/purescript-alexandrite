@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 131
+assertion_line: 255
 expression: checking_report
 ---
 Terms

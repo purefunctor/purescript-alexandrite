@@ -1,17 +1,13 @@
 function showInt$initialize$closure(argument0) {
-  const literal = "";
-  return literal;
+  return "";
 }
 
 function showArray$closure(argument0) {
-  const literal = "";
-  return literal;
+  return "";
 }
 
 export function showArray(dictionary0) {
-  const closure = showArray$closure;
-  const record = { show: closure };
-  return record;
+  return { show: showArray$closure };
 }
 
 export const showInt = { show: showInt$initialize$closure };

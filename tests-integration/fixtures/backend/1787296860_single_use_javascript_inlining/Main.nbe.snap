@@ -1,0 +1,58 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export identity = \value%0 -> value%0
+
+@export inlineGlobal = \value%1 -> identity value%1
+
+@export inlineProperty = \record%2 -> identity record%2.value
+
+@export inlineLiteral = \condition%3 ->
+  if condition%3 then true else false
+
+@export inlineClosure = \value%5 -> (\item%4 -> item%4) value%5
+
+@export inlineCall = \function%6 value%7 -> function%6 value%7
+
+@export inlineArray = \value%8 -> [value%8]
+
+@export inlineRecord = \value%9 -> { value: value%9 }
+
+@export inlineCapturedClosure = \captured%10 -> \_ -> captured%10
+
+@export keepMultiUse = \record%12 ->
+  let
+    value%11 = record%12.value
+  in { first: value%11, second: value%11 }
+
+@export inlineAcrossCall = \record%13 function%14 ->
+  { projected: record%13.value, called: function%14 true }
+
+@export inlineOrderedCalls = \first%15 second%16 ->
+  { first: first%15 true, second: second%16 false }
+
+@export keepReorderedCalls = \first%20 second%19 ->
+  let
+    firstResult%18 = first%20 true
+  in let
+    secondResult%17 = second%19 false
+  in { first: secondResult%17, second: firstResult%18 }
+
+@export keepMultiUseCall = \function%22 value%23 ->
+  let
+    result%21 = function%22 value%23
+  in { first: result%21, second: result%21 }
+
+@export keepCallBeforeBranch = \condition%24 function%27 value%26 ->
+  let
+    result%25 = function%27 value%26
+  in if condition%24 then result%25 else value%26
+
+@export keepTestCall = \function%28 value%29 ->
+  case function%28 value%29 of
+    [] ->
+      true
+    _ ->
+      false

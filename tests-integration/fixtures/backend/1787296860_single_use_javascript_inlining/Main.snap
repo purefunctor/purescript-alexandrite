@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 255
+expression: checking_report
+---
+Terms
+identity :: forall a. a -> a
+inlineGlobal :: Prim.Boolean -> Prim.Boolean
+inlineProperty :: { value :: Prim.Boolean } -> Prim.Boolean
+inlineLiteral :: Prim.Boolean -> Prim.Boolean
+inlineClosure :: Prim.Boolean -> Prim.Boolean
+inlineCall :: (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+inlineArray :: Prim.Boolean -> Prim.Array Prim.Boolean
+inlineRecord :: Prim.Boolean -> { value :: Prim.Boolean }
+inlineCapturedClosure :: Prim.Boolean -> Prim.Boolean -> Prim.Boolean
+keepMultiUse :: { value :: Prim.Boolean } -> { first :: Prim.Boolean, second :: Prim.Boolean }
+inlineAcrossCall ::
+  { value :: Prim.Boolean } ->
+  (Prim.Boolean -> Prim.Boolean) ->
+  { called :: Prim.Boolean, projected :: Prim.Boolean }
+inlineOrderedCalls ::
+  (Prim.Boolean -> Prim.Boolean) ->
+  (Prim.Boolean -> Prim.Boolean) ->
+  { first :: Prim.Boolean, second :: Prim.Boolean }
+keepReorderedCalls ::
+  (Prim.Boolean -> Prim.Boolean) ->
+  (Prim.Boolean -> Prim.Boolean) ->
+  { first :: Prim.Boolean, second :: Prim.Boolean }
+keepMultiUseCall ::
+  (Prim.Boolean -> Prim.Boolean) ->
+  Prim.Boolean ->
+  { first :: Prim.Boolean, second :: Prim.Boolean }
+keepCallBeforeBranch ::
+  Prim.Boolean -> (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+keepTestCall :: (Prim.Boolean -> Prim.Array Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+
+Types

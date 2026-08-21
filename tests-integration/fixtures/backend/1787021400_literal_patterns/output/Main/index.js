@@ -1,57 +1,41 @@
 export function integer(argument0) {
-  const matches = argument0 === (0 | 0);
-  if (matches) {
-    const literal = true;
-    return literal;
+  if (argument0 === (0 | 0)) {
+    return true;
   } else {
-    const literal$1 = false;
-    return literal$1;
+    return false;
   }
 }
 
 export function number(argument0) {
-  const matches = argument0 === 1.5;
-  if (matches) {
-    const literal = true;
-    return literal;
+  if (argument0 === 1.5) {
+    return true;
   } else {
-    const literal$1 = false;
-    return literal$1;
+    return false;
   }
 }
 
 export function character(argument0) {
-  const matches = argument0 === "a";
-  if (matches) {
-    const literal = true;
-    return literal;
+  if (argument0 === "a") {
+    return true;
   } else {
-    const literal$1 = false;
-    return literal$1;
+    return false;
   }
 }
 
 export function string(argument0) {
-  const matches = argument0 === "alexandrite";
-  if (matches) {
-    const literal = true;
-    return literal;
+  if (argument0 === "alexandrite") {
+    return true;
   } else {
-    const literal$1 = false;
-    return literal$1;
+    return false;
   }
 }
 
 export function boolean(argument0) {
-  const matches = argument0 === true;
-  if (matches) {
-    const literal = true;
-    return literal;
+  if (argument0 === true) {
+    return true;
   } else {
-    const matches$1 = argument0 === false;
-    if (matches$1) {
-      const literal$1 = false;
-      return literal$1;
+    if (argument0 === false) {
+      return false;
     } else {
       throw new Error("Pattern match failure");
     }

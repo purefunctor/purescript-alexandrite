@@ -2,15 +2,12 @@ import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 function sequential$initialize$closure(first) {
-  const secondAction$1 = secondAction;
-  const call = secondAction$1(first);
-  return call;
+  return secondAction(first);
 }
 
 function independent$initialize$closure(first) {
   return second => {
-    const record = { first: first, second: second };
-    return record;
+    return { first: first, second: second };
   };
 }
 

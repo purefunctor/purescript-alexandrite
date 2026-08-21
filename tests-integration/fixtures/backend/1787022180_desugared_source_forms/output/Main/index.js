@@ -9,16 +9,11 @@ export function identity(value) {
 }
 
 export function increment(section60) {
-  const add$1 = add;
-  const call = add$1(section60);
-  const literal = 1 | 0;
-  const call$1 = call(literal);
-  return call$1;
+  return add(section60)(1 | 0);
 }
 
 export function accessValue(section79) {
-  const value = section79.value;
-  return value;
+  return section79.value;
 }
 
 export const operatorApplication = add(1 | 0)(2 | 0);

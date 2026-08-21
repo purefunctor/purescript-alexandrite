@@ -3,17 +3,10 @@ import * as Data_Eq from "../Data.Eq/index.js";
 function compareTwice$closure(dictionary0) {
   return left => {
     return right => {
-      const eq = dictionary0.eq;
-      const call = eq(left);
-      const call$1 = call(right);
-      if (call$1) {
-        const eq$1 = dictionary0.eq;
-        const call$2 = eq$1(right);
-        const call$3 = call$2(left);
-        return call$3;
+      if (dictionary0.eq(left)(right)) {
+        return dictionary0.eq(right)(left);
       } else {
-        const literal = false;
-        return literal;
+        return false;
       }
     };
   };
@@ -22,19 +15,11 @@ function compareTwice$closure(dictionary0) {
 function compareGenericArraysTwice$closure(dictionary1) {
   return left => {
     return right => {
-      const eqArray = Data_Eq.eqArray;
-      const call = eqArray(dictionary1);
-      const eq = call.eq;
-      const call$1 = eq(left);
-      const call$2 = call$1(right);
-      if (call$2) {
-        const eq$1 = call.eq;
-        const call$3 = eq$1(right);
-        const call$4 = call$3(left);
-        return call$4;
+      const call = Data_Eq.eqArray(dictionary1);
+      if (call.eq(left)(right)) {
+        return call.eq(right)(left);
       } else {
-        const literal = false;
-        return literal;
+        return false;
       }
     };
   };
@@ -49,30 +34,15 @@ function distinctGivens$closure(dictionary2, dictionary3) {
             return result$1;
           }
 
-          const eqArray = Data_Eq.eqArray;
-          const call = eqArray(dictionary2);
-          const eqArray$1 = Data_Eq.eqArray;
-          const call$1 = eqArray$1(dictionary3);
-          const eq = call.eq;
-          const call$2 = eq(leftA);
-          const call$3 = call$2(rightA);
-          if (call$3) {
-            const eq$1 = call.eq;
-            const call$4 = eq$1(rightA);
-            const call$5 = call$4(leftA);
-            return call$5;
+          const call = Data_Eq.eqArray(dictionary2);
+          const call$1 = Data_Eq.eqArray(dictionary3);
+          if (call.eq(leftA)(rightA)) {
+            return call.eq(rightA)(leftA);
           } else {
-            const eq$2 = call$1.eq;
-            const call$6 = eq$2(leftB);
-            const call$7 = call$6(rightB);
-            if (call$7) {
-              const eq$3 = call$1.eq;
-              const call$8 = eq$3(rightB);
-              const call$9 = call$8(leftB);
-              return if$join$1(call$9);
+            if (call$1.eq(leftB)(rightB)) {
+              return if$join$1(call$1.eq(rightB)(leftB));
             } else {
-              const literal = false;
-              return if$join$1(literal);
+              return if$join$1(false);
             }
           }
         };
@@ -84,20 +54,11 @@ function distinctGivens$closure(dictionary2, dictionary3) {
 function compareSuperclassArraysTwice$closure(dictionary4) {
   return left => {
     return right => {
-      const eqArray = Data_Eq.eqArray;
-      const superclass62 = dictionary4.superclass62;
-      const call = eqArray(superclass62);
-      const eq = call.eq;
-      const call$1 = eq(left);
-      const call$2 = call$1(right);
-      if (call$2) {
-        const eq$1 = call.eq;
-        const call$3 = eq$1(right);
-        const call$4 = call$3(left);
-        return call$4;
+      const call = Data_Eq.eqArray(dictionary4.superclass62);
+      if (call.eq(left)(right)) {
+        return call.eq(right)(left);
       } else {
-        const literal = false;
-        return literal;
+        return false;
       }
     };
   };
@@ -106,19 +67,10 @@ function compareSuperclassArraysTwice$closure(dictionary4) {
 function compareSuperclassTwice$closure(dictionary5) {
   return left => {
     return right => {
-      const superclass62 = dictionary5.superclass62;
-      const eq = superclass62.eq;
-      const call = eq(left);
-      const call$1 = call(right);
-      if (call$1) {
-        const superclass62$1 = dictionary5.superclass62;
-        const eq$1 = superclass62$1.eq;
-        const call$2 = eq$1(right);
-        const call$3 = call$2(left);
-        return call$3;
+      if (dictionary5.superclass62.eq(left)(right)) {
+        return dictionary5.superclass62.eq(right)(left);
       } else {
-        const literal = false;
-        return literal;
+        return false;
       }
     };
   };
@@ -126,119 +78,66 @@ function compareSuperclassTwice$closure(dictionary5) {
 
 function lambdaScope$closure(lambdaLeft) {
   return lambdaRight => {
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(lambdaLeft);
-    const call$2 = call$1(lambdaRight);
-    if (call$2) {
-      const eq$1 = call.eq;
-      const call$3 = eq$1(lambdaRight);
-      const call$4 = call$3(lambdaLeft);
-      return call$4;
+    const call = Data_Eq.eqArray(Data_Eq.eqInt);
+    if (call.eq(lambdaLeft)(lambdaRight)) {
+      return call.eq(lambdaRight)(lambdaLeft);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
 
 function whereIsolation$closure(helperLeft) {
   return helperRight => {
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(helperLeft);
-    const call$2 = call$1(helperRight);
-    return call$2;
+    return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(helperLeft)(helperRight);
   };
 }
 
 export function compareTwice(dictionary0) {
-  const closure = compareTwice$closure(dictionary0);
-  return closure;
+  return compareTwice$closure(dictionary0);
 }
 
 export function compareIntsTwice(left) {
   return right => {
-    const eqInt = Data_Eq.eqInt;
-    const eq = eqInt.eq;
-    const call = eq(left);
-    const call$1 = call(right);
-    if (call$1) {
-      const eqInt$1 = Data_Eq.eqInt;
-      const eq$1 = eqInt$1.eq;
-      const call$2 = eq$1(right);
-      const call$3 = call$2(left);
-      return call$3;
+    if (Data_Eq.eqInt.eq(left)(right)) {
+      return Data_Eq.eqInt.eq(right)(left);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
 
 export function compareArraysTwice(left) {
   return right => {
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(left);
-    const call$2 = call$1(right);
-    if (call$2) {
-      const eq$1 = call.eq;
-      const call$3 = eq$1(right);
-      const call$4 = call$3(left);
-      return call$4;
+    const call = Data_Eq.eqArray(Data_Eq.eqInt);
+    if (call.eq(left)(right)) {
+      return call.eq(right)(left);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
 
 export function compareArraysOnce(left) {
   return right => {
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(left);
-    const call$2 = call$1(right);
-    return call$2;
+    return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right);
   };
 }
 
 export function compareGenericArraysTwice(dictionary1) {
-  const closure = compareGenericArraysTwice$closure(dictionary1);
-  return closure;
+  return compareGenericArraysTwice$closure(dictionary1);
 }
 
 export function compareNestedArraysTwice(left) {
   return right => {
     return nestedLeft => {
       return nestedRight => {
-        const eqArray = Data_Eq.eqArray;
-        const eqInt = Data_Eq.eqInt;
-        const call = eqArray(eqInt);
-        const eqArray$1 = Data_Eq.eqArray;
-        const call$1 = eqArray$1(call);
-        const eq = call$1.eq;
-        const call$2 = eq(nestedLeft);
-        const call$3 = call$2(nestedRight);
-        if (call$3) {
-          const eq$1 = call$1.eq;
-          const call$4 = eq$1(nestedRight);
-          const call$5 = call$4(nestedLeft);
-          return call$5;
+        const call = Data_Eq.eqArray(Data_Eq.eqInt);
+        const call$1 = Data_Eq.eqArray(call);
+        if (call$1.eq(nestedLeft)(nestedRight)) {
+          return call$1.eq(nestedRight)(nestedLeft);
         } else {
-          const eq$2 = call.eq;
-          const call$6 = eq$2(left);
-          const call$7 = call$6(right);
-          return call$7;
+          return call.eq(left)(right);
         }
       };
     };
@@ -247,8 +146,7 @@ export function compareNestedArraysTwice(left) {
 
 export function distinctGivens(dictionary2) {
   return dictionary3 => {
-    const closure = distinctGivens$closure(dictionary2, dictionary3);
-    return closure;
+    return distinctGivens$closure(dictionary2, dictionary3);
   };
 }
 
@@ -260,32 +158,15 @@ export function distinctSubgoals(leftInt) {
           return result$1;
         }
 
-        const eqArray = Data_Eq.eqArray;
-        const eqInt = Data_Eq.eqInt;
-        const call = eqArray(eqInt);
-        const eqArray$1 = Data_Eq.eqArray;
-        const eqBoolean = Data_Eq.eqBoolean;
-        const call$1 = eqArray$1(eqBoolean);
-        const eq = call.eq;
-        const call$2 = eq(leftInt);
-        const call$3 = call$2(rightInt);
-        if (call$3) {
-          const eq$1 = call.eq;
-          const call$4 = eq$1(rightInt);
-          const call$5 = call$4(leftInt);
-          return call$5;
+        const call = Data_Eq.eqArray(Data_Eq.eqInt);
+        const call$1 = Data_Eq.eqArray(Data_Eq.eqBoolean);
+        if (call.eq(leftInt)(rightInt)) {
+          return call.eq(rightInt)(leftInt);
         } else {
-          const eq$2 = call$1.eq;
-          const call$6 = eq$2(leftBoolean);
-          const call$7 = call$6(rightBoolean);
-          if (call$7) {
-            const eq$3 = call$1.eq;
-            const call$8 = eq$3(rightBoolean);
-            const call$9 = call$8(leftBoolean);
-            return if$join$1(call$9);
+          if (call$1.eq(leftBoolean)(rightBoolean)) {
+            return if$join$1(call$1.eq(rightBoolean)(leftBoolean));
           } else {
-            const literal = false;
-            return if$join$1(literal);
+            return if$join$1(false);
           }
         }
       };
@@ -299,100 +180,54 @@ export function compareArraysThrice(left) {
       return result$1;
     }
 
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(left);
-    const call$2 = call$1(right);
-    if (call$2) {
-      const eq$1 = call.eq;
-      const call$3 = eq$1(right);
-      const call$4 = call$3(left);
-      if (call$4) {
-        const eq$2 = call.eq;
-        const call$5 = eq$2(left);
-        const call$6 = call$5(right);
-        return if$join$1(call$6);
+    const call = Data_Eq.eqArray(Data_Eq.eqInt);
+    if (call.eq(left)(right)) {
+      if (call.eq(right)(left)) {
+        return if$join$1(call.eq(left)(right));
       } else {
-        const literal = false;
-        return if$join$1(literal);
+        return if$join$1(false);
       }
     } else {
-      const literal$1 = false;
-      return literal$1;
+      return false;
     }
   };
 }
 
 export function compareNestedArraysWhole(left) {
   return right => {
-    const eqArray = Data_Eq.eqArray;
-    const eqArray$1 = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray$1(eqInt);
-    const call$1 = eqArray(call);
-    const eq = call$1.eq;
-    const call$2 = eq(left);
-    const call$3 = call$2(right);
-    if (call$3) {
-      const eq$1 = call$1.eq;
-      const call$4 = eq$1(right);
-      const call$5 = call$4(left);
-      return call$5;
+    const call$1 = Data_Eq.eqArray(Data_Eq.eqArray(Data_Eq.eqInt));
+    if (call$1.eq(left)(right)) {
+      return call$1.eq(right)(left);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
 
 export function compareSuperclassArraysTwice(dictionary4) {
-  const closure = compareSuperclassArraysTwice$closure(dictionary4);
-  return closure;
+  return compareSuperclassArraysTwice$closure(dictionary4);
 }
 
 export function compareSuperclassTwice(dictionary5) {
-  const closure = compareSuperclassTwice$closure(dictionary5);
-  return closure;
+  return compareSuperclassTwice$closure(dictionary5);
 }
 
 export function lambdaScope(left) {
   return right => {
-    const eqArray = Data_Eq.eqArray;
-    const eqInt = Data_Eq.eqInt;
-    const call = eqArray(eqInt);
-    const eq = call.eq;
-    const call$1 = eq(left);
-    const call$2 = call$1(right);
-    if (call$2) {
-      const closure = lambdaScope$closure;
-      const call$3 = closure(left);
-      const call$4 = call$3(right);
-      return call$4;
+    if ((Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right)) {
+      return lambdaScope$closure(left)(right);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
 
 export function whereIsolation(left) {
   return right => {
-    const closure = whereIsolation$closure;
-    const call = closure(left);
-    const call$1 = call(right);
-    if (call$1) {
-      const eqArray = Data_Eq.eqArray;
-      const eqInt = Data_Eq.eqInt;
-      const call$2 = eqArray(eqInt);
-      const eq = call$2.eq;
-      const call$3 = eq(left);
-      const call$4 = call$3(right);
-      return call$4;
+    if (whereIsolation$closure(left)(right)) {
+      return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right);
     } else {
-      const literal = false;
-      return literal;
+      return false;
     }
   };
 }
@@ -400,22 +235,12 @@ export function whereIsolation(left) {
 export function equationScope(argument0) {
   return argument1 => {
     return argument2 => {
-      const eqArray = Data_Eq.eqArray;
-      const eqInt = Data_Eq.eqInt;
-      const call = eqArray(eqInt);
-      const matches = argument0 === true;
-      if (matches) {
-        const eq = call.eq;
-        const call$1 = eq(argument1);
-        const call$2 = call$1(argument2);
-        return call$2;
+      const call = Data_Eq.eqArray(Data_Eq.eqInt);
+      if (argument0 === true) {
+        return call.eq(argument1)(argument2);
       } else {
-        const matches$1 = argument0 === false;
-        if (matches$1) {
-          const eq$1 = call.eq;
-          const call$3 = eq$1(argument2);
-          const call$4 = call$3(argument1);
-          return call$4;
+        if (argument0 === false) {
+          return call.eq(argument2)(argument1);
         } else {
           throw new Error("Pattern match failure");
         }

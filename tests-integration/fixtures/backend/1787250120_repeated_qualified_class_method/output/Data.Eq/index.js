@@ -1,35 +1,29 @@
 function eqInt$initialize$closure(argument0) {
   return argument1 => {
-    const literal = true;
-    return literal;
+    return true;
   };
 }
 
 function eqBoolean$initialize$closure(argument0) {
   return argument1 => {
-    const literal = true;
-    return literal;
+    return true;
   };
 }
 
 function eqArray$closure(argument0) {
   return argument1 => {
-    const literal = true;
-    return literal;
+    return true;
   };
 }
 
 function orderedInt$initialize$closure(argument0) {
   return argument1 => {
-    const literal = true;
-    return literal;
+    return true;
   };
 }
 
 export function eqArray(dictionary0) {
-  const closure = eqArray$closure;
-  const record = { eq: closure };
-  return record;
+  return { eq: eqArray$closure };
 }
 
 export const eqInt = { eq: eqInt$initialize$closure };

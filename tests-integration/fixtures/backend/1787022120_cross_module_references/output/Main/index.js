@@ -1,10 +1,8 @@
 import * as Library from "../Library/index.js";
 
 export function unbox(argument0) {
-  const matches = Array.isArray(argument0) && argument0[0] === "Box";
-  if (matches) {
-    const value = argument0[1];
-    return value;
+  if (Array.isArray(argument0) && argument0[0] === "Box") {
+    return argument0[1];
   } else {
     throw new Error("Pattern match failure");
   }

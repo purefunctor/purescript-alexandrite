@@ -4,12 +4,9 @@ export const Box = ["Box"];
 
 function eqBox$initialize$closure(left) {
   return right => {
-    const matches = Array.isArray(left) && left[0] === "Box";
-    if (matches) {
-      const matches$1 = Array.isArray(right) && right[0] === "Box";
-      if (matches$1) {
-        const literal = true;
-        return literal;
+    if (Array.isArray(left) && left[0] === "Box") {
+      if (Array.isArray(right) && right[0] === "Box") {
+        return true;
       } else {
         throw new Error("Pattern match failure");
       }
