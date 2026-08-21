@@ -1,7 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 255
-expression: checking_report
+expression: diagnostics_report
 ---
 Terms
 compareTwice :: forall a. Data.Eq.Eq a => a -> a -> Prim.Boolean

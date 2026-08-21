@@ -1,7 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 55
-expression: checking_report
+expression: diagnostics_report
 ---
 Terms
 Box :: Main.Box
