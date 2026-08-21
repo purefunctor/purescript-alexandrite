@@ -2,7 +2,7 @@ function recursiveValue$initialize$closure(value) {
   if (value) {
     return 3 | 0;
   } else {
-    return (0, recursivePeer.run)(true);
+    return recursivePeer.run(true);
   }
 }
 
@@ -10,7 +10,7 @@ function recursivePeer$initialize$closure(value) {
   if (value) {
     return 4 | 0;
   } else {
-    return (0, recursiveValue.run)(true);
+    return recursiveValue.run(true);
   }
 }
 

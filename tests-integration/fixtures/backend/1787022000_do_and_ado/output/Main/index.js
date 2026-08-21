@@ -15,10 +15,10 @@ export const firstAction = $foreign["firstAction"];
 export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
 
-export const sequential = (0, Effect.bindEffect1.bind)(firstAction)(sequential$initialize$closure);
+export const sequential = Effect.bindEffect1.bind(firstAction)(sequential$initialize$closure);
 
-export const independent = (0, Effect.applyEffect1.apply)(
-  (0, Effect.functorEffect.map)(independent$initialize$closure)(firstAction)
+export const independent = Effect.applyEffect1.apply(
+  Effect.functorEffect.map(independent$initialize$closure)(firstAction)
 )(independentAction);
 
-export const pureValue = (0, Effect.applicativeEffect.pure)(42 | 0);
+export const pureValue = Effect.applicativeEffect.pure(42 | 0);

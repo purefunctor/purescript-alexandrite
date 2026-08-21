@@ -30,7 +30,7 @@ function eqOption$initialize$closure(left) {
       const left0 = left[1];
       if (Array.isArray(right) && right[0] === "Just") {
         const right0 = right[1];
-        if ((0, Data_Eq.eqInt.eq)(left0)(right0)) {
+        if (Data_Eq.eqInt.eq(left0)(right0)) {
           return if$join(true);
         } else {
           return if$join(false);

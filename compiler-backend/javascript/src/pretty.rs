@@ -76,9 +76,6 @@ impl<'a> Printer<'a, '_> {
                 .append("[")
                 .append(self.expression(*index))
                 .append("]"),
-            Expression::UnboundCallee(callee) => {
-                self.arena.text("(0, ").append(self.expression(*callee)).append(")")
-            }
             Expression::Binary { operator, left, right } => {
                 let precedence = operator.precedence();
                 self.expression_at(*left, precedence)
@@ -120,8 +117,7 @@ impl<'a> Printer<'a, '_> {
             | Expression::Number(_)
             | Expression::Boolean(_)
             | Expression::Array(_)
-            | Expression::Object(_)
-            | Expression::UnboundCallee(_) => Precedence::Primary,
+            | Expression::Object(_) => Precedence::Primary,
         }
     }
 

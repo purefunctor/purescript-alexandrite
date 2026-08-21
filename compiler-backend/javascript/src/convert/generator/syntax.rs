@@ -44,16 +44,10 @@ pub(super) fn call_expression(
     arguments: Vec<ExpressionId>,
 ) -> ExpressionId {
     match convention {
-        CallingConvention::Initializer => {
-            let function = tree.unbound_callee(function);
-            tree.call(function, arguments)
-        }
+        CallingConvention::Initializer => tree.call(function, arguments),
         CallingConvention::Source | CallingConvention::Effect => {
             let arguments = arguments.into_iter();
-            arguments.fold(function, |function, argument| {
-                let function = tree.unbound_callee(function);
-                tree.call(function, vec![argument])
-            })
+            arguments.fold(function, |function, argument| tree.call(function, vec![argument]))
         }
     }
 }

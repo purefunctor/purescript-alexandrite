@@ -26,8 +26,6 @@ export function showIdentity(dictionary1) {
 
 export const eqBox = { eq: eqBox$initialize$closure };
 
-export const equal = (0, eqBox.eq)(Box)(Box);
+export const equal = eqBox.eq(Box)(Box);
 
-export const rendered = (0, (showIdentity(Data_Show.showInt)).show)(
-  rendered$initialize$closure(42 | 0)
-);
+export const rendered = (showIdentity(Data_Show.showInt)).show(rendered$initialize$closure(42 | 0));

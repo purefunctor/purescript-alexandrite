@@ -155,7 +155,6 @@ export const equalInt = $foreign["equalInt"];
 export const foreignValue = $foreign["foreignValue"];
 export const effectValue = $foreign["effectValue"];
 const $await = $foreign["await"];
-export const receiverSensitive = $foreign["receiverSensitive"];
 
 export const integer = 42 | 0;
 
@@ -186,8 +185,6 @@ export const forwardReference = Library.forward;
 
 export const measureInt = { measure: addInt(1 | 0) };
 
-export const evidenceValue = (0, measureInt.measure)(41 | 0);
-
-export const receiverIsUnbound = (0, receiverSensitive.call)(true);
+export const evidenceValue = measureInt.measure(41 | 0);
 
 export { $await as "await" };
