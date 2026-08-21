@@ -1,10 +1,10 @@
 export function mutual(condition) {
   function second$function(first) {
-    return argument0 => {
-      if (argument0 === true) {
+    return $boolean => {
+      if ($boolean === true) {
         return 2 | 0;
       } else {
-        if (argument0 === false) {
+        if ($boolean === false) {
           return first(true);
         } else {
           throw new Error("Pattern match failure");
@@ -13,11 +13,11 @@ export function mutual(condition) {
     };
   }
   function first$function(second) {
-    return argument0 => {
-      if (argument0 === true) {
+    return $boolean => {
+      if ($boolean === true) {
         return 1 | 0;
       } else {
-        if (argument0 === false) {
+        if ($boolean === false) {
           return second(true);
         } else {
           throw new Error("Pattern match failure");
@@ -25,19 +25,19 @@ export function mutual(condition) {
       }
     };
   }
-  const second = argument0 => second$function(first)(argument0);
-  const first = argument0 => first$function(second)(argument0);
+  const second = $boolean => second$function(first)($boolean);
+  const first = $boolean => first$function(second)($boolean);
   return first(condition);
 }
 
 export function capturedMutual(captured) {
   return condition => {
     function second$function(captured, first) {
-      return argument0 => {
-        if (argument0 === true) {
+      return $boolean => {
+        if ($boolean === true) {
           return captured;
         } else {
-          if (argument0 === false) {
+          if ($boolean === false) {
             return first(true);
           } else {
             throw new Error("Pattern match failure");
@@ -46,11 +46,11 @@ export function capturedMutual(captured) {
       };
     }
     function first$function(captured, second) {
-      return argument0 => {
-        if (argument0 === true) {
+      return $boolean => {
+        if ($boolean === true) {
           return captured;
         } else {
-          if (argument0 === false) {
+          if ($boolean === false) {
             return second(true);
           } else {
             throw new Error("Pattern match failure");
@@ -58,8 +58,8 @@ export function capturedMutual(captured) {
         }
       };
     }
-    const second = argument0 => second$function(captured, first)(argument0);
-    const first = argument0 => first$function(captured, second)(argument0);
+    const second = $boolean => second$function(captured, first)($boolean);
+    const first = $boolean => first$function(captured, second)($boolean);
     return first(condition);
   };
 }

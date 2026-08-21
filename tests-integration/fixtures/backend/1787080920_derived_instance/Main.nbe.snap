@@ -15,6 +15,6 @@ expression: report
 
 @export equal = eqBox.eq Box Box
 
-@export instance showIdentity = \dictionary1%2 -> dictionary1%2
+@export instance showIdentity = \showADict%2 -> showADict%2
 
 @export rendered = (showIdentity showInt).show ((\value%3 -> value%3) 42)

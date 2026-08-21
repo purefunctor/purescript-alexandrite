@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
-@export function describe(argument0) {
+@export function describe($array) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.array(argument0, 0);
+    const matches = pattern.array($array, 0);
     if (matches) {
       match$success();
     } else {
@@ -16,7 +16,7 @@ expression: ssa_report
     }
   }
   case$1() {
-    const matches$1 = pattern.array(argument0, 1);
+    const matches$1 = pattern.array($array, 1);
     if (matches$1) {
       match$success$1();
     } else {
@@ -24,7 +24,7 @@ expression: ssa_report
     }
   }
   case$2() {
-    const matches$2 = pattern.array(argument0, 2);
+    const matches$2 = pattern.array($array, 2);
     if (matches$2) {
       match$success$2();
     } else {
@@ -46,12 +46,12 @@ expression: ssa_report
     case$join(literal);
   }
   match$success$1() {
-    const value = argument0[0];
+    const value = $array[0];
     case$join(value);
   }
   match$success$2() {
-    const first = argument0[0];
-    const second = argument0[1];
+    const first = $array[0];
+    const second = $array[1];
     case$join(first);
   }
 }

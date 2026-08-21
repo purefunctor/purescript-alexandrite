@@ -1,6 +1,6 @@
-export function eqArray(dictionary0) {
-  function eqArray$closure(argument0) {
-    return argument1 => {
+export function eqArray(eqADict) {
+  function eqArray$closure($array) {
+    return $array$1 => {
       return true;
     };
   }
@@ -8,8 +8,8 @@ export function eqArray(dictionary0) {
 }
 
 export const eqInt = (() => {
-  function eqInt$initialize$closure(argument0) {
-    return argument1 => {
+  function eqInt$initialize$closure($int) {
+    return $int$1 => {
       return true;
     };
   }
@@ -17,8 +17,8 @@ export const eqInt = (() => {
 })();
 
 export const eqBoolean = (() => {
-  function eqBoolean$initialize$closure(argument0) {
-    return argument1 => {
+  function eqBoolean$initialize$closure($boolean) {
+    return $boolean$1 => {
       return true;
     };
   }
@@ -26,8 +26,8 @@ export const eqBoolean = (() => {
 })();
 
 export const orderedInt = (() => {
-  function orderedInt$initialize$closure(argument0) {
-    return argument1 => {
+  function orderedInt$initialize$closure($int) {
+    return $int$1 => {
       return true;
     };
   }

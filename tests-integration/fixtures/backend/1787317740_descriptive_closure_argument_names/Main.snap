@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 255
+expression: checking_report
+---
+Terms
+None :: Main.Choice
+Some :: Prim.Int -> Main.Choice
+Box :: Prim.Int -> Main.Box
+multiEquation :: Main.Choice -> Prim.Int
+mixedArity :: Prim.Boolean -> Prim.Int -> Prim.Int
+singleConstructor :: Main.Box -> Prim.Int
+singleWildcards :: Prim.Int -> Prim.Int -> Prim.Boolean
+functionWildcard :: (Prim.Int -> Prim.Int) -> Prim.Int
+rigidWildcard :: forall value. value -> Prim.Boolean
+namedPattern :: { value :: Prim.Int } -> { value :: Prim.Int }
+capture :: Prim.Int -> Prim.Boolean -> Prim.Int
+
+Types
+Choice :: Prim.Type
+Box :: Prim.Type
+
+Roles
+Choice = []
+Box = []

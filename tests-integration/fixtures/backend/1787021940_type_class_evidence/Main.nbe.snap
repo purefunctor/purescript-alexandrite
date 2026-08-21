@@ -11,11 +11,11 @@ expression: report
 
 @export instance orderedInt = { superclass17: equalInt1, lessThan: lessThanInt }
 
-@export genericEqual = \dictionary0%0 -> \left%1 right%2 -> dictionary0%0.equal left%1 right%2
+@export genericEqual = \equalADict%0 -> \left%1 right%2 -> equalADict%0.equal left%1 right%2
 
 @export concreteEqual = equalInt1.equal 1 2
 
 @export concreteLessThan = orderedInt.lessThan 1 2
 
-@export superclassEqual = \dictionary1%3 ->
-  \left%4 right%5 -> dictionary1%3.superclass17.equal left%4 right%5
+@export superclassEqual = \orderedADict%3 ->
+  \left%4 right%5 -> orderedADict%3.superclass17.equal left%4 right%5

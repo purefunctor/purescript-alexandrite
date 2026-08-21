@@ -1,4 +1,4 @@
-export function select(argument0) {
-  const first = argument0.first;
-  return argument0.nested.second;
+export function select($record) {
+  const first = $record.first;
+  return $record.nested.second;
 }

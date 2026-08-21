@@ -311,9 +311,9 @@ expression: ssa_report
   }
 }
 
-@export function partialPattern(argument0) {
+@export function partialPattern($choice) {
   entry() {
-    const matches = pattern.constructor(argument0, Pair);
+    const matches = pattern.constructor($choice, Pair);
     if (matches) {
       match$success();
     } else {
@@ -324,15 +324,15 @@ expression: ssa_report
     throw patternMatchFailure();
   }
   match$success() {
-    const left = pattern.argument(argument0, Pair, 0);
-    const argument = pattern.argument(argument0, Pair, 1);
+    const left = pattern.argument($choice, Pair, 0);
+    const argument = pattern.argument($choice, Pair, 1);
     return left;
   }
 }
 
-@export function unwrapWrapped(argument0) {
+@export function unwrapWrapped($wrapped) {
   entry() {
-    const matches = pattern.constructor(argument0, Wrapped);
+    const matches = pattern.constructor($wrapped, Wrapped);
     if (matches) {
       match$success();
     } else {
@@ -343,7 +343,7 @@ expression: ssa_report
     throw patternMatchFailure();
   }
   match$success() {
-    const value = pattern.argument(argument0, Wrapped, 0);
+    const value = pattern.argument($wrapped, Wrapped, 0);
     return value;
   }
 }
@@ -384,7 +384,7 @@ expression: ssa_report
   }
 }
 
-closure capture$closure[captured](argument0) {
+closure capture$closure[captured]($int) {
   entry() {
     return captured;
   }
@@ -399,12 +399,12 @@ closure addCaptured$closure[amount](value) {
   }
 }
 
-closure localSecond$function[captured, localFirst](argument0) {
+closure localSecond$function[captured, localFirst]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -412,7 +412,7 @@ closure localSecond$function[captured, localFirst](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {
@@ -435,12 +435,12 @@ closure localSecond$function[captured, localFirst](argument0) {
   }
 }
 
-closure localFirst$function[captured, localSecond](argument0) {
+closure localFirst$function[captured, localSecond]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -448,7 +448,7 @@ closure localFirst$function[captured, localSecond](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {

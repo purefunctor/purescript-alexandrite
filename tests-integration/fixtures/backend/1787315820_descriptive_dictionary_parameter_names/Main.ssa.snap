@@ -1,0 +1,158 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 256
+expression: ssa_report
+---
+@export constructor Wrapper/1;
+
+@export function genericEqual(equalValueDict) {
+  entry() {
+    const closure = closure(genericEqual$closure, equalValueDict);
+    return closure;
+  }
+}
+
+@export function arrayEqual(equalArrayValueDict) {
+  entry() {
+    const closure = closure(arrayEqual$closure, equalArrayValueDict);
+    return closure;
+  }
+}
+
+@export function wrapperEqual(equalWrapperValueDict) {
+  entry() {
+    const closure = closure(wrapperEqual$closure, equalWrapperValueDict);
+    return closure;
+  }
+}
+
+@export function concreteEqual(equalIntDict) {
+  entry() {
+    const closure = closure(concreteEqual$closure, equalIntDict);
+    return closure;
+  }
+}
+
+@export function convertToInt(convertValueIntDict) {
+  entry() {
+    const closure = closure(convertToInt$closure, convertValueIntDict);
+    return closure;
+  }
+}
+
+@export function distinctEqual(equalLeftDict, equalRightDict) {
+  entry() {
+    const closure = closure(distinctEqual$closure, equalLeftDict, equalRightDict);
+    return closure;
+  }
+}
+
+@export function duplicateEqual(equalValueDict, equalValueDict$1) {
+  entry() {
+    const closure = closure(duplicateEqual$closure, equalValueDict$1);
+    return closure;
+  }
+}
+
+@export function parameterCollision(equalValueDict) {
+  entry() {
+    const closure = closure(parameterCollision$closure, equalValueDict);
+    return closure;
+  }
+}
+
+@export function isAvailable(availableDict) {
+  entry() {
+    const available = availableDict.available;
+    return available;
+  }
+}
+
+closure genericEqual$closure[equalValueDict](left, right) {
+  entry() {
+    const equal = equalValueDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure arrayEqual$closure[equalArrayValueDict](left, right) {
+  entry() {
+    const equal = equalArrayValueDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure wrapperEqual$closure[equalWrapperValueDict](left, right) {
+  entry() {
+    const equal = equalWrapperValueDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure concreteEqual$closure[equalIntDict](left, right) {
+  entry() {
+    const equal = equalIntDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure convertToInt$closure[convertValueIntDict](value) {
+  entry() {
+    const convert = convertValueIntDict.convert;
+    const call = source.call(convert, value);
+    return call;
+  }
+}
+
+closure distinctEqual$closure[equalLeftDict, equalRightDict](left1, left2, right1, right2) {
+  entry() {
+    const equal = equalLeftDict.equal;
+    const call = source.call(equal, left1);
+    const call$1 = source.call(call, left2);
+    const equal$1 = equalRightDict.equal;
+    const call$2 = source.call(equal$1, right1);
+    const call$3 = source.call(call$2, right2);
+    const record = { left: call$1, right: call$3 };
+    return record;
+  }
+}
+
+closure duplicateEqual$closure[equalValueDict](left, right) {
+  entry() {
+    const equal = equalValueDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+closure parameterCollision$closure[equalValueDict](equalValueDict$1, left, right) {
+  entry() {
+    if (equalValueDict$1) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const equal = equalValueDict.equal;
+    const call = source.call(equal, left);
+    const call$1 = source.call(call, right);
+    if$join(call$1);
+  }
+  else() {
+    const literal = false;
+    if$join(literal);
+  }
+  if$join(result) {
+    return result;
+  }
+}

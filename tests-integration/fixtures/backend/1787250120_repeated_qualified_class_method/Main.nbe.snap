@@ -3,9 +3,9 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export compareTwice = \dictionary0%0 ->
+@export compareTwice = \eqADict%0 ->
   \left%1 right%2 ->
-    if dictionary0%0.eq left%1 right%2 then dictionary0%0.eq right%2 left%1 else false
+    if eqADict%0.eq left%1 right%2 then eqADict%0.eq right%2 left%1 else false
 
 @export compareIntsTwice = \left%3 right%4 ->
   if eqInt.eq left%3 right%4 then eqInt.eq right%4 left%3 else false
@@ -17,10 +17,10 @@ expression: report
 
 @export compareArraysOnce = \left%8 right%9 -> (eqArray eqInt).eq left%8 right%9
 
-@export compareGenericArraysTwice = \dictionary1%10 ->
+@export compareGenericArraysTwice = \eqADict%10 ->
   \left%11 right%12 ->
     let
-      eqArrayDict%13 = eqArray dictionary1%10
+      eqArrayDict%13 = eqArray eqADict%10
     in if eqArrayDict%13.eq left%11 right%12 then eqArrayDict%13.eq right%12 left%11 else false
 
 @export compareNestedArraysTwice = \left%18 right%19 nestedLeft%14 nestedRight%15 ->
@@ -31,11 +31,11 @@ expression: report
     then eqArrayDict%16.eq nestedRight%15 nestedLeft%14
     else eqArrayDict%17.eq left%18 right%19
 
-@export distinctGivens = \dictionary2%20 dictionary3%24 ->
+@export distinctGivens = \eqADict%20 eqBDict%24 ->
   \leftA%21 rightA%22 leftB%25 rightB%26 ->
     let
-      eqArrayDict%23 = eqArray dictionary2%20
-      eqArrayDict%27 = eqArray dictionary3%24
+      eqArrayDict%23 = eqArray eqADict%20
+      eqArrayDict%27 = eqArray eqBDict%24
     in if eqArrayDict%23.eq leftA%21 rightA%22
       then eqArrayDict%23.eq rightA%22 leftA%21
       else if eqArrayDict%27.eq leftB%25 rightB%26
@@ -64,16 +64,16 @@ expression: report
     eqArrayDict%39 = eqArray (eqArray eqInt)
   in if eqArrayDict%39.eq left%37 right%38 then eqArrayDict%39.eq right%38 left%37 else false
 
-@export compareSuperclassArraysTwice = \dictionary4%40 ->
+@export compareSuperclassArraysTwice = \orderedADict%40 ->
   \left%41 right%42 ->
     let
-      eqArrayDict%43 = eqArray dictionary4%40.superclass62
+      eqArrayDict%43 = eqArray orderedADict%40.superclass62
     in if eqArrayDict%43.eq left%41 right%42 then eqArrayDict%43.eq right%42 left%41 else false
 
-@export compareSuperclassTwice = \dictionary5%44 ->
+@export compareSuperclassTwice = \orderedADict%44 ->
   \left%45 right%46 ->
-    if dictionary5%44.superclass62.eq left%45 right%46
-      then dictionary5%44.superclass62.eq right%46 left%45
+    if orderedADict%44.superclass62.eq left%45 right%46
+      then orderedADict%44.superclass62.eq right%46 left%45
       else false
 
 @export lambdaScope = \left%47 right%48 ->
@@ -93,10 +93,10 @@ expression: report
     helper%52 = \helperLeft%55 helperRight%56 -> (eqArray eqInt).eq helperLeft%55 helperRight%56
   in if helper%52 left%53 right%54 then (eqArray eqInt).eq left%53 right%54 else false
 
-@export equationScope = \argument0%57 argument1%58 argument2%59 ->
+@export equationScope = \$boolean%57 $array%58 $array%59 ->
   let
     eqArrayDict%64 = eqArray eqInt
-  in case argument0%57, argument1%58, argument2%59 of
+  in case $boolean%57, $array%58, $array%59 of
     true, left%60, right%61 ->
       eqArrayDict%64.eq left%60 right%61
     false, left%62, right%63 ->

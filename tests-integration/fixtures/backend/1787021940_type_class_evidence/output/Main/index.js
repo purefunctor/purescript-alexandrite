@@ -1,25 +1,25 @@
 import * as $foreign from "./foreign.js";
 
-export function genericEqual(dictionary0) {
-  function genericEqual$closure(dictionary0) {
+export function genericEqual(equalADict) {
+  function genericEqual$closure(equalADict) {
     return left => {
       return right => {
-        return dictionary0.equal(left)(right);
+        return equalADict.equal(left)(right);
       };
     };
   }
-  return genericEqual$closure(dictionary0);
+  return genericEqual$closure(equalADict);
 }
 
-export function superclassEqual(dictionary1) {
-  function superclassEqual$closure(dictionary1) {
+export function superclassEqual(orderedADict) {
+  function superclassEqual$closure(orderedADict) {
     return left => {
       return right => {
-        return dictionary1.superclass17.equal(left)(right);
+        return orderedADict.superclass17.equal(left)(right);
       };
     };
   }
-  return superclassEqual$closure(dictionary1);
+  return superclassEqual$closure(orderedADict);
 }
 
 export const equalInt = $foreign["equalInt"];

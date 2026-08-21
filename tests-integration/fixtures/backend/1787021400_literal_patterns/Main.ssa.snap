@@ -1,14 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
-@export function integer(argument0) {
+@export function integer($int) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, 0);
+    const matches = pattern.literal($int, 0);
     if (matches) {
       match$success();
     } else {
@@ -31,12 +31,12 @@ expression: ssa_report
   }
 }
 
-@export function number(argument0) {
+@export function number($number) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, 1.5);
+    const matches = pattern.literal($number, 1.5);
     if (matches) {
       match$success();
     } else {
@@ -59,12 +59,12 @@ expression: ssa_report
   }
 }
 
-@export function character(argument0) {
+@export function character($char) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, 'a');
+    const matches = pattern.literal($char, 'a');
     if (matches) {
       match$success();
     } else {
@@ -87,12 +87,12 @@ expression: ssa_report
   }
 }
 
-@export function string(argument0) {
+@export function string($string) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, "alexandrite");
+    const matches = pattern.literal($string, "alexandrite");
     if (matches) {
       match$success();
     } else {
@@ -115,12 +115,12 @@ expression: ssa_report
   }
 }
 
-@export function boolean(argument0) {
+@export function boolean($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -128,7 +128,7 @@ expression: ssa_report
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export function mutual(condition) {
@@ -25,12 +25,12 @@ expression: ssa_report
   }
 }
 
-closure second$function[first](argument0) {
+closure second$function[first]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -38,7 +38,7 @@ closure second$function[first](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {
@@ -62,12 +62,12 @@ closure second$function[first](argument0) {
   }
 }
 
-closure first$function[second](argument0) {
+closure first$function[second]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -75,7 +75,7 @@ closure first$function[second](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {
@@ -99,12 +99,12 @@ closure first$function[second](argument0) {
   }
 }
 
-closure second$function$1[captured, first](argument0) {
+closure second$function$1[captured, first]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -112,7 +112,7 @@ closure second$function$1[captured, first](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {
@@ -135,12 +135,12 @@ closure second$function$1[captured, first](argument0) {
   }
 }
 
-closure first$function$1[captured, second](argument0) {
+closure first$function$1[captured, second]($boolean) {
   entry() {
     case$0();
   }
   case$0() {
-    const matches = pattern.literal(argument0, true);
+    const matches = pattern.literal($boolean, true);
     if (matches) {
       match$success();
     } else {
@@ -148,7 +148,7 @@ closure first$function$1[captured, second](argument0) {
     }
   }
   case$1() {
-    const matches$1 = pattern.literal(argument0, false);
+    const matches$1 = pattern.literal($boolean, false);
     if (matches$1) {
       match$success$1();
     } else {

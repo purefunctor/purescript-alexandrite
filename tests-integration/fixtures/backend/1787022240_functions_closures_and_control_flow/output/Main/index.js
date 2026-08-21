@@ -6,7 +6,7 @@ export function apply($function) {
 
 export function capture(captured) {
   function capture$closure(captured) {
-    return argument0 => {
+    return $int => {
       return captured;
     };
   }

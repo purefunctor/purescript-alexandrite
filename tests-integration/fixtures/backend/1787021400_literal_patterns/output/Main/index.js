@@ -1,40 +1,40 @@
-export function integer(argument0) {
-  if (argument0 === (0 | 0)) {
+export function integer($int) {
+  if ($int === (0 | 0)) {
     return true;
   } else {
     return false;
   }
 }
 
-export function number(argument0) {
-  if (argument0 === 1.5) {
+export function number($number) {
+  if ($number === 1.5) {
     return true;
   } else {
     return false;
   }
 }
 
-export function character(argument0) {
-  if (argument0 === "a") {
+export function character($char) {
+  if ($char === "a") {
     return true;
   } else {
     return false;
   }
 }
 
-export function string(argument0) {
-  if (argument0 === "alexandrite") {
+export function string($string) {
+  if ($string === "alexandrite") {
     return true;
   } else {
     return false;
   }
 }
 
-export function boolean(argument0) {
-  if (argument0 === true) {
+export function boolean($boolean) {
+  if ($boolean === true) {
     return true;
   } else {
-    if (argument0 === false) {
+    if ($boolean === false) {
       return false;
     } else {
       throw new Error("Pattern match failure");
