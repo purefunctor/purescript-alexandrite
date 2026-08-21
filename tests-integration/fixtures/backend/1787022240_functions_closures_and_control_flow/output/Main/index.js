@@ -1,9 +1,3 @@
-function capture$closure(captured) {
-  return argument0 => {
-    return captured;
-  };
-}
-
 export function apply($function) {
   return value => {
     return $function(value);
@@ -11,6 +5,11 @@ export function apply($function) {
 }
 
 export function capture(captured) {
+  function capture$closure(captured) {
+    return argument0 => {
+      return captured;
+    };
+  }
   return capture$closure(captured);
 }
 

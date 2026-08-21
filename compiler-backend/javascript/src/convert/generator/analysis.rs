@@ -16,6 +16,7 @@ use crate::tree::{ExpressionId, Tree};
 
 pub(super) struct FunctionContext {
     pub(super) names: FxHashMap<ValueId, String>,
+    closure_names: FxHashMap<FunctionId, String>,
     block_names: FxHashMap<BlockId, String>,
     inlineable_values: FxHashMap<BlockId, FxHashSet<ValueId>>,
     pub(super) dispatch_block: String,
@@ -24,6 +25,8 @@ pub(super) struct FunctionContext {
 
 pub(super) trait ValueExpressionContext {
     fn expression(&self, tree: &mut Tree, value: ValueId) -> ExpressionId;
+
+    fn closure(&self, function: FunctionId) -> &str;
 }
 
 pub(super) struct InlineExpressionContext {
@@ -48,6 +51,10 @@ impl ValueExpressionContext for InlineExpressionContext {
             .borrow_mut()
             .remove(&value)
             .expect("invariant violated: inline JavaScript expression has no SSA operand")
+    }
+
+    fn closure(&self, _function: FunctionId) -> &str {
+        panic!("invariant violated: inline JavaScript expression contains a closure")
     }
 }
 
@@ -77,6 +84,10 @@ impl ValueExpressionContext for BlockExpressionContext<'_> {
             .remove(&value)
             .unwrap_or_else(|| self.function.expression(tree, value))
     }
+
+    fn closure(&self, function: FunctionId) -> &str {
+        self.function.closure(function)
+    }
 }
 
 impl FunctionContext {
@@ -89,6 +100,13 @@ impl FunctionContext {
                 .entry(value)
                 .or_insert_with(|| allocator.allocate(&generator.module.storage[value].name));
         }
+        let mut closure_names = FxHashMap::default();
+        for function_id in direct_closures(generator.module, function) {
+            let function_name = &generator.module.storage[function_id].name;
+            let preferred_name = locally_scoped_function_name(function_name);
+            let name = allocator.allocate(preferred_name);
+            closure_names.insert(function_id, name);
+        }
         let mut block_names = FxHashMap::default();
         for block in function.blocks.iter().copied() {
             let name = allocator.allocate(&generator.module.storage[block].name);
@@ -99,6 +117,7 @@ impl FunctionContext {
         let dispatch_arguments = allocator.allocate("$arguments");
         FunctionContext {
             names,
+            closure_names,
             block_names,
             inlineable_values,
             dispatch_block,
@@ -118,6 +137,13 @@ impl FunctionContext {
             .get(&block)
             .map(String::as_str)
             .expect("invariant violated: JavaScript SSA block has no allocated name")
+    }
+
+    pub(super) fn closure(&self, function: FunctionId) -> &str {
+        self.closure_names
+            .get(&function)
+            .map(String::as_str)
+            .expect("invariant violated: JavaScript closure function has no allocated name")
     }
 
     pub(super) fn inlineable_values(&self, block: BlockId) -> &FxHashSet<ValueId> {
@@ -140,9 +166,42 @@ impl FunctionContext {
     }
 }
 
+fn direct_closures(module: &ssa::tree::Module, function: &Function) -> Vec<FunctionId> {
+    let mut closures = vec![];
+    for block in function.blocks.iter().copied() {
+        for instruction in &module.storage[block].instructions {
+            match instruction {
+                Instruction::Assign {
+                    value: InstructionValue::Closure { function, .. }, ..
+                } => closures.push(*function),
+                Instruction::RecursiveClosures { bindings } => {
+                    closures.extend(bindings.iter().map(|binding| binding.function));
+                }
+                Instruction::Assign { .. } => {}
+            }
+        }
+    }
+    closures
+}
+
+fn locally_scoped_function_name(name: &str) -> &str {
+    let Some((preferred, suffix)) = name.rsplit_once('$') else {
+        return name;
+    };
+    if !suffix.is_empty() && suffix.chars().all(|character| character.is_ascii_digit()) {
+        preferred
+    } else {
+        name
+    }
+}
+
 impl ValueExpressionContext for FunctionContext {
     fn expression(&self, tree: &mut Tree, value: ValueId) -> ExpressionId {
         tree.identifier(self.value(value))
+    }
+
+    fn closure(&self, function: FunctionId) -> &str {
+        FunctionContext::closure(self, function)
     }
 }
 
@@ -785,6 +844,7 @@ pub(super) fn initializer_value_is_inlineable(value: &InstructionValue) -> bool 
     !matches!(
         value,
         InstructionValue::RecordUpdate { .. }
+            | InstructionValue::Closure { .. }
             | InstructionValue::Test { .. }
             | InstructionValue::EffectPure { .. }
             | InstructionValue::EffectBind { .. }

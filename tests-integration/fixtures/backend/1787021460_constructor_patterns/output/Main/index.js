@@ -3,10 +3,6 @@ export const One = $value0 => ["One", $value0];
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 export const Outer = $value0 => ["Outer", $value0];
 
-function ordinaryBind$closure(value) {
-  return value;
-}
-
 export function first(argument0) {
   function case$join$1(result$1) {
     return result$1;
@@ -63,5 +59,8 @@ export function bind(value) {
 }
 
 export function ordinaryBind(identity) {
+  function ordinaryBind$closure(value) {
+    return value;
+  }
   return bind(identity)(ordinaryBind$closure);
 }
