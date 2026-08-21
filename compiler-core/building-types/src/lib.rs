@@ -3,12 +3,14 @@ pub use module_name_map::*;
 
 use std::sync::Arc;
 
-use files::FileId;
+use files::{FileId, ForeignFileId};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum QueryKey {
     Content(FileId),
+    Foreign(FileId),
+    ForeignContent(ForeignFileId),
     Module(ModuleNameId),
     Parsed(FileId),
     Stabilized(FileId),

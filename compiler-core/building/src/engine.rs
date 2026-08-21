@@ -36,7 +36,7 @@ use building_types::{
 };
 use checking::CheckedModule;
 use documenting::DocumentedModule;
-use files::FileId;
+use files::{FileId, ForeignFileId};
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
 use lock_api::{RawRwLock, RawRwLockRecursive};
@@ -117,6 +117,8 @@ where
 #[derive(Default)]
 struct InputStorage {
     content: Shards<FileId, InputState<Arc<str>>>,
+    foreign: Shards<FileId, InputState<Option<ForeignFileId>>>,
+    foreign_content: Shards<ForeignFileId, InputState<Arc<str>>>,
     module: Shards<ModuleNameId, InputState<Option<FileId>>>,
 }
 
@@ -497,6 +499,8 @@ impl QueryEngine {
         for dependency in dependencies {
             match dependency {
                 QueryKey::Content(k) => input_changed!(content, k),
+                QueryKey::Foreign(k) => input_changed!(foreign, k),
+                QueryKey::ForeignContent(k) => input_changed!(foreign_content, k),
                 QueryKey::Module(k) => input_changed!(module, k),
                 QueryKey::Parsed(k) => derived_changed!(parsed, k),
                 QueryKey::Stabilized(k) => derived_changed!(stabilized, k),
@@ -734,6 +738,35 @@ impl QueryEngine {
         self.get_input(QueryKey::Content(id), id, |input| &input.content).unwrap_or_else(|| {
             panic!("invariant violated: set_content({id:?}, ..)");
         })
+    }
+
+    pub fn set_foreign_content(&self, id: ForeignFileId, content: impl Into<Arc<str>>) {
+        self.set_input(id, |input| &input.foreign_content, content.into());
+    }
+
+    pub fn foreign_content(&self, id: ForeignFileId) -> Arc<str> {
+        self.get_input(QueryKey::ForeignContent(id), id, |input| &input.foreign_content)
+            .unwrap_or_else(|| {
+                panic!("invariant violated: set_foreign_content({id:?}, ..)");
+            })
+    }
+
+    pub fn set_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
+        self.set_input(source_id, |input| &input.foreign, Some(foreign_id));
+    }
+
+    pub fn remove_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
+        let current =
+            self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign);
+        if current != Some(Some(foreign_id)) {
+            return;
+        }
+
+        self.set_input(source_id, |input| &input.foreign, None);
+    }
+
+    pub fn foreign_file(&self, source_id: FileId) -> Option<ForeignFileId> {
+        self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign).flatten()
     }
 
     pub fn set_module_file(&self, name: &str, file_id: FileId) {
@@ -1140,7 +1173,7 @@ mod tests {
     use std::sync::{Arc, Barrier};
 
     use building_types::{QueryError, QueryResult};
-    use files::{FileId, Files};
+    use files::{FileId, Files, ForeignFiles};
     use la_arena::RawIdx;
     use resolving::ResolvedModule;
 
@@ -1419,6 +1452,32 @@ mod tests {
         let index_a = engine.indexed(id).unwrap();
         let index_b = engine.indexed(id).unwrap();
         assert!(Arc::ptr_eq(&index_a, &index_b));
+    }
+
+    #[test]
+    fn test_foreign_inputs() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+        let mut foreign_files = ForeignFiles::default();
+
+        let source_id = files.insert("src/Main.purs", "module Main where");
+        let first_id = foreign_files.insert("src/Main.js", "export const first = 1;");
+        let second_id = foreign_files.insert("src/Other.js", "export const second = 2;");
+
+        assert_eq!(engine.foreign_file(source_id), None);
+
+        engine.set_foreign_content(first_id, foreign_files.content(first_id));
+        engine.set_foreign_file(source_id, first_id);
+        assert_eq!(engine.foreign_file(source_id), Some(first_id));
+        assert_eq!(engine.foreign_content(first_id).as_ref(), "export const first = 1;");
+
+        engine.set_foreign_content(second_id, foreign_files.content(second_id));
+        engine.set_foreign_file(source_id, second_id);
+        engine.remove_foreign_file(source_id, first_id);
+        assert_eq!(engine.foreign_file(source_id), Some(second_id));
+
+        engine.remove_foreign_file(source_id, second_id);
+        assert_eq!(engine.foreign_file(source_id), None);
     }
 
     #[test]
