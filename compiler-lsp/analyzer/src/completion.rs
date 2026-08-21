@@ -51,7 +51,7 @@ pub fn implementation(
     let engine = language.queries();
     let encoding = language.position_encoding();
     let prim_id = engine.prim_id();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let position = position::protocol_position_to_utf8(&content, position, encoding)
         .ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = engine.parsed(current_file)?;

@@ -15,7 +15,7 @@ pub fn file_term_location(
     term_id: TermItemId,
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -37,7 +37,7 @@ pub fn file_type_location(
     type_id: TypeItemId,
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -79,7 +79,7 @@ fn file_source_location<T: AstNode>(
     file_id: FileId,
     source_id: stabilizing::AstId<T>,
 ) -> Result<Location, AnalyzerError> {
-    let content = context.queries().content(file_id);
+    let content = context.queries().content(file_id)?;
     let stabilized = context.queries().stabilized(file_id)?;
     let range =
         locate::id_range(&content, &context.queries().parsed(file_id)?.0, &stabilized, source_id)

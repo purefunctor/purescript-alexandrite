@@ -16,9 +16,21 @@ pub fn emit_collect_diagnostics(state: &mut State, uri: Url) -> Result<(), LspEr
     Ok(())
 }
 
+pub fn emit_collect_all_diagnostics(state: &mut State) -> Result<(), LspError> {
+    let files = state.files.read();
+    let editable_files = files.iter_id().filter(|file_id| files.is_editable(*file_id));
+    for file_id in editable_files {
+        state.client.emit(CollectDiagnostics(file_id))?;
+    }
+    Ok(())
+}
+
 pub struct CollectDiagnostics(FileId);
 
 pub fn collect_diagnostics(state: &mut State, id: CollectDiagnostics) -> Result<(), LspError> {
+    if !state.files.read().contains(id.0) {
+        return Ok(());
+    }
     state.spawn(move |snapshot| {
         let _span = tracing::info_span!("collect_diagnostics").entered();
         collect_diagnostics_core(snapshot, id).inspect_err(|error| error.emit_trace())

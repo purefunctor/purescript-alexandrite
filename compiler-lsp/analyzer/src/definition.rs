@@ -25,7 +25,7 @@ pub fn implementation(
         context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let position =
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -97,7 +97,7 @@ fn definition_module_name(
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
@@ -106,7 +106,7 @@ fn definition_module_name(
     let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
-    let content = engine.content(module_id);
+    let content = engine.content(module_id)?;
 
     let (parsed, _) = engine.parsed(module_id)?;
     let root = parsed.syntax_node();
@@ -126,7 +126,7 @@ fn definition_import(
     import_id: ImportItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -230,7 +230,7 @@ fn definition_expression(
     expression_id: ExpressionId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;
@@ -323,7 +323,7 @@ fn definition_type(
     type_id: TypeId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
     let lowered = engine.lowered(current_file)?;
@@ -390,7 +390,7 @@ fn definition_let_binding(
     let_id: LetBindingNameGroupId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
     let stabilized = engine.stabilized(file_id)?;
     let lowered = engine.lowered(file_id)?;

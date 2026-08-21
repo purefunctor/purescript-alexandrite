@@ -54,7 +54,7 @@ pub fn report(engine: &QueryEngine, files: &Files, root: &Path) -> Result<String
 }
 
 fn module_name(engine: &QueryEngine, id: FileId) -> Option<String> {
-    let content = engine.content(id);
+    let content = engine.content(id).ok()?;
     let (parsed, _) = engine.parsed(id).ok()?;
     parsed.module_name(&content).map(|name| name.to_string())
 }

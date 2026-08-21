@@ -413,7 +413,7 @@ where
     }
 
     fn lookup_module_name(&self, file_id: files::FileId) -> Option<SmolStr> {
-        let content = self.queries.content(file_id);
+        let content = self.queries.content(file_id).ok()?;
         let (parsed, _) = self.queries.parsed(file_id).ok()?;
         parsed.module_name(&content)
     }

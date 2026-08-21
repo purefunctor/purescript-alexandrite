@@ -58,7 +58,7 @@ where
             .and_then(|import| import.alias.as_deref())
             .ok_or(AnalyzerError::NonFatal)?;
 
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
 
@@ -188,7 +188,7 @@ where
         target_file: FileId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let indexed = self.context.queries().indexed(file_id)?;
@@ -314,7 +314,7 @@ where
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(Range, String), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let position = position::protocol_position_to_utf8(
             &content,
             range.start,
@@ -485,7 +485,7 @@ where
         binder_id: BinderId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -558,7 +558,7 @@ where
         pun_id: RecordPunId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -834,7 +834,7 @@ where
         import_item_id: ImportItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -853,7 +853,7 @@ where
         export_item_id: indexing::ExportItemId,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -915,7 +915,7 @@ where
         old_name: &str,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let cst::TypeItems::TypeItemsList(items) = type_items else {
             return Ok(());
         };
@@ -943,7 +943,7 @@ where
         range: TextRange,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let range =
             position::text_range_to_utf8_range(&content, range).ok_or(AnalyzerError::NonFatal)?;
 
@@ -956,7 +956,7 @@ where
         range: Utf8Range,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let range =
             position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
                 .ok_or(AnalyzerError::NonFatal)?;
@@ -977,7 +977,7 @@ where
             return Ok(());
         };
 
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -1007,7 +1007,7 @@ where
         range: Range,
         new_name: &str,
     ) -> Result<String, AnalyzerError> {
-        let content = self.context.queries().content(file_id);
+        let content = self.context.queries().content(file_id)?;
         let start = position::protocol_position_to_utf8(
             &content,
             range.start,
@@ -1039,7 +1039,7 @@ where
     ) -> Result<Option<WorkspaceEdit>, AnalyzerError> {
         self.edits.sort_by_key(|(file_id, edit)| {
             (
-                file_id.into_raw().into_u32(),
+                *file_id,
                 edit.range.start.line,
                 edit.range.start.character,
                 edit.range.end.line,

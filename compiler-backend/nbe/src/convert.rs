@@ -129,7 +129,7 @@ where
     Q: checking::ExternalQueries,
 {
     fn new(queries: &'c Q, file_id: FileId) -> ConversionResult<Context<'c, Q>> {
-        let content = queries.content(file_id);
+        let content = queries.content(file_id)?;
         let (parsed, _) = queries.parsed(file_id)?;
         let module_name = parsed
             .module_name(&content)
@@ -212,9 +212,7 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
     });
     let mut dependencies = dependencies.collect_vec();
     dependencies.sort_by(|left, right| {
-        left.module_name.cmp(&right.module_name).then_with(|| {
-            left.file_id.into_raw().into_u32().cmp(&right.file_id.into_raw().into_u32())
-        })
+        left.module_name.cmp(&right.module_name).then_with(|| left.file_id.cmp(&right.file_id))
     });
 
     Ok(Module {
@@ -264,9 +262,9 @@ fn runtime_exports(
         }
     }
     indirect.sort_by(|left, right| {
-        context.dependencies[&left.file_id].cmp(&context.dependencies[&right.file_id]).then_with(
-            || left.file_id.into_raw().into_u32().cmp(&right.file_id.into_raw().into_u32()),
-        )
+        context.dependencies[&left.file_id]
+            .cmp(&context.dependencies[&right.file_id])
+            .then_with(|| left.file_id.cmp(&right.file_id))
     });
 
     let surface = ModuleSurface { indirect: indirect.into() };
@@ -1451,7 +1449,7 @@ where
         if file_id == self.file_id {
             return Ok(SmolStr::clone(&self.module_name));
         }
-        let content = self.queries.content(file_id);
+        let content = self.queries.content(file_id)?;
         let (parsed, _) = self.queries.parsed(file_id)?;
         let name = parsed
             .module_name(&content)

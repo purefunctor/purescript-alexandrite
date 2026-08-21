@@ -453,7 +453,7 @@ fn load_modules(compiler: &mut Compiler, files: Vec<PathBuf>) -> Result<Vec<File
 
 fn populate_module_file(compiler: &mut Compiler) -> Result<(), DocsError> {
     let results = compiler.files.par_iter_id().map(|id| {
-        let content = compiler.engine.content(id);
+        let content = compiler.engine.content(id)?;
         let (parsed, _) = compiler.engine.parsed(id)?;
         Ok((id, content, parsed))
     });

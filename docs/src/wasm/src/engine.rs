@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use analyzer::AnalyzerHost;
-use building_types::{ModuleNameId, ModuleNameInterner, QueryProxy, QueryResult};
+use building_types::{ModuleNameId, ModuleNameInterner, QueryError, QueryProxy, QueryResult};
 use documenting::DocumentedModule;
 use files::{FileId, Files};
 use indexing::IndexedModule;
@@ -190,7 +190,7 @@ impl WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let content = self.content(id);
+        let content = self.content(id)?;
         let (parsed, _) = self.parsed(id)?;
         let stabilized = self.stabilized(id)?;
         let indexed = self.indexed(id)?;
@@ -200,8 +200,8 @@ impl WasmQueryEngine {
         Ok(documented)
     }
 
-    fn content(&self, id: FileId) -> Arc<str> {
-        self.input.content.get(&id).cloned().expect("invariant violated: content must exist")
+    fn content(&self, id: FileId) -> QueryResult<Arc<str>> {
+        self.input.content.get(&id).cloned().ok_or(QueryError::MissingContent { file_id: id })
     }
 }
 
@@ -218,7 +218,7 @@ impl QueryProxy for WasmQueryEngine {
     type Checked = Arc<checking::CheckedModule>;
     type Documented = Arc<DocumentedModule>;
 
-    fn content(&self, id: FileId) -> Arc<str> {
+    fn content(&self, id: FileId) -> QueryResult<Arc<str>> {
         WasmQueryEngine::content(self, id)
     }
 
@@ -227,7 +227,7 @@ impl QueryProxy for WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let content = self.content(id);
+        let content = self.content(id)?;
         let lexed = lexing::lex(&content);
         let tokens = lexing::layout(&lexed);
         let parsed = parsing::parse(&lexed, &tokens);
@@ -254,7 +254,7 @@ impl QueryProxy for WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let content = self.content(id);
+        let content = self.content(id)?;
         let (parsed, _) = self.parsed(id)?;
         let stabilized = self.stabilized(id)?;
 
@@ -270,7 +270,7 @@ impl QueryProxy for WasmQueryEngine {
             return Ok(cached.clone());
         }
 
-        let content = self.content(id);
+        let content = self.content(id)?;
         let (parsed, _) = self.parsed(id)?;
         let prim = self.resolved(self.prim_id)?;
         let stabilized = self.stabilized(id)?;

@@ -223,7 +223,7 @@ pub(crate) fn locate_with_token(
     id: FileId,
     position: Utf8Position,
 ) -> Result<(Located, Option<SyntaxToken>), AnalyzerError> {
-    let content = engine.content(id);
+    let content = engine.content(id)?;
 
     let (parsed, _) = engine.parsed(id)?;
     let stabilized = engine.stabilized(id)?;

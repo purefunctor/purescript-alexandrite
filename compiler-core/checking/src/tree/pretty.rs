@@ -225,7 +225,9 @@ where
             return name.to_string();
         }
 
-        let content = self.queries.content(self.file_id);
+        let Ok(content) = self.queries.content(self.file_id) else {
+            return name.to_string();
+        };
 
         let Ok((parsed, _)) = self.queries.parsed(self.file_id) else {
             return name.to_string();
