@@ -4,10 +4,8 @@ export const Box = ["Box"];
 
 function eqBox$initialize$closure(left) {
   return right => {
-    const matches = Array.isArray(left) && left[0] === "Box";
-    if (matches) {
-      const matches$1 = Array.isArray(right) && right[0] === "Box";
-      if (matches$1) {
+    if (Array.isArray(left) && left[0] === "Box") {
+      if (Array.isArray(right) && right[0] === "Box") {
         return true;
       } else {
         throw new Error("Pattern match failure");
@@ -28,6 +26,8 @@ export function showIdentity(dictionary1) {
 
 export const eqBox = { eq: eqBox$initialize$closure };
 
-export const equal = eqBox.eq(Box)(Box);
+export const equal = (0, eqBox.eq)(Box)(Box);
 
-export const rendered = (showIdentity(Data_Show.showInt)).show(rendered$initialize$closure(42 | 0));
+export const rendered = (0, (showIdentity(Data_Show.showInt)).show)(
+  rendered$initialize$closure(42 | 0)
+);

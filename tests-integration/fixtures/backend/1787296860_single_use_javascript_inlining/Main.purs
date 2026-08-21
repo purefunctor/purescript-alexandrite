@@ -15,26 +15,62 @@ inlineLiteral condition = if condition then true else false
 inlineClosure :: Boolean -> Boolean
 inlineClosure value = (\item -> item) value
 
-keepCall :: (Boolean -> Boolean) -> Boolean -> Boolean
-keepCall function value = function value
+inlineCall :: (Boolean -> Boolean) -> Boolean -> Boolean
+inlineCall function value = function value
 
-keepArray :: Boolean -> Array Boolean
-keepArray value = [value]
+inlineArray :: Boolean -> Array Boolean
+inlineArray value = [value]
 
-keepRecord :: Boolean -> { value :: Boolean }
-keepRecord value = { value }
+inlineRecord :: Boolean -> { value :: Boolean }
+inlineRecord value = { value }
 
-keepCapturedClosure :: Boolean -> Boolean -> Boolean
-keepCapturedClosure captured = \_ -> captured
+inlineCapturedClosure :: Boolean -> Boolean -> Boolean
+inlineCapturedClosure captured = \_ -> captured
 
 keepMultiUse :: { value :: Boolean } -> { first :: Boolean, second :: Boolean }
 keepMultiUse record =
   let value = record.value
   in { first: value, second: value }
 
-keepAcrossCall
+inlineAcrossCall
   :: { value :: Boolean }
   -> (Boolean -> Boolean)
   -> { projected :: Boolean, called :: Boolean }
-keepAcrossCall record function =
+inlineAcrossCall record function =
   { projected: record.value, called: function true }
+
+inlineOrderedCalls
+  :: (Boolean -> Boolean)
+  -> (Boolean -> Boolean)
+  -> { first :: Boolean, second :: Boolean }
+inlineOrderedCalls first second =
+  { first: first true, second: second false }
+
+keepReorderedCalls
+  :: (Boolean -> Boolean)
+  -> (Boolean -> Boolean)
+  -> { first :: Boolean, second :: Boolean }
+keepReorderedCalls first second =
+  let
+    firstResult = first true
+    secondResult = second false
+  in
+    { first: secondResult, second: firstResult }
+
+keepMultiUseCall
+  :: (Boolean -> Boolean)
+  -> Boolean
+  -> { first :: Boolean, second :: Boolean }
+keepMultiUseCall function value =
+  let result = function value
+  in { first: result, second: result }
+
+keepCallBeforeBranch :: Boolean -> (Boolean -> Boolean) -> Boolean -> Boolean
+keepCallBeforeBranch condition function value =
+  let result = function value
+  in if condition then result else value
+
+keepTestCall :: (Boolean -> Array Boolean) -> Boolean -> Boolean
+keepTestCall function value = case function value of
+  [] -> true
+  _ -> false

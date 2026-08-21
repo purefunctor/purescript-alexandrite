@@ -2,7 +2,7 @@ function inlineClosure$closure(item) {
   return item;
 }
 
-function keepCapturedClosure$closure(captured) {
+function inlineCapturedClosure$closure(captured) {
   return argument0 => {
     return captured;
   };
@@ -13,13 +13,11 @@ export function identity(value) {
 }
 
 export function inlineGlobal(value) {
-  const call = identity(value);
-  return call;
+  return identity(value);
 }
 
 export function inlineProperty(record) {
-  const call = identity(record.value);
-  return call;
+  return identity(record.value);
 }
 
 export function inlineLiteral(condition) {
@@ -31,43 +29,78 @@ export function inlineLiteral(condition) {
 }
 
 export function inlineClosure(value) {
-  const call = inlineClosure$closure(value);
-  return call;
+  return inlineClosure$closure(value);
 }
 
-export function keepCall($function) {
+export function inlineCall($function) {
   return value => {
-    const call = $function(value);
-    return call;
+    return $function(value);
   };
 }
 
-export function keepArray(value) {
-  const array = [value];
-  return array;
+export function inlineArray(value) {
+  return [value];
 }
 
-export function keepRecord(value) {
-  const record = { value: value };
-  return record;
+export function inlineRecord(value) {
+  return { value: value };
 }
 
-export function keepCapturedClosure(captured) {
-  const closure = keepCapturedClosure$closure(captured);
-  return closure;
+export function inlineCapturedClosure(captured) {
+  return inlineCapturedClosure$closure(captured);
 }
 
 export function keepMultiUse(record) {
   const value = record.value;
-  const record$1 = { first: value, second: value };
-  return record$1;
+  return { first: value, second: value };
 }
 
-export function keepAcrossCall(record) {
+export function inlineAcrossCall(record) {
   return $function => {
-    const value = record.value;
-    const call = $function(true);
-    const record$1 = { projected: value, called: call };
-    return record$1;
+    return { projected: record.value, called: $function(true) };
+  };
+}
+
+export function inlineOrderedCalls(first) {
+  return second => {
+    return { first: first(true), second: second(false) };
+  };
+}
+
+export function keepReorderedCalls(first) {
+  return second => {
+    const call = first(true);
+    return { first: second(false), second: call };
+  };
+}
+
+export function keepMultiUseCall($function) {
+  return value => {
+    const call = $function(value);
+    return { first: call, second: call };
+  };
+}
+
+export function keepCallBeforeBranch(condition) {
+  return $function => {
+    return value => {
+      const call = $function(value);
+      if (condition) {
+        return call;
+      } else {
+        return value;
+      }
+    };
+  };
+}
+
+export function keepTestCall($function) {
+  return value => {
+    const call = $function(value);
+    if (Array.isArray(call) && call.length === 0) {
+      return true;
+    } else {
+      return false;
+    }
   };
 }

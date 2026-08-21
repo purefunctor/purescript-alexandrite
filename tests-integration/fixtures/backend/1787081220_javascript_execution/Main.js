@@ -3,5 +3,10 @@ export const decrementInt = value => (value - 1) | 0;
 export const equalInt = left => right => left === right;
 export const foreignValue = 9;
 export const effectValue = () => 41;
+export const receiverSensitive = {
+  call(value) {
+    return this === undefined && value;
+  },
+};
 const awaitValue = 17;
 export { awaitValue as await };

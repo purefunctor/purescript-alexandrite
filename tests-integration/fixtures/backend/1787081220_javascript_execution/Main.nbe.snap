@@ -15,6 +15,8 @@ expression: report
 
 @export foreign await
 
+@export foreign receiverSensitive
+
 @export integer = 42
 
 @export number = 1.5
@@ -53,13 +55,13 @@ expression: report
     in addInt captured%8 result%9
     else 0
 
-@export recursive[19] countdown = \value%11 ->
+@export recursive[20] countdown = \value%11 ->
   if equalInt value%11 0 then 0 else addInt 1 (countdown (decrementInt value%11))
 
-@export recursive[20] isEven = \value%12 ->
+@export recursive[21] isEven = \value%12 ->
   if equalInt value%12 0 then true else isOdd (decrementInt value%12)
 
-@export recursive[20] isOdd = \value%13 ->
+@export recursive[21] isOdd = \value%13 ->
   if equalInt value%13 0 then false else isEven (decrementInt value%13)
 
 @export capturedMutual = \captured%18 condition%15 ->
@@ -102,3 +104,5 @@ expression: report
 @export instance measureInt = { measure: addInt 1 }
 
 @export evidenceValue = measureInt.measure 41
+
+@export receiverIsUnbound = receiverSensitive.call true

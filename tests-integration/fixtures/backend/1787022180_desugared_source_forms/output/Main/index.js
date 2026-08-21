@@ -9,9 +9,7 @@ export function identity(value) {
 }
 
 export function increment(section60) {
-  const call = add(section60);
-  const call$1 = call(1 | 0);
-  return call$1;
+  return add(section60)(1 | 0);
 }
 
 export function accessValue(section79) {

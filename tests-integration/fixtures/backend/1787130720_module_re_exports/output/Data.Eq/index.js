@@ -34,8 +34,7 @@ function eqRecordConsType$closure(argument0) {
 
 export function eqRec(dictionary0) {
   return dictionary1 => {
-    const record = { eq: eqRec$closure };
-    return record;
+    return { eq: eqRec$closure };
   };
 }
 
@@ -43,8 +42,7 @@ export function eqRecordConsType(dictionary2) {
   return dictionary3 => {
     return dictionary4 => {
       return dictionary5 => {
-        const record = { eqRecord: eqRecordConsType$closure };
-        return record;
+        return { eqRecord: eqRecordConsType$closure };
       };
     };
   };

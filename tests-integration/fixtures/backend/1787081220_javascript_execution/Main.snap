@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 131
+assertion_line: 255
 expression: checking_report
 ---
 Terms
@@ -10,6 +10,7 @@ equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
 foreignValue :: Prim.Int
 effectValue :: Effect.Effect Prim.Int
 await :: Prim.Int
+receiverSensitive :: { call :: Prim.Boolean -> Prim.Boolean }
 integer :: Prim.Int
 number :: Prim.Number
 string :: Prim.String
@@ -37,6 +38,7 @@ crossModule :: Prim.Int
 forwardReference :: Prim.Int
 measure :: forall @a. Main.Measure a => a -> Prim.Int
 evidenceValue :: Prim.Int
+receiverIsUnbound :: Prim.Boolean
 
 Types
 Model :: Prim.Type
@@ -62,7 +64,7 @@ Choice = []
 
 Diagnostics
 warning[MissingPatterns]: Pattern match is not exhaustive. Missing: None
-  --> 106:1..106:32
+  --> 107:1..107:32
     |
-106 | partialPattern :: Choice -> Int
+107 | partialPattern :: Choice -> Int
     | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 256
 expression: ssa_report
 ---
 @export foreign const addInt;
@@ -14,6 +14,8 @@ expression: ssa_report
 @export foreign const effectValue;
 
 @export foreign const await;
+
+@export foreign const receiverSensitive;
 
 @export const integer = initialize {
   entry() {
@@ -160,7 +162,7 @@ expression: ssa_report
   }
 }
 
-@export recursive[19] function countdown(value) {
+@export recursive[20] function countdown(value) {
   entry() {
     const equalInt = global(equalInt);
     const call = source.call(equalInt, value);
@@ -192,7 +194,7 @@ expression: ssa_report
   }
 }
 
-@export recursive[20] function isEven(value) {
+@export recursive[21] function isEven(value) {
   entry() {
     const equalInt = global(equalInt);
     const call = source.call(equalInt, value);
@@ -220,7 +222,7 @@ expression: ssa_report
   }
 }
 
-@export recursive[20] function isOdd(value) {
+@export recursive[21] function isOdd(value) {
   entry() {
     const equalInt = global(equalInt);
     const call = source.call(equalInt, value);
@@ -381,6 +383,16 @@ expression: ssa_report
     const literal = 41;
     const call = source.call(measure, literal);
     return call;
+  }
+}
+
+@export const receiverIsUnbound = initialize {
+  entry() {
+    const receiverSensitive = global(receiverSensitive);
+    const call = receiverSensitive.call;
+    const literal = true;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 

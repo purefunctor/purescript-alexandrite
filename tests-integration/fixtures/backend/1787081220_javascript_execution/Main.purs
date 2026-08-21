@@ -9,6 +9,7 @@ foreign import equalInt :: Int -> Int -> Boolean
 foreign import foreignValue :: Int
 foreign import effectValue :: Effect Int
 foreign import await :: Int
+foreign import receiverSensitive :: { call :: Boolean -> Boolean }
 
 integer :: Int
 integer = 42
@@ -123,3 +124,6 @@ instance Measure Int where
 
 evidenceValue :: Int
 evidenceValue = measure 41
+
+receiverIsUnbound :: Boolean
+receiverIsUnbound = receiverSensitive.call true

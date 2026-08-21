@@ -14,10 +14,8 @@ export function booleanGuard(value) {
 }
 
 export function patternGuard(choice) {
-  const matches = Array.isArray(choice) && choice[0] === "One";
-  if (matches) {
-    const value = choice[1];
-    return value;
+  if (Array.isArray(choice) && choice[0] === "One") {
+    return choice[1];
   } else {
     if (true) {
       return 0 | 0;
@@ -37,10 +35,8 @@ export function caseBooleanGuard(value) {
 }
 
 export function casePatternGuard(choice) {
-  const matches = Array.isArray(choice) && choice[0] === "One";
-  if (matches) {
-    const value = choice[1];
-    const result$1 = value;
+  if (Array.isArray(choice) && choice[0] === "One") {
+    const result$1 = choice[1];
     return result$1;
   } else {
     return 0 | 0;
@@ -57,8 +53,7 @@ export function nestedCaseGuard(value) {
     return result$1;
   }
 
-  const matches = value === true;
-  if (matches) {
+  if (value === true) {
     if (true) {
       if (false) {
         const result$3 = 1 | 0;

@@ -55,30 +55,30 @@ expression: ssa_report
   }
 }
 
-@export function keepCall(function, value) {
+@export function inlineCall(function, value) {
   entry() {
     const call = source.call(function, value);
     return call;
   }
 }
 
-@export function keepArray(value) {
+@export function inlineArray(value) {
   entry() {
     const array = [value];
     return array;
   }
 }
 
-@export function keepRecord(value) {
+@export function inlineRecord(value) {
   entry() {
     const record = { value: value };
     return record;
   }
 }
 
-@export function keepCapturedClosure(captured) {
+@export function inlineCapturedClosure(captured) {
   entry() {
-    const closure = closure(keepCapturedClosure$closure, captured);
+    const closure = closure(inlineCapturedClosure$closure, captured);
     return closure;
   }
 }
@@ -91,7 +91,7 @@ expression: ssa_report
   }
 }
 
-@export function keepAcrossCall(record, function) {
+@export function inlineAcrossCall(record, function) {
   entry() {
     const value = record.value;
     const literal = true;
@@ -101,13 +101,92 @@ expression: ssa_report
   }
 }
 
+@export function inlineOrderedCalls(first, second) {
+  entry() {
+    const literal = true;
+    const call = source.call(first, literal);
+    const literal$1 = false;
+    const call$1 = source.call(second, literal$1);
+    const record = { first: call, second: call$1 };
+    return record;
+  }
+}
+
+@export function keepReorderedCalls(first, second) {
+  entry() {
+    const literal = true;
+    const call = source.call(first, literal);
+    const literal$1 = false;
+    const call$1 = source.call(second, literal$1);
+    const record = { first: call$1, second: call };
+    return record;
+  }
+}
+
+@export function keepMultiUseCall(function, value) {
+  entry() {
+    const call = source.call(function, value);
+    const record = { first: call, second: call };
+    return record;
+  }
+}
+
+@export function keepCallBeforeBranch(condition, function, value) {
+  entry() {
+    const call = source.call(function, value);
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    if$join(call);
+  }
+  else() {
+    if$join(value);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+@export function keepTestCall(function, value) {
+  entry() {
+    const call = source.call(function, value);
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.array(call, 0);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const literal$1 = false;
+    case$join(literal$1);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+}
+
 closure inlineClosure$closure[](item) {
   entry() {
     return item;
   }
 }
 
-closure keepCapturedClosure$closure[captured](argument0) {
+closure inlineCapturedClosure$closure[captured](argument0) {
   entry() {
     return captured;
   }

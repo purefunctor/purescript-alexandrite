@@ -6,14 +6,12 @@ function capture$closure(captured) {
 
 export function apply($function) {
   return value => {
-    const call = $function(value);
-    return call;
+    return $function(value);
   };
 }
 
 export function capture(captured) {
-  const closure = capture$closure(captured);
-  return closure;
+  return capture$closure(captured);
 }
 
 export function choose(condition) {
@@ -29,8 +27,7 @@ export function choose(condition) {
 }
 
 export function literalCase(value) {
-  const matches = value === (0 | 0);
-  if (matches) {
+  if (value === (0 | 0)) {
     return "zero";
   } else {
     return "other";

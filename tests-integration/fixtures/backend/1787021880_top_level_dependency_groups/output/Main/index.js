@@ -2,8 +2,7 @@ function recursiveValue$initialize$closure(value) {
   if (value) {
     return 3 | 0;
   } else {
-    const call = recursivePeer.run(true);
-    return call;
+    return (0, recursivePeer.run)(true);
   }
 }
 
@@ -11,20 +10,16 @@ function recursivePeer$initialize$closure(value) {
   if (value) {
     return 4 | 0;
   } else {
-    const call = recursiveValue.run(true);
-    return call;
+    return (0, recursiveValue.run)(true);
   }
 }
 
 export function first(argument0) {
-  const matches = argument0 === true;
-  if (matches) {
+  if (argument0 === true) {
     return 1 | 0;
   } else {
-    const matches$1 = argument0 === false;
-    if (matches$1) {
-      const call = second(true);
-      return call;
+    if (argument0 === false) {
+      return second(true);
     } else {
       throw new Error("Pattern match failure");
     }
@@ -32,14 +27,11 @@ export function first(argument0) {
 }
 
 export function second(argument0) {
-  const matches = argument0 === true;
-  if (matches) {
+  if (argument0 === true) {
     return 2 | 0;
   } else {
-    const matches$1 = argument0 === false;
-    if (matches$1) {
-      const call = first(true);
-      return call;
+    if (argument0 === false) {
+      return first(true);
     } else {
       throw new Error("Pattern match failure");
     }

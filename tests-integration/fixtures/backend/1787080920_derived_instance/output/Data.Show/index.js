@@ -7,8 +7,7 @@ function showArray$closure(argument0) {
 }
 
 export function showArray(dictionary0) {
-  const record = { show: showArray$closure };
-  return record;
+  return { show: showArray$closure };
 }
 
 export const showInt = { show: showInt$initialize$closure };

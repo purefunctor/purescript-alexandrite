@@ -55,6 +55,7 @@ const actual = {
   foreignValue: Main.foreignValue,
   effectThunk: Main.effectValue(),
   evidence: Main.evidenceValue,
+  receiverIsUnbound: Main.receiverIsUnbound,
   patternFailure,
 };
 
@@ -89,6 +90,7 @@ const expected = {
   foreignValue: 9,
   effectThunk: 41,
   evidence: 42,
+  receiverIsUnbound: true,
   patternFailure: true,
 };
 

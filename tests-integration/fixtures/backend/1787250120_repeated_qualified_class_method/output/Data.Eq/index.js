@@ -23,8 +23,7 @@ function orderedInt$initialize$closure(argument0) {
 }
 
 export function eqArray(dictionary0) {
-  const record = { eq: eqArray$closure };
-  return record;
+  return { eq: eqArray$closure };
 }
 
 export const eqInt = { eq: eqInt$initialize$closure };

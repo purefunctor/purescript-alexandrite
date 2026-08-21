@@ -18,6 +18,7 @@ pub(crate) enum Expression {
     Call { callee: ExpressionId, arguments: Vec<ExpressionId> },
     Member { object: ExpressionId, property: String },
     Index { object: ExpressionId, index: ExpressionId },
+    UnboundCallee(ExpressionId),
     Binary { operator: BinaryOperator, left: ExpressionId, right: ExpressionId },
     Arrow { parameters: Vec<String>, body: ExpressionId },
 }
@@ -82,6 +83,14 @@ impl Tree {
 
     pub(crate) fn index(&mut self, object: ExpressionId, index: ExpressionId) -> ExpressionId {
         self.allocate(Expression::Index { object, index })
+    }
+
+    pub(crate) fn unbound_callee(&mut self, expression: ExpressionId) -> ExpressionId {
+        if matches!(self[expression], Expression::Member { .. } | Expression::Index { .. }) {
+            self.allocate(Expression::UnboundCallee(expression))
+        } else {
+            expression
+        }
     }
 
     pub(crate) fn binary(

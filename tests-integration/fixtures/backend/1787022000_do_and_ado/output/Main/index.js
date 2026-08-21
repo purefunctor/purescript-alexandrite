@@ -2,14 +2,12 @@ import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 function sequential$initialize$closure(first) {
-  const call = secondAction(first);
-  return call;
+  return secondAction(first);
 }
 
 function independent$initialize$closure(first) {
   return second => {
-    const record = { first: first, second: second };
-    return record;
+    return { first: first, second: second };
   };
 }
 
@@ -17,10 +15,10 @@ export const firstAction = $foreign["firstAction"];
 export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
 
-export const sequential = Effect.bindEffect1.bind(firstAction)(sequential$initialize$closure);
+export const sequential = (0, Effect.bindEffect1.bind)(firstAction)(sequential$initialize$closure);
 
-export const independent = Effect.applyEffect1.apply(
-  Effect.functorEffect.map(independent$initialize$closure)(firstAction)
+export const independent = (0, Effect.applyEffect1.apply)(
+  (0, Effect.functorEffect.map)(independent$initialize$closure)(firstAction)
 )(independentAction);
 
-export const pureValue = Effect.applicativeEffect.pure(42 | 0);
+export const pureValue = (0, Effect.applicativeEffect.pure)(42 | 0);
