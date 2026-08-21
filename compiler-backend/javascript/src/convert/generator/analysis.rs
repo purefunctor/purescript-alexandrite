@@ -16,6 +16,7 @@ use crate::tree::{ExpressionId, Tree};
 pub(super) struct FunctionContext {
     pub(super) names: FxHashMap<ValueId, String>,
     block_names: FxHashMap<BlockId, String>,
+    inlineable_values: FxHashMap<BlockId, FxHashSet<ValueId>>,
     pub(super) dispatch_block: String,
     pub(super) dispatch_arguments: String,
 }
@@ -49,6 +50,34 @@ impl ValueExpressionContext for InlineExpressionContext {
     }
 }
 
+pub(super) struct BlockExpressionContext<'c> {
+    function: &'c FunctionContext,
+    expressions: RefCell<FxHashMap<ValueId, ExpressionId>>,
+}
+
+impl<'c> BlockExpressionContext<'c> {
+    pub(super) fn new(function: &'c FunctionContext) -> BlockExpressionContext<'c> {
+        BlockExpressionContext { function, expressions: RefCell::new(FxHashMap::default()) }
+    }
+
+    pub(super) fn insert(&self, value: ValueId, expression: ExpressionId) {
+        self.expressions.borrow_mut().insert(value, expression);
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.expressions.borrow().is_empty()
+    }
+}
+
+impl ValueExpressionContext for BlockExpressionContext<'_> {
+    fn expression(&self, tree: &mut Tree, value: ValueId) -> ExpressionId {
+        self.expressions
+            .borrow_mut()
+            .remove(&value)
+            .unwrap_or_else(|| self.function.expression(tree, value))
+    }
+}
+
 impl FunctionContext {
     pub(super) fn new(generator: &Generator<'_>, function: &Function) -> FunctionContext {
         let mut allocator =
@@ -64,9 +93,16 @@ impl FunctionContext {
             let name = allocator.allocate(&generator.module.storage[block].name);
             block_names.insert(block, name);
         }
+        let inlineable_values = locally_inlineable_values(generator.module, function);
         let dispatch_block = allocator.allocate("$block");
         let dispatch_arguments = allocator.allocate("$arguments");
-        FunctionContext { names, block_names, dispatch_block, dispatch_arguments }
+        FunctionContext {
+            names,
+            block_names,
+            inlineable_values,
+            dispatch_block,
+            dispatch_arguments,
+        }
     }
 
     pub(super) fn value(&self, value: ValueId) -> &str {
@@ -81,6 +117,12 @@ impl FunctionContext {
             .get(&block)
             .map(String::as_str)
             .expect("invariant violated: JavaScript SSA block has no allocated name")
+    }
+
+    pub(super) fn inlineable_values(&self, block: BlockId) -> &FxHashSet<ValueId> {
+        self.inlineable_values
+            .get(&block)
+            .expect("invariant violated: JavaScript SSA block has no inlining analysis")
     }
 
     pub(super) fn mutable_values(&self, function: &Function) -> Vec<&str> {
@@ -449,6 +491,116 @@ pub(super) fn instruction_value_uses(value: &InstructionValue) -> Vec<ValueId> {
         | InstructionValue::Global { .. }
         | InstructionValue::SynthesizedEvidence { .. }
         | InstructionValue::TrivialEvidence => vec![],
+    }
+}
+
+fn locally_inlineable_values(
+    module: &ssa::tree::Module,
+    function: &Function,
+) -> FxHashMap<BlockId, FxHashSet<ValueId>> {
+    let mut function_uses = FxHashMap::<ValueId, usize>::default();
+    for block in function.blocks.iter().copied() {
+        let block = &module.storage[block];
+        for instruction in &block.instructions {
+            match instruction {
+                Instruction::Assign { value, .. } => {
+                    for value in instruction_value_uses(value) {
+                        *function_uses.entry(value).or_default() += 1;
+                    }
+                }
+                Instruction::RecursiveClosures { bindings } => {
+                    for binding in bindings.iter() {
+                        for capture in binding.captures.iter().copied() {
+                            *function_uses.entry(capture).or_default() += 1;
+                        }
+                    }
+                }
+            }
+        }
+        for value in terminator_value_uses(&block.terminator) {
+            *function_uses.entry(value).or_default() += 1;
+        }
+    }
+
+    let mut inlineable = FxHashMap::default();
+    for block_id in function.blocks.iter().copied() {
+        let block = &module.storage[block_id];
+        let mut local_uses = FxHashSet::default();
+        for instruction in &block.instructions {
+            if let Instruction::Assign { value, .. } = instruction {
+                local_uses.extend(instruction_value_uses(value));
+            }
+        }
+        local_uses.extend(terminator_value_uses(&block.terminator));
+
+        let values = block.instructions.iter().filter_map(|instruction| {
+            let Instruction::Assign { result, value } = instruction else {
+                return None;
+            };
+            // Keep substitutions in their defining block and do not move them past an operation
+            // whose evaluation must remain ordered. This also keeps helper capture scopes intact.
+            (function_uses.get(result) == Some(&1)
+                && local_uses.contains(result)
+                && instruction_value_is_locally_inlineable(value)
+                && local_use_precedes_evaluation_barrier(block, *result))
+            .then_some(*result)
+        });
+        inlineable.insert(block_id, values.collect());
+    }
+    inlineable
+}
+
+fn instruction_value_is_locally_inlineable(value: &InstructionValue) -> bool {
+    match value {
+        InstructionValue::Literal { .. }
+        | InstructionValue::Constructor { .. }
+        | InstructionValue::Global { .. }
+        | InstructionValue::Project { .. } => true,
+        InstructionValue::Closure { captures, .. } => captures.is_empty(),
+        InstructionValue::Array { .. }
+        | InstructionValue::Record { .. }
+        | InstructionValue::RecordUpdate { .. }
+        | InstructionValue::Call { .. }
+        | InstructionValue::Test { .. }
+        | InstructionValue::Extract { .. }
+        | InstructionValue::EffectPure { .. }
+        | InstructionValue::EffectBind { .. }
+        | InstructionValue::SynthesizedEvidence { .. }
+        | InstructionValue::TrivialEvidence => false,
+    }
+}
+
+fn local_use_precedes_evaluation_barrier(block: &Block, result: ValueId) -> bool {
+    let Some(position) = block.instructions.iter().position(|instruction| {
+        matches!(instruction, Instruction::Assign { result: assigned, .. } if *assigned == result)
+    }) else {
+        return false;
+    };
+    for instruction in &block.instructions[position + 1..] {
+        let Instruction::Assign { value, .. } = instruction else {
+            return false;
+        };
+        if instruction_value_uses(value).contains(&result) {
+            return true;
+        }
+        if !instruction_value_is_locally_inlineable(value) {
+            return false;
+        }
+    }
+    terminator_value_uses(&block.terminator).contains(&result)
+}
+
+fn terminator_value_uses(terminator: &Terminator) -> Vec<ValueId> {
+    match terminator {
+        Terminator::Return { value } => vec![*value],
+        Terminator::Jump { target } => target.arguments.to_vec(),
+        Terminator::Branch { condition, then_target, else_target } => {
+            let mut values = vec![*condition];
+            values.extend(then_target.arguments.iter().copied());
+            values.extend(else_target.arguments.iter().copied());
+            values
+        }
+        Terminator::Fail { .. } | Terminator::Unreachable => vec![],
     }
 }
 

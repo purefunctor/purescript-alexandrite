@@ -1,0 +1,114 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 256
+expression: ssa_report
+---
+@export function identity(value) {
+  entry() {
+    return value;
+  }
+}
+
+@export function inlineGlobal(value) {
+  entry() {
+    const identity = global(identity);
+    const call = source.call(identity, value);
+    return call;
+  }
+}
+
+@export function inlineProperty(record) {
+  entry() {
+    const identity = global(identity);
+    const value = record.value;
+    const call = source.call(identity, value);
+    return call;
+  }
+}
+
+@export function inlineLiteral(condition) {
+  entry() {
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const literal = true;
+    if$join(literal);
+  }
+  else() {
+    const literal$1 = false;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+@export function inlineClosure(value) {
+  entry() {
+    const closure = closure(inlineClosure$closure);
+    const call = source.call(closure, value);
+    return call;
+  }
+}
+
+@export function keepCall(function, value) {
+  entry() {
+    const call = source.call(function, value);
+    return call;
+  }
+}
+
+@export function keepArray(value) {
+  entry() {
+    const array = [value];
+    return array;
+  }
+}
+
+@export function keepRecord(value) {
+  entry() {
+    const record = { value: value };
+    return record;
+  }
+}
+
+@export function keepCapturedClosure(captured) {
+  entry() {
+    const closure = closure(keepCapturedClosure$closure, captured);
+    return closure;
+  }
+}
+
+@export function keepMultiUse(record) {
+  entry() {
+    const value = record.value;
+    const record$1 = { first: value, second: value };
+    return record$1;
+  }
+}
+
+@export function keepAcrossCall(record, function) {
+  entry() {
+    const value = record.value;
+    const literal = true;
+    const call = source.call(function, literal);
+    const record$1 = { projected: value, called: call };
+    return record$1;
+  }
+}
+
+closure inlineClosure$closure[](item) {
+  entry() {
+    return item;
+  }
+}
+
+closure keepCapturedClosure$closure[captured](argument0) {
+  entry() {
+    return captured;
+  }
+}

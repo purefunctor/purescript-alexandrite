@@ -12,8 +12,7 @@ function capture$closure(captured) {
 
 function addCaptured$closure(amount) {
   return value => {
-    const addInt$1 = addInt;
-    const call = addInt$1(amount);
+    const call = addInt(amount);
     const call$1 = call(value);
     return call$1;
   };
@@ -27,8 +26,7 @@ function localSecond$function(captured, localFirst) {
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal = true;
-        const call = localFirst(literal);
+        const call = localFirst(true);
         return call;
       } else {
         throw new Error("Pattern match failure");
@@ -45,8 +43,7 @@ function localFirst$function(captured, localSecond) {
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal = true;
-        const call = localSecond(literal);
+        const call = localSecond(true);
         return call;
       } else {
         throw new Error("Pattern match failure");
@@ -56,13 +53,11 @@ function localFirst$function(captured, localSecond) {
 }
 
 export function readHostile(value) {
-  const hostile_field = value["hostile-field"];
-  return hostile_field;
+  return value["hostile-field"];
 }
 
 export function readProto(value) {
-  const __proto__ = value.__proto__;
-  return __proto__;
+  return value.__proto__;
 }
 
 export function capture(captured) {
@@ -85,8 +80,7 @@ export function addCaptured(amount) {
 export function nestedJoin(outer) {
   return inner => {
     function if$join$1(result$1, foreignValue$1) {
-      const addInt$1 = addInt;
-      const call = addInt$1(foreignValue$1);
+      const call = addInt(foreignValue$1);
       const call$1 = call(result$1);
       return call$1;
     }
@@ -94,34 +88,25 @@ export function nestedJoin(outer) {
     if (outer) {
       const foreignValue$1 = foreignValue;
       if (inner) {
-        const literal = 1 | 0;
-        return if$join$1(literal, foreignValue$1);
+        return if$join$1(1 | 0, foreignValue$1);
       } else {
-        const literal$1 = 2 | 0;
-        return if$join$1(literal$1, foreignValue$1);
+        return if$join$1(2 | 0, foreignValue$1);
       }
     } else {
-      const literal$2 = 0 | 0;
-      return literal$2;
+      return 0 | 0;
     }
   };
 }
 
 export function countdown(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
+  const call = equalInt(value);
+  const call$1 = call(0 | 0);
   if (call$1) {
-    const literal$1 = 0 | 0;
-    return literal$1;
+    return 0 | 0;
   } else {
-    const addInt$1 = addInt;
-    const literal$2 = 1 | 0;
-    const call$2 = addInt$1(literal$2);
+    const call$2 = addInt(1 | 0);
     const countdown$1 = countdown;
-    const decrementInt$1 = decrementInt;
-    const call$3 = decrementInt$1(value);
+    const call$3 = decrementInt(value);
     const call$4 = countdown$1(call$3);
     const call$5 = call$2(call$4);
     return call$5;
@@ -129,34 +114,26 @@ export function countdown(value) {
 }
 
 export function isEven(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
+  const call = equalInt(value);
+  const call$1 = call(0 | 0);
   if (call$1) {
-    const literal$1 = true;
-    return literal$1;
+    return true;
   } else {
     const isOdd$1 = isOdd;
-    const decrementInt$1 = decrementInt;
-    const call$2 = decrementInt$1(value);
+    const call$2 = decrementInt(value);
     const call$3 = isOdd$1(call$2);
     return call$3;
   }
 }
 
 export function isOdd(value) {
-  const equalInt$1 = equalInt;
-  const call = equalInt$1(value);
-  const literal = 0 | 0;
-  const call$1 = call(literal);
+  const call = equalInt(value);
+  const call$1 = call(0 | 0);
   if (call$1) {
-    const literal$1 = false;
-    return literal$1;
+    return false;
   } else {
     const isEven$1 = isEven;
-    const decrementInt$1 = decrementInt;
-    const call$2 = decrementInt$1(value);
+    const call$2 = decrementInt(value);
     const call$3 = isEven$1(call$2);
     return call$3;
   }
@@ -174,8 +151,7 @@ export function capturedMutual(captured) {
 export function first(choice) {
   const matches = Array.isArray(choice) && choice[0] === "None";
   if (matches) {
-    const literal = 0 | 0;
-    return literal;
+    return 0 | 0;
   } else {
     const matches$1 = Array.isArray(choice) && choice[0] === "Pair";
     if (matches$1) {
@@ -232,14 +208,7 @@ export const model = {
 };
 
 export const updated = (() => {
-  const model$1 = model;
-  const literal = 1 | 0;
-  const literal$1 = false;
-  const updated$1 = {
-    ...model$1,
-    count: literal,
-    nested: { ...model$1.nested, enabled: literal$1 }
-  };
+  const updated$1 = { ...model, count: 1 | 0, nested: { ...model.nested, enabled: false } };
   return updated$1;
 })();
 

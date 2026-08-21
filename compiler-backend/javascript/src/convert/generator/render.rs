@@ -10,8 +10,8 @@ use ssa::tree::{
 
 use super::Generator;
 use super::analysis::{
-    ControlFlow, FunctionContext, ValueExpressionContext, block_is_transparent_terminal,
-    helper_captures, substitute_block_parameter,
+    BlockExpressionContext, ControlFlow, FunctionContext, ValueExpressionContext,
+    block_is_transparent_terminal, helper_captures, substitute_block_parameter,
 };
 use super::names::NameAllocator;
 use super::syntax::{
@@ -149,12 +149,28 @@ impl Generator<'_> {
         helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
     ) -> ModuleResult<()> {
         let block = &self.module.storage[block_id];
+        let inlineable = context.inlineable_values(block_id);
+        let expressions = BlockExpressionContext::new(context);
         for instruction in &block.instructions {
-            self.render_instruction(output.tree, output.writer, instruction, context, true)?;
+            if let Instruction::Assign { result, value } = instruction
+                && inlineable.contains(result)
+            {
+                let expression = self.instruction_expression(output.tree, value, &expressions)?;
+                expressions.insert(*result, expression);
+            } else {
+                self.render_instruction(
+                    output.tree,
+                    output.writer,
+                    instruction,
+                    context,
+                    &expressions,
+                    true,
+                )?;
+            }
         }
         match &block.terminator {
             Terminator::Return { value } => {
-                let value = context.expression(output.tree, *value);
+                let value = expressions.expression(output.tree, *value);
                 output.writer.expression_line("return ", output.tree, value, ";");
             }
             Terminator::Jump { target } => {
@@ -162,19 +178,21 @@ impl Generator<'_> {
                     output,
                     target,
                     context,
+                    &expressions,
                     control_flow,
                     helpers,
                     helper_captures,
                 )?;
             }
             Terminator::Branch { condition, then_target, else_target } => {
-                let condition = context.expression(output.tree, *condition);
+                let condition = expressions.expression(output.tree, *condition);
                 output.writer.expression_line("if (", output.tree, condition, ") {");
                 output.writer.indent();
                 self.render_acyclic_target(
                     output,
                     then_target,
                     context,
+                    &expressions,
                     control_flow,
                     helpers,
                     helper_captures,
@@ -186,6 +204,7 @@ impl Generator<'_> {
                     output,
                     else_target,
                     context,
+                    &expressions,
                     control_flow,
                     helpers,
                     helper_captures,
@@ -198,6 +217,10 @@ impl Generator<'_> {
                 output.writer.line("throw new Error(\"unreachable SSA block\");");
             }
         }
+        assert!(
+            expressions.is_empty(),
+            "invariant violated: inline JavaScript block expression was not consumed"
+        );
         Ok(())
     }
 
@@ -206,6 +229,7 @@ impl Generator<'_> {
         output: &mut RenderingOutput<'_, '_>,
         target: &BlockTarget,
         context: &FunctionContext,
+        expressions: &dyn ValueExpressionContext,
         control_flow: &ControlFlow,
         helpers: &FxHashSet<BlockId>,
         helper_captures: &FxHashMap<BlockId, Vec<ValueId>>,
@@ -220,7 +244,7 @@ impl Generator<'_> {
             match &block.terminator {
                 Terminator::Return { value } => {
                     let value = substitute_block_parameter(block, target, *value).unwrap_or(*value);
-                    let value = context.expression(output.tree, value);
+                    let value = expressions.expression(output.tree, value);
                     output.writer.expression_line("return ", output.tree, value, ";");
                     return Ok(());
                 }
@@ -232,12 +256,14 @@ impl Generator<'_> {
             }
         }
         if helpers.contains(&target.block) {
-            let arguments =
-                target.arguments.iter().map(|argument| context.expression(output.tree, *argument));
+            let arguments = target
+                .arguments
+                .iter()
+                .map(|argument| expressions.expression(output.tree, *argument));
             let mut arguments = arguments.collect_vec();
             let captures = helper_captures[&target.block]
                 .iter()
-                .map(|capture| context.expression(output.tree, *capture));
+                .map(|capture| expressions.expression(output.tree, *capture));
             arguments.extend(captures);
             let function = output.tree.identifier(context.block(target.block));
             let call = output.tree.call(function, arguments);
@@ -245,7 +271,7 @@ impl Generator<'_> {
             return Ok(());
         }
         for (&parameter, &argument) in block.parameters.iter().zip(target.arguments.iter()) {
-            let argument = context.expression(output.tree, argument);
+            let argument = expressions.expression(output.tree, argument);
             output.writer.expression_line(
                 format!("const {} = ", context.value(parameter)),
                 output.tree,
@@ -297,7 +323,7 @@ impl Generator<'_> {
                 ));
             }
             for instruction in &block.instructions {
-                self.render_instruction(tree, writer, instruction, context, false)?;
+                self.render_instruction(tree, writer, instruction, context, context, false)?;
             }
             self.render_cyclic_terminator(tree, writer, &block.terminator, context, control_flow);
             writer.dedent();
@@ -367,11 +393,12 @@ impl Generator<'_> {
         writer: &mut Writer<'_>,
         instruction: &Instruction,
         context: &FunctionContext,
+        expressions: &dyn ValueExpressionContext,
         declare: bool,
     ) -> ModuleResult<()> {
         match instruction {
             Instruction::Assign { result, value } => {
-                let expression = self.instruction_expression(tree, value, context)?;
+                let expression = self.instruction_expression(tree, value, expressions)?;
                 let binding = if declare { "const " } else { "" };
                 writer.expression_line(
                     format!("{binding}{} = ", context.value(*result)),

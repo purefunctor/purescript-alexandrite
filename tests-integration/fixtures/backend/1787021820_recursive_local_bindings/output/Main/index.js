@@ -2,13 +2,11 @@ function second$function(first) {
   return argument0 => {
     const matches = argument0 === true;
     if (matches) {
-      const literal = 2 | 0;
-      return literal;
+      return 2 | 0;
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal$1 = true;
-        const call = first(literal$1);
+        const call = first(true);
         return call;
       } else {
         throw new Error("Pattern match failure");
@@ -21,13 +19,11 @@ function first$function(second) {
   return argument0 => {
     const matches = argument0 === true;
     if (matches) {
-      const literal = 1 | 0;
-      return literal;
+      return 1 | 0;
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal$1 = true;
-        const call = second(literal$1);
+        const call = second(true);
         return call;
       } else {
         throw new Error("Pattern match failure");
@@ -44,8 +40,7 @@ function second$function$1(captured, first) {
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal = true;
-        const call = first(literal);
+        const call = first(true);
         return call;
       } else {
         throw new Error("Pattern match failure");
@@ -62,8 +57,7 @@ function first$function$1(captured, second) {
     } else {
       const matches$1 = argument0 === false;
       if (matches$1) {
-        const literal = true;
-        const call = second(literal);
+        const call = second(true);
         return call;
       } else {
         throw new Error("Pattern match failure");

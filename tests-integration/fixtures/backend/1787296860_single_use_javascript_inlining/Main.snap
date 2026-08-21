@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 255
+expression: checking_report
+---
+Terms
+identity :: forall a. a -> a
+inlineGlobal :: Prim.Boolean -> Prim.Boolean
+inlineProperty :: { value :: Prim.Boolean } -> Prim.Boolean
+inlineLiteral :: Prim.Boolean -> Prim.Boolean
+inlineClosure :: Prim.Boolean -> Prim.Boolean
+keepCall :: (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+keepArray :: Prim.Boolean -> Prim.Array Prim.Boolean
+keepRecord :: Prim.Boolean -> { value :: Prim.Boolean }
+keepCapturedClosure :: Prim.Boolean -> Prim.Boolean -> Prim.Boolean
+keepMultiUse :: { value :: Prim.Boolean } -> { first :: Prim.Boolean, second :: Prim.Boolean }
+keepAcrossCall ::
+  { value :: Prim.Boolean } ->
+  (Prim.Boolean -> Prim.Boolean) ->
+  { called :: Prim.Boolean, projected :: Prim.Boolean }
+
+Types

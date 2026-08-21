@@ -11,8 +11,7 @@ function eqOption$initialize$closure(left) {
       if (matches$2) {
         const matches$3 = Array.isArray(right) && right[0] === "Nothing";
         if (matches$3) {
-          const literal$2 = true;
-          return literal$2;
+          return true;
         } else {
           return case$2();
         }
@@ -22,8 +21,7 @@ function eqOption$initialize$closure(left) {
     }
 
     function case$2() {
-      const literal$3 = false;
-      return literal$3;
+      return false;
     }
 
     function if$join(result$1) {
@@ -36,16 +34,12 @@ function eqOption$initialize$closure(left) {
       const matches$1 = Array.isArray(right) && right[0] === "Just";
       if (matches$1) {
         const right0 = right[1];
-        const eqInt = Data_Eq.eqInt;
-        const eq = eqInt.eq;
-        const call = eq(left0);
+        const call = Data_Eq.eqInt.eq(left0);
         const call$1 = call(right0);
         if (call$1) {
-          const literal = true;
-          return if$join(literal);
+          return if$join(true);
         } else {
-          const literal$1 = false;
-          return if$join(literal$1);
+          return if$join(false);
         }
       } else {
         return case$1(left, right);

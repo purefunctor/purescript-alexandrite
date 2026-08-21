@@ -3,8 +3,7 @@ import * as $foreign from "./foreign.js";
 function genericEqual$closure(dictionary0) {
   return left => {
     return right => {
-      const equal = dictionary0.equal;
-      const call = equal(left);
+      const call = dictionary0.equal(left);
       const call$1 = call(right);
       return call$1;
     };
@@ -14,9 +13,7 @@ function genericEqual$closure(dictionary0) {
 function superclassEqual$closure(dictionary1) {
   return left => {
     return right => {
-      const superclass17 = dictionary1.superclass17;
-      const equal = superclass17.equal;
-      const call = equal(left);
+      const call = dictionary1.superclass17.equal(left);
       const call$1 = call(right);
       return call$1;
     };

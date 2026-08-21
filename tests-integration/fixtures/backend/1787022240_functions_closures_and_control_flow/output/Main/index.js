@@ -31,11 +31,9 @@ export function choose(condition) {
 export function literalCase(value) {
   const matches = value === (0 | 0);
   if (matches) {
-    const literal = "zero";
-    return literal;
+    return "zero";
   } else {
-    const literal$1 = "other";
-    return literal$1;
+    return "other";
   }
 }
 

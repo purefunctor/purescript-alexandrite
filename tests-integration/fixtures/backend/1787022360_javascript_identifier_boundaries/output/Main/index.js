@@ -3,13 +3,11 @@ import * as $foreign from "./foreign.js";
 export const Tagged = $value0 => ["Tagged", $value0];
 
 export function readLabel(record) {
-  const hyphen_label = record["hyphen-label"];
-  return hyphen_label;
+  return record["hyphen-label"];
 }
 
 export function readEmptyLabel(record) {
-  const value = record[""];
-  return value;
+  return record[""];
 }
 
 const $await = $foreign["await"];

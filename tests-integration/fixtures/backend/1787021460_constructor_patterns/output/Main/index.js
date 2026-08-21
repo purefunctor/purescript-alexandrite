@@ -14,14 +14,12 @@ export function first(argument0) {
 
   const matches = Array.isArray(argument0) && argument0[0] === "Empty";
   if (matches) {
-    const Empty$1 = Empty;
-    return Empty$1;
+    return Empty;
   } else {
     const matches$1 = Array.isArray(argument0) && argument0[0] === "One";
     if (matches$1) {
       const value = argument0[1];
-      const One$1 = One;
-      const call = One$1(value);
+      const call = One(value);
       return call;
     } else {
       const matches$2 = Array.isArray(argument0) && argument0[0] === "Pair";
@@ -32,12 +30,10 @@ export function first(argument0) {
         if (matches$3) {
           const argument$1 = argument0[1];
           const argument$2 = argument0[2];
-          const One$1$1 = One;
-          const call$1 = One$1$1(left);
+          const call$1 = One(left);
           return case$join$1(call$1);
         } else {
-          const Empty$1$1 = Empty;
-          return case$join$1(Empty$1$1);
+          return case$join$1(Empty);
         }
       } else {
         throw new Error("Pattern match failure");
@@ -52,8 +48,7 @@ export function unwrap(value) {
 
 export function nested(argument0) {
   function case$1() {
-    const Empty$1 = Empty;
-    return Empty$1;
+    return Empty;
   }
 
   const matches = Array.isArray(argument0) && argument0[0] === "Outer";
@@ -62,8 +57,7 @@ export function nested(argument0) {
     const matches$1 = Array.isArray(argument) && argument[0] === "One";
     if (matches$1) {
       const value = argument[1];
-      const One$1 = One;
-      const call = One$1(value);
+      const call = One(value);
       return call;
     } else {
       return case$1();
@@ -81,9 +75,7 @@ export function bind(value) {
 }
 
 export function ordinaryBind(identity) {
-  const bind$1 = bind;
-  const call = bind$1(identity);
-  const closure = ordinaryBind$closure;
-  const call$1 = call(closure);
+  const call = bind(identity);
+  const call$1 = call(ordinaryBind$closure);
   return call$1;
 }

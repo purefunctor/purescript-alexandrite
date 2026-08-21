@@ -1,8 +1,7 @@
 export function describe(argument0) {
   const matches = Array.isArray(argument0) && argument0.length === 0;
   if (matches) {
-    const literal = 0 | 0;
-    return literal;
+    return 0 | 0;
   } else {
     const matches$1 = Array.isArray(argument0) && argument0.length === 1;
     if (matches$1) {
@@ -15,8 +14,7 @@ export function describe(argument0) {
         const second = argument0[1];
         return first;
       } else {
-        const literal$1 = 3 | 0;
-        return literal$1;
+        return 3 | 0;
       }
     }
   }

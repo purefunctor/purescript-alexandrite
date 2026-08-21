@@ -8,8 +8,7 @@ function eqBox$initialize$closure(left) {
     if (matches) {
       const matches$1 = Array.isArray(right) && right[0] === "Box";
       if (matches$1) {
-        const literal = true;
-        return literal;
+        return true;
       } else {
         throw new Error("Pattern match failure");
       }

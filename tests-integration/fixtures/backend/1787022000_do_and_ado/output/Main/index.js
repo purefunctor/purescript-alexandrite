@@ -2,8 +2,7 @@ import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 function sequential$initialize$closure(first) {
-  const secondAction$1 = secondAction;
-  const call = secondAction$1(first);
+  const call = secondAction(first);
   return call;
 }
 

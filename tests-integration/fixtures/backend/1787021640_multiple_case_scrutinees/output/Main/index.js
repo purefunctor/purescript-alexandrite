@@ -5,8 +5,7 @@ export function choose(first) {
       if (matches$2) {
         const matches$3 = second === false;
         if (matches$3) {
-          const literal$1 = 1 | 0;
-          return literal$1;
+          return 1 | 0;
         } else {
           return case$2(first);
         }
@@ -18,8 +17,7 @@ export function choose(first) {
     function case$2(first) {
       const matches$4 = first === false;
       if (matches$4) {
-        const literal$2 = 0 | 0;
-        return literal$2;
+        return 0 | 0;
       } else {
         throw new Error("Pattern match failure");
       }
@@ -29,8 +27,7 @@ export function choose(first) {
     if (matches) {
       const matches$1 = second === true;
       if (matches$1) {
-        const literal = 2 | 0;
-        return literal;
+        return 2 | 0;
       } else {
         return case$1(first, second);
       }
