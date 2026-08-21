@@ -37,6 +37,7 @@ use building_types::{
 use checking::CheckedModule;
 use documenting::DocumentedModule;
 use files::{FileId, ForeignFileId};
+use foreign_javascript::{ForeignModule, ForeignValidation};
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
 use lock_api::{RawRwLock, RawRwLockRecursive};
@@ -124,6 +125,8 @@ struct InputStorage {
 
 #[derive(Default)]
 struct DerivedStorage {
+    foreign_module: Shards<ForeignFileId, DerivedState<Arc<ForeignModule>>>,
+    foreign_validation: Shards<FileId, DerivedState<Arc<ForeignValidation>>>,
     parsed: Shards<FileId, DerivedState<FullParsedModule>>,
     stabilized: Shards<FileId, DerivedState<Arc<StabilizedModule>>>,
     indexed: Shards<FileId, DerivedState<Arc<IndexedModule>>>,
@@ -501,6 +504,8 @@ impl QueryEngine {
                 QueryKey::Content(k) => input_changed!(content, k),
                 QueryKey::Foreign(k) => input_changed!(foreign, k),
                 QueryKey::ForeignContent(k) => input_changed!(foreign_content, k),
+                QueryKey::ForeignModule(k) => derived_changed!(foreign_module, k),
+                QueryKey::ForeignValidation(k) => derived_changed!(foreign_validation, k),
                 QueryKey::Module(k) => input_changed!(module, k),
                 QueryKey::Parsed(k) => derived_changed!(parsed, k),
                 QueryKey::Stabilized(k) => derived_changed!(stabilized, k),
@@ -767,6 +772,36 @@ impl QueryEngine {
 
     pub fn foreign_file(&self, source_id: FileId) -> Option<ForeignFileId> {
         self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign).flatten()
+    }
+
+    pub fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Arc<ForeignModule>> {
+        self.query(
+            QueryKey::ForeignModule(id),
+            id,
+            |derived| &derived.foreign_module,
+            |this| {
+                let content = this.foreign_content(id);
+                Ok(Arc::new(foreign_javascript::parse_module(&content)))
+            },
+        )
+    }
+
+    pub fn foreign_validation(&self, id: FileId) -> QueryResult<Arc<ForeignValidation>> {
+        self.query(
+            QueryKey::ForeignValidation(id),
+            id,
+            |derived| &derived.foreign_validation,
+            |this| {
+                let indexed = this.indexed(id)?;
+                let foreign = if let Some(foreign_id) = this.foreign_file(id) {
+                    Some(this.foreign_module(foreign_id)?)
+                } else {
+                    None
+                };
+                let validation = foreign_javascript::validate_module(&indexed, foreign.as_deref());
+                Ok(Arc::new(validation))
+            },
+        )
     }
 
     pub fn set_module_file(&self, name: &str, file_id: FileId) {
@@ -1166,6 +1201,16 @@ impl resolving::ExternalQueries for QueryEngine {}
 
 impl sugar::ExternalQueries for QueryEngine {}
 
+impl foreign_javascript::ForeignQueries for QueryEngine {
+    fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Arc<ForeignModule>> {
+        QueryEngine::foreign_module(self, id)
+    }
+
+    fn foreign_validation(&self, id: FileId) -> QueryResult<Arc<ForeignValidation>> {
+        QueryEngine::foreign_validation(self, id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
@@ -1174,6 +1219,7 @@ mod tests {
 
     use building_types::{QueryError, QueryResult};
     use files::{FileId, Files, ForeignFiles};
+    use foreign_javascript::ForeignError;
     use la_arena::RawIdx;
     use resolving::ResolvedModule;
 
@@ -1478,6 +1524,44 @@ mod tests {
 
         engine.remove_foreign_file(source_id, second_id);
         assert_eq!(engine.foreign_file(source_id), None);
+    }
+
+    #[test]
+    fn test_foreign_validation_invalidation() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+        let mut foreign_files = ForeignFiles::default();
+
+        let source_id =
+            files.insert("src/Main.purs", "module Main where\n\nforeign import life :: Int");
+        engine.set_content(source_id, files.content(source_id));
+
+        let missing_module = engine.foreign_validation(source_id).unwrap();
+        assert!(matches!(
+            missing_module.errors.as_ref(),
+            [ForeignError::MissingModule { name, .. }] if name == "life"
+        ));
+
+        let foreign_id = foreign_files.insert("src/Main.js", "export const other = 42;");
+        engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
+        engine.set_foreign_file(source_id, foreign_id);
+
+        let missing_implementation = engine.foreign_validation(source_id).unwrap();
+        assert!(matches!(
+            missing_implementation.errors.as_ref(),
+            [ForeignError::MissingImplementation { name, .. }] if name == "life"
+        ));
+
+        engine.set_foreign_content(foreign_id, "export const life = 42;");
+        let valid = engine.foreign_validation(source_id).unwrap();
+        assert!(valid.errors.is_empty());
+
+        engine.set_foreign_content(
+            foreign_id,
+            "// The implementation changed.\nexport const life = 43;",
+        );
+        let body_changed = engine.foreign_validation(source_id).unwrap();
+        assert!(Arc::ptr_eq(&valid, &body_changed));
     }
 
     #[test]

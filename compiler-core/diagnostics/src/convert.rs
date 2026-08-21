@@ -1,5 +1,6 @@
 use checking::error::{CheckingError, ErrorKind};
 use checking::holes::HoleBinding;
+use foreign_javascript::ForeignError;
 use indexing::{IndexedTypeItemKind, IndexingError};
 use itertools::Itertools;
 use lowering::LoweringError;
@@ -13,6 +14,50 @@ pub trait ToDiagnostics {
     fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
     where
         Q: ExternalQueries;
+}
+
+impl ToDiagnostics for ForeignError {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
+        let declaration = match self {
+            ForeignError::MissingModule { declaration, .. }
+            | ForeignError::MissingImplementation { declaration, .. }
+            | ForeignError::Parse { declaration, .. } => declaration,
+        };
+        let Some(span) = context
+            .indexed
+            .term_item_ptr(context.stabilized, *declaration)
+            .next()
+            .and_then(|pointer| context.span_from_syntax_ptr(&pointer))
+        else {
+            return vec![];
+        };
+
+        let diagnostic = match self {
+            ForeignError::MissingModule { name, .. } => Diagnostic::error(
+                "MissingFFIModule",
+                format!("No JavaScript FFI module was found for foreign import '{name}'"),
+                span,
+                "foreign-javascript",
+            ),
+            ForeignError::MissingImplementation { name, .. } => Diagnostic::error(
+                "MissingFFIImplementation",
+                format!("JavaScript FFI module does not export '{name}'"),
+                span,
+                "foreign-javascript",
+            ),
+            ForeignError::Parse { message, .. } => Diagnostic::error(
+                "ErrorParsingFFIModule",
+                format!("Unable to parse JavaScript FFI module: {message}"),
+                span,
+                "foreign-javascript",
+            ),
+        };
+
+        vec![diagnostic]
+    }
 }
 
 impl ToDiagnostics for LoweringError {

@@ -1,6 +1,7 @@
 use building_types::QueryProxy;
 use diagnostics::{DiagnosticsContext, ToDiagnostics};
 use files::FileId;
+use foreign_javascript::ForeignQueries;
 use line_index::LineIndex;
 use lsp_types::{Diagnostic, Url};
 
@@ -17,7 +18,7 @@ pub fn implementation<Host>(
 ) -> Result<CollectedDiagnostics, AnalyzerError>
 where
     Host: AnalyzerHost,
-    Host::Queries: diagnostics::ExternalQueries,
+    Host::Queries: diagnostics::ExternalQueries + ForeignQueries,
 {
     let queries = context.queries();
     let content = queries.content(file_id);
@@ -30,6 +31,7 @@ where
     let resolved = queries.resolved(file_id)?;
     let lowered = queries.lowered(file_id)?;
     let checked = queries.checked(file_id)?;
+    let foreign = queries.foreign_validation(file_id)?;
 
     let uri = common::file_uri(context, file_id)?;
     let diagnostics_context = DiagnosticsContext::new(
@@ -53,6 +55,10 @@ where
     }
 
     for error in &checked.errors {
+        all_diagnostics.extend(error.to_diagnostics(&diagnostics_context));
+    }
+
+    for error in foreign.errors.iter() {
         all_diagnostics.extend(error.to_diagnostics(&diagnostics_context));
     }
 

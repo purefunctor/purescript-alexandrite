@@ -11,6 +11,8 @@ pub enum QueryKey {
     Content(FileId),
     Foreign(FileId),
     ForeignContent(ForeignFileId),
+    ForeignModule(ForeignFileId),
+    ForeignValidation(FileId),
     Module(ModuleNameId),
     Parsed(FileId),
     Stabilized(FileId),
