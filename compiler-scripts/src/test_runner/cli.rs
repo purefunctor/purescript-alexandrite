@@ -22,6 +22,10 @@ pub struct RunArgs {
     #[arg(long)]
     pub reject: bool,
 
+    /// Update generated JavaScript output for backend fixtures
+    #[arg(long)]
+    pub update_output: bool,
+
     /// Test name, timestamp, or slug filters (passed through to nextest)
     #[arg(num_args = 0..)]
     pub filters: Vec<String>,

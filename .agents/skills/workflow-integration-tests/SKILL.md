@@ -1,6 +1,6 @@
 ---
 name: workflow-integration-tests
-description: "Workflow for adding and updating Alexandrite integration-test fixtures for checking, semantic trees, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots, or using `just t <category>`."
+description: "Workflow for adding and updating Alexandrite integration-test fixtures for backend, checking, semantic trees, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots or generated JavaScript, or using `just t <category>`."
 ---
 
 # Workflow: Alexandrite Integration Tests
@@ -13,6 +13,7 @@ Use the command reference at `reference/compiler-scripts.md` for test runner syn
 
 | Category | Alias | Use for | Harness pattern |
 |----------|-------|---------|-----------------|
+| `backend` | `b` | SSA, generated JavaScript, foreign modules, and JavaScript execution | `Main.purs`, generated `output/`, optional `verify.mjs` |
 | `checking` | `c` | Type checking, inference, kinds, roles, constraints, diagnostics after checking | `Main.purs` only |
 | `semantic` | `s` | Checked semantic tree declarations, typed expressions and binders, and explicit evidence | `Main.purs` only |
 | `lowering` | `l` | Lowered core output, binding/equation structure, source-to-core name links | every `.purs` file |
@@ -36,6 +37,10 @@ Tests are auto-discovered by `build.rs`.
 ### 2. Write focused PureScript modules
 
 Keep each fixture about one behavior. Use a small `Main.purs` by default, and add supporting modules only when imports, exports, qualification, or cross-module behavior are part of the test.
+
+#### Backend fixtures
+
+Use backend fixtures for SSA or generated JavaScript behavior. The harness compares generated JavaScript with the fixture's tracked `output/` tree. Add `verify.mjs` when the behavior must also be executed with Node, and use foreign `.js` modules only when foreign imports are part of the scenario.
 
 #### Checking fixtures
 
@@ -75,6 +80,14 @@ Use `Main.purs` as the scenario driver. Add supporting modules for imported symb
 ```bash
 just t <category> NNN MMM
 ```
+
+When an intentional backend change affects generated JavaScript, review the reported files and update only the relevant fixtures:
+
+```bash
+just t backend NNN --update-output
+```
+
+Ordinary backend runs must remain read-only. Do not set `ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT` directly; `compiler-scripts` owns that implementation detail.
 
 ### 4. Accept or reject snapshots
 
@@ -122,6 +135,10 @@ test = Just life
 
 ## Snapshot Review Focus
 
+### Backend
+
+Review SSA snapshots and every changed file under `output/`. Check module paths, imports, exports, foreign-module copies, and emitted expressions. When a fixture has `verify.mjs`, confirm the Node verification passes after updating output.
+
 ### Checking
 
 ```
@@ -160,6 +177,7 @@ Check hover text, definitions, completions, edits, and reported positions. Revie
 Before accepting, verify:
 
 1. **The category is appropriate**
+   - Backend owns SSA and generated or executed JavaScript behavior
    - Checking owns type inference/checking behavior
    - Semantic owns the typed semantic tree produced by checking
    - Lowering owns lowered core/source-link behavior
@@ -171,6 +189,7 @@ Before accepting, verify:
    - Supporting modules exist only when they clarify the behavior
 
 3. **Snapshots are intentional**
+   - Backend SSA and generated JavaScript changes are correct
    - Checking types are correct
    - `test :: Array Int -> Int` - signature preserved
    - `test' :: forall t. Array t -> t` - polymorphism inferred

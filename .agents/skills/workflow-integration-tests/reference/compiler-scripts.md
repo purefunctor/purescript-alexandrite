@@ -14,6 +14,7 @@ just t <category> --debug [filters...] # Enable tracing
 just t <category> --verbose [filters...] # Show test progress
 just t <category> --create "name"  # Scaffold a new fixture
 just t <category> --delete "name"  # Dry-run fixture deletion (use --confirm)
+just t backend --update-output [filters...] # Update generated JavaScript fixture output
 ```
 
 ### Categories

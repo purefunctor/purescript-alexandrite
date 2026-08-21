@@ -183,7 +183,7 @@ fn verify_output(expected: &Path, generated: &Path) -> FixtureResult {
     let changes = changes.join("\n  ");
     let message = format!(
         "generated JavaScript differs from {}:\n  {changes}\nrun \
-         `{UPDATE_JAVASCRIPT_OUTPUT}=1 just t backend` to update fixture output",
+         `just t backend --update-output` to update fixture output",
         expected.display()
     );
     Err(invalid_data(message).into())
