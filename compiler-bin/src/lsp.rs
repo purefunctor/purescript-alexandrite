@@ -683,15 +683,12 @@ fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), Lsp
         let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
         apply_lifecycle_event(state, event)
     } else {
-        let source_found = matches!(disk, DiskObservation::Found(_));
         let event = LifecycleEvent::Source {
             unit: SourceUnitKey::clone(&unit),
             event: SourceEvent::Closed { disk },
         };
         let mut change = apply_lifecycle_event(state, event);
-        if source_found {
-            change.combine(observe_sibling_foreign(state, &unit)?);
-        }
+        change.combine(observe_sibling_foreign(state, &unit)?);
         change
     };
     finish_lifecycle_change(state, &change)?;

@@ -1,10 +1,64 @@
 use std::fs;
+use std::sync::Arc;
 
-use building::lifecycle::DiskObservation;
-use lsp_types::Url;
+use async_lsp::ResponseError;
+use async_lsp::router::Router;
+use building::lifecycle::{
+    ContentAuthority, DiskObservation, ForeignEvent, LifecycleEvent, SourceEvent, SourceUnitKey,
+};
+use lsp_types::{DidCloseTextDocumentParams, TextDocumentIdentifier, Url};
 use tempfile::tempdir;
 
-use super::{observe_disk, source_unit_from_foreign_uri, source_unit_from_source_uri};
+use super::{
+    LspConfig, State, apply_lifecycle_event, did_close, observe_disk, source_unit_from_foreign_uri,
+    source_unit_from_source_uri,
+};
+
+fn assert_source_close_result(
+    source_uri: Url,
+    foreign_uri: Url,
+    source_authority: Option<ContentAuthority>,
+) {
+    let unit = source_unit_from_source_uri(&source_uri).unwrap();
+    let config = Arc::new(LspConfig {
+        source_command: None,
+        diagnostics_on_open: false,
+        diagnostics_on_save: false,
+        diagnostics_on_change: false,
+    });
+
+    let (_server, _) = async_lsp::MainLoop::new_server(move |client| {
+        let mut state = State::new(Arc::clone(&config), client);
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::Opened {
+                text: Arc::from("module Main where\n"),
+                version: 1,
+                metadata: true,
+            },
+        };
+        apply_lifecycle_event(&mut state, event);
+        let event = LifecycleEvent::Foreign {
+            unit: SourceUnitKey::clone(&unit),
+            event: ForeignEvent::DiskObserved {
+                disk: DiskObservation::Found(Arc::from("export const life = 42;\n")),
+            },
+        };
+        apply_lifecycle_event(&mut state, event);
+
+        let parameters = DidCloseTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri: Url::clone(&source_uri) },
+        };
+        did_close(&mut state, parameters).unwrap();
+
+        let files = state.files.read();
+        assert_eq!(files.source_authority(&unit), source_authority);
+        assert_eq!(files.foreign_id(foreign_uri.as_str()), None);
+        drop(files);
+
+        Router::<State, ResponseError>::new(state)
+    });
+}
 
 #[test]
 fn source_and_foreign_uris_produce_the_same_unit_key() {
@@ -41,6 +95,27 @@ fn localhost_source_and_foreign_uris_keep_the_same_authority() {
 fn non_file_document_uris_are_rejected() {
     let source_uri = Url::parse("untitled:Main.purs").unwrap();
     assert!(source_unit_from_source_uri(&source_uri).is_err());
+}
+
+#[test]
+fn closing_a_deleted_source_also_removes_its_deleted_disk_foreign() {
+    let directory = tempdir().unwrap();
+    let source_path = directory.path().join("Main.purs");
+    let foreign_path = source_path.with_extension("js");
+    let source_uri = Url::from_file_path(source_path).unwrap();
+    let foreign_uri = Url::from_file_path(foreign_path).unwrap();
+    assert_source_close_result(source_uri, foreign_uri, None);
+}
+
+#[test]
+fn failed_source_reload_still_removes_its_deleted_disk_foreign() {
+    let directory = tempdir().unwrap();
+    let source_path = directory.path().join("Main.purs");
+    let foreign_path = source_path.with_extension("js");
+    fs::write(&source_path, [0xff]).unwrap();
+    let source_uri = Url::from_file_path(source_path).unwrap();
+    let foreign_uri = Url::from_file_path(foreign_path).unwrap();
+    assert_source_close_result(source_uri, foreign_uri, Some(ContentAuthority::Retained));
 }
 
 #[test]
