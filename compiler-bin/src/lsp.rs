@@ -683,12 +683,16 @@ fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), Lsp
         let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
         apply_lifecycle_event(state, event)
     } else {
+        let document = DocumentKey::Source(SourceUnitKey::clone(&unit));
+        let was_open = state.files.read().is_open(&document);
         let event = LifecycleEvent::Source {
             unit: SourceUnitKey::clone(&unit),
             event: SourceEvent::Closed { disk },
         };
         let mut change = apply_lifecycle_event(state, event);
-        change.combine(observe_sibling_foreign(state, &unit)?);
+        if was_open {
+            change.combine(observe_sibling_foreign(state, &unit)?);
+        }
         change
     };
     finish_lifecycle_change(state, &change)?;

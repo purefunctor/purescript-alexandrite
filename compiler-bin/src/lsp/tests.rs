@@ -14,18 +14,22 @@ use super::{
     source_unit_from_source_uri,
 };
 
+fn test_config() -> Arc<LspConfig> {
+    Arc::new(LspConfig {
+        source_command: None,
+        diagnostics_on_open: false,
+        diagnostics_on_save: false,
+        diagnostics_on_change: false,
+    })
+}
+
 fn assert_source_close_result(
     source_uri: Url,
     foreign_uri: Url,
     source_authority: Option<ContentAuthority>,
 ) {
     let unit = source_unit_from_source_uri(&source_uri).unwrap();
-    let config = Arc::new(LspConfig {
-        source_command: None,
-        diagnostics_on_open: false,
-        diagnostics_on_save: false,
-        diagnostics_on_change: false,
-    });
+    let config = test_config();
 
     let (_server, _) = async_lsp::MainLoop::new_server(move |client| {
         let mut state = State::new(Arc::clone(&config), client);
@@ -116,6 +120,64 @@ fn failed_source_reload_still_removes_its_deleted_disk_foreign() {
     let source_uri = Url::from_file_path(source_path).unwrap();
     let foreign_uri = Url::from_file_path(foreign_path).unwrap();
     assert_source_close_result(source_uri, foreign_uri, Some(ContentAuthority::Retained));
+}
+
+#[test]
+fn duplicate_source_close_does_not_reconcile_foreign() {
+    let directory = tempdir().unwrap();
+    let source_path = directory.path().join("Main.purs");
+    let foreign_path = source_path.with_extension("js");
+    fs::write(&source_path, "module Main where\n").unwrap();
+    fs::write(&foreign_path, "export const life = 42;\n").unwrap();
+    let source_uri = Url::from_file_path(source_path).unwrap();
+    let foreign_uri = Url::from_file_path(&foreign_path).unwrap();
+    let unit = source_unit_from_source_uri(&source_uri).unwrap();
+    let config = test_config();
+
+    let (_server, _) = async_lsp::MainLoop::new_server(move |client| {
+        let mut state = State::new(Arc::clone(&config), client);
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::Opened {
+                text: Arc::from("module Main where\n"),
+                version: 1,
+                metadata: true,
+            },
+        };
+        apply_lifecycle_event(&mut state, event);
+        let event = LifecycleEvent::Foreign {
+            unit: SourceUnitKey::clone(&unit),
+            event: ForeignEvent::DiskObserved {
+                disk: DiskObservation::Found(Arc::from("export const life = 42;\n")),
+            },
+        };
+        apply_lifecycle_event(&mut state, event);
+
+        let parameters = DidCloseTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri: Url::clone(&source_uri) },
+        };
+        did_close(&mut state, parameters).unwrap();
+        fs::remove_file(foreign_path).unwrap();
+
+        let source_id = state.files.read().source_id(source_uri.as_str()).unwrap();
+        let foreign_id = state.files.read().foreign_id(foreign_uri.as_str()).unwrap();
+        let parameters = DidCloseTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri: Url::clone(&source_uri) },
+        };
+        did_close(&mut state, parameters).unwrap();
+
+        let files = state.files.read();
+        assert_eq!(files.source_id(source_uri.as_str()), Some(source_id));
+        assert_eq!(files.foreign_id(foreign_uri.as_str()), Some(foreign_id));
+        assert_eq!(state.engine.foreign_file(source_id), Some(foreign_id));
+        assert_eq!(
+            state.engine.foreign_content(foreign_id).unwrap().as_ref(),
+            "export const life = 42;\n",
+        );
+        drop(files);
+
+        Router::<State, ResponseError>::new(state)
+    });
 }
 
 #[test]
