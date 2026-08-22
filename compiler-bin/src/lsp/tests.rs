@@ -1,4 +1,4 @@
-use std::{fs, io};
+use std::fs;
 
 use building::lifecycle::DiskObservation;
 use lsp_types::Url;
@@ -23,7 +23,28 @@ fn source_and_foreign_uris_produce_the_same_unit_key() {
 }
 
 #[test]
-fn disk_observation_distinguishes_content_absence_and_invalid_locators() {
+fn localhost_source_and_foreign_uris_keep_the_same_authority() {
+    let source_uri =
+        Url::parse("file://localhost/workspace/Source%20Files/Main.purs?view=1#selection").unwrap();
+    let foreign_uri =
+        Url::parse("file://localhost/workspace/Source%20Files/Main.js?view=1#selection").unwrap();
+
+    let from_source = source_unit_from_source_uri(&source_uri).unwrap();
+    let from_foreign = source_unit_from_foreign_uri(&foreign_uri).unwrap();
+
+    assert_eq!(from_source, from_foreign);
+    assert_eq!(from_source.source(), source_uri.as_str());
+    assert_eq!(from_source.foreign(), foreign_uri.as_str());
+}
+
+#[test]
+fn non_file_document_uris_are_rejected() {
+    let source_uri = Url::parse("untitled:Main.purs").unwrap();
+    assert!(source_unit_from_source_uri(&source_uri).is_err());
+}
+
+#[test]
+fn disk_observation_distinguishes_content_and_absence() {
     let directory = tempdir().unwrap();
     let source_path = directory.path().join("Main.purs");
     let source_uri = Url::from_file_path(&source_path).unwrap();
@@ -36,10 +57,4 @@ fn disk_observation_distinguishes_content_absence_and_invalid_locators() {
 
     fs::remove_file(source_path).unwrap();
     assert_eq!(observe_disk(&source_uri), DiskObservation::NotFound);
-
-    let invalid_uri = Url::parse("untitled:Main.purs").unwrap();
-    assert!(matches!(
-        observe_disk(&invalid_uri),
-        DiskObservation::Failed(failure) if failure.kind() == io::ErrorKind::InvalidInput
-    ));
 }

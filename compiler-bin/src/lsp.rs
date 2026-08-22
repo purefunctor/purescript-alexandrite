@@ -788,23 +788,33 @@ fn source_unit_from_document_uri(uri: &Url) -> Result<SourceUnitKey, LspError> {
     }
 }
 
+fn file_uri_with_extension(uri: &Url, extension: &str) -> Result<Url, LspError> {
+    if uri.scheme() != "file" || uri.to_file_path().is_err() {
+        return Err(LspError::InvalidFileUri(Url::clone(uri)));
+    }
+    let uri_path = uri.path();
+    let file_name_start = uri_path.rfind('/').map_or(0, |index| index + 1);
+    let extension_start = uri_path[file_name_start..]
+        .rfind('.')
+        .filter(|index| *index > 0)
+        .map_or(uri_path.len(), |index| file_name_start + index);
+    let mut sibling_path = String::from(&uri_path[..extension_start]);
+    sibling_path.push('.');
+    sibling_path.push_str(extension);
+
+    let mut sibling_uri = Url::clone(uri);
+    sibling_uri.set_path(&sibling_path);
+    Ok(sibling_uri)
+}
+
 fn source_unit_from_source_uri(source_uri: &Url) -> Result<SourceUnitKey, LspError> {
-    let source_path =
-        source_uri.to_file_path().map_err(|()| LspError::InvalidFileUri(Url::clone(source_uri)))?;
-    let foreign_path = source_path.with_extension("js");
-    let foreign_uri = Url::from_file_path(&foreign_path)
-        .map_err(|()| LspError::PathParseFail(PathBuf::clone(&foreign_path)))?;
+    let foreign_uri = file_uri_with_extension(source_uri, "js")?;
     Ok(SourceUnitKey::new(source_uri.as_str(), foreign_uri.as_str()))
 }
 
 fn source_unit_from_foreign_uri(foreign_uri: &Url) -> Result<SourceUnitKey, LspError> {
-    let foreign_path = foreign_uri
-        .to_file_path()
-        .map_err(|()| LspError::InvalidFileUri(Url::clone(foreign_uri)))?;
-    let source_path = foreign_path.with_extension("purs");
-    let source_uri = Url::from_file_path(&source_path)
-        .map_err(|()| LspError::PathParseFail(PathBuf::clone(&source_path)))?;
-    source_unit_from_source_uri(&source_uri)
+    let source_uri = file_uri_with_extension(foreign_uri, "purs")?;
+    Ok(SourceUnitKey::new(source_uri.as_str(), foreign_uri.as_str()))
 }
 
 fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
@@ -855,10 +865,7 @@ fn observe_sibling_foreign(
 }
 
 fn observe_disk(uri: &Url) -> DiskObservation {
-    let Ok(path) = uri.to_file_path() else {
-        let message = format!("expected a file URI, received {uri}");
-        return DiskObservation::Failed(ReloadFailure::new(io::ErrorKind::InvalidInput, message));
-    };
+    let path = uri.to_file_path().expect("invariant violated: expected a valid file URI");
     match fs::read_to_string(path) {
         Ok(content) => DiskObservation::Found(Arc::from(content)),
         Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
