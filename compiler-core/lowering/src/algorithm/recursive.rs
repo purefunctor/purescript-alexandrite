@@ -11,7 +11,7 @@ use syntax::{SyntaxKind, SyntaxNode, SyntaxToken, cst};
 
 use crate::*;
 
-use super::{Context, State};
+use super::{Context, ItemGraph, LetBindingContext, State};
 
 fn string_text(source: &str, token: SyntaxToken) -> SmolStr {
     let text = token.text(source);
@@ -715,8 +715,6 @@ fn lower_equation_chunk(
     context: &Context,
     children: impl Iterator<Item = cst::LetBinding>,
 ) -> LetBindingChunk {
-    let outer_graph = mem::take(&mut state.let_binding_graph);
-
     let children = children.chunk_by(|cst| match cst {
         cst::LetBinding::LetBindingPattern(_) => {
             unreachable!("invariant violated: expected LetBindingSignature / LetBindingEquation");
@@ -785,11 +783,18 @@ fn lower_equation_chunk(
         state.graph.inner.alloc(GraphNode::Let { parent: state.graph_scope, bindings: let_bound });
 
     state.graph_scope = Some(graph_node);
-    state.current_let_scope = Some(graph_node);
+    state.let_binding_contexts.push(LetBindingContext {
+        scope: graph_node,
+        current_binding: None,
+        dependencies: ItemGraph::default(),
+    });
 
-    // Lower each binding, tracking current_let_binding for dependency tracking
     for &id in &groups {
-        state.current_let_binding = Some(id);
+        let dependency_context = state
+            .let_binding_contexts
+            .last_mut()
+            .expect("invariant violated: expected let binding dependency context");
+        dependency_context.current_binding = Some(id);
 
         let let_binding = &state.tree.let_binding_groups[id];
         let signature = let_binding.signature;
@@ -820,13 +825,19 @@ fn lower_equation_chunk(
             state.associate_let_binding_name(id, info);
         });
 
-        state.current_let_binding = None;
+        let dependency_context = state
+            .let_binding_contexts
+            .last_mut()
+            .expect("invariant violated: expected let binding dependency context");
+        dependency_context.current_binding = None;
     }
 
-    state.current_let_scope = None;
-
     // Compute SCCs from dependency graph
-    let mut graph = mem::take(&mut state.let_binding_graph);
+    let dependency_context = state
+        .let_binding_contexts
+        .pop()
+        .expect("invariant violated: expected let binding dependency context");
+    let mut graph = dependency_context.dependencies;
     for &id in &groups {
         graph.add_node(id);
     }
@@ -840,8 +851,6 @@ fn lower_equation_chunk(
             _ => Scc::Mutual(scc),
         })
         .collect();
-
-    state.let_binding_graph = outer_graph;
 
     LetBindingChunk::Names { bindings: groups.into(), scc }
 }

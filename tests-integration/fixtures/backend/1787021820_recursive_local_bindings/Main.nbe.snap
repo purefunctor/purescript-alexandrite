@@ -37,7 +37,7 @@ expression: report
 
 @export nestedRecursive = \condition%12 ->
   let
-    go%11 = \$boolean%13 ->
+    rec go%11 = \$boolean%13 ->
       case $boolean%13 of
         true ->
           let
