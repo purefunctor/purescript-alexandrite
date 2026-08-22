@@ -717,11 +717,13 @@ fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), Lsp
     };
     state.files.write().close(file_id);
 
-    reload_source_file(state, &uri, None)?;
-
+    let reloaded = reload_source_file(state, &uri, None)?;
     state.invalidate_workspace_symbols();
     state.invalidate_suggestions_cache();
-    event::emit_collect_all_diagnostics(state)
+    if reloaded {
+        event::emit_collect_all_diagnostics(state)?;
+    }
+    Ok(())
 }
 
 fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspError> {
@@ -737,24 +739,31 @@ fn did_change_watched_files(
     state: &mut State,
     p: DidChangeWatchedFilesParams,
 ) -> Result<(), LspError> {
+    let mut source_changed = false;
     for change in p.changes {
         if is_javascript_uri(&change.uri) {
             on_watched_foreign_change(state, change)?;
         } else if is_purescript_uri(&change.uri) {
-            on_watched_source_change(state, change)?;
+            source_changed |= on_watched_source_change(state, change)?;
         }
+    }
+
+    if source_changed {
+        state.invalidate_workspace_symbols();
+        state.invalidate_suggestions_cache();
+        event::emit_collect_all_diagnostics(state)?;
     }
 
     Ok(())
 }
 
-fn on_watched_source_change(state: &mut State, change: FileEvent) -> Result<(), LspError> {
+fn on_watched_source_change(state: &mut State, change: FileEvent) -> Result<bool, LspError> {
     if state.files.read().is_open(change.uri.as_str()) {
-        return Ok(());
+        return Ok(false);
     }
 
     if change.typ == FileChangeType::DELETED {
-        remove_source_file(state, &change.uri)?;
+        remove_source_file(state, &change.uri)
     } else {
         let source_path = change.uri.to_file_path().ok();
         let editable = match (&state.root, source_path) {
@@ -762,31 +771,33 @@ fn on_watched_source_change(state: &mut State, change: FileEvent) -> Result<(), 
             (Some(_), None) => false,
             (None, _) => true,
         };
-        reload_source_file(state, &change.uri, Some(editable))?;
+        reload_source_file(state, &change.uri, Some(editable))
     }
-
-    state.invalidate_workspace_symbols();
-    state.invalidate_suggestions_cache();
-    event::emit_collect_all_diagnostics(state)
 }
 
 fn reload_source_file(
     state: &mut State,
     uri: &Url,
     editable: Option<bool>,
-) -> Result<(), LspError> {
+) -> Result<bool, LspError> {
     let Ok(path) = uri.to_file_path() else {
-        return Ok(());
+        return Ok(false);
     };
     match fs::read_to_string(path) {
         Ok(content) => {
             on_change(state, uri.as_str(), &content, editable)?;
-            load_sibling_foreign(state, uri)
+            if let Err(error) = load_sibling_foreign(state, uri) {
+                tracing::warn!("Failed to reload sibling foreign file for {uri}: {error}");
+            }
+            Ok(true)
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             remove_source_file(state, uri)
         }
-        Err(error) => Err(error.into()),
+        Err(error) => {
+            tracing::warn!("Failed to reload {uri}: {error}");
+            Ok(false)
+        }
     }
 }
 
@@ -838,21 +849,14 @@ fn load_sibling_foreign(state: &mut State, source_uri: &Url) -> Result<(), LspEr
     let foreign_uri = Url::from_file_path(&foreign_path)
         .map_err(|()| LspError::PathParseFail(foreign_path.clone()))?;
 
-    let foreign_id = state.foreign_files.read().id(foreign_uri.as_str());
-    if let Some(foreign_id) = foreign_id {
-        let source_id = state.files.read().id(source_uri.as_str());
-        if let Some(source_id) = source_id {
-            state.engine.set_foreign_file(source_id, foreign_id);
+    match fs::read_to_string(foreign_path) {
+        Ok(content) => on_foreign_change(state, &foreign_uri, &content),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            remove_foreign_file(state, &foreign_uri);
+            Ok(())
         }
-        return Ok(());
+        Err(error) => Err(error.into()),
     }
-
-    if !foreign_path.is_file() {
-        return Ok(());
-    }
-
-    let content = fs::read_to_string(foreign_path)?;
-    on_foreign_change(state, &foreign_uri, &content)
 }
 
 fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
@@ -894,10 +898,10 @@ fn remove_foreign_file(state: &mut State, uri: &Url) {
     state.engine.remove_foreign_file(foreign_id);
 }
 
-fn remove_source_file(state: &mut State, uri: &Url) -> Result<(), LspError> {
+fn remove_source_file(state: &mut State, uri: &Url) -> Result<bool, LspError> {
     let file_id = state.files.read().id(uri.as_str());
     let Some(file_id) = file_id else {
-        return Ok(());
+        return Ok(false);
     };
 
     state.engine.remove_file(file_id);
@@ -908,7 +912,7 @@ fn remove_source_file(state: &mut State, uri: &Url) -> Result<(), LspError> {
         diagnostics: Vec::new(),
         version: None,
     })?;
-    Ok(())
+    Ok(true)
 }
 
 fn on_change(

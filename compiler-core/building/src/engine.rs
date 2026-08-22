@@ -800,10 +800,26 @@ impl QueryEngine {
     ) {
         for shard in &queries.inner {
             let mut queries = shard.write();
-            queries.retain(|query_file_id, state| {
-                *query_file_id != file_id
-                    && !state_references_removed_file(state, file_id, removed_modules)
+            let removed_query_file_ids = queries.iter().filter_map(|(query_file_id, state)| {
+                let remove = matches!(state, DerivedState::InProgress { .. })
+                    || *query_file_id == file_id
+                    || state_references_removed_file(state, file_id, removed_modules);
+                remove.then_some(*query_file_id)
             });
+            let removed_query_file_ids = removed_query_file_ids.collect::<Vec<_>>();
+            for query_file_id in removed_query_file_ids {
+                let state = queries
+                    .remove(&query_file_id)
+                    .expect("invariant violated: expected removable query state");
+                self.discard_query_state(state);
+            }
+        }
+    }
+
+    fn discard_query_state<T>(&self, state: DerivedState<T>) {
+        if let DerivedState::InProgress { id, waiters } = state {
+            let waiters = waiters.into_inner();
+            self.remove_waiter_edges(id, &waiters);
         }
     }
 
@@ -852,9 +868,16 @@ impl QueryEngine {
 
         for shard in &self.derived.checked_core.inner {
             let mut queries = shard.write();
-            queries.retain(|_, state| {
-                !state_references_removed_file(state, file_id, &removed_modules)
+            let remove = queries.get(&()).is_some_and(|state| {
+                matches!(state, DerivedState::InProgress { .. })
+                    || state_references_removed_file(state, file_id, &removed_modules)
             });
+            if remove {
+                let state = queries
+                    .remove(&())
+                    .expect("invariant violated: expected removable checked core state");
+                self.discard_query_state(state);
+            }
         }
 
         self.control.global.cancelled.store(false, Ordering::Relaxed);
@@ -1355,11 +1378,13 @@ mod tests {
     use building_types::{QueryError, QueryResult};
     use files::{FileId, Files, ForeignFiles};
     use foreign_javascript::ForeignError;
+    use parking_lot::Mutex;
     use resolving::ResolvedModule;
 
     use crate::prim;
 
-    use super::{DerivedState, QueryEngine, QueryKey, SnapshotId};
+    use super::promise::Future;
+    use super::{DerivedState, QueryEngine, QueryKey, SnapshotId, Waiter};
 
     #[derive(Debug)]
     struct Trace<'a> {
@@ -1641,6 +1666,25 @@ mod tests {
 
         let resolved = engine.resolved(main).unwrap();
         assert!(resolved.unqualified.contains_key("Library"));
+    }
+
+    #[test]
+    fn test_remove_file_discards_in_progress_waiter_edges() {
+        let engine = QueryEngine::default();
+        let file_id = FileId::new(0);
+        engine.set_content(file_id, "module Main where");
+
+        let computing = SnapshotId(1);
+        let waiting = SnapshotId(2);
+        let (_, promise) = Future::new();
+        let waiter = Waiter { id: waiting, promise };
+        let state = DerivedState::InProgress { id: computing, waiters: Mutex::new(vec![waiter]) };
+        engine.derived.parsed.shard(&file_id).write().insert(file_id, state);
+        assert!(engine.control.global.graph.lock().add_edge(waiting, computing));
+
+        engine.remove_file(file_id);
+
+        assert!(engine.control.global.graph.lock().add_edge(computing, waiting));
     }
 
     #[test]
