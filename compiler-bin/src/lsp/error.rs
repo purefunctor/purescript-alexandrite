@@ -4,6 +4,7 @@ use std::{io, str};
 use analyzer::AnalyzerError;
 use async_lsp::ErrorCode;
 use building::QueryError;
+use lsp_types::Url;
 use spago::LockfileGlobSetError;
 use thiserror::Error;
 use tokio::task;
@@ -18,6 +19,10 @@ pub enum LspError {
     QueryError(#[from] QueryError),
     #[error("Failed to parse file {0}")]
     PathParseFail(PathBuf),
+    #[error("Expected a file URI, received {0}")]
+    InvalidFileUri(Url),
+    #[error("UrlParseError: {0}")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Invalid or missing workspace root")]
     MissingRoot,
     #[error("Invalid or missing --source-command")]

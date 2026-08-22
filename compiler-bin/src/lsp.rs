@@ -3,11 +3,14 @@ pub mod error;
 pub mod event;
 pub mod extension;
 
+#[cfg(test)]
+mod tests;
+
 use std::borrow::BorrowMut;
 use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock};
-use std::{env, fs, mem, process};
+use std::{env, fs, io, mem, process};
 
 use analyzer::completion::SuggestionsCache;
 use analyzer::position::PositionEncoding;
@@ -20,7 +23,11 @@ use async_lsp::router::Router;
 use async_lsp::server::LifecycleLayer;
 use async_lsp::{ClientSocket, LanguageClient, ResponseError};
 use building::QueryEngine;
-use files::{FileId, Files, ForeignFiles};
+use building::lifecycle::{
+    AnalysisInvalidation, DiskObservation, DocumentKey, FileLifecycle, ForeignEvent,
+    LifecycleChange, LifecycleEvent, ReloadFailure, SourceEvent, SourceUnitKey,
+};
+use files::FileId;
 use itertools::Itertools;
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
@@ -39,16 +46,27 @@ use crate::walk;
 static PRIM_DIRECTORY: LazyLock<TempDir> =
     LazyLock::new(|| TempDir::new().expect("invariant violated: failed to create PRIM_DIRECTORY"));
 
-fn configure_materialized_prim(engine: &QueryEngine, files: &mut Files) {
+fn configure_materialized_prim(engine: &QueryEngine, files: &mut FileLifecycle<i32, bool>) {
     for (name, content) in MODULE_MAP {
         let path = PRIM_DIRECTORY.path().join(format!("{name}.purs"));
         fs::write(&path, content).expect("invariant violated: failed to materialize Prim module");
 
         let uri = Url::from_file_path(path)
             .expect("invariant violated: failed to create Prim module file URL");
-        let id = files.insert(uri.as_str(), *content);
-
-        engine.set_content(id, *content);
+        let unit = source_unit_from_source_uri(&uri)
+            .expect("invariant violated: failed to create Prim source unit");
+        let event = LifecycleEvent::Source {
+            unit,
+            event: SourceEvent::DiskObserved {
+                disk: DiskObservation::Found(Arc::from(*content)),
+                metadata: false,
+            },
+        };
+        let change = files.apply(engine, event);
+        let id = change
+            .changed_sources()
+            .next()
+            .expect("invariant violated: Prim source lifecycle did not insert a source");
         engine.set_module_file(name, id);
     }
 }
@@ -66,8 +84,8 @@ pub struct State {
     pub client: ClientSocket,
 
     pub engine: QueryEngine,
-    pub files: Arc<RwLock<LspFiles>>,
-    pub foreign_files: Arc<RwLock<ForeignFiles>>,
+    pub files: Arc<RwLock<FileLifecycle<i32, bool>>>,
+    pub diagnostics: event::DiagnosticScheduler,
 
     pub workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
@@ -81,14 +99,11 @@ pub struct State {
 impl State {
     fn new(config: Arc<LspConfig>, client: ClientSocket) -> State {
         let engine = QueryEngine::default();
-        let mut files = Files::default();
+        let mut files = FileLifecycle::default();
         configure_materialized_prim(&engine, &mut files);
 
-        let files = LspFiles::new(files);
         let files = Arc::new(RwLock::new(files));
-
-        let foreign_files = ForeignFiles::default();
-        let foreign_files = Arc::new(RwLock::new(foreign_files));
+        let diagnostics = event::DiagnosticScheduler::default();
 
         let workspace_symbols_cache = WorkspaceSymbolsCache::default();
         let workspace_symbols_cache = Arc::new(RwLock::new(workspace_symbols_cache));
@@ -106,7 +121,7 @@ impl State {
             client,
             engine,
             files,
-            foreign_files,
+            diagnostics,
             workspace_symbols_cache,
             suggestions_cache,
             root,
@@ -121,7 +136,7 @@ impl State {
         T: Send + 'static,
     {
         let snapshot = StateSnapshot {
-            client: self.client.clone(),
+            client: ClientSocket::clone(&self.client),
             engine: self.engine.snapshot(),
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
@@ -146,7 +161,7 @@ impl State {
 struct StateSnapshot {
     client: ClientSocket,
     engine: QueryEngine,
-    files: Arc<RwLock<LspFiles>>,
+    files: Arc<RwLock<FileLifecycle<i32, bool>>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
     suggestions_cache: Arc<RwLock<SuggestionsCache>>,
     position_encoding: PositionEncoding,
@@ -166,72 +181,9 @@ impl StateSnapshot {
     }
 }
 
-pub struct LspFiles {
-    files: Files,
-    editable: FxHashSet<FileId>,
-    open: FxHashSet<FileId>,
-}
-
-impl LspFiles {
-    fn new(files: Files) -> LspFiles {
-        LspFiles { files, editable: FxHashSet::default(), open: FxHashSet::default() }
-    }
-
-    fn id(&self, uri: &str) -> Option<FileId> {
-        self.files.id(uri)
-    }
-
-    fn contains(&self, file_id: FileId) -> bool {
-        self.files.contains(file_id)
-    }
-
-    fn path(&self, file_id: FileId) -> Option<Arc<str>> {
-        self.files.contains(file_id).then(|| self.files.path(file_id))
-    }
-
-    fn iter_id(&self) -> impl Iterator<Item = FileId> + '_ {
-        self.files.iter_id()
-    }
-
-    fn is_editable(&self, file_id: FileId) -> bool {
-        self.editable.contains(&file_id)
-    }
-
-    fn is_open(&self, uri: &str) -> bool {
-        self.id(uri).is_some_and(|file_id| self.open.contains(&file_id))
-    }
-
-    fn insert(&mut self, uri: &str, content: &str, editable: Option<bool>) -> FileId {
-        let file_id = self.files.insert(uri, content);
-        if let Some(editable) = editable {
-            if editable {
-                self.editable.insert(file_id);
-            } else {
-                self.editable.remove(&file_id);
-            }
-        }
-        file_id
-    }
-
-    fn open(&mut self, file_id: FileId) {
-        self.open.insert(file_id);
-    }
-
-    fn close(&mut self, file_id: FileId) {
-        self.open.remove(&file_id);
-    }
-
-    fn remove(&mut self, uri: &str) -> Option<FileId> {
-        let file_id = self.files.remove(uri)?;
-        self.editable.remove(&file_id);
-        self.open.remove(&file_id);
-        Some(file_id)
-    }
-}
-
 struct LspAnalyzerHost<'a> {
     queries: &'a QueryEngine,
-    files: RwLockReadGuard<'a, LspFiles>,
+    files: RwLockReadGuard<'a, FileLifecycle<i32, bool>>,
 }
 
 impl AnalyzerHost for LspAnalyzerHost<'_> {
@@ -242,22 +194,22 @@ impl AnalyzerHost for LspAnalyzerHost<'_> {
     }
 
     fn file_id(&self, uri: &str) -> Option<FileId> {
-        self.files.id(uri)
+        self.files.source_id(uri)
     }
 
     fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
-        let Some(uri) = self.files.path(file_id) else {
+        let Some(uri) = self.files.source_path(file_id) else {
             return Ok(None);
         };
         Url::parse(&uri).map(Some)
     }
 
     fn active_files(&self) -> impl Iterator<Item = FileId> {
-        self.files.iter_id()
+        self.files.source_ids()
     }
 
     fn is_editable(&self, file_id: FileId) -> bool {
-        self.files.is_editable(file_id)
+        self.files.source_metadata(file_id).copied().unwrap_or(false)
     }
 }
 
@@ -380,7 +332,7 @@ fn register_file_watcher(state: &State) {
     }
 
     let parameters = file_watcher_registration();
-    let mut client = state.client.clone();
+    let mut client = ClientSocket::clone(&state.client);
     task::spawn(async move {
         if let Err(error) = client.register_capability(parameters).await {
             tracing::warn!("Failed to register source file watcher: {error}");
@@ -416,7 +368,7 @@ fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
 }
 
 fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> {
-    let root = state.root.clone().ok_or(LspError::MissingRoot)?;
+    let root = Option::clone(&state.root).ok_or(LspError::MissingRoot)?;
 
     tracing::info!("Using '{}'", command);
 
@@ -463,18 +415,26 @@ fn load_files(
     let files = files.into_iter().collect_vec();
     tracing::info!("Loading {} files.", files.len());
 
+    let mut lifecycle_change = LifecycleChange::default();
     for (file, editable) in &files {
         let url = url::Url::from_file_path(file).map_err(|_| {
             let file = PathBuf::clone(file);
             LspError::PathParseFail(file)
         })?;
 
-        let uri = url.to_string();
-
         let text = fs::read_to_string(file)?;
-        on_change(state, &uri, &text, Some(*editable))?;
-        load_sibling_foreign(state, &url)?;
+        let unit = source_unit_from_source_uri(&url)?;
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::DiskObserved {
+                disk: DiskObservation::Found(Arc::from(text)),
+                metadata: *editable,
+            },
+        };
+        lifecycle_change.combine(apply_lifecycle_event(state, event));
+        lifecycle_change.combine(observe_sibling_foreign(state, &unit)?);
     }
+    finish_lifecycle_change(state, &lifecycle_change)?;
 
     tracing::info!("Loaded {} files.", files.len());
 
@@ -648,21 +608,32 @@ fn semantic_tokens(
 
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
     let uri = &p.text_document.uri;
-
-    for content_change in &p.content_changes {
-        let text = content_change.text.as_str();
-        if is_javascript_uri(uri) {
-            on_foreign_change(state, uri, text)?;
-        } else {
-            on_change(state, uri.as_str(), text, None)?;
+    let Some(content_change) = p.content_changes.last() else {
+        return Ok(());
+    };
+    let unit = source_unit_from_document_uri(uri)?;
+    let event = if is_javascript_uri(uri) {
+        LifecycleEvent::Foreign {
+            unit,
+            event: ForeignEvent::Changed {
+                text: Arc::from(content_change.text.as_str()),
+                version: p.text_document.version,
+            },
         }
-    }
-
-    state.invalidate_workspace_symbols();
-    state.invalidate_suggestions_cache();
+    } else {
+        LifecycleEvent::Source {
+            unit,
+            event: SourceEvent::Changed {
+                text: Arc::from(content_change.text.as_str()),
+                version: p.text_document.version,
+            },
+        }
+    };
+    let change = apply_lifecycle_event(state, event);
+    finish_lifecycle_change(state, &change)?;
 
     if state.config.diagnostics_on_change {
-        emit_associated_diagnostics(state, p.text_document.uri)?;
+        emit_associated_diagnostics(state, Url::clone(&p.text_document.uri))?;
     }
 
     Ok(())
@@ -670,36 +641,35 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
 
 fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspError> {
     let uri = &p.text_document.uri;
-    let text = p.text_document.text.as_str();
+    let unit = source_unit_from_document_uri(uri)?;
 
-    if is_javascript_uri(uri) {
-        on_foreign_change(state, uri, text)?;
-        if state.config.diagnostics_on_open {
-            emit_associated_diagnostics(state, uri.clone())?;
-        }
-        return Ok(());
-    }
-
-    let editable = {
-        let files = state.files.read();
-        let previous_id = files.id(uri.as_str());
-        previous_id.map(|file_id| files.is_editable(file_id))
-    }
-    .unwrap_or_else(|| {
-        let Some(root) = state.root.as_ref() else {
-            return true;
+    let change = if is_javascript_uri(uri) {
+        let event = LifecycleEvent::Foreign {
+            unit,
+            event: ForeignEvent::Opened {
+                text: Arc::from(p.text_document.text.as_str()),
+                version: p.text_document.version,
+            },
         };
-        p.text_document.uri.to_file_path().is_ok_and(|path| path.starts_with(root))
-    });
-    let file_id = on_change(state, uri.as_str(), text, Some(editable))?;
-    state.files.write().open(file_id);
-    load_sibling_foreign(state, uri)?;
-
-    state.invalidate_workspace_symbols();
-    state.invalidate_suggestions_cache();
+        apply_lifecycle_event(state, event)
+    } else {
+        let editable = source_editable(state, &unit, uri);
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::Opened {
+                text: Arc::from(p.text_document.text.as_str()),
+                version: p.text_document.version,
+                metadata: editable,
+            },
+        };
+        let mut change = apply_lifecycle_event(state, event);
+        change.combine(observe_sibling_foreign(state, &unit)?);
+        change
+    };
+    finish_lifecycle_change(state, &change)?;
 
     if state.config.diagnostics_on_open {
-        event::emit_collect_diagnostics(state, p.text_document.uri)?;
+        emit_associated_diagnostics(state, p.text_document.uri)?;
     }
 
     Ok(())
@@ -707,22 +677,25 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
 
 fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), LspError> {
     let uri = p.text_document.uri;
-    if is_javascript_uri(&uri) {
-        return Ok(());
-    }
-
-    let file_id = state.files.read().id(uri.as_str());
-    let Some(file_id) = file_id else {
-        return Ok(());
+    let unit = source_unit_from_document_uri(&uri)?;
+    let disk = observe_disk(&uri);
+    let change = if is_javascript_uri(&uri) {
+        let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
+        apply_lifecycle_event(state, event)
+    } else {
+        let source_found = matches!(disk, DiskObservation::Found(_));
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::Closed { disk },
+        };
+        let mut change = apply_lifecycle_event(state, event);
+        if source_found {
+            change.combine(observe_sibling_foreign(state, &unit)?);
+        }
+        change
     };
-    state.files.write().close(file_id);
-
-    let reloaded = reload_source_file(state, &uri, None)?;
-    state.invalidate_workspace_symbols();
-    state.invalidate_suggestions_cache();
-    if reloaded {
-        event::emit_collect_all_diagnostics(state)?;
-    }
+    finish_lifecycle_change(state, &change)?;
+    emit_diagnostics_for_change(state, &change)?;
     Ok(())
 }
 
@@ -739,92 +712,63 @@ fn did_change_watched_files(
     state: &mut State,
     p: DidChangeWatchedFilesParams,
 ) -> Result<(), LspError> {
-    let mut source_changed = false;
+    let mut source_units = FxHashSet::default();
+    let mut foreign_units = FxHashSet::default();
     for change in p.changes {
         if is_javascript_uri(&change.uri) {
-            on_watched_foreign_change(state, change)?;
+            foreign_units.insert(source_unit_from_foreign_uri(&change.uri)?);
         } else if is_purescript_uri(&change.uri) {
-            source_changed |= on_watched_source_change(state, change)?;
+            source_units.insert(source_unit_from_source_uri(&change.uri)?);
         }
     }
 
-    if source_changed {
-        state.invalidate_workspace_symbols();
-        state.invalidate_suggestions_cache();
-        event::emit_collect_all_diagnostics(state)?;
-    }
-
-    Ok(())
-}
-
-fn on_watched_source_change(state: &mut State, change: FileEvent) -> Result<bool, LspError> {
-    if state.files.read().is_open(change.uri.as_str()) {
-        return Ok(false);
-    }
-
-    if change.typ == FileChangeType::DELETED {
-        remove_source_file(state, &change.uri)
-    } else {
-        let source_path = change.uri.to_file_path().ok();
-        let editable = match (&state.root, source_path) {
-            (Some(root), Some(path)) => path.starts_with(root),
-            (Some(_), None) => false,
-            (None, _) => true,
+    let mut lifecycle_change = LifecycleChange::default();
+    let mut observed_foreign = FxHashSet::default();
+    for unit in source_units {
+        let document = DocumentKey::Source(SourceUnitKey::clone(&unit));
+        if state.files.read().is_open(&document) {
+            continue;
+        }
+        let uri = Url::parse(unit.source())?;
+        let disk = observe_disk(&uri);
+        let source_found = matches!(disk, DiskObservation::Found(_));
+        let metadata = source_editable(state, &unit, &uri);
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::DiskObserved { disk, metadata },
         };
-        reload_source_file(state, &change.uri, Some(editable))
-    }
-}
-
-fn reload_source_file(
-    state: &mut State,
-    uri: &Url,
-    editable: Option<bool>,
-) -> Result<bool, LspError> {
-    let Ok(path) = uri.to_file_path() else {
-        return Ok(false);
-    };
-    match fs::read_to_string(path) {
-        Ok(content) => {
-            on_change(state, uri.as_str(), &content, editable)?;
-            if let Err(error) = load_sibling_foreign(state, uri) {
-                tracing::warn!("Failed to reload sibling foreign file for {uri}: {error}");
-            }
-            Ok(true)
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            remove_source_file(state, uri)
-        }
-        Err(error) => {
-            tracing::warn!("Failed to reload {uri}: {error}");
-            Ok(false)
-        }
-    }
-}
-
-fn on_watched_foreign_change(state: &mut State, change: FileEvent) -> Result<(), LspError> {
-    let Some(source_uri) = source_uri_from_foreign(&change.uri) else {
-        return Ok(());
-    };
-    let source_tracked = state.files.read().id(source_uri.as_str()).is_some();
-    if !source_tracked && state.foreign_files.read().id(change.uri.as_str()).is_none() {
-        return Ok(());
-    }
-
-    if change.typ == FileChangeType::DELETED {
-        remove_foreign_file(state, &change.uri);
-    } else if let Ok(path) = change.uri.to_file_path() {
-        match fs::read_to_string(path) {
-            Ok(content) => on_foreign_change(state, &change.uri, &content)?,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                remove_foreign_file(state, &change.uri);
-            }
-            Err(error) => return Err(error.into()),
+        lifecycle_change.combine(apply_lifecycle_event(state, event));
+        if source_found {
+            lifecycle_change.combine(observe_sibling_foreign(state, &unit)?);
+            observed_foreign.insert(unit);
         }
     }
 
-    if source_tracked {
-        event::emit_collect_diagnostics(state, source_uri)?;
+    for unit in foreign_units {
+        if observed_foreign.contains(&unit) {
+            continue;
+        }
+        let document = DocumentKey::Foreign(SourceUnitKey::clone(&unit));
+        if state.files.read().is_open(&document) {
+            continue;
+        }
+        let tracked = {
+            let files = state.files.read();
+            files.source_id(unit.source()).is_some() || files.foreign_id(unit.foreign()).is_some()
+        };
+        if !tracked {
+            continue;
+        }
+        let uri = Url::parse(unit.foreign())?;
+        let event = LifecycleEvent::Foreign {
+            unit,
+            event: ForeignEvent::DiskObserved { disk: observe_disk(&uri) },
+        };
+        lifecycle_change.combine(apply_lifecycle_event(state, event));
     }
+
+    finish_lifecycle_change(state, &lifecycle_change)?;
+    emit_diagnostics_for_change(state, &lifecycle_change)?;
     Ok(())
 }
 
@@ -836,124 +780,122 @@ fn is_purescript_uri(uri: &Url) -> bool {
     uri.path().ends_with(".purs")
 }
 
-fn source_uri_from_foreign(uri: &Url) -> Option<Url> {
-    let path = uri.to_file_path().ok()?;
-    Url::from_file_path(path.with_extension("purs")).ok()
+fn source_unit_from_document_uri(uri: &Url) -> Result<SourceUnitKey, LspError> {
+    if is_javascript_uri(uri) {
+        source_unit_from_foreign_uri(uri)
+    } else {
+        source_unit_from_source_uri(uri)
+    }
 }
 
-fn load_sibling_foreign(state: &mut State, source_uri: &Url) -> Result<(), LspError> {
-    let Ok(source_path) = source_uri.to_file_path() else {
-        return Ok(());
-    };
+fn source_unit_from_source_uri(source_uri: &Url) -> Result<SourceUnitKey, LspError> {
+    let source_path =
+        source_uri.to_file_path().map_err(|()| LspError::InvalidFileUri(Url::clone(source_uri)))?;
     let foreign_path = source_path.with_extension("js");
     let foreign_uri = Url::from_file_path(&foreign_path)
-        .map_err(|()| LspError::PathParseFail(foreign_path.clone()))?;
+        .map_err(|()| LspError::PathParseFail(PathBuf::clone(&foreign_path)))?;
+    Ok(SourceUnitKey::new(source_uri.as_str(), foreign_uri.as_str()))
+}
 
-    match fs::read_to_string(foreign_path) {
-        Ok(content) => on_foreign_change(state, &foreign_uri, &content),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            remove_foreign_file(state, &foreign_uri);
-            Ok(())
-        }
-        Err(error) => Err(error.into()),
-    }
+fn source_unit_from_foreign_uri(foreign_uri: &Url) -> Result<SourceUnitKey, LspError> {
+    let foreign_path = foreign_uri
+        .to_file_path()
+        .map_err(|()| LspError::InvalidFileUri(Url::clone(foreign_uri)))?;
+    let source_path = foreign_path.with_extension("purs");
+    let source_uri = Url::from_file_path(&source_path)
+        .map_err(|()| LspError::PathParseFail(PathBuf::clone(&source_path)))?;
+    source_unit_from_source_uri(&source_uri)
 }
 
 fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
-    let uri = if is_javascript_uri(&uri) {
-        let Some(source_uri) = source_uri_from_foreign(&uri) else {
-            return Ok(());
-        };
-        source_uri
-    } else {
-        uri
-    };
-    event::emit_collect_diagnostics(state, uri)
+    let unit = source_unit_from_document_uri(&uri)?;
+    event::emit_collect_diagnostics(state, Url::parse(unit.source())?)
 }
 
-fn on_foreign_change(state: &mut State, uri: &Url, content: &str) -> Result<(), LspError> {
+fn apply_lifecycle_event(state: &mut State, event: LifecycleEvent<i32, bool>) -> LifecycleChange {
+    // Cancel in-flight queries so that threads holding a read lock over the
+    // lifecycle finish before this write waits for expensive LSP requests.
     state.engine.request_cancel();
+    state.files.write().apply(&state.engine, event)
+}
 
-    let foreign_id = state.foreign_files.write().insert(uri.as_str(), content);
-    state.engine.set_foreign_content(foreign_id, content);
-
-    let Some(source_uri) = source_uri_from_foreign(uri) else {
-        return Ok(());
-    };
-    let Some(source_id) = state.files.read().id(source_uri.as_str()) else {
-        return Ok(());
-    };
-
-    state.engine.set_foreign_file(source_id, foreign_id);
-
+fn finish_lifecycle_change(state: &mut State, change: &LifecycleChange) -> Result<(), LspError> {
+    state.diagnostics.invalidate(change, &state.files.read());
+    if !matches!(change.analysis(), AnalysisInvalidation::None) {
+        state.invalidate_workspace_symbols();
+        state.invalidate_suggestions_cache();
+    }
+    for warning in change.warnings() {
+        tracing::warn!("{warning}");
+    }
+    for removed in change.removed_sources() {
+        state.client.publish_diagnostics(PublishDiagnosticsParams {
+            uri: Url::parse(&removed.locator)?,
+            diagnostics: Vec::new(),
+            version: None,
+        })?;
+    }
     Ok(())
 }
 
-fn remove_foreign_file(state: &mut State, uri: &Url) {
-    let foreign_id = state.foreign_files.write().remove(uri.as_str());
-    let Some(foreign_id) = foreign_id else {
-        return;
-    };
-
-    state.engine.remove_foreign_file(foreign_id);
-}
-
-fn remove_source_file(state: &mut State, uri: &Url) -> Result<bool, LspError> {
-    let file_id = state.files.read().id(uri.as_str());
-    let Some(file_id) = file_id else {
-        return Ok(false);
-    };
-
-    state.engine.remove_file(file_id);
-    let removed_id = state.files.write().remove(uri.as_str());
-    debug_assert_eq!(removed_id, Some(file_id));
-    state.client.publish_diagnostics(PublishDiagnosticsParams {
-        uri: uri.clone(),
-        diagnostics: Vec::new(),
-        version: None,
-    })?;
-    Ok(true)
-}
-
-fn on_change(
+fn observe_sibling_foreign(
     state: &mut State,
-    uri: &str,
-    content: &str,
-    editable: Option<bool>,
-) -> Result<FileId, LspError> {
-    let previous_id = state.files.read().id(uri);
-    let previous_name = if let Some(id) = previous_id {
-        let previous_content = state.engine.content(id)?;
-        let (parsed, _) = state.engine.parsed(id)?;
-        parsed.module_name(&previous_content)
-    } else {
-        None
+    unit: &SourceUnitKey,
+) -> Result<LifecycleChange, LspError> {
+    let document = DocumentKey::Foreign(SourceUnitKey::clone(unit));
+    if state.files.read().is_open(&document) {
+        return Ok(LifecycleChange::default());
+    }
+    let uri = Url::parse(unit.foreign())?;
+    let event = LifecycleEvent::Foreign {
+        unit: SourceUnitKey::clone(unit),
+        event: ForeignEvent::DiskObserved { disk: observe_disk(&uri) },
     };
+    Ok(apply_lifecycle_event(state, event))
+}
 
-    // Cancel in-flight queries so that threads holding a read lock
-    // over `files` are terminated quickly, compared to having to
-    // wait for expensive LSP requests to complete successfully.
-    state.engine.request_cancel();
-
-    let mut files = state.files.write();
-    let id = files.insert(uri, content, editable);
-
-    state.engine.set_content(id, content);
-
-    let (parsed, _) = state.engine.parsed(id)?;
-    let current_name = parsed.module_name(content);
-
-    if previous_name != current_name
-        && let Some(previous_name) = previous_name
-    {
-        state.engine.remove_module_file(&previous_name, id);
+fn observe_disk(uri: &Url) -> DiskObservation {
+    let Ok(path) = uri.to_file_path() else {
+        let message = format!("expected a file URI, received {uri}");
+        return DiskObservation::Failed(ReloadFailure::new(io::ErrorKind::InvalidInput, message));
+    };
+    match fs::read_to_string(path) {
+        Ok(content) => DiskObservation::Found(Arc::from(content)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
+        Err(error) => {
+            let kind = error.kind();
+            DiskObservation::Failed(ReloadFailure::new(kind, error.to_string()))
+        }
     }
+}
 
-    if let Some(name) = current_name {
-        state.engine.set_module_file(&name, id);
+fn source_editable(state: &State, unit: &SourceUnitKey, uri: &Url) -> bool {
+    let previous = {
+        let files = state.files.read();
+        let file_id = files.source_id(unit.source());
+        file_id.and_then(|file_id| files.source_metadata(file_id)).copied()
+    };
+    previous.unwrap_or_else(|| match (&state.root, uri.to_file_path()) {
+        (Some(root), Ok(path)) => path.starts_with(root),
+        (Some(_), Err(())) => false,
+        (None, _) => true,
+    })
+}
+
+fn emit_diagnostics_for_change(
+    state: &mut State,
+    change: &LifecycleChange,
+) -> Result<(), LspError> {
+    match change.analysis() {
+        AnalysisInvalidation::None => Ok(()),
+        AnalysisInvalidation::Sources(sources) => {
+            for file_id in sources {
+                event::emit_collect_diagnostics_id(state, *file_id)?;
+            }
+            Ok(())
+        }
+        AnalysisInvalidation::Workspace => event::emit_collect_all_diagnostics(state),
     }
-
-    Ok(id)
 }
 
 trait RequestExtension: BorrowMut<Router<State>> {
@@ -1033,7 +975,8 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .notification_ext::<notification::DidChangeConfiguration>(|_, _| Ok(()))
             .notification_ext::<notification::DidChangeTextDocument>(did_change)
             .notification_ext::<notification::DidChangeWatchedFiles>(did_change_watched_files)
-            .event_ext::<event::CollectDiagnostics>(event::collect_diagnostics);
+            .event_ext::<event::CollectDiagnostics>(event::collect_diagnostics)
+            .event_ext::<event::DiagnosticsFinished>(event::finish_diagnostics);
 
         ServiceBuilder::new()
             .layer(LifecycleLayer::default())
