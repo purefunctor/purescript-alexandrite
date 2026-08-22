@@ -60,6 +60,7 @@ fn char_literal(text: &str) -> Option<char> {
             "r" => Some('\r'),
             "t" => Some('\t'),
             "\\" => Some('\\'),
+            "\"" => Some('"'),
             "'" => Some('\''),
             "0" => Some('\0'),
             escaped => {

@@ -16,7 +16,7 @@ Expressions:
 '\x2603'@13:13
   -> char '☃'
 '\"'@8:17
-  -> char (missing)
+  -> char '"'
 '\n'@6:6
   -> char '\n'
 """hello"""@4:11

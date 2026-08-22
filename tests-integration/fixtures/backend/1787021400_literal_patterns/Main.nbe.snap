@@ -24,15 +24,24 @@ expression: report
     _ ->
       false
 
-@export string = \$string%3 ->
-  case $string%3 of
+@export escapedDoubleQuote = '"'
+
+@export matchesEscapedDoubleQuote = \$char%3 ->
+  case $char%3 of
+    '"' ->
+      true
+    _ ->
+      false
+
+@export string = \$string%4 ->
+  case $string%4 of
     "alexandrite" ->
       true
     _ ->
       false
 
-@export boolean = \$boolean%4 ->
-  case $boolean%4 of
+@export boolean = \$boolean%5 ->
+  case $boolean%5 of
     true ->
       true
     false ->
