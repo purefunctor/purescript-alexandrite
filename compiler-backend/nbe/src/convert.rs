@@ -624,7 +624,12 @@ fn let_bindings(
             checking_tree::LetBindingChunk::PatternError { source, .. } => {
                 return Err(context.unsupported(UnsupportedState::PatternBindingError(*source)));
             }
-            checking_tree::LetBindingChunk::Names { groups, .. } => {
+            checking_tree::LetBindingChunk::Names { declarations, groups } => {
+                let source_order = declarations
+                    .iter()
+                    .enumerate()
+                    .map(|(position, &declaration)| (declaration, position));
+                let source_order = source_order.collect::<FxHashMap<_, _>>();
                 for group in groups.iter().rev() {
                     let mut converted = Vec::new();
                     for &source in group.as_slice() {
@@ -635,7 +640,8 @@ fn let_bindings(
                         let declaration = &checked.tree[declaration_id];
                         let parameter = context.local_parameter(source)?;
                         let expression = value_declaration(context, &declaration.value)?;
-                        converted.push(Binding { parameter, expression });
+                        let source_order = source_order[&declaration_id];
+                        converted.push(Binding { parameter, expression, source_order });
                     }
                     body = context.expression(ExpressionKind::Let {
                         recursive: group.is_recursive(),
@@ -1132,7 +1138,11 @@ where
                     .insert(evidence.clone(), EvidenceConstruction::Shared(parameter.clone()));
                 scope.bindings.push(EvidenceBinding {
                     evidence: evidence.clone(),
-                    binding: Binding { parameter: parameter.clone(), expression: construction },
+                    binding: Binding {
+                        parameter: parameter.clone(),
+                        expression: construction,
+                        source_order: 0,
+                    },
                 });
                 parameter
             }

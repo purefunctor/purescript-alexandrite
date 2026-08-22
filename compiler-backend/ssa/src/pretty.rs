@@ -6,8 +6,8 @@ use rustc_hash::FxHashSet;
 
 use crate::tree::{
     Block, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field, Function,
-    Global, GlobalIdentity, IndirectModuleExports, Instruction, InstructionValue, Literal, Module,
-    PatternTest, Projection, RecordUpdate, RecursiveClosure, ReflectableEvidence,
+    Global, GlobalIdentity, IndirectModuleExports, Instruction, InstructionValue, LazyInitializer,
+    Literal, Module, PatternTest, Projection, RecordUpdate, RecursiveClosure, ReflectableEvidence,
     ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
 };
 
@@ -165,6 +165,18 @@ impl<'a> Printer<'a, '_> {
                     .append(bindings)
                     .append(");")
             }
+            Instruction::RecursiveLazyInitializers { bindings } => {
+                let accessors = bindings.iter().map(|binding| self.value(binding.accessor));
+                let accessors = self.bracketed(accessors);
+                let bindings = bindings.iter().map(|binding| self.lazy_initializer(binding));
+                let bindings = self.braced(bindings);
+                self.arena
+                    .text("const ")
+                    .append(accessors)
+                    .append(" = lazy.recursive(")
+                    .append(bindings)
+                    .append(");")
+            }
         }
     }
 
@@ -174,6 +186,17 @@ impl<'a> Printer<'a, '_> {
         let captures = closure.captures.iter().map(|capture| self.value(*capture));
         let captures = self.arguments(captures);
         name.append(": closure(")
+            .append(self.arena.text(function.name.to_string()))
+            .append(captures)
+            .append(")")
+    }
+
+    fn lazy_initializer(&self, binding: &LazyInitializer) -> Doc<'a> {
+        let function = &self.module.storage[binding.initializer];
+        let captures = binding.captures.iter().map(|capture| self.value(*capture));
+        let captures = self.arguments(captures);
+        self.arena
+            .text(format!("{:?}: initializer(", binding.name))
             .append(self.arena.text(function.name.to_string()))
             .append(captures)
             .append(")")
@@ -214,6 +237,9 @@ impl<'a> Printer<'a, '_> {
             }
             InstructionValue::Global { global } => {
                 self.arena.text("global(").append(self.global(global)).append(")")
+            }
+            InstructionValue::Force { accessor } => {
+                self.arena.text("force(").append(self.value(*accessor)).append(")")
             }
             InstructionValue::Closure { function, captures } => {
                 let function = &self.module.storage[*function];

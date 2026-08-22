@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+same :: forall value. value -> value -> Prim.Boolean
+observe :: forall value. Prim.String -> value -> value
+readTrace :: Prim.Boolean -> Prim.Array Prim.String
+applicationRecursive :: Prim.Boolean -> { result :: Prim.Int, trace :: Prim.Array Prim.String }
+recordRecursive :: Prim.Boolean
+caseRecursive :: Prim.Boolean -> Prim.Int
+letRecursive :: Prim.Boolean -> Prim.Int
+strictCycle :: Prim.Boolean -> Prim.Int
+wrap :: forall value. value -> value
+
+Types

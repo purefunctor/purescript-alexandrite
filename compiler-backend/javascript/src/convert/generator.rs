@@ -21,8 +21,8 @@ use crate::tree::{ExpressionId, Tree};
 
 use self::analysis::{
     FunctionContext, InlineExpressionContext, VisitState, collect_module_references,
-    cyclic_instance_initializers, function_globals, identity_file, initializer_value_is_inlineable,
-    instruction_value_uses, visit_initializer,
+    cyclic_instance_initializers, function_globals, has_local_lazy_initializers, identity_file,
+    initializer_value_is_inlineable, instruction_value_uses, visit_initializer,
 };
 use self::names::NameAllocator;
 use self::syntax::constructor_expression;
@@ -68,7 +68,8 @@ impl<'m> Generator<'m> {
             .any(|declaration| matches!(declaration.kind, DeclarationKind::Foreign));
         let foreign_namespace = has_foreign.then(|| allocator.allocate("$foreign"));
         let lazy_globals = cyclic_instance_initializers(module);
-        let runtime_namespace = (!lazy_globals.is_empty()).then(|| allocator.allocate("$runtime"));
+        let requires_runtime = !lazy_globals.is_empty() || has_local_lazy_initializers(module);
+        let runtime_namespace = requires_runtime.then(|| allocator.allocate("$runtime"));
         let lazy_global_names = lazy_globals.into_iter().map(|identity| {
             let global_name = &global_names[&identity];
             let lazy_name = allocator.allocate(&format!("$lazy_{global_name}"));

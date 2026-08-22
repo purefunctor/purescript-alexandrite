@@ -12,10 +12,10 @@ use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
     Block, BlockId, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field,
     FieldIdentity, Function, FunctionId, Global, GlobalIdentity, IndirectModuleExports,
-    InstanceIdentity, Instruction, InstructionValue, Literal, Module, ModuleDependency,
-    ModuleSurface, PatternTest, Projection, RecordField, RecordUpdate, RecursiveClosure,
-    RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage, SuperclassIdentity,
-    SynthesizedEvidence, Terminator, Value, ValueId,
+    InstanceIdentity, Instruction, InstructionValue, LazyInitializer, Literal, Module,
+    ModuleDependency, ModuleSurface, PatternTest, Projection, RecordField, RecordUpdate,
+    RecursiveClosure, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
+    SuperclassIdentity, SynthesizedEvidence, Terminator, Value, ValueId,
 };
 
 type ConversionResult<T> = ModuleResult<T>;
@@ -66,10 +66,28 @@ struct Traversal {
     function_name: SmolStr,
     current_block: Option<BlockId>,
     blocks: Vec<BlockId>,
-    scope: FxHashMap<nbe::tree::LocalId, ValueId>,
+    scope: FxHashMap<nbe::tree::LocalId, ScopedValue>,
     value_names: FxHashMap<SmolStr, u32>,
     block_names: FxHashMap<SmolStr, u32>,
     unterminated: FxHashSet<BlockId>,
+}
+
+#[derive(Clone, Copy)]
+enum ScopedValue {
+    Direct(ValueId),
+    Lazy(ValueId),
+}
+
+impl ScopedValue {
+    fn value(self) -> ValueId {
+        match self {
+            ScopedValue::Direct(value) | ScopedValue::Lazy(value) => value,
+        }
+    }
+
+    fn is_lazy(self) -> bool {
+        matches!(self, ScopedValue::Lazy(_))
+    }
 }
 
 impl Traversal {
@@ -177,12 +195,15 @@ fn build_function(
     let function_name = state.fresh_function_name(preferred_name);
     let free_parameters = free_parameters(context, &parameters, body);
     let capture_sources =
-        free_parameters.iter().map(|parameter| state.lookup_local(context, parameter));
+        free_parameters.iter().map(|parameter| state.lookup_scoped(context, parameter));
     let capture_sources = capture_sources.collect::<ConversionResult<Vec<_>>>()?;
+    let lazy_captures = capture_sources.iter().map(|source| source.is_lazy());
+    let lazy_captures = lazy_captures.collect_vec();
 
     let parent = state.traversal.take();
     state.traversal = Some(Traversal::new(function_name.clone()));
-    let result = build_function_body(state, context, &free_parameters, &parameters, body);
+    let result =
+        build_function_body(state, context, &free_parameters, &lazy_captures, &parameters, body);
     let traversal =
         state.traversal.take().expect("invariant violated: function traversal is missing");
     state.traversal = parent;
@@ -202,6 +223,8 @@ fn build_function(
         blocks: traversal.blocks.into(),
     };
     let function = state.output.storage.allocate_function(function);
+    let capture_sources = capture_sources.into_iter().map(ScopedValue::value);
+    let capture_sources = capture_sources.collect_vec();
     Ok(BuiltFunction { function, captures: capture_sources.into() })
 }
 
@@ -209,6 +232,7 @@ fn build_function_body(
     state: &mut State,
     context: &Context<'_>,
     free_parameters: &[nbe::tree::Parameter],
+    lazy_captures: &[bool],
     parameters: &[FunctionParameter],
     body: nbe::tree::ExpressionId,
 ) -> ConversionResult<(Vec<ValueId>, Vec<ValueId>, BlockId)> {
@@ -216,9 +240,13 @@ fn build_function_body(
     state.switch_to(entry);
 
     let mut captures = vec![];
-    for parameter in free_parameters {
+    for (parameter, lazy) in free_parameters.iter().zip(lazy_captures.iter().copied()) {
         let value = state.fresh_value(parameter.name.clone());
-        state.bind_local(parameter, value);
+        if lazy {
+            state.bind_lazy(parameter, value);
+        } else {
+            state.bind_local(parameter, value);
+        }
         captures.push(value);
     }
 
@@ -296,7 +324,7 @@ fn lower_expression(
             let name = SmolStr::clone(&global.item_name);
             Ok(state.emit(name, InstructionValue::Global { global }))
         }
-        nbe::tree::ExpressionKind::Local { parameter } => state.lookup_local(context, parameter),
+        nbe::tree::ExpressionKind::Local { parameter } => state.lower_local(context, parameter),
         nbe::tree::ExpressionKind::Abstraction { parameters, body } => {
             let parameters =
                 parameters.iter().map(|&pattern| FunctionParameter::Pattern { pattern });
@@ -560,6 +588,22 @@ fn lower_recursive_bindings(
     context: &Context<'_>,
     bindings: &[nbe::tree::Binding],
 ) -> ConversionResult<()> {
+    let all_abstractions = bindings.iter().all(|binding| {
+        let expression = &context.functional.storage[binding.expression];
+        matches!(expression.kind, nbe::tree::ExpressionKind::Abstraction { .. })
+    });
+    if all_abstractions {
+        lower_recursive_closures(state, context, bindings)
+    } else {
+        lower_recursive_lazy_initializers(state, context, bindings)
+    }
+}
+
+fn lower_recursive_closures(
+    state: &mut State,
+    context: &Context<'_>,
+    bindings: &[nbe::tree::Binding],
+) -> ConversionResult<()> {
     let mut results = vec![];
     for binding in bindings {
         let result = state.fresh_value(binding.parameter.name.clone());
@@ -571,9 +615,7 @@ fn lower_recursive_bindings(
     for (binding, result) in bindings.iter().zip(results) {
         let expression = &context.functional.storage[binding.expression];
         let nbe::tree::ExpressionKind::Abstraction { parameters, body } = &expression.kind else {
-            return Err(context.unsupported(UnsupportedState::RecursiveValue {
-                local_name: binding.parameter.name.to_string(),
-            }));
+            unreachable!("invariant violated: recursive closure binding is not an abstraction")
         };
         let parameters = parameters.iter().map(|&pattern| FunctionParameter::Pattern { pattern });
         let parameters = parameters.collect_vec();
@@ -593,6 +635,50 @@ fn lower_recursive_bindings(
         });
     }
     state.append(Instruction::RecursiveClosures { bindings: closures.into() });
+    Ok(())
+}
+
+fn lower_recursive_lazy_initializers(
+    state: &mut State,
+    context: &Context<'_>,
+    bindings: &[nbe::tree::Binding],
+) -> ConversionResult<()> {
+    let mut bindings = bindings.iter().collect_vec();
+    bindings.sort_by_key(|binding| binding.source_order);
+
+    let mut accessors = vec![];
+    for binding in &bindings {
+        let name = format_smolstr!("{}$lazy", binding.parameter.name);
+        let accessor = state.fresh_value(name);
+        state.bind_lazy(&binding.parameter, accessor);
+        accessors.push(accessor);
+    }
+
+    let mut initializers = vec![];
+    for (binding, accessor) in bindings.iter().zip(accessors.iter().copied()) {
+        let name = format_smolstr!("{}$initialize", binding.parameter.name);
+        let built = build_function(
+            state,
+            context,
+            name,
+            CallingConvention::Initializer,
+            vec![],
+            binding.expression,
+        )?;
+        initializers.push(LazyInitializer {
+            name: binding.parameter.name.clone(),
+            accessor,
+            initializer: built.function,
+            captures: built.captures,
+        });
+    }
+    state.append(Instruction::RecursiveLazyInitializers { bindings: initializers.into() });
+
+    for (binding, accessor) in bindings.iter().zip(accessors) {
+        let value =
+            state.emit(binding.parameter.name.clone(), InstructionValue::Force { accessor });
+        state.bind_local(&binding.parameter, value);
+    }
     Ok(())
 }
 
@@ -1134,23 +1220,27 @@ impl State {
         BlockTarget { block, arguments: arguments.into() }
     }
 
-    fn scope(&self) -> &FxHashMap<nbe::tree::LocalId, ValueId> {
+    fn scope(&self) -> &FxHashMap<nbe::tree::LocalId, ScopedValue> {
         &self.traversal().scope
     }
 
-    fn set_scope(&mut self, scope: FxHashMap<nbe::tree::LocalId, ValueId>) {
+    fn set_scope(&mut self, scope: FxHashMap<nbe::tree::LocalId, ScopedValue>) {
         self.traversal_mut().scope = scope;
     }
 
     fn bind_local(&mut self, parameter: &nbe::tree::Parameter, value: ValueId) {
-        self.traversal_mut().scope.insert(parameter.id, value);
+        self.traversal_mut().scope.insert(parameter.id, ScopedValue::Direct(value));
     }
 
-    fn lookup_local(
+    fn bind_lazy(&mut self, parameter: &nbe::tree::Parameter, accessor: ValueId) {
+        self.traversal_mut().scope.insert(parameter.id, ScopedValue::Lazy(accessor));
+    }
+
+    fn lookup_scoped(
         &self,
         context: &Context<'_>,
         parameter: &nbe::tree::Parameter,
-    ) -> ConversionResult<ValueId> {
+    ) -> ConversionResult<ScopedValue> {
         let Some(traversal) = &self.traversal else {
             return Err(context.unsupported(UnsupportedState::MissingLocal {
                 local_name: parameter.name.to_string(),
@@ -1161,6 +1251,21 @@ impl State {
                 local_name: parameter.name.to_string(),
             })
         })
+    }
+
+    fn lower_local(
+        &mut self,
+        context: &Context<'_>,
+        parameter: &nbe::tree::Parameter,
+    ) -> ConversionResult<ValueId> {
+        let scoped = self.lookup_scoped(context, parameter)?;
+        match scoped {
+            ScopedValue::Direct(value) => Ok(value),
+            ScopedValue::Lazy(accessor) => {
+                let name = format_smolstr!("{}$forced", parameter.name);
+                Ok(self.emit(name, InstructionValue::Force { accessor }))
+            }
+        }
     }
 }
 

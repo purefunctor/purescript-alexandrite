@@ -1,0 +1,288 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const same;
+
+@export foreign const observe;
+
+@export foreign const readTrace;
+
+@export function applicationRecursive(token) {
+  entry() {
+    const [first$lazy, second$lazy] = lazy.recursive({
+      "first": initializer(first$initialize, second$lazy),
+      "second": initializer(second$initialize, first$lazy)
+    });
+    const first = force(first$lazy);
+    const second = force(second$lazy);
+    const literal = true;
+    const call = source.call(first, literal);
+    const readTrace = global(readTrace);
+    const call$1 = source.call(readTrace, token);
+    const record = { result: call, trace: call$1 };
+    return record;
+  }
+}
+
+@export const recordRecursive = initialize {
+  entry() {
+    const [first$lazy, second$lazy] = lazy.recursive({
+      "first": initializer(first$initialize$1, second$lazy),
+      "second": initializer(second$initialize$1, first$lazy)
+    });
+    const first = force(first$lazy);
+    const second = force(second$lazy);
+    const same = global(same);
+    const value = first.value;
+    const call = source.call(same, value);
+    const call$1 = source.call(call, second);
+    return call$1;
+  }
+}
+
+@export function caseRecursive(condition) {
+  entry() {
+    const [go$lazy] = lazy.recursive({ "go": initializer(go$initialize, condition, go$lazy) });
+    const go = force(go$lazy);
+    const literal = true;
+    const call = source.call(go, literal);
+    return call;
+  }
+}
+
+@export function letRecursive(condition) {
+  entry() {
+    const [go$lazy] = lazy.recursive({ "go": initializer(go$initialize$1, go$lazy) });
+    const go = force(go$lazy);
+    const call = source.call(go, condition);
+    return call;
+  }
+}
+
+@export function strictCycle($boolean) {
+  entry() {
+    const [value$lazy] = lazy.recursive({ "value": initializer(value$initialize, value$lazy) });
+    const value = force(value$lazy);
+    return value;
+  }
+}
+
+@export function wrap(value) {
+  entry() {
+    return value;
+  }
+}
+
+closure first$initialize$closure[second](condition) {
+  entry() {
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const second$forced = force(second);
+    const literal = false;
+    const call = source.call(second$forced, literal);
+    if$join(call);
+  }
+  else() {
+    const literal$1 = 1;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+initializer first$initialize[second]() {
+  entry() {
+    const observe = global(observe);
+    const literal = "first";
+    const call = source.call(observe, literal);
+    const closure = closure(first$initialize$closure, second);
+    const call$1 = source.call(call, closure);
+    return call$1;
+  }
+}
+
+closure second$initialize$closure[first](condition) {
+  entry() {
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const first$forced = force(first);
+    const literal = false;
+    const call = source.call(first$forced, literal);
+    if$join(call);
+  }
+  else() {
+    const literal$1 = 2;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+initializer second$initialize[first]() {
+  entry() {
+    const observe = global(observe);
+    const literal = "second";
+    const call = source.call(observe, literal);
+    const closure = closure(second$initialize$closure, first);
+    const call$1 = source.call(call, closure);
+    return call$1;
+  }
+}
+
+initializer first$initialize$1[second]() {
+  entry() {
+    const second$forced = force(second);
+    const record = { value: second$forced };
+    return record;
+  }
+}
+
+closure second$initialize$1$closure[first](condition) {
+  entry() {
+    if (condition) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const first$forced = force(first);
+    const value = first$forced.value;
+    const literal = false;
+    const call = source.call(value, literal);
+    if$join(call);
+  }
+  else() {
+    const literal$1 = 20;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+initializer second$initialize$1[first]() {
+  entry() {
+    const closure = closure(second$initialize$1$closure, first);
+    return closure;
+  }
+}
+
+closure go$initialize$closure[go](current) {
+  entry() {
+    if (current) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const go$forced = force(go);
+    const literal = false;
+    const call = source.call(go$forced, literal);
+    if$join(call);
+  }
+  else() {
+    const literal$1 = 30;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+closure go$initialize$closure$1[]($boolean) {
+  entry() {
+    const literal = 31;
+    return literal;
+  }
+}
+
+initializer go$initialize[condition, go]() {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal(condition, true);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal(condition, false);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const closure = closure(go$initialize$closure, go);
+    case$join(closure);
+  }
+  match$success$1() {
+    const closure$1 = closure(go$initialize$closure$1);
+    case$join(closure$1);
+  }
+}
+
+closure go$initialize$1$closure[go](current) {
+  entry() {
+    if (current) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const go$forced = force(go);
+    const literal = false;
+    const call = source.call(go$forced, literal);
+    if$join(call);
+  }
+  else() {
+    const literal$1 = 40;
+    if$join(literal$1);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+initializer go$initialize$1[go]() {
+  entry() {
+    const closure = closure(go$initialize$1$closure, go);
+    return closure;
+  }
+}
+
+initializer value$initialize[value]() {
+  entry() {
+    const wrap = global(wrap);
+    const value$forced = force(value);
+    const call = source.call(wrap, value$forced);
+    return call;
+  }
+}

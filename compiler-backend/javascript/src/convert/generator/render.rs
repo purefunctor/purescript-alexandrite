@@ -3,9 +3,9 @@ use std::iter;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    BlockId, BlockTarget, Failure, Function, Instruction, InstructionValue, PatternTest,
-    RecordUpdate, RecursiveClosure, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence,
-    Terminator, ValueId,
+    BlockId, BlockTarget, Failure, Function, Instruction, InstructionValue, LazyInitializer,
+    PatternTest, RecordUpdate, RecursiveClosure, ReflectableEvidence, ReflectableOrdering,
+    SynthesizedEvidence, Terminator, ValueId,
 };
 
 use super::Generator;
@@ -428,6 +428,28 @@ impl Generator<'_> {
                     );
                 }
             }
+            Instruction::RecursiveLazyInitializers { bindings } => {
+                for binding in bindings.iter() {
+                    let name = context.closure(binding.initializer);
+                    let function = &self.module.storage[binding.initializer];
+                    self.render_function(tree, writer, name, function, false)?;
+                }
+                if declare {
+                    for binding in bindings.iter() {
+                        writer.line(format!("let {};", context.value(binding.accessor)));
+                    }
+                }
+                for binding in bindings.iter() {
+                    let expression =
+                        self.lazy_initializer_expression(tree, binding, context, expressions);
+                    writer.expression_line(
+                        format!("{} = ", context.value(binding.accessor)),
+                        tree,
+                        expression,
+                        ";",
+                    );
+                }
+            }
         }
         Ok(())
     }
@@ -480,6 +502,10 @@ impl Generator<'_> {
             }
             InstructionValue::Constructor { global } => self.global_expression(tree, global),
             InstructionValue::Global { global } => self.global_expression(tree, global),
+            InstructionValue::Force { accessor } => {
+                let accessor = context.expression(tree, *accessor);
+                Ok(tree.call(accessor, vec![]))
+            }
             InstructionValue::Closure { function, captures } => {
                 let name = tree.identifier(context.closure(*function));
                 if captures.is_empty() {
@@ -523,6 +549,29 @@ impl Generator<'_> {
             }
             InstructionValue::TrivialEvidence => Ok(tree.object(vec![])),
         }
+    }
+
+    fn lazy_initializer_expression(
+        &self,
+        tree: &mut Tree,
+        binding: &LazyInitializer,
+        context: &FunctionContext,
+        expressions: &dyn ValueExpressionContext,
+    ) -> ExpressionId {
+        let runtime = self
+            .runtime_namespace
+            .as_ref()
+            .expect("invariant violated: local lazy initializer has no runtime namespace");
+        let runtime = tree.identifier(runtime);
+        let runtime_binding = tree.member(runtime, "binding");
+        let name = tree.string(binding.name.as_str());
+        let initializer = tree.identifier(context.closure(binding.initializer));
+        let captures =
+            binding.captures.iter().map(|capture| expressions.expression(tree, *capture));
+        let captures = captures.collect_vec();
+        let initialize = tree.call(initializer, captures);
+        let initialize = tree.arrow(vec![], initialize);
+        tree.call(runtime_binding, vec![name, initialize])
     }
 
     fn recursive_closure_expression(

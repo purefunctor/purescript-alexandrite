@@ -15,8 +15,6 @@ pub enum ModuleError {
 pub enum UnsupportedState {
     #[error("local {local_name} is not available in the current lexical scope")]
     MissingLocal { local_name: String },
-    #[error("recursive local {local_name} is not a function")]
-    RecursiveValue { local_name: String },
     #[error("case expression has no alternatives")]
     MissingCaseAlternative,
     #[error("guarded expression has no alternatives")]
