@@ -72,12 +72,12 @@ jobs:
 
       - name: Build compatibility verifiers
         run: |
-          cargo build --manifest-path base/Cargo.toml -p tests-compatibility
-          cargo build --manifest-path candidate/Cargo.toml -p tests-compatibility
+          cargo build --release --manifest-path base/Cargo.toml -p tests-compatibility
+          cargo build --release --manifest-path candidate/Cargo.toml -p tests-compatibility
 
       - name: Prepare core and Acme corpus
         working-directory: candidate
-        run: target/debug/tests-compatibility prepare --preset core --preset acme
+        run: target/release/tests-compatibility prepare --preset core --preset acme
 
       - name: Collect base and candidate reports
         id: reports
@@ -91,7 +91,7 @@ jobs:
           set +e
           (
             cd base
-            target/debug/tests-compatibility verify \
+            target/release/tests-compatibility verify \
               --preset core \
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
@@ -103,7 +103,7 @@ jobs:
 
           (
             cd candidate
-            target/debug/tests-compatibility verify \
+            target/release/tests-compatibility verify \
               --preset core \
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
@@ -123,7 +123,7 @@ jobs:
           REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
         run: |
           set +e
-          candidate/target/debug/tests-compatibility compare \
+          candidate/target/release/tests-compatibility compare \
             --base-report "$REPORT_DIR/base.json" \
             --candidate-report "$REPORT_DIR/candidate.json" \
             --json-output "$REPORT_DIR/comparison.json" \
