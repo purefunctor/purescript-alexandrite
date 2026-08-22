@@ -108,9 +108,11 @@ where
         return Ok(None);
     };
 
-    unification::unify(state, context, *inner_type, newtype_inner.inner)?;
+    if !unification::unify(state, context, *inner_type, newtype_inner.inner)? {
+        return Ok(None);
+    }
 
-    Ok(Some(DeriveStrategy::HeadOnly))
+    Ok(Some(DeriveStrategy::NewtypeClass))
 }
 
 fn try_peel_trailing_rigids<Q>(

@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+Identifier :: Prim.Int -> Main.Identifier
+wrapped :: Main.Identifier
+unwrapped :: Prim.Int
+Empty :: Main.Choice
+Single :: Prim.Int -> Main.Choice
+Pair :: Prim.Int -> Prim.Int -> Main.Choice
+roundTrip :: Main.Choice -> Main.Choice
+emptyRoundTrip :: Main.Choice
+singleRoundTrip :: Main.Choice
+pairRoundTrip :: Main.Choice
+
+Types
+Identifier :: Prim.Type
+Choice :: Prim.Type
+Void :: Prim.Type
+
+Derived
+derive Data.Newtype.Newtype @Prim.Type Main.Identifier Prim.Int
+derive Data.Generic.Rep.Generic
+  Main.Choice
+  (Data.Generic.Rep.Sum
+    (Data.Generic.Rep.Constructor "Empty" Data.Generic.Rep.NoArguments)
+    (Data.Generic.Rep.Sum
+      (Data.Generic.Rep.Constructor "Single" (Data.Generic.Rep.Argument Prim.Int))
+      (Data.Generic.Rep.Constructor
+        "Pair"
+        (Data.Generic.Rep.Product
+          (Data.Generic.Rep.Argument Prim.Int)
+          (Data.Generic.Rep.Argument Prim.Int)))))
+derive Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
+
+Roles
+Identifier = []
+Choice = []
+Void = []

@@ -20,6 +20,7 @@ mod contravariant;
 mod eq_ord;
 mod foldable;
 mod functor;
+mod generic;
 mod traversable;
 
 pub(super) fn generate_instance<Q>(
@@ -48,10 +49,14 @@ where
         | DeriveDispatch::Foldable
         | DeriveDispatch::Bifoldable
         | DeriveDispatch::Traversable
-        | DeriveDispatch::Bitraversable => {
+        | DeriveDispatch::Bitraversable
+        | DeriveDispatch::Newtype
+        | DeriveDispatch::Generic => {
             generate_known_instance(state, context, result, dispatch, recipe)
         }
-        _ => Ok(None),
+        DeriveDispatch::Unsupported => {
+            unreachable!("invariant violated: successful derive has unsupported dispatch")
+        }
     }
 }
 
@@ -123,6 +128,10 @@ where
         (result.class_file, result.class_id),
     )?
     else {
+        if matches!(result.strategy, DeriveStrategy::NewtypeClass | DeriveStrategy::Generic { .. })
+        {
+            unreachable!("invariant violated: runtime derive has no instance signature");
+        }
         return Ok(None);
     };
 
@@ -147,8 +156,7 @@ where
         let members = match dispatch {
             DeriveDispatch::Eq => {
                 eq_ord::generate_eq_member(state, context, result, &freshened.arguments)?
-                    .into_iter()
-                    .collect()
+                    .map(|member| vec![member])
             }
             DeriveDispatch::Eq1 => generate_delegated_member(
                 state,
@@ -157,12 +165,10 @@ where
                 &freshened.arguments,
                 context.known_terms.eq,
             )?
-            .into_iter()
-            .collect(),
+            .map(|member| vec![member]),
             DeriveDispatch::Ord => {
                 eq_ord::generate_ord_member(state, context, result, &freshened.arguments)?
-                    .into_iter()
-                    .collect()
+                    .map(|member| vec![member])
             }
             DeriveDispatch::Ord1 => generate_delegated_member(
                 state,
@@ -171,8 +177,7 @@ where
                 &freshened.arguments,
                 context.known_terms.compare,
             )?
-            .into_iter()
-            .collect(),
+            .map(|member| vec![member]),
             DeriveDispatch::Functor | DeriveDispatch::Bifunctor => {
                 let Some(recipe) = recipe else {
                     return Ok(None);
@@ -190,8 +195,7 @@ where
                     recipe,
                     traversal,
                 )?
-                .into_iter()
-                .collect()
+                .map(|member| vec![member])
             }
             DeriveDispatch::Contravariant | DeriveDispatch::Profunctor => {
                 let Some(recipe) = recipe else {
@@ -210,8 +214,7 @@ where
                     recipe,
                     traversal,
                 )?
-                .into_iter()
-                .collect()
+                .map(|member| vec![member])
             }
             DeriveDispatch::Foldable | DeriveDispatch::Bifoldable => {
                 let Some(recipe) = recipe else {
@@ -222,7 +225,7 @@ where
                     DeriveDispatch::Bifoldable => foldable::TraversalKind::Bifoldable,
                     _ => unreachable!(),
                 };
-                let Some(members) = foldable::generate_fold_members(
+                foldable::generate_fold_members(
                     state,
                     context,
                     result,
@@ -230,10 +233,6 @@ where
                     recipe,
                     traversal,
                 )?
-                else {
-                    return Ok(None);
-                };
-                members
             }
             DeriveDispatch::Traversable | DeriveDispatch::Bitraversable => {
                 let Some(recipe) = recipe else {
@@ -244,7 +243,7 @@ where
                     DeriveDispatch::Bitraversable => traversable::TraversalKind::Bitraversable,
                     _ => unreachable!(),
                 };
-                let Some(members) = traversable::generate_traversal_members(
+                traversable::generate_traversal_members(
                     state,
                     context,
                     result,
@@ -252,17 +251,19 @@ where
                     recipe,
                     traversal,
                 )?
-                else {
-                    return Ok(None);
-                };
-                members
             }
-            _ => vec![],
+            DeriveDispatch::Newtype => Some(vec![]),
+            DeriveDispatch::Generic => {
+                generic::generate_generic_members(state, context, result, &freshened.arguments)?
+            }
+            DeriveDispatch::Unsupported => {
+                unreachable!("invariant violated: successful derive has unsupported dispatch")
+            }
         };
 
-        if members.is_empty() {
+        let Some(members) = members else {
             return Ok(None);
-        }
+        };
 
         let instance = tree::InstanceDeclaration {
             class: (result.class_file, result.class_id),
