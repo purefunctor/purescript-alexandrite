@@ -1,27 +1,29 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 85
+assertion_line: 323
 expression: report
 ---
 module Main
 
 Expressions:
 
-1.25@16:8
-  -> number 1.25
-0x2a@14:9
+'ab'@17:18
+  -> char (missing)
+0x2a@19:9
   -> integer 42
-'ab'@12:18
+'\n2'@15:20
   -> char (missing)
-'\n2'@10:20
-  -> char (missing)
-'\x2603'@8:13
+'\x2603'@13:13
   -> char '☃'
+'\"'@8:17
+  -> char (missing)
 '\n'@6:6
   -> char '\n'
 """hello"""@4:11
   -> string RawString "hello"
 "hello"@2:8
   -> string String "hello"
+1.25@21:8
+  -> number 1.25
 
 Types:
