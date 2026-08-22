@@ -2,6 +2,7 @@ use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
 pub mod cli;
+pub mod compile;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
@@ -29,6 +30,19 @@ pub fn run() {
                 diagnostics_on_open: options.diagnostics_on_open,
                 diagnostics_on_save: options.diagnostics_on_save,
                 diagnostics_on_change: options.diagnostics_on_change,
+            });
+        }
+        cli::Command::Compile(options) => {
+            logging::start(logging::LoggingFilters {
+                query_log: options.logging.query_log,
+                checking_log: options.logging.checking_log,
+                lsp_log: LevelFilter::OFF,
+                docs_log: LevelFilter::OFF,
+            });
+            compile::start(compile::CompileConfig {
+                output: options.output,
+                inputs: options.inputs,
+                json_errors: options.json_errors,
             });
         }
         cli::Command::Docs(options) => {

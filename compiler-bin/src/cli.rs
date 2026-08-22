@@ -39,6 +39,8 @@ impl Cli {
 pub enum Command {
     /// Run the language server.
     Lsp(LspOptions),
+    /// Compile PureScript modules to JavaScript (experimental).
+    Compile(CompileOptions),
     /// Documentation utilities.
     Docs(DocsOptions),
 }
@@ -83,6 +85,30 @@ pub struct LspOptions {
     /// Publish diagnostics on textDocument/didChange.
     #[arg(long, default_value_t = false)]
     pub diagnostics_on_change: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct CompileOptions {
+    #[command(flatten)]
+    pub logging: LoggingOptions,
+
+    /// Output directory for compiled modules.
+    #[arg(short, long, value_name("DIR"), default_value("output"), value_parser = absolute_path_parser())]
+    pub output: PathBuf,
+
+    /// Code generation targets requested by build tools.
+    #[arg(long, value_name("TARGETS"))]
+    pub codegen: Option<String>,
+
+    /// Emit a Spago-compatible JSON result.
+    ///
+    /// Full structured JSON diagnostics are not yet supported.
+    #[arg(long)]
+    pub json_errors: bool,
+
+    /// PureScript source paths or glob patterns.
+    #[arg(value_name("INPUT"), required = true)]
+    pub inputs: Vec<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -172,6 +198,16 @@ mod tests {
         }
     }
 
+    fn compile(args: &[&str]) -> CompileOptions {
+        let mut argv = vec!["alexandrite", "compile"];
+        argv.extend(args);
+        let cli = Cli::parse_from(argv);
+        match cli.command {
+            Some(Command::Compile(options)) => options,
+            _ => unreachable!("parsed command was not `compile`"),
+        }
+    }
+
     fn docs_error_kind(args: &[&str]) -> ErrorKind {
         let mut argv = vec!["alexandrite", "docs"];
         argv.extend(args);
@@ -199,6 +235,28 @@ mod tests {
 
         assert!(options.stdio);
         assert!(options.diagnostics_on_change);
+    }
+
+    #[test]
+    fn compile_accepts_spago_arguments() {
+        let options = compile(&[
+            "--codegen",
+            "corefn,docs,js,sourcemaps",
+            "--json-errors",
+            "src/**/*.purs",
+            ".spago/p/prelude-6.0.2/src/**/*.purs",
+        ]);
+
+        assert_eq!(options.output, current_directory_path("output"));
+        assert_eq!(options.codegen.as_deref(), Some("corefn,docs,js,sourcemaps"));
+        assert!(options.json_errors);
+        assert_eq!(
+            options.inputs,
+            vec![
+                PathBuf::from("src/**/*.purs"),
+                PathBuf::from(".spago/p/prelude-6.0.2/src/**/*.purs"),
+            ]
+        );
     }
 
     #[test]

@@ -30,10 +30,12 @@ building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-core/checking" }
 clap = { version = "4.6.6", features = ["derive"] }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
+diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 globset = "0.4.20"
 indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
 itertools = "0.15.0"
+javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 lsp-types.workspace = true
 parking_lot = "0.12.5"
