@@ -33,6 +33,7 @@ impl ReportPathFormat {
 }
 
 const COMPARISON_REPORT_SCHEMA_VERSION: u32 = 1;
+const JAVASCRIPT_STAGE_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
@@ -142,15 +143,28 @@ pub fn compare_reports(
     base.recompute_summary();
     candidate.recompute_summary();
 
-    let diagnostic_changes = compare_diagnostics(&base.diagnostics, &candidate.diagnostics);
+    let mut base_diagnostics = base.diagnostics.clone();
+    let mut candidate_diagnostics = candidate.diagnostics.clone();
+    let mut base_verifier_errors = base.verifier_errors.clone();
+    let mut candidate_verifier_errors = candidate.verifier_errors.clone();
+    if base.schema_version < JAVASCRIPT_STAGE_SCHEMA_VERSION
+        || candidate.schema_version < JAVASCRIPT_STAGE_SCHEMA_VERSION
+    {
+        base_diagnostics.retain(|diagnostic| diagnostic.stage != CompilationStage::JavaScript);
+        candidate_diagnostics.retain(|diagnostic| diagnostic.stage != CompilationStage::JavaScript);
+        base_verifier_errors.retain(|issue| issue.stage != Some(CompilationStage::JavaScript));
+        candidate_verifier_errors.retain(|issue| issue.stage != Some(CompilationStage::JavaScript));
+    }
+
+    let diagnostic_changes = compare_diagnostics(&base_diagnostics, &candidate_diagnostics);
     let verifier_issue_identity = if base.schema_version == 0 || candidate.schema_version == 0 {
         VerifierIssueIdentity::LegacySchema
     } else {
         VerifierIssueIdentity::StructuredSchema
     };
     let verifier_changes = compare_verifier_issues(
-        &base.verifier_errors,
-        &candidate.verifier_errors,
+        &base_verifier_errors,
+        &candidate_verifier_errors,
         verifier_issue_identity,
     );
     let summary = comparison_summary(&diagnostic_changes, &verifier_changes);
@@ -432,6 +446,38 @@ mod tests {
         assert_eq!(comparison.summary.fixed_compiler_warnings, 0);
         assert_eq!(comparison.summary.introduced_verifier_errors, 1);
         assert!(comparison.has_regressions());
+    }
+
+    #[test]
+    fn establishes_javascript_baseline_for_previous_report_schema() {
+        let mut base = report();
+        base.schema_version = 1;
+        let mut candidate = report();
+        let mut javascript_diagnostic = diagnostic(
+            DiagnosticSeverity::Error,
+            "JavaScriptError",
+            "unsupported JavaScript",
+            "src/Prelude.purs",
+            1,
+        );
+        javascript_diagnostic.stage = CompilationStage::JavaScript;
+        candidate.diagnostics.push(javascript_diagnostic);
+        candidate.verifier_errors.push(VerifierIssue::query_error(
+            "prelude",
+            "6.0.2",
+            "src/Prelude.purs",
+            CompilationStage::JavaScript,
+            "query failed".to_string(),
+        ));
+        candidate.recompute_summary();
+
+        let comparison = compare_reports(&base, &candidate).unwrap();
+
+        assert!(comparison.diagnostic_changes.is_empty());
+        assert!(comparison.verifier_changes.is_empty());
+        assert!(!comparison.has_regressions());
+        assert_eq!(comparison.candidate_summary.compiler_errors, 1);
+        assert_eq!(comparison.candidate_summary.verifier_errors, 1);
     }
 
     #[test]

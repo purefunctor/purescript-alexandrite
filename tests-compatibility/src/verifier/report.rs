@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::error::VerifierError;
 use super::selection::{SelectedPackage, SelectionMode};
 
-pub const REPORT_SCHEMA_VERSION: u32 = 1;
+pub const REPORT_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -72,6 +72,7 @@ pub enum CompilationStage {
     Bracketing,
     Sectioning,
     Checking,
+    JavaScript,
 }
 
 impl CompilationStage {
@@ -86,6 +87,7 @@ impl CompilationStage {
             CompilationStage::Bracketing => "bracketing",
             CompilationStage::Sectioning => "sectioning",
             CompilationStage::Checking => "checking",
+            CompilationStage::JavaScript => "javascript",
         }
     }
 }
@@ -337,6 +339,7 @@ impl Report {
         println!("  resolving errors: {}", self.stage_error_count(CompilationStage::Resolving));
         println!("  lowering errors: {}", self.stage_error_count(CompilationStage::Lowering));
         println!("  checking errors: {}", self.stage_error_count(CompilationStage::Checking));
+        println!("  JavaScript errors: {}", self.stage_error_count(CompilationStage::JavaScript));
         println!("  compiler errors: {}", self.summary.compiler_errors);
         println!("  compiler warnings: {}", self.summary.compiler_warnings);
         println!("  packages with errors: {}", self.summary.packages_with_errors);
@@ -355,7 +358,7 @@ impl Report {
     pub fn read_json(path: &Path) -> Result<Report, VerifierError> {
         let content = fs::read_to_string(path)?;
         let schema: ReportSchema = serde_json::from_str(&content)?;
-        if !matches!(schema.schema_version, 0 | REPORT_SCHEMA_VERSION) {
+        if schema.schema_version > REPORT_SCHEMA_VERSION {
             return Err(VerifierError::UnsupportedReportSchemaVersion {
                 found: schema.schema_version,
                 latest_supported: REPORT_SCHEMA_VERSION,

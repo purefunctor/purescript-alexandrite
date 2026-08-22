@@ -17,4 +17,6 @@ pub enum UnsupportedState {
     InvalidNumber { value: String },
     #[error("top-level value initializers form a cycle")]
     CyclicInitializers,
+    #[error("local global {name:?} has no JavaScript declaration")]
+    MissingGlobal { name: String },
 }

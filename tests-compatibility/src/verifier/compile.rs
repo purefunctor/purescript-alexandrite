@@ -5,7 +5,7 @@ use building::{QueryEngine, QueryError, prim};
 use diagnostics::{
     Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rustc_with_path,
 };
-use files::{FileId, Files};
+use files::{FileId, Files, ForeignFiles};
 use rayon::prelude::*;
 use url::Url;
 
@@ -33,6 +33,7 @@ struct FileMetadata {
 pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, VerifierError> {
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
+    let mut foreign_files = ForeignFiles::default();
     prim::configure(&mut engine, &mut files);
 
     let mut report = CompileReport::default();
@@ -47,6 +48,7 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
             .to_string();
         let file_id = files.insert(uri, content.clone());
         engine.set_content(file_id, content.clone());
+        register_foreign_module(&engine, &mut foreign_files, source, file_id)?;
         file_ids.push(file_id);
         file_metadata.insert(
             file_id,
@@ -80,6 +82,28 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
     }
 
     Ok(report)
+}
+
+fn register_foreign_module(
+    engine: &QueryEngine,
+    foreign_files: &mut ForeignFiles,
+    source: &SourceFile,
+    file_id: FileId,
+) -> Result<(), VerifierError> {
+    let foreign_path = source.path.with_extension("js");
+    if !foreign_path.is_file() {
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(&foreign_path)?;
+    let absolute_path = fs::canonicalize(&foreign_path)?;
+    let uri = Url::from_file_path(&absolute_path)
+        .map_err(|_| VerifierError::FileUrl(absolute_path.clone()))?
+        .to_string();
+    let foreign_id = foreign_files.insert(uri, content.clone());
+    engine.set_foreign_content(foreign_id, content);
+    engine.set_foreign_file(file_id, foreign_id);
+    Ok(())
 }
 
 fn register_modules(
@@ -236,6 +260,27 @@ fn collect_file(
                     ));
                 }
             });
+            if checked.errors.is_empty() {
+                match engine.javascript(file_id) {
+                    Ok(Ok(_)) => {}
+                    Ok(Err(error)) => {
+                        let diagnostic = Diagnostic::error(
+                            "JavaScriptError",
+                            error.to_string(),
+                            Span::new(0, metadata.content.len() as u32),
+                            CompilationStage::JavaScript.as_str(),
+                        );
+                        report.diagnostics.push(compiler_diagnostic(
+                            metadata,
+                            CompilationStage::JavaScript,
+                            diagnostic,
+                        ));
+                    }
+                    Err(error) => {
+                        push_query_error(report, metadata, CompilationStage::JavaScript, error)
+                    }
+                }
+            }
         }
         Err(error) => push_query_error(report, metadata, CompilationStage::Checking, error),
     }
@@ -399,6 +444,46 @@ mod tests {
 
         assert!(report.verifier_errors.is_empty(), "{:#?}", report.verifier_errors);
         assert!(report.diagnostics.is_empty(), "{:#?}", report.diagnostics);
+    }
+
+    #[test]
+    fn loads_foreign_modules_for_checking_and_javascript_generation() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        let main = dir.path().join("src/Main.purs");
+        fs::write(
+            &main,
+            "module Main where\n\nforeign import answer :: Int\n\nresult :: Int\nresult = answer\n",
+        )
+        .unwrap();
+        fs::write(dir.path().join("src/Main.js"), "export const answer = 42;\n").unwrap();
+
+        let report = compile_sources(&[source("fixture", "1.0.0", &main)]).unwrap();
+
+        assert!(report.verifier_errors.is_empty(), "{:#?}", report.verifier_errors);
+        assert!(report.diagnostics.is_empty(), "{:#?}", report.diagnostics);
+    }
+
+    #[test]
+    fn reports_javascript_generation_errors() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        let main = dir.path().join("src/Main.purs");
+        fs::write(
+            &main,
+            "module Main where\n\nfirst :: Int\nfirst = second\n\nsecond :: Int\nsecond = first\n",
+        )
+        .unwrap();
+
+        let report = compile_sources(&[source("fixture", "1.0.0", &main)]).unwrap();
+        let diagnostic = report
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.stage == CompilationStage::JavaScript)
+            .expect("JavaScript generation diagnostic");
+
+        assert_eq!(diagnostic.code, "JavaScriptError");
+        assert!(diagnostic.message.contains("top-level value initializers form a cycle"));
     }
 
     #[test]
