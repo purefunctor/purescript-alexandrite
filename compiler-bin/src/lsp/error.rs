@@ -21,6 +21,8 @@ pub enum LspError {
     PathParseFail(PathBuf),
     #[error("Expected a file URI, received {0}")]
     InvalidFileUri(Url),
+    #[error("Expected a PureScript or JavaScript document URI, received {0}")]
+    UnsupportedDocumentUri(Url),
     #[error("UrlParseError: {0}")]
     UrlParseError(#[from] url::ParseError),
     #[error("Invalid or missing workspace root")]
