@@ -3,19 +3,18 @@ use std::sync::Arc;
 use files::ForeignFileId;
 
 use super::*;
-use crate::{QueryEngine, QueryResult};
+use crate::QueryEngine;
 
 impl<Version, Metadata> FileLifecycle<Version, Metadata>
 where
     Version: Clone + Ord,
-    Metadata: Clone + Eq,
 {
     pub(super) fn apply_foreign(
         &mut self,
         engine: &QueryEngine,
         unit: SourceUnitKey,
         event: ForeignEvent<Version>,
-    ) -> QueryResult<LifecycleChange> {
+    ) -> LifecycleChange {
         let mut source_unit = self.units.remove(&unit).unwrap_or_default();
         let result = self.apply_foreign_event(engine, &unit, &mut source_unit, event);
         if !source_unit.is_missing() {
@@ -30,7 +29,7 @@ where
         unit: &SourceUnitKey,
         source_unit: &mut SourceUnit<Version, Metadata>,
         event: ForeignEvent<Version>,
-    ) -> QueryResult<LifecycleChange> {
+    ) -> LifecycleChange {
         let mut change = LifecycleChange::default();
         let current = std::mem::take(&mut source_unit.foreign);
         let next = match (current, event) {
@@ -126,7 +125,7 @@ where
             }
         };
         source_unit.foreign = next;
-        Ok(change)
+        change
     }
 
     fn reconcile_foreign(

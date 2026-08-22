@@ -3,7 +3,7 @@ use std::sync::Arc;
 use files::{FileId, Files, ForeignFileId, ForeignFiles};
 use rustc_hash::FxHashMap;
 
-use crate::{QueryEngine, QueryResult};
+use crate::QueryEngine;
 
 mod change;
 mod event;
@@ -102,13 +102,12 @@ impl<Version> EffectiveContent<Version> {
 impl<Version, Metadata> FileLifecycle<Version, Metadata>
 where
     Version: Clone + Ord,
-    Metadata: Clone + Eq,
 {
     pub fn apply(
         &mut self,
         engine: &QueryEngine,
         event: LifecycleEvent<Version, Metadata>,
-    ) -> QueryResult<LifecycleChange> {
+    ) -> LifecycleChange {
         match event {
             LifecycleEvent::Source { unit, event } => self.apply_source(engine, unit, event),
             LifecycleEvent::Foreign { unit, event } => self.apply_foreign(engine, unit, event),

@@ -3,19 +3,18 @@ use std::sync::Arc;
 use files::FileId;
 
 use super::*;
-use crate::{QueryEngine, QueryResult};
+use crate::QueryEngine;
 
 impl<Version, Metadata> FileLifecycle<Version, Metadata>
 where
     Version: Clone + Ord,
-    Metadata: Clone + Eq,
 {
     pub(super) fn apply_source(
         &mut self,
         engine: &QueryEngine,
         unit: SourceUnitKey,
         event: SourceEvent<Version, Metadata>,
-    ) -> QueryResult<LifecycleChange> {
+    ) -> LifecycleChange {
         let mut source_unit = self.units.remove(&unit).unwrap_or_default();
         let result = self.apply_source_event(engine, &unit, &mut source_unit, event);
         if !source_unit.is_missing() {
@@ -30,12 +29,12 @@ where
         unit: &SourceUnitKey,
         source_unit: &mut SourceUnit<Version, Metadata>,
         event: SourceEvent<Version, Metadata>,
-    ) -> QueryResult<LifecycleChange> {
+    ) -> LifecycleChange {
         let mut change = LifecycleChange::default();
         let current = std::mem::take(&mut source_unit.source);
         let next = match (current, event) {
             (Member::Missing, SourceEvent::Opened { text, version, metadata }) => {
-                let document = self.insert_source(engine, unit, source_unit, text, metadata)?;
+                let document = self.insert_source(engine, unit, source_unit, text, metadata);
                 change.source_changed(document.id, true);
                 Member::Present(SourceDocument {
                     content: EffectiveContent::Open {
@@ -47,7 +46,7 @@ where
             }
             (Member::Missing, SourceEvent::DiskObserved { disk, metadata }) => match disk {
                 DiskObservation::Found(text) => {
-                    let document = self.insert_source(engine, unit, source_unit, text, metadata)?;
+                    let document = self.insert_source(engine, unit, source_unit, text, metadata);
                     change.source_changed(document.id, true);
                     Member::Present(document)
                 }
@@ -76,11 +75,10 @@ where
                 Member::Missing
             }
             (Member::Present(mut document), SourceEvent::Opened { text, version, metadata }) => {
-                let content_changed = self.set_source_content(engine, document.id, &text)?;
-                let metadata_changed = document.metadata != metadata;
+                let content_changed = self.set_source_content(engine, document.id, &text);
                 document.metadata = metadata;
                 document.content = EffectiveContent::Open { text, version };
-                change.source_changed(document.id, content_changed || metadata_changed);
+                change.source_changed(document.id, content_changed);
                 Member::Present(document)
             }
             (Member::Present(mut document), SourceEvent::Changed { text, version }) => {
@@ -88,8 +86,7 @@ where
                     EffectiveContent::Open { version: current_version, .. }
                         if version > *current_version =>
                     {
-                        let content_changed =
-                            self.set_source_content(engine, document.id, &text)?;
+                        let content_changed = self.set_source_content(engine, document.id, &text);
                         document.content = EffectiveContent::Open { text, version };
                         change.source_changed(document.id, content_changed);
                     }
@@ -116,7 +113,7 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_closed_source(engine, unit, document, disk, &mut change)?
+                    self.reconcile_closed_source(engine, unit, document, disk, &mut change)
                 }
             }
             (Member::Present(document), SourceEvent::DiskObserved { disk, metadata }) => {
@@ -127,12 +124,12 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_disk_source(engine, unit, document, disk, metadata, &mut change)?
+                    self.reconcile_disk_source(engine, unit, document, disk, metadata, &mut change)
                 }
             }
         };
         source_unit.source = next;
-        Ok(change)
+        change
     }
 
     fn reconcile_closed_source(
@@ -142,13 +139,13 @@ where
         mut document: SourceDocument<Version, Metadata>,
         disk: DiskObservation,
         change: &mut LifecycleChange,
-    ) -> QueryResult<Member<SourceDocument<Version, Metadata>>> {
+    ) -> Member<SourceDocument<Version, Metadata>> {
         match disk {
             DiskObservation::Found(text) => {
-                let content_changed = self.set_source_content(engine, document.id, &text)?;
+                let content_changed = self.set_source_content(engine, document.id, &text);
                 document.content = EffectiveContent::Disk { text };
                 change.source_changed(document.id, content_changed);
-                Ok(Member::Present(document))
+                Member::Present(document)
             }
             DiskObservation::NotFound => {
                 self.remove_source(engine, unit, document.id);
@@ -157,7 +154,7 @@ where
                     file_id: document.id,
                     locator: Arc::clone(&unit.source),
                 });
-                Ok(Member::Missing)
+                Member::Missing
             }
             DiskObservation::Failed(failure) => {
                 let text = Arc::clone(document.content.text());
@@ -169,7 +166,7 @@ where
                     document: DocumentKind::Source,
                     failure,
                 });
-                Ok(Member::Present(document))
+                Member::Present(document)
             }
         }
     }
@@ -182,15 +179,14 @@ where
         disk: DiskObservation,
         metadata: Metadata,
         change: &mut LifecycleChange,
-    ) -> QueryResult<Member<SourceDocument<Version, Metadata>>> {
+    ) -> Member<SourceDocument<Version, Metadata>> {
         match disk {
             DiskObservation::Found(text) => {
-                let content_changed = self.set_source_content(engine, document.id, &text)?;
-                let metadata_changed = document.metadata != metadata;
+                let content_changed = self.set_source_content(engine, document.id, &text);
                 document.metadata = metadata;
                 document.content = EffectiveContent::Disk { text };
-                change.source_changed(document.id, content_changed || metadata_changed);
-                Ok(Member::Present(document))
+                change.source_changed(document.id, content_changed);
+                Member::Present(document)
             }
             DiskObservation::NotFound => {
                 self.remove_source(engine, unit, document.id);
@@ -199,7 +195,7 @@ where
                     file_id: document.id,
                     locator: Arc::clone(&unit.source),
                 });
-                Ok(Member::Missing)
+                Member::Missing
             }
             DiskObservation::Failed(failure) => {
                 let text = Arc::clone(document.content.text());
@@ -211,7 +207,7 @@ where
                     document: DocumentKind::Source,
                     failure,
                 });
-                Ok(Member::Present(document))
+                Member::Present(document)
             }
         }
     }
@@ -223,31 +219,30 @@ where
         source_unit: &SourceUnit<Version, Metadata>,
         text: Arc<str>,
         metadata: Metadata,
-    ) -> QueryResult<SourceDocument<Version, Metadata>> {
+    ) -> SourceDocument<Version, Metadata> {
         let id = self.source_files.insert(Arc::clone(&unit.source), Arc::clone(&text));
         self.source_units.insert(id, SourceUnitKey::clone(unit));
         engine.set_content(id, Arc::clone(&text));
-        let (parsed, _) = engine.parsed(id)?;
+        let lexed = lexing::lex(&text);
+        let tokens = lexing::layout(&lexed);
+        let (parsed, _) = parsing::parse(&lexed, &tokens);
         if let Some(name) = parsed.module_name(&text) {
             engine.set_module_file(&name, id);
         }
         if let Some(foreign_id) = source_unit.foreign_id() {
             engine.set_foreign_file(id, foreign_id);
         }
-        Ok(SourceDocument { id, metadata, content: EffectiveContent::Disk { text } })
+        SourceDocument { id, metadata, content: EffectiveContent::Disk { text } }
     }
 
-    fn set_source_content(
-        &mut self,
-        engine: &QueryEngine,
-        id: FileId,
-        text: &Arc<str>,
-    ) -> QueryResult<bool> {
+    fn set_source_content(&mut self, engine: &QueryEngine, id: FileId, text: &Arc<str>) -> bool {
         let previous_content = self.source_files.content(id);
         if previous_content == *text {
-            return Ok(false);
+            return false;
         }
-        let (previous_parsed, _) = engine.parsed(id)?;
+        let previous_lexed = lexing::lex(&previous_content);
+        let previous_tokens = lexing::layout(&previous_lexed);
+        let (previous_parsed, _) = parsing::parse(&previous_lexed, &previous_tokens);
         let previous_name = previous_parsed.module_name(&previous_content);
 
         let path = self.source_files.path(id);
@@ -255,7 +250,9 @@ where
         debug_assert_eq!(inserted_id, id);
         engine.set_content(id, Arc::clone(text));
 
-        let (current_parsed, _) = engine.parsed(id)?;
+        let current_lexed = lexing::lex(text);
+        let current_tokens = lexing::layout(&current_lexed);
+        let (current_parsed, _) = parsing::parse(&current_lexed, &current_tokens);
         let current_name = current_parsed.module_name(text);
         if previous_name != current_name
             && let Some(previous_name) = previous_name
@@ -265,7 +262,7 @@ where
         if let Some(current_name) = current_name {
             engine.set_module_file(&current_name, id);
         }
-        Ok(true)
+        true
     }
 
     fn remove_source(&mut self, engine: &QueryEngine, unit: &SourceUnitKey, id: FileId) {
