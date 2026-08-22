@@ -59,7 +59,11 @@ pub(super) enum DeriveStrategy {
     NewtypeDeriveConstraint {
         delegate_constraint: TypeId,
     },
-    HeadOnly,
+    NewtypeClass,
+    Generic {
+        data_file: FileId,
+        data_id: TypeItemId,
+    },
     VarianceConstraints {
         data_file: FileId,
         data_id: TypeItemId,

@@ -772,6 +772,14 @@ pub struct KnownGeneric {
     pub product: TypeId,
     pub no_arguments: TypeId,
     pub argument: TypeId,
+    pub constructor_value: (FileId, TermItemId),
+    pub in_left: (FileId, TermItemId),
+    pub in_right: (FileId, TermItemId),
+    pub product_value: (FileId, TermItemId),
+    pub no_arguments_value: (FileId, TermItemId),
+    pub argument_value: (FileId, TermItemId),
+    pub to: (FileId, TermItemId),
+    pub from: (FileId, TermItemId),
 }
 
 impl KnownGeneric {
@@ -801,6 +809,34 @@ impl KnownGeneric {
         else {
             return Ok(None);
         };
+        let Some(constructor_value) = fetch_known_term(queries, "Data.Generic.Rep", "Constructor")?
+        else {
+            return Ok(None);
+        };
+        let Some(in_left) = fetch_known_term(queries, "Data.Generic.Rep", "Inl")? else {
+            return Ok(None);
+        };
+        let Some(in_right) = fetch_known_term(queries, "Data.Generic.Rep", "Inr")? else {
+            return Ok(None);
+        };
+        let Some(product_value) = fetch_known_term(queries, "Data.Generic.Rep", "Product")? else {
+            return Ok(None);
+        };
+        let Some(no_arguments_value) =
+            fetch_known_term(queries, "Data.Generic.Rep", "NoArguments")?
+        else {
+            return Ok(None);
+        };
+        let Some(argument_value) = fetch_known_term(queries, "Data.Generic.Rep", "Argument")?
+        else {
+            return Ok(None);
+        };
+        let Some(to) = fetch_known_term(queries, "Data.Generic.Rep", "to")? else {
+            return Ok(None);
+        };
+        let Some(from) = fetch_known_term(queries, "Data.Generic.Rep", "from")? else {
+            return Ok(None);
+        };
         Ok(Some(KnownGeneric {
             no_constructors,
             constructor,
@@ -808,6 +844,14 @@ impl KnownGeneric {
             product,
             no_arguments,
             argument,
+            constructor_value,
+            in_left,
+            in_right,
+            product_value,
+            no_arguments_value,
+            argument_value,
+            to,
+            from,
         }))
     }
 }

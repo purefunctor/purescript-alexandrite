@@ -49,8 +49,10 @@ where
     let generic_rep =
         build_generic_rep(state, context, known_generic, data_file, *derived_type, &constructors)?;
 
-    let _ = unification::unify(state, context, *wildcard_type, generic_rep)?;
-    Ok(Some(DeriveStrategy::HeadOnly))
+    if !unification::unify(state, context, *wildcard_type, generic_rep)? {
+        return Ok(None);
+    }
+    Ok(Some(DeriveStrategy::Generic { data_file, data_id }))
 }
 
 fn build_generic_rep<Q>(

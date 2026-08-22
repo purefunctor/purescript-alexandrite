@@ -68,7 +68,7 @@ where
         DeriveStrategy::NewtypeDeriveConstraint { delegate_constraint } => {
             state.push_wanted(delegate_constraint);
         }
-        DeriveStrategy::HeadOnly => {
+        DeriveStrategy::NewtypeClass | DeriveStrategy::Generic { .. } => {
             tools::emit_superclass_constraints(
                 state,
                 context,

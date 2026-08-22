@@ -3,4 +3,362 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
-cannot convert checked module Idx::<File>(42): checked instance declaration is missing
+@export instance const newtypeTypeIdentifierInt = initialize {
+  entry() {
+    const closure = closure(newtypeTypeIdentifierInt$initialize$closure);
+    const record = { Coercible0: closure };
+    return record;
+  }
+}
+
+@export const wrapped = initialize {
+  entry() {
+    const closure = closure(wrapped$initialize$closure);
+    const literal = 42;
+    const call = source.call(closure, literal);
+    return call;
+  }
+}
+
+@export const unwrapped = initialize {
+  entry() {
+    const unwrap = global(unwrap);
+    const newtypeTypeIdentifierInt = global(newtypeTypeIdentifierInt);
+    const call = source.call(unwrap, newtypeTypeIdentifierInt);
+    const wrapped = global(wrapped);
+    const call$1 = source.call(call, wrapped);
+    return call$1;
+  }
+}
+
+@export constructor Empty/0;
+
+@export constructor Single/1;
+
+@export constructor Pair/2;
+
+@export instance const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = initialize {
+  entry() {
+    const closure = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure);
+    const closure$1 = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1);
+    const record = { to: closure, from: closure$1 };
+    return record;
+  }
+}
+
+@export function roundTrip(value) {
+  entry() {
+    const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = global(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt);
+    const to = genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.to;
+    const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$1 = global(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt);
+    const from = genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$1.from;
+    const call = source.call(from, value);
+    const call$1 = source.call(to, call);
+    return call$1;
+  }
+}
+
+@export const emptyRoundTrip = initialize {
+  entry() {
+    const roundTrip = global(roundTrip);
+    const Empty = constructor(Empty);
+    const call = source.call(roundTrip, Empty);
+    return call;
+  }
+}
+
+@export const singleRoundTrip = initialize {
+  entry() {
+    const roundTrip = global(roundTrip);
+    const Single = constructor(Single);
+    const literal = 6;
+    const call = source.call(Single, literal);
+    const call$1 = source.call(roundTrip, call);
+    return call$1;
+  }
+}
+
+@export const pairRoundTrip = initialize {
+  entry() {
+    const roundTrip = global(roundTrip);
+    const Pair = constructor(Pair);
+    const literal = 7;
+    const call = source.call(Pair, literal);
+    const literal$1 = 8;
+    const call$1 = source.call(call, literal$1);
+    const call$2 = source.call(roundTrip, call$1);
+    return call$2;
+  }
+}
+
+@export instance const genericVoidNoConstructors = initialize {
+  entry() {
+    const closure = closure(genericVoidNoConstructors$initialize$closure);
+    const closure$1 = closure(genericVoidNoConstructors$initialize$closure$1);
+    const record = { to: closure, from: closure$1 };
+    return record;
+  }
+}
+
+closure newtypeTypeIdentifierInt$initialize$closure[](unit) {
+  entry() {
+    const evidence = evidence.trivial;
+    return evidence;
+  }
+}
+
+closure wrapped$initialize$closure[](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure[
+](representation) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(representation, Inl);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$3 = pattern.constructor(representation, Inr);
+    if (matches$3) {
+      match$success$3();
+    } else {
+      case$2();
+    }
+  }
+  case$2() {
+    const matches$6 = pattern.constructor(representation, Inr);
+    if (matches$6) {
+      match$success$6();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const argument = pattern.argument(representation, Inl, 0);
+    const matches$1 = pattern.constructor(argument, Constructor);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$1();
+    }
+  }
+  match$success$1() {
+    const argument$1 = pattern.argument(argument, Constructor, 0);
+    const matches$2 = pattern.constructor(argument$1, NoArguments);
+    if (matches$2) {
+      match$success$2();
+    } else {
+      case$1();
+    }
+  }
+  match$success$2() {
+    const Empty = constructor(Empty);
+    case$join(Empty);
+  }
+  match$success$3() {
+    const argument$2 = pattern.argument(representation, Inr, 0);
+    const matches$4 = pattern.constructor(argument$2, Inl);
+    if (matches$4) {
+      match$success$4();
+    } else {
+      case$2();
+    }
+  }
+  match$success$4() {
+    const argument$3 = pattern.argument(argument$2, Inl, 0);
+    const matches$5 = pattern.constructor(argument$3, Constructor);
+    if (matches$5) {
+      match$success$5();
+    } else {
+      case$2();
+    }
+  }
+  match$success$5() {
+    const field0 = pattern.argument(argument$3, Constructor, 0);
+    const Single = constructor(Single);
+    const call = source.call(Single, field0);
+    case$join(call);
+  }
+  match$success$6() {
+    const argument$4 = pattern.argument(representation, Inr, 0);
+    const matches$7 = pattern.constructor(argument$4, Inr);
+    if (matches$7) {
+      match$success$7();
+    } else {
+      case$failure();
+    }
+  }
+  match$success$7() {
+    const argument$5 = pattern.argument(argument$4, Inr, 0);
+    const matches$8 = pattern.constructor(argument$5, Constructor);
+    if (matches$8) {
+      match$success$8();
+    } else {
+      case$failure();
+    }
+  }
+  match$success$8() {
+    const argument$6 = pattern.argument(argument$5, Constructor, 0);
+    const matches$9 = pattern.constructor(argument$6, Product);
+    if (matches$9) {
+      match$success$9();
+    } else {
+      case$failure();
+    }
+  }
+  match$success$9() {
+    const field0$1 = pattern.argument(argument$6, Product, 0);
+    const field1 = pattern.argument(argument$6, Product, 1);
+    const Pair = constructor(Pair);
+    const call$1 = source.call(Pair, field0$1);
+    const call$2 = source.call(call$1, field1);
+    case$join(call$2);
+  }
+}
+
+closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure[
+](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1[
+](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2[
+](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1[
+](value) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(value, Empty);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.constructor(value, Single);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$2();
+    }
+  }
+  case$2() {
+    const matches$2 = pattern.constructor(value, Pair);
+    if (matches$2) {
+      match$success$2();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const Inl = constructor(Inl);
+    const Constructor = constructor(Constructor);
+    const NoArguments = constructor(NoArguments);
+    const call = source.call(Constructor, NoArguments);
+    const call$1 = source.call(Inl, call);
+    case$join(call$1);
+  }
+  match$success$1() {
+    const field0 = pattern.argument(value, Single, 0);
+    const Inr = constructor(Inr);
+    const Inl$1 = constructor(Inl);
+    const Constructor$1 = constructor(Constructor);
+    const closure = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure);
+    const call$2 = source.call(closure, field0);
+    const call$3 = source.call(Constructor$1, call$2);
+    const call$4 = source.call(Inl$1, call$3);
+    const call$5 = source.call(Inr, call$4);
+    case$join(call$5);
+  }
+  match$success$2() {
+    const field0$1 = pattern.argument(value, Pair, 0);
+    const field1 = pattern.argument(value, Pair, 1);
+    const Inr$1 = constructor(Inr);
+    const Inr$2 = constructor(Inr);
+    const Constructor$2 = constructor(Constructor);
+    const Product = constructor(Product);
+    const closure$1 = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1);
+    const call$6 = source.call(closure$1, field0$1);
+    const call$7 = source.call(Product, call$6);
+    const closure$2 = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2);
+    const call$8 = source.call(closure$2, field1);
+    const call$9 = source.call(call$7, call$8);
+    const call$10 = source.call(Constructor$2, call$9);
+    const call$11 = source.call(Inr$2, call$10);
+    const call$12 = source.call(Inr$1, call$11);
+    case$join(call$12);
+  }
+}
+
+closure genericVoidNoConstructors$initialize$closure[](value) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const genericVoidNoConstructors = global(genericVoidNoConstructors);
+    const to = genericVoidNoConstructors.to;
+    const call = source.call(to, value);
+    case$join(call);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+}
+
+closure genericVoidNoConstructors$initialize$closure$1[](value) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const genericVoidNoConstructors = global(genericVoidNoConstructors);
+    const from = genericVoidNoConstructors.from;
+    const call = source.call(from, value);
+    case$join(call);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+}

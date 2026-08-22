@@ -3,4 +3,62 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-cannot convert checked module Idx::<File>(42): checked instance declaration is missing
+@export instance newtypeTypeIdentifierInt = { "Coercible0": \unit%0 -> <trivial evidence> }
+
+@export wrapped = (\value%1 -> value%1) 42
+
+@export unwrapped = unwrap newtypeTypeIdentifierInt wrapped
+
+@export constructor Empty/0
+
+@export constructor Single/1
+
+@export constructor Pair/2
+
+@export instance genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = {
+  to:
+    \representation%2 ->
+      case representation%2 of
+        Inl (Constructor NoArguments) ->
+          Empty
+        Inr (Inl (Constructor field0%3)) ->
+          Single field0%3
+        Inr (Inr (Constructor (Product field0%4 field1%5))) ->
+          Pair field0%4 field1%5,
+  from:
+    \value%6 ->
+      case value%6 of
+        Empty ->
+          Inl (Constructor NoArguments)
+        Single field0%7 ->
+          Inr (Inl (Constructor ((\value%8 -> value%8) field0%7)))
+        Pair field0%9 field1%10 ->
+          Inr
+            (Inr
+              (Constructor
+                (Product ((\value%11 -> value%11) field0%9) ((\value%12 -> value%12) field1%10))))
+}
+
+@export roundTrip = \value%13 ->
+  genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.to
+    (genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.from
+      value%13)
+
+@export emptyRoundTrip = roundTrip Empty
+
+@export singleRoundTrip = roundTrip (Single 6)
+
+@export pairRoundTrip = roundTrip (Pair 7 8)
+
+@export instance genericVoidNoConstructors = {
+  to:
+    \value%14 ->
+      case value%14 of
+        _ ->
+          genericVoidNoConstructors.to value%14,
+  from:
+    \value%15 ->
+      case value%15 of
+        _ ->
+          genericVoidNoConstructors.from value%15
+}
