@@ -172,7 +172,7 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
         Url::parse(&path).unwrap()
     };
 
-    let content = engine.content(id);
+    let content = engine.content(id).unwrap();
     let line_index = LineIndex::new(&content);
     let requests = extract_requests(&content);
 
@@ -506,7 +506,7 @@ fn dispatch_cursor(
         }
         CursorKind::Hover => {
             let file_id = host.file_id(uri.as_str()).expect("hover URI references a loaded file");
-            let content = engine.content(file_id);
+            let content = engine.content(file_id).unwrap();
             if let Ok(Some(response)) = analyzer::hover::implementation(&context, uri, position) {
                 let convert = |marked: MarkedString| -> String {
                     match marked {
@@ -709,7 +709,7 @@ fn rename_target_name(
     encoding: PositionEncoding,
 ) -> Option<String> {
     let file_id = files.id(uri.as_str())?;
-    let content = engine.content(file_id);
+    let content = engine.content(file_id).ok()?;
     let position = analyzer::position::protocol_position_to_utf8(&content, position, encoding)?;
     let offset = analyzer::position::utf8_position_to_offset(&content, position)?;
     let (parsed, _) = engine.parsed(file_id).ok()?;

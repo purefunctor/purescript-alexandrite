@@ -169,19 +169,24 @@ impl StateSnapshot {
 pub struct LspFiles {
     files: Files,
     editable: FxHashSet<FileId>,
+    open: FxHashSet<FileId>,
 }
 
 impl LspFiles {
     fn new(files: Files) -> LspFiles {
-        LspFiles { files, editable: FxHashSet::default() }
+        LspFiles { files, editable: FxHashSet::default(), open: FxHashSet::default() }
     }
 
     fn id(&self, uri: &str) -> Option<FileId> {
         self.files.id(uri)
     }
 
-    fn path(&self, file_id: FileId) -> Arc<str> {
-        self.files.path(file_id)
+    fn contains(&self, file_id: FileId) -> bool {
+        self.files.contains(file_id)
+    }
+
+    fn path(&self, file_id: FileId) -> Option<Arc<str>> {
+        self.files.contains(file_id).then(|| self.files.path(file_id))
     }
 
     fn iter_id(&self) -> impl Iterator<Item = FileId> + '_ {
@@ -190,6 +195,10 @@ impl LspFiles {
 
     fn is_editable(&self, file_id: FileId) -> bool {
         self.editable.contains(&file_id)
+    }
+
+    fn is_open(&self, uri: &str) -> bool {
+        self.id(uri).is_some_and(|file_id| self.open.contains(&file_id))
     }
 
     fn insert(&mut self, uri: &str, content: &str, editable: Option<bool>) -> FileId {
@@ -202,6 +211,21 @@ impl LspFiles {
             }
         }
         file_id
+    }
+
+    fn open(&mut self, file_id: FileId) {
+        self.open.insert(file_id);
+    }
+
+    fn close(&mut self, file_id: FileId) {
+        self.open.remove(&file_id);
+    }
+
+    fn remove(&mut self, uri: &str) -> Option<FileId> {
+        let file_id = self.files.remove(uri)?;
+        self.editable.remove(&file_id);
+        self.open.remove(&file_id);
+        Some(file_id)
     }
 }
 
@@ -222,7 +246,9 @@ impl AnalyzerHost for LspAnalyzerHost<'_> {
     }
 
     fn file_uri(&self, file_id: FileId) -> Result<Option<Url>, url::ParseError> {
-        let uri = self.files.path(file_id);
+        let Some(uri) = self.files.path(file_id) else {
+            return Ok(None);
+        };
         Url::parse(&uri).map(Some)
     }
 
@@ -338,7 +364,7 @@ fn shutdown(_state: &mut State, (): ()) -> impl Future<Output = Result<(), Respo
 
 fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> {
     let _span = tracing::info_span!("initialization").entered();
-    register_foreign_file_watcher(state);
+    register_file_watcher(state);
 
     let config = Arc::clone(&state.config);
     if let Some(command) = config.source_command.as_deref() {
@@ -348,31 +374,37 @@ fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> 
     }
 }
 
-fn register_foreign_file_watcher(state: &State) {
+fn register_file_watcher(state: &State) {
     if !state.watched_files_dynamic_registration {
         return;
     }
 
-    let parameters = foreign_file_watcher_registration();
+    let parameters = file_watcher_registration();
     let mut client = state.client.clone();
     task::spawn(async move {
         if let Err(error) = client.register_capability(parameters).await {
-            tracing::warn!("Failed to register JavaScript FFI file watcher: {error}");
+            tracing::warn!("Failed to register source file watcher: {error}");
         }
     });
 }
 
-fn foreign_file_watcher_registration() -> RegistrationParams {
+fn file_watcher_registration() -> RegistrationParams {
     let options = DidChangeWatchedFilesRegistrationOptions {
-        watchers: vec![FileSystemWatcher {
-            glob_pattern: GlobPattern::String("**/*.js".to_string()),
-            kind: None,
-        }],
+        watchers: vec![
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/*.purs".to_string()),
+                kind: None,
+            },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/*.js".to_string()),
+                kind: None,
+            },
+        ],
     };
     let register_options = serde_json::to_value(options)
         .expect("invariant violated: watched file registration options must serialize");
     let registration = Registration {
-        id: "javascript-ffi-files".to_string(),
+        id: "purescript-source-files".to_string(),
         method: notification::DidChangeWatchedFiles::METHOD.to_string(),
         register_options: Some(register_options),
     };
@@ -659,7 +691,8 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
         };
         p.text_document.uri.to_file_path().is_ok_and(|path| path.starts_with(root))
     });
-    on_change(state, uri.as_str(), text, Some(editable))?;
+    let file_id = on_change(state, uri.as_str(), text, Some(editable))?;
+    state.files.write().open(file_id);
     load_sibling_foreign(state, uri)?;
 
     state.invalidate_workspace_symbols();
@@ -670,6 +703,25 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
     }
 
     Ok(())
+}
+
+fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), LspError> {
+    let uri = p.text_document.uri;
+    if is_javascript_uri(&uri) {
+        return Ok(());
+    }
+
+    let file_id = state.files.read().id(uri.as_str());
+    let Some(file_id) = file_id else {
+        return Ok(());
+    };
+    state.files.write().close(file_id);
+
+    reload_source_file(state, &uri, None)?;
+
+    state.invalidate_workspace_symbols();
+    state.invalidate_suggestions_cache();
+    event::emit_collect_all_diagnostics(state)
 }
 
 fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspError> {
@@ -686,40 +738,91 @@ fn did_change_watched_files(
     p: DidChangeWatchedFilesParams,
 ) -> Result<(), LspError> {
     for change in p.changes {
-        if !is_javascript_uri(&change.uri) {
-            continue;
-        }
-
-        let Some(source_uri) = source_uri_from_foreign(&change.uri) else {
-            continue;
-        };
-        let source_tracked = state.files.read().id(source_uri.as_str()).is_some();
-        if !source_tracked && state.foreign_files.read().id(change.uri.as_str()).is_none() {
-            continue;
-        }
-
-        if change.typ == FileChangeType::DELETED {
-            remove_foreign_file(state, &change.uri);
-        } else if let Ok(path) = change.uri.to_file_path() {
-            match fs::read_to_string(path) {
-                Ok(content) => on_foreign_change(state, &change.uri, &content)?,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                    remove_foreign_file(state, &change.uri);
-                }
-                Err(error) => return Err(error.into()),
-            }
-        }
-
-        if source_tracked {
-            event::emit_collect_diagnostics(state, source_uri)?;
+        if is_javascript_uri(&change.uri) {
+            on_watched_foreign_change(state, change)?;
+        } else if is_purescript_uri(&change.uri) {
+            on_watched_source_change(state, change)?;
         }
     }
 
     Ok(())
 }
 
+fn on_watched_source_change(state: &mut State, change: FileEvent) -> Result<(), LspError> {
+    if state.files.read().is_open(change.uri.as_str()) {
+        return Ok(());
+    }
+
+    if change.typ == FileChangeType::DELETED {
+        remove_source_file(state, &change.uri)?;
+    } else {
+        let source_path = change.uri.to_file_path().ok();
+        let editable = match (&state.root, source_path) {
+            (Some(root), Some(path)) => path.starts_with(root),
+            (Some(_), None) => false,
+            (None, _) => true,
+        };
+        reload_source_file(state, &change.uri, Some(editable))?;
+    }
+
+    state.invalidate_workspace_symbols();
+    state.invalidate_suggestions_cache();
+    event::emit_collect_all_diagnostics(state)
+}
+
+fn reload_source_file(
+    state: &mut State,
+    uri: &Url,
+    editable: Option<bool>,
+) -> Result<(), LspError> {
+    let Ok(path) = uri.to_file_path() else {
+        return Ok(());
+    };
+    match fs::read_to_string(path) {
+        Ok(content) => {
+            on_change(state, uri.as_str(), &content, editable)?;
+            load_sibling_foreign(state, uri)
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            remove_source_file(state, uri)
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn on_watched_foreign_change(state: &mut State, change: FileEvent) -> Result<(), LspError> {
+    let Some(source_uri) = source_uri_from_foreign(&change.uri) else {
+        return Ok(());
+    };
+    let source_tracked = state.files.read().id(source_uri.as_str()).is_some();
+    if !source_tracked && state.foreign_files.read().id(change.uri.as_str()).is_none() {
+        return Ok(());
+    }
+
+    if change.typ == FileChangeType::DELETED {
+        remove_foreign_file(state, &change.uri);
+    } else if let Ok(path) = change.uri.to_file_path() {
+        match fs::read_to_string(path) {
+            Ok(content) => on_foreign_change(state, &change.uri, &content)?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                remove_foreign_file(state, &change.uri);
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+
+    if source_tracked {
+        event::emit_collect_diagnostics(state, source_uri)?;
+    }
+    Ok(())
+}
+
 fn is_javascript_uri(uri: &Url) -> bool {
     uri.path().ends_with(".js")
+}
+
+fn is_purescript_uri(uri: &Url) -> bool {
+    uri.path().ends_with(".purs")
 }
 
 fn source_uri_from_foreign(uri: &Url) -> Option<Url> {
@@ -791,15 +894,32 @@ fn remove_foreign_file(state: &mut State, uri: &Url) {
     state.engine.remove_foreign_file(foreign_id);
 }
 
+fn remove_source_file(state: &mut State, uri: &Url) -> Result<(), LspError> {
+    let file_id = state.files.read().id(uri.as_str());
+    let Some(file_id) = file_id else {
+        return Ok(());
+    };
+
+    state.engine.remove_file(file_id);
+    let removed_id = state.files.write().remove(uri.as_str());
+    debug_assert_eq!(removed_id, Some(file_id));
+    state.client.publish_diagnostics(PublishDiagnosticsParams {
+        uri: uri.clone(),
+        diagnostics: Vec::new(),
+        version: None,
+    })?;
+    Ok(())
+}
+
 fn on_change(
     state: &mut State,
     uri: &str,
     content: &str,
     editable: Option<bool>,
-) -> Result<(), LspError> {
+) -> Result<FileId, LspError> {
     let previous_id = state.files.read().id(uri);
     let previous_name = if let Some(id) = previous_id {
-        let previous_content = state.engine.content(id);
+        let previous_content = state.engine.content(id)?;
         let (parsed, _) = state.engine.parsed(id)?;
         parsed.module_name(&previous_content)
     } else {
@@ -829,7 +949,7 @@ fn on_change(
         state.engine.set_module_file(&name, id);
     }
 
-    Ok(())
+    Ok(id)
 }
 
 trait RequestExtension: BorrowMut<Router<State>> {
@@ -905,7 +1025,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
             .notification_ext::<notification::Exit>(exit)
             .notification_ext::<notification::DidOpenTextDocument>(did_open)
             .notification_ext::<notification::DidSaveTextDocument>(did_save)
-            .notification_ext::<notification::DidCloseTextDocument>(|_, _| Ok(()))
+            .notification_ext::<notification::DidCloseTextDocument>(did_close)
             .notification_ext::<notification::DidChangeConfiguration>(|_, _| Ok(()))
             .notification_ext::<notification::DidChangeTextDocument>(did_change)
             .notification_ext::<notification::DidChangeWatchedFiles>(did_change_watched_files)

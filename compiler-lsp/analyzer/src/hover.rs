@@ -29,7 +29,7 @@ pub fn implementation(
     };
 
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let position =
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -150,7 +150,7 @@ fn hover_module_name(
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Hover>, AnalyzerError> {
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
@@ -159,7 +159,7 @@ fn hover_module_name(
     let module_name = module_name.syntax().text(&content).to_smolstr();
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
-    let content = engine.content(module_id);
+    let content = engine.content(module_id)?;
     let range = AnnotationSyntaxRange::of_file(engine, module_id)?;
 
     let annotation = range.annotation.and_then(|range| render_annotation(&content, range));
@@ -177,7 +177,7 @@ fn hover_import(
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -426,7 +426,7 @@ fn hover_file_term(
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 
@@ -455,7 +455,7 @@ fn hover_file_type(
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Hover>, AnalyzerError> {
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let indexed = engine.indexed(file_id)?;
     let checked = engine.checked(file_id)?;
 

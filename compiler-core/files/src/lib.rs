@@ -1,37 +1,54 @@
-use core::str;
+use core::{fmt, str};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use indexmap::IndexMap;
-use la_arena::{Idx, RawIdx};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Default)]
 pub struct Files {
-    files: IndexMap<Arc<str>, Arc<str>, FxBuildHasher>,
+    paths: FxHashMap<Arc<str>, FileId>,
+    files: BTreeMap<FileId, FileData>,
+    next_id: u32,
 }
 
-pub struct File;
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FileId {
+    index: u32,
+}
 
-pub type FileId = Idx<File>;
+impl fmt::Debug for FileId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "Idx::<File>({})", self.index)
+    }
+}
+
+impl FileId {
+    pub const fn new(index: u32) -> FileId {
+        FileId { index }
+    }
+
+    pub const fn into_raw(self) -> u32 {
+        self.index
+    }
+}
+
+#[derive(Debug)]
+struct FileData {
+    path: Arc<str>,
+    content: Arc<str>,
+}
 
 #[derive(Debug, Default)]
 pub struct ForeignFiles {
     paths: FxHashMap<Arc<str>, ForeignFileId>,
-    files: Vec<ForeignFileSlot>,
-    free: Vec<u32>,
+    files: FxHashMap<ForeignFileId, ForeignFileData>,
+    next_id: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ForeignFileId {
     index: u32,
-    generation: u32,
-}
-
-#[derive(Debug)]
-struct ForeignFileSlot {
-    generation: u32,
-    file: Option<ForeignFileData>,
 }
 
 #[derive(Debug)]
@@ -41,45 +58,63 @@ struct ForeignFileData {
 }
 
 impl Files {
-    pub fn insert(&mut self, k: impl Into<Arc<str>>, v: impl Into<Arc<str>>) -> FileId {
-        let k = k.into();
-        let v = v.into();
-        let (index, _) = self.files.insert_full(k, v);
-        Idx::from_raw(RawIdx::from_u32(index as u32))
+    pub fn insert(&mut self, path: impl Into<Arc<str>>, content: impl Into<Arc<str>>) -> FileId {
+        let path = path.into();
+        let content = content.into();
+        if let Some(file_id) = self.paths.get(path.as_ref()).copied() {
+            let file = self.file_mut(file_id);
+            file.content = content;
+            return file_id;
+        }
+
+        let file_id = FileId { index: self.next_id };
+        self.next_id = self.next_id.checked_add(1).expect("invariant violated: too many files");
+        let file = FileData { path: Arc::clone(&path), content };
+        self.paths.insert(path, file_id);
+        self.files.insert(file_id, file);
+        file_id
     }
 
-    pub fn id(&self, k: &str) -> Option<FileId> {
-        self.files.get_full(k).map(|(index, _, _)| Idx::from_raw(RawIdx::from_u32(index as u32)))
+    pub fn id(&self, path: &str) -> Option<FileId> {
+        self.paths.get(path).copied()
     }
 
-    pub fn path(&self, id: FileId) -> Arc<str> {
-        let index = id.into_raw().into_u32() as usize;
-        let (path, _) =
-            self.files.get_index(index).expect("invariant violated: expected valid FileId");
-        Arc::clone(path)
+    pub fn contains(&self, file_id: FileId) -> bool {
+        self.files.contains_key(&file_id)
     }
 
-    pub fn content(&self, id: FileId) -> Arc<str> {
-        let index = id.into_raw().into_u32() as usize;
-        let (_, contents) =
-            self.files.get_index(index).expect("invariant violated: expected valid FileId");
-        Arc::clone(contents)
+    pub fn path(&self, file_id: FileId) -> Arc<str> {
+        let file = self.file(file_id);
+        Arc::clone(&file.path)
     }
 
-    pub fn iter_id(&self) -> impl Iterator<Item = FileId> + use<> {
-        let length = self.files.len();
-        (0..length).map(|index| {
-            let index = RawIdx::from_u32(index as u32);
-            Idx::from_raw(index)
-        })
+    pub fn content(&self, file_id: FileId) -> Arc<str> {
+        let file = self.file(file_id);
+        Arc::clone(&file.content)
+    }
+
+    pub fn remove(&mut self, path: &str) -> Option<FileId> {
+        let file_id = self.paths.remove(path)?;
+        self.files.remove(&file_id).expect("invariant violated: expected valid FileId");
+        Some(file_id)
+    }
+
+    pub fn iter_id(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.files.keys().copied()
     }
 
     pub fn par_iter_id(&self) -> impl ParallelIterator<Item = FileId> {
-        let length = self.files.len();
-        (0..length).into_par_iter().map(|index| {
-            let index = RawIdx::from_u32(index as u32);
-            Idx::from_raw(index)
-        })
+        let file_ids = self.files.keys().copied();
+        let file_ids = file_ids.collect::<Vec<_>>();
+        file_ids.into_par_iter()
+    }
+
+    fn file(&self, file_id: FileId) -> &FileData {
+        self.files.get(&file_id).expect("invariant violated: expected valid FileId")
+    }
+
+    fn file_mut(&mut self, file_id: FileId) -> &mut FileData {
+        self.files.get_mut(&file_id).expect("invariant violated: expected valid FileId")
     }
 }
 
@@ -91,74 +126,51 @@ impl ForeignFiles {
     ) -> ForeignFileId {
         let path = path.into();
         let content = content.into();
-        if let Some(id) = self.paths.get(path.as_ref()).copied() {
-            let file = self.file_mut(id);
+        if let Some(foreign_file_id) = self.paths.get(path.as_ref()).copied() {
+            let file = self.file_mut(foreign_file_id);
             file.content = content;
-            return id;
+            return foreign_file_id;
         }
 
+        let foreign_file_id = ForeignFileId { index: self.next_id };
+        self.next_id =
+            self.next_id.checked_add(1).expect("invariant violated: too many foreign files");
         let file = ForeignFileData { path: Arc::clone(&path), content };
-        let id = if let Some(index) = self.free.pop() {
-            let slot = &mut self.files[index as usize];
-            slot.file = Some(file);
-            ForeignFileId { index, generation: slot.generation }
-        } else {
-            let index = u32::try_from(self.files.len())
-                .expect("invariant violated: too many foreign files");
-            let slot = ForeignFileSlot { generation: 0, file: Some(file) };
-            self.files.push(slot);
-            ForeignFileId { index, generation: 0 }
-        };
-        self.paths.insert(path, id);
-        id
+        self.paths.insert(path, foreign_file_id);
+        self.files.insert(foreign_file_id, file);
+        foreign_file_id
     }
 
     pub fn id(&self, path: &str) -> Option<ForeignFileId> {
         self.paths.get(path).copied()
     }
 
-    pub fn path(&self, id: ForeignFileId) -> Arc<str> {
-        let file = self.file(id);
+    pub fn path(&self, foreign_file_id: ForeignFileId) -> Arc<str> {
+        let file = self.file(foreign_file_id);
         Arc::clone(&file.path)
     }
 
-    pub fn content(&self, id: ForeignFileId) -> Arc<str> {
-        let file = self.file(id);
+    pub fn content(&self, foreign_file_id: ForeignFileId) -> Arc<str> {
+        let file = self.file(foreign_file_id);
         Arc::clone(&file.content)
     }
 
     pub fn remove(&mut self, path: &str) -> Option<ForeignFileId> {
-        let id = self.paths.remove(path)?;
-        let slot = &mut self.files[id.index as usize];
-        assert_eq!(
-            slot.generation, id.generation,
-            "invariant violated: expected valid ForeignFileId"
-        );
-        slot.file.take().expect("invariant violated: expected valid ForeignFileId");
-        slot.generation = slot
-            .generation
-            .checked_add(1)
-            .expect("invariant violated: exhausted ForeignFileId generations");
-        self.free.push(id.index);
-        Some(id)
+        let foreign_file_id = self.paths.remove(path)?;
+        self.files
+            .remove(&foreign_file_id)
+            .expect("invariant violated: expected valid ForeignFileId");
+        Some(foreign_file_id)
     }
 
-    fn file(&self, id: ForeignFileId) -> &ForeignFileData {
-        let slot = &self.files[id.index as usize];
-        assert_eq!(
-            slot.generation, id.generation,
-            "invariant violated: expected valid ForeignFileId"
-        );
-        slot.file.as_ref().expect("invariant violated: expected valid ForeignFileId")
+    fn file(&self, foreign_file_id: ForeignFileId) -> &ForeignFileData {
+        self.files.get(&foreign_file_id).expect("invariant violated: expected valid ForeignFileId")
     }
 
-    fn file_mut(&mut self, id: ForeignFileId) -> &mut ForeignFileData {
-        let slot = &mut self.files[id.index as usize];
-        assert_eq!(
-            slot.generation, id.generation,
-            "invariant violated: expected valid ForeignFileId"
-        );
-        slot.file.as_mut().expect("invariant violated: expected valid ForeignFileId")
+    fn file_mut(&mut self, foreign_file_id: ForeignFileId) -> &mut ForeignFileData {
+        self.files
+            .get_mut(&foreign_file_id)
+            .expect("invariant violated: expected valid ForeignFileId")
     }
 }
 
@@ -181,6 +193,32 @@ mod tests {
     }
 
     #[test]
+    fn test_remove_files() {
+        let mut files = Files::default();
+        let content = "module Main where\n";
+        let removed_id = files.insert("src/Main.purs", content);
+        let retained_id = files.insert("src/Retained.purs", "module Retained where\n");
+
+        assert_eq!(files.remove("src/Main.purs"), Some(removed_id));
+        assert_eq!(files.id("src/Main.purs"), None);
+        assert_eq!(files.path(retained_id).as_ref(), "src/Retained.purs");
+
+        let replacement_id = files.insert("src/Main.purs", content);
+        assert_ne!(replacement_id, removed_id);
+
+        let retained_file_count = files.files.len();
+        let mut previous_id = replacement_id;
+        for number in 0..32 {
+            let path = format!("src/Temporary-{number}.purs");
+            let temporary_id = files.insert(path.as_str(), content);
+            assert!(temporary_id > previous_id);
+            assert_eq!(files.remove(&path), Some(temporary_id));
+            previous_id = temporary_id;
+        }
+        assert_eq!(files.files.len(), retained_file_count);
+    }
+
+    #[test]
     fn test_foreign_files() {
         let mut files = ForeignFiles::default();
 
@@ -197,19 +235,22 @@ mod tests {
 
         assert_eq!(files.remove(path), Some(id));
         assert_eq!(files.id(path), None);
-        assert!(files.files[id.index as usize].file.is_none());
+        assert!(!files.files.contains_key(&id));
         assert_eq!(files.path(retained_id).as_ref(), retained_path);
 
         let replacement_id = files.insert(path, content);
         assert_ne!(replacement_id, id);
         assert_eq!(files.remove(path), Some(replacement_id));
 
-        let slots = files.files.len();
+        let retained_file_count = files.files.len();
+        let mut previous_id = replacement_id;
         for number in 0..32 {
             let path = format!("src/Temporary-{number}.js");
             let temporary_id = files.insert(path.as_str(), content);
+            assert!(temporary_id > previous_id);
             assert_eq!(files.remove(&path), Some(temporary_id));
+            previous_id = temporary_id;
         }
-        assert_eq!(files.files.len(), slots);
+        assert_eq!(files.files.len(), retained_file_count);
     }
 }

@@ -171,7 +171,7 @@ fn test_parallel_parse_package_set() {
     println!("Parsing {parsing:?}");
 
     let names = source.iter().filter_map(|&id| {
-        let content = engine.content(id);
+        let content = engine.content(id).ok()?;
         let (parsed, _) = engine.parsed(id).ok()?;
         let module_name = parsed.module_name(&content)?;
         Some((module_name, id))

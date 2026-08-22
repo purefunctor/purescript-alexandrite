@@ -30,7 +30,7 @@ pub fn implementation(
         context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let position =
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -129,7 +129,7 @@ fn highlight_import(
     }
     .unwrap_or_default();
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;
@@ -150,7 +150,7 @@ fn import_target(
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<HighlightTarget, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
 
@@ -230,7 +230,7 @@ fn highlight_binder(
     current_file: FileId,
     binder_id: BinderId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -335,7 +335,7 @@ fn highlight_type_variable(
     current_file: FileId,
     binding_id: TypeVariableBindingId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -376,7 +376,7 @@ fn highlight_file_term(
     file_id: FileId,
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;
@@ -483,7 +483,7 @@ fn highlight_file_type(
     file_id: FileId,
     type_id: TypeItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;
@@ -592,7 +592,7 @@ fn highlight_let(
     current_file: FileId,
     let_binding_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -652,7 +652,7 @@ fn highlight_binder_pun(
     current_file: FileId,
     pun_id: RecordPunId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -858,7 +858,7 @@ fn push_name_highlight<T>(
 where
     T: AstNode,
 {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;

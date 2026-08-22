@@ -66,7 +66,7 @@ pub fn implementation(
         context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let line_index = LineIndex::new(&content);

@@ -503,7 +503,7 @@ fn target_at_position(
         context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let utf8_position =
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -524,7 +524,7 @@ fn rename_range(
     position: position::Utf8Position,
     old_name: &str,
 ) -> Result<Range, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let offset =
         position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
@@ -562,7 +562,7 @@ fn qualifier_target(
     current_file: FileId,
     position: position::Utf8Position,
 ) -> Result<Option<RenameTarget>, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let offset =
         position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
@@ -723,7 +723,7 @@ fn module_target(
     current_file: FileId,
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<RenameTarget, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let module_name = module_name.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
@@ -749,7 +749,7 @@ fn import_target(
     current_file: FileId,
     import_id: ImportItemId,
 ) -> Result<RenameTarget, AnalyzerError> {
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
 
@@ -886,7 +886,7 @@ fn target_name(
             name.map(|name| (name.to_string(), NameKind::Lower))
         }
         RenameTarget::TypeVariable(file_id, binding_id) => {
-            let content = context.queries().content(file_id);
+            let content = context.queries().content(file_id)?;
             let (parsed, _) = context.queries().parsed(file_id)?;
             let stabilized = context.queries().stabilized(file_id)?;
 
@@ -902,7 +902,7 @@ fn target_name(
             binding.name.as_ref().map(|name| (name.to_string(), NameKind::Lower))
         }
         RenameTarget::RecordPun(file_id, pun_id) => {
-            let content = context.queries().content(file_id);
+            let content = context.queries().content(file_id)?;
             let (parsed, _) = context.queries().parsed(file_id)?;
             let stabilized = context.queries().stabilized(file_id)?;
 
@@ -922,7 +922,7 @@ fn target_name(
             name.map(|name| (name.to_string(), NameKind::Upper))
         }
         RenameTarget::Module(file_id) => {
-            let content = context.queries().content(file_id);
+            let content = context.queries().content(file_id)?;
             let (parsed, _) = context.queries().parsed(file_id)?;
 
             parsed.module_name(&content).map(|name| (name.to_string(), NameKind::Module))

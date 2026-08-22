@@ -342,7 +342,7 @@ pub fn export_module(module: &ResolvedModule) -> ExportedModule {
         IndirectExports { file_id, terms: terms.into() }
     });
     let mut indirect = indirect.collect::<Vec<_>>();
-    indirect.sort_by_key(|exports| exports.file_id.into_raw().into_u32());
+    indirect.sort_by_key(|exports| exports.file_id);
 
     ExportedModule { local: local.into(), indirect: indirect.into() }
 }

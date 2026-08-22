@@ -20,7 +20,7 @@ pub fn implementation(
         language.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = language.queries().content(file);
+    let content = language.queries().content(file)?;
     let position =
         position::protocol_position_to_utf8(&content, range.start, language.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -77,7 +77,7 @@ pub fn expression_range(
     request: &CodeActionRequest<impl crate::AnalyzerHost>,
     expression_id: ExpressionId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.queries().content(request.file);
+    let content = request.language.queries().content(request.file)?;
     let (parsed, _) = request.language.queries().parsed(request.file)?;
     let stabilized = request.language.queries().stabilized(request.file)?;
 
@@ -92,7 +92,7 @@ pub fn type_range(
     request: &CodeActionRequest<impl crate::AnalyzerHost>,
     type_id: TypeId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.queries().content(request.file);
+    let content = request.language.queries().content(request.file)?;
     let (parsed, _) = request.language.queries().parsed(request.file)?;
     let stabilized = request.language.queries().stabilized(request.file)?;
 

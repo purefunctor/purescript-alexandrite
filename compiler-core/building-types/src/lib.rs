@@ -37,6 +37,8 @@ pub enum QueryError {
     Cancelled,
     #[error("Cycle detected")]
     Cycle { stack: Arc<[QueryKey]> },
+    #[error("Missing content for {file_id:?}")]
+    MissingContent { file_id: FileId },
 }
 
 pub type QueryResult<T> = Result<T, QueryError>;
@@ -54,7 +56,7 @@ pub trait QueryProxy {
     type Checked;
     type Documented;
 
-    fn content(&self, id: FileId) -> Arc<str>;
+    fn content(&self, id: FileId) -> QueryResult<Arc<str>>;
 
     fn parsed(&self, id: FileId) -> QueryResult<Self::Parsed>;
 

@@ -20,7 +20,7 @@ pub struct PackageInput<'a> {
 }
 
 fn module_name(engine: &QueryEngine, file_id: FileId) -> Result<Option<String>, Error> {
-    let content = engine.content(file_id);
+    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
     Ok(parsed.module_name(&content).map(|name| name.to_string()))
 }

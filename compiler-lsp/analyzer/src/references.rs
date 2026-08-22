@@ -26,7 +26,7 @@ pub fn implementation(
         context.file_id(uri).ok_or(AnalyzerError::NonFatal)?
     };
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let position =
         position::protocol_position_to_utf8(&content, position, context.position_encoding())
             .ok_or(AnalyzerError::NonFatal)?;
@@ -102,7 +102,7 @@ fn references_module_name(
     module_name: AstPtr<cst::ModuleName>,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let root = parsed.syntax_node();
@@ -117,7 +117,7 @@ fn references_module_name(
     for (candidate_id, import_id) in candidates {
         let uri = common::file_uri(context, candidate_id)?;
 
-        let content = engine.content(candidate_id);
+        let content = engine.content(candidate_id)?;
         let (parsed, _) = engine.parsed(candidate_id)?;
         let root = parsed.syntax_node();
 
@@ -139,7 +139,7 @@ fn references_import(
     import_id: ImportItemId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
 
@@ -227,7 +227,7 @@ fn references_binder(
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let uri = common::file_uri(context, current_file)?;
 
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
 
     let stabilized = context.queries().stabilized(current_file)?;
@@ -338,7 +338,7 @@ fn references_type_variable(
     binding_id: TypeVariableBindingId,
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let uri = common::file_uri(context, current_file)?;
-    let content = context.queries().content(current_file);
+    let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -393,7 +393,7 @@ fn references_file_term(
     for candidate_id in candidates {
         let uri = common::file_uri(context, candidate_id)?;
 
-        let content = engine.content(candidate_id);
+        let content = engine.content(candidate_id)?;
         let (parsed, _) = engine.parsed(candidate_id)?;
         let stabilized = engine.stabilized(candidate_id)?;
         let indexed = engine.indexed(candidate_id)?;
@@ -483,7 +483,7 @@ fn references_file_type(
     for candidate_id in candidates {
         let uri = common::file_uri(context, candidate_id)?;
 
-        let content = engine.content(candidate_id);
+        let content = engine.content(candidate_id)?;
         let (parsed, _) = engine.parsed(candidate_id)?;
 
         let stabilized = engine.stabilized(candidate_id)?;
@@ -637,7 +637,7 @@ fn references_let(
     let engine = context.queries();
     let uri = common::file_uri(context, current_file)?;
 
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;
@@ -681,7 +681,7 @@ fn references_binder_pun(
     let engine = context.queries();
     let uri = common::file_uri(context, current_file)?;
 
-    let content = engine.content(current_file);
+    let content = engine.content(current_file)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;

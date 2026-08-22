@@ -22,7 +22,7 @@ fn module_name(
     context: &CompletionContext<impl crate::AnalyzerHost>,
     file_id: FileId,
 ) -> Result<Option<String>, AnalyzerError> {
-    let content = context.language.queries().content(file_id);
+    let content = context.language.queries().content(file_id)?;
     let (parsed, _) = context.language.queries().parsed(file_id)?;
     Ok(parsed.module_name(&content).map(|name| name.to_string()))
 }

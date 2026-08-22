@@ -157,6 +157,47 @@ struct InternedStorage {
     checking: checking::CoreInterners,
 }
 
+fn query_references_file(query: QueryKey, file_id: FileId) -> bool {
+    match query {
+        QueryKey::Content(id)
+        | QueryKey::Foreign(id)
+        | QueryKey::ForeignValidation(id)
+        | QueryKey::Parsed(id)
+        | QueryKey::Stabilized(id)
+        | QueryKey::Indexed(id)
+        | QueryKey::Lowered(id)
+        | QueryKey::Grouped(id)
+        | QueryKey::Resolved(id)
+        | QueryKey::Exported(id)
+        | QueryKey::Bracketed(id)
+        | QueryKey::Sectioned(id)
+        | QueryKey::Checked(id)
+        | QueryKey::Documented(id)
+        | QueryKey::Nbe(id)
+        | QueryKey::Ssa(id)
+        | QueryKey::JavaScript(id) => id == file_id,
+        QueryKey::ForeignContent(_)
+        | QueryKey::ForeignModule(_)
+        | QueryKey::Module(_)
+        | QueryKey::CheckedCore => false,
+    }
+}
+
+fn state_references_removed_file<T>(
+    state: &DerivedState<T>,
+    file_id: FileId,
+    removed_modules: &FxHashSet<ModuleNameId>,
+) -> bool {
+    let DerivedState::Computed { dependencies, .. } = state else {
+        return false;
+    };
+    let mut dependencies = dependencies.iter();
+    dependencies.any(|dependency| {
+        query_references_file(*dependency, file_id)
+            || matches!(dependency, QueryKey::Module(module) if removed_modules.contains(module))
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct SnapshotId(u32);
 
@@ -746,10 +787,77 @@ impl QueryEngine {
         self.set_input(id, |input| &input.content, content.into());
     }
 
-    pub fn content(&self, id: FileId) -> Arc<str> {
-        self.get_input(QueryKey::Content(id), id, |input| &input.content).unwrap_or_else(|| {
-            panic!("invariant violated: set_content({id:?}, ..)");
-        })
+    pub fn content(&self, id: FileId) -> QueryResult<Arc<str>> {
+        self.get_input(QueryKey::Content(id), id, |input| &input.content)
+            .ok_or(QueryError::MissingContent { file_id: id })
+    }
+
+    fn remove_file_queries<T>(
+        &self,
+        file_id: FileId,
+        removed_modules: &FxHashSet<ModuleNameId>,
+        queries: &Shards<FileId, DerivedState<T>>,
+    ) {
+        for shard in &queries.inner {
+            let mut queries = shard.write();
+            queries.retain(|query_file_id, state| {
+                *query_file_id != file_id
+                    && !state_references_removed_file(state, file_id, removed_modules)
+            });
+        }
+    }
+
+    pub fn remove_file(&self, file_id: FileId) {
+        self.control.global.cancelled.store(true, Ordering::Relaxed);
+        let _query_lock = self.control.global.query_lock.write();
+
+        self.control.global.revision.fetch_add(1, Ordering::Relaxed);
+        self.input.content.remove(&file_id);
+        self.input.foreign.remove(&file_id);
+
+        let mut removed_modules = FxHashSet::default();
+        for shard in &self.input.module.inner {
+            let mut modules = shard.write();
+            modules.retain(|module, state| {
+                if state.value != Some(file_id) {
+                    return true;
+                }
+                removed_modules.insert(*module);
+                false
+            });
+        }
+
+        macro_rules! remove_file_queries {
+            ($($field:ident),* $(,)?) => {
+                $(self.remove_file_queries(file_id, &removed_modules, &self.derived.$field);)*
+            };
+        }
+        remove_file_queries!(
+            foreign_validation,
+            parsed,
+            stabilized,
+            indexed,
+            lowered,
+            grouped,
+            resolved,
+            exported,
+            bracketed,
+            sectioned,
+            checked,
+            documented,
+            nbe,
+            ssa,
+            javascript,
+        );
+
+        for shard in &self.derived.checked_core.inner {
+            let mut queries = shard.write();
+            queries.retain(|_, state| {
+                !state_references_removed_file(state, file_id, &removed_modules)
+            });
+        }
+
+        self.control.global.cancelled.store(false, Ordering::Relaxed);
     }
 
     pub fn set_foreign_content(&self, id: ForeignFileId, content: impl Into<Arc<str>>) {
@@ -860,7 +968,7 @@ impl QueryEngine {
             id,
             |derived| &derived.parsed,
             |this| {
-                let content = this.content(id);
+                let content = this.content(id)?;
 
                 let lexed = lexing::lex(&content);
                 let tokens = lexing::layout(&lexed);
@@ -890,7 +998,7 @@ impl QueryEngine {
             id,
             |derived| &derived.indexed,
             |this| {
-                let content = this.content(id);
+                let content = this.content(id)?;
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
 
@@ -908,7 +1016,7 @@ impl QueryEngine {
             id,
             |derived| &derived.lowered,
             |this| {
-                let content = this.content(id);
+                let content = this.content(id)?;
                 let (parsed, _) = this.parsed(id)?;
 
                 let prim = {
@@ -1070,7 +1178,7 @@ impl QueryEngine {
             id,
             |derived| &derived.documented,
             |this| {
-                let content = this.content(id);
+                let content = this.content(id)?;
                 let (parsed, _) = this.parsed(id)?;
                 let stabilized = this.stabilized(id)?;
                 let indexed = this.indexed(id)?;
@@ -1109,7 +1217,7 @@ impl QueryProxy for QueryEngine {
 
     type Documented = Arc<documenting::DocumentedModule>;
 
-    fn content(&self, id: FileId) -> Arc<str> {
+    fn content(&self, id: FileId) -> QueryResult<Arc<str>> {
         QueryEngine::content(self, id)
     }
 
@@ -1247,7 +1355,6 @@ mod tests {
     use building_types::{QueryError, QueryResult};
     use files::{FileId, Files, ForeignFiles};
     use foreign_javascript::ForeignError;
-    use la_arena::RawIdx;
     use resolving::ResolvedModule;
 
     use crate::prim;
@@ -1294,8 +1401,8 @@ mod tests {
 
     #[test]
     fn test_equal_input_write_cost() {
-        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
-        const QUERY: FileId = FileId::from_raw(RawIdx::from_u32(1));
+        const SOURCE: FileId = FileId::new(0);
+        const QUERY: FileId = FileId::new(1);
 
         let engine = QueryEngine::default();
         let initial_content: Arc<str> = Arc::from("module Main where\n\nvalue = 42");
@@ -1305,7 +1412,7 @@ mod tests {
         let recomputations = AtomicUsize::new(0);
         let compute = |engine: &QueryEngine| {
             recomputations.fetch_add(1, Ordering::Relaxed);
-            engine.content(SOURCE);
+            engine.content(SOURCE)?;
             engine.parsed(SOURCE)
         };
 
@@ -1341,7 +1448,7 @@ mod tests {
 
     #[test]
     fn test_equal_input_write_does_not_cancel_live_snapshot() {
-        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const SOURCE: FileId = FileId::new(0);
 
         let engine = QueryEngine::default();
         let initial_content: Arc<str> = Arc::from("module Main where");
@@ -1355,7 +1462,7 @@ mod tests {
         drop(snapshot);
 
         let revision_after = engine.control.global.revision.load(Ordering::Relaxed);
-        let stored_content = engine.content(SOURCE);
+        let stored_content = engine.content(SOURCE).unwrap();
         assert_eq!(revision_after, revision_before);
         assert!(!engine.control.global.cancelled.load(Ordering::Relaxed));
         assert!(Arc::ptr_eq(&stored_content, &initial_content));
@@ -1363,7 +1470,7 @@ mod tests {
 
     #[test]
     fn test_concurrent_input_writes_advance_revision_once() {
-        const SOURCE: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const SOURCE: FileId = FileId::new(0);
 
         let engine = QueryEngine::default();
         engine.set_content(SOURCE, "module Main where\n\nvalue = 1");
@@ -1417,8 +1524,8 @@ mod tests {
 
     #[test]
     fn test_equal_module_input_write_preserves_revision() {
-        const MODULE_FILE: FileId = FileId::from_raw(RawIdx::from_u32(0));
-        const REPLACEMENT_FILE: FileId = FileId::from_raw(RawIdx::from_u32(1));
+        const MODULE_FILE: FileId = FileId::new(0);
+        const REPLACEMENT_FILE: FileId = FileId::new(1);
 
         let engine = QueryEngine::default();
         engine.set_module_file("Main", MODULE_FILE);
@@ -1502,6 +1609,64 @@ mod tests {
         engine.remove_module_file("Old", library);
 
         assert_eq!(engine.module_file("Old"), Some(replacement));
+    }
+
+    #[test]
+    fn test_remove_file() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+
+        let main = files.insert("Main.purs", "module Main where\n\nimport Library\n\nvalue = life");
+        let library = files.insert("Library.purs", "module Library where\n\nlife = 42");
+        engine.set_content(main, files.content(main));
+        engine.set_content(library, files.content(library));
+        engine.set_module_file("Main", main);
+        engine.set_module_file("Library", library);
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(resolved.unqualified.contains_key("Library"));
+
+        engine.remove_file(library);
+        assert_eq!(engine.module_file("Library"), None);
+        assert_eq!(engine.parsed(library), Err(QueryError::MissingContent { file_id: library }));
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(!resolved.unqualified.contains_key("Library"));
+
+        assert_eq!(files.remove("Library.purs"), Some(library));
+        let replacement = files.insert("Library.purs", "module Library where\n\nlife = 43");
+        assert_ne!(replacement, library);
+        engine.set_content(replacement, files.content(replacement));
+        engine.set_module_file("Library", replacement);
+
+        let resolved = engine.resolved(main).unwrap();
+        assert!(resolved.unqualified.contains_key("Library"));
+    }
+
+    #[test]
+    fn test_remove_files_discards_query_state() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+
+        for number in 0..32 {
+            let path = format!("Temporary{number}.purs");
+            let module_name = format!("Temporary{number}");
+            let content = format!("module {module_name} where");
+            let file_id = files.insert(path.as_str(), content.as_str());
+            engine.set_content(file_id, content);
+            engine.set_module_file(&module_name, file_id);
+            engine.parsed(file_id).unwrap();
+
+            engine.remove_file(file_id);
+            assert_eq!(files.remove(&path), Some(file_id));
+        }
+
+        let content_states = engine.input.content.inner.iter().map(|shard| shard.read().len());
+        let module_states = engine.input.module.inner.iter().map(|shard| shard.read().len());
+        let parsed_states = engine.derived.parsed.inner.iter().map(|shard| shard.read().len());
+        assert_eq!(content_states.sum::<usize>(), 0);
+        assert_eq!(module_states.sum::<usize>(), 0);
+        assert_eq!(parsed_states.sum::<usize>(), 0);
     }
 
     #[test]
@@ -2212,7 +2377,7 @@ mod tests {
 
     #[test]
     fn test_cycle_detection() {
-        const ID: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const ID: FileId = FileId::new(0);
         const KEY: QueryKey = QueryKey::Resolved(ID);
 
         fn fake_query_a(engine: &QueryEngine) -> QueryResult<Arc<ResolvedModule>> {
@@ -2226,7 +2391,7 @@ mod tests {
 
     #[test]
     fn test_cycle_recovery() {
-        const ID: FileId = FileId::from_raw(RawIdx::from_u32(0));
+        const ID: FileId = FileId::new(0);
 
         fn fake_query_a(engine: &QueryEngine) -> QueryResult<Arc<ResolvedModule>> {
             engine.query(
@@ -2244,8 +2409,8 @@ mod tests {
 
     #[test]
     fn test_snapshot_cycle_detection() {
-        const ID_A: FileId = FileId::from_raw(RawIdx::from_u32(0));
-        const ID_B: FileId = FileId::from_raw(RawIdx::from_u32(1));
+        const ID_A: FileId = FileId::new(0);
+        const ID_B: FileId = FileId::new(1);
 
         fn fake_query_a(engine: &QueryEngine) -> QueryResult<Arc<ResolvedModule>> {
             engine.query(QueryKey::Resolved(ID_A), ID_A, |derived| &derived.resolved, fake_query_b)
@@ -2276,8 +2441,8 @@ mod tests {
 
     #[test]
     fn test_snapshot_cycle_recovery() {
-        const ID_A: FileId = FileId::from_raw(RawIdx::from_u32(0));
-        const ID_B: FileId = FileId::from_raw(RawIdx::from_u32(1));
+        const ID_A: FileId = FileId::new(0);
+        const ID_B: FileId = FileId::new(1);
 
         fn fake_query_a(engine: &QueryEngine) -> QueryResult<Arc<ResolvedModule>> {
             engine.query(

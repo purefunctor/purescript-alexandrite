@@ -30,7 +30,10 @@ pub fn implementation(
 
     match resolve {
         CompletionResolveData::Import(file_id) => {
-            let content = engine.content(file_id);
+            let content = match engine.content(file_id) {
+                Ok(content) => content,
+                Err(error) => return Err((error.into(), item)),
+            };
             match AnnotationSyntaxRange::of_file(engine, file_id) {
                 Ok(range) => Ok(resolve_documentation(&content, range, item)),
                 Err(error) => Err((error, item)),
@@ -85,7 +88,10 @@ fn resolve_term_item(
     term_id: TermItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    let content = engine.content(file_id);
+    let content = match engine.content(file_id) {
+        Ok(content) => content,
+        Err(error) => return Err(Box::new((error.into(), item))),
+    };
     if let Ok(range) = AnnotationSyntaxRange::of_file_term(engine, file_id, term_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
@@ -125,7 +131,10 @@ fn resolve_type_item(
     type_id: TypeItemId,
     mut item: CompletionItem,
 ) -> Result<CompletionItem, Box<(AnalyzerError, CompletionItem)>> {
-    let content = engine.content(file_id);
+    let content = match engine.content(file_id) {
+        Ok(content) => content,
+        Err(error) => return Err(Box::new((error.into(), item))),
+    };
     if let Ok(range) = AnnotationSyntaxRange::of_file_type(engine, file_id, type_id) {
         let annotation = range.annotation.map(|range| extract_annotation(&content, range));
         item.documentation = annotation.map(|annotation| {
@@ -250,21 +259,41 @@ fn render_local_signature(
 
 #[derive(Serialize, Deserialize)]
 pub(crate) enum CompletionResolveData {
-    Import(#[serde(with = "id")] FileId),
-    TermItem(#[serde(with = "id")] FileId, #[serde(with = "id")] TermItemId),
-    TypeItem(#[serde(with = "id")] FileId, #[serde(with = "id")] TypeItemId),
-    Binder(#[serde(with = "id")] FileId, #[serde(with = "ast_id")] BinderId),
-    Let(#[serde(with = "id")] FileId, #[serde(with = "id")] LetBindingNameGroupId),
-    RecordPun(#[serde(with = "id")] FileId, #[serde(with = "ast_id")] RecordPunId),
+    Import(#[serde(with = "file_id")] FileId),
+    TermItem(#[serde(with = "file_id")] FileId, #[serde(with = "id")] TermItemId),
+    TypeItem(#[serde(with = "file_id")] FileId, #[serde(with = "id")] TypeItemId),
+    Binder(#[serde(with = "file_id")] FileId, #[serde(with = "ast_id")] BinderId),
+    Let(#[serde(with = "file_id")] FileId, #[serde(with = "id")] LetBindingNameGroupId),
+    RecordPun(#[serde(with = "file_id")] FileId, #[serde(with = "ast_id")] RecordPunId),
     ForallTypeVariable(
-        #[serde(with = "id")] FileId,
+        #[serde(with = "file_id")] FileId,
         #[serde(with = "ast_id")] TypeVariableBindingId,
     ),
     ImplicitTypeVariable(
-        #[serde(with = "id")] FileId,
+        #[serde(with = "file_id")] FileId,
         #[serde(with = "id")] GraphNodeId,
         #[serde(with = "id")] ImplicitBindingId,
     ),
+}
+
+mod file_id {
+    use files::FileId;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub(super) fn serialize<S>(file_id: &FileId, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        file_id.into_raw().serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'d, D>(deserializer: D) -> Result<FileId, D::Error>
+    where
+        D: Deserializer<'d>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        Ok(FileId::new(value))
+    }
 }
 
 mod id {

@@ -21,7 +21,7 @@ where
     Host::Queries: diagnostics::ExternalQueries + ForeignQueries,
 {
     let queries = context.queries();
-    let content = queries.content(file_id);
+    let content = queries.content(file_id)?;
 
     let (parsed, _) = queries.parsed(file_id)?;
     let root = parsed.syntax_node();

@@ -113,7 +113,7 @@ pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str) -> String {
 }
 
 pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
-    let content = engine.content(id);
+    let content = engine.content(id).unwrap();
     let (parsed, _) = engine.parsed(id).unwrap();
 
     let stabilized = engine.stabilized(id).unwrap();
@@ -357,7 +357,7 @@ pub fn report_foreign(engine: &QueryEngine, id: FileId) -> String {
         return String::new();
     }
 
-    let content = engine.content(id);
+    let content = engine.content(id).unwrap();
     let (parsed, _) = engine.parsed(id).unwrap();
     let root = parsed.syntax_node();
     let stabilized = engine.stabilized(id).unwrap();
@@ -462,7 +462,7 @@ fn write_checked_diagnostics(
     indexed: &indexing::IndexedModule,
     checked: &checking::CheckedModule,
 ) {
-    let content = engine.content(id);
+    let content = engine.content(id).unwrap();
     let (parsed, _) = engine.parsed(id).unwrap();
     let root = parsed.syntax_node();
     let stabilized = engine.stabilized(id).unwrap();
