@@ -22,6 +22,7 @@ pub struct ElaboratedWhereExpression {
 #[derive(Copy, Clone, Debug)]
 enum GuardedExpressionMode {
     Infer,
+    Subtype { expected: TypeId },
     Check { expected: TypeId },
 }
 
@@ -54,6 +55,20 @@ where
     guarded_expression_core(state, context, guarded, GuardedExpressionMode::Check { expected })
 }
 
+/// Infers a guarded expression against a shared result type while retaining
+/// implicit applications introduced on the inferred side.
+pub fn subtype_guarded_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    guarded: &lowering::GuardedExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedGuardedExpression>
+where
+    Q: ExternalQueries,
+{
+    guarded_expression_core(state, context, guarded, GuardedExpressionMode::Subtype { expected })
+}
+
 fn guarded_expression_core<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
@@ -68,7 +83,8 @@ where
             let Some(where_expression) = where_expression else {
                 let type_id = match mode {
                     GuardedExpressionMode::Infer => context.unknown("missing guarded expression"),
-                    GuardedExpressionMode::Check { expected } => expected,
+                    GuardedExpressionMode::Subtype { expected }
+                    | GuardedExpressionMode::Check { expected } => expected,
                 };
                 let expression = state.allocate_error_expression(type_id);
                 let where_expression = tree::WhereExpression::new(expression);
@@ -79,6 +95,11 @@ where
             let where_expression = match mode {
                 GuardedExpressionMode::Infer => {
                     infer_where_expression(state, context, where_expression)?
+                }
+                GuardedExpressionMode::Subtype { expected } => {
+                    let where_expression =
+                        infer_where_expression(state, context, where_expression)?;
+                    subtype_where_expression(state, context, where_expression, expected)?
                 }
                 GuardedExpressionMode::Check { expected } => {
                     check_where_expression(state, context, where_expression, expected)?
@@ -94,7 +115,8 @@ where
                 GuardedExpressionMode::Infer => {
                     state.fresh_unification(context.queries, context.prim.t)
                 }
-                GuardedExpressionMode::Check { expected } => expected,
+                GuardedExpressionMode::Subtype { expected }
+                | GuardedExpressionMode::Check { expected } => expected,
             };
 
             let mut alternatives = vec![];
@@ -170,6 +192,27 @@ where
     Q: ExternalQueries,
 {
     where_expression_core(state, context, where_expression, WhereExpressionMode::Infer)
+}
+
+fn subtype_where_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    where_expression: ElaboratedWhereExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedWhereExpression>
+where
+    Q: ExternalQueries,
+{
+    let expression = terms::ElaboratedExpression {
+        type_id: where_expression.type_id,
+        expression: where_expression.where_expression.expression,
+    };
+    let expression = terms::application::subtype_expression(state, context, expression, expected)?;
+    let where_expression = tree::WhereExpression {
+        expression: expression.expression,
+        ..where_expression.where_expression
+    };
+    Ok(ElaboratedWhereExpression { type_id: expected, where_expression })
 }
 
 fn check_where_expression<Q>(

@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+empty ::
+  forall t0 (@collection :: t0 -> Prim.Type).
+    Main.Empty @t0 (collection :: t0 -> Prim.Type) =>
+    (forall (value :: t0). (collection :: t0 -> Prim.Type) (value :: t0))
+chooseEmpty ::
+  forall t0 (collection :: t0 -> Prim.Type) (value :: t0).
+    Main.Empty @t0 (collection :: t0 -> Prim.Type) =>
+    Prim.Boolean -> (collection :: t0 -> Prim.Type) (value :: t0)
+
+Types
+Empty :: forall t0. (t0 -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (collection :: t0 -> Prim.Type). Main.Empty @t0 (collection :: t0 -> Prim.Type)
+  empty ::
+  forall t0 (@collection :: t0 -> Prim.Type).
+    Main.Empty @t0 (collection :: t0 -> Prim.Type) =>
+    (forall (value :: t0). (collection :: t0 -> Prim.Type) (value :: t0))
