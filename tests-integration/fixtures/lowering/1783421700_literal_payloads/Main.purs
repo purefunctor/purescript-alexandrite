@@ -6,6 +6,11 @@ rawString = """hello"""
 
 char = '\n'
 
+charDoubleQuote = '\"'
+
+charDoubleQuoteBinder '\"' = true
+charDoubleQuoteBinder _ = false
+
 charUnicode = '\x2603'
 
 charMalformedNamed = '\n2'

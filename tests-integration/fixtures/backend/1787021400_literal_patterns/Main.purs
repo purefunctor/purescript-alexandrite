@@ -12,6 +12,13 @@ character :: Char -> Boolean
 character 'a' = true
 character _ = false
 
+escapedDoubleQuote :: Char
+escapedDoubleQuote = '\"'
+
+matchesEscapedDoubleQuote :: Char -> Boolean
+matchesEscapedDoubleQuote '\"' = true
+matchesEscapedDoubleQuote _ = false
+
 string :: String -> Boolean
 string "alexandrite" = true
 string _ = false

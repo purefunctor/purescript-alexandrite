@@ -22,6 +22,14 @@ export function character($char) {
   }
 }
 
+export function matchesEscapedDoubleQuote($char) {
+  if ($char === "\"") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 export function string($string) {
   if ($string === "alexandrite") {
     return true;
@@ -41,3 +49,5 @@ export function boolean($boolean) {
     }
   }
 }
+
+export const escapedDoubleQuote = "\"";
