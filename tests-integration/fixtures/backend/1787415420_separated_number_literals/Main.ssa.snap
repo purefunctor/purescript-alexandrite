@@ -1,0 +1,115 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export const separatedNumber = initialize {
+  entry() {
+    const literal = 4_294_967_295.0;
+    return literal;
+  }
+}
+
+@export const separatedNumberParts = initialize {
+  entry() {
+    const literal = 1_2.3_4e+0_2;
+    return literal;
+  }
+}
+
+@export const separatedExponent = initialize {
+  entry() {
+    const literal = 1_2e0_2;
+    return literal;
+  }
+}
+
+@export const separatedUpperExponent = initialize {
+  entry() {
+    const literal = 1_3E0_2;
+    return literal;
+  }
+}
+
+@export const separatedNegativeExponent = initialize {
+  entry() {
+    const literal = 1_400e-0_2;
+    return literal;
+  }
+}
+
+@export function matchesSeparatedNumber($number) {
+  entry() {
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.literal($number, 1_0.0_5e+0_2);
+    if (matches) {
+      match$success();
+    } else {
+      case$1();
+    }
+  }
+  case$1() {
+    const matches$1 = pattern.literal($number, 1_2e0_2);
+    if (matches$1) {
+      match$success$1();
+    } else {
+      case$2();
+    }
+  }
+  case$2() {
+    const matches$2 = pattern.literal($number, 1_3E0_2);
+    if (matches$2) {
+      match$success$2();
+    } else {
+      case$3();
+    }
+  }
+  case$3() {
+    const matches$3 = pattern.literal($number, 1_400e-0_2);
+    if (matches$3) {
+      match$success$3();
+    } else {
+      case$4();
+    }
+  }
+  case$4() {
+    const matches$4 = pattern.literal($number, -1_5.0);
+    if (matches$4) {
+      match$success$4();
+    } else {
+      case$5();
+    }
+  }
+  case$5() {
+    const literal$5 = false;
+    case$join(literal$5);
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const literal = true;
+    case$join(literal);
+  }
+  match$success$1() {
+    const literal$1 = true;
+    case$join(literal$1);
+  }
+  match$success$2() {
+    const literal$2 = true;
+    case$join(literal$2);
+  }
+  match$success$3() {
+    const literal$3 = true;
+    case$join(literal$3);
+  }
+  match$success$4() {
+    const literal$4 = true;
+    case$join(literal$4);
+  }
+}
