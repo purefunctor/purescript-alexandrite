@@ -21,3 +21,14 @@ capturedMutual captured condition = first condition
   second :: Boolean -> Int
   second true = captured
   second false = first true
+
+nestedRecursive :: Boolean -> Int
+nestedRecursive condition = go condition
+  where
+  go :: Boolean -> Int
+  go true =
+    let
+      nested = go false
+    in
+      nested
+  go false = 0

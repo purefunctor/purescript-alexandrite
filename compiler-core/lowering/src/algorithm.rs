@@ -36,14 +36,12 @@ pub(crate) struct State {
 
     pub(crate) current_kind: Option<TypeItemId>,
     pub(crate) current_synonym: Option<TypeItemId>,
-    pub(crate) current_let_binding: Option<LetBindingNameGroupId>,
-    pub(crate) current_let_scope: Option<GraphNodeId>,
 
     pub(crate) term_edges: FxHashSet<(TermItemId, TermItemId)>,
     pub(crate) type_edges: FxHashSet<(TypeItemId, TypeItemId)>,
     pub(crate) kind_edges: FxHashSet<(TypeItemId, TypeItemId)>,
     pub(crate) synonym_edges: FxHashSet<(TypeItemId, TypeItemId)>,
-    pub(crate) let_binding_graph: ItemGraph<LetBindingNameGroupId>,
+    let_binding_contexts: Vec<LetBindingContext>,
 
     pub(crate) in_constraint: bool,
 
@@ -51,6 +49,12 @@ pub(crate) struct State {
 }
 
 type ItemGraph<T> = DiGraphMap<T, (), FxBuildHasher>;
+
+struct LetBindingContext {
+    scope: GraphNodeId,
+    current_binding: Option<LetBindingNameGroupId>,
+    dependencies: ItemGraph<LetBindingNameGroupId>,
+}
 
 struct Context<'c> {
     file_id: FileId,
@@ -251,11 +255,12 @@ impl State {
             GraphNode::Let { bindings, .. } => {
                 let target_id = *bindings.get(name)?;
 
-                // Track dependency if we're inside a let binding in the SAME let scope
-                if let Some(source_id) = self.current_let_binding
-                    && self.current_let_scope == Some(node_id)
+                let context =
+                    self.let_binding_contexts.iter_mut().find(|context| context.scope == node_id);
+                if let Some(context) = context
+                    && let Some(source_id) = context.current_binding
                 {
-                    self.let_binding_graph.add_edge(source_id, target_id, ());
+                    context.dependencies.add_edge(source_id, target_id, ());
                 }
 
                 Some(TermVariableResolution::Let(target_id))

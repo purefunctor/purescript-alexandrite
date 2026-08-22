@@ -63,3 +63,21 @@ export function capturedMutual(captured) {
     return first(condition);
   };
 }
+
+export function nestedRecursive(condition) {
+  function go$function(go) {
+    return $boolean => {
+      if ($boolean === true) {
+        return go(false);
+      } else {
+        if ($boolean === false) {
+          return 0 | 0;
+        } else {
+          throw new Error("Pattern match failure");
+        }
+      }
+    };
+  }
+  const go = $boolean => go$function(go)($boolean);
+  return go(condition);
+}
