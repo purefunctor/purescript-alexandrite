@@ -177,6 +177,9 @@ fn direct_closures(module: &ssa::tree::Module, function: &Function) -> Vec<Funct
                 Instruction::RecursiveClosures { bindings } => {
                     closures.extend(bindings.iter().map(|binding| binding.function));
                 }
+                Instruction::RecursiveLazyInitializers { bindings } => {
+                    closures.extend(bindings.iter().map(|binding| binding.initializer));
+                }
                 Instruction::Assign { .. } => {}
             }
         }
@@ -321,6 +324,12 @@ impl HelperRegions<'_, '_> {
                         definitions.insert(binding.result);
                     }
                 }
+                Instruction::RecursiveLazyInitializers { bindings } => {
+                    for binding in bindings.iter() {
+                        uses.extend(binding.captures.iter().copied());
+                        definitions.insert(binding.accessor);
+                    }
+                }
             }
         }
 
@@ -384,24 +393,55 @@ pub(super) fn collect_module_references(module: &ssa::tree::Module) -> Vec<&Glob
                     }
                     _ => {}
                 },
-                Instruction::RecursiveClosures { .. } => {}
+                Instruction::RecursiveClosures { .. }
+                | Instruction::RecursiveLazyInitializers { .. } => {}
             }
         }
     }
     external_globals
 }
 
+pub(super) fn has_local_lazy_initializers(module: &ssa::tree::Module) -> bool {
+    module.storage.blocks().any(|(_, block)| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, Instruction::RecursiveLazyInitializers { .. }))
+    })
+}
+
 pub(super) fn function_globals(
     module: &ssa::tree::Module,
     function: FunctionId,
 ) -> FxHashSet<GlobalIdentity> {
+    function_globals_eager(module, function, &mut FxHashSet::default())
+}
+
+fn function_globals_eager(
+    module: &ssa::tree::Module,
+    function: FunctionId,
+    visited: &mut FxHashSet<FunctionId>,
+) -> FxHashSet<GlobalIdentity> {
+    if !visited.insert(function) {
+        return FxHashSet::default();
+    }
     let mut globals = FxHashSet::default();
     for block in module.storage[function].blocks.iter().copied() {
         for instruction in &module.storage[block].instructions {
-            if let Instruction::Assign { value: InstructionValue::Global { global }, .. } =
-                instruction
-            {
-                globals.insert(global.identity);
+            match instruction {
+                Instruction::Assign { value: InstructionValue::Global { global }, .. } => {
+                    globals.insert(global.identity);
+                }
+                Instruction::RecursiveLazyInitializers { bindings } => {
+                    for binding in bindings.iter() {
+                        globals.extend(function_globals_eager(
+                            module,
+                            binding.initializer,
+                            visited,
+                        ));
+                    }
+                }
+                Instruction::Assign { .. } | Instruction::RecursiveClosures { .. } => {}
             }
         }
     }
@@ -493,6 +533,15 @@ fn function_globals_recursive(
                         globals.extend(function_globals_recursive(
                             module,
                             binding.function,
+                            visited,
+                        ));
+                    }
+                }
+                Instruction::RecursiveLazyInitializers { bindings } => {
+                    for binding in bindings.iter() {
+                        globals.extend(function_globals_recursive(
+                            module,
+                            binding.initializer,
                             visited,
                         ));
                     }
@@ -591,6 +640,9 @@ fn function_values(module: &ssa::tree::Module, function: &Function) -> Vec<Value
                 Instruction::RecursiveClosures { bindings } => {
                     values.extend(bindings.iter().map(|binding| binding.result));
                 }
+                Instruction::RecursiveLazyInitializers { bindings } => {
+                    values.extend(bindings.iter().map(|binding| binding.accessor));
+                }
             }
         }
     }
@@ -649,6 +701,7 @@ pub(super) fn instruction_value_uses(value: &InstructionValue) -> Vec<ValueId> {
             values
         }
         InstructionValue::Project { record, .. } => vec![*record],
+        InstructionValue::Force { accessor } => vec![*accessor],
         InstructionValue::Closure { captures, .. } => captures.to_vec(),
         InstructionValue::Call { function, arguments, .. } => {
             let mut values = vec![*function];
@@ -683,6 +736,13 @@ fn locally_inlineable_values(
                     }
                 }
                 Instruction::RecursiveClosures { bindings } => {
+                    for binding in bindings.iter() {
+                        for capture in binding.captures.iter().copied() {
+                            *function_uses.entry(capture).or_default() += 1;
+                        }
+                    }
+                }
+                Instruction::RecursiveLazyInitializers { bindings } => {
                     for binding in bindings.iter() {
                         for capture in binding.captures.iter().copied() {
                             *function_uses.entry(capture).or_default() += 1;
@@ -827,6 +887,10 @@ impl<'b> EvaluationTracer<'b> {
                 self.expression(*record, EvaluationContext::Eager);
                 self.operation(result, 0);
             }
+            InstructionValue::Force { accessor } => {
+                self.expression(*accessor, EvaluationContext::Eager);
+                self.operation(result, 0);
+            }
             InstructionValue::Closure { captures, .. } => {
                 for capture in captures.iter().copied() {
                     self.expression(capture, EvaluationContext::Eager);
@@ -911,6 +975,11 @@ fn block_evaluation_trace(
             Instruction::RecursiveClosures { bindings } => {
                 for binding in bindings.iter() {
                     tracer.operation(binding.result, 0);
+                }
+            }
+            Instruction::RecursiveLazyInitializers { bindings } => {
+                for binding in bindings.iter() {
+                    tracer.operation(binding.accessor, 0);
                 }
             }
         }

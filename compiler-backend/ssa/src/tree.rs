@@ -178,12 +178,21 @@ pub struct Value {
 pub enum Instruction {
     Assign { result: ValueId, value: InstructionValue },
     RecursiveClosures { bindings: Arc<[RecursiveClosure]> },
+    RecursiveLazyInitializers { bindings: Arc<[LazyInitializer]> },
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RecursiveClosure {
     pub result: ValueId,
     pub function: FunctionId,
+    pub captures: Arc<[ValueId]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct LazyInitializer {
+    pub name: SmolStr,
+    pub accessor: ValueId,
+    pub initializer: FunctionId,
     pub captures: Arc<[ValueId]>,
 }
 
@@ -196,6 +205,7 @@ pub enum InstructionValue {
     Project { record: ValueId, field: Field },
     Constructor { global: Global },
     Global { global: Global },
+    Force { accessor: ValueId },
     Closure { function: FunctionId, captures: Arc<[ValueId]> },
     Call { calling_convention: CallingConvention, function: ValueId, arguments: Arc<[ValueId]> },
     Test { value: ValueId, test: PatternTest },

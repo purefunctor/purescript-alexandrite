@@ -210,6 +210,7 @@ pub enum RecordUpdate {
 pub struct Binding {
     pub parameter: Parameter,
     pub expression: ExpressionId,
+    pub source_order: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
