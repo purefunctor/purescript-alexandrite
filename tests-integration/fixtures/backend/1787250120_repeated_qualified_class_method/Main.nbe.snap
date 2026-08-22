@@ -67,13 +67,13 @@ expression: report
 @export compareSuperclassArraysTwice = \orderedADict%40 ->
   \left%41 right%42 ->
     let
-      eqArrayDict%43 = eqArray orderedADict%40.superclass62
+      eqArrayDict%43 = eqArray orderedADict%40."Eq0"
     in if eqArrayDict%43.eq left%41 right%42 then eqArrayDict%43.eq right%42 left%41 else false
 
 @export compareSuperclassTwice = \orderedADict%44 ->
   \left%45 right%46 ->
-    if orderedADict%44.superclass62.eq left%45 right%46
-      then orderedADict%44.superclass62.eq right%46 left%45
+    if orderedADict%44."Eq0".eq left%45 right%46
+      then orderedADict%44."Eq0".eq right%46 left%45
       else false
 
 @export lambdaScope = \left%47 right%48 ->

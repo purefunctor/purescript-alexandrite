@@ -9,7 +9,7 @@ expression: report
 
 @export instance equalInt1 = { equal: equalInt }
 
-@export instance orderedInt = { superclass17: equalInt1, lessThan: lessThanInt }
+@export instance orderedInt = { "Equal0": equalInt1, lessThan: lessThanInt }
 
 @export genericEqual = \equalADict%0 -> \left%1 right%2 -> equalADict%0.equal left%1 right%2
 
@@ -18,4 +18,4 @@ expression: report
 @export concreteLessThan = orderedInt.lessThan 1 2
 
 @export superclassEqual = \orderedADict%3 ->
-  \left%4 right%5 -> orderedADict%3.superclass17.equal left%4 right%5
+  \left%4 right%5 -> orderedADict%3."Equal0".equal left%4 right%5

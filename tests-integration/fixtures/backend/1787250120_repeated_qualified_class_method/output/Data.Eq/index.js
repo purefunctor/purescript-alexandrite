@@ -31,5 +31,5 @@ export const orderedInt = (() => {
       return true;
     };
   }
-  return { superclass62: eqInt, lessThanOrEqual: orderedInt$initialize$closure };
+  return { Eq0: eqInt, lessThanOrEqual: orderedInt$initialize$closure };
 })();

@@ -7,10 +7,10 @@ export const bindEffect = $foreign["bindEffect"];
 
 export const functorEffect = { map: mapEffect };
 
-export const applyEffect1 = { superclass14: functorEffect, apply: applyEffect };
+export const applyEffect1 = { Functor0: functorEffect, apply: applyEffect };
 
-export const applicativeEffect = { superclass14: applyEffect1, pure: pureEffect };
+export const applicativeEffect = { Apply0: applyEffect1, pure: pureEffect };
 
-export const bindEffect1 = { superclass19: applyEffect1, bind: bindEffect };
+export const bindEffect1 = { Apply0: applyEffect1, bind: bindEffect };
 
-export const monadEffect = { superclass19: applicativeEffect, superclass22: bindEffect1 };
+export const monadEffect = { Applicative0: applicativeEffect, Bind1: bindEffect1 };

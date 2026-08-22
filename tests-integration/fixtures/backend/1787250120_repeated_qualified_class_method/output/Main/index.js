@@ -163,7 +163,7 @@ export function compareSuperclassArraysTwice(orderedADict) {
   function compareSuperclassArraysTwice$closure(orderedADict) {
     return left => {
       return right => {
-        const call = Data_Eq.eqArray(orderedADict.superclass62);
+        const call = Data_Eq.eqArray(orderedADict.Eq0);
         if (call.eq(left)(right)) {
           return call.eq(right)(left);
         } else {
@@ -179,8 +179,8 @@ export function compareSuperclassTwice(orderedADict) {
   function compareSuperclassTwice$closure(orderedADict) {
     return left => {
       return right => {
-        if (orderedADict.superclass62.eq(left)(right)) {
-          return orderedADict.superclass62.eq(right)(left);
+        if (orderedADict.Eq0.eq(left)(right)) {
+          return orderedADict.Eq0.eq(right)(left);
         } else {
           return false;
         }

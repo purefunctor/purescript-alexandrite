@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 265
 expression: ssa_report
 ---
 @export foreign const equalInt;
@@ -19,7 +19,7 @@ expression: ssa_report
   entry() {
     const equalInt1 = global(equalInt1);
     const lessThanInt = global(lessThanInt);
-    const record = { superclass17: equalInt1, lessThan: lessThanInt };
+    const record = { Equal0: equalInt1, lessThan: lessThanInt };
     return record;
   }
 }
@@ -73,8 +73,8 @@ closure genericEqual$closure[equalADict](left, right) {
 
 closure superclassEqual$closure[orderedADict](left, right) {
   entry() {
-    const superclass17 = orderedADict.superclass17;
-    const equal = superclass17.equal;
+    const Equal0 = orderedADict.Equal0;
+    const equal = Equal0.equal;
     const call = source.call(equal, left);
     const call$1 = source.call(call, right);
     return call$1;
