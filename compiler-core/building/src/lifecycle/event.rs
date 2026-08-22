@@ -98,6 +98,7 @@ pub enum ContentAuthority {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LifecycleWarning {
+    LocatorAlreadyOwned { locator: Arc<str>, owner: SourceUnitKey, requested: SourceUnitKey },
     ChangedNonOpen { unit: SourceUnitKey, document: DocumentKind },
     ClosedNonOpen { unit: SourceUnitKey, document: DocumentKind },
     StaleChange { unit: SourceUnitKey, document: DocumentKind },
@@ -108,6 +109,14 @@ pub enum LifecycleWarning {
 impl fmt::Display for LifecycleWarning {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            LifecycleWarning::LocatorAlreadyOwned { locator, owner, requested } => {
+                write!(
+                    formatter,
+                    "ignored lifecycle event for {} because {locator} already belongs to {}",
+                    requested.source(),
+                    owner.source(),
+                )
+            }
             LifecycleWarning::ChangedNonOpen { unit, document } => {
                 write!(formatter, "ignored change for non-open {document:?} {}", unit.source())
             }

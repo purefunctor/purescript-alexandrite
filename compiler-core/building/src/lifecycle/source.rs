@@ -17,9 +17,7 @@ where
     ) -> LifecycleChange {
         let mut source_unit = self.units.remove(&unit).unwrap_or_default();
         let result = self.apply_source_event(engine, &unit, &mut source_unit, event);
-        if !source_unit.is_missing() {
-            self.units.insert(unit, source_unit);
-        }
+        self.store_unit(unit, source_unit);
         result
     }
 

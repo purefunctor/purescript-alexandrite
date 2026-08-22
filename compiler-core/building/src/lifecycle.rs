@@ -19,6 +19,8 @@ pub use event::*;
 #[derive(Debug)]
 pub struct FileLifecycle<Version, Metadata> {
     units: FxHashMap<SourceUnitKey, SourceUnit<Version, Metadata>>,
+    source_owners: FxHashMap<Arc<str>, SourceUnitKey>,
+    foreign_owners: FxHashMap<Arc<str>, SourceUnitKey>,
     source_units: FxHashMap<FileId, SourceUnitKey>,
     source_files: Files,
     foreign_files: ForeignFiles,
@@ -28,6 +30,8 @@ impl<Version, Metadata> Default for FileLifecycle<Version, Metadata> {
     fn default() -> FileLifecycle<Version, Metadata> {
         FileLifecycle {
             units: FxHashMap::default(),
+            source_owners: FxHashMap::default(),
+            foreign_owners: FxHashMap::default(),
             source_units: FxHashMap::default(),
             source_files: Files::default(),
             foreign_files: ForeignFiles::default(),
@@ -108,6 +112,14 @@ where
         engine: &QueryEngine,
         event: LifecycleEvent<Version, Metadata>,
     ) -> LifecycleChange {
+        let unit = match &event {
+            LifecycleEvent::Source { unit, .. } | LifecycleEvent::Foreign { unit, .. } => unit,
+        };
+        if let Some(warning) = self.locator_conflict(unit) {
+            let mut change = LifecycleChange::default();
+            change.warnings.push(warning);
+            return change;
+        }
         match event {
             LifecycleEvent::Source { unit, event } => self.apply_source(engine, unit, event),
             LifecycleEvent::Foreign { unit, event } => self.apply_foreign(engine, unit, event),
@@ -205,6 +217,46 @@ where
 
     pub fn foreign_id(&self, locator: &str) -> Option<ForeignFileId> {
         self.foreign_files.id(locator)
+    }
+
+    fn locator_conflict(&self, unit: &SourceUnitKey) -> Option<LifecycleWarning> {
+        if let Some(owner) = self.source_owners.get(unit.source())
+            && owner != unit
+        {
+            return Some(LifecycleWarning::LocatorAlreadyOwned {
+                locator: Arc::clone(&unit.source),
+                owner: SourceUnitKey::clone(owner),
+                requested: SourceUnitKey::clone(unit),
+            });
+        }
+        if let Some(owner) = self.foreign_owners.get(unit.foreign())
+            && owner != unit
+        {
+            return Some(LifecycleWarning::LocatorAlreadyOwned {
+                locator: Arc::clone(&unit.foreign),
+                owner: SourceUnitKey::clone(owner),
+                requested: SourceUnitKey::clone(unit),
+            });
+        }
+        None
+    }
+
+    fn store_unit(&mut self, unit: SourceUnitKey, source_unit: SourceUnit<Version, Metadata>) {
+        if source_unit.is_missing() {
+            let source_owner = self.source_owners.remove(unit.source());
+            let foreign_owner = self.foreign_owners.remove(unit.foreign());
+            debug_assert!(source_owner.is_none_or(|owner| owner == unit));
+            debug_assert!(foreign_owner.is_none_or(|owner| owner == unit));
+            return;
+        }
+
+        let previous_source_owner =
+            self.source_owners.insert(Arc::clone(&unit.source), SourceUnitKey::clone(&unit));
+        let previous_foreign_owner =
+            self.foreign_owners.insert(Arc::clone(&unit.foreign), SourceUnitKey::clone(&unit));
+        debug_assert!(previous_source_owner.is_none_or(|owner| owner == unit));
+        debug_assert!(previous_foreign_owner.is_none_or(|owner| owner == unit));
+        self.units.insert(unit, source_unit);
     }
 }
 

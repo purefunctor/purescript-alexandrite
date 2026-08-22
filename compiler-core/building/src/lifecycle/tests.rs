@@ -39,6 +39,13 @@ fn foreign_opened(version: i32, content: &str) -> LifecycleEvent<i32, bool> {
     }
 }
 
+fn foreign_disk(content: &str) -> LifecycleEvent<i32, bool> {
+    LifecycleEvent::Foreign {
+        unit: unit(),
+        event: ForeignEvent::DiskObserved { disk: DiskObservation::Found(text(content)) },
+    }
+}
+
 #[test]
 fn open_source_ignores_disk_events_and_rejects_stale_changes() {
     let engine = QueryEngine::default();
@@ -374,4 +381,115 @@ fn foreign_changes_reject_stale_versions_and_recover_retained_content() {
     assert_eq!(files.foreign_authority(&unit()), Some(ContentAuthority::Disk));
     assert_eq!(files.foreign_reload_failure(&unit()), None);
     assert_eq!(engine.foreign_content(foreign_id).unwrap().as_ref(), "export const life = 44;\n");
+}
+
+#[test]
+fn one_source_locator_cannot_belong_to_two_sibling_pairs() {
+    let engine = QueryEngine::default();
+    let mut files = FileLifecycle::default();
+    let original = unit();
+    let conflicting = SourceUnitKey::new(original.source(), "file:///src/Alternate.js");
+
+    files.apply(&engine, source_disk("module Main where\n"));
+    files.apply(&engine, foreign_disk("export const life = 42;\n"));
+    let original_source_id = files.source_id(original.source()).unwrap();
+
+    let event = LifecycleEvent::Source {
+        unit: SourceUnitKey::clone(&conflicting),
+        event: SourceEvent::DiskObserved {
+            disk: DiskObservation::Found(text("module Conflict where\n")),
+            metadata: false,
+        },
+    };
+    let change = files.apply(&engine, event);
+    assert!(matches!(
+        change.warnings(),
+        [LifecycleWarning::LocatorAlreadyOwned { locator, owner, requested }]
+            if locator.as_ref() == original.source()
+                && owner == &original
+                && requested == &conflicting
+    ));
+    assert_eq!(files.source_id(original.source()), Some(original_source_id));
+    assert_eq!(files.foreign_id(conflicting.foreign()), None);
+
+    let event = LifecycleEvent::Source {
+        unit: SourceUnitKey::clone(&original),
+        event: SourceEvent::DiskObserved { disk: DiskObservation::NotFound, metadata: true },
+    };
+    files.apply(&engine, event);
+    let event = LifecycleEvent::Source {
+        unit: SourceUnitKey::clone(&conflicting),
+        event: SourceEvent::DiskObserved {
+            disk: DiskObservation::Found(text("module Conflict where\n")),
+            metadata: false,
+        },
+    };
+    let change = files.apply(&engine, event);
+    assert!(matches!(change.warnings(), [LifecycleWarning::LocatorAlreadyOwned { .. }]));
+
+    let event = LifecycleEvent::Foreign {
+        unit: SourceUnitKey::clone(&original),
+        event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
+    };
+    files.apply(&engine, event);
+    let event = LifecycleEvent::Source {
+        unit: SourceUnitKey::clone(&conflicting),
+        event: SourceEvent::DiskObserved {
+            disk: DiskObservation::Found(text("module Conflict where\n")),
+            metadata: false,
+        },
+    };
+    files.apply(&engine, event);
+    let replacement_source_id = files.source_id(conflicting.source()).unwrap();
+    assert!(replacement_source_id > original_source_id);
+}
+
+#[test]
+fn one_foreign_locator_cannot_belong_to_two_sibling_pairs() {
+    let engine = QueryEngine::default();
+    let mut files = FileLifecycle::default();
+    let original = unit();
+    let conflicting = SourceUnitKey::new("file:///src/Alternate.purs", original.foreign());
+
+    files.apply(&engine, source_disk("module Main where\n"));
+    files.apply(&engine, foreign_disk("export const life = 42;\n"));
+    let original_foreign_id = files.foreign_id(original.foreign()).unwrap();
+
+    let event = LifecycleEvent::Foreign {
+        unit: SourceUnitKey::clone(&conflicting),
+        event: ForeignEvent::DiskObserved {
+            disk: DiskObservation::Found(text("export const conflict = 1;\n")),
+        },
+    };
+    let change = files.apply(&engine, event);
+    assert!(matches!(
+        change.warnings(),
+        [LifecycleWarning::LocatorAlreadyOwned { locator, owner, requested }]
+            if locator.as_ref() == original.foreign()
+                && owner == &original
+                && requested == &conflicting
+    ));
+    assert_eq!(files.foreign_id(original.foreign()), Some(original_foreign_id));
+    assert_eq!(files.source_id(conflicting.source()), None);
+
+    let event = LifecycleEvent::Source {
+        unit: SourceUnitKey::clone(&original),
+        event: SourceEvent::DiskObserved { disk: DiskObservation::NotFound, metadata: true },
+    };
+    files.apply(&engine, event);
+    let event = LifecycleEvent::Foreign {
+        unit: SourceUnitKey::clone(&original),
+        event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
+    };
+    files.apply(&engine, event);
+
+    let event = LifecycleEvent::Foreign {
+        unit: SourceUnitKey::clone(&conflicting),
+        event: ForeignEvent::DiskObserved {
+            disk: DiskObservation::Found(text("export const conflict = 1;\n")),
+        },
+    };
+    files.apply(&engine, event);
+    let replacement_foreign_id = files.foreign_id(conflicting.foreign()).unwrap();
+    assert!(replacement_foreign_id > original_foreign_id);
 }
