@@ -26,10 +26,13 @@ export const eqBoolean = (() => {
 })();
 
 export const orderedInt = (() => {
-  function orderedInt$initialize$closure($int) {
+  function orderedInt$initialize$closure(unit) {
+    return eqInt;
+  }
+  function orderedInt$initialize$closure$1($int) {
     return $int$1 => {
       return true;
     };
   }
-  return { superclass62: eqInt, lessThanOrEqual: orderedInt$initialize$closure };
+  return { Eq0: orderedInt$initialize$closure, lessThanOrEqual: orderedInt$initialize$closure$1 };
 })();

@@ -436,7 +436,9 @@ fn convert_instance_declaration(
             let mut fields = Vec::new();
             for superclass in instance.superclasses.iter() {
                 let expression = evidence_variable(context, superclass.evidence)?;
-                let field = context.superclass_field(superclass.id);
+                let parameter = context.fresh_parameter(SmolStr::new("unit"))?;
+                let expression = context.parameter_abstraction([parameter], expression);
+                let field = context.superclass_field(superclass.id)?;
                 fields.push(RecordField { field, expression });
             }
             for member in members.iter() {
@@ -1013,9 +1015,17 @@ fn convert_evidence(
             }
         }
         Evidence::Superclass { parent, superclass } => {
+            let evidence = context.evidence_key(evidence_id);
+            if let Some(expression) = context.shared_evidence(&evidence)? {
+                return Ok(expression);
+            }
             let record = convert_evidence(context, *parent)?;
-            let field = context.superclass_field(*superclass);
-            Ok(context.expression(ExpressionKind::Project { record, field }))
+            let field = context.superclass_field(*superclass)?;
+            let name = format_smolstr!("{}Dict", field.name);
+            let accessor = context.expression(ExpressionKind::Project { record, field });
+            let unit = context.expression(ExpressionKind::TrivialEvidence);
+            let construction = context.application(accessor, [unit]);
+            context.record_evidence(evidence, construction, name)
         }
         Evidence::Trivial => Ok(context.expression(ExpressionKind::TrivialEvidence)),
         Evidence::Synthesized(evidence) => {
@@ -1435,14 +1445,65 @@ where
         Ok(Field { identity: FieldIdentity::Member(file_id, term_id), name })
     }
 
-    fn superclass_field(&self, superclass: checking::evidence::SuperclassId) -> Field {
+    fn superclass_field(
+        &self,
+        superclass: checking::evidence::SuperclassId,
+    ) -> ConversionResult<Field> {
         let identity = SuperclassIdentity {
             file_id: superclass.file_id,
             class: superclass.type_id,
             source: superclass.source_id,
         };
-        let name = format_smolstr!("superclass{}", superclass.source_id.into_raw().get());
-        Field { identity: FieldIdentity::Superclass(identity), name }
+        let checked = if superclass.file_id == self.file_id {
+            Arc::clone(&self.checked)
+        } else {
+            self.queries.checked(superclass.file_id)?
+        };
+        let declaration = checked.tree.lookup_type_declaration(superclass.type_id);
+        let class = declaration.and_then(|declaration| {
+            let declaration = &checked.tree[declaration];
+            if let checking_tree::TypeDeclarationKind::Class(class) = &declaration.declaration {
+                Some(class)
+            } else {
+                None
+            }
+        });
+        let candidate = class.and_then(|class| {
+            class.superclasses.iter().enumerate().find(|(_, candidate)| candidate.id == superclass)
+        });
+        let (position, base) = match candidate {
+            Some((position, candidate)) => {
+                let base = self.constraint_class_name(candidate.constraint)?;
+                (position, base.unwrap_or_else(|| SmolStr::new("Superclass")))
+            }
+            None => (0, SmolStr::new("Superclass")),
+        };
+        let name = format_smolstr!("{base}{position}");
+        Ok(Field { identity: FieldIdentity::Superclass(identity), name })
+    }
+
+    fn constraint_class_name(&self, constraint: checking::TypeId) -> QueryResult<Option<SmolStr>> {
+        let mut current = constraint;
+        loop {
+            match self.queries.lookup_type(current) {
+                checking::Type::Application(function, _)
+                | checking::Type::KindApplication(function, _)
+                | checking::Type::Kinded(function, _) => current = function,
+                checking::Type::Constructor(file_id, type_id) => {
+                    return self.type_item_name(file_id, type_id);
+                }
+                checking::Type::Forall(_, _)
+                | checking::Type::Constrained(_, _)
+                | checking::Type::Function(_, _)
+                | checking::Type::Row(_)
+                | checking::Type::Rigid(_, _, _)
+                | checking::Type::Integer(_)
+                | checking::Type::String(..)
+                | checking::Type::Unification(_)
+                | checking::Type::Free(_)
+                | checking::Type::Unknown(_) => return Ok(None),
+            }
+        }
     }
 
     fn source_module_name(&self, file_id: FileId) -> QueryResult<SmolStr> {

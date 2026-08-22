@@ -9,6 +9,7 @@ pub struct Module {
     source: Arc<str>,
     dependencies: Arc<[FileId]>,
     requires_foreign: bool,
+    requires_runtime: bool,
 }
 
 impl Module {
@@ -18,6 +19,7 @@ impl Module {
         source: String,
         dependencies: Vec<FileId>,
         requires_foreign: bool,
+        requires_runtime: bool,
     ) -> Module {
         Module {
             file_id,
@@ -25,6 +27,7 @@ impl Module {
             source: source.into(),
             dependencies: dependencies.into(),
             requires_foreign,
+            requires_runtime,
         }
     }
 
@@ -55,6 +58,18 @@ impl Module {
     pub fn requires_foreign(&self) -> bool {
         self.requires_foreign
     }
+
+    pub fn requires_runtime(&self) -> bool {
+        self.requires_runtime
+    }
+}
+
+pub fn runtime_filename() -> &'static str {
+    "runtime.js"
+}
+
+pub fn runtime_source() -> &'static str {
+    include_str!("runtime.js")
 }
 
 pub fn module_filename(module_name: &str) -> String {

@@ -1,0 +1,212 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 265
+expression: ssa_report
+---
+@export constructor Box/1;
+
+@export function liftApplicative(applicativeFunctorDict) {
+  entry() {
+    const closure = closure(liftApplicative$closure, applicativeFunctorDict);
+    return closure;
+  }
+}
+
+@export function applyMonad(monadMonadDict) {
+  entry() {
+    const closure = closure(applyMonad$closure, monadMonadDict);
+    return closure;
+  }
+}
+
+@export instance const functorBox = initialize {
+  entry() {
+    const liftApplicative = global(liftApplicative);
+    const applicativeBox = global(applicativeBox);
+    const call = source.call(liftApplicative, applicativeBox);
+    const record = { map: call };
+    return record;
+  }
+}
+
+@export instance const applyBox = initialize {
+  entry() {
+    const closure = closure(applyBox$initialize$closure);
+    const applyMonad = global(applyMonad);
+    const monadBox = global(monadBox);
+    const call = source.call(applyMonad, monadBox);
+    const record = { Functor0: closure, apply: call };
+    return record;
+  }
+}
+
+@export instance const applicativeBox = initialize {
+  entry() {
+    const closure = closure(applicativeBox$initialize$closure);
+    const Box = constructor(Box);
+    const record = { Apply0: closure, pure: Box };
+    return record;
+  }
+}
+
+@export instance const bindBox = initialize {
+  entry() {
+    const closure = closure(bindBox$initialize$closure);
+    const closure$1 = closure(bindBox$initialize$closure$1);
+    const record = { Apply0: closure, bind: closure$1 };
+    return record;
+  }
+}
+
+@export instance const monadBox = initialize {
+  entry() {
+    const closure = closure(monadBox$initialize$closure);
+    const closure$1 = closure(monadBox$initialize$closure$1);
+    const record = { Applicative0: closure, Bind1: closure$1 };
+    return record;
+  }
+}
+
+@export const result = initialize {
+  entry() {
+    const functorBox = global(functorBox);
+    const map = functorBox.map;
+    const closure = closure(result$initialize$closure);
+    const call = source.call(map, closure);
+    const Box = constructor(Box);
+    const literal = 42;
+    const call$1 = source.call(Box, literal);
+    const call$2 = source.call(call, call$1);
+    case$0();
+  }
+  case$0() {
+    const matches = pattern.constructor(call$2, Box);
+    if (matches) {
+      match$success();
+    } else {
+      case$failure();
+    }
+  }
+  case$failure() {
+    throw patternMatchFailure();
+  }
+  case$join(result) {
+    return result;
+  }
+  match$success() {
+    const value = pattern.argument(call$2, Box, 0);
+    case$join(value);
+  }
+}
+
+closure liftApplicative$closure[applicativeFunctorDict](function, value) {
+  entry() {
+    const Apply0 = applicativeFunctorDict.Apply0;
+    const evidence = evidence.trivial;
+    const call = source.call(Apply0, evidence);
+    const apply = call.apply;
+    const pure = applicativeFunctorDict.pure;
+    const call$1 = source.call(pure, function);
+    const call$2 = source.call(apply, call$1);
+    const call$3 = source.call(call$2, value);
+    return call$3;
+  }
+}
+
+closure applyMonad$closure$closure$closure[monadMonadDict, function](value) {
+  entry() {
+    const Applicative0 = monadMonadDict.Applicative0;
+    const evidence = evidence.trivial;
+    const call = source.call(Applicative0, evidence);
+    const pure = call.pure;
+    const call$1 = source.call(function, value);
+    const call$2 = source.call(pure, call$1);
+    return call$2;
+  }
+}
+
+closure applyMonad$closure$closure[monadMonadDict, values](function) {
+  entry() {
+    const Bind1 = monadMonadDict.Bind1;
+    const evidence = evidence.trivial;
+    const call = source.call(Bind1, evidence);
+    const bind = call.bind;
+    const call$1 = source.call(bind, values);
+    const closure = closure(applyMonad$closure$closure$closure, monadMonadDict, function);
+    const call$2 = source.call(call$1, closure);
+    return call$2;
+  }
+}
+
+closure applyMonad$closure[monadMonadDict](functions, values) {
+  entry() {
+    const Bind1 = monadMonadDict.Bind1;
+    const evidence = evidence.trivial;
+    const call = source.call(Bind1, evidence);
+    const bind = call.bind;
+    const call$1 = source.call(bind, functions);
+    const closure = closure(applyMonad$closure$closure, monadMonadDict, values);
+    const call$2 = source.call(call$1, closure);
+    return call$2;
+  }
+}
+
+closure applyBox$initialize$closure[](unit) {
+  entry() {
+    const functorBox = global(functorBox);
+    return functorBox;
+  }
+}
+
+closure applicativeBox$initialize$closure[](unit) {
+  entry() {
+    const applyBox = global(applyBox);
+    return applyBox;
+  }
+}
+
+closure bindBox$initialize$closure[](unit) {
+  entry() {
+    const applyBox = global(applyBox);
+    return applyBox;
+  }
+}
+
+closure bindBox$initialize$closure$1[]($box, continuation) {
+  entry() {
+    const matches = pattern.constructor($box, Box);
+    if (matches) {
+      match$success();
+    } else {
+      parameter$failure();
+    }
+  }
+  parameter$failure() {
+    throw patternMatchFailure();
+  }
+  match$success() {
+    const value = pattern.argument($box, Box, 0);
+    const call = source.call(continuation, value);
+    return call;
+  }
+}
+
+closure monadBox$initialize$closure[](unit) {
+  entry() {
+    const applicativeBox = global(applicativeBox);
+    return applicativeBox;
+  }
+}
+
+closure monadBox$initialize$closure$1[](unit) {
+  entry() {
+    const bindBox = global(bindBox);
+    return bindBox;
+  }
+}
+
+closure result$initialize$closure[](value) {
+  entry() {
+    return value;
+  }
+}

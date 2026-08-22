@@ -4,9 +4,9 @@ use files::FileId;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    Block, BlockId, BlockTarget, CallingConvention, Function, FunctionId, Global, GlobalIdentity,
-    InstanceIdentity, Instruction, InstructionValue, PatternTest, Projection, RecordUpdate,
-    Terminator, ValueId,
+    Block, BlockId, BlockTarget, CallingConvention, DeclarationKind, Function, FunctionId, Global,
+    GlobalIdentity, InstanceIdentity, Instruction, InstructionValue, PatternTest, Projection,
+    RecordUpdate, Terminator, ValueId,
 };
 
 use super::Generator;
@@ -406,6 +406,120 @@ pub(super) fn function_globals(
         }
     }
     globals
+}
+
+pub(super) fn cyclic_instance_initializers(
+    module: &ssa::tree::Module,
+) -> FxHashSet<GlobalIdentity> {
+    let (identities, dependencies) = initializer_dependencies(module);
+
+    let mut cyclic = FxHashSet::default();
+    for position in 0..identities.len() {
+        let mut visited = FxHashSet::default();
+        if reaches_initializer(position, position, &dependencies, &mut visited) {
+            cyclic.insert(position);
+        }
+    }
+
+    if cyclic
+        .iter()
+        .any(|position| !matches!(identities[*position], GlobalIdentity::Instance { .. }))
+    {
+        // The ordinary initializer sorter retains its deterministic rejection for non-dictionary
+        // cycles instead of exposing partially initialized values through runtime laziness.
+        return FxHashSet::default();
+    }
+
+    cyclic.into_iter().map(|position| identities[position]).collect()
+}
+
+fn initializer_dependencies(module: &ssa::tree::Module) -> (Vec<GlobalIdentity>, Vec<Vec<usize>>) {
+    let values = module.declarations.iter().filter_map(|declaration| match declaration.kind {
+        DeclarationKind::Value { initializer } => Some((declaration.global.identity, initializer)),
+        DeclarationKind::Function { .. }
+        | DeclarationKind::Constructor { .. }
+        | DeclarationKind::Foreign => None,
+    });
+
+    let values = values.collect_vec();
+
+    let positions = values
+        .iter()
+        .enumerate()
+        .map(|(position, (identity, _))| (*identity, position))
+        .collect::<FxHashMap<_, _>>();
+
+    let mut dependencies = vec![Vec::new(); values.len()];
+    for (position, (_, initializer)) in values.iter().enumerate() {
+        // Delayed superclass accessors still belong to the dictionary knot even though creating
+        // their closures does not eagerly initialize the dictionaries they reference.
+        let globals = function_globals_recursive(module, *initializer, &mut FxHashSet::default());
+        for global in globals {
+            if let Some(dependency) = positions.get(&global) {
+                dependencies[position].push(*dependency);
+            }
+        }
+    }
+
+    let identities = values.into_iter().map(|(identity, _)| identity);
+    let identities = identities.collect();
+
+    (identities, dependencies)
+}
+
+fn function_globals_recursive(
+    module: &ssa::tree::Module,
+    function: FunctionId,
+    visited: &mut FxHashSet<FunctionId>,
+) -> FxHashSet<GlobalIdentity> {
+    if !visited.insert(function) {
+        return FxHashSet::default();
+    }
+    let mut globals = FxHashSet::default();
+    for block in module.storage[function].blocks.iter().copied() {
+        for instruction in &module.storage[block].instructions {
+            match instruction {
+                Instruction::Assign { value, .. } => match value {
+                    InstructionValue::Global { global } => {
+                        globals.insert(global.identity);
+                    }
+                    InstructionValue::Closure { function, .. } => {
+                        globals.extend(function_globals_recursive(module, *function, visited));
+                    }
+                    _ => {}
+                },
+                Instruction::RecursiveClosures { bindings } => {
+                    for binding in bindings.iter() {
+                        globals.extend(function_globals_recursive(
+                            module,
+                            binding.function,
+                            visited,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    globals
+}
+
+fn reaches_initializer(
+    start: usize,
+    current: usize,
+    dependencies: &[Vec<usize>],
+    visited: &mut FxHashSet<usize>,
+) -> bool {
+    for dependency in dependencies[current].iter().copied() {
+        if dependency == start {
+            return true;
+        }
+        if visited.insert(dependency)
+            && reaches_initializer(start, dependency, dependencies, visited)
+        {
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Debug, Clone, Copy)]

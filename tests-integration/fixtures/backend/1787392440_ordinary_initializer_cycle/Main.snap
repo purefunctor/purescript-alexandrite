@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 264
+expression: diagnostics_report
+---
+Terms
+first :: Prim.Int
+second :: Prim.Int
+
+Types

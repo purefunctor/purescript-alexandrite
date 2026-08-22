@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 264
+expression: diagnostics_report
+---
+Terms
+Box :: forall @value. value -> Main.Box value
+liftApplicative ::
+  forall (functor :: Prim.Type -> Prim.Type) value result.
+    Control.Applicative.Applicative (functor :: Prim.Type -> Prim.Type) =>
+    (value -> result) ->
+    (functor :: Prim.Type -> Prim.Type) value ->
+    (functor :: Prim.Type -> Prim.Type) result
+applyMonad ::
+  forall (monad :: Prim.Type -> Prim.Type) value result.
+    Control.Monad.Monad (monad :: Prim.Type -> Prim.Type) =>
+    (monad :: Prim.Type -> Prim.Type) (value -> result) ->
+    (monad :: Prim.Type -> Prim.Type) value ->
+    (monad :: Prim.Type -> Prim.Type) result
+result :: Prim.Int
+
+Types
+Box :: Prim.Type -> Prim.Type
+
+Instances
+instance Data.Functor.Functor Main.Box
+instance Control.Apply.Apply Main.Box
+instance Control.Applicative.Applicative Main.Box
+instance Control.Bind.Bind Main.Box
+instance Control.Monad.Monad Main.Box
+
+Roles
+Box = [Representational]

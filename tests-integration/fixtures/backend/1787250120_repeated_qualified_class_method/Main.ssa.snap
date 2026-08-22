@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 269
 expression: ssa_report
 ---
 @export function compareTwice(eqADict) {
@@ -499,8 +499,39 @@ closure distinctGivens$closure[eqADict, eqBDict](leftA, rightA, leftB, rightB) {
 closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
   entry() {
     const eqArray = global(eqArray);
-    const superclass62 = orderedADict.superclass62;
-    const call = source.call(eqArray, superclass62);
+    const Eq0 = orderedADict.Eq0;
+    const evidence = evidence.trivial;
+    const call = source.call(Eq0, evidence);
+    const call$1 = source.call(eqArray, call);
+    const eq = call$1.eq;
+    const call$2 = source.call(eq, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
+      then();
+    } else {
+      else();
+    }
+  }
+  then() {
+    const eq$1 = call$1.eq;
+    const call$4 = source.call(eq$1, right);
+    const call$5 = source.call(call$4, left);
+    if$join(call$5);
+  }
+  else() {
+    const literal = false;
+    if$join(literal);
+  }
+  if$join(result) {
+    return result;
+  }
+}
+
+closure compareSuperclassTwice$closure[orderedADict](left, right) {
+  entry() {
+    const Eq0 = orderedADict.Eq0;
+    const evidence = evidence.trivial;
+    const call = source.call(Eq0, evidence);
     const eq = call.eq;
     const call$1 = source.call(eq, left);
     const call$2 = source.call(call$1, right);
@@ -515,34 +546,6 @@ closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
     const call$3 = source.call(eq$1, right);
     const call$4 = source.call(call$3, left);
     if$join(call$4);
-  }
-  else() {
-    const literal = false;
-    if$join(literal);
-  }
-  if$join(result) {
-    return result;
-  }
-}
-
-closure compareSuperclassTwice$closure[orderedADict](left, right) {
-  entry() {
-    const superclass62 = orderedADict.superclass62;
-    const eq = superclass62.eq;
-    const call = source.call(eq, left);
-    const call$1 = source.call(call, right);
-    if (call$1) {
-      then();
-    } else {
-      else();
-    }
-  }
-  then() {
-    const superclass62$1 = orderedADict.superclass62;
-    const eq$1 = superclass62$1.eq;
-    const call$2 = source.call(eq$1, right);
-    const call$3 = source.call(call$2, left);
-    if$join(call$3);
   }
   else() {
     const literal = false;

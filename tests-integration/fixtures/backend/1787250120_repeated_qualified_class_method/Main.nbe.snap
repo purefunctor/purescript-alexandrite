@@ -67,40 +67,40 @@ expression: report
 @export compareSuperclassArraysTwice = \orderedADict%40 ->
   \left%41 right%42 ->
     let
-      eqArrayDict%43 = eqArray orderedADict%40.superclass62
+      eqArrayDict%43 = eqArray (orderedADict%40."Eq0" <trivial evidence>)
     in if eqArrayDict%43.eq left%41 right%42 then eqArrayDict%43.eq right%42 left%41 else false
 
 @export compareSuperclassTwice = \orderedADict%44 ->
   \left%45 right%46 ->
-    if orderedADict%44.superclass62.eq left%45 right%46
-      then orderedADict%44.superclass62.eq right%46 left%45
-      else false
+    let
+      Eq0Dict%47 = orderedADict%44."Eq0" <trivial evidence>
+    in if Eq0Dict%47.eq left%45 right%46 then Eq0Dict%47.eq right%46 left%45 else false
 
-@export lambdaScope = \left%47 right%48 ->
-  if (eqArray eqInt).eq left%47 right%48
-    then (\lambdaLeft%49 lambdaRight%50 ->
+@export lambdaScope = \left%48 right%49 ->
+  if (eqArray eqInt).eq left%48 right%49
+    then (\lambdaLeft%50 lambdaRight%51 ->
       let
-        eqArrayDict%51 = eqArray eqInt
-      in if eqArrayDict%51.eq lambdaLeft%49 lambdaRight%50
-        then eqArrayDict%51.eq lambdaRight%50 lambdaLeft%49
+        eqArrayDict%52 = eqArray eqInt
+      in if eqArrayDict%52.eq lambdaLeft%50 lambdaRight%51
+        then eqArrayDict%52.eq lambdaRight%51 lambdaLeft%50
         else false)
-      left%47
-      right%48
+      left%48
+      right%49
     else false
 
-@export whereIsolation = \left%53 right%54 ->
+@export whereIsolation = \left%54 right%55 ->
   let
-    helper%52 = \helperLeft%55 helperRight%56 -> (eqArray eqInt).eq helperLeft%55 helperRight%56
-  in if helper%52 left%53 right%54 then (eqArray eqInt).eq left%53 right%54 else false
+    helper%53 = \helperLeft%56 helperRight%57 -> (eqArray eqInt).eq helperLeft%56 helperRight%57
+  in if helper%53 left%54 right%55 then (eqArray eqInt).eq left%54 right%55 else false
 
-@export equationScope = \$boolean%57 $array%58 $array%59 ->
+@export equationScope = \$boolean%58 $array%59 $array%60 ->
   let
-    eqArrayDict%64 = eqArray eqInt
-  in case $boolean%57, $array%58, $array%59 of
-    true, left%60, right%61 ->
-      eqArrayDict%64.eq left%60 right%61
-    false, left%62, right%63 ->
-      eqArrayDict%64.eq right%63 left%62
+    eqArrayDict%65 = eqArray eqInt
+  in case $boolean%58, $array%59, $array%60 of
+    true, left%61, right%62 ->
+      eqArrayDict%65.eq left%61 right%62
+    false, left%63, right%64 ->
+      eqArrayDict%65.eq right%64 left%63
 
 @export firstComparison = eqInt.eq 1 2
 

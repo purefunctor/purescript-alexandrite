@@ -11,4 +11,6 @@ mod tree;
 
 pub use convert::convert_module;
 pub use error::{ModuleError, ModuleResult, UnsupportedState};
-pub use module::{Module, foreign_module_filename, module_filename};
+pub use module::{
+    Module, foreign_module_filename, module_filename, runtime_filename, runtime_source,
+};

@@ -15,7 +15,7 @@ export function superclassEqual(orderedADict) {
   function superclassEqual$closure(orderedADict) {
     return left => {
       return right => {
-        return orderedADict.superclass17.equal(left)(right);
+        return (orderedADict.Equal0({})).equal(left)(right);
       };
     };
   }
@@ -27,7 +27,12 @@ export const lessThanInt = $foreign["lessThanInt"];
 
 export const equalInt1 = { equal: equalInt };
 
-export const orderedInt = { superclass17: equalInt1, lessThan: lessThanInt };
+export const orderedInt = (() => {
+  function orderedInt$initialize$closure(unit) {
+    return equalInt1;
+  }
+  return { Equal0: orderedInt$initialize$closure, lessThan: lessThanInt };
+})();
 
 export const concreteEqual = equalInt1.equal(1 | 0)(2 | 0);
 
