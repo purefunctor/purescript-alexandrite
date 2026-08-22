@@ -24,7 +24,7 @@ use async_lsp::server::LifecycleLayer;
 use async_lsp::{ClientSocket, LanguageClient, ResponseError};
 use building::QueryEngine;
 use building::lifecycle::{
-    AnalysisInvalidation, DiskObservation, DocumentKey, FileLifecycle, ForeignEvent,
+    AnalysisInvalidation, DiskObservation, DocumentKey, DocumentKind, FileLifecycle, ForeignEvent,
     LifecycleChange, LifecycleEvent, ReloadFailure, SourceEvent, SourceUnitKey,
 };
 use files::FileId;
@@ -609,23 +609,22 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
     let Some(content_change) = p.content_changes.last() else {
         return Ok(());
     };
-    let unit = source_unit_from_document_uri(uri)?;
-    let event = if is_javascript_uri(uri) {
-        LifecycleEvent::Foreign {
+    let (document, unit) = source_unit_from_document_uri(uri)?;
+    let event = match document {
+        DocumentKind::Foreign => LifecycleEvent::Foreign {
             unit,
             event: ForeignEvent::Changed {
                 text: Arc::from(content_change.text.as_str()),
                 version: p.text_document.version,
             },
-        }
-    } else {
-        LifecycleEvent::Source {
+        },
+        DocumentKind::Source => LifecycleEvent::Source {
             unit,
             event: SourceEvent::Changed {
                 text: Arc::from(content_change.text.as_str()),
                 version: p.text_document.version,
             },
-        }
+        },
     };
     let change = apply_lifecycle_event(state, event);
     finish_lifecycle_change(state, &change)?;
@@ -639,30 +638,33 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
 
 fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspError> {
     let uri = &p.text_document.uri;
-    let unit = source_unit_from_document_uri(uri)?;
+    let (document, unit) = source_unit_from_document_uri(uri)?;
 
-    let change = if is_javascript_uri(uri) {
-        let event = LifecycleEvent::Foreign {
-            unit,
-            event: ForeignEvent::Opened {
-                text: Arc::from(p.text_document.text.as_str()),
-                version: p.text_document.version,
-            },
-        };
-        apply_lifecycle_event(state, event)
-    } else {
-        let editable = source_editable(state, &unit, uri);
-        let event = LifecycleEvent::Source {
-            unit: SourceUnitKey::clone(&unit),
-            event: SourceEvent::Opened {
-                text: Arc::from(p.text_document.text.as_str()),
-                version: p.text_document.version,
-                metadata: editable,
-            },
-        };
-        let mut change = apply_lifecycle_event(state, event);
-        change.combine(observe_sibling_foreign(state, &unit)?);
-        change
+    let change = match document {
+        DocumentKind::Foreign => {
+            let event = LifecycleEvent::Foreign {
+                unit,
+                event: ForeignEvent::Opened {
+                    text: Arc::from(p.text_document.text.as_str()),
+                    version: p.text_document.version,
+                },
+            };
+            apply_lifecycle_event(state, event)
+        }
+        DocumentKind::Source => {
+            let editable = source_editable(state, &unit, uri);
+            let event = LifecycleEvent::Source {
+                unit: SourceUnitKey::clone(&unit),
+                event: SourceEvent::Opened {
+                    text: Arc::from(p.text_document.text.as_str()),
+                    version: p.text_document.version,
+                    metadata: editable,
+                },
+            };
+            let mut change = apply_lifecycle_event(state, event);
+            change.combine(observe_sibling_foreign(state, &unit)?);
+            change
+        }
     };
     finish_lifecycle_change(state, &change)?;
 
@@ -675,23 +677,26 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
 
 fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), LspError> {
     let uri = p.text_document.uri;
-    let unit = source_unit_from_document_uri(&uri)?;
+    let (document, unit) = source_unit_from_document_uri(&uri)?;
     let disk = observe_disk(&uri);
-    let change = if is_javascript_uri(&uri) {
-        let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
-        apply_lifecycle_event(state, event)
-    } else {
-        let document = DocumentKey::Source(SourceUnitKey::clone(&unit));
-        let was_open = state.files.read().is_open(&document);
-        let event = LifecycleEvent::Source {
-            unit: SourceUnitKey::clone(&unit),
-            event: SourceEvent::Closed { disk },
-        };
-        let mut change = apply_lifecycle_event(state, event);
-        if was_open {
-            change.combine(observe_sibling_foreign(state, &unit)?);
+    let change = match document {
+        DocumentKind::Foreign => {
+            let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
+            apply_lifecycle_event(state, event)
         }
-        change
+        DocumentKind::Source => {
+            let document = DocumentKey::Source(SourceUnitKey::clone(&unit));
+            let was_open = state.files.read().is_open(&document);
+            let event = LifecycleEvent::Source {
+                unit: SourceUnitKey::clone(&unit),
+                event: SourceEvent::Closed { disk },
+            };
+            let mut change = apply_lifecycle_event(state, event);
+            if was_open {
+                change.combine(observe_sibling_foreign(state, &unit)?);
+            }
+            change
+        }
     };
     finish_lifecycle_change(state, &change)?;
     emit_diagnostics_for_change(state, &change)?;
@@ -714,10 +719,14 @@ fn did_change_watched_files(
     let mut source_units = FxHashSet::default();
     let mut foreign_units = FxHashSet::default();
     for change in p.changes {
-        if is_javascript_uri(&change.uri) {
-            foreign_units.insert(source_unit_from_foreign_uri(&change.uri)?);
-        } else if is_purescript_uri(&change.uri) {
-            source_units.insert(source_unit_from_source_uri(&change.uri)?);
+        match document_kind(&change.uri) {
+            Some(DocumentKind::Foreign) => {
+                foreign_units.insert(source_unit_from_foreign_uri(&change.uri)?);
+            }
+            Some(DocumentKind::Source) => {
+                source_units.insert(source_unit_from_source_uri(&change.uri)?);
+            }
+            None => {}
         }
     }
 
@@ -771,20 +780,24 @@ fn did_change_watched_files(
     Ok(())
 }
 
-fn is_javascript_uri(uri: &Url) -> bool {
-    uri.path().ends_with(".js")
-}
-
-fn is_purescript_uri(uri: &Url) -> bool {
-    uri.path().ends_with(".purs")
-}
-
-fn source_unit_from_document_uri(uri: &Url) -> Result<SourceUnitKey, LspError> {
-    if is_javascript_uri(uri) {
-        source_unit_from_foreign_uri(uri)
+fn document_kind(uri: &Url) -> Option<DocumentKind> {
+    if uri.path().ends_with(".js") {
+        Some(DocumentKind::Foreign)
+    } else if uri.path().ends_with(".purs") {
+        Some(DocumentKind::Source)
     } else {
-        source_unit_from_source_uri(uri)
+        None
     }
+}
+
+fn source_unit_from_document_uri(uri: &Url) -> Result<(DocumentKind, SourceUnitKey), LspError> {
+    let document =
+        document_kind(uri).ok_or_else(|| LspError::UnsupportedDocumentUri(Url::clone(uri)))?;
+    let unit = match document {
+        DocumentKind::Source => source_unit_from_source_uri(uri)?,
+        DocumentKind::Foreign => source_unit_from_foreign_uri(uri)?,
+    };
+    Ok((document, unit))
 }
 
 fn file_uri_with_extension(uri: &Url, extension: &str) -> Result<Url, LspError> {
@@ -817,7 +830,7 @@ fn source_unit_from_foreign_uri(foreign_uri: &Url) -> Result<SourceUnitKey, LspE
 }
 
 fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
-    let unit = source_unit_from_document_uri(&uri)?;
+    let (_, unit) = source_unit_from_document_uri(&uri)?;
     event::emit_collect_diagnostics(state, Url::parse(unit.source())?)
 }
 

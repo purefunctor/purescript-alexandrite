@@ -4,14 +4,15 @@ use std::sync::Arc;
 use async_lsp::ResponseError;
 use async_lsp::router::Router;
 use building::lifecycle::{
-    ContentAuthority, DiskObservation, ForeignEvent, LifecycleEvent, SourceEvent, SourceUnitKey,
+    ContentAuthority, DiskObservation, DocumentKind, ForeignEvent, LifecycleEvent, SourceEvent,
+    SourceUnitKey,
 };
 use lsp_types::{DidCloseTextDocumentParams, TextDocumentIdentifier, Url};
 use tempfile::tempdir;
 
 use super::{
-    LspConfig, State, apply_lifecycle_event, did_close, observe_disk, source_unit_from_foreign_uri,
-    source_unit_from_source_uri,
+    LspConfig, State, apply_lifecycle_event, did_close, document_kind, observe_disk,
+    source_unit_from_document_uri, source_unit_from_foreign_uri, source_unit_from_source_uri,
 };
 
 fn test_config() -> Arc<LspConfig> {
@@ -99,6 +100,18 @@ fn localhost_source_and_foreign_uris_keep_the_same_authority() {
 fn non_file_document_uris_are_rejected() {
     let source_uri = Url::parse("untitled:Main.purs").unwrap();
     assert!(source_unit_from_source_uri(&source_uri).is_err());
+}
+
+#[test]
+fn document_kind_is_bounded_to_source_and_foreign_extensions() {
+    let source_uri = Url::parse("file:///workspace/Main.purs").unwrap();
+    let foreign_uri = Url::parse("file:///workspace/Main.js").unwrap();
+    let unsupported_uri = Url::parse("file:///workspace/Main.json").unwrap();
+
+    assert_eq!(document_kind(&source_uri), Some(DocumentKind::Source));
+    assert_eq!(document_kind(&foreign_uri), Some(DocumentKind::Foreign));
+    assert_eq!(document_kind(&unsupported_uri), None);
+    assert!(source_unit_from_document_uri(&unsupported_uri).is_err());
 }
 
 #[test]
