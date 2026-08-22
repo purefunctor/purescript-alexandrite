@@ -52,6 +52,10 @@ fn integer_literal(text: &str, negative: bool) -> Option<i32> {
     if negative { Some(-integer) } else { Some(integer) }
 }
 
+fn number_literal(text: &str) -> SmolStr {
+    text.replace_smolstr("_", "")
+}
+
 fn char_literal(text: &str) -> Option<char> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     if let Some(escaped) = inner.strip_prefix('\\') {
@@ -121,7 +125,7 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderNumber(cst) => {
             let negative = cst.minus_token().is_some();
-            let value = cst.number_token().map(|token| SmolStr::from(token.text(context.source)));
+            let value = cst.number_token().map(|token| number_literal(token.text(context.source)));
             BinderKind::Number { negative, value }
         }
         cst::Binder::BinderConstructor(cst) => {
@@ -521,7 +525,7 @@ fn lower_expression_kind(
         }
         cst::Expression::ExpressionNumber(cst) => {
             let value = child_token(cst.syntax(), SyntaxKind::NUMBER)
-                .map(|token| SmolStr::from(token.text(context.source)));
+                .map(|token| number_literal(token.text(context.source)));
             ExpressionKind::Number { value }
         }
         cst::Expression::ExpressionArray(cst) => {
