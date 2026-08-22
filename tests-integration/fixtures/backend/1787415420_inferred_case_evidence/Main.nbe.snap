@@ -7,6 +7,6 @@ expression: report
   \section33%0 ->
     case section33%0 of
       true ->
-        empty
+        emptyCollectionDict%1.empty
       false ->
-        empty
+        emptyCollectionDict%1.empty

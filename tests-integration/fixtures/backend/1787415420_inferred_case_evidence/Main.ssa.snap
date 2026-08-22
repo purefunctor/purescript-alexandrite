@@ -5,12 +5,12 @@ expression: ssa_report
 ---
 @export function chooseEmpty(emptyCollectionDict) {
   entry() {
-    const closure = closure(chooseEmpty$closure);
+    const closure = closure(chooseEmpty$closure, emptyCollectionDict);
     return closure;
   }
 }
 
-closure chooseEmpty$closure[](section33) {
+closure chooseEmpty$closure[emptyCollectionDict](section33) {
   entry() {
     case$0();
   }
@@ -37,11 +37,11 @@ closure chooseEmpty$closure[](section33) {
     return result;
   }
   match$success() {
-    const empty = global(empty);
+    const empty = emptyCollectionDict.empty;
     case$join(empty);
   }
   match$success$1() {
-    const empty$1 = global(empty);
+    const empty$1 = emptyCollectionDict.empty;
     case$join(empty$1);
   }
 }

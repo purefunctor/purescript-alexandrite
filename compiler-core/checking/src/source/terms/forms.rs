@@ -295,10 +295,8 @@ where
         let guarded_expression = if let Some(guarded_source) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
-                    let checked_guarded =
-                        guarded::infer_guarded_expression(state, context, guarded_source)?;
-                    unification::subtype(state, context, checked_guarded.type_id, expected)?;
-                    checked_guarded.guarded_expression
+                    guarded::subtype_guarded_expression(state, context, guarded_source, expected)?
+                        .guarded_expression
                 }
                 CaseOfMode::Check { .. } => {
                     guarded::check_guarded_expression(state, context, guarded_source, expected)?
