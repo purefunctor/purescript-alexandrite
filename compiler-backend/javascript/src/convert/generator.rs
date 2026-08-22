@@ -200,11 +200,9 @@ impl<'m> Generator<'m> {
                 writer.expression_line(format!("{export}const {name} = "), tree, expression, ";");
             } else {
                 let context = FunctionContext::new(self, function);
-                writer.line(format!("{export}const {name} = (() => {{"));
-                writer.indent();
-                self.render_function_body(tree, writer, function, &context)?;
-                writer.dedent();
-                writer.line("})();");
+                writer.block(format!("{export}const {name} = (() => {{"), "})();", |writer| {
+                    self.render_function_body(tree, writer, function, &context)
+                })?;
             }
             writer.blank();
         }
