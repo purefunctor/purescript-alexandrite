@@ -478,8 +478,8 @@ impl Generator<'_> {
                 let record = context.expression(tree, *record);
                 Ok(project_field(tree, record, field))
             }
-            InstructionValue::Constructor { global } => Ok(self.global_expression(tree, global)),
-            InstructionValue::Global { global } => Ok(self.global_expression(tree, global)),
+            InstructionValue::Constructor { global } => self.global_expression(tree, global),
+            InstructionValue::Global { global } => self.global_expression(tree, global),
             InstructionValue::Closure { function, captures } => {
                 let name = tree.identifier(context.closure(*function));
                 if captures.is_empty() {

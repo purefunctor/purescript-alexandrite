@@ -421,14 +421,19 @@ impl<'m> Generator<'m> {
             .expect("invariant violated: referenced module has no dependency metadata")
     }
 
-    fn global_expression(&self, tree: &mut Tree, global: &Global) -> ExpressionId {
+    fn global_expression(&self, tree: &mut Tree, global: &Global) -> ModuleResult<ExpressionId> {
         let file_id = identity_file(global.identity);
-        if file_id == self.module.file_id {
+        let expression = if file_id == self.module.file_id {
             if let Some(lazy_name) = self.lazy_global_names.get(&global.identity) {
                 let lazy = tree.identifier(lazy_name);
                 tree.call(lazy, vec![])
             } else {
-                tree.identifier(self.global_name(global.identity))
+                let name = self.global_names.get(&global.identity).ok_or_else(|| {
+                    self.unsupported(UnsupportedState::MissingGlobal {
+                        name: global.item_name.to_string(),
+                    })
+                })?;
+                tree.identifier(name)
             }
         } else {
             let namespace = self
@@ -437,7 +442,8 @@ impl<'m> Generator<'m> {
                 .expect("invariant violated: external JavaScript global has no module namespace");
             let namespace = tree.identifier(namespace);
             tree.member(namespace, global.item_name.as_str())
-        }
+        };
+        Ok(expression)
     }
 
     fn unsupported(&self, state: UnsupportedState) -> ModuleError {
