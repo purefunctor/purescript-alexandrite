@@ -1,9 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 268
 expression: diagnostics_report
 ---
 Terms
 mutual :: Prim.Boolean -> Prim.Int
 capturedMutual :: Prim.Int -> Prim.Boolean -> Prim.Int
+nestedRecursive :: Prim.Boolean -> Prim.Int
 
 Types

@@ -1,0 +1,1 @@
+cannot convert functional module Idx::<File>(42) to SSA: local go is not available in the current lexical scope

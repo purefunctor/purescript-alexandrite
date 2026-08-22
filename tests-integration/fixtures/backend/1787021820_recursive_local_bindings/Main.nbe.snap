@@ -34,3 +34,15 @@ expression: report
         false ->
           second%7 true
   in first%5 condition%6
+
+@export nestedRecursive = \condition%12 ->
+  let
+    go%11 = \$boolean%13 ->
+      case $boolean%13 of
+        true ->
+          let
+            nested%14 = go%11 false
+          in nested%14
+        false ->
+          0
+  in go%11 condition%12
