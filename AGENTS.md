@@ -113,19 +113,32 @@ In addition to the core principles, follow the project's existing conventions fo
 
 The following styles are required:
 
-* Always bind an iterator expression to a local variable before collecting or folding it.
+* Always bind an iterator expression to a local variable before folding it.
+* `.collect()` may terminate a fluent iterator chain when the initial expression remains on the
+  `let` line and every fluent call fits on one line. If adding `.collect()` breaks immediately after
+  `=` or any fluent call spans multiple lines, bind the iterator expression to a local variable
+  before collecting it.
 * Use the concrete type name instead of `Self` outside trait definitions and trait implementations.
 * Keep expression complexity to a minimum by using intermediate bindings, but avoid writing A-normal form.
 
 For example:
 
 ```rust
-// Bind iterator expressions before consuming them.
+// Keep collecting fluent when each call fits on one line.
+let collection = source
+    .map(|item| transform(item))
+    .collect();
+
+// Bind before collecting when a fluent call spans multiple lines.
 let collection = source.map(|item| {
     // ...
 });
 
 let collection = collection.collect();
+
+// Bind before collecting rather than breaking immediately after `=`.
+let functional_dependencies = functional_dependencies.iter().map(fd::Fd::from_lowering);
+let functional_dependencies = functional_dependencies.collect();
 
 // Name concrete types in inherent implementations.
 impl Span {
