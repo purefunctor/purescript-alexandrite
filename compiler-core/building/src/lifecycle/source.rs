@@ -111,7 +111,7 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_closed_source(engine, unit, document, disk, &mut change)
+                    self.reconcile_source(engine, unit, document, disk, None, &mut change)
                 }
             }
             (Member::Present(document), SourceEvent::DiskObserved { disk, metadata }) => {
@@ -122,7 +122,7 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_disk_source(engine, unit, document, disk, metadata, &mut change)
+                    self.reconcile_source(engine, unit, document, disk, Some(metadata), &mut change)
                 }
             }
         };
@@ -130,58 +130,21 @@ where
         change
     }
 
-    fn reconcile_closed_source(
+    fn reconcile_source(
         &mut self,
         engine: &QueryEngine,
         unit: &SourceUnitKey,
         mut document: SourceDocument<Version, Metadata>,
         disk: DiskObservation,
+        metadata: Option<Metadata>,
         change: &mut LifecycleChange,
     ) -> Member<SourceDocument<Version, Metadata>> {
         match disk {
             DiskObservation::Found(text) => {
                 let content_changed = self.set_source_content(engine, document.id, &text);
-                document.content = EffectiveContent::Disk { text };
-                change.source_changed(document.id, content_changed);
-                Member::Present(document)
-            }
-            DiskObservation::NotFound => {
-                self.remove_source(engine, unit, document.id);
-                change.analysis = AnalysisInvalidation::Workspace;
-                change.removed_sources.push(RemovedSource {
-                    file_id: document.id,
-                    locator: Arc::clone(&unit.source),
-                });
-                Member::Missing
-            }
-            DiskObservation::Failed(failure) => {
-                let text = Arc::clone(document.content.text());
-                let retained_failure = ReloadFailure::clone(&failure);
-                document.content = EffectiveContent::Retained { text, failure: retained_failure };
-                change.source_changed(document.id, false);
-                change.warnings.push(LifecycleWarning::ReloadFailed {
-                    unit: SourceUnitKey::clone(unit),
-                    document: DocumentKind::Source,
-                    failure,
-                });
-                Member::Present(document)
-            }
-        }
-    }
-
-    fn reconcile_disk_source(
-        &mut self,
-        engine: &QueryEngine,
-        unit: &SourceUnitKey,
-        mut document: SourceDocument<Version, Metadata>,
-        disk: DiskObservation,
-        metadata: Metadata,
-        change: &mut LifecycleChange,
-    ) -> Member<SourceDocument<Version, Metadata>> {
-        match disk {
-            DiskObservation::Found(text) => {
-                let content_changed = self.set_source_content(engine, document.id, &text);
-                document.metadata = metadata;
+                if let Some(metadata) = metadata {
+                    document.metadata = metadata;
+                }
                 document.content = EffectiveContent::Disk { text };
                 change.source_changed(document.id, content_changed);
                 Member::Present(document)

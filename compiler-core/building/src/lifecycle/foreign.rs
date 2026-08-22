@@ -177,21 +177,15 @@ where
         ForeignDocument { id, content: EffectiveContent::Disk { text: Arc::clone(text) } }
     }
 
-    fn set_foreign_content(
-        &mut self,
-        engine: &QueryEngine,
-        id: ForeignFileId,
-        text: &Arc<str>,
-    ) -> bool {
+    fn set_foreign_content(&mut self, engine: &QueryEngine, id: ForeignFileId, text: &Arc<str>) {
         let previous_content = self.foreign_files.content(id);
         if previous_content == *text {
-            return false;
+            return;
         }
         let path = self.foreign_files.path(id);
         let inserted_id = self.foreign_files.insert(path, Arc::clone(text));
         debug_assert_eq!(inserted_id, id);
         engine.set_foreign_content(id, Arc::clone(text));
-        true
     }
 
     fn remove_foreign(&mut self, engine: &QueryEngine, unit: &SourceUnitKey, id: ForeignFileId) {
