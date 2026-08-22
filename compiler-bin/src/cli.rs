@@ -100,7 +100,9 @@ pub struct CompileOptions {
     #[arg(long, value_name("TARGETS"))]
     pub codegen: Option<String>,
 
-    /// Emit machine-readable diagnostics.
+    /// Emit a Spago-compatible JSON result.
+    ///
+    /// Full structured JSON diagnostics are not yet supported.
     #[arg(long)]
     pub json_errors: bool,
 

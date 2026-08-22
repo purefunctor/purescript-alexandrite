@@ -86,11 +86,6 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     }
 
     let modules = generate_modules(&engine, &files, &source_ids)?;
-
-    if config.output.exists() {
-        fs::remove_dir_all(&config.output)?;
-    }
-
     write_modules(&files, &modules, &config.output)?;
 
     Ok(())
