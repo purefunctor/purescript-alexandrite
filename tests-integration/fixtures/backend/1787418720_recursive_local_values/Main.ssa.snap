@@ -1,0 +1,6 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+cannot convert functional module Idx::<File>(42) to SSA: recursive local second is not a function
