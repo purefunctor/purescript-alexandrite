@@ -1,0 +1,29 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export separatedNumber = 4294967295.0
+
+@export separatedNumberParts = 12.34e+02
+
+@export separatedExponent = 12e02
+
+@export separatedUpperExponent = 13E02
+
+@export separatedNegativeExponent = 1400e-02
+
+@export matchesSeparatedNumber = \$number%0 ->
+  case $number%0 of
+    10.05e+02 ->
+      true
+    12e02 ->
+      true
+    13E02 ->
+      true
+    1400e-02 ->
+      true
+    -15.0 ->
+      true
+    _ ->
+      false

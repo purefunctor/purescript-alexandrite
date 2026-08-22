@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 85
+assertion_line: 323
 expression: report
 ---
 module Main
@@ -39,6 +39,11 @@ fallback@20:10
   -> equation@21:7
 4@14:14
   -> integer 4
+
+Number Binders:
+
+-1.5@12:10
+  -> number -1.5
 
 Types:
 

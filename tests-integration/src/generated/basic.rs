@@ -9,7 +9,7 @@ use files::FileId;
 use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
 use lowering::{
-    ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
+    BinderKind, ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
     TypeVariableResolution,
 };
 use syntax::ast::AstNode;
@@ -172,6 +172,16 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                 kind,
             ),
             _ => continue,
+        }
+    }
+
+    let number_binders =
+        tree.iter_binder().filter(|(_, kind)| matches!(kind, BinderKind::Number { .. }));
+    let mut number_binders = number_binders.peekable();
+    if number_binders.peek().is_some() {
+        writeln!(out, "\nNumber Binders:\n").unwrap();
+        for (binder_id, kind) in number_binders {
+            write_number_binder(&content, &stabilized, &module, &mut out, binder_id, kind);
         }
     }
 
@@ -411,6 +421,31 @@ fn write_literal_expression(
             None => writeln!(out, "  -> number (missing)").unwrap(),
         },
         _ => unreachable!("invariant violated: expected literal expression"),
+    }
+}
+
+fn write_number_binder(
+    content: &str,
+    stabilized: &stabilizing::StabilizedModule,
+    module: &cst::Module,
+    out: &mut String,
+    binder_id: lowering::BinderId,
+    kind: &BinderKind,
+) {
+    let cst = stabilized.ast_ptr(binder_id).unwrap();
+    let node = cst.syntax_node_ptr().to_node(module.syntax());
+    let text = node.text(content).to_string();
+    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
+
+    writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
+
+    let BinderKind::Number { negative, value } = kind else {
+        unreachable!("invariant violated: expected number binder")
+    };
+    match (negative, value) {
+        (true, Some(value)) => writeln!(out, "  -> number -{value}").unwrap(),
+        (false, Some(value)) => writeln!(out, "  -> number {value}").unwrap(),
+        (_, None) => writeln!(out, "  -> number (missing)").unwrap(),
     }
 }
 
