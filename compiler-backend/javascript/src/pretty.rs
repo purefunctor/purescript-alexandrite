@@ -243,12 +243,11 @@ pub(crate) fn render_string(value: &str) -> String {
 pub(crate) struct Writer<'a> {
     arena: &'a Arena<'a>,
     lines: Vec<Option<Doc<'a>>>,
-    indentation: usize,
 }
 
 impl<'a> Writer<'a> {
     pub(crate) fn new(arena: &'a Arena<'a>) -> Writer<'a> {
-        Writer { arena, lines: Vec::new(), indentation: 0 }
+        Writer { arena, lines: Vec::new() }
     }
 
     pub(crate) fn line(&mut self, line: impl Into<String>) {
@@ -264,11 +263,48 @@ impl<'a> Writer<'a> {
         suffix: &'static str,
     ) {
         let expression = Printer { arena: self.arena, tree }.expression(expression);
-        let indentation = isize::try_from(self.indentation * 2)
-            .expect("invariant violated: JavaScript writer indentation exceeds address space");
-        let line =
-            self.arena.text(prefix.into()).append(expression.nest(indentation)).append(suffix);
+        let line = self.arena.text(prefix.into()).append(expression).append(suffix);
         self.push_line(line);
+    }
+
+    pub(crate) fn block<R>(
+        &mut self,
+        header: impl Into<String>,
+        footer: &'static str,
+        render: impl FnOnce(&mut Writer<'a>) -> R,
+    ) -> R {
+        let header = self.arena.text(header.into());
+        self.document_block(header, footer, render)
+    }
+
+    pub(crate) fn if_else<E>(
+        &mut self,
+        tree: &mut Tree,
+        condition: ExpressionId,
+        render_then: impl FnOnce(&mut Tree, &mut Writer<'a>) -> Result<(), E>,
+        render_else: impl FnOnce(&mut Tree, &mut Writer<'a>) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut then_writer = Writer::new(self.arena);
+        render_then(tree, &mut then_writer)?;
+        let mut else_writer = Writer::new(self.arena);
+        render_else(tree, &mut else_writer)?;
+
+        let condition = Printer { arena: self.arena, tree }.expression(condition);
+        let then_document = then_writer.document();
+        let else_document = else_writer.document();
+        let document = self
+            .arena
+            .text("if (")
+            .append(condition)
+            .append(") {")
+            .append(self.arena.hardline().append(then_document).nest(2))
+            .append(self.arena.hardline())
+            .append("} else {")
+            .append(self.arena.hardline().append(else_document).nest(2))
+            .append(self.arena.hardline())
+            .append("}");
+        self.push_line(document);
+        Ok(())
     }
 
     pub(crate) fn re_export(&mut self, specifiers: impl IntoIterator<Item = String>, path: &str) {
@@ -290,8 +326,7 @@ impl<'a> Writer<'a> {
     }
 
     fn push_line(&mut self, line: Doc<'a>) {
-        let indentation = "  ".repeat(self.indentation);
-        self.lines.push(Some(self.arena.text(indentation).append(line)));
+        self.lines.push(Some(line));
     }
 
     pub(crate) fn blank(&mut self) {
@@ -300,31 +335,48 @@ impl<'a> Writer<'a> {
         }
     }
 
-    pub(crate) fn indent(&mut self) {
-        self.indentation += 1;
+    fn document_block<R>(
+        &mut self,
+        header: Doc<'a>,
+        footer: &'static str,
+        render: impl FnOnce(&mut Writer<'a>) -> R,
+    ) -> R {
+        let mut writer = Writer::new(self.arena);
+        let result = render(&mut writer);
+        let body = writer.document();
+        let document = header
+            .append(self.arena.hardline().append(body).nest(2))
+            .append(self.arena.hardline())
+            .append(footer);
+        self.push_line(document);
+        result
     }
 
-    pub(crate) fn dedent(&mut self) {
-        self.indentation = self
-            .indentation
-            .checked_sub(1)
-            .expect("invariant violated: JavaScript writer indentation underflow");
-    }
-
-    pub(crate) fn finish(mut self) -> String {
+    fn document(mut self) -> Doc<'a> {
         if self.lines.last().is_some_and(Option::is_none) {
             self.lines.pop();
         }
+        let lines = self.lines.into_iter().map(|line| line.unwrap_or_else(|| self.arena.nil()));
+        self.arena.intersperse(lines, self.arena.hardline())
+    }
+
+    pub(crate) fn finish(self) -> String {
         if self.lines.is_empty() {
             return String::new();
         }
-        let lines = self.lines.into_iter().map(|line| line.unwrap_or_else(|| self.arena.nil()));
-        let document = self.arena.intersperse(lines, self.arena.hardline());
-        let document = document.append(self.arena.hardline());
+        let arena = self.arena;
+        let document = self.document().append(arena.hardline());
         let mut output = String::new();
         document
             .render_fmt(DEFAULT_WIDTH, &mut output)
             .expect("critical failure: failed to render JavaScript module");
-        output
+        // Nested hard lines carry their indentation onto empty lines. Remove that rendering
+        // artifact so generated modules contain no trailing whitespace.
+        let mut normalized = String::with_capacity(output.len());
+        for line in output.lines() {
+            normalized.push_str(line.trim_end());
+            normalized.push('\n');
+        }
+        normalized
     }
 }

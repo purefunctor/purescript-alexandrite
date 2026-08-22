@@ -56,20 +56,26 @@ impl Generator<'_> {
         };
 
         let export = if exported { "export " } else { "" };
-        writer.line(format!("{export}function {name}({}) {{", function_parameters.join(", ")));
-        writer.indent();
-        for parameter in &arrow_parameters {
-            writer.line(format!("return {parameter} => {{"));
-            writer.indent();
-        }
-        self.render_function_body(tree, writer, function, &context)?;
-        for _ in arrow_parameters.iter().rev() {
-            writer.dedent();
-            writer.line("};");
-        }
-        writer.dedent();
-        writer.line("}");
-        Ok(())
+        let header = format!("{export}function {name}({}) {{", function_parameters.join(", "));
+        writer.block(header, "}", |writer| {
+            self.render_curried_function_body(tree, writer, function, &context, &arrow_parameters)
+        })
+    }
+
+    fn render_curried_function_body(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        function: &Function,
+        context: &FunctionContext,
+        parameters: &[String],
+    ) -> ModuleResult<()> {
+        let Some((parameter, parameters)) = parameters.split_first() else {
+            return self.render_function_body(tree, writer, function, context);
+        };
+        writer.block(format!("return {parameter} => {{"), "};", |writer| {
+            self.render_curried_function_body(tree, writer, function, context, parameters)
+        })
     }
 
     pub(super) fn render_function_body(
@@ -116,16 +122,12 @@ impl Generator<'_> {
                 helpers.captures[&block_id].iter().map(|capture| context.value(*capture));
             let parameters = parameters.into_iter().chain(captures);
             let parameters = parameters.collect_vec();
-            writer.line(format!(
-                "function {}({}) {{",
-                context.block(block_id),
-                parameters.join(", ")
-            ));
-            writer.indent();
-            let mut output = RenderingOutput { tree, writer };
-            self.render_acyclic_block(&mut output, block_id, context, control_flow, &helpers)?;
-            writer.dedent();
-            writer.line("}");
+            let header =
+                format!("function {}({}) {{", context.block(block_id), parameters.join(", "));
+            writer.block(header, "}", |writer| {
+                let mut output = RenderingOutput { tree, writer };
+                self.render_acyclic_block(&mut output, block_id, context, control_flow, &helpers)
+            })?;
             writer.blank();
         }
         let mut output = RenderingOutput { tree, writer };
@@ -178,29 +180,32 @@ impl Generator<'_> {
             }
             Terminator::Branch { condition, then_target, else_target } => {
                 let condition = expressions.expression(output.tree, *condition);
-                output.writer.expression_line("if (", output.tree, condition, ") {");
-                output.writer.indent();
-                self.render_acyclic_target(
-                    output,
-                    then_target,
-                    context,
-                    &expressions,
-                    control_flow,
-                    helpers,
+                output.writer.if_else(
+                    output.tree,
+                    condition,
+                    |tree, writer| {
+                        let mut output = RenderingOutput { tree, writer };
+                        self.render_acyclic_target(
+                            &mut output,
+                            then_target,
+                            context,
+                            &expressions,
+                            control_flow,
+                            helpers,
+                        )
+                    },
+                    |tree, writer| {
+                        let mut output = RenderingOutput { tree, writer };
+                        self.render_acyclic_target(
+                            &mut output,
+                            else_target,
+                            context,
+                            &expressions,
+                            control_flow,
+                            helpers,
+                        )
+                    },
                 )?;
-                output.writer.dedent();
-                output.writer.line("} else {");
-                output.writer.indent();
-                self.render_acyclic_target(
-                    output,
-                    else_target,
-                    context,
-                    &expressions,
-                    control_flow,
-                    helpers,
-                )?;
-                output.writer.dedent();
-                output.writer.line("}");
             }
             Terminator::Fail { failure } => self.render_failure(output.writer, *failure),
             Terminator::Unreachable => {
@@ -288,34 +293,46 @@ impl Generator<'_> {
             control_flow.index(function.entry)
         ));
         writer.line(format!("let {} = [];", context.dispatch_arguments));
-        writer.line("while (true) {");
-        writer.indent();
-        writer.line(format!("switch ({}) {{", context.dispatch_block));
-        writer.indent();
-        for block_id in function.blocks.iter().copied() {
-            let block = &self.module.storage[block_id];
-            writer.line(format!("case {}: {{", control_flow.index(block_id)));
-            writer.indent();
-            for (position, parameter) in block.parameters.iter().enumerate() {
-                writer.line(format!(
-                    "{} = {}[{}];",
-                    context.value(*parameter),
-                    context.dispatch_arguments,
-                    position
-                ));
-            }
-            for instruction in &block.instructions {
-                self.render_instruction(tree, writer, instruction, context, context, false)?;
-            }
-            self.render_cyclic_terminator(tree, writer, &block.terminator, context, control_flow);
-            writer.dedent();
-            writer.line("}");
-        }
-        writer.dedent();
-        writer.line("}");
-        writer.dedent();
-        writer.line("}");
-        Ok(())
+        writer.block("while (true) {", "}", |writer| {
+            writer.block(format!("switch ({}) {{", context.dispatch_block), "}", |writer| {
+                for block_id in function.blocks.iter().copied() {
+                    let block = &self.module.storage[block_id];
+                    writer.block(
+                        format!("case {}: {{", control_flow.index(block_id)),
+                        "}",
+                        |writer| -> ModuleResult<()> {
+                            for (position, parameter) in block.parameters.iter().enumerate() {
+                                writer.line(format!(
+                                    "{} = {}[{}];",
+                                    context.value(*parameter),
+                                    context.dispatch_arguments,
+                                    position
+                                ));
+                            }
+                            for instruction in &block.instructions {
+                                self.render_instruction(
+                                    tree,
+                                    writer,
+                                    instruction,
+                                    context,
+                                    context,
+                                    false,
+                                )?;
+                            }
+                            self.render_cyclic_terminator(
+                                tree,
+                                writer,
+                                &block.terminator,
+                                context,
+                                control_flow,
+                            )?;
+                            Ok(())
+                        },
+                    )?;
+                }
+                Ok(())
+            })
+        })
     }
 
     fn render_cyclic_terminator(
@@ -325,7 +342,7 @@ impl Generator<'_> {
         terminator: &Terminator,
         context: &FunctionContext,
         control_flow: &ControlFlow,
-    ) {
+    ) -> ModuleResult<()> {
         match terminator {
             Terminator::Return { value } => {
                 let value = context.expression(tree, *value);
@@ -336,21 +353,25 @@ impl Generator<'_> {
             }
             Terminator::Branch { condition, then_target, else_target } => {
                 let condition = context.expression(tree, *condition);
-                writer.expression_line("if (", tree, condition, ") {");
-                writer.indent();
-                self.render_cyclic_target(tree, writer, then_target, context, control_flow);
-                writer.dedent();
-                writer.line("} else {");
-                writer.indent();
-                self.render_cyclic_target(tree, writer, else_target, context, control_flow);
-                writer.dedent();
-                writer.line("}");
+                writer.if_else(
+                    tree,
+                    condition,
+                    |tree, writer| -> ModuleResult<()> {
+                        self.render_cyclic_target(tree, writer, then_target, context, control_flow);
+                        Ok(())
+                    },
+                    |tree, writer| -> ModuleResult<()> {
+                        self.render_cyclic_target(tree, writer, else_target, context, control_flow);
+                        Ok(())
+                    },
+                )?;
             }
             Terminator::Fail { failure } => self.render_failure(writer, *failure),
             Terminator::Unreachable => {
                 writer.line("throw new Error(\"unreachable SSA block\");");
             }
         }
+        Ok(())
     }
 
     fn render_cyclic_target(
