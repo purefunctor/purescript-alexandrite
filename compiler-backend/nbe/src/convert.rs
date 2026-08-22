@@ -436,6 +436,8 @@ fn convert_instance_declaration(
             let mut fields = Vec::new();
             for superclass in instance.superclasses.iter() {
                 let expression = evidence_variable(context, superclass.evidence)?;
+                let parameter = context.fresh_parameter(SmolStr::new("unit"))?;
+                let expression = context.parameter_abstraction([parameter], expression);
                 let field = context.superclass_field(superclass.id)?;
                 fields.push(RecordField { field, expression });
             }
@@ -1013,9 +1015,17 @@ fn convert_evidence(
             }
         }
         Evidence::Superclass { parent, superclass } => {
+            let evidence = context.evidence_key(evidence_id);
+            if let Some(expression) = context.shared_evidence(&evidence)? {
+                return Ok(expression);
+            }
             let record = convert_evidence(context, *parent)?;
             let field = context.superclass_field(*superclass)?;
-            Ok(context.expression(ExpressionKind::Project { record, field }))
+            let name = format_smolstr!("{}Dict", field.name);
+            let accessor = context.expression(ExpressionKind::Project { record, field });
+            let unit = context.expression(ExpressionKind::TrivialEvidence);
+            let construction = context.application(accessor, [unit]);
+            context.record_evidence(evidence, construction, name)
         }
         Evidence::Trivial => Ok(context.expression(ExpressionKind::TrivialEvidence)),
         Evidence::Synthesized(evidence) => {

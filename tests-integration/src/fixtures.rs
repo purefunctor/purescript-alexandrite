@@ -53,6 +53,10 @@ struct JavaScriptModules {
 
 impl JavaScriptModules {
     fn write_to(&self, files: &Files, output: &Path) -> FixtureResult {
+        if self.modules.iter().any(|module| module.requires_runtime()) {
+            let runtime = output.join(javascript::runtime_filename());
+            std::fs::write(runtime, javascript::runtime_source())?;
+        }
         for module in &self.modules {
             let output_path = output.join(module.filename());
             let output_parent = output_path.parent().expect("module filename has no parent");

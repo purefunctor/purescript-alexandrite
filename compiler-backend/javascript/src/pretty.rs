@@ -267,6 +267,20 @@ impl<'a> Writer<'a> {
         self.push_line(line);
     }
 
+    pub(crate) fn expression_block<R>(
+        &mut self,
+        prefix: impl Into<String>,
+        tree: &mut Tree,
+        expression: ExpressionId,
+        suffix: &'static str,
+        footer: &'static str,
+        render: impl FnOnce(&mut Tree, &mut Writer<'a>) -> R,
+    ) -> R {
+        let expression = Printer { arena: self.arena, tree }.expression(expression);
+        let header = self.arena.text(prefix.into()).append(expression).append(suffix);
+        self.document_block(header, footer, |writer| render(tree, writer))
+    }
+
     pub(crate) fn block<R>(
         &mut self,
         header: impl Into<String>,

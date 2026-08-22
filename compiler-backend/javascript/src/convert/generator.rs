@@ -15,14 +15,14 @@ use ssa::tree::{
 };
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
-use crate::module::{Module, module_filename};
+use crate::module::{Module, module_filename, runtime_filename};
 use crate::pretty::Writer;
 use crate::tree::{ExpressionId, Tree};
 
 use self::analysis::{
     FunctionContext, InlineExpressionContext, VisitState, collect_module_references,
-    function_globals, identity_file, initializer_value_is_inlineable, instruction_value_uses,
-    visit_initializer,
+    cyclic_instance_initializers, function_globals, identity_file, initializer_value_is_inlineable,
+    instruction_value_uses, visit_initializer,
 };
 use self::names::NameAllocator;
 use self::syntax::constructor_expression;
@@ -33,6 +33,8 @@ pub(super) struct Generator<'m> {
     external_module_namespaces: FxHashMap<FileId, String>,
     external_references: Vec<&'m Global>,
     foreign_namespace: Option<String>,
+    runtime_namespace: Option<String>,
+    lazy_global_names: FxHashMap<GlobalIdentity, String>,
     reserved_module_names: FxHashSet<String>,
 }
 
@@ -65,6 +67,14 @@ impl<'m> Generator<'m> {
             .iter()
             .any(|declaration| matches!(declaration.kind, DeclarationKind::Foreign));
         let foreign_namespace = has_foreign.then(|| allocator.allocate("$foreign"));
+        let lazy_globals = cyclic_instance_initializers(module);
+        let runtime_namespace = (!lazy_globals.is_empty()).then(|| allocator.allocate("$runtime"));
+        let lazy_global_names = lazy_globals.into_iter().map(|identity| {
+            let global_name = &global_names[&identity];
+            let lazy_name = allocator.allocate(&format!("$lazy_{global_name}"));
+            (identity, lazy_name)
+        });
+        let lazy_global_names = lazy_global_names.collect();
         let reserved_module_names = allocator.allocated_names().cloned();
         let reserved_module_names = reserved_module_names.collect();
 
@@ -74,6 +84,8 @@ impl<'m> Generator<'m> {
             external_module_namespaces,
             external_references,
             foreign_namespace,
+            runtime_namespace,
+            lazy_global_names,
             reserved_module_names,
         }
     }
@@ -86,19 +98,51 @@ impl<'m> Generator<'m> {
         self.render_constructors(&mut tree, &mut writer);
         self.render_source_functions(&mut tree, &mut writer)?;
         self.render_foreign_declarations(&mut tree, &mut writer);
+        self.render_lazy_initializers(&mut tree, &mut writer)?;
         self.render_value_declarations(&mut tree, &mut writer)?;
         self.render_exports(&mut writer);
 
         let dependencies = self.module.dependencies.iter().map(|dependency| dependency.file_id);
         let dependencies = dependencies.collect_vec();
         let requires_foreign = self.foreign_namespace.is_some();
+        let requires_runtime = self.runtime_namespace.is_some();
         Ok(Module::new(
             self.module.file_id,
             self.module.name.to_string(),
             writer.finish(),
             dependencies,
             requires_foreign,
+            requires_runtime,
         ))
+    }
+
+    fn render_lazy_initializers(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+    ) -> ModuleResult<()> {
+        let Some(runtime) = &self.runtime_namespace else { return Ok(()) };
+        for declaration in self.module.declarations.iter() {
+            let Some(lazy_name) = self.lazy_global_names.get(&declaration.global.identity) else {
+                continue;
+            };
+            let DeclarationKind::Value { initializer } = declaration.kind else {
+                unreachable!("invariant violated: lazy JavaScript declaration is not a value")
+            };
+            let name = tree.string(declaration.global.item_name.as_str());
+            let function = &self.module.storage[initializer];
+            let context = FunctionContext::new(self, function);
+            writer.expression_block(
+                format!("const {lazy_name} = {runtime}.binding("),
+                tree,
+                name,
+                ", () => {",
+                "});",
+                |tree, writer| self.render_function_body(tree, writer, function, &context),
+            )?;
+            writer.blank();
+        }
+        Ok(())
     }
 
     fn render_imports(&self, tree: &mut Tree, writer: &mut Writer<'_>) {
@@ -117,7 +161,13 @@ impl<'m> Generator<'m> {
         if let Some(namespace) = &self.foreign_namespace {
             writer.line(format!("import * as {namespace} from \"./foreign.js\";"));
         }
-        if !self.external_references.is_empty() || self.foreign_namespace.is_some() {
+        if let Some(namespace) = &self.runtime_namespace {
+            writer.line(format!("import * as {namespace} from \"../{}\";", runtime_filename()));
+        }
+        if !self.external_references.is_empty()
+            || self.foreign_namespace.is_some()
+            || self.runtime_namespace.is_some()
+        {
             writer.blank();
         }
     }
@@ -196,6 +246,11 @@ impl<'m> Generator<'m> {
             let name = self.global_name(declaration.global.identity);
             let export =
                 if self.declaration_is_inline_exported(declaration) { "export " } else { "" };
+            if let Some(lazy_name) = self.lazy_global_names.get(&declaration.global.identity) {
+                writer.line(format!("{export}const {name} = {lazy_name}();"));
+                writer.blank();
+                continue;
+            }
             if let Some(expression) = self.initializer_expression(tree, function)? {
                 writer.expression_line(format!("{export}const {name} = "), tree, expression, ";");
             } else {
@@ -327,6 +382,13 @@ impl<'m> Generator<'m> {
             };
             for dependency in function_globals(self.module, initializer) {
                 if let Some(dependency) = positions.get(&dependency) {
+                    let source_is_lazy =
+                        self.lazy_global_names.contains_key(&declaration.global.identity);
+                    let dependency_is_lazy =
+                        self.lazy_global_names.contains_key(&values[*dependency].global.identity);
+                    if source_is_lazy && dependency_is_lazy {
+                        continue;
+                    }
                     dependencies[position].push(*dependency);
                 }
             }
@@ -362,7 +424,12 @@ impl<'m> Generator<'m> {
     fn global_expression(&self, tree: &mut Tree, global: &Global) -> ExpressionId {
         let file_id = identity_file(global.identity);
         if file_id == self.module.file_id {
-            tree.identifier(self.global_name(global.identity))
+            if let Some(lazy_name) = self.lazy_global_names.get(&global.identity) {
+                let lazy = tree.identifier(lazy_name);
+                tree.call(lazy, vec![])
+            } else {
+                tree.identifier(self.global_name(global.identity))
+            }
         } else {
             let namespace = self
                 .external_module_namespaces
