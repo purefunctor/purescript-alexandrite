@@ -1,11 +1,12 @@
 use std::collections::hash_map::Entry;
 
 use analyzer::diagnostics::CollectedDiagnostics;
-use async_lsp::LanguageClient;
+use async_lsp::{ClientSocket, LanguageClient};
 use building::lifecycle::{AnalysisInvalidation, FileLifecycle, LifecycleChange};
 use files::FileId;
 use lsp_types::{PublishDiagnosticsParams, Url};
 use rustc_hash::FxHashMap;
+use tokio::task;
 
 use crate::lsp::error::LspError;
 use crate::lsp::{State, StateSnapshot};
@@ -150,26 +151,45 @@ pub fn collect_diagnostics(
 }
 
 fn start_diagnostics(state: &State, ticket: DiagnosticTicket) {
-    state.spawn(move |snapshot| {
+    let worker = state.spawn(move |snapshot| {
         let _span = tracing::info_span!("collect_diagnostics").entered();
-        collect_diagnostics_core(snapshot, ticket);
+        collect_diagnostics_core(snapshot, ticket)
+    });
+    let client = ClientSocket::clone(&state.client);
+    task::spawn(async move {
+        let collected = await_diagnostics(worker).await;
+        let event = DiagnosticsFinished { ticket, collected };
+        if let Err(error) = client.emit(event) {
+            LspError::from(error).emit_trace();
+        }
     });
 }
 
-fn collect_diagnostics_core(snapshot: StateSnapshot, ticket: DiagnosticTicket) {
+fn collect_diagnostics_core(
+    snapshot: StateSnapshot,
+    ticket: DiagnosticTicket,
+) -> Option<CollectedDiagnostics> {
     let result = snapshot.with_analyzer_context(|context| {
         analyzer::diagnostics::implementation(context, ticket.file_id)
     });
-    let collected = match result {
+    match result {
         Ok(collected) => Some(collected),
         Err(error) => {
             LspError::from(error).emit_trace();
             None
         }
-    };
-    let event = DiagnosticsFinished { ticket, collected };
-    if let Err(error) = snapshot.client.emit(event) {
-        LspError::from(error).emit_trace();
+    }
+}
+
+async fn await_diagnostics(
+    worker: task::JoinHandle<Option<CollectedDiagnostics>>,
+) -> Option<CollectedDiagnostics> {
+    match worker.await {
+        Ok(collected) => collected,
+        Err(error) => {
+            LspError::JoinError(error).emit_trace();
+            None
+        }
     }
 }
 
@@ -215,7 +235,7 @@ mod tests {
     };
     use files::Files;
 
-    use super::DiagnosticScheduler;
+    use super::{DiagnosticScheduler, await_diagnostics};
 
     fn file_id() -> files::FileId {
         let mut files = Files::default();
@@ -280,5 +300,16 @@ mod tests {
         scheduler.invalidate(&change, &lifecycle);
 
         assert!(!scheduler.is_current(ticket));
+    }
+
+    #[tokio::test]
+    async fn failed_diagnostics_worker_returns_no_result() {
+        let worker = tokio::spawn(async {
+            panic!("diagnostics worker failed");
+            #[allow(unreachable_code)]
+            None
+        });
+
+        assert!(await_diagnostics(worker).await.is_none());
     }
 }

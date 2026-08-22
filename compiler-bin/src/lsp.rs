@@ -136,7 +136,6 @@ impl State {
         T: Send + 'static,
     {
         let snapshot = StateSnapshot {
-            client: ClientSocket::clone(&self.client),
             engine: self.engine.snapshot(),
             files: Arc::clone(&self.files),
             workspace_symbols_cache: Arc::clone(&self.workspace_symbols_cache),
@@ -159,7 +158,6 @@ impl State {
 }
 
 struct StateSnapshot {
-    client: ClientSocket,
     engine: QueryEngine,
     files: Arc<RwLock<FileLifecycle<i32, bool>>>,
     workspace_symbols_cache: Arc<RwLock<WorkspaceSymbolsCache>>,
