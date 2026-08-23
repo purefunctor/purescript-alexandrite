@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+Wrapper :: forall @a. a -> Main.Wrapper a
+unwrap :: forall a. Main.Wrapper a -> a
+
+Types
+Wrapper :: Prim.Type -> Prim.Type
+
+Instances
+instance forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Wrapper a)
+
+Roles
+Wrapper = [Representational]

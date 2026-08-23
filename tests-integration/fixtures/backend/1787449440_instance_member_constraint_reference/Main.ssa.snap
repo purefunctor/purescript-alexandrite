@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export function unwrap(value) {
+  entry() {
+    return value;
+  }
+}
+
+@export instance function eqWrapper(eqADict) {
+  entry() {
+    const on = global(on);
+    const eq = global(eq);
+    const call = source.call(on, eq);
+    const unwrap = global(unwrap);
+    const call$1 = source.call(call, unwrap);
+    const record = { eq: call$1 };
+    return record;
+  }
+}
