@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export const direct = initialize {
+  entry() {
+    const literal = 42;
+    return literal;
+  }
+}
+
+@export function firstClass(value) {
+  entry() {
+    return value;
+  }
+}
+
+@export const indirect = initialize {
+  entry() {
+    const firstClass = global(firstClass);
+    const literal = 43;
+    const call = source.call(firstClass, literal);
+    return call;
+  }
+}

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+direct :: Main.Identity Prim.Int
+firstClass :: forall a. a -> Main.Identity a
+indirect :: Main.Identity Prim.Int
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Roles
+Identity = [Representational]

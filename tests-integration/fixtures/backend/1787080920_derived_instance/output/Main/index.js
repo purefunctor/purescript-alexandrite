@@ -25,9 +25,4 @@ export const eqBox = (() => {
 
 export const equal = eqBox.eq(Box)(Box);
 
-export const rendered = (() => {
-  function rendered$initialize$closure(value) {
-    return value;
-  }
-  return (showIdentity(Data_Show.showInt)).show(rendered$initialize$closure(42 | 0));
-})();
+export const rendered = (showIdentity(Data_Show.showInt)).show(42 | 0);

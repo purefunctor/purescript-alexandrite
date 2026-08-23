@@ -34,12 +34,7 @@ export const newtypeTypeIdentifierInt = (() => {
   return { Coercible0: newtypeTypeIdentifierInt$initialize$closure };
 })();
 
-export const wrapped = (() => {
-  function wrapped$initialize$closure(value) {
-    return value;
-  }
-  return wrapped$initialize$closure(42 | 0);
-})();
+export const wrapped = 42 | 0;
 
 export const unwrapped = Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
 
@@ -109,41 +104,14 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
       return Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(Data_Generic_Rep.NoArguments));
     } else {
       if (Array.isArray(value) && value[0] === "Single") {
-        function genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure(value) {
-          return value;
-        }
-        return Data_Generic_Rep.Inr(
-          Data_Generic_Rep.Inl(
-            Data_Generic_Rep.Constructor(
-              genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure(
-                value[1]
-              )
-            )
-          )
-        );
+        return Data_Generic_Rep.Inr(Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(value[1])));
       } else {
         if (Array.isArray(value) && value[0] === "Pair") {
           const field0$1 = value[1];
           const field1 = value[2];
-          function genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1(value) {
-            return value;
-          }
-          function genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2(value) {
-            return value;
-          }
           return Data_Generic_Rep.Inr(
             Data_Generic_Rep.Inr(
-              Data_Generic_Rep.Constructor(
-                Data_Generic_Rep.Product(
-                  genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1(
-                    field0$1
-                  )
-                )(
-                  genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2(
-                    field1
-                  )
-                )
-              )
+              Data_Generic_Rep.Constructor(Data_Generic_Rep.Product(field0$1)(field1))
             )
           );
         } else {
