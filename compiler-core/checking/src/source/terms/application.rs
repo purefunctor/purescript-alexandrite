@@ -444,7 +444,7 @@ where
             let unknown = context.unknown("invalid function application");
             return Ok(super::allocate_error_expression(state, unknown));
         };
-        unification::subtype(state, context, infix.type_id, argument)?;
+        infix = subtype_expression(state, context, infix, argument)?;
         let applied_tick = materialize_application(state, tick, implicit, result, infix);
 
         let Some(UnanchoredApplication { implicit, argument, result }) =
