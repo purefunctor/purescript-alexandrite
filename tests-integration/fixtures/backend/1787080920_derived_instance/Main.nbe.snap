@@ -17,4 +17,4 @@ expression: report
 
 @export instance showIdentity = \showADict%2 -> showADict%2
 
-@export rendered = (showIdentity showInt).show ((\value%3 -> value%3) 42)
+@export rendered = (showIdentity showInt).show 42

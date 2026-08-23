@@ -13,10 +13,8 @@ expression: ssa_report
 
 @export const wrapped = initialize {
   entry() {
-    const closure = closure(wrapped$initialize$closure);
     const literal = 42;
-    const call = source.call(closure, literal);
-    return call;
+    return literal;
   }
 }
 
@@ -104,12 +102,6 @@ closure newtypeTypeIdentifierInt$initialize$closure[](unit) {
   entry() {
     const evidence = evidence.trivial;
     return evidence;
-  }
-}
-
-closure wrapped$initialize$closure[](value) {
-  entry() {
-    return value;
   }
 }
 
@@ -231,27 +223,6 @@ closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstruct
   }
 }
 
-closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure[
-](value) {
-  entry() {
-    return value;
-  }
-}
-
-closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1[
-](value) {
-  entry() {
-    return value;
-  }
-}
-
-closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2[
-](value) {
-  entry() {
-    return value;
-  }
-}
-
 closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1[
 ](value) {
   entry() {
@@ -300,12 +271,10 @@ closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstruct
     const Inr = constructor(Inr);
     const Inl$1 = constructor(Inl);
     const Constructor$1 = constructor(Constructor);
-    const closure = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure);
-    const call$2 = source.call(closure, field0);
-    const call$3 = source.call(Constructor$1, call$2);
-    const call$4 = source.call(Inl$1, call$3);
-    const call$5 = source.call(Inr, call$4);
-    case$join(call$5);
+    const call$2 = source.call(Constructor$1, field0);
+    const call$3 = source.call(Inl$1, call$2);
+    const call$4 = source.call(Inr, call$3);
+    case$join(call$4);
   }
   match$success$2() {
     const field0$1 = pattern.argument(value, Pair, 0);
@@ -314,16 +283,12 @@ closure genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstruct
     const Inr$2 = constructor(Inr);
     const Constructor$2 = constructor(Constructor);
     const Product = constructor(Product);
-    const closure$1 = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$1);
-    const call$6 = source.call(closure$1, field0$1);
-    const call$7 = source.call(Product, call$6);
-    const closure$2 = closure(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1$closure$2);
-    const call$8 = source.call(closure$2, field1);
-    const call$9 = source.call(call$7, call$8);
-    const call$10 = source.call(Constructor$2, call$9);
-    const call$11 = source.call(Inr$2, call$10);
-    const call$12 = source.call(Inr$1, call$11);
-    case$join(call$12);
+    const call$5 = source.call(Product, field0$1);
+    const call$6 = source.call(call$5, field1);
+    const call$7 = source.call(Constructor$2, call$6);
+    const call$8 = source.call(Inr$2, call$7);
+    const call$9 = source.call(Inr$1, call$8);
+    case$join(call$9);
   }
 }
 

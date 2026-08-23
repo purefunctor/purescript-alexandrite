@@ -728,6 +728,14 @@ fn convert_expression(
             ExpressionKind::Local { parameter }
         }
         checking_tree::ExpressionKind::TermApplication { function, argument } => {
+            if let checking_tree::ExpressionKind::Constructor { resolution } =
+                &checked.tree[*function].kind
+            {
+                let &(file_id, term_id) = resolution;
+                if context.constructor_is_newtype(file_id, term_id)? {
+                    return convert_expression(context, *argument);
+                }
+            }
             let function = convert_expression(context, *function)?;
             let argument = convert_expression(context, *argument)?;
             return Ok(context.application(function, [argument]));

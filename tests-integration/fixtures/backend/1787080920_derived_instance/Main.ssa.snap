@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 269
 expression: ssa_report
 ---
 @export constructor Box/0;
@@ -37,11 +37,9 @@ expression: ssa_report
     const showInt = global(showInt);
     const call = source.call(showIdentity, showInt);
     const show = call.show;
-    const closure = closure(rendered$initialize$closure);
     const literal = 42;
-    const call$1 = source.call(closure, literal);
-    const call$2 = source.call(show, call$1);
-    return call$2;
+    const call$1 = source.call(show, literal);
+    return call$1;
   }
 }
 
@@ -74,11 +72,5 @@ closure eqBox$initialize$closure[](left, right) {
   match$success$1() {
     const literal = true;
     case$join(literal);
-  }
-}
-
-closure rendered$initialize$closure[](value) {
-  entry() {
-    return value;
   }
 }
