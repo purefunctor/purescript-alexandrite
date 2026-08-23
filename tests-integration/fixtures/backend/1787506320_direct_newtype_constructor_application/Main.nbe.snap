@@ -1,0 +1,10 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export direct = (\value%0 -> value%0) 42
+
+@export firstClass = \value%1 -> value%1
+
+@export indirect = firstClass 43
