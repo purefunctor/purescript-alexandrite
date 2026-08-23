@@ -3,9 +3,9 @@ use std::iter;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    BlockId, BlockTarget, Failure, Function, FunctionId, Instruction, InstructionValue,
-    LazyInitializer, PatternTest, RecordUpdate, RecursiveClosure, ReflectableEvidence,
-    ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
+    BlockId, BlockTarget, CallingConvention, Failure, Function, FunctionId, Instruction,
+    InstructionValue, LazyInitializer, PatternTest, RecordUpdate, RecursiveClosure,
+    ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
 };
 
 use super::Generator;
@@ -46,6 +46,12 @@ impl Generator<'_> {
         let parameters =
             function.parameters.iter().map(|parameter| context.value(*parameter).to_owned());
         let parameters = parameters.collect_vec();
+        let returns_zero_parameter_closure = !captures.is_empty()
+            && parameters.is_empty()
+            && matches!(
+                function.calling_convention,
+                CallingConvention::Source | CallingConvention::Effect
+            );
         let (function_parameters, arrow_parameters) = if captures.is_empty() {
             match parameters.split_first() {
                 Some((first, rest)) => (vec![first.clone()], rest.to_vec()),
@@ -58,7 +64,19 @@ impl Generator<'_> {
         let export = if exported { "export " } else { "" };
         let header = format!("{export}function {name}({}) {{", function_parameters.join(", "));
         writer.block(header, "}", |writer| {
-            self.render_curried_function_body(tree, writer, function, &context, &arrow_parameters)
+            if returns_zero_parameter_closure {
+                writer.block("return () => {", "};", |writer| {
+                    self.render_function_body(tree, writer, function, &context)
+                })
+            } else {
+                self.render_curried_function_body(
+                    tree,
+                    writer,
+                    function,
+                    &context,
+                    &arrow_parameters,
+                )
+            }
         })
     }
 
@@ -240,10 +258,6 @@ impl Generator<'_> {
         }
 
         let function = &self.module.storage[function_id];
-        assert!(
-            !function.parameters.is_empty(),
-            "invariant violated: SSA closure has no source parameters"
-        );
         assert_eq!(
             function.blocks.first(),
             Some(&function.entry),
@@ -299,9 +313,13 @@ impl Generator<'_> {
             "invariant violated: inline JavaScript closure expression was not consumed"
         );
 
-        for parameter in function.parameters.iter().rev() {
-            let parameter = context.value(*parameter).to_owned();
-            expression = tree.arrow(vec![parameter], expression);
+        if function.parameters.is_empty() {
+            expression = tree.arrow(vec![], expression);
+        } else {
+            for parameter in function.parameters.iter().rev() {
+                let parameter = context.value(*parameter).to_owned();
+                expression = tree.arrow(vec![parameter], expression);
+            }
         }
         Ok(Some(expression))
     }

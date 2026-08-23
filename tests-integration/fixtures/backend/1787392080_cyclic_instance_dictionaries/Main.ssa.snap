@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 265
+assertion_line: 269
 expression: ssa_report
 ---
 @export constructor Box/1;
@@ -102,8 +102,7 @@ expression: ssa_report
 closure liftApplicative$closure[applicativeFunctorDict](function, value) {
   entry() {
     const Apply0 = applicativeFunctorDict.Apply0;
-    const evidence = evidence.trivial;
-    const call = source.call(Apply0, evidence);
+    const call = source.call(Apply0);
     const apply = call.apply;
     const pure = applicativeFunctorDict.pure;
     const call$1 = source.call(pure, function);
@@ -116,8 +115,7 @@ closure liftApplicative$closure[applicativeFunctorDict](function, value) {
 closure applyMonad$closure$closure$closure[monadMonadDict, function](value) {
   entry() {
     const Applicative0 = monadMonadDict.Applicative0;
-    const evidence = evidence.trivial;
-    const call = source.call(Applicative0, evidence);
+    const call = source.call(Applicative0);
     const pure = call.pure;
     const call$1 = source.call(function, value);
     const call$2 = source.call(pure, call$1);
@@ -128,8 +126,7 @@ closure applyMonad$closure$closure$closure[monadMonadDict, function](value) {
 closure applyMonad$closure$closure[monadMonadDict, values](function) {
   entry() {
     const Bind1 = monadMonadDict.Bind1;
-    const evidence = evidence.trivial;
-    const call = source.call(Bind1, evidence);
+    const call = source.call(Bind1);
     const bind = call.bind;
     const call$1 = source.call(bind, values);
     const closure = closure(applyMonad$closure$closure$closure, monadMonadDict, function);
@@ -141,8 +138,7 @@ closure applyMonad$closure$closure[monadMonadDict, values](function) {
 closure applyMonad$closure[monadMonadDict](functions, values) {
   entry() {
     const Bind1 = monadMonadDict.Bind1;
-    const evidence = evidence.trivial;
-    const call = source.call(Bind1, evidence);
+    const call = source.call(Bind1);
     const bind = call.bind;
     const call$1 = source.call(bind, functions);
     const closure = closure(applyMonad$closure$closure, monadMonadDict, values);
@@ -151,21 +147,21 @@ closure applyMonad$closure[monadMonadDict](functions, values) {
   }
 }
 
-closure applyBox$initialize$closure[](unit) {
+closure applyBox$initialize$closure[]() {
   entry() {
     const functorBox = global(functorBox);
     return functorBox;
   }
 }
 
-closure applicativeBox$initialize$closure[](unit) {
+closure applicativeBox$initialize$closure[]() {
   entry() {
     const applyBox = global(applyBox);
     return applyBox;
   }
 }
 
-closure bindBox$initialize$closure[](unit) {
+closure bindBox$initialize$closure[]() {
   entry() {
     const applyBox = global(applyBox);
     return applyBox;
@@ -191,14 +187,14 @@ closure bindBox$initialize$closure$1[]($box, continuation) {
   }
 }
 
-closure monadBox$initialize$closure[](unit) {
+closure monadBox$initialize$closure[]() {
   entry() {
     const applicativeBox = global(applicativeBox);
     return applicativeBox;
   }
 }
 
-closure monadBox$initialize$closure$1[](unit) {
+closure monadBox$initialize$closure$1[]() {
   entry() {
     const bindBox = global(bindBox);
     return bindBox;

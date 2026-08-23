@@ -3,7 +3,7 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export instance newtypeTypeIdentifierInt = { "Coercible0": \unit%0 -> <trivial evidence> }
+@export instance newtypeTypeIdentifierInt = { "Coercible0": \() -> <trivial evidence> }
 
 @export wrapped = 42
 
@@ -17,29 +17,29 @@ expression: report
 
 @export instance genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = {
   to:
-    \representation%1 ->
-      case representation%1 of
+    \representation%0 ->
+      case representation%0 of
         Inl (Constructor NoArguments) ->
           Empty
-        Inr (Inl (Constructor field0%2)) ->
-          Single field0%2
-        Inr (Inr (Constructor (Product field0%3 field1%4))) ->
-          Pair field0%3 field1%4,
+        Inr (Inl (Constructor field0%1)) ->
+          Single field0%1
+        Inr (Inr (Constructor (Product field0%2 field1%3))) ->
+          Pair field0%2 field1%3,
   from:
-    \value%5 ->
-      case value%5 of
+    \value%4 ->
+      case value%4 of
         Empty ->
           Inl (Constructor NoArguments)
-        Single field0%6 ->
-          Inr (Inl (Constructor field0%6))
-        Pair field0%7 field1%8 ->
-          Inr (Inr (Constructor (Product field0%7 field1%8)))
+        Single field0%5 ->
+          Inr (Inl (Constructor field0%5))
+        Pair field0%6 field1%7 ->
+          Inr (Inr (Constructor (Product field0%6 field1%7)))
 }
 
-@export roundTrip = \value%9 ->
+@export roundTrip = \value%8 ->
   genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.to
     (genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.from
-      value%9)
+      value%8)
 
 @export emptyRoundTrip = roundTrip Empty
 
@@ -49,13 +49,13 @@ expression: report
 
 @export instance genericVoidNoConstructors = {
   to:
+    \value%9 ->
+      case value%9 of
+        _ ->
+          genericVoidNoConstructors.to value%9,
+  from:
     \value%10 ->
       case value%10 of
         _ ->
-          genericVoidNoConstructors.to value%10,
-  from:
-    \value%11 ->
-      case value%11 of
-        _ ->
-          genericVoidNoConstructors.from value%11
+          genericVoidNoConstructors.from value%10
 }

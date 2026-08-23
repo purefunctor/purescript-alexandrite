@@ -9,13 +9,13 @@ expression: report
 
 @export instance equalInt1 = { equal: equalInt }
 
-@export instance orderedInt = { "Equal0": \unit%0 -> equalInt1, lessThan: lessThanInt }
+@export instance orderedInt = { "Equal0": \() -> equalInt1, lessThan: lessThanInt }
 
-@export genericEqual = \equalADict%1 -> \left%2 right%3 -> equalADict%1.equal left%2 right%3
+@export genericEqual = \equalADict%0 -> \left%1 right%2 -> equalADict%0.equal left%1 right%2
 
 @export concreteEqual = equalInt1.equal 1 2
 
 @export concreteLessThan = orderedInt.lessThan 1 2
 
-@export superclassEqual = \orderedADict%4 ->
-  \left%5 right%6 -> (orderedADict%4."Equal0" <trivial evidence>).equal left%5 right%6
+@export superclassEqual = \orderedADict%3 ->
+  \left%4 right%5 -> (orderedADict%3."Equal0"()).equal left%4 right%5

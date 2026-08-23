@@ -12,7 +12,6 @@ expression: report
 @export instance parentInt = { parent: \value%1 -> value%1 }
 
 @export instance childArray = \parentArrayADict%2 ->
-  { "Parent0": \unit%3 -> parentArrayADict%2, child: \value%4 -> value%4 }
+  { "Parent0": \() -> parentArrayADict%2, child: \value%3 -> value%3 }
 
-@export useSuperclass = \childADict%5 ->
-  \value%6 -> (childADict%5."Parent0" <trivial evidence>).parent value%6
+@export useSuperclass = \childADict%4 -> \value%5 -> (childADict%4."Parent0"()).parent value%5

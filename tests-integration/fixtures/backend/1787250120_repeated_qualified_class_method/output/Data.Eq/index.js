@@ -11,5 +11,5 @@ export const eqBoolean = (() => {
 })();
 
 export const orderedInt = (() => {
-  return { Eq0: unit => eqInt, lessThanOrEqual: $int => $int$1 => true };
+  return { Eq0: () => eqInt, lessThanOrEqual: $int => $int$1 => true };
 })();

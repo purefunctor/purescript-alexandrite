@@ -7,34 +7,28 @@ expression: report
 
 @export liftApplicative = \applicativeFunctorDict%0 ->
   \function%1 value%2 ->
-    (applicativeFunctorDict%0."Apply0" <trivial evidence>).apply
-      (applicativeFunctorDict%0.pure function%1)
-      value%2
+    (applicativeFunctorDict%0."Apply0"()).apply (applicativeFunctorDict%0.pure function%1) value%2
 
 @export applyMonad = \monadMonadDict%3 ->
   \functions%4 values%6 ->
-    (monadMonadDict%3."Bind1" <trivial evidence>).bind functions%4
+    (monadMonadDict%3."Bind1"()).bind functions%4
       (\function%5 ->
-        (monadMonadDict%3."Bind1" <trivial evidence>).bind values%6
-          (\value%7 ->
-            (monadMonadDict%3."Applicative0" <trivial evidence>).pure (function%5 value%7)))
+        (monadMonadDict%3."Bind1"()).bind values%6
+          (\value%7 -> (monadMonadDict%3."Applicative0"()).pure (function%5 value%7)))
 
 @export instance functorBox = { map: liftApplicative applicativeBox }
 
-@export instance applyBox = { "Functor0": \unit%8 -> functorBox, apply: applyMonad monadBox }
+@export instance applyBox = { "Functor0": \() -> functorBox, apply: applyMonad monadBox }
 
-@export instance applicativeBox = { "Apply0": \unit%9 -> applyBox, pure: Box }
+@export instance applicativeBox = { "Apply0": \() -> applyBox, pure: Box }
 
 @export instance bindBox = {
-  "Apply0": \unit%10 -> applyBox,
-  bind: \$box%13@(Box value%12) continuation%11 -> continuation%11 value%12
+  "Apply0": \() -> applyBox,
+  bind: \$box%10@(Box value%9) continuation%8 -> continuation%8 value%9
 }
 
-@export instance monadBox = {
-  "Applicative0": \unit%14 -> applicativeBox,
-  "Bind1": \unit%15 -> bindBox
-}
+@export instance monadBox = { "Applicative0": \() -> applicativeBox, "Bind1": \() -> bindBox }
 
-@export result = case functorBox.map (\value%16 -> value%16) (Box 42) of
-  Box value%17 ->
-    value%17
+@export result = case functorBox.map (\value%11 -> value%11) (Box 42) of
+  Box value%12 ->
+    value%12

@@ -138,10 +138,14 @@ impl<'a> Printer<'a, '_> {
             }
             ExpressionKind::Local { parameter } => self.parameter(parameter),
             ExpressionKind::Abstraction { parameters, body } => {
-                let parameters = parameters
-                    .iter()
-                    .map(|pattern| self.pattern_at(*pattern, PatternPrecedence::Atom));
-                let parameters = self.arena.intersperse(parameters, self.arena.space());
+                let parameters = if parameters.is_empty() {
+                    self.arena.text("()")
+                } else {
+                    let parameters = parameters
+                        .iter()
+                        .map(|pattern| self.pattern_at(*pattern, PatternPrecedence::Atom));
+                    self.arena.intersperse(parameters, self.arena.space())
+                };
                 let abstraction = self.arena.text("\\").append(parameters).append(" ->");
                 let body_document = self.expression(*body);
                 if self.expression_requires_body_break(*body) {
@@ -154,12 +158,16 @@ impl<'a> Printer<'a, '_> {
             }
             ExpressionKind::Application { function, arguments } => {
                 let function = self.expression_at(*function, ExpressionPrecedence::Application);
-                let arguments = arguments
-                    .iter()
-                    .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
-                let arguments = self.arena.intersperse(arguments, self.arena.line());
-                let arguments = self.arena.line().append(arguments).nest(2);
-                function.append(arguments).group()
+                if arguments.is_empty() {
+                    function.append("()")
+                } else {
+                    let arguments = arguments
+                        .iter()
+                        .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
+                    let arguments = self.arena.intersperse(arguments, self.arena.line());
+                    let arguments = self.arena.line().append(arguments).nest(2);
+                    function.append(arguments).group()
+                }
             }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression(*condition);

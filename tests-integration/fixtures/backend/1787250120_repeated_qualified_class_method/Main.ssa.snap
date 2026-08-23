@@ -500,8 +500,7 @@ closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
   entry() {
     const eqArray = global(eqArray);
     const Eq0 = orderedADict.Eq0;
-    const evidence = evidence.trivial;
-    const call = source.call(Eq0, evidence);
+    const call = source.call(Eq0);
     const call$1 = source.call(eqArray, call);
     const eq = call$1.eq;
     const call$2 = source.call(eq, left);
@@ -530,8 +529,7 @@ closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
 closure compareSuperclassTwice$closure[orderedADict](left, right) {
   entry() {
     const Eq0 = orderedADict.Eq0;
-    const evidence = evidence.trivial;
-    const call = source.call(Eq0, evidence);
+    const call = source.call(Eq0);
     const eq = call.eq;
     const call$1 = source.call(eq, left);
     const call$2 = source.call(call$1, right);

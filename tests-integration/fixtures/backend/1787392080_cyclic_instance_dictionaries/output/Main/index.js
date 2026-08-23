@@ -3,7 +3,7 @@ import * as $runtime from "../runtime.js";
 export const Box = $value0 => ["Box", $value0];
 
 export function liftApplicative(applicativeFunctorDict) {
-  return $function => value => (applicativeFunctorDict.Apply0({})).apply(
+  return $function => value => (applicativeFunctorDict.Apply0()).apply(
     applicativeFunctorDict.pure($function)
   )(value);
 }
@@ -14,12 +14,12 @@ export function applyMonad(monadMonadDict) {
       return values => {
         function applyMonad$closure$closure(monadMonadDict, values) {
           return $function => {
-            return (monadMonadDict.Bind1({})).bind(values)(
-              value => (monadMonadDict.Applicative0({})).pure($function(value))
+            return (monadMonadDict.Bind1()).bind(values)(
+              value => (monadMonadDict.Applicative0()).pure($function(value))
             );
           };
         }
-        return (monadMonadDict.Bind1({})).bind(functions)(
+        return (monadMonadDict.Bind1()).bind(functions)(
           applyMonad$closure$closure(monadMonadDict, values)
         );
       };
@@ -33,11 +33,11 @@ const $lazy_functorBox = $runtime.binding("functorBox", () => {
 });
 
 const $lazy_applyBox = $runtime.binding("applyBox", () => {
-  return { Functor0: unit => $lazy_functorBox(), apply: applyMonad($lazy_monadBox()) };
+  return { Functor0: () => $lazy_functorBox(), apply: applyMonad($lazy_monadBox()) };
 });
 
 const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
-  return { Apply0: unit => $lazy_applyBox(), pure: Box };
+  return { Apply0: () => $lazy_applyBox(), pure: Box };
 });
 
 const $lazy_bindBox = $runtime.binding("bindBox", () => {
@@ -50,11 +50,11 @@ const $lazy_bindBox = $runtime.binding("bindBox", () => {
       }
     };
   }
-  return { Apply0: unit => $lazy_applyBox(), bind: bindBox$initialize$closure$1 };
+  return { Apply0: () => $lazy_applyBox(), bind: bindBox$initialize$closure$1 };
 });
 
 const $lazy_monadBox = $runtime.binding("monadBox", () => {
-  return { Applicative0: unit => $lazy_applicativeBox(), Bind1: unit => $lazy_bindBox() };
+  return { Applicative0: () => $lazy_applicativeBox(), Bind1: () => $lazy_bindBox() };
 });
 
 export const functorBox = $lazy_functorBox();

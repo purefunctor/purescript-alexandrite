@@ -28,7 +28,7 @@ const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstruct
 });
 
 export const newtypeTypeIdentifierInt = (() => {
-  return { Coercible0: unit => ({}) };
+  return { Coercible0: () => ({}) };
 })();
 
 export const wrapped = 42 | 0;

@@ -8,17 +8,17 @@ export const bindEffect = $foreign["bindEffect"];
 export const functorEffect = { map: mapEffect };
 
 export const applyEffect1 = (() => {
-  return { Functor0: unit => functorEffect, apply: applyEffect };
+  return { Functor0: () => functorEffect, apply: applyEffect };
 })();
 
 export const applicativeEffect = (() => {
-  return { Apply0: unit => applyEffect1, pure: pureEffect };
+  return { Apply0: () => applyEffect1, pure: pureEffect };
 })();
 
 export const bindEffect1 = (() => {
-  return { Apply0: unit => applyEffect1, bind: bindEffect };
+  return { Apply0: () => applyEffect1, bind: bindEffect };
 })();
 
 export const monadEffect = (() => {
-  return { Applicative0: unit => applicativeEffect, Bind1: unit => bindEffect1 };
+  return { Applicative0: () => applicativeEffect, Bind1: () => bindEffect1 };
 })();

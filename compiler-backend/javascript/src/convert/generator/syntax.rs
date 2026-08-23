@@ -46,7 +46,11 @@ pub(super) fn call_expression(
     match convention {
         CallingConvention::Initializer => tree.call(function, arguments),
         CallingConvention::Source | CallingConvention::Effect => {
-            let arguments = arguments.into_iter();
+            let mut arguments = arguments.into_iter();
+            let Some(argument) = arguments.next() else {
+                return tree.call(function, vec![]);
+            };
+            let function = tree.call(function, vec![argument]);
             arguments.fold(function, |function, argument| tree.call(function, vec![argument]))
         }
     }

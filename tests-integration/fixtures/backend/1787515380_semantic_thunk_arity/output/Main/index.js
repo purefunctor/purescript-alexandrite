@@ -5,11 +5,11 @@ export function ordinaryUnit(value) {
 }
 
 export function childArray(parentArrayADict) {
-  return { Parent0: unit => parentArrayADict, child: value => value };
+  return { Parent0: () => parentArrayADict, child: value => value };
 }
 
 export function useSuperclass(childADict) {
-  return value => (childADict.Parent0({})).parent(value);
+  return value => (childADict.Parent0()).parent(value);
 }
 
 export const ordinaryUnitCall = ordinaryUnit(Unit);

@@ -50,7 +50,7 @@ closure parentInt$initialize$closure[](value) {
   }
 }
 
-closure childArray$closure[parentArrayADict](unit) {
+closure childArray$closure[parentArrayADict]() {
   entry() {
     return parentArrayADict;
   }
@@ -65,8 +65,7 @@ closure childArray$closure$1[](value) {
 closure useSuperclass$closure[childADict](value) {
   entry() {
     const Parent0 = childADict.Parent0;
-    const evidence = evidence.trivial;
-    const call = source.call(Parent0, evidence);
+    const call = source.call(Parent0);
     const parent = call.parent;
     const call$1 = source.call(parent, value);
     return call$1;
