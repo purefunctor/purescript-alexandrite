@@ -1,0 +1,18 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Unit/0
+
+@export ordinaryUnit = \value%0 -> value%0
+
+@export ordinaryUnitCall = ordinaryUnit Unit
+
+@export instance parentInt = { parent: \value%1 -> value%1 }
+
+@export instance childArray = \parentArrayADict%2 ->
+  { "Parent0": \unit%3 -> parentArrayADict%2, child: \value%4 -> value%4 }
+
+@export useSuperclass = \childADict%5 ->
+  \value%6 -> (childADict%5."Parent0" <trivial evidence>).parent value%6
