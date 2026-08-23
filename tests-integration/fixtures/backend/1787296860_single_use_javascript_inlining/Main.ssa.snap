@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 269
 expression: ssa_report
 ---
 @export function identity(value) {
@@ -80,6 +80,14 @@ expression: ssa_report
   entry() {
     const closure = closure(inlineCapturedClosure$closure, captured);
     return closure;
+  }
+}
+
+@export function keepMultiUseClosure(captured) {
+  entry() {
+    const closure = closure(keepMultiUseClosure$closure, captured);
+    const record = { first: closure, second: closure };
+    return record;
   }
 }
 
@@ -187,6 +195,12 @@ closure inlineClosure$closure[](item) {
 }
 
 closure inlineCapturedClosure$closure[captured]($boolean) {
+  entry() {
+    return captured;
+  }
+}
+
+closure keepMultiUseClosure$closure[captured]($boolean) {
   entry() {
     return captured;
   }

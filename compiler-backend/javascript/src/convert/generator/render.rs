@@ -3,9 +3,9 @@ use std::iter;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ssa::tree::{
-    BlockId, BlockTarget, Failure, Function, Instruction, InstructionValue, LazyInitializer,
-    PatternTest, RecordUpdate, RecursiveClosure, ReflectableEvidence, ReflectableOrdering,
-    SynthesizedEvidence, Terminator, ValueId,
+    BlockId, BlockTarget, Failure, Function, FunctionId, Instruction, InstructionValue,
+    LazyInitializer, PatternTest, RecordUpdate, RecursiveClosure, ReflectableEvidence,
+    ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
 };
 
 use super::Generator;
@@ -149,6 +149,13 @@ impl Generator<'_> {
             if let Instruction::Assign { result, value } = instruction
                 && inlineable.contains(result)
             {
+                if let InstructionValue::Closure { function, captures } = value
+                    && let Some(expression) =
+                        self.inline_closure_expression(output.tree, *function, captures, context)?
+                {
+                    expressions.insert(*result, expression);
+                    continue;
+                }
                 self.render_closure_function(output.tree, output.writer, value, context)?;
                 let expression = self.instruction_expression(output.tree, value, &expressions)?;
                 expressions.insert(*result, expression);
@@ -217,6 +224,86 @@ impl Generator<'_> {
             "invariant violated: inline JavaScript block expression was not consumed"
         );
         Ok(())
+    }
+
+    fn inline_closure_expression(
+        &self,
+        tree: &mut Tree,
+        function_id: FunctionId,
+        captures: &[ValueId],
+        parent_context: &FunctionContext,
+    ) -> ModuleResult<Option<ExpressionId>> {
+        // Factory calls snapshot captured values, whereas lexical closures capture bindings. They
+        // are equivalent only when the generated JavaScript never reassigns those bindings.
+        if captures.iter().any(|capture| !parent_context.value_is_lexically_stable(*capture)) {
+            return Ok(None);
+        }
+
+        let function = &self.module.storage[function_id];
+        assert!(
+            !function.parameters.is_empty(),
+            "invariant violated: SSA closure has no source parameters"
+        );
+        assert_eq!(
+            function.blocks.first(),
+            Some(&function.entry),
+            "invariant violated: SSA closure does not begin with its entry block"
+        );
+        assert_eq!(
+            function.captures.len(),
+            captures.len(),
+            "invariant violated: SSA closure capture arity does not match its function"
+        );
+
+        if function.blocks.len() != 1 {
+            return Ok(None);
+        }
+
+        let capture_names = {
+            let function_captures = function.captures.iter().copied();
+            let parent_capture_names =
+                captures.iter().map(|capture| parent_context.value(*capture).to_owned());
+            iter::zip(function_captures, parent_capture_names)
+        };
+        let capture_names = capture_names.collect::<FxHashMap<_, _>>();
+
+        let context = FunctionContext::with_capture_names(self, function, capture_names);
+        let block = &self.module.storage[function.entry];
+
+        let Terminator::Return { value } = block.terminator else {
+            return Ok(None);
+        };
+        let inlineable = context.inlineable_values(function.entry);
+        let instructions_are_inlineable = block.instructions.iter().all(|instruction| {
+            if let Instruction::Assign { result, value } = instruction {
+                inlineable.contains(result) && !matches!(value, InstructionValue::Closure { .. })
+            } else {
+                false
+            }
+        });
+        if !instructions_are_inlineable {
+            return Ok(None);
+        }
+
+        let expressions = BlockExpressionContext::new(&context);
+        for instruction in &block.instructions {
+            let Instruction::Assign { result, value } = instruction else {
+                unreachable!("invariant violated: inline closure contains a non-assignment")
+            };
+            let expression = self.instruction_expression(tree, value, &expressions)?;
+            expressions.insert(*result, expression);
+        }
+        let mut expression = expressions.expression(tree, value);
+        assert!(
+            expressions.is_empty(),
+            "invariant violated: inline JavaScript closure expression was not consumed"
+        );
+
+        for parameter in function.parameters.iter().rev() {
+            let parameter = context.value(*parameter).to_owned();
+            expression = tree.arrow(vec![parameter], expression);
+        }
+        Ok(Some(expression))
     }
 
     fn render_acyclic_target(

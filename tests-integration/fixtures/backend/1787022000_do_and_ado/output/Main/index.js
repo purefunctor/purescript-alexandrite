@@ -6,20 +6,12 @@ export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
 
 export const sequential = (() => {
-  function sequential$initialize$closure(first) {
-    return secondAction(first);
-  }
-  return Effect.bindEffect1.bind(firstAction)(sequential$initialize$closure);
+  return Effect.bindEffect1.bind(firstAction)(first => secondAction(first));
 })();
 
 export const independent = (() => {
-  function independent$initialize$closure(first) {
-    return second => {
-      return { first: first, second: second };
-    };
-  }
   return Effect.applyEffect1.apply(
-    Effect.functorEffect.map(independent$initialize$closure)(firstAction)
+    Effect.functorEffect.map(first => second => ({ first: first, second: second }))(firstAction)
   )(independentAction);
 })();
 

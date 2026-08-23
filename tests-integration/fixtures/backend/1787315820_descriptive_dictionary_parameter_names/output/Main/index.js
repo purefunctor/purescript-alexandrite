@@ -1,88 +1,37 @@
 export const Wrapper = $value0 => ["Wrapper", $value0];
 
 export function genericEqual(equalValueDict) {
-  function genericEqual$closure(equalValueDict) {
-    return left => {
-      return right => {
-        return equalValueDict.equal(left)(right);
-      };
-    };
-  }
-  return genericEqual$closure(equalValueDict);
+  return left => right => equalValueDict.equal(left)(right);
 }
 
 export function arrayEqual(equalArrayValueDict) {
-  function arrayEqual$closure(equalArrayValueDict) {
-    return left => {
-      return right => {
-        return equalArrayValueDict.equal(left)(right);
-      };
-    };
-  }
-  return arrayEqual$closure(equalArrayValueDict);
+  return left => right => equalArrayValueDict.equal(left)(right);
 }
 
 export function wrapperEqual(equalWrapperValueDict) {
-  function wrapperEqual$closure(equalWrapperValueDict) {
-    return left => {
-      return right => {
-        return equalWrapperValueDict.equal(left)(right);
-      };
-    };
-  }
-  return wrapperEqual$closure(equalWrapperValueDict);
+  return left => right => equalWrapperValueDict.equal(left)(right);
 }
 
 export function concreteEqual(equalIntDict) {
-  function concreteEqual$closure(equalIntDict) {
-    return left => {
-      return right => {
-        return equalIntDict.equal(left)(right);
-      };
-    };
-  }
-  return concreteEqual$closure(equalIntDict);
+  return left => right => equalIntDict.equal(left)(right);
 }
 
 export function convertToInt(convertValueIntDict) {
-  function convertToInt$closure(convertValueIntDict) {
-    return value => {
-      return convertValueIntDict.convert(value);
-    };
-  }
-  return convertToInt$closure(convertValueIntDict);
+  return value => convertValueIntDict.convert(value);
 }
 
 export function distinctEqual(equalLeftDict) {
   return equalRightDict => {
-    function distinctEqual$closure(equalLeftDict, equalRightDict) {
-      return left1 => {
-        return left2 => {
-          return right1 => {
-            return right2 => {
-              return {
-                left: equalLeftDict.equal(left1)(left2),
-                right: equalRightDict.equal(right1)(right2)
-              };
-            };
-          };
-        };
-      };
-    }
-    return distinctEqual$closure(equalLeftDict, equalRightDict);
+    return left1 => left2 => right1 => right2 => ({
+      left: equalLeftDict.equal(left1)(left2),
+      right: equalRightDict.equal(right1)(right2)
+    });
   };
 }
 
 export function duplicateEqual(equalValueDict) {
   return equalValueDict$1 => {
-    function duplicateEqual$closure(equalValueDict) {
-      return left => {
-        return right => {
-          return equalValueDict.equal(left)(right);
-        };
-      };
-    }
-    return duplicateEqual$closure(equalValueDict$1);
+    return left => right => equalValueDict$1.equal(left)(right);
   };
 }
 

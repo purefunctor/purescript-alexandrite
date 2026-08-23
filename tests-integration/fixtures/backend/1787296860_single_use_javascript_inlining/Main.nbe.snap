@@ -22,36 +22,41 @@ expression: report
 
 @export inlineCapturedClosure = \captured%11 -> \$boolean%10@(_) -> captured%11
 
-@export keepMultiUse = \record%13 ->
+@export keepMultiUseClosure = \captured%14 ->
   let
-    value%12 = record%13.value
-  in { first: value%12, second: value%12 }
+    closure%12 = \$boolean%13@(_) -> captured%14
+  in { first: closure%12, second: closure%12 }
 
-@export inlineAcrossCall = \record%14 function%15 ->
-  { projected: record%14.value, called: function%15 true }
-
-@export inlineOrderedCalls = \first%16 second%17 ->
-  { first: first%16 true, second: second%17 false }
-
-@export keepReorderedCalls = \first%21 second%20 ->
+@export keepMultiUse = \record%16 ->
   let
-    firstResult%19 = first%21 true
+    value%15 = record%16.value
+  in { first: value%15, second: value%15 }
+
+@export inlineAcrossCall = \record%17 function%18 ->
+  { projected: record%17.value, called: function%18 true }
+
+@export inlineOrderedCalls = \first%19 second%20 ->
+  { first: first%19 true, second: second%20 false }
+
+@export keepReorderedCalls = \first%24 second%23 ->
+  let
+    firstResult%22 = first%24 true
   in let
-    secondResult%18 = second%20 false
-  in { first: secondResult%18, second: firstResult%19 }
+    secondResult%21 = second%23 false
+  in { first: secondResult%21, second: firstResult%22 }
 
-@export keepMultiUseCall = \function%23 value%24 ->
+@export keepMultiUseCall = \function%26 value%27 ->
   let
-    result%22 = function%23 value%24
-  in { first: result%22, second: result%22 }
+    result%25 = function%26 value%27
+  in { first: result%25, second: result%25 }
 
-@export keepCallBeforeBranch = \condition%25 function%28 value%27 ->
+@export keepCallBeforeBranch = \condition%28 function%31 value%30 ->
   let
-    result%26 = function%28 value%27
-  in if condition%25 then result%26 else value%27
+    result%29 = function%31 value%30
+  in if condition%28 then result%29 else value%30
 
-@export keepTestCall = \function%29 value%30 ->
-  case function%29 value%30 of
+@export keepTestCall = \function%32 value%33 ->
+  case function%32 value%33 of
     [] ->
       true
     _ ->

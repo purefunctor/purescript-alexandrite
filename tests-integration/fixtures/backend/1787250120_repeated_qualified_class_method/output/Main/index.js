@@ -213,12 +213,9 @@ export function lambdaScope(left) {
 
 export function whereIsolation(left) {
   return right => {
-    function whereIsolation$closure(helperLeft) {
-      return helperRight => {
-        return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(helperLeft)(helperRight);
-      };
-    }
-    if (whereIsolation$closure(left)(right)) {
+    if ((helperLeft => helperRight => (Data_Eq.eqArray(Data_Eq.eqInt)).eq(helperLeft)(helperRight))(
+      left
+    )(right)) {
       return (Data_Eq.eqArray(Data_Eq.eqInt)).eq(left)(right);
     } else {
       return false;

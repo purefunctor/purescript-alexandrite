@@ -1,38 +1,15 @@
 export function eqArray(eqADict) {
-  function eqArray$closure($array) {
-    return $array$1 => {
-      return true;
-    };
-  }
-  return { eq: eqArray$closure };
+  return { eq: $array => $array$1 => true };
 }
 
 export const eqInt = (() => {
-  function eqInt$initialize$closure($int) {
-    return $int$1 => {
-      return true;
-    };
-  }
-  return { eq: eqInt$initialize$closure };
+  return { eq: $int => $int$1 => true };
 })();
 
 export const eqBoolean = (() => {
-  function eqBoolean$initialize$closure($boolean) {
-    return $boolean$1 => {
-      return true;
-    };
-  }
-  return { eq: eqBoolean$initialize$closure };
+  return { eq: $boolean => $boolean$1 => true };
 })();
 
 export const orderedInt = (() => {
-  function orderedInt$initialize$closure(unit) {
-    return eqInt;
-  }
-  function orderedInt$initialize$closure$1($int) {
-    return $int$1 => {
-      return true;
-    };
-  }
-  return { Eq0: orderedInt$initialize$closure, lessThanOrEqual: orderedInt$initialize$closure$1 };
+  return { Eq0: unit => eqInt, lessThanOrEqual: $int => $int$1 => true };
 })();

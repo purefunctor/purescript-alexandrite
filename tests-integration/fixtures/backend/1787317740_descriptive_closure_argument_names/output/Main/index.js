@@ -17,10 +17,7 @@ export function multiEquation($choice) {
 export function mixedArity($boolean) {
   return $int => {
     if ($boolean === true) {
-      function mixedArity$closure(value) {
-        return value;
-      }
-      return mixedArity$closure($int);
+      return (value => value)($int);
     } else {
       if ($boolean === false) {
         return $int;

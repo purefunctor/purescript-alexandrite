@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 268
 expression: diagnostics_report
 ---
 Terms
@@ -12,6 +13,8 @@ inlineCall :: (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
 inlineArray :: Prim.Boolean -> Prim.Array Prim.Boolean
 inlineRecord :: Prim.Boolean -> { value :: Prim.Boolean }
 inlineCapturedClosure :: Prim.Boolean -> Prim.Boolean -> Prim.Boolean
+keepMultiUseClosure ::
+  Prim.Boolean -> { first :: Prim.Boolean -> Prim.Boolean, second :: Prim.Boolean -> Prim.Boolean }
 keepMultiUse :: { value :: Prim.Boolean } -> { first :: Prim.Boolean, second :: Prim.Boolean }
 inlineAcrossCall ::
   { value :: Prim.Boolean } ->

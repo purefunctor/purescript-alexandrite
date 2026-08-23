@@ -50,10 +50,7 @@ export function caseRecursive(condition) {
       return go$initialize$closure(go);
     } else {
       if (condition === false) {
-        function go$initialize$closure$1($boolean) {
-          return 31 | 0;
-        }
-        return go$initialize$closure$1;
+        return $boolean => 31 | 0;
       } else {
         throw new Error("Pattern match failure");
       }
