@@ -22,7 +22,7 @@ pub struct ElaboratedWhereExpression {
 #[derive(Copy, Clone, Debug)]
 enum GuardedExpressionMode {
     Infer,
-    Subtype { expected: TypeId },
+    Subsume { expected: TypeId },
     Check { expected: TypeId },
 }
 
@@ -55,9 +55,12 @@ where
     guarded_expression_core(state, context, guarded, GuardedExpressionMode::Check { expected })
 }
 
-/// Infers a guarded expression against a shared result type while retaining
-/// implicit applications introduced on the inferred side.
-pub fn subtype_guarded_expression<Q>(
+/// Infers an unconditional guarded result before subsuming it against the
+/// shared result type of an inferred case expression. Subsumption operates on
+/// the elaborated expression rather than its type alone so that implicit
+/// evidence applications introduced by the relation remain in the checked
+/// tree.
+pub fn subsume_guarded_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     guarded: &lowering::GuardedExpression,
@@ -66,7 +69,7 @@ pub fn subtype_guarded_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    guarded_expression_core(state, context, guarded, GuardedExpressionMode::Subtype { expected })
+    guarded_expression_core(state, context, guarded, GuardedExpressionMode::Subsume { expected })
 }
 
 fn guarded_expression_core<Q>(
@@ -83,7 +86,7 @@ where
             let Some(where_expression) = where_expression else {
                 let type_id = match mode {
                     GuardedExpressionMode::Infer => context.unknown("missing guarded expression"),
-                    GuardedExpressionMode::Subtype { expected }
+                    GuardedExpressionMode::Subsume { expected }
                     | GuardedExpressionMode::Check { expected } => expected,
                 };
                 let expression = state.allocate_error_expression(type_id);
@@ -96,10 +99,10 @@ where
                 GuardedExpressionMode::Infer => {
                     infer_where_expression(state, context, where_expression)?
                 }
-                GuardedExpressionMode::Subtype { expected } => {
+                GuardedExpressionMode::Subsume { expected } => {
                     let where_expression =
                         infer_where_expression(state, context, where_expression)?;
-                    subtype_where_expression(state, context, where_expression, expected)?
+                    subsume_where_expression(state, context, where_expression, expected)?
                 }
                 GuardedExpressionMode::Check { expected } => {
                     check_where_expression(state, context, where_expression, expected)?
@@ -115,7 +118,7 @@ where
                 GuardedExpressionMode::Infer => {
                     state.fresh_unification(context.queries, context.prim.t)
                 }
-                GuardedExpressionMode::Subtype { expected }
+                GuardedExpressionMode::Subsume { expected }
                 | GuardedExpressionMode::Check { expected } => expected,
             };
 
@@ -194,7 +197,7 @@ where
     where_expression_core(state, context, where_expression, WhereExpressionMode::Infer)
 }
 
-fn subtype_where_expression<Q>(
+fn subsume_where_expression<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     where_expression: ElaboratedWhereExpression,
