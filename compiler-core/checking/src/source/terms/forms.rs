@@ -295,7 +295,7 @@ where
         let guarded_expression = if let Some(guarded_source) = &branch.guarded_expression {
             match mode {
                 CaseOfMode::Infer => {
-                    guarded::subtype_guarded_expression(state, context, guarded_source, expected)?
+                    guarded::subsume_guarded_expression(state, context, guarded_source, expected)?
                         .guarded_expression
                 }
                 CaseOfMode::Check { .. } => {
