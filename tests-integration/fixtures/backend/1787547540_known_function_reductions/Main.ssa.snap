@@ -1,0 +1,147 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const observe;
+
+@export foreign const readTrace;
+
+@export const directApply = initialize {
+  entry() {
+    const apply = global(apply);
+    const closure = closure(directApply$initialize$closure);
+    const call = source.call(apply, closure);
+    const literal = 42;
+    const call$1 = source.call(call, literal);
+    return call$1;
+  }
+}
+
+@export function directApplyOrder($boolean) {
+  entry() {
+    const apply = global(apply);
+    const observe = global(observe);
+    const literal = "function";
+    const call = source.call(observe, literal);
+    const closure = closure(directApplyOrder$closure);
+    const call$1 = source.call(call, closure);
+    const call$2 = source.call(apply, call$1);
+    const observe$1 = global(observe);
+    const literal$1 = "argument";
+    const call$3 = source.call(observe$1, literal$1);
+    const literal$2 = 42;
+    const call$4 = source.call(call$3, literal$2);
+    const call$5 = source.call(call$2, call$4);
+    return call$5;
+  }
+}
+
+@export const flippedApply = initialize {
+  entry() {
+    const applyFlipped = global(applyFlipped);
+    const literal = 42;
+    const call = source.call(applyFlipped, literal);
+    const closure = closure(flippedApply$initialize$closure);
+    const call$1 = source.call(call, closure);
+    return call$1;
+  }
+}
+
+@export function flippedApplyOrder($boolean) {
+  entry() {
+    const applyFlipped = global(applyFlipped);
+    const observe = global(observe);
+    const literal = "argument";
+    const call = source.call(observe, literal);
+    const literal$1 = 42;
+    const call$1 = source.call(call, literal$1);
+    const call$2 = source.call(applyFlipped, call$1);
+    const observe$1 = global(observe);
+    const literal$2 = "function";
+    const call$3 = source.call(observe$1, literal$2);
+    const closure = closure(flippedApplyOrder$closure);
+    const call$4 = source.call(call$3, closure);
+    const call$5 = source.call(call$2, call$4);
+    return call$5;
+  }
+}
+
+@export const functionIdentity = initialize {
+  entry() {
+    const categoryFn = global(categoryFn);
+    const identity = categoryFn.identity;
+    const literal = 42;
+    const call = source.call(identity, literal);
+    return call;
+  }
+}
+
+@export const coerced = initialize {
+  entry() {
+    const unsafeCoerce = global(unsafeCoerce);
+    const literal = 42;
+    const call = source.call(unsafeCoerce, literal);
+    return call;
+  }
+}
+
+@export const lookalikeApply = initialize {
+  entry() {
+    const apply = global(apply);
+    const closure = closure(lookalikeApply$initialize$closure);
+    const call = source.call(apply, closure);
+    const literal = 42;
+    const call$1 = source.call(call, literal);
+    return call$1;
+  }
+}
+
+@export const lookalikeIdentity = initialize {
+  entry() {
+    const categoryFn = global(categoryFn);
+    const identity = categoryFn.identity;
+    const literal = 42;
+    const call = source.call(identity, literal);
+    return call;
+  }
+}
+
+@export const lookalikeCoerce = initialize {
+  entry() {
+    const unsafeCoerce = global(unsafeCoerce);
+    const literal = 42;
+    const call = source.call(unsafeCoerce, literal);
+    return call;
+  }
+}
+
+closure directApply$initialize$closure[](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure directApplyOrder$closure[](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure flippedApply$initialize$closure[](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure flippedApplyOrder$closure[](value) {
+  entry() {
+    return value;
+  }
+}
+
+closure lookalikeApply$initialize$closure[](value) {
+  entry() {
+    return value;
+  }
+}

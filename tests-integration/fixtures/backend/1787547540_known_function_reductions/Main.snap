@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+observe :: forall value. Prim.String -> value -> value
+readTrace :: Prim.Boolean -> Prim.Array Prim.String
+directApply :: Prim.Int
+directApplyOrder :: Prim.Boolean -> Prim.Int
+flippedApply :: Prim.Int
+flippedApplyOrder :: Prim.Boolean -> Prim.Int
+functionIdentity :: Prim.Int
+coerced :: Prim.Int
+lookalikeApply :: Prim.Int
+lookalikeIdentity :: Prim.Int
+lookalikeCoerce :: Prim.Int
+
+Types
