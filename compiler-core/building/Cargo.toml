@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 building-types = { version = "0.1.0", path = "../building-types" }
 checking = { version = "0.1.0", path = "../../compiler-frontend/checking" }
-documenting = { version = "0.1.0", path = "../documenting" }
+documenting = { version = "0.1.0", path = "../../compiler-frontend/documenting" }
 files = { version = "0.1.0", path = "../files" }
 foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign-javascript" }
 indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
