@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 files = { version = "0.1.0", path = "../files" }
-indexing = { version = "0.1.0", path = "../indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 indexmap = "2.14.0"
 itertools = "0.15.0"
 la-arena = "0.3.1"

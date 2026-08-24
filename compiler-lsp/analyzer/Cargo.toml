@@ -9,7 +9,7 @@ checking = { version = "0.1.0", path = "../../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../../compiler-core/files" }
 foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign-javascript" }
-indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 itertools = "0.15.0"
 la-arena = "0.3.1"
 lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }

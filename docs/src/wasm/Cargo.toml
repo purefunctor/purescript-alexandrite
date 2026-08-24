@@ -26,7 +26,7 @@ checking = { version = "0.1.0", path = "../../../compiler-core/checking" }
 diagnostics = { version = "0.1.0", path = "../../../compiler-core/diagnostics" }
 documenting = { version = "0.1.0", path = "../../../compiler-core/documenting" }
 files = { version = "0.1.0", path = "../../../compiler-core/files" }
-indexing = { version = "0.1.0", path = "../../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../../../compiler-core/interner" }
 lexing = { version = "0.1.0", path = "../../../compiler-frontend/lexing" }
 lowering = { version = "0.1.0", path = "../../../compiler-core/lowering" }

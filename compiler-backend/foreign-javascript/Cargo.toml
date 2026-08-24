@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 building-types = { version = "0.1.0", path = "../../compiler-core/building-types" }
 files = { version = "0.1.0", path = "../../compiler-core/files" }
-indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 oxc_allocator = "0.146.0"
 oxc_parser = "0.146.0"
 oxc_span = "0.146.0"

@@ -33,7 +33,7 @@ documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 globset = "0.4.20"
-indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 itertools = "0.15.0"
 javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 lowering = { version = "0.1.0", path = "../compiler-core/lowering" }

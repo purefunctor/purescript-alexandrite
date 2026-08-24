@@ -12,7 +12,7 @@ diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 glob = "0.3.4"
-indexing = { version = "0.1.0", path = "../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
 itertools = "0.15.0"
 insta = "1.48.0"

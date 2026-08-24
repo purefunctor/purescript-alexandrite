@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-indexing = { version = "0.1.0", path = "../indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 rustc-hash = "2.1.3"
 stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }

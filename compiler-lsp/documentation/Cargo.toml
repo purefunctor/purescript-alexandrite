@@ -8,7 +8,7 @@ building = { version = "0.1.0", path = "../../compiler-core/building" }
 checking = { version = "0.1.0", path = "../../compiler-core/checking" }
 documenting = { version = "0.1.0", path = "../../compiler-core/documenting" }
 files = { version = "0.1.0", path = "../../compiler-core/files" }
-indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.20"

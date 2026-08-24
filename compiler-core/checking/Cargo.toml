@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 building-types = { version = "0.1.0", path = "../building-types" }
 files = { version = "0.1.0", path = "../files" }
-indexing = { version = "0.1.0", path = "../indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../interner" }
 indexmap = "2.14.0"
 itertools = "0.15.0"
