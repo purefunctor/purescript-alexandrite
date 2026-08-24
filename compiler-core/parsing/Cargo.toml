@@ -8,7 +8,7 @@ drop_bomb = "0.1.5"
 lexing = { version = "0.1.0", path = "../lexing" }
 smol_str = "0.3.4"
 syntree = "0.18.0"
-syntax = { version = "0.1.0", path = "../syntax" }
+syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 
 [dev-dependencies]
 insta = "1.48.0"

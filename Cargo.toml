@@ -3,6 +3,7 @@ members = [
   "compiler-bin",
   "compiler-backend/*",
   "compiler-core/*",
+  "compiler-frontend/*",
   "compiler-lsp/*",
   "compiler-scripts",
   "docs/src/wasm",
@@ -12,6 +13,7 @@ members = [
 default-members = [
   "compiler-backend/*",
   "compiler-core/*",
+  "compiler-frontend/*",
   "compiler-lsp/*",
 ]
 resolver = "3"

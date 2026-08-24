@@ -15,7 +15,7 @@ resolving = { version = "0.1.0", path = "../resolving" }
 rustc-hash = "2.1.3"
 smol_str = "0.3.4"
 stabilizing = { version = "0.1.0", path = "../stabilizing" }
-syntax = { version = "0.1.0", path = "../syntax" }
+syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 
 [dev-dependencies]
 insta = "1.48.0"

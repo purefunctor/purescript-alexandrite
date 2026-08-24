@@ -35,7 +35,7 @@ prim-constants = { version = "0.1.0", path = "../../../compiler-core/prim-consta
 resolving = { version = "0.1.0", path = "../../../compiler-core/resolving" }
 stabilizing = { version = "0.1.0", path = "../../../compiler-core/stabilizing" }
 sugar = { version = "0.1.0", path = "../../../compiler-core/sugar" }
-syntax = { version = "0.1.0", path = "../../../compiler-core/syntax" }
+syntax = { version = "0.1.0", path = "../../../compiler-frontend/syntax" }
 
 # Data structures
 rustc-hash = "2"
