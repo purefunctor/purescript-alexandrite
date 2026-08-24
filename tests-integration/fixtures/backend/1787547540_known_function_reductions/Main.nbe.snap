@@ -7,21 +7,24 @@ expression: report
 
 @export foreign readTrace
 
-@export directApply = apply (\value%0 -> value%0) 42
+@export directApply = (\value%0 -> value%0) 42
 
 @export directApplyOrder = \$boolean%2@(_) ->
-  apply (observe "function" (\value%1 -> value%1)) (observe "argument" 42)
+  observe "function" (\value%1 -> value%1) (observe "argument" 42)
 
-@export flippedApply = applyFlipped 42 (\value%3 -> value%3)
+@export flippedApply = (\value%3 -> value%3) 42
 
-@export flippedApplyOrder = \$boolean%5@(_) ->
-  applyFlipped (observe "argument" 42) (observe "function" (\value%4 -> value%4))
+@export flippedApplyOrder = \$boolean%7@(_) ->
+  let
+    applyArgument%5 = observe "argument" 42
+    applyFunction%6 = observe "function" (\value%4 -> value%4)
+  in applyFunction%6 applyArgument%5
 
-@export functionIdentity = categoryFn.identity 42
+@export functionIdentity = 42
 
-@export coerced = unsafeCoerce 42
+@export coerced = 42
 
-@export lookalikeApply = apply (\value%6 -> value%6) 42
+@export lookalikeApply = apply (\value%8 -> value%8) 42
 
 @export lookalikeIdentity = categoryFn.identity 42
 

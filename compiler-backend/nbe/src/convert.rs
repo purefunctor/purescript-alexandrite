@@ -530,7 +530,7 @@ fn equations(
             }
             let expression = guarded_expression(context, &equation.guarded_expression)?;
             let remaining_arguments = scrutinees.iter().skip(supplied).copied();
-            let expression = context.application(expression, remaining_arguments);
+            let expression = context.application(expression, remaining_arguments)?;
             alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
         }
         Ok(context.expression(ExpressionKind::Case {
@@ -740,7 +740,7 @@ fn convert_expression(
             }
             let function = convert_expression(context, *function)?;
             let argument = convert_expression(context, *argument)?;
-            return Ok(context.application(function, [argument]));
+            return context.application(function, [argument]);
         }
         checking_tree::ExpressionKind::EvidenceApplication { function, evidence, .. } => {
             let evidence = evidence_variable(context, *evidence)?;
@@ -749,7 +749,7 @@ fn convert_expression(
                 return Ok(context.expression(ExpressionKind::Project { record: evidence, field }));
             }
             let function = convert_expression(context, *function)?;
-            return Ok(context.application(function, [evidence]));
+            return context.application(function, [evidence]);
         }
         checking_tree::ExpressionKind::EvidenceAbstraction { binder, expression } => {
             let parameter = context.evidence_parameter(*binder)?;
@@ -1023,7 +1023,7 @@ fn convert_evidence(
             let function = context.expression(ExpressionKind::Global { global });
             let arguments = subgoals.iter().map(|&subgoal| evidence_variable(context, subgoal));
             let arguments = arguments.collect::<ConversionResult<Vec<_>>>()?;
-            let construction = context.application(function, arguments);
+            let construction = context.application(function, arguments)?;
             if subgoals.is_empty() {
                 Ok(construction)
             } else {
@@ -1436,14 +1436,133 @@ where
         &mut self,
         function: ExpressionId,
         arguments: impl IntoIterator<Item = ExpressionId>,
-    ) -> ExpressionId {
+    ) -> ConversionResult<ExpressionId> {
         let arguments = arguments.into_iter();
         let arguments = arguments.collect_vec();
         if arguments.is_empty() {
-            function
-        } else {
-            self.expression(ExpressionKind::Application { function, arguments: arguments.into() })
+            return Ok(function);
         }
+        let (known_function, known_arguments) = self.application_spine(function, &arguments);
+        if self.known_term(known_function, "Data.Function", "apply")?
+            && let [function, argument] = known_arguments.as_slice()
+        {
+            return self.application(*function, [*argument]);
+        }
+        if self.known_term(known_function, "Data.Function", "applyFlipped")?
+            && let [argument, function] = known_arguments.as_slice()
+        {
+            return self.flipped_application(*argument, *function);
+        }
+        if self.known_instance_member(
+            known_function,
+            "Control.Category",
+            "identity",
+            "categoryFn",
+        )? && let [argument] = known_arguments.as_slice()
+        {
+            return Ok(*argument);
+        }
+        if self.known_term(known_function, "Unsafe.Coerce", "unsafeCoerce")?
+            && let [argument] = known_arguments.as_slice()
+        {
+            return Ok(*argument);
+        }
+        Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+    }
+
+    fn application_spine(
+        &self,
+        mut function: ExpressionId,
+        arguments: &[ExpressionId],
+    ) -> (ExpressionId, Vec<ExpressionId>) {
+        let mut groups = vec![arguments];
+        while let ExpressionKind::Application { function: inner, arguments } =
+            &self.storage[function].kind
+        {
+            function = *inner;
+            groups.push(arguments);
+        }
+        let arguments = groups.into_iter().rev().flatten().copied();
+        (function, arguments.collect())
+    }
+
+    fn flipped_application(
+        &mut self,
+        argument: ExpressionId,
+        function: ExpressionId,
+    ) -> ConversionResult<ExpressionId> {
+        if self.expression_is_stable(argument) || self.expression_is_stable(function) {
+            return self.application(function, [argument]);
+        }
+
+        let argument_parameter = self.fresh_parameter("applyArgument".into())?;
+        let function_parameter = self.fresh_parameter("applyFunction".into())?;
+        let argument_local =
+            self.expression(ExpressionKind::Local { parameter: argument_parameter.clone() });
+        let function_local =
+            self.expression(ExpressionKind::Local { parameter: function_parameter.clone() });
+        let body = self.application(function_local, [argument_local])?;
+        let bindings = [
+            Binding { parameter: argument_parameter, expression: argument, source_order: 0 },
+            Binding { parameter: function_parameter, expression: function, source_order: 1 },
+        ];
+        Ok(self.expression(ExpressionKind::Let {
+            recursive: false,
+            bindings: bindings.into(),
+            body,
+        }))
+    }
+
+    fn expression_is_stable(&self, expression: ExpressionId) -> bool {
+        matches!(
+            self.storage[expression].kind,
+            ExpressionKind::Literal { .. }
+                | ExpressionKind::Constructor { .. }
+                | ExpressionKind::Global { .. }
+                | ExpressionKind::Local { .. }
+        )
+    }
+
+    fn known_term(
+        &self,
+        expression: ExpressionId,
+        module_name: &str,
+        item_name: &str,
+    ) -> QueryResult<bool> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(false);
+        };
+        let GlobalId::Term(file_id, _) = global.id else { return Ok(false) };
+        Ok(global.item_name == item_name && self.source_module_name(file_id)? == module_name)
+    }
+
+    fn known_instance_member(
+        &self,
+        expression: ExpressionId,
+        module_name: &str,
+        member_name: &str,
+        instance_name: &str,
+    ) -> QueryResult<bool> {
+        let ExpressionKind::Project { record, field } = &self.storage[expression].kind else {
+            return Ok(false);
+        };
+        let FieldIdentity::Member(member_file, _) = field.identity else {
+            return Ok(false);
+        };
+        if field.name != member_name || self.source_module_name(member_file)? != module_name {
+            return Ok(false);
+        }
+        let ExpressionKind::Global { global } = &self.storage[*record].kind else {
+            return Ok(false);
+        };
+        let GlobalId::Instance(identity) = global.id else { return Ok(false) };
+        let instance_file = match identity {
+            InstanceIdentity::Declared(file_id, _) | InstanceIdentity::Derived(file_id, _) => {
+                file_id
+            }
+        };
+        Ok(global.item_name == instance_name
+            && self.source_module_name(instance_file)? == module_name)
     }
 
     fn expression(&mut self, kind: ExpressionKind) -> ExpressionId {
