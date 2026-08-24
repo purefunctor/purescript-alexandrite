@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 288
+expression: report
+---
+Terms
+name :: forall t0 (@a :: t0). Main.Named @t0 (a :: t0) => Prim.String
+select ::
+  forall t0 t1 (@fixed :: t0) (@selected :: t1). Main.Named @t1 (selected :: t1) => Prim.String
+test :: Prim.String
+
+Types
+Named :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (a :: t0). Main.Named @t0 (a :: t0)
+  name :: forall t0 (@a :: t0). Main.Named @t0 (a :: t0) => Prim.String
+
+Instances
+instance Main.Named @Prim.Type Prim.String
+
+Diagnostics
+error[NoInstanceFound]: No instance found for: Named @Type ?9
+  --> 12:1..12:15
+   |
+12 | test :: String
+   | ^~~~~~~~~~~~~~
+  trivia: Named @Type selected is in scope
