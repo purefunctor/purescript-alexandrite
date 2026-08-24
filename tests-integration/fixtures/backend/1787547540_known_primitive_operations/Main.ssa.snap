@@ -1,0 +1,96 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const observe;
+
+@export foreign const readTrace;
+
+@export function booleanNot(value) {
+  entry() {
+    const heytingAlgebraBoolean = global(heytingAlgebraBoolean);
+    const not = heytingAlgebraBoolean.not;
+    const call = source.call(not, value);
+    return call;
+  }
+}
+
+@export function integerAdd(left, right) {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const call = source.call(add, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+@export function integerSubtract(left, right) {
+  entry() {
+    const ringInt = global(ringInt);
+    const sub = ringInt.sub;
+    const call = source.call(sub, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+@export function integerMultiply(left, right) {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const mul = semiringInt.mul;
+    const call = source.call(mul, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
+
+@export function integerNegate(value) {
+  entry() {
+    const ringInt = global(ringInt);
+    const negate = ringInt.negate;
+    const call = source.call(negate, value);
+    return call;
+  }
+}
+
+@export function integerAddOrder($boolean) {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const observe = global(observe);
+    const literal = "left";
+    const call = source.call(observe, literal);
+    const literal$1 = 20;
+    const call$1 = source.call(call, literal$1);
+    const call$2 = source.call(add, call$1);
+    const observe$1 = global(observe);
+    const literal$2 = "right";
+    const call$3 = source.call(observe$1, literal$2);
+    const literal$3 = 22;
+    const call$4 = source.call(call$3, literal$3);
+    const call$5 = source.call(call$2, call$4);
+    return call$5;
+  }
+}
+
+@export const partiallyAppliedAdd = initialize {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const literal = 1;
+    const call = source.call(add, literal);
+    return call;
+  }
+}
+
+@export function lookalikeAdd(left, right) {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const call = source.call(add, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}

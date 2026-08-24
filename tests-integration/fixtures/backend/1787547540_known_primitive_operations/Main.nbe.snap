@@ -1,0 +1,25 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export foreign observe
+
+@export foreign readTrace
+
+@export booleanNot = \value%0 -> heytingAlgebraBoolean.not value%0
+
+@export integerAdd = \left%1 right%2 -> semiringInt.add left%1 right%2
+
+@export integerSubtract = \left%3 right%4 -> ringInt.sub left%3 right%4
+
+@export integerMultiply = \left%5 right%6 -> semiringInt.mul left%5 right%6
+
+@export integerNegate = \value%7 -> ringInt.negate value%7
+
+@export integerAddOrder = \$boolean%8@(_) ->
+  semiringInt.add (observe "left" 20) (observe "right" 22)
+
+@export partiallyAppliedAdd = semiringInt.add 1
+
+@export lookalikeAdd = \left%9 right%10 -> semiringInt.add left%9 right%10
