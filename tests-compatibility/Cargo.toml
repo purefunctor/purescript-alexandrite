@@ -18,7 +18,7 @@ globset = "0.4.20"
 indicatif = "0.18.6"
 indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 lexing = { version = "0.1.0", path = "../compiler-frontend/lexing" }
-lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
+lowering = { version = "0.1.0", path = "../compiler-frontend/lowering" }
 parsing = { version = "0.1.0", path = "../compiler-frontend/parsing" }
 rayon = "1.12.0"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }

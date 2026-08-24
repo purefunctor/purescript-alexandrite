@@ -36,7 +36,7 @@ globset = "0.4.20"
 indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 itertools = "0.15.0"
 javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
-lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
+lowering = { version = "0.1.0", path = "../compiler-frontend/lowering" }
 lsp-types.workspace = true
 parking_lot = "0.12.5"
 path-absolutize = "4.0.1"

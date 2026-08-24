@@ -15,7 +15,7 @@ la-arena = "0.3.1"
 lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 line-index = "0.1.2"
 lsp-types.workspace = true
-lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
+lowering = { version = "0.1.0", path = "../../compiler-frontend/lowering" }
 parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 radix_trie = "0.3.0"
 resolving = { version = "0.1.0", path = "../../compiler-frontend/resolving" }

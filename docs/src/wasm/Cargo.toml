@@ -29,7 +29,7 @@ files = { version = "0.1.0", path = "../../../compiler-core/files" }
 indexing = { version = "0.1.0", path = "../../../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../../../compiler-core/interner" }
 lexing = { version = "0.1.0", path = "../../../compiler-frontend/lexing" }
-lowering = { version = "0.1.0", path = "../../../compiler-core/lowering" }
+lowering = { version = "0.1.0", path = "../../../compiler-frontend/lowering" }
 parsing = { version = "0.1.0", path = "../../../compiler-frontend/parsing" }
 prim-constants = { version = "0.1.0", path = "../../../compiler-core/prim-constants" }
 resolving = { version = "0.1.0", path = "../../../compiler-frontend/resolving" }
