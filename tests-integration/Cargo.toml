@@ -7,7 +7,7 @@ edition = "2024"
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = "0.2.4"
 building = { version = "0.1.0", path = "../compiler-core/building" }
-checking = { version = "0.1.0", path = "../compiler-core/checking" }
+checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 files = { version = "0.1.0", path = "../compiler-core/files" }

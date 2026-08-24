@@ -27,7 +27,7 @@ path = "src/bin/purescript-analyzer.rs"
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = { version = "0.2.4", features = ["tokio"] }
 building = { version = "0.1.0", path = "../compiler-core/building" }
-checking = { version = "0.1.0", path = "../compiler-core/checking" }
+checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
 clap = { version = "4.6.6", features = ["derive"] }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }

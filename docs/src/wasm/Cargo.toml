@@ -22,7 +22,7 @@ serde-wasm-bindgen = "0.6"
 
 # Compiler core crates
 building-types = { version = "0.1.0", path = "../../../compiler-core/building-types" }
-checking = { version = "0.1.0", path = "../../../compiler-core/checking" }
+checking = { version = "0.1.0", path = "../../../compiler-frontend/checking" }
 diagnostics = { version = "0.1.0", path = "../../../compiler-core/diagnostics" }
 documenting = { version = "0.1.0", path = "../../../compiler-core/documenting" }
 files = { version = "0.1.0", path = "../../../compiler-core/files" }

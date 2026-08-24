@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 anyhow = "1"
 building = { version = "0.1.0", path = "../compiler-core/building" }
-checking = { version = "0.1.0", path = "../compiler-core/checking" }
+checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
 clap = { version = "4", features = ["derive"] }
 criterion = { version = "0.8.2", features = ["html_reports"] }
 diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
