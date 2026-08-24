@@ -20,7 +20,7 @@ web-sys = { version = "0.3.104", features = ["Performance", "Window", "Worker", 
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 
-# Compiler core crates
+# Compiler crates
 building-types = { version = "0.1.0", path = "../../../compiler-core/building-types" }
 checking = { version = "0.1.0", path = "../../../compiler-frontend/checking" }
 diagnostics = { version = "0.1.0", path = "../../../compiler-frontend/diagnostics" }

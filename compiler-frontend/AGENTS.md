@@ -1,9 +1,9 @@
-## Architecture
+## Scope
 
-The compiler core is split into components with well-defined responsibilities, designed for
-transparency (editor introspection) and compatibility with query-based incremental builds.
+The compiler frontend turns PureScript source into checked semantic data. Its components are
+designed for editor introspection and compatibility with query-based incremental builds.
 
-### Pipeline Components
+## Components
 
 The component names listed below are crate names in this workspace.
 
@@ -17,14 +17,19 @@ The component names listed below are crate names in this workspace.
 - **stabilizing**: assigns stable IDs to source ranges
 - **checking**: type checking and elaboration
 - **diagnostics**: error collection and rendering for LSP and tests
+- **documenting**: extracts source documentation and associates it with indexed items
 
-### Infrastructure
+Infrastructure shared across compiler stages belongs in `compiler-core`; executable code generation
+belongs in `compiler-backend`.
 
-- **building**: query-based parallel build system
-- **building-types**: shared type definitions
-- **files**: virtual file system
-- **interner**: generic interner implementation
-- **prim-constants**: primitive type constants
+## Verification
+
+- Run `cargo check -p <crate-name> --tests` for a changed crate.
+- Run `cargo nextest run -p <crate-name>` for frontend unit tests.
+- Use `just t checking`, `just t lowering`, or `just t resolving` when behavior in the corresponding
+  integration-test category can change.
+- Snapshot changes must be generated and reviewed through the owning test command; never edit them
+  by hand.
 
 ## Key Concepts
 

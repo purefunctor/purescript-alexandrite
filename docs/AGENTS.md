@@ -41,7 +41,7 @@ worker/docs-lib.ts (Web Worker, isolated thread)
     ↓
 WASM engine (src/wasm/src/lib.rs)
     ↓
-Compiler Core crates (../compiler-core/*)
+Compiler Core and Frontend crates (../compiler-core/*, ../compiler-frontend/*)
     ↓
 Results → Panel components
 ```
@@ -59,7 +59,7 @@ Results → Panel components
 - `src/hooks/` - Custom hooks (`useDocsLib` for WASM worker, `useDebounce`)
 - `src/lib/packages/` - Package fetching, caching, and dependency resolution
 - `src/worker/` - Comlink-exposed Web Worker that loads WASM
-- `src/wasm/` - Rust crate that compiles to WASM, links all compiler-core crates
+- `src/wasm/` - Rust crate that compiles to WASM and links compiler infrastructure and frontend crates
 
 ## Stack
 
@@ -73,7 +73,7 @@ Results → Panel components
 
 The `src/wasm/` directory contains a Rust crate that:
 
-- Links to 13 compiler-core crates via relative paths
+- Links to compiler-core and compiler-frontend crates via relative paths
 - Exposes functions via `wasm-bindgen`
 - Uses `serde-wasm-bindgen` for JS interop
 - Tracks performance timing via `web-sys::Performance`
