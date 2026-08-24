@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+chooseSecond :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+made :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+madeNested :: Data.Function.Uncurried.Fn3 Prim.Int Prim.Int Prim.Int Prim.Int
+madeCaptured :: Prim.Int -> Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+madeWithCurriedResult :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int (Prim.Int -> Prim.Int)
+directRun :: Prim.Int
+directMadeRun :: Prim.Int
+directNestedRun :: Prim.Int
+directCapturedRun :: Prim.Int
+directCurriedResultRun :: Prim.Int
+partialRun :: Prim.Int -> Prim.Int
+indirectMake :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+chooseSecondCurried :: Prim.Int -> Prim.Int -> Prim.Int
+lookalikeMade :: Prim.Int -> Prim.Int -> Prim.Int
+lookalikeRun :: Prim.Int
+
+Types

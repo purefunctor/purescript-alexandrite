@@ -115,6 +115,7 @@ impl<'a> Printer<'a, '_> {
         let convention = match function.calling_convention {
             CallingConvention::Initializer => "initializer",
             CallingConvention::Source => "closure",
+            CallingConvention::Uncurried => "uncurried closure",
             CallingConvention::Effect => "effect closure",
         };
         let captures = self.values(&function.captures);
@@ -277,6 +278,7 @@ impl<'a> Printer<'a, '_> {
                 let convention = match calling_convention {
                     CallingConvention::Initializer => "initializer.call",
                     CallingConvention::Source => "source.call",
+                    CallingConvention::Uncurried => "uncurried.call",
                     CallingConvention::Effect => "effect.call",
                 };
                 let function = self.value(*function);

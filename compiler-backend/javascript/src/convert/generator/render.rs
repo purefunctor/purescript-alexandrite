@@ -47,13 +47,16 @@ impl Generator<'_> {
         let parameters =
             function.parameters.iter().map(|parameter| context.value(*parameter).to_owned());
         let parameters = parameters.collect_vec();
+        let uncurried = matches!(function.calling_convention, CallingConvention::Uncurried);
         let returns_zero_parameter_closure = !captures.is_empty()
             && parameters.is_empty()
             && matches!(
                 function.calling_convention,
                 CallingConvention::Source | CallingConvention::Effect
             );
-        let (function_parameters, arrow_parameters) = if captures.is_empty() {
+        let (function_parameters, arrow_parameters) = if captures.is_empty() && uncurried {
+            (parameters, vec![])
+        } else if captures.is_empty() {
             match parameters.split_first() {
                 Some((first, rest)) => (vec![first.clone()], rest.to_vec()),
                 None => (vec![], vec![]),
@@ -69,6 +72,12 @@ impl Generator<'_> {
                 writer.block("return () => {", "};", |writer| {
                     self.render_function_body(tree, writer, function, &context)
                 })
+            } else if uncurried && !arrow_parameters.is_empty() {
+                writer.block(
+                    format!("return ({}) => {{", arrow_parameters.join(", ")),
+                    "};",
+                    |writer| self.render_function_body(tree, writer, function, &context),
+                )
             } else {
                 self.render_curried_function_body(
                     tree,
@@ -316,6 +325,11 @@ impl Generator<'_> {
 
         if function.parameters.is_empty() {
             expression = tree.arrow(vec![], expression);
+        } else if matches!(function.calling_convention, CallingConvention::Uncurried) {
+            let parameters =
+                function.parameters.iter().map(|parameter| context.value(*parameter).to_owned());
+            let parameters = parameters.collect_vec();
+            expression = tree.arrow(parameters, expression);
         } else {
             for parameter in function.parameters.iter().rev() {
                 let parameter = context.value(*parameter).to_owned();

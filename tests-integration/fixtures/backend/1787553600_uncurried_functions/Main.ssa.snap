@@ -1,0 +1,159 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const chooseSecond;
+
+@export function made(first, second) {
+  entry() {
+    return second;
+  }
+}
+
+@export function madeNested(first, second, third) {
+  entry() {
+    return third;
+  }
+}
+
+@export function madeCaptured(captured) {
+  entry() {
+    const uncurried = closure(madeCaptured$uncurried, captured);
+    return uncurried;
+  }
+}
+
+@export function madeWithCurriedResult(first, second) {
+  entry() {
+    const closure = closure(madeWithCurriedResult$closure);
+    return closure;
+  }
+}
+
+@export const directRun = initialize {
+  entry() {
+    const chooseSecond = global(chooseSecond);
+    const literal = 1;
+    const literal$1 = 42;
+    const uncurriedCall = uncurried.call(chooseSecond, literal, literal$1);
+    return uncurriedCall;
+  }
+}
+
+@export const directMadeRun = initialize {
+  entry() {
+    const uncurried = closure(directMadeRun$initialize$uncurried);
+    const literal = 1;
+    const literal$1 = 42;
+    const uncurriedCall = uncurried.call(uncurried, literal, literal$1);
+    return uncurriedCall;
+  }
+}
+
+@export const directNestedRun = initialize {
+  entry() {
+    const madeNested = global(madeNested);
+    const literal = 1;
+    const literal$1 = 2;
+    const literal$2 = 42;
+    const uncurriedCall = uncurried.call(madeNested, literal, literal$1, literal$2);
+    return uncurriedCall;
+  }
+}
+
+@export const directCapturedRun = initialize {
+  entry() {
+    const madeCaptured = global(madeCaptured);
+    const literal = 42;
+    const call = source.call(madeCaptured, literal);
+    const literal$1 = 1;
+    const literal$2 = 2;
+    const uncurriedCall = uncurried.call(call, literal$1, literal$2);
+    return uncurriedCall;
+  }
+}
+
+@export const directCurriedResultRun = initialize {
+  entry() {
+    const madeWithCurriedResult = global(madeWithCurriedResult);
+    const literal = 1;
+    const literal$1 = 2;
+    const uncurriedCall = uncurried.call(madeWithCurriedResult, literal, literal$1);
+    const literal$2 = 42;
+    const call = source.call(uncurriedCall, literal$2);
+    return call;
+  }
+}
+
+@export const partialRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const chooseSecond = global(chooseSecond);
+    const call = source.call(runFn2, chooseSecond);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    return call$1;
+  }
+}
+
+@export const indirectMake = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const chooseSecondCurried = global(chooseSecondCurried);
+    const call = source.call(mkFn2, chooseSecondCurried);
+    return call;
+  }
+}
+
+@export function chooseSecondCurried(first, second) {
+  entry() {
+    return second;
+  }
+}
+
+@export const lookalikeMade = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const closure = closure(lookalikeMade$initialize$closure);
+    const call = source.call(mkFn2, closure);
+    return call;
+  }
+}
+
+@export const lookalikeRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const lookalikeMade = global(lookalikeMade);
+    const call = source.call(runFn2, lookalikeMade);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    const literal$1 = 42;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
+  }
+}
+
+uncurried closure madeCaptured$uncurried[captured](first, second) {
+  entry() {
+    return captured;
+  }
+}
+
+closure madeWithCurriedResult$closure[](third) {
+  entry() {
+    return third;
+  }
+}
+
+uncurried closure directMadeRun$initialize$uncurried[](first, second) {
+  entry() {
+    return second;
+  }
+}
+
+closure lookalikeMade$initialize$closure[](first, second) {
+  entry() {
+    return second;
+  }
+}

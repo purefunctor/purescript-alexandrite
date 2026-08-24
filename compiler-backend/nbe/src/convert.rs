@@ -1443,6 +1443,24 @@ where
             return Ok(function);
         }
         let (known_function, known_arguments) = self.application_spine(function, &arguments);
+        if let Some(arity) =
+            self.known_numbered_term_arity(known_function, "Data.Function.Uncurried", "mkFn")?
+            && arity >= 1
+            && let [function] = known_arguments.as_slice()
+            && let Some(function) = self.uncurry_abstraction(*function, arity)
+        {
+            return Ok(function);
+        }
+        if let Some(arity) =
+            self.known_numbered_term_arity(known_function, "Data.Function.Uncurried", "runFn")?
+            && let Some((function, arguments)) = known_arguments.split_first()
+            && arguments.len() == arity
+        {
+            return Ok(self.expression(ExpressionKind::UncurriedApplication {
+                function: *function,
+                arguments: arguments.into(),
+            }));
+        }
         if self.known_term(known_function, "Data.Function", "apply")?
             && let [function, argument] = known_arguments.as_slice()
         {
@@ -1512,6 +1530,38 @@ where
         Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
     }
 
+    fn uncurry_abstraction(
+        &mut self,
+        mut expression: ExpressionId,
+        arity: usize,
+    ) -> Option<ExpressionId> {
+        let mut parameters = Vec::with_capacity(arity);
+        while parameters.len() < arity {
+            let ExpressionKind::Abstraction { parameters: abstraction, body } =
+                &self.storage[expression].kind
+            else {
+                return None;
+            };
+            let abstraction = abstraction.to_vec();
+            let body = *body;
+            let remaining = arity - parameters.len();
+            let split = abstraction.len().min(remaining);
+            parameters.extend_from_slice(&abstraction[..split]);
+            expression = if split == abstraction.len() {
+                body
+            } else {
+                self.expression(ExpressionKind::Abstraction {
+                    parameters: abstraction[split..].into(),
+                    body,
+                })
+            };
+        }
+        Some(self.expression(ExpressionKind::UncurriedAbstraction {
+            parameters: parameters.into(),
+            body: expression,
+        }))
+    }
+
     fn application_spine(
         &self,
         mut function: ExpressionId,
@@ -1576,6 +1626,27 @@ where
         };
         let GlobalId::Term(file_id, _) = global.id else { return Ok(false) };
         Ok(global.item_name == item_name && self.source_module_name(file_id)? == module_name)
+    }
+
+    fn known_numbered_term_arity(
+        &self,
+        expression: ExpressionId,
+        module_name: &str,
+        item_prefix: &str,
+    ) -> QueryResult<Option<usize>> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(None);
+        };
+        let GlobalId::Term(file_id, _) = global.id else { return Ok(None) };
+        if self.source_module_name(file_id)? != module_name {
+            return Ok(None);
+        }
+        let Some(arity) = global.item_name.strip_prefix(item_prefix) else {
+            return Ok(None);
+        };
+        let Ok(arity) = arity.parse::<usize>() else { return Ok(None) };
+        let canonical_name = format_smolstr!("{item_prefix}{arity}");
+        Ok((arity <= 10 && global.item_name == canonical_name).then_some(arity))
     }
 
     fn known_instance_member(

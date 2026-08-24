@@ -158,6 +158,7 @@ pub struct Function {
 pub enum CallingConvention {
     Initializer,
     Source,
+    Uncurried,
     Effect,
 }
 
