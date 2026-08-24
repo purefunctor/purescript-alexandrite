@@ -36,7 +36,7 @@ fn print_tokens(lexed: &Lexed, tokens: &[SyntaxKind]) -> String {
     buffer
 }
 
-test_each_file! { in "./compiler-core/lexing/tests/layout" => |content: &str| {
+test_each_file! { in "./compiler-frontend/lexing/tests/layout" => |content: &str| {
     let lexed = lexing::lex(content);
     let tokens = lexing::layout(&lexed);
     insta::assert_snapshot!(print_tokens(&lexed, &tokens));

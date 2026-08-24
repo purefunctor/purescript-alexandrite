@@ -12,7 +12,7 @@ foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign
 indexing = { version = "0.1.0", path = "../indexing" }
 interner = { version = "0.1.0", path = "../interner" }
 javascript = { version = "0.1.0", path = "../../compiler-backend/javascript" }
-lexing = { version = "0.1.0", path = "../lexing" }
+lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 lock_api = "0.4.14"
 lowering = { version = "0.1.0", path = "../lowering" }
 nbe = { version = "0.1.0", path = "../../compiler-backend/nbe" }

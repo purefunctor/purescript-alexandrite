@@ -12,7 +12,7 @@ smol_str = "0.3.4"
 
 [dev-dependencies]
 itertools = "0.15.0"
-lexing = { path = "../lexing" }
+lexing = { path = "../../compiler-frontend/lexing" }
 lowering = { path = "../lowering" }
 parsing = { path = "../parsing" }
 paste = "1.0.15"

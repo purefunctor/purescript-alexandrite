@@ -1,6 +1,6 @@
 use test_each_file::test_each_file;
 
-test_each_file! { in "./compiler-core/lexing/tests/lexer" => |content: &str| {
+test_each_file! { in "./compiler-frontend/lexing/tests/lexer" => |content: &str| {
     use std::fmt::Write;
 
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
@@ -22,7 +22,7 @@ test_each_file! { in "./compiler-core/lexing/tests/lexer" => |content: &str| {
     })
 }}
 
-test_each_file! { in "./compiler-core/lexing/tests/lexer" as reconstruction => |content: &str| {
+test_each_file! { in "./compiler-frontend/lexing/tests/lexer" as reconstruction => |content: &str| {
     // This test asserts that the original content can be reconstructed from the lexed tokens.
     let lexed = lexing::lex(content);
 

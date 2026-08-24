@@ -12,7 +12,7 @@ foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign
 indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
 itertools = "0.15.0"
 la-arena = "0.3.1"
-lexing = { version = "0.1.0", path = "../../compiler-core/lexing" }
+lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 line-index = "0.1.2"
 lsp-types.workspace = true
 lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }

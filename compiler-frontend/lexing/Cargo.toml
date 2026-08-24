@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
+syntax = { version = "0.1.0", path = "../syntax" }
 unicode_categories = "0.1.1"
 
 [dev-dependencies]

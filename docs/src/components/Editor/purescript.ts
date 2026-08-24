@@ -9,7 +9,7 @@ export function registerPureScript(): void {
 
   monaco.languages.register({ id: "purescript" });
 
-  // Monarch tokenizer based on compiler-core/lexing/src/lexer.rs
+  // Monarch tokenizer based on compiler-frontend/lexing/src/lexer.rs
   monaco.languages.setMonarchTokensProvider("purescript", {
     // Keywords from lexer.rs take_lower()
     keywords: [

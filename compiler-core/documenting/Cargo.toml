@@ -13,7 +13,7 @@ syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 [dev-dependencies]
 criterion = "0.8.2"
 insta = "1.48.0"
-lexing = { path = "../lexing" }
+lexing = { path = "../../compiler-frontend/lexing" }
 
 [[bench]]
 name = "documenting"
