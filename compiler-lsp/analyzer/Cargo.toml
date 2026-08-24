@@ -16,7 +16,7 @@ lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 line-index = "0.1.2"
 lsp-types.workspace = true
 lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
-parsing = { version = "0.1.0", path = "../../compiler-core/parsing" }
+parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 radix_trie = "0.3.0"
 resolving = { version = "0.1.0", path = "../../compiler-core/resolving" }
 rustc-hash = "2.1.3"

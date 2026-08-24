@@ -15,7 +15,7 @@ syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 [dev-dependencies]
 insta = "1.48.0"
 lexing = { path = "../../compiler-frontend/lexing" }
-parsing = { path = "../parsing" }
+parsing = { path = "../../compiler-frontend/parsing" }
 test_each_file = "0.3.7"
 
 [package.metadata.cargo-machete]

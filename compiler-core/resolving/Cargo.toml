@@ -14,5 +14,5 @@ smol_str = "0.3.4"
 itertools = "0.15.0"
 lexing = { path = "../../compiler-frontend/lexing" }
 lowering = { path = "../lowering" }
-parsing = { path = "../parsing" }
+parsing = { path = "../../compiler-frontend/parsing" }
 paste = "1.0.15"
