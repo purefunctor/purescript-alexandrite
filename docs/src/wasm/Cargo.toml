@@ -32,7 +32,7 @@ lexing = { version = "0.1.0", path = "../../../compiler-frontend/lexing" }
 lowering = { version = "0.1.0", path = "../../../compiler-core/lowering" }
 parsing = { version = "0.1.0", path = "../../../compiler-frontend/parsing" }
 prim-constants = { version = "0.1.0", path = "../../../compiler-core/prim-constants" }
-resolving = { version = "0.1.0", path = "../../../compiler-core/resolving" }
+resolving = { version = "0.1.0", path = "../../../compiler-frontend/resolving" }
 stabilizing = { version = "0.1.0", path = "../../../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../../../compiler-core/sugar" }
 syntax = { version = "0.1.0", path = "../../../compiler-frontend/syntax" }

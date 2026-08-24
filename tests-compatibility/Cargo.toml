@@ -22,7 +22,7 @@ lowering = { version = "0.1.0", path = "../compiler-core/lowering" }
 parsing = { version = "0.1.0", path = "../compiler-frontend/parsing" }
 rayon = "1.12.0"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }
-resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
+resolving = { version = "0.1.0", path = "../compiler-frontend/resolving" }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"

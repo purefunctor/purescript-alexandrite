@@ -16,7 +16,7 @@ parking_lot = "0.12.5"
 petgraph = "0.8.3"
 pretty = "0.12"
 parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
-resolving = { version = "0.1.0", path = "../resolving" }
+resolving = { version = "0.1.0", path = "../../compiler-frontend/resolving" }
 rustc-hash = "2.1.3"
 smol_str = "0.3.5"
 stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }
