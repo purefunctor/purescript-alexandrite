@@ -1,0 +1,206 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const chooseSecond;
+
+@export const made = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const closure = closure(made$initialize$closure);
+    const call = source.call(mkFn2, closure);
+    return call;
+  }
+}
+
+@export const madeNested = initialize {
+  entry() {
+    const mkFn3 = global(mkFn3);
+    const closure = closure(madeNested$initialize$closure);
+    const call = source.call(mkFn3, closure);
+    return call;
+  }
+}
+
+@export function madeCaptured(captured) {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const closure = closure(madeCaptured$closure, captured);
+    const call = source.call(mkFn2, closure);
+    return call;
+  }
+}
+
+@export const madeWithCurriedResult = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const closure = closure(madeWithCurriedResult$initialize$closure);
+    const call = source.call(mkFn2, closure);
+    return call;
+  }
+}
+
+@export const directRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const chooseSecond = global(chooseSecond);
+    const call = source.call(runFn2, chooseSecond);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    const literal$1 = 42;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
+  }
+}
+
+@export const directMadeRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const mkFn2 = global(mkFn2);
+    const closure = closure(directMadeRun$initialize$closure);
+    const call = source.call(mkFn2, closure);
+    const call$1 = source.call(runFn2, call);
+    const literal = 1;
+    const call$2 = source.call(call$1, literal);
+    const literal$1 = 42;
+    const call$3 = source.call(call$2, literal$1);
+    return call$3;
+  }
+}
+
+@export const directNestedRun = initialize {
+  entry() {
+    const runFn3 = global(runFn3);
+    const madeNested = global(madeNested);
+    const call = source.call(runFn3, madeNested);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    const literal$1 = 2;
+    const call$2 = source.call(call$1, literal$1);
+    const literal$2 = 42;
+    const call$3 = source.call(call$2, literal$2);
+    return call$3;
+  }
+}
+
+@export const directCapturedRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const madeCaptured = global(madeCaptured);
+    const literal = 42;
+    const call = source.call(madeCaptured, literal);
+    const call$1 = source.call(runFn2, call);
+    const literal$1 = 1;
+    const call$2 = source.call(call$1, literal$1);
+    const literal$2 = 2;
+    const call$3 = source.call(call$2, literal$2);
+    return call$3;
+  }
+}
+
+@export const directCurriedResultRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const madeWithCurriedResult = global(madeWithCurriedResult);
+    const call = source.call(runFn2, madeWithCurriedResult);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    const literal$1 = 2;
+    const call$2 = source.call(call$1, literal$1);
+    const literal$2 = 42;
+    const call$3 = source.call(call$2, literal$2);
+    return call$3;
+  }
+}
+
+@export const partialRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const chooseSecond = global(chooseSecond);
+    const call = source.call(runFn2, chooseSecond);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    return call$1;
+  }
+}
+
+@export const indirectMake = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const chooseSecondCurried = global(chooseSecondCurried);
+    const call = source.call(mkFn2, chooseSecondCurried);
+    return call;
+  }
+}
+
+@export function chooseSecondCurried(first, second) {
+  entry() {
+    return second;
+  }
+}
+
+@export const lookalikeMade = initialize {
+  entry() {
+    const mkFn2 = global(mkFn2);
+    const closure = closure(lookalikeMade$initialize$closure);
+    const call = source.call(mkFn2, closure);
+    return call;
+  }
+}
+
+@export const lookalikeRun = initialize {
+  entry() {
+    const runFn2 = global(runFn2);
+    const lookalikeMade = global(lookalikeMade);
+    const call = source.call(runFn2, lookalikeMade);
+    const literal = 1;
+    const call$1 = source.call(call, literal);
+    const literal$1 = 42;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
+  }
+}
+
+closure made$initialize$closure[](first, second) {
+  entry() {
+    return second;
+  }
+}
+
+closure madeNested$initialize$closure$closure[](second, third) {
+  entry() {
+    return third;
+  }
+}
+
+closure madeNested$initialize$closure[](first) {
+  entry() {
+    const closure = closure(madeNested$initialize$closure$closure);
+    return closure;
+  }
+}
+
+closure madeCaptured$closure[captured](first, second) {
+  entry() {
+    return captured;
+  }
+}
+
+closure madeWithCurriedResult$initialize$closure[](first, second, third) {
+  entry() {
+    return third;
+  }
+}
+
+closure directMadeRun$initialize$closure[](first, second) {
+  entry() {
+    return second;
+  }
+}
+
+closure lookalikeMade$initialize$closure[](first, second) {
+  entry() {
+    return second;
+  }
+}

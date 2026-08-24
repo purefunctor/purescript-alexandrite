@@ -1,0 +1,34 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export foreign chooseSecond
+
+@export made = mkFn2 (\first%0 second%1 -> second%1)
+
+@export madeNested = mkFn3 (\first%2 -> \second%3 third%4 -> third%4)
+
+@export madeCaptured = \captured%7 -> mkFn2 (\first%5 second%6 -> captured%7)
+
+@export madeWithCurriedResult = mkFn2 (\first%8 second%9 third%10 -> third%10)
+
+@export directRun = runFn2 chooseSecond 1 42
+
+@export directMadeRun = runFn2 (mkFn2 (\first%11 second%12 -> second%12)) 1 42
+
+@export directNestedRun = runFn3 madeNested 1 2 42
+
+@export directCapturedRun = runFn2 (madeCaptured 42) 1 2
+
+@export directCurriedResultRun = runFn2 madeWithCurriedResult 1 2 42
+
+@export partialRun = runFn2 chooseSecond 1
+
+@export indirectMake = mkFn2 chooseSecondCurried
+
+@export chooseSecondCurried = \first%14 second%13 -> second%13
+
+@export lookalikeMade = mkFn2 (\first%15 second%16 -> second%16)
+
+@export lookalikeRun = runFn2 lookalikeMade 1 42
