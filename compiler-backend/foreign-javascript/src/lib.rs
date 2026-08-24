@@ -39,14 +39,17 @@ pub fn parse_module(content: &str) -> ForeignModule {
     let allocator = Allocator::default();
     let parsed = Parser::new(&allocator, content, SourceType::mjs()).parse();
 
+    let errors = parsed.diagnostics.into_iter().map(|diagnostic| diagnostic.to_string().into());
+    let errors: Arc<[_]> = errors.collect();
+    if !errors.is_empty() {
+        return ForeignModule { exports: BTreeSet::new(), errors };
+    }
+
     let local_exports = parsed.module_record.local_export_entries.iter();
     let indirect_exports = parsed.module_record.indirect_export_entries.iter();
     let entries = iter::chain(local_exports, indirect_exports);
     let exports = entries.filter_map(export_name);
     let exports = exports.collect();
-
-    let errors = parsed.diagnostics.into_iter().map(|diagnostic| diagnostic.to_string().into());
-    let errors = errors.collect();
 
     ForeignModule { exports, errors }
 }

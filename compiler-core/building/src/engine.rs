@@ -1848,6 +1848,32 @@ mod tests {
     }
 
     #[test]
+    fn test_unparseable_foreign_modules_skip_export_validation() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+        let mut foreign_files = ForeignFiles::default();
+
+        let source = "module Main where\n\nforeign import _null :: Int\nforeign import registerVersionProvider :: Int";
+        let source_id = files.insert("src/Main.purs", source);
+        engine.set_content(source_id, files.content(source_id));
+
+        let malformed_modules =
+            ["export _null = null;", "export const registerVersionProvider u => u;"];
+        for (index, content) in malformed_modules.into_iter().enumerate() {
+            let path = format!("src/Main-{index}.js");
+            let foreign_id = foreign_files.insert(path, content);
+            engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
+            engine.set_foreign_file(source_id, foreign_id);
+
+            let validation = engine.foreign_validation(source_id).unwrap();
+            assert!(!validation.errors.is_empty());
+            assert!(
+                validation.errors.iter().all(|error| matches!(error, ForeignError::Parse { .. }))
+            );
+        }
+    }
+
+    #[test]
     fn test_backend_queries_cache_and_invalidate() {
         let mut engine = QueryEngine::default();
         let mut files = Files::default();

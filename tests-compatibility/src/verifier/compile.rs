@@ -284,6 +284,21 @@ fn collect_file(
         }
         Err(error) => push_query_error(report, metadata, CompilationStage::Checking, error),
     }
+
+    match engine.foreign_validation(file_id) {
+        Ok(validation) => {
+            with_diagnostics_context(engine, file_id, &root, metadata, |ctx| {
+                for error in validation.errors.iter() {
+                    report.diagnostics.extend(convert_diagnostics(
+                        metadata,
+                        CompilationStage::JavaScript,
+                        error.to_diagnostics(&ctx),
+                    ));
+                }
+            });
+        }
+        Err(error) => push_query_error(report, metadata, CompilationStage::JavaScript, error),
+    }
 }
 
 fn with_diagnostics_context(
@@ -425,7 +440,9 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use super::super::report::{CompilationStage, IssueLocation, VerifierIssueKind};
+    use super::super::report::{
+        CompilationStage, DiagnosticSeverity, IssueLocation, VerifierIssueKind,
+    };
     use super::super::sources::SourceFile;
 
     use super::compile_sources;
@@ -462,6 +479,30 @@ mod tests {
 
         assert!(report.verifier_errors.is_empty(), "{:#?}", report.verifier_errors);
         assert!(report.diagnostics.is_empty(), "{:#?}", report.diagnostics);
+    }
+
+    #[test]
+    fn collects_unparseable_foreign_module_warnings() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        let main = dir.path().join("src/Main.purs");
+        fs::write(
+            &main,
+            "module Main where\n\nforeign import _null :: Int\nforeign import missing :: Int\n",
+        )
+        .unwrap();
+        fs::write(dir.path().join("src/Main.js"), "export _null = null;\n").unwrap();
+
+        let report = compile_sources(&[source("literals", "1.0.2", &main)]).unwrap();
+
+        assert!(report.verifier_errors.is_empty(), "{:#?}", report.verifier_errors);
+        assert_eq!(report.diagnostics.len(), 1, "{:#?}", report.diagnostics);
+        let diagnostic = &report.diagnostics[0];
+        assert_eq!(diagnostic.stage, CompilationStage::JavaScript);
+        assert_eq!(diagnostic.severity, DiagnosticSeverity::Warning);
+        assert_eq!(diagnostic.code, "UnparseableFFIModule");
+        assert!(diagnostic.message.contains("Oxc could not parse"));
+        assert!(!diagnostic.message.contains("does not export"));
     }
 
     #[test]

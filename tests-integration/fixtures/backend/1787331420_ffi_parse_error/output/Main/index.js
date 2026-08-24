@@ -1,3 +1,3 @@
 import * as $foreign from "./foreign.js";
 
-export const requested = $foreign["requested"];
+export const _null = $foreign["_null"];

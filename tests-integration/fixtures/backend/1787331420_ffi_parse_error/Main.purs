@@ -1,3 +1,3 @@
 module Main where
 
-foreign import requested :: Int
+foreign import _null :: Int
