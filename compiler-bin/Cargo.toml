@@ -30,7 +30,7 @@ building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
 clap = { version = "4.6.6", features = ["derive"] }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
-diagnostics = { version = "0.1.0", path = "../compiler-core/diagnostics" }
+diagnostics = { version = "0.1.0", path = "../compiler-frontend/diagnostics" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
 globset = "0.4.20"
 indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
