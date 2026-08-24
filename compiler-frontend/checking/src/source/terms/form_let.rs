@@ -270,15 +270,26 @@ where
                     equation.binders.len(),
                 )?;
 
-            let abstractions = equations::bind_signature_abstractions(state, &abstractions);
+            let declaration_abstractions =
+                equations::bind_signature_abstractions(state, &abstractions);
             let inferred = state.with_source_type_renaming(&renaming, |state| {
-                guarded::subsume_elaborated_guarded_expression(state, context, inferred, result)
+                guarded::subsume_elaborated_guarded_expression(
+                    state,
+                    context,
+                    inferred,
+                    &abstractions,
+                    result,
+                )
             })?;
 
             let equation =
                 tree::Equation::local(*equation_source, [].into(), inferred.guarded_expression);
-            let declaration =
-                tree::LocalDeclaration::new(id, name_type, abstractions.into(), [equation].into());
+            let declaration = tree::LocalDeclaration::new(
+                id,
+                name_type,
+                declaration_abstractions.into(),
+                [equation].into(),
+            );
 
             return Ok(declaration);
         } else {

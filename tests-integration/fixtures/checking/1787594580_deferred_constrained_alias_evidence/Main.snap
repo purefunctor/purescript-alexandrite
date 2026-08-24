@@ -18,11 +18,3 @@ class forall (t0 :: Prim.Type) (a :: t0). Main.Named @t0 (a :: t0)
 
 Instances
 instance Main.Named @Prim.Type Prim.String
-
-Diagnostics
-error[NoInstanceFound]: No instance found for: Named @Type ?9
-  --> 12:1..12:15
-   |
-12 | test :: String
-   | ^~~~~~~~~~~~~~
-  trivia: Named @Type selected is in scope
