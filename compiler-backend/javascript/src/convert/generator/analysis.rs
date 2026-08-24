@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::iter;
 
 use files::FileId;
 use itertools::Itertools;
@@ -19,6 +20,7 @@ pub(super) struct FunctionContext {
     closure_names: FxHashMap<FunctionId, String>,
     block_names: FxHashMap<BlockId, String>,
     inlineable_values: FxHashMap<BlockId, FxHashSet<ValueId>>,
+    lexically_stable_values: FxHashSet<ValueId>,
     pub(super) dispatch_block: String,
     pub(super) dispatch_arguments: String,
 }
@@ -92,14 +94,28 @@ impl ValueExpressionContext for BlockExpressionContext<'_> {
 
 impl FunctionContext {
     pub(super) fn new(generator: &Generator<'_>, function: &Function) -> FunctionContext {
-        let mut allocator =
-            NameAllocator::with_reserved(generator.reserved_module_names.iter().cloned());
-        let mut names = FxHashMap::default();
+        FunctionContext::with_capture_names(generator, function, FxHashMap::default())
+    }
+
+    pub(super) fn with_capture_names(
+        generator: &Generator<'_>,
+        function: &Function,
+        capture_names: FxHashMap<ValueId, String>,
+    ) -> FunctionContext {
+        let reserved = {
+            let reserved_module_names = generator.reserved_module_names.iter().cloned();
+            let reserved_capture_names = capture_names.values().cloned();
+            iter::chain(reserved_module_names, reserved_capture_names)
+        };
+
+        let mut allocator = NameAllocator::with_reserved(reserved);
+        let mut names = capture_names;
         for value in function_values(generator.module, function) {
             names
                 .entry(value)
                 .or_insert_with(|| allocator.allocate(&generator.module.storage[value].name));
         }
+
         let mut closure_names = FxHashMap::default();
         for function_id in direct_closures(generator.module, function) {
             let function_name = &generator.module.storage[function_id].name;
@@ -107,19 +123,30 @@ impl FunctionContext {
             let name = allocator.allocate(preferred_name);
             closure_names.insert(function_id, name);
         }
+
         let mut block_names = FxHashMap::default();
         for block in function.blocks.iter().copied() {
             let name = allocator.allocate(&generator.module.storage[block].name);
             block_names.insert(block, name);
         }
-        let inlineable_values = locally_inlineable_values(generator.module, function);
+
         let dispatch_block = allocator.allocate("$block");
         let dispatch_arguments = allocator.allocate("$arguments");
+
+        let inlineable_values = locally_inlineable_values(generator.module, function);
+        let lexically_stable_values = {
+            let captures = function.captures.iter();
+            let parameters = function.parameters.iter();
+            iter::chain(captures, parameters).copied()
+        };
+        let lexically_stable_values = lexically_stable_values.collect();
+
         FunctionContext {
             names,
             closure_names,
             block_names,
             inlineable_values,
+            lexically_stable_values,
             dispatch_block,
             dispatch_arguments,
         }
@@ -150,6 +177,10 @@ impl FunctionContext {
         self.inlineable_values
             .get(&block)
             .expect("invariant violated: JavaScript SSA block has no inlining analysis")
+    }
+
+    pub(super) fn value_is_lexically_stable(&self, value: ValueId) -> bool {
+        self.lexically_stable_values.contains(&value)
     }
 
     pub(super) fn mutable_values(&self, function: &Function) -> Vec<&str> {

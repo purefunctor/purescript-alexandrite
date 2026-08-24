@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+Unit :: Main.Unit
+ordinaryUnit :: Main.Unit -> Main.Unit
+ordinaryUnitCall :: Main.Unit
+parent :: forall @a. Main.Parent a => a -> a
+child :: forall @a. Main.Child a => a -> a
+useSuperclass :: forall a. Main.Child a => a -> a
+
+Types
+Unit :: Prim.Type
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Parent a
+  parent :: forall @a. Main.Parent a => a -> a
+class forall (a :: Prim.Type). Main.Parent a <= Main.Child a
+  child :: forall @a. Main.Child a => a -> a
+
+Instances
+instance Main.Parent Prim.Int
+instance forall a. Main.Parent (Prim.Array a) => Main.Child (Prim.Array a)
+
+Roles
+Unit = []

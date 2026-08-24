@@ -64,10 +64,7 @@ export const eqOption = (() => {
 })();
 
 export const measureInt = (() => {
-  function measureInt$initialize$closure(value) {
-    return value;
-  }
-  return { measure: measureInt$initialize$closure };
+  return { measure: value => value };
 })();
 
 export { $await as "await" };

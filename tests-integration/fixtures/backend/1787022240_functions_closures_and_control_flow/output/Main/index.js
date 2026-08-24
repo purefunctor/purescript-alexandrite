@@ -5,12 +5,7 @@ export function apply($function) {
 }
 
 export function capture(captured) {
-  function capture$closure(captured) {
-    return $int => {
-      return captured;
-    };
-  }
-  return capture$closure(captured);
+  return $int => captured;
 }
 
 export function choose(condition) {

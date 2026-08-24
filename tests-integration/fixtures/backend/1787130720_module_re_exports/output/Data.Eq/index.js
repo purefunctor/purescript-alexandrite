@@ -1,11 +1,6 @@
 export function eqRec(rowToListRowListDict) {
   return eqRecordListRowDict => {
-    function eqRec$closure($record) {
-      return $record$1 => {
-        return true;
-      };
-    }
-    return { eq: eqRec$closure };
+    return { eq: $record => $record$1 => true };
   };
 }
 
@@ -13,44 +8,20 @@ export function eqRecordConsType(eqRecordRowlistTailRowDict) {
   return consKeyFocusRowTailRowDict => {
     return isSymbolKeyDict => {
       return eqFocusDict => {
-        function eqRecordConsType$closure($cons) {
-          return $record => {
-            return $record$1 => {
-              return true;
-            };
-          };
-        }
-        return { eqRecord: eqRecordConsType$closure };
+        return { eqRecord: $cons => $record => $record$1 => true };
       };
     };
   };
 }
 
 export const eqInt = (() => {
-  function eqInt$initialize$closure($int) {
-    return $int$1 => {
-      return true;
-    };
-  }
-  return { eq: eqInt$initialize$closure };
+  return { eq: $int => $int$1 => true };
 })();
 
 export const eqBoolean = (() => {
-  function eqBoolean$initialize$closure($boolean) {
-    return $boolean$1 => {
-      return true;
-    };
-  }
-  return { eq: eqBoolean$initialize$closure };
+  return { eq: $boolean => $boolean$1 => true };
 })();
 
 export const eqRecordNilType = (() => {
-  function eqRecordNilType$initialize$closure($nil) {
-    return $record => {
-      return $record$1 => {
-        return true;
-      };
-    };
-  }
-  return { eqRecord: eqRecordNilType$initialize$closure };
+  return { eqRecord: $nil => $record => $record$1 => true };
 })();

@@ -13,12 +13,7 @@ export function readProto(value) {
 }
 
 export function capture(captured) {
-  function capture$closure(captured) {
-    return $int => {
-      return captured;
-    };
-  }
-  return capture$closure(captured);
+  return $int => captured;
 }
 
 export function apply($function) {
@@ -28,12 +23,7 @@ export function apply($function) {
 }
 
 export function addCaptured(amount) {
-  function addCaptured$closure(amount) {
-    return value => {
-      return addInt(amount)(value);
-    };
-  }
-  return addCaptured$closure(amount);
+  return value => addInt(amount)(value);
 }
 
 export function nestedJoin(outer) {

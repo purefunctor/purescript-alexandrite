@@ -5,5 +5,5 @@ export function wrap(newtypeTADict) {
 }
 
 export function unwrap(newtypeTADict) {
-  return Safe_Coerce.coerce(newtypeTADict.Coercible0({}));
+  return Safe_Coerce.coerce(newtypeTADict.Coercible0());
 }

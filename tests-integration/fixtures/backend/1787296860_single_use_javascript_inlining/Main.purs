@@ -27,6 +27,13 @@ inlineRecord value = { value }
 inlineCapturedClosure :: Boolean -> Boolean -> Boolean
 inlineCapturedClosure captured = \_ -> captured
 
+keepMultiUseClosure
+  :: Boolean
+  -> { first :: Boolean -> Boolean, second :: Boolean -> Boolean }
+keepMultiUseClosure captured =
+  let closure = \_ -> captured
+  in { first: closure, second: closure }
+
 keepMultiUse :: { value :: Boolean } -> { first :: Boolean, second :: Boolean }
 keepMultiUse record =
   let value = record.value

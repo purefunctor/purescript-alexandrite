@@ -19,10 +19,7 @@ export function inlineLiteral(condition) {
 }
 
 export function inlineClosure(value) {
-  function inlineClosure$closure(item) {
-    return item;
-  }
-  return inlineClosure$closure(value);
+  return (item => item)(value);
 }
 
 export function inlineCall($function) {
@@ -40,12 +37,17 @@ export function inlineRecord(value) {
 }
 
 export function inlineCapturedClosure(captured) {
-  function inlineCapturedClosure$closure(captured) {
+  return $boolean => captured;
+}
+
+export function keepMultiUseClosure(captured) {
+  function keepMultiUseClosure$closure(captured) {
     return $boolean => {
       return captured;
     };
   }
-  return inlineCapturedClosure$closure(captured);
+  const closure = keepMultiUseClosure$closure(captured);
+  return { first: closure, second: closure };
 }
 
 export function keepMultiUse(record) {

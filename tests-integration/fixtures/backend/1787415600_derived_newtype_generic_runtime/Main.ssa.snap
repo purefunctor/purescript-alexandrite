@@ -98,7 +98,7 @@ expression: ssa_report
   }
 }
 
-closure newtypeTypeIdentifierInt$initialize$closure[](unit) {
+closure newtypeTypeIdentifierInt$initialize$closure[]() {
   entry() {
     const evidence = evidence.trivial;
     return evidence;

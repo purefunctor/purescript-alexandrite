@@ -59,8 +59,5 @@ export function bind(value) {
 }
 
 export function ordinaryBind(identity) {
-  function ordinaryBind$closure(value) {
-    return value;
-  }
-  return bind(identity)(ordinaryBind$closure);
+  return bind(identity)(value => value);
 }
