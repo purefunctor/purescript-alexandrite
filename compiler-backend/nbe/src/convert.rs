@@ -19,12 +19,12 @@ use thiserror::Error;
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
-    Binding, CaseAlternative, Declaration, DeclarationKind, Expression, ExpressionId,
-    ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard, GuardedAlternative,
-    IndirectModuleExports, InstanceIdentity, Literal, LocalId, Module, ModuleDependency,
-    ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecordField, RecordPatternField,
-    RecordUpdate, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
-    SuperclassIdentity, SynthesizedEvidence,
+    BinaryOperator, Binding, CaseAlternative, Declaration, DeclarationKind, Expression,
+    ExpressionId, ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard,
+    GuardedAlternative, IndirectModuleExports, InstanceIdentity, Literal, LocalId, Module,
+    ModuleDependency, ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecordField,
+    RecordPatternField, RecordUpdate, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering,
+    Storage, SuperclassIdentity, SynthesizedEvidence, UnaryOperator,
 };
 
 const MAX_EVIDENCE_NAME_FRAGMENTS: usize = 4;
@@ -1466,6 +1466,48 @@ where
             && let [argument] = known_arguments.as_slice()
         {
             return Ok(*argument);
+        }
+        if self.known_instance_member(
+            known_function,
+            "Data.HeytingAlgebra",
+            "not",
+            "heytingAlgebraBoolean",
+        )? && let [value] = known_arguments.as_slice()
+        {
+            return Ok(self.expression(ExpressionKind::Unary {
+                operator: UnaryOperator::BooleanNot,
+                value: *value,
+            }));
+        }
+        if self.known_instance_member(known_function, "Data.Ring", "negate", "ringInt")?
+            && let [value] = known_arguments.as_slice()
+        {
+            return Ok(self.expression(ExpressionKind::Unary {
+                operator: UnaryOperator::IntegerNegate,
+                value: *value,
+            }));
+        }
+        let binary_operator =
+            if self.known_instance_member(known_function, "Data.Semiring", "add", "semiringInt")? {
+                Some(BinaryOperator::IntegerAdd)
+            } else if self.known_instance_member(known_function, "Data.Ring", "sub", "ringInt")? {
+                Some(BinaryOperator::IntegerSubtract)
+            } else if self.known_instance_member(
+                known_function,
+                "Data.Semiring",
+                "mul",
+                "semiringInt",
+            )? {
+                Some(BinaryOperator::IntegerMultiply)
+            } else {
+                None
+            };
+        if let (Some(operator), [left, right]) = (binary_operator, known_arguments.as_slice()) {
+            return Ok(self.expression(ExpressionKind::Binary {
+                operator,
+                left: *left,
+                right: *right,
+            }));
         }
         Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
     }

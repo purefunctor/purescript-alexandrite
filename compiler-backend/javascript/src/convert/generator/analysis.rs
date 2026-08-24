@@ -732,6 +732,8 @@ pub(super) fn instruction_value_uses(value: &InstructionValue) -> Vec<ValueId> {
             values
         }
         InstructionValue::Project { record, .. } => vec![*record],
+        InstructionValue::Unary { value, .. } => vec![*value],
+        InstructionValue::Binary { left, right, .. } => vec![*left, *right],
         InstructionValue::Force { accessor } => vec![*accessor],
         InstructionValue::Closure { captures, .. } => captures.to_vec(),
         InstructionValue::Call { function, arguments, .. } => {
@@ -917,6 +919,13 @@ impl<'b> EvaluationTracer<'b> {
             InstructionValue::Project { record, .. } => {
                 self.expression(*record, EvaluationContext::Eager);
                 self.operation(result, 0);
+            }
+            InstructionValue::Unary { value, .. } => {
+                self.expression(*value, EvaluationContext::Eager);
+            }
+            InstructionValue::Binary { left, right, .. } => {
+                self.expression(*left, EvaluationContext::Eager);
+                self.expression(*right, EvaluationContext::Eager);
             }
             InstructionValue::Force { accessor } => {
                 self.expression(*accessor, EvaluationContext::Eager);

@@ -1,6 +1,6 @@
 use pretty::{Arena, DocAllocator, DocBuilder};
 
-use crate::tree::{BinaryOperator, Expression, ExpressionId, ObjectProperty, Tree};
+use crate::tree::{BinaryOperator, Expression, ExpressionId, ObjectProperty, Tree, UnaryOperator};
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
 
@@ -76,6 +76,10 @@ impl<'a> Printer<'a, '_> {
                 .append("[")
                 .append(self.expression(*index))
                 .append("]"),
+            Expression::Unary { operator, value } => self
+                .arena
+                .text(operator.source())
+                .append(self.expression_at(*value, Precedence::Unary)),
             Expression::Binary { operator, left, right } => {
                 let precedence = operator.precedence();
                 self.expression_at(*left, precedence)
@@ -109,6 +113,7 @@ impl<'a> Printer<'a, '_> {
     fn precedence(&self, expression: ExpressionId) -> Precedence {
         match &self.tree[expression] {
             Expression::Arrow { .. } => Precedence::Assignment,
+            Expression::Unary { .. } => Precedence::Unary,
             Expression::Binary { operator, .. } => operator.precedence(),
             Expression::Call { .. } => Precedence::Call,
             Expression::Member { .. } | Expression::Index { .. } => Precedence::Member,
@@ -150,12 +155,24 @@ impl<'a> Printer<'a, '_> {
     }
 }
 
+impl UnaryOperator {
+    fn source(self) -> &'static str {
+        match self {
+            UnaryOperator::LogicalNot => "!",
+            UnaryOperator::Negate => "-",
+        }
+    }
+}
+
 impl BinaryOperator {
     fn source(self) -> &'static str {
         match self {
             BinaryOperator::StrictEqual => "===",
             BinaryOperator::BitwiseOr => "|",
             BinaryOperator::LogicalAnd => "&&",
+            BinaryOperator::Add => "+",
+            BinaryOperator::Subtract => "-",
+            BinaryOperator::Multiply => "*",
         }
     }
 
@@ -164,6 +181,8 @@ impl BinaryOperator {
             BinaryOperator::LogicalAnd => Precedence::LogicalAnd,
             BinaryOperator::BitwiseOr => Precedence::BitwiseOr,
             BinaryOperator::StrictEqual => Precedence::Equality,
+            BinaryOperator::Add | BinaryOperator::Subtract => Precedence::Additive,
+            BinaryOperator::Multiply => Precedence::Multiplicative,
         }
     }
 }
@@ -175,6 +194,9 @@ enum Precedence {
     LogicalAnd,
     BitwiseOr,
     Equality,
+    Additive,
+    Multiplicative,
+    Unary,
     Call,
     Member,
     Primary,
@@ -187,7 +209,10 @@ impl Precedence {
             Precedence::Assignment => Precedence::LogicalAnd,
             Precedence::LogicalAnd => Precedence::BitwiseOr,
             Precedence::BitwiseOr => Precedence::Equality,
-            Precedence::Equality => Precedence::Call,
+            Precedence::Equality => Precedence::Additive,
+            Precedence::Additive => Precedence::Multiplicative,
+            Precedence::Multiplicative => Precedence::Unary,
+            Precedence::Unary => Precedence::Call,
             Precedence::Call => Precedence::Member,
             Precedence::Member | Precedence::Primary => Precedence::Primary,
         }

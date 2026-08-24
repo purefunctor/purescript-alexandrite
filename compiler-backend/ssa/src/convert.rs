@@ -10,12 +10,12 @@ use smol_str::{SmolStr, format_smolstr};
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{
-    Block, BlockId, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field,
-    FieldIdentity, Function, FunctionId, Global, GlobalIdentity, IndirectModuleExports,
-    InstanceIdentity, Instruction, InstructionValue, LazyInitializer, Literal, Module,
-    ModuleDependency, ModuleSurface, PatternTest, Projection, RecordField, RecordUpdate,
-    RecursiveClosure, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
-    SuperclassIdentity, SynthesizedEvidence, Terminator, Value, ValueId,
+    BinaryOperator, Block, BlockId, BlockTarget, CallingConvention, Declaration, DeclarationKind,
+    Failure, Field, FieldIdentity, Function, FunctionId, Global, GlobalIdentity,
+    IndirectModuleExports, InstanceIdentity, Instruction, InstructionValue, LazyInitializer,
+    Literal, Module, ModuleDependency, ModuleSurface, PatternTest, Projection, RecordField,
+    RecordUpdate, RecursiveClosure, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering,
+    Storage, SuperclassIdentity, SynthesizedEvidence, Terminator, UnaryOperator, Value, ValueId,
 };
 
 type ConversionResult<T> = ModuleResult<T>;
@@ -313,6 +313,30 @@ fn lower_expression(
             let field = convert_field(field);
             let name = field.name.clone();
             Ok(state.emit(name, InstructionValue::Project { record, field }))
+        }
+        nbe::tree::ExpressionKind::Unary { operator, value } => {
+            let value = lower_expression(state, context, *value)?;
+            let (name, operator) = match operator {
+                nbe::tree::UnaryOperator::BooleanNot => ("booleanNot", UnaryOperator::BooleanNot),
+                nbe::tree::UnaryOperator::IntegerNegate => {
+                    ("integerNegate", UnaryOperator::IntegerNegate)
+                }
+            };
+            Ok(state.emit(name, InstructionValue::Unary { operator, value }))
+        }
+        nbe::tree::ExpressionKind::Binary { operator, left, right } => {
+            let left = lower_expression(state, context, *left)?;
+            let right = lower_expression(state, context, *right)?;
+            let (name, operator) = match operator {
+                nbe::tree::BinaryOperator::IntegerAdd => ("integerAdd", BinaryOperator::IntegerAdd),
+                nbe::tree::BinaryOperator::IntegerSubtract => {
+                    ("integerSubtract", BinaryOperator::IntegerSubtract)
+                }
+                nbe::tree::BinaryOperator::IntegerMultiply => {
+                    ("integerMultiply", BinaryOperator::IntegerMultiply)
+                }
+            };
+            Ok(state.emit(name, InstructionValue::Binary { operator, left, right }))
         }
         nbe::tree::ExpressionKind::Constructor { global } => {
             let global = convert_global(global);
@@ -910,6 +934,13 @@ fn collect_free_expression(
         }
         nbe::tree::ExpressionKind::Project { record, .. } => {
             collect_free_expression(context, *record, bound, free);
+        }
+        nbe::tree::ExpressionKind::Unary { value, .. } => {
+            collect_free_expression(context, *value, bound, free);
+        }
+        nbe::tree::ExpressionKind::Binary { left, right, .. } => {
+            collect_free_expression(context, *left, bound, free);
+            collect_free_expression(context, *right, bound, free);
         }
         nbe::tree::ExpressionKind::Local { parameter } => {
             if !bound.contains(&parameter.id) {

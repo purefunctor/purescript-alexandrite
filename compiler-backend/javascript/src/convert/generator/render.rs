@@ -15,7 +15,8 @@ use super::analysis::{
 };
 use super::names::NameAllocator;
 use super::syntax::{
-    call_expression, integer_expression, literal_expression, project_field, projection_expression,
+    binary_expression, call_expression, integer_expression, literal_expression, project_field,
+    projection_expression, unary_expression,
 };
 use crate::error::ModuleResult;
 use crate::pretty::Writer;
@@ -604,6 +605,15 @@ impl Generator<'_> {
             InstructionValue::Project { record, field } => {
                 let record = context.expression(tree, *record);
                 Ok(project_field(tree, record, field))
+            }
+            InstructionValue::Unary { operator, value } => {
+                let value = context.expression(tree, *value);
+                Ok(unary_expression(tree, *operator, value))
+            }
+            InstructionValue::Binary { operator, left, right } => {
+                let left = context.expression(tree, *left);
+                let right = context.expression(tree, *right);
+                Ok(binary_expression(tree, *operator, left, right))
             }
             InstructionValue::Constructor { global } => self.global_expression(tree, global),
             InstructionValue::Global { global } => self.global_expression(tree, global),

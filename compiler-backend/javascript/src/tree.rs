@@ -18,6 +18,7 @@ pub(crate) enum Expression {
     Call { callee: ExpressionId, arguments: Vec<ExpressionId> },
     Member { object: ExpressionId, property: String },
     Index { object: ExpressionId, index: ExpressionId },
+    Unary { operator: UnaryOperator, value: ExpressionId },
     Binary { operator: BinaryOperator, left: ExpressionId, right: ExpressionId },
     Arrow { parameters: Vec<String>, body: ExpressionId },
 }
@@ -29,10 +30,19 @@ pub(crate) enum ObjectProperty {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) enum UnaryOperator {
+    LogicalNot,
+    Negate,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum BinaryOperator {
     StrictEqual,
     BitwiseOr,
     LogicalAnd,
+    Add,
+    Subtract,
+    Multiply,
 }
 
 impl Tree {
@@ -82,6 +92,10 @@ impl Tree {
 
     pub(crate) fn index(&mut self, object: ExpressionId, index: ExpressionId) -> ExpressionId {
         self.allocate(Expression::Index { object, index })
+    }
+
+    pub(crate) fn unary(&mut self, operator: UnaryOperator, value: ExpressionId) -> ExpressionId {
+        self.allocate(Expression::Unary { operator, value })
     }
 
     pub(crate) fn binary(

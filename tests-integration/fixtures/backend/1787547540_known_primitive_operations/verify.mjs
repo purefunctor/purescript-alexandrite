@@ -1,5 +1,23 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import * as Main from "./output/Main/index.js";
+
+const source = await readFile(new URL("./output/Main/index.js", import.meta.url), "utf8");
+const expectedPrimitives = [
+  "!value",
+  "left + right | 0",
+  "left - right | 0",
+  "left * right | 0",
+  "-value | 0",
+];
+for (const expected of expectedPrimitives) {
+  if (!source.includes(expected)) {
+    throw new Error(`missing known primitive output: ${expected}`);
+  }
+}
+if (!source.includes("Lookalike.semiringInt.add")) {
+  throw new Error("same-named non-canonical member was reduced");
+}
 
 strictEqual(Main.booleanNot(true), false);
 strictEqual(Main.integerAdd(2147483647)(1), -2147483648);

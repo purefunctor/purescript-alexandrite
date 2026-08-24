@@ -1,37 +1,35 @@
-import * as Data_HeytingAlgebra from "../Data.HeytingAlgebra/index.js";
-import * as Data_Ring from "../Data.Ring/index.js";
 import * as Data_Semiring from "../Data.Semiring/index.js";
 import * as Lookalike from "../Lookalike/index.js";
 import * as $foreign from "./foreign.js";
 
 export function booleanNot(value) {
-  return Data_HeytingAlgebra.heytingAlgebraBoolean.not(value);
+  return !value;
 }
 
 export function integerAdd(left) {
   return right => {
-    return Data_Semiring.semiringInt.add(left)(right);
+    return left + right | 0;
   };
 }
 
 export function integerSubtract(left) {
   return right => {
-    return Data_Ring.ringInt.sub(left)(right);
+    return left - right | 0;
   };
 }
 
 export function integerMultiply(left) {
   return right => {
-    return Data_Semiring.semiringInt.mul(left)(right);
+    return left * right | 0;
   };
 }
 
 export function integerNegate(value) {
-  return Data_Ring.ringInt.negate(value);
+  return -value | 0;
 }
 
 export function integerAddOrder($boolean) {
-  return Data_Semiring.semiringInt.add(observe("left")(20 | 0))(observe("right")(22 | 0));
+  return observe("left")(20 | 0) + observe("right")(22 | 0) | 0;
 }
 
 export function lookalikeAdd(left) {

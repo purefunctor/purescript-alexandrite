@@ -5,10 +5,11 @@ use pretty::{Arena, DocAllocator, DocBuilder};
 use rustc_hash::FxHashSet;
 
 use crate::tree::{
-    Block, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure, Field, Function,
-    Global, GlobalIdentity, IndirectModuleExports, Instruction, InstructionValue, LazyInitializer,
-    Literal, Module, PatternTest, Projection, RecordUpdate, RecursiveClosure, ReflectableEvidence,
-    ReflectableOrdering, SynthesizedEvidence, Terminator, ValueId,
+    BinaryOperator, Block, BlockTarget, CallingConvention, Declaration, DeclarationKind, Failure,
+    Field, Function, Global, GlobalIdentity, IndirectModuleExports, Instruction, InstructionValue,
+    LazyInitializer, Literal, Module, PatternTest, Projection, RecordUpdate, RecursiveClosure,
+    ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence, Terminator, UnaryOperator,
+    ValueId,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -231,6 +232,27 @@ impl<'a> Printer<'a, '_> {
             InstructionValue::Project { record, field } => {
                 let record = self.value(*record);
                 self.project_field(record, field)
+            }
+            InstructionValue::Unary { operator, value } => {
+                let operator = match operator {
+                    UnaryOperator::BooleanNot => "boolean.not",
+                    UnaryOperator::IntegerNegate => "integer.negate",
+                };
+                self.arena.text(operator).append("(").append(self.value(*value)).append(")")
+            }
+            InstructionValue::Binary { operator, left, right } => {
+                let operator = match operator {
+                    BinaryOperator::IntegerAdd => "integer.add",
+                    BinaryOperator::IntegerSubtract => "integer.subtract",
+                    BinaryOperator::IntegerMultiply => "integer.multiply",
+                };
+                self.arena
+                    .text(operator)
+                    .append("(")
+                    .append(self.value(*left))
+                    .append(", ")
+                    .append(self.value(*right))
+                    .append(")")
             }
             InstructionValue::Constructor { global } => {
                 self.arena.text("constructor(").append(self.global(global)).append(")")

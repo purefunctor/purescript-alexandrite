@@ -203,6 +203,8 @@ pub enum InstructionValue {
     Record { fields: Arc<[RecordField]> },
     RecordUpdate { record: ValueId, updates: Arc<[RecordUpdate]> },
     Project { record: ValueId, field: Field },
+    Unary { operator: UnaryOperator, value: ValueId },
+    Binary { operator: BinaryOperator, left: ValueId, right: ValueId },
     Constructor { global: Global },
     Global { global: Global },
     Force { accessor: ValueId },
@@ -214,6 +216,19 @@ pub enum InstructionValue {
     EffectBind { action: ValueId, continuation: ValueId },
     SynthesizedEvidence { evidence: SynthesizedEvidence },
     TrivialEvidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    BooleanNot,
+    IntegerNegate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperator {
+    IntegerAdd,
+    IntegerSubtract,
+    IntegerMultiply,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
