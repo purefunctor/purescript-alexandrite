@@ -27,6 +27,15 @@ inlineRecord value = { value }
 inlineCapturedClosure :: Boolean -> Boolean -> Boolean
 inlineCapturedClosure captured = \_ -> captured
 
+inlineNestedClosureCapture
+  :: { value :: Boolean }
+  -> Boolean
+  -> Boolean
+  -> Boolean
+inlineNestedClosureCapture record = \_ ->
+  let projected = record.value
+  in \_ -> projected
+
 keepMultiUseClosure
   :: Boolean
   -> { first :: Boolean -> Boolean, second :: Boolean -> Boolean }

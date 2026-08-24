@@ -74,6 +74,14 @@ impl<'c> BlockExpressionContext<'c> {
         self.expressions.borrow_mut().insert(value, expression);
     }
 
+    pub(super) fn get(&self, value: ValueId) -> Option<ExpressionId> {
+        self.expressions.borrow().get(&value).copied()
+    }
+
+    pub(super) fn remove(&self, value: ValueId) {
+        self.expressions.borrow_mut().remove(&value);
+    }
+
     pub(super) fn is_empty(&self) -> bool {
         self.expressions.borrow().is_empty()
     }

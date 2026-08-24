@@ -22,41 +22,47 @@ expression: report
 
 @export inlineCapturedClosure = \captured%11 -> \$boolean%10@(_) -> captured%11
 
-@export keepMultiUseClosure = \captured%14 ->
+@export inlineNestedClosureCapture = \record%15 ->
+  \$boolean%12@(_) ->
+    let
+      projected%14 = record%15.value
+    in \$boolean%13@(_) -> projected%14
+
+@export keepMultiUseClosure = \captured%18 ->
   let
-    closure%12 = \$boolean%13@(_) -> captured%14
-  in { first: closure%12, second: closure%12 }
+    closure%16 = \$boolean%17@(_) -> captured%18
+  in { first: closure%16, second: closure%16 }
 
-@export keepMultiUse = \record%16 ->
+@export keepMultiUse = \record%20 ->
   let
-    value%15 = record%16.value
-  in { first: value%15, second: value%15 }
+    value%19 = record%20.value
+  in { first: value%19, second: value%19 }
 
-@export inlineAcrossCall = \record%17 function%18 ->
-  { projected: record%17.value, called: function%18 true }
+@export inlineAcrossCall = \record%21 function%22 ->
+  { projected: record%21.value, called: function%22 true }
 
-@export inlineOrderedCalls = \first%19 second%20 ->
-  { first: first%19 true, second: second%20 false }
+@export inlineOrderedCalls = \first%23 second%24 ->
+  { first: first%23 true, second: second%24 false }
 
-@export keepReorderedCalls = \first%24 second%23 ->
+@export keepReorderedCalls = \first%28 second%27 ->
   let
-    firstResult%22 = first%24 true
+    firstResult%26 = first%28 true
   in let
-    secondResult%21 = second%23 false
-  in { first: secondResult%21, second: firstResult%22 }
+    secondResult%25 = second%27 false
+  in { first: secondResult%25, second: firstResult%26 }
 
-@export keepMultiUseCall = \function%26 value%27 ->
+@export keepMultiUseCall = \function%30 value%31 ->
   let
-    result%25 = function%26 value%27
-  in { first: result%25, second: result%25 }
+    result%29 = function%30 value%31
+  in { first: result%29, second: result%29 }
 
-@export keepCallBeforeBranch = \condition%28 function%31 value%30 ->
+@export keepCallBeforeBranch = \condition%32 function%35 value%34 ->
   let
-    result%29 = function%31 value%30
-  in if condition%28 then result%29 else value%30
+    result%33 = function%35 value%34
+  in if condition%32 then result%33 else value%34
 
-@export keepTestCall = \function%32 value%33 ->
-  case function%32 value%33 of
+@export keepTestCall = \function%36 value%37 ->
+  case function%36 value%37 of
     [] ->
       true
     _ ->
