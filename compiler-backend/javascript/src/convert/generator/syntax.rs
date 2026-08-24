@@ -80,7 +80,9 @@ pub(super) fn call_expression(
     arguments: Vec<ExpressionId>,
 ) -> ExpressionId {
     match convention {
-        CallingConvention::Initializer => tree.call(function, arguments),
+        CallingConvention::Initializer | CallingConvention::Uncurried => {
+            tree.call(function, arguments)
+        }
         CallingConvention::Source | CallingConvention::Effect => {
             let mut arguments = arguments.into_iter();
             let Some(argument) = arguments.next() else {

@@ -942,7 +942,7 @@ impl<'b> EvaluationTracer<'b> {
             InstructionValue::Call { calling_convention, function, arguments } => {
                 self.expression(*function, EvaluationContext::Eager);
                 match calling_convention {
-                    CallingConvention::Initializer => {
+                    CallingConvention::Initializer | CallingConvention::Uncurried => {
                         for argument in arguments.iter().copied() {
                             self.expression(argument, EvaluationContext::Eager);
                         }

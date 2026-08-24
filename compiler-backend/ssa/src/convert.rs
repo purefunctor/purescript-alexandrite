@@ -152,6 +152,21 @@ fn convert_declaration(
                     *body,
                 )?;
                 DeclarationKind::Function { function: built.function }
+            } else if let nbe::tree::ExpressionKind::UncurriedAbstraction { parameters, body } =
+                &expression.kind
+            {
+                let parameters =
+                    parameters.iter().map(|&pattern| FunctionParameter::Pattern { pattern });
+                let parameters = parameters.collect_vec();
+                let built = build_function(
+                    state,
+                    context,
+                    SmolStr::clone(&global.item_name),
+                    CallingConvention::Uncurried,
+                    parameters,
+                    *body,
+                )?;
+                DeclarationKind::Function { function: built.function }
             } else {
                 let name = format_smolstr!("{}$initialize", global.item_name);
                 let built = build_function(
@@ -366,6 +381,23 @@ fn lower_expression(
                 InstructionValue::Closure { function: built.function, captures: built.captures };
             Ok(state.emit("closure", value))
         }
+        nbe::tree::ExpressionKind::UncurriedAbstraction { parameters, body } => {
+            let parameters =
+                parameters.iter().map(|&pattern| FunctionParameter::Pattern { pattern });
+            let parameters = parameters.collect_vec();
+            let preferred_name = format_smolstr!("{}$uncurried", state.function_name());
+            let built = build_function(
+                state,
+                context,
+                preferred_name,
+                CallingConvention::Uncurried,
+                parameters,
+                *body,
+            )?;
+            let value =
+                InstructionValue::Closure { function: built.function, captures: built.captures };
+            Ok(state.emit("uncurried", value))
+        }
         nbe::tree::ExpressionKind::Application { function, arguments } => {
             let function = lower_expression(state, context, *function)?;
             let arguments = lower_expressions(state, context, arguments)?;
@@ -375,6 +407,16 @@ fn lower_expression(
                 arguments: arguments.into(),
             };
             Ok(state.emit("call", value))
+        }
+        nbe::tree::ExpressionKind::UncurriedApplication { function, arguments } => {
+            let function = lower_expression(state, context, *function)?;
+            let arguments = lower_expressions(state, context, arguments)?;
+            let value = InstructionValue::Call {
+                calling_convention: CallingConvention::Uncurried,
+                function,
+                arguments: arguments.into(),
+            };
+            Ok(state.emit("uncurriedCall", value))
         }
         nbe::tree::ExpressionKind::IfThenElse { condition, then, else_ } => {
             lower_if_then_else(state, context, *condition, *then, *else_)
@@ -947,14 +989,16 @@ fn collect_free_expression(
                 free.insert(parameter);
             }
         }
-        nbe::tree::ExpressionKind::Abstraction { parameters, body } => {
+        nbe::tree::ExpressionKind::Abstraction { parameters, body }
+        | nbe::tree::ExpressionKind::UncurriedAbstraction { parameters, body } => {
             let mut nested_bound = bound.clone();
             for &pattern in parameters.iter() {
                 collect_pattern_bindings(context, pattern, &mut nested_bound);
             }
             collect_free_expression(context, *body, &nested_bound, free);
         }
-        nbe::tree::ExpressionKind::Application { function, arguments } => {
+        nbe::tree::ExpressionKind::Application { function, arguments }
+        | nbe::tree::ExpressionKind::UncurriedApplication { function, arguments } => {
             collect_free_expression(context, *function, bound, free);
             for &argument in arguments.iter() {
                 collect_free_expression(context, argument, bound, free);

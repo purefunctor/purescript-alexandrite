@@ -5,112 +5,84 @@ expression: ssa_report
 ---
 @export foreign const chooseSecond;
 
-@export const made = initialize {
+@export function made(first, second) {
   entry() {
-    const mkFn2 = global(mkFn2);
-    const closure = closure(made$initialize$closure);
-    const call = source.call(mkFn2, closure);
-    return call;
+    return second;
   }
 }
 
-@export const madeNested = initialize {
+@export function madeNested(first, second, third) {
   entry() {
-    const mkFn3 = global(mkFn3);
-    const closure = closure(madeNested$initialize$closure);
-    const call = source.call(mkFn3, closure);
-    return call;
+    return third;
   }
 }
 
 @export function madeCaptured(captured) {
   entry() {
-    const mkFn2 = global(mkFn2);
-    const closure = closure(madeCaptured$closure, captured);
-    const call = source.call(mkFn2, closure);
-    return call;
+    const uncurried = closure(madeCaptured$uncurried, captured);
+    return uncurried;
   }
 }
 
-@export const madeWithCurriedResult = initialize {
+@export function madeWithCurriedResult(first, second) {
   entry() {
-    const mkFn2 = global(mkFn2);
-    const closure = closure(madeWithCurriedResult$initialize$closure);
-    const call = source.call(mkFn2, closure);
-    return call;
+    const closure = closure(madeWithCurriedResult$closure);
+    return closure;
   }
 }
 
 @export const directRun = initialize {
   entry() {
-    const runFn2 = global(runFn2);
     const chooseSecond = global(chooseSecond);
-    const call = source.call(runFn2, chooseSecond);
     const literal = 1;
-    const call$1 = source.call(call, literal);
     const literal$1 = 42;
-    const call$2 = source.call(call$1, literal$1);
-    return call$2;
+    const uncurriedCall = uncurried.call(chooseSecond, literal, literal$1);
+    return uncurriedCall;
   }
 }
 
 @export const directMadeRun = initialize {
   entry() {
-    const runFn2 = global(runFn2);
-    const mkFn2 = global(mkFn2);
-    const closure = closure(directMadeRun$initialize$closure);
-    const call = source.call(mkFn2, closure);
-    const call$1 = source.call(runFn2, call);
+    const uncurried = closure(directMadeRun$initialize$uncurried);
     const literal = 1;
-    const call$2 = source.call(call$1, literal);
     const literal$1 = 42;
-    const call$3 = source.call(call$2, literal$1);
-    return call$3;
+    const uncurriedCall = uncurried.call(uncurried, literal, literal$1);
+    return uncurriedCall;
   }
 }
 
 @export const directNestedRun = initialize {
   entry() {
-    const runFn3 = global(runFn3);
     const madeNested = global(madeNested);
-    const call = source.call(runFn3, madeNested);
     const literal = 1;
-    const call$1 = source.call(call, literal);
     const literal$1 = 2;
-    const call$2 = source.call(call$1, literal$1);
     const literal$2 = 42;
-    const call$3 = source.call(call$2, literal$2);
-    return call$3;
+    const uncurriedCall = uncurried.call(madeNested, literal, literal$1, literal$2);
+    return uncurriedCall;
   }
 }
 
 @export const directCapturedRun = initialize {
   entry() {
-    const runFn2 = global(runFn2);
     const madeCaptured = global(madeCaptured);
     const literal = 42;
     const call = source.call(madeCaptured, literal);
-    const call$1 = source.call(runFn2, call);
     const literal$1 = 1;
-    const call$2 = source.call(call$1, literal$1);
     const literal$2 = 2;
-    const call$3 = source.call(call$2, literal$2);
-    return call$3;
+    const uncurriedCall = uncurried.call(call, literal$1, literal$2);
+    return uncurriedCall;
   }
 }
 
 @export const directCurriedResultRun = initialize {
   entry() {
-    const runFn2 = global(runFn2);
     const madeWithCurriedResult = global(madeWithCurriedResult);
-    const call = source.call(runFn2, madeWithCurriedResult);
     const literal = 1;
-    const call$1 = source.call(call, literal);
     const literal$1 = 2;
-    const call$2 = source.call(call$1, literal$1);
+    const uncurriedCall = uncurried.call(madeWithCurriedResult, literal, literal$1);
     const literal$2 = 42;
-    const call$3 = source.call(call$2, literal$2);
-    return call$3;
+    const call = source.call(uncurriedCall, literal$2);
+    return call;
   }
 }
 
@@ -162,38 +134,19 @@ expression: ssa_report
   }
 }
 
-closure made$initialize$closure[](first, second) {
-  entry() {
-    return second;
-  }
-}
-
-closure madeNested$initialize$closure$closure[](second, third) {
-  entry() {
-    return third;
-  }
-}
-
-closure madeNested$initialize$closure[](first) {
-  entry() {
-    const closure = closure(madeNested$initialize$closure$closure);
-    return closure;
-  }
-}
-
-closure madeCaptured$closure[captured](first, second) {
+uncurried closure madeCaptured$uncurried[captured](first, second) {
   entry() {
     return captured;
   }
 }
 
-closure madeWithCurriedResult$initialize$closure[](first, second, third) {
+closure madeWithCurriedResult$closure[](third) {
   entry() {
     return third;
   }
 }
 
-closure directMadeRun$initialize$closure[](first, second) {
+uncurried closure directMadeRun$initialize$uncurried[](first, second) {
   entry() {
     return second;
   }

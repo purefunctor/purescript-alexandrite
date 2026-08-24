@@ -87,6 +87,7 @@ impl<'a> Printer<'a, '_> {
         let expression = &self.module.storage[expression_id];
         let precedence = match expression.kind {
             ExpressionKind::Abstraction { .. }
+            | ExpressionKind::UncurriedAbstraction { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
@@ -95,6 +96,7 @@ impl<'a> Printer<'a, '_> {
             ExpressionKind::Unary { .. }
             | ExpressionKind::Binary { .. }
             | ExpressionKind::Application { .. }
+            | ExpressionKind::UncurriedApplication { .. }
             | ExpressionKind::Effect { .. }
             | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
@@ -177,6 +179,21 @@ impl<'a> Printer<'a, '_> {
                     abstraction.append(body).group()
                 }
             }
+            ExpressionKind::UncurriedAbstraction { parameters, body } => {
+                let parameters = parameters
+                    .iter()
+                    .map(|pattern| self.pattern_at(*pattern, PatternPrecedence::Atom));
+                let parameters = self.arena.intersperse(parameters, self.arena.text(", "));
+                let abstraction = self.arena.text("uncurried \\").append(parameters).append(" ->");
+                let body_document = self.expression(*body);
+                if self.expression_requires_body_break(*body) {
+                    let body = self.arena.hardline().append(body_document).nest(2);
+                    abstraction.append(body)
+                } else {
+                    let body = self.arena.line().append(body_document).nest(2);
+                    abstraction.append(body).group()
+                }
+            }
             ExpressionKind::Application { function, arguments } => {
                 let function = self.expression_at(*function, ExpressionPrecedence::Application);
                 if arguments.is_empty() {
@@ -189,6 +206,14 @@ impl<'a> Printer<'a, '_> {
                     let arguments = self.arena.line().append(arguments).nest(2);
                     function.append(arguments).group()
                 }
+            }
+            ExpressionKind::UncurriedApplication { function, arguments } => {
+                let function = self.expression_at(*function, ExpressionPrecedence::Application);
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
+                let arguments = self.delimited("(", arguments, ")");
+                self.arena.text("uncurried.call ").append(function).append(arguments)
             }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression(*condition);
