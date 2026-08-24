@@ -1,1 +1,1 @@
-export const requested = ;
+export _null = null;

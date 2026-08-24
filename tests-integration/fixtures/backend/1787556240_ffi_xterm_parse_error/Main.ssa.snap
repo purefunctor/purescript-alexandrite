@@ -3,4 +3,4 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
-@export foreign const _null;
+@export foreign const registerVersionProvider;
