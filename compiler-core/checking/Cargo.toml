@@ -19,5 +19,5 @@ parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 resolving = { version = "0.1.0", path = "../resolving" }
 rustc-hash = "2.1.3"
 smol_str = "0.3.5"
-stabilizing = { version = "0.1.0", path = "../stabilizing" }
+stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../sugar" }

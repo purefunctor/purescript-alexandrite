@@ -26,7 +26,7 @@ resolving = { version = "0.1.0", path = "../compiler-core/resolving" }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
-stabilizing = { version = "0.1.0", path = "../compiler-core/stabilizing" }
+stabilizing = { version = "0.1.0", path = "../compiler-frontend/stabilizing" }
 syntax = { version = "0.1.0", path = "../compiler-frontend/syntax" }
 tar = "0.4.46"
 thiserror = "2"

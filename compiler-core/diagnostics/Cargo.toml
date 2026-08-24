@@ -10,7 +10,7 @@ indexing = { version = "0.1.0", path = "../indexing" }
 lowering = { version = "0.1.0", path = "../lowering" }
 resolving = { version = "0.1.0", path = "../resolving" }
 checking = { version = "0.1.0", path = "../checking" }
-stabilizing = { version = "0.1.0", path = "../stabilizing" }
+stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }
 syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 
 lsp-types.workspace = true
