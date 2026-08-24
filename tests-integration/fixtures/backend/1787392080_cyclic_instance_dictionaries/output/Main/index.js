@@ -9,23 +9,11 @@ export function liftApplicative(applicativeFunctorDict) {
 }
 
 export function applyMonad(monadMonadDict) {
-  function applyMonad$closure(monadMonadDict) {
-    return functions => {
-      return values => {
-        function applyMonad$closure$closure(monadMonadDict, values) {
-          return $function => {
-            return (monadMonadDict.Bind1()).bind(values)(
-              value => (monadMonadDict.Applicative0()).pure($function(value))
-            );
-          };
-        }
-        return (monadMonadDict.Bind1()).bind(functions)(
-          applyMonad$closure$closure(monadMonadDict, values)
-        );
-      };
-    };
-  }
-  return applyMonad$closure(monadMonadDict);
+  return functions => values => (monadMonadDict.Bind1()).bind(functions)(
+    $function => (monadMonadDict.Bind1()).bind(values)(
+      value => (monadMonadDict.Applicative0()).pure($function(value))
+    )
+  );
 }
 
 const $lazy_functorBox = $runtime.binding("functorBox", () => {

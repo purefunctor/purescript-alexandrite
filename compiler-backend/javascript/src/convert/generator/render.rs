@@ -299,8 +299,8 @@ impl Generator<'_> {
         };
         let inlineable = context.inlineable_values(function.entry);
         let instructions_are_inlineable = block.instructions.iter().all(|instruction| {
-            if let Instruction::Assign { result, value } = instruction {
-                inlineable.contains(result) && !matches!(value, InstructionValue::Closure { .. })
+            if let Instruction::Assign { result, .. } = instruction {
+                inlineable.contains(result)
             } else {
                 false
             }
@@ -314,7 +314,16 @@ impl Generator<'_> {
             let Instruction::Assign { result, value } = instruction else {
                 unreachable!("invariant violated: inline closure contains a non-assignment")
             };
-            let expression = self.instruction_expression(tree, value, &expressions)?;
+            let expression = if let InstructionValue::Closure { function, captures } = value {
+                let Some(expression) =
+                    self.inline_closure_expression(tree, *function, captures, &context)?
+                else {
+                    return Ok(None);
+                };
+                expression
+            } else {
+                self.instruction_expression(tree, value, &expressions)?
+            };
             expressions.insert(*result, expression);
         }
         let mut expression = expressions.expression(tree, value);

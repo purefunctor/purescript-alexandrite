@@ -1,19 +1,9 @@
 export function use(namedADict) {
-  function use$closure(namedADict) {
-    return value => {
-      return (namedADict => namedADict.name)(namedADict)(value);
-    };
-  }
-  return use$closure(namedADict);
+  return value => (namedADict => namedADict.name)(namedADict)(value);
 }
 
 export function useLet(namedADict) {
-  function useLet$closure(namedADict) {
-    return value => {
-      return (namedADict => namedADict.name)(namedADict)(value);
-    };
-  }
-  return useLet$closure(namedADict);
+  return value => (namedADict => namedADict.name)(namedADict)(value);
 }
 
 export const namedString = (() => {
