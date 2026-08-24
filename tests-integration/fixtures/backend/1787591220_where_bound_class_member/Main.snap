@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+name :: forall @a. Main.Named a => a -> Prim.String
+use :: forall a. Main.Named a => a -> Prim.String
+useLet :: forall a. Main.Named a => a -> Prim.String
+
+Types
+Named :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Named a
+  name :: forall @a. Main.Named a => a -> Prim.String
+
+Instances
+instance Main.Named Prim.String

@@ -1,0 +1,18 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export instance namedString = { name: \value%0 -> value%0 }
+
+@export use = \namedADict%1 ->
+  \value%3 ->
+    let
+      alias%2 = name
+    in alias%2 namedADict%1 value%3
+
+@export useLet = \namedADict%4 ->
+  \value%6 ->
+    let
+      alias%5 = name
+    in alias%5 namedADict%4 value%6
