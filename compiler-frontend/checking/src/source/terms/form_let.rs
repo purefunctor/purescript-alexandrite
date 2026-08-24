@@ -3,7 +3,7 @@ use std::sync::Arc;
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{Type, TypeId, exhaustive, normalise, skolem, unification};
+use crate::core::{Type, TypeId, exhaustive, normalise, signature, skolem, unification};
 use crate::error::ErrorCrumb;
 use crate::source::terms::{ElaboratedExpression, application, equations, guarded};
 use crate::source::{binder, types};
@@ -262,12 +262,24 @@ where
                 unification::subtype(state, context, inferred_type, expanded_name_type)?;
             }
 
-            let declaration = tree::LocalDeclaration::nullary(
-                id,
-                name_type,
-                *equation_source,
-                inferred.guarded_expression,
-            );
+            let signature::SkolemisedSignature { renaming, abstractions, result, .. } =
+                signature::expect_term_signature(
+                    state,
+                    context,
+                    inferred_type,
+                    equation.binders.len(),
+                )?;
+
+            let abstractions = equations::bind_signature_abstractions(state, &abstractions);
+            let inferred = state.with_source_type_renaming(&renaming, |state| {
+                guarded::subsume_elaborated_guarded_expression(state, context, inferred, result)
+            })?;
+
+            let equation =
+                tree::Equation::local(*equation_source, [].into(), inferred.guarded_expression);
+            let declaration =
+                tree::LocalDeclaration::new(id, name_type, abstractions.into(), [equation].into());
+
             return Ok(declaration);
         } else {
             equations::infer_value_equations(state, context, name_type, &name.equations)?

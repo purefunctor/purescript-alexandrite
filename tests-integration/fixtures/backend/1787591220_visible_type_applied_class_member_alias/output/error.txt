@@ -1,1 +1,0 @@
-cannot convert SSA module Idx::<File>(42) to JavaScript: local global "name" has no JavaScript declaration

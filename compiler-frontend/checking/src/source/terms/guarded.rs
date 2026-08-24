@@ -1,5 +1,7 @@
 //! Implements checking and inference rules for guarded and where expressions.
 
+use std::sync::Arc;
+
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
@@ -70,6 +72,30 @@ where
     Q: ExternalQueries,
 {
     guarded_expression_core(state, context, guarded, GuardedExpressionMode::Subsume { expected })
+}
+
+pub fn subsume_elaborated_guarded_expression<Q>(
+    state: &mut CheckState,
+    context: &CheckContext<Q>,
+    mut guarded: ElaboratedGuardedExpression,
+    expected: TypeId,
+) -> QueryResult<ElaboratedGuardedExpression>
+where
+    Q: ExternalQueries,
+{
+    let alternatives = Arc::get_mut(&mut guarded.guarded_expression.alternatives)
+        .expect("invariant violated: inferred guarded alternatives are shared");
+    for alternative in alternatives {
+        let expression = terms::ElaboratedExpression {
+            type_id: guarded.type_id,
+            expression: alternative.where_expression.expression,
+        };
+        let expression =
+            terms::application::subtype_expression(state, context, expression, expected)?;
+        alternative.where_expression.expression = expression.expression;
+    }
+    guarded.type_id = expected;
+    Ok(guarded)
 }
 
 fn guarded_expression_core<Q>(
