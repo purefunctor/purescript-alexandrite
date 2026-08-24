@@ -1,6 +1,6 @@
 use test_each_file::test_each_file;
 
-test_each_file! { in "./compiler-core/parsing/tests/parser" => |content: &str| {
+test_each_file! { in "./compiler-frontend/parsing/tests/parser" => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
     let lexed = lexing::lex(&content);
     let tokens = lexing::layout(&lexed);
@@ -9,7 +9,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" => |content: &str| {
     insta::assert_debug_snapshot!((node.debug(&content), errors));
 }}
 
-test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |content: &str| {
+test_each_file! { in "./compiler-frontend/parsing/tests/parser" as lossless => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
     let lexed = lexing::lex(&content);
     let tokens = lexing::layout(&lexed);
@@ -18,7 +18,7 @@ test_each_file! { in "./compiler-core/parsing/tests/parser" as lossless => |cont
     assert_eq!(node.text(&content), content);
 }}
 
-test_each_file! { in "./compiler-core/parsing/tests/parser" as stability => |content: &str| {
+test_each_file! { in "./compiler-frontend/parsing/tests/parser" as stability => |content: &str| {
     let content = content.replace("\r\n", "\n").replace("\r", "\n");
     let lexed = lexing::lex(&content);
     for index in 0..lexed.len() - 1 {

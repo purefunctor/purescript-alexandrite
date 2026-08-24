@@ -1,33 +1,30 @@
-## Architecture
+## Scope
 
-The compiler core is split into components with well-defined responsibilities, designed for
-transparency (editor introspection) and compatibility with query-based incremental builds.
+Compiler core owns stage-independent infrastructure shared by the frontend, backend, LSP, and
+compiler entry points. Language analysis and transformations belong in `compiler-frontend`;
+executable code generation belongs in `compiler-backend`.
 
-### Pipeline Components
+## Components
 
-The component names listed below are crate names in this workspace.
+- **building**: query-based parallel build engine and compiler pipeline orchestration
+- **building-types**: query keys, results, and interfaces shared by pipeline components
+- **files**: virtual PureScript and foreign-file storage with stable file IDs
+- **interner**: generic sequential and parallel interners
+- **prim-constants**: embedded primitive PureScript modules
 
-- **lexing**: tokenization and the layout algorithm
-- **parsing**: parsing into a rowan-based CST
-- **syntax**: types for the rowan-based CST
-- **sugar**: syntax desugaring (e.g., operator bracketing)
-- **lowering**: core semantic representation, name resolution
-- **indexing**: high-level relationships between module items
-- **resolving**: name-indexed interface for module items
-- **stabilizing**: assigns stable IDs to source ranges
-- **checking**: type checking and elaboration
-- **diagnostics**: error collection and rendering for LSP and tests
+Keep these crates independent of user-facing protocol concerns. New source-language passes and
+semantic representations should not be added here merely because several consumers use them.
 
-### Infrastructure
+## Verification
 
-- **building**: query-based parallel build system
-- **building-types**: shared type definitions
-- **files**: virtual file system
-- **interner**: generic interner implementation
-- **prim-constants**: primitive type constants
+- Run `cargo check -p <crate-name> --tests` for a changed crate.
+- Run `cargo nextest run -p <crate-name>` when the crate has unit tests.
+- Changes to `building` can affect every compiler stage; run the integration-test categories for
+  each changed query or pipeline behavior.
 
 ## Key Concepts
 
-- Uses rust-analyzer/rowan, a lossless syntax tree library inspired by Swift's libsyntax
-- Query-based incremental builds (not traditional phase-based)
-- Interning and arena allocation enable better caching (e.g., whitespace changes don't invalidate type checking)
+- `building` is a query-based incremental build engine, not a traditional phase driver.
+- Query cancellation, cycle detection, and stable identities are cross-stage contracts.
+- Infrastructure dependencies should point outward only when orchestration requires them; generic
+  primitives should remain stage-independent.

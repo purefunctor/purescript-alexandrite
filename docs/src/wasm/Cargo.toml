@@ -20,22 +20,22 @@ web-sys = { version = "0.3.104", features = ["Performance", "Window", "Worker", 
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 
-# Compiler core crates
+# Compiler crates
 building-types = { version = "0.1.0", path = "../../../compiler-core/building-types" }
-checking = { version = "0.1.0", path = "../../../compiler-core/checking" }
-diagnostics = { version = "0.1.0", path = "../../../compiler-core/diagnostics" }
-documenting = { version = "0.1.0", path = "../../../compiler-core/documenting" }
+checking = { version = "0.1.0", path = "../../../compiler-frontend/checking" }
+diagnostics = { version = "0.1.0", path = "../../../compiler-frontend/diagnostics" }
+documenting = { version = "0.1.0", path = "../../../compiler-frontend/documenting" }
 files = { version = "0.1.0", path = "../../../compiler-core/files" }
-indexing = { version = "0.1.0", path = "../../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../../../compiler-core/interner" }
-lexing = { version = "0.1.0", path = "../../../compiler-core/lexing" }
-lowering = { version = "0.1.0", path = "../../../compiler-core/lowering" }
-parsing = { version = "0.1.0", path = "../../../compiler-core/parsing" }
+lexing = { version = "0.1.0", path = "../../../compiler-frontend/lexing" }
+lowering = { version = "0.1.0", path = "../../../compiler-frontend/lowering" }
+parsing = { version = "0.1.0", path = "../../../compiler-frontend/parsing" }
 prim-constants = { version = "0.1.0", path = "../../../compiler-core/prim-constants" }
-resolving = { version = "0.1.0", path = "../../../compiler-core/resolving" }
-stabilizing = { version = "0.1.0", path = "../../../compiler-core/stabilizing" }
-sugar = { version = "0.1.0", path = "../../../compiler-core/sugar" }
-syntax = { version = "0.1.0", path = "../../../compiler-core/syntax" }
+resolving = { version = "0.1.0", path = "../../../compiler-frontend/resolving" }
+stabilizing = { version = "0.1.0", path = "../../../compiler-frontend/stabilizing" }
+sugar = { version = "0.1.0", path = "../../../compiler-frontend/sugar" }
+syntax = { version = "0.1.0", path = "../../../compiler-frontend/syntax" }
 
 # Data structures
 rustc-hash = "2"

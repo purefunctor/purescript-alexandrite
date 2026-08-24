@@ -5,27 +5,27 @@ edition = "2024"
 
 [dependencies]
 building-types = { version = "0.1.0", path = "../../compiler-core/building-types" }
-checking = { version = "0.1.0", path = "../../compiler-core/checking" }
-diagnostics = { version = "0.1.0", path = "../../compiler-core/diagnostics" }
+checking = { version = "0.1.0", path = "../../compiler-frontend/checking" }
+diagnostics = { version = "0.1.0", path = "../../compiler-frontend/diagnostics" }
 files = { version = "0.1.0", path = "../../compiler-core/files" }
 foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign-javascript" }
-indexing = { version = "0.1.0", path = "../../compiler-core/indexing" }
+indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 itertools = "0.15.0"
 la-arena = "0.3.1"
-lexing = { version = "0.1.0", path = "../../compiler-core/lexing" }
+lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 line-index = "0.1.2"
 lsp-types.workspace = true
-lowering = { version = "0.1.0", path = "../../compiler-core/lowering" }
-parsing = { version = "0.1.0", path = "../../compiler-core/parsing" }
+lowering = { version = "0.1.0", path = "../../compiler-frontend/lowering" }
+parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 radix_trie = "0.3.0"
-resolving = { version = "0.1.0", path = "../../compiler-core/resolving" }
+resolving = { version = "0.1.0", path = "../../compiler-frontend/resolving" }
 rustc-hash = "2.1.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 smol_str = "0.3.4"
-stabilizing = { version = "0.1.0", path = "../../compiler-core/stabilizing" }
+stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }
 strsim = "0.11.1"
-syntax = { version = "0.1.0", path = "../../compiler-core/syntax" }
+syntax = { version = "0.1.0", path = "../../compiler-frontend/syntax" }
 thiserror = "2.0.20"
 tracing = "0.1.44"
 url = "2.5.8"
