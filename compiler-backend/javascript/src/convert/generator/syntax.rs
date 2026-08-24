@@ -1,9 +1,12 @@
 use files::FileId;
 use itertools::Itertools;
-use ssa::tree::{CallingConvention, Field, Literal, Projection};
+use ssa::tree::{
+    BinaryOperator as SsaBinaryOperator, CallingConvention, Field, Literal, Projection,
+    UnaryOperator as SsaUnaryOperator,
+};
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
-use crate::tree::{BinaryOperator, ExpressionId, Tree};
+use crate::tree::{BinaryOperator, ExpressionId, Tree, UnaryOperator};
 
 pub(super) fn literal_expression(
     tree: &mut Tree,
@@ -33,6 +36,39 @@ pub(super) fn literal_expression(
 
 pub(super) fn integer_expression(tree: &mut Tree, value: i32) -> ExpressionId {
     let value = tree.number(value.to_string());
+    integer_coercion_expression(tree, value)
+}
+
+pub(super) fn unary_expression(
+    tree: &mut Tree,
+    operator: SsaUnaryOperator,
+    value: ExpressionId,
+) -> ExpressionId {
+    match operator {
+        SsaUnaryOperator::BooleanNot => tree.unary(UnaryOperator::LogicalNot, value),
+        SsaUnaryOperator::IntegerNegate => {
+            let value = tree.unary(UnaryOperator::Negate, value);
+            integer_coercion_expression(tree, value)
+        }
+    }
+}
+
+pub(super) fn binary_expression(
+    tree: &mut Tree,
+    operator: SsaBinaryOperator,
+    left: ExpressionId,
+    right: ExpressionId,
+) -> ExpressionId {
+    let operator = match operator {
+        SsaBinaryOperator::IntegerAdd => BinaryOperator::Add,
+        SsaBinaryOperator::IntegerSubtract => BinaryOperator::Subtract,
+        SsaBinaryOperator::IntegerMultiply => BinaryOperator::Multiply,
+    };
+    let value = tree.binary(operator, left, right);
+    integer_coercion_expression(tree, value)
+}
+
+fn integer_coercion_expression(tree: &mut Tree, value: ExpressionId) -> ExpressionId {
     let zero = tree.number("0");
     tree.binary(BinaryOperator::BitwiseOr, value, zero)
 }

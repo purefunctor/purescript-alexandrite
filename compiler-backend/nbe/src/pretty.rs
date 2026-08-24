@@ -3,9 +3,10 @@
 use pretty::{Arena, DocAllocator, DocBuilder};
 
 use crate::tree::{
-    Declaration, DeclarationKind, EffectExpression, ExpressionId, ExpressionKind, Field, GlobalId,
-    Guard, IndirectModuleExports, Literal, Module, Parameter, PatternId, PatternKind, RecordUpdate,
-    ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence,
+    BinaryOperator, Declaration, DeclarationKind, EffectExpression, ExpressionId, ExpressionKind,
+    Field, GlobalId, Guard, IndirectModuleExports, Literal, Module, Parameter, PatternId,
+    PatternKind, RecordUpdate, ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence,
+    UnaryOperator,
 };
 
 type Doc<'a> = DocBuilder<'a, Arena<'a>, ()>;
@@ -91,7 +92,9 @@ impl<'a> Printer<'a, '_> {
             | ExpressionKind::Guarded { .. }
             | ExpressionKind::Let { .. }
             | ExpressionKind::LetPattern { .. } => ExpressionPrecedence::Abstraction,
-            ExpressionKind::Application { .. }
+            ExpressionKind::Unary { .. }
+            | ExpressionKind::Binary { .. }
+            | ExpressionKind::Application { .. }
             | ExpressionKind::Effect { .. }
             | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
@@ -132,6 +135,24 @@ impl<'a> Printer<'a, '_> {
                 let record = self.expression_at(*record, ExpressionPrecedence::Atom);
                 let field = self.field(field);
                 record.append(self.arena.text(format!(".{field}")))
+            }
+            ExpressionKind::Unary { operator, value } => {
+                let operator = match operator {
+                    UnaryOperator::BooleanNot => "boolean.not",
+                    UnaryOperator::IntegerNegate => "integer.negate",
+                };
+                let value = self.expression_at(*value, ExpressionPrecedence::Atom);
+                self.arena.text(operator).append(" ").append(value)
+            }
+            ExpressionKind::Binary { operator, left, right } => {
+                let operator = match operator {
+                    BinaryOperator::IntegerAdd => "integer.add",
+                    BinaryOperator::IntegerSubtract => "integer.subtract",
+                    BinaryOperator::IntegerMultiply => "integer.multiply",
+                };
+                let left = self.expression_at(*left, ExpressionPrecedence::Atom);
+                let right = self.expression_at(*right, ExpressionPrecedence::Atom);
+                self.arena.text(operator).append(" ").append(left).append(" ").append(right)
             }
             ExpressionKind::Constructor { global } | ExpressionKind::Global { global } => {
                 self.arena.text(global.item_name.to_string())

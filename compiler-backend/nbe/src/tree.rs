@@ -173,6 +173,8 @@ pub enum ExpressionKind {
     Record { fields: Arc<[RecordField]> },
     RecordUpdate { record: ExpressionId, updates: Arc<[RecordUpdate]> },
     Project { record: ExpressionId, field: Field },
+    Unary { operator: UnaryOperator, value: ExpressionId },
+    Binary { operator: BinaryOperator, left: ExpressionId, right: ExpressionId },
     Constructor { global: Global },
     Global { global: Global },
     Local { parameter: Parameter },
@@ -186,6 +188,19 @@ pub enum ExpressionKind {
     Effect { effect: EffectExpression },
     SynthesizedEvidence { evidence: SynthesizedEvidence },
     TrivialEvidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    BooleanNot,
+    IntegerNegate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperator {
+    IntegerAdd,
+    IntegerSubtract,
+    IntegerMultiply,
 }
 
 #[derive(Debug, PartialEq, Eq)]

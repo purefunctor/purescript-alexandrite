@@ -1,0 +1,80 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export foreign const observe;
+
+@export foreign const readTrace;
+
+@export function booleanNot(value) {
+  entry() {
+    const booleanNot = boolean.not(value);
+    return booleanNot;
+  }
+}
+
+@export function integerAdd(left, right) {
+  entry() {
+    const integerAdd = integer.add(left, right);
+    return integerAdd;
+  }
+}
+
+@export function integerSubtract(left, right) {
+  entry() {
+    const integerSubtract = integer.subtract(left, right);
+    return integerSubtract;
+  }
+}
+
+@export function integerMultiply(left, right) {
+  entry() {
+    const integerMultiply = integer.multiply(left, right);
+    return integerMultiply;
+  }
+}
+
+@export function integerNegate(value) {
+  entry() {
+    const integerNegate = integer.negate(value);
+    return integerNegate;
+  }
+}
+
+@export function integerAddOrder($boolean) {
+  entry() {
+    const observe = global(observe);
+    const literal = "left";
+    const call = source.call(observe, literal);
+    const literal$1 = 20;
+    const call$1 = source.call(call, literal$1);
+    const observe$1 = global(observe);
+    const literal$2 = "right";
+    const call$2 = source.call(observe$1, literal$2);
+    const literal$3 = 22;
+    const call$3 = source.call(call$2, literal$3);
+    const integerAdd = integer.add(call$1, call$3);
+    return integerAdd;
+  }
+}
+
+@export const partiallyAppliedAdd = initialize {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const literal = 1;
+    const call = source.call(add, literal);
+    return call;
+  }
+}
+
+@export function lookalikeAdd(left, right) {
+  entry() {
+    const semiringInt = global(semiringInt);
+    const add = semiringInt.add;
+    const call = source.call(add, left);
+    const call$1 = source.call(call, right);
+    return call$1;
+  }
+}
