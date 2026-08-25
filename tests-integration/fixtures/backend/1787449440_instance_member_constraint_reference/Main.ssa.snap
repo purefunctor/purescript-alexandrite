@@ -12,11 +12,12 @@ expression: ssa_report
 @export instance function eqWrapper(eqADict) {
   entry() {
     const on = global(on);
-    const eq = eqADict.eq;
-    const call = source.call(on, eq);
+    const eq = global(eq);
+    const call = source.call(eq, eqADict);
+    const call$1 = source.call(on, call);
     const unwrap = global(unwrap);
-    const call$1 = source.call(call, unwrap);
-    const record = { eq: call$1 };
+    const call$2 = source.call(call$1, unwrap);
+    const record = { eq: call$2 };
     return record;
   }
 }

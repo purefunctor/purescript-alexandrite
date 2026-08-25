@@ -4,6 +4,10 @@ export function apply($function) {
   };
 }
 
+export function identity(dictionary) {
+  return dictionary.identity;
+}
+
 export function unsafeCoerce(value) {
   return value;
 }

@@ -26,6 +26,6 @@ expression: report
 
 @export lookalikeApply = apply (\value%8 -> value%8) 42
 
-@export lookalikeIdentity = categoryFn.identity 42
+@export lookalikeIdentity = identity categoryFn 42
 
 @export lookalikeCoerce = unsafeCoerce 42

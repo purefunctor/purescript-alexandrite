@@ -4,12 +4,20 @@ export function ordinaryUnit(value) {
   return value;
 }
 
+export function parent(dictionary) {
+  return dictionary.parent;
+}
+
+export function child(dictionary) {
+  return dictionary.child;
+}
+
 export function childArray(parentArrayADict) {
   return { Parent0: () => parentArrayADict, child: value => value };
 }
 
 export function useSuperclass(childADict) {
-  return value => (childADict.Parent0()).parent(value);
+  return value => parent(childADict.Parent0())(value);
 }
 
 export const ordinaryUnitCall = ordinaryUnit(Unit);

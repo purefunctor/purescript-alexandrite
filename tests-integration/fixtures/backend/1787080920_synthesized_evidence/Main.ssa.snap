@@ -1,84 +1,92 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 269
 expression: ssa_report
 ---
 @export const symbol = initialize {
   entry() {
+    const reflectSymbol = global(reflectSymbol);
     const evidence = evidence.symbol("alexandrite");
-    const reflectSymbol = evidence.reflectSymbol;
+    const call = source.call(reflectSymbol, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectSymbol, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedString = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable("reflected");
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedInteger = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(42);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedTrue = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(true);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedFalse = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(false);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedLess = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(LT);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedEqual = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(EQ);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }
 
 @export const reflectedGreater = initialize {
   entry() {
+    const reflectType = global(reflectType);
     const evidence = evidence.reflectable(GT);
-    const reflectType = evidence.reflectType;
+    const call = source.call(reflectType, evidence);
     const Proxy = constructor(Proxy);
-    const call = source.call(reflectType, Proxy);
-    return call;
+    const call$1 = source.call(call, Proxy);
+    return call$1;
   }
 }

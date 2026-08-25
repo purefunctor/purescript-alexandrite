@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 269
 expression: ssa_report
 ---
 @export foreign const addInt;
@@ -364,6 +364,13 @@ expression: ssa_report
   }
 }
 
+@export function measure(dictionary) {
+  entry() {
+    const measure = dictionary.measure;
+    return measure;
+  }
+}
+
 @export instance const measureInt = initialize {
   entry() {
     const addInt = global(addInt);
@@ -376,11 +383,12 @@ expression: ssa_report
 
 @export const evidenceValue = initialize {
   entry() {
+    const measure = global(measure);
     const measureInt = global(measureInt);
-    const measure = measureInt.measure;
+    const call = source.call(measure, measureInt);
     const literal = 41;
-    const call = source.call(measure, literal);
-    return call;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 

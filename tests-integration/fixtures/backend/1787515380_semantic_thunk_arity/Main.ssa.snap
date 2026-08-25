@@ -20,6 +20,20 @@ expression: ssa_report
   }
 }
 
+@export function parent(dictionary) {
+  entry() {
+    const parent = dictionary.parent;
+    return parent;
+  }
+}
+
+@export function child(dictionary) {
+  entry() {
+    const child = dictionary.child;
+    return child;
+  }
+}
+
 @export instance const parentInt = initialize {
   entry() {
     const closure = closure(parentInt$initialize$closure);
@@ -64,10 +78,11 @@ closure childArray$closure$1[](value) {
 
 closure useSuperclass$closure[childADict](value) {
   entry() {
+    const parent = global(parent);
     const Parent0 = childADict.Parent0;
     const call = source.call(Parent0);
-    const parent = call.parent;
-    const call$1 = source.call(parent, value);
-    return call$1;
+    const call$1 = source.call(parent, call);
+    const call$2 = source.call(call$1, value);
+    return call$2;
   }
 }

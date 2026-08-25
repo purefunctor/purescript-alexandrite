@@ -7,14 +7,14 @@ expression: report
 
 @export liftApplicative = \applicativeFunctorDict%0 ->
   \function%1 value%2 ->
-    (applicativeFunctorDict%0."Apply0"()).apply (applicativeFunctorDict%0.pure function%1) value%2
+    apply (applicativeFunctorDict%0."Apply0"()) (pure applicativeFunctorDict%0 function%1) value%2
 
 @export applyMonad = \monadMonadDict%3 ->
   \functions%4 values%6 ->
-    (monadMonadDict%3."Bind1"()).bind functions%4
+    bind (monadMonadDict%3."Bind1"()) functions%4
       (\function%5 ->
-        (monadMonadDict%3."Bind1"()).bind values%6
-          (\value%7 -> (monadMonadDict%3."Applicative0"()).pure (function%5 value%7)))
+        bind (monadMonadDict%3."Bind1"()) values%6
+          (\value%7 -> pure (monadMonadDict%3."Applicative0"()) (function%5 value%7)))
 
 @export instance functorBox = { map: liftApplicative applicativeBox }
 
@@ -29,6 +29,6 @@ expression: report
 
 @export instance monadBox = { "Applicative0": \() -> applicativeBox, "Bind1": \() -> bindBox }
 
-@export result = case functorBox.map (\value%11 -> value%11) (Box 42) of
+@export result = case map functorBox (\value%11 -> value%11) (Box 42) of
   Box value%12 ->
     value%12

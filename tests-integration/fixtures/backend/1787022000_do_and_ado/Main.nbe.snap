@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/nbe.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign firstAction
@@ -8,10 +9,10 @@ expression: report
 
 @export foreign independentAction
 
-@export sequential = bindEffect1.bind firstAction (\first%0 -> secondAction first%0)
+@export sequential = bind bindEffect1 firstAction (\first%0 -> secondAction first%0)
 
-@export independent = applyEffect1.apply
-  (functorEffect.map (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
+@export independent = apply applyEffect1
+  (map functorEffect (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
   independentAction
 
-@export pureValue = applicativeEffect.pure 42
+@export pureValue = pure applicativeEffect 42

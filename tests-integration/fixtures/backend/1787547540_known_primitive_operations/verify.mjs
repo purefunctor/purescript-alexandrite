@@ -15,7 +15,7 @@ for (const expected of expectedPrimitives) {
     throw new Error(`missing known primitive output: ${expected}`);
   }
 }
-if (!source.includes("Lookalike.semiringInt.add")) {
+if (!source.includes("Lookalike.add(Lookalike.semiringInt)")) {
   throw new Error("same-named non-canonical member was reduced");
 }
 

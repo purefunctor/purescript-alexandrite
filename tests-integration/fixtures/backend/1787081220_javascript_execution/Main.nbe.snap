@@ -99,6 +99,8 @@ expression: report
 
 @export forwardReference = forward
 
+@export measure = \dictionary%27 -> dictionary%27.measure
+
 @export instance measureInt = { measure: addInt 1 }
 
-@export evidenceValue = measureInt.measure 41
+@export evidenceValue = measure measureInt 41

@@ -5,7 +5,7 @@ expression: report
 ---
 @export Direct { append }
 
-@export Origin { Just, await, foreignValue, visible }
+@export Origin { Just, await, foreignValue, measure, visible }
 
 @export Transitive { marker }
 
@@ -19,6 +19,6 @@ expression: report
 
 @export hostileResult = await
 
-@export measured = measureInt.measure 41
+@export measured = measure measureInt 41
 
 @export transitiveMarker = marker

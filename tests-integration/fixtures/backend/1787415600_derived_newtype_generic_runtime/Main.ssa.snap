@@ -46,13 +46,17 @@ expression: ssa_report
 
 @export function roundTrip(value) {
   entry() {
+    const to = global(to);
     const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = global(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt);
-    const to = genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.to;
+    const call = source.call(to,
+    genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt);
+    const from = global(from);
     const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$1 = global(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt);
-    const from = genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$1.from;
-    const call = source.call(from, value);
-    const call$1 = source.call(to, call);
-    return call$1;
+    const call$1 = source.call(from,
+    genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$1);
+    const call$2 = source.call(call$1, value);
+    const call$3 = source.call(call, call$2);
+    return call$3;
   }
 }
 
@@ -297,10 +301,11 @@ closure genericVoidNoConstructors$initialize$closure[](value) {
     case$0();
   }
   case$0() {
+    const to = global(to);
     const genericVoidNoConstructors = global(genericVoidNoConstructors);
-    const to = genericVoidNoConstructors.to;
-    const call = source.call(to, value);
-    case$join(call);
+    const call = source.call(to, genericVoidNoConstructors);
+    const call$1 = source.call(call, value);
+    case$join(call$1);
   }
   case$failure() {
     throw patternMatchFailure();
@@ -315,10 +320,11 @@ closure genericVoidNoConstructors$initialize$closure$1[](value) {
     case$0();
   }
   case$0() {
+    const from = global(from);
     const genericVoidNoConstructors = global(genericVoidNoConstructors);
-    const from = genericVoidNoConstructors.from;
-    const call = source.call(from, value);
-    case$join(call);
+    const call = source.call(from, genericVoidNoConstructors);
+    const call$1 = source.call(call, value);
+    case$join(call$1);
   }
   case$failure() {
     throw patternMatchFailure();

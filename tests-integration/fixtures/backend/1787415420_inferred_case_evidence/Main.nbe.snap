@@ -3,10 +3,12 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export chooseEmpty = \emptyCollectionDict%1 ->
-  \section33%0 ->
-    case section33%0 of
+@export empty = \dictionary%0 -> dictionary%0.empty
+
+@export chooseEmpty = \emptyCollectionDict%2 ->
+  \section33%1 ->
+    case section33%1 of
       true ->
-        emptyCollectionDict%1.empty
+        empty emptyCollectionDict%2
       false ->
-        emptyCollectionDict%1.empty
+        empty emptyCollectionDict%2

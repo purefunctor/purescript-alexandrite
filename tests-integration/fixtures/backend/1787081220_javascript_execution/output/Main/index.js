@@ -135,6 +135,10 @@ export function unwrapWrapped($wrapped) {
   }
 }
 
+export function measure(dictionary) {
+  return dictionary.measure;
+}
+
 export const addInt = $foreign["addInt"];
 export const decrementInt = $foreign["decrementInt"];
 export const equalInt = $foreign["equalInt"];
@@ -171,6 +175,6 @@ export const forwardReference = Library.forward;
 
 export const measureInt = { measure: addInt(1 | 0) };
 
-export const evidenceValue = measureInt.measure(41 | 0);
+export const evidenceValue = measure(measureInt)(41 | 0);
 
 export { $await as "await" };

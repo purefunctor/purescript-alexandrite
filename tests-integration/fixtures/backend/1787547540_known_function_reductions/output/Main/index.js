@@ -29,6 +29,6 @@ export const lookalikeApply = (() => {
   return Lookalike.apply(value => value)(42 | 0);
 })();
 
-export const lookalikeIdentity = Lookalike.categoryFn.identity(42 | 0);
+export const lookalikeIdentity = Lookalike.identity(Lookalike.categoryFn)(42 | 0);
 
 export const lookalikeCoerce = Lookalike.unsafeCoerce(42 | 0);

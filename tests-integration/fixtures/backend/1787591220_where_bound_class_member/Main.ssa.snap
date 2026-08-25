@@ -3,6 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
+@export function name(dictionary) {
+  entry() {
+    const name = dictionary.name;
+    return name;
+  }
+}
+
 @export instance const namedString = initialize {
   entry() {
     const closure = closure(namedString$initialize$closure);

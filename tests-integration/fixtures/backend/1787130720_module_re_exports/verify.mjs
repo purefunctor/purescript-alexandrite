@@ -16,11 +16,11 @@ if (directSource.includes("import * as") || transitiveSource.includes("import * 
 }
 if (
   !directSource.includes(
-    'export { Just, "await", foreignValue, visible } from "../Origin/index.js";',
+    'export { Just, "await", foreignValue, measure, visible } from "../Origin/index.js";',
   ) ||
   !transitiveSource.includes('export { append } from "../Direct/index.js";') ||
   !transitiveSource.includes(
-    'export { Just, "await", foreignValue, visible } from "../Origin/index.js";',
+    'export { Just, "await", foreignValue, measure, visible } from "../Origin/index.js";',
   )
 ) {
   throw new Error("grouped module re-exports are missing");
@@ -42,13 +42,13 @@ const assertKeys = (namespace, expected, name) => {
 
 assertKeys(
   Origin,
-  ["Just", "append", "await", "eqOption", "foreignValue", "measureInt", "visible"],
+  ["Just", "append", "await", "eqOption", "foreignValue", "measure", "measureInt", "visible"],
   "Origin",
 );
-assertKeys(Direct, ["Just", "append", "await", "foreignValue", "visible"], "Direct");
+assertKeys(Direct, ["Just", "append", "await", "foreignValue", "measure", "visible"], "Direct");
 assertKeys(
   Transitive,
-  ["Just", "append", "await", "foreignValue", "marker", "visible"],
+  ["Just", "append", "await", "foreignValue", "marker", "measure", "visible"],
   "Transitive",
 );
 assertKeys(
@@ -63,6 +63,7 @@ assertKeys(
     "hostileResult",
     "localCollision",
     "marker",
+    "measure",
     "measured",
     "operatorValue",
     "transitiveMarker",

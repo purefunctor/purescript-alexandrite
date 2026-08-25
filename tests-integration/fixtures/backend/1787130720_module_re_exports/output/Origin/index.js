@@ -14,6 +14,10 @@ export function append(left) {
   };
 }
 
+export function measure(dictionary) {
+  return dictionary.measure;
+}
+
 export const foreignValue = $foreign["foreignValue"];
 
 const hidden = 13 | 0;
@@ -47,7 +51,7 @@ export const eqOption = (() => {
         const left0 = left[1];
         if (Array.isArray(right) && right[0] === "Just") {
           const right0 = right[1];
-          if (Data_Eq.eqInt.eq(left0)(right0)) {
+          if (Data_Eq.eq(Data_Eq.eqInt)(left0)(right0)) {
             return if$join(true);
           } else {
             return if$join(false);

@@ -12,10 +12,10 @@ export const foreignResult = Origin.foreignValue;
 
 export const hostileResult = Origin.await;
 
-export const measured = Origin.measureInt.measure(41 | 0);
+export const measured = Origin.measure(Origin.measureInt)(41 | 0);
 
 export const transitiveMarker = Transitive.marker;
 
 export { append } from "../Direct/index.js";
-export { Just, "await", foreignValue, visible } from "../Origin/index.js";
+export { Just, "await", foreignValue, measure, visible } from "../Origin/index.js";
 export { marker } from "../Transitive/index.js";

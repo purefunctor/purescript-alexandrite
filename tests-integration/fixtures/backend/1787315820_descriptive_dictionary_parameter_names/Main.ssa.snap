@@ -1,8 +1,29 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 256
+assertion_line: 269
 expression: ssa_report
 ---
+@export function equal(dictionary) {
+  entry() {
+    const equal = dictionary.equal;
+    return equal;
+  }
+}
+
+@export function convert(dictionary) {
+  entry() {
+    const convert = dictionary.convert;
+    return convert;
+  }
+}
+
+@export function available(dictionary) {
+  entry() {
+    const available = dictionary.available;
+    return available;
+  }
+}
+
 @export constructor Wrapper/1;
 
 @export function genericEqual(equalValueDict) {
@@ -63,74 +84,83 @@ expression: ssa_report
 
 @export function isAvailable(availableDict) {
   entry() {
-    const available = availableDict.available;
-    return available;
+    const available = global(available);
+    const call = source.call(available, availableDict);
+    return call;
   }
 }
 
 closure genericEqual$closure[equalValueDict](left, right) {
   entry() {
-    const equal = equalValueDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalValueDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
 closure arrayEqual$closure[equalArrayValueDict](left, right) {
   entry() {
-    const equal = equalArrayValueDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalArrayValueDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
 closure wrapperEqual$closure[equalWrapperValueDict](left, right) {
   entry() {
-    const equal = equalWrapperValueDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalWrapperValueDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
 closure concreteEqual$closure[equalIntDict](left, right) {
   entry() {
-    const equal = equalIntDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalIntDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
 closure convertToInt$closure[convertValueIntDict](value) {
   entry() {
-    const convert = convertValueIntDict.convert;
-    const call = source.call(convert, value);
-    return call;
+    const convert = global(convert);
+    const call = source.call(convert, convertValueIntDict);
+    const call$1 = source.call(call, value);
+    return call$1;
   }
 }
 
 closure distinctEqual$closure[equalLeftDict, equalRightDict](left1, left2, right1, right2) {
   entry() {
-    const equal = equalLeftDict.equal;
-    const call = source.call(equal, left1);
-    const call$1 = source.call(call, left2);
-    const equal$1 = equalRightDict.equal;
-    const call$2 = source.call(equal$1, right1);
-    const call$3 = source.call(call$2, right2);
-    const record = { left: call$1, right: call$3 };
+    const equal = global(equal);
+    const call = source.call(equal, equalLeftDict);
+    const call$1 = source.call(call, left1);
+    const call$2 = source.call(call$1, left2);
+    const equal$1 = global(equal);
+    const call$3 = source.call(equal$1, equalRightDict);
+    const call$4 = source.call(call$3, right1);
+    const call$5 = source.call(call$4, right2);
+    const record = { left: call$2, right: call$5 };
     return record;
   }
 }
 
 closure duplicateEqual$closure[equalValueDict](left, right) {
   entry() {
-    const equal = equalValueDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalValueDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
@@ -143,10 +173,11 @@ closure parameterCollision$closure[equalValueDict](equalValueDict$1, left, right
     }
   }
   then() {
-    const equal = equalValueDict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    if$join(call$1);
+    const equal = global(equal);
+    const call = source.call(equal, equalValueDict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    if$join(call$2);
   }
   else() {
     const literal = false;
