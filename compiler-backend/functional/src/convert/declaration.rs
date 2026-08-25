@@ -1,0 +1,330 @@
+use super::*;
+
+pub(super) fn term_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    term_id: TermItemId,
+    exported: bool,
+) -> ConversionResult<Option<Declaration>> {
+    let indexed_module = Arc::clone(&context.indexed);
+    let checked = Arc::clone(&context.checked);
+    let indexed = &indexed_module.items[term_id];
+    if matches!(indexed.kind, IndexedTermItemKind::Operator { .. }) {
+        return Ok(None);
+    }
+    let item_name = match &indexed.name {
+        Some(name) => SmolStr::clone(name),
+        None => context.term_fallback(term_id),
+    };
+    let global = Global { id: GlobalId::Term(context.file_id, term_id), item_name };
+    let recursive_group = context.recursive_groups.get(&term_id).copied();
+    if matches!(indexed.kind, IndexedTermItemKind::ClassMember { .. }) {
+        let kind = DeclarationKind::Value(class_member_selector(context, term_id)?);
+        return Ok(Some(Declaration { global, exported, recursive_group, kind }));
+    }
+    let declaration_id = checked
+        .tree
+        .lookup_term(term_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingTermDeclaration(term_id)))?;
+    let declaration = &checked.tree[declaration_id];
+    let kind = match &declaration.kind {
+        checking_tree::TermDeclarationKind::Value(value) => {
+            DeclarationKind::Value(value_declaration(context, value)?)
+        }
+        checking_tree::TermDeclarationKind::Foreign => DeclarationKind::Foreign,
+        checking_tree::TermDeclarationKind::Constructor(constructor) => {
+            if context.constructor_is_newtype(context.file_id, term_id)? {
+                return Ok(None);
+            }
+            DeclarationKind::Constructor { arity: constructor.arguments.len() }
+        }
+        checking_tree::TermDeclarationKind::Instance(_) => {
+            unreachable!("invariant violated: instance stored as a term declaration")
+        }
+    };
+    Ok(Some(Declaration { global, exported, recursive_group, kind }))
+}
+
+fn class_member_selector(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    term_id: TermItemId,
+) -> ConversionResult<ExpressionId> {
+    let dictionary = context.fresh_parameter("dictionary".into())?;
+    let record = context.expression(ExpressionKind::Local { parameter: dictionary.clone() });
+    let field = context.member_field((context.file_id, term_id))?;
+    let body = context.expression(ExpressionKind::Project { record, field });
+    Ok(context.parameter_abstraction([dictionary], body))
+}
+
+pub(super) fn instance_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    item_id: InstanceItemId,
+) -> ConversionResult<Declaration> {
+    let indexed = &context.indexed.items[item_id];
+    let identity = InstanceIdentity::Declared(context.file_id, indexed.id);
+    let declaration_id = context
+        .checked
+        .tree
+        .lookup_instance(item_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingInstanceDeclaration))?;
+    convert_instance_declaration(context, identity, declaration_id)
+}
+
+pub(super) fn derive_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    item_id: DeriveItemId,
+) -> ConversionResult<Declaration> {
+    let indexed = &context.indexed.items[item_id];
+    let identity = InstanceIdentity::Derived(context.file_id, indexed.id);
+    let declaration_id = context
+        .checked
+        .tree
+        .lookup_derive(item_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingInstanceDeclaration))?;
+    convert_instance_declaration(context, identity, declaration_id)
+}
+
+fn convert_instance_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    identity: InstanceIdentity,
+    declaration_id: checking_tree::TermDeclarationId,
+) -> ConversionResult<Declaration> {
+    let checked = Arc::clone(&context.checked);
+    let declaration = &checked.tree[declaration_id];
+    let checking_tree::TermDeclarationKind::Instance(instance) = &declaration.kind else {
+        unreachable!("invariant violated: instance identity has non-instance declaration")
+    };
+
+    let parameters = instance.evidences.iter().map(|evidence| match evidence.evidence {
+        Evidence::Given(binder) => context.evidence_parameter(binder),
+        _ => Err(context.unsupported(UnsupportedState::InvalidInstancePrerequisite)),
+    });
+    let parameters = parameters.collect::<ConversionResult<Vec<_>>>()?;
+
+    let body = context.evidence_scope(|context| match &instance.implementation {
+        checking_tree::InstanceImplementation::Delegate { evidence, .. } => {
+            evidence_variable(context, *evidence)
+        }
+        checking_tree::InstanceImplementation::Members(members) => {
+            let mut fields = Vec::new();
+            for superclass in instance.superclasses.iter() {
+                let expression = evidence_variable(context, superclass.evidence)?;
+                let expression = context.expression(ExpressionKind::Abstraction {
+                    parameters: Arc::from([]),
+                    body: expression,
+                });
+                let field = context.superclass_field(superclass.id)?;
+                fields.push(RecordField { field, expression });
+            }
+            for member in members.iter() {
+                let expression = member_declaration(context, member)?;
+                let field = context.member_field(member.resolution)?;
+                fields.push(RecordField { field, expression });
+            }
+            Ok(context.expression(ExpressionKind::Record { fields: fields.into() }))
+        }
+    })?;
+    let value = context.parameter_abstraction(parameters, body);
+    let item_name = context.instance_name(identity)?;
+    let global = Global { id: GlobalId::Instance(identity), item_name };
+    let kind = DeclarationKind::Value(value);
+    Ok(Declaration { global, exported: true, recursive_group: None, kind })
+}
+
+fn member_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    member: &checking_tree::InstanceMember,
+) -> ConversionResult<ExpressionId> {
+    let value = checking_tree::ValueDeclaration {
+        abstractions: Arc::clone(&member.abstractions),
+        equations: Arc::clone(&member.equations),
+    };
+    value_declaration(context, &value)
+}
+
+fn value_declaration(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    value: &checking_tree::ValueDeclaration,
+) -> ConversionResult<ExpressionId> {
+    let body = equations(context, &value.equations)?;
+    let mut evidence_parameters = Vec::new();
+    for abstraction in value.abstractions.iter() {
+        if let checking_tree::DeclarationAbstraction::Evidence { evidence, .. } = abstraction {
+            let Evidence::Given(binder) = evidence else {
+                return Err(context.unsupported(UnsupportedState::InvalidInstancePrerequisite));
+            };
+            evidence_parameters.push(context.evidence_parameter(*binder)?);
+        }
+    }
+    Ok(context.parameter_abstraction(evidence_parameters, body))
+}
+
+fn equations(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    equations: &[checking_tree::Equation],
+) -> ConversionResult<ExpressionId> {
+    let Some(first) = equations.first() else {
+        return Err(context.unsupported(UnsupportedState::MissingEquation));
+    };
+    if equations.len() == 1 {
+        let body = context
+            .evidence_scope(|context| guarded_expression(context, &first.guarded_expression))?;
+        let patterns = function_patterns(context, &first.binders)?;
+        return Ok(context.abstraction(patterns, body));
+    }
+
+    let arity = equations.iter().map(|equation| equation.binders.len()).max().unwrap_or(0);
+    let mut parameter_patterns = Vec::with_capacity(arity);
+    let mut scrutinees = Vec::with_capacity(arity);
+    for position in 0..arity {
+        let fallback = format_smolstr!("argument{position}");
+        let type_id = equations
+            .iter()
+            .find_map(|equation| equation.binders.get(position))
+            .map(|&binder| context.checked.tree[binder].type_id);
+        let name = match type_id {
+            Some(type_id) => context.type_parameter_name(type_id, fallback)?,
+            None => fallback,
+        };
+        let parameter = context.fresh_parameter(name)?;
+        let pattern = context.pattern(PatternKind::Variable(parameter.clone()));
+        let scrutinee = context.expression(ExpressionKind::Local { parameter: parameter.clone() });
+        parameter_patterns.push(pattern);
+        scrutinees.push(scrutinee);
+    }
+
+    let body = context.evidence_scope(|context| {
+        let mut alternatives = Vec::with_capacity(equations.len());
+        for equation in equations {
+            let mut patterns = patterns(context, &equation.binders)?;
+            let supplied = patterns.len();
+            while patterns.len() < arity {
+                patterns.push(context.pattern(PatternKind::Wildcard));
+            }
+            let expression = guarded_expression(context, &equation.guarded_expression)?;
+            let remaining_arguments = scrutinees.iter().skip(supplied).copied();
+            let expression = context.application(expression, remaining_arguments)?;
+            alternatives.push(CaseAlternative { patterns: patterns.into(), expression });
+        }
+        Ok(context.expression(ExpressionKind::Case {
+            scrutinees: scrutinees.into(),
+            alternatives: alternatives.into(),
+        }))
+    })?;
+    Ok(context.abstraction(parameter_patterns, body))
+}
+
+pub(super) fn function_patterns(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    binders: &[checking_tree::BinderId],
+) -> ConversionResult<Vec<PatternId>> {
+    let mut converted = Vec::with_capacity(binders.len());
+    for (position, &binder) in binders.iter().enumerate() {
+        let pattern = convert_pattern(context, binder)?;
+        let named = matches!(
+            context.storage[pattern].kind,
+            PatternKind::Variable(_) | PatternKind::Named { .. }
+        );
+        if named {
+            converted.push(pattern);
+            continue;
+        }
+        let fallback = format_smolstr!("argument{position}");
+        let type_id = context.checked.tree[binder].type_id;
+        let name = context.type_parameter_name(type_id, fallback)?;
+        let parameter = context.fresh_parameter(name)?;
+        converted.push(context.pattern(PatternKind::Named { parameter, pattern }));
+    }
+    Ok(converted)
+}
+
+pub(super) fn guarded_expression(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    guarded: &checking_tree::GuardedExpression,
+) -> ConversionResult<ExpressionId> {
+    if let [alternative] = guarded.alternatives.as_ref()
+        && alternative.pattern_guards.is_empty()
+    {
+        return where_expression(context, &alternative.where_expression);
+    }
+
+    let alternatives =
+        guarded.alternatives.iter().map(|alternative| guarded_alternative(context, alternative));
+    let alternatives = alternatives.collect::<ConversionResult<Vec<_>>>()?;
+    Ok(context.expression(ExpressionKind::Guarded { alternatives: alternatives.into() }))
+}
+
+fn guarded_alternative(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    alternative: &checking_tree::GuardedAlternative,
+) -> ConversionResult<GuardedAlternative> {
+    let mut guards = Vec::new();
+    for guard in alternative.pattern_guards.iter() {
+        let guard = match guard {
+            checking_tree::PatternGuard::Boolean { expression } => {
+                Guard::Boolean(convert_expression(context, *expression)?)
+            }
+            checking_tree::PatternGuard::Pattern { binder, expression } => Guard::Pattern {
+                expression: convert_expression(context, *expression)?,
+                pattern: convert_pattern(context, *binder)?,
+            },
+        };
+        guards.push(guard);
+    }
+    let expression = where_expression(context, &alternative.where_expression)?;
+    Ok(GuardedAlternative { guards: guards.into(), expression })
+}
+
+fn where_expression(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    where_expression: &checking_tree::WhereExpression,
+) -> ConversionResult<ExpressionId> {
+    let expression = convert_expression(context, where_expression.expression)?;
+    let_bindings(context, &where_expression.bindings, expression)
+}
+
+pub(super) fn let_bindings(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    bindings: &checking_tree::LetBindings,
+    mut body: ExpressionId,
+) -> ConversionResult<ExpressionId> {
+    let checked = Arc::clone(&context.checked);
+    for chunk in bindings.chunks.iter().rev() {
+        match chunk {
+            checking_tree::LetBindingChunk::Pattern { binder, where_expression: value, .. } => {
+                let value = where_expression(context, value)?;
+                let pattern = convert_pattern(context, *binder)?;
+                body = context.expression(ExpressionKind::LetPattern { pattern, value, body });
+            }
+            checking_tree::LetBindingChunk::PatternError { source, .. } => {
+                return Err(context.unsupported(UnsupportedState::PatternBindingError(*source)));
+            }
+            checking_tree::LetBindingChunk::Names { declarations, groups } => {
+                let source_order = declarations
+                    .iter()
+                    .enumerate()
+                    .map(|(position, &declaration)| (declaration, position));
+                let source_order = source_order.collect::<FxHashMap<_, _>>();
+                for group in groups.iter().rev() {
+                    let mut converted = Vec::new();
+                    for &source in group.as_slice() {
+                        let Some(declaration_id) = checked.tree.lookup_let(source) else {
+                            return Err(context
+                                .unsupported(UnsupportedState::MissingLocalDeclaration(source)));
+                        };
+                        let declaration = &checked.tree[declaration_id];
+                        let parameter = context.local_parameter(source)?;
+                        let expression = value_declaration(context, &declaration.value)?;
+                        let source_order = source_order[&declaration_id];
+                        converted.push(Binding { parameter, expression, source_order });
+                    }
+                    body = context.expression(ExpressionKind::Let {
+                        recursive: group.is_recursive(),
+                        bindings: converted.into(),
+                        body,
+                    });
+                }
+            }
+        }
+    }
+    Ok(body)
+}
