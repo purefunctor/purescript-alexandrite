@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructEffect
+
+@export foreign mark
+
+@export identity = \value%0 -> value%0
+
+@export mapped = \value%1 ->
+  effect.map (mark "map-function" identity) (constructEffect "map-action" value%1)
+
+@export applied = \value%2 ->
+  effect.apply
+    (constructEffect "apply-function-action" identity)
+    (constructEffect "apply-value-action" value%2)
+
+@export capturedPure = \value%3 -> effect.pure (mark "pure-value" value%3)

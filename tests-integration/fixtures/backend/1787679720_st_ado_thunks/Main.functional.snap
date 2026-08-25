@@ -1,0 +1,27 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructST
+
+@export foreign mark
+
+@export timedAdo = \seed%2 ->
+  effect.apply
+    (effect.map
+      (\first%0 second%1 -> { first: first%0, second: second%1 })
+      (constructST "ado-first" seed%2))
+    (constructST "ado-second" { seed: seed%2 })
+
+@export identity = \value%3 -> value%3
+
+@export mapped = \value%4 ->
+  effect.map (mark "map-function" identity) (constructST "map-action" value%4)
+
+@export applied = \value%5 ->
+  effect.apply
+    (constructST "apply-function-action" identity)
+    (constructST "apply-value-action" value%5)
+
+@export capturedPure = \value%6 -> effect.pure (mark "pure-value" value%6)

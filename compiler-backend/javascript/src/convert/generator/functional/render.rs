@@ -58,8 +58,23 @@ struct FunctionContext {
 #[derive(Clone, Copy)]
 enum Destination<'a> {
     Return,
+    EffectReturn,
     Assign(&'a str),
+    EffectAssign(&'a str),
     AssignAndBreak { name: &'a str, label: &'a str },
+    EffectAssignAndBreak { name: &'a str, label: &'a str },
+}
+
+enum CapturedEffectAction {
+    Expression(ExpressionId),
+    Effect(Box<CapturedEffect>),
+}
+
+enum CapturedEffect {
+    Pure { value: ExpressionId },
+    Bind { action: CapturedEffectAction, parameter: Parameter, body: FunctionalExpressionId },
+    Map { function: ExpressionId, action: CapturedEffectAction },
+    Apply { function_action: CapturedEffectAction, argument_action: CapturedEffectAction },
 }
 
 #[derive(Default)]
@@ -99,6 +114,45 @@ impl FunctionContext {
 
     fn bind_lazy(&mut self, parameter: &Parameter, name: String) {
         self.locals.insert(parameter.id, LocalBinding::Lazy(name));
+    }
+}
+
+impl<'a> Destination<'a> {
+    fn effect(self) -> Destination<'a> {
+        match self {
+            Destination::Return => Destination::EffectReturn,
+            Destination::Assign(name) => Destination::EffectAssign(name),
+            Destination::AssignAndBreak { name, label } => {
+                Destination::EffectAssignAndBreak { name, label }
+            }
+            Destination::EffectReturn
+            | Destination::EffectAssign(_)
+            | Destination::EffectAssignAndBreak { .. } => {
+                unreachable!("invariant violated: effect destination is already indirect")
+            }
+        }
+    }
+
+    fn value(self) -> Destination<'a> {
+        match self {
+            Destination::EffectReturn => Destination::Return,
+            Destination::EffectAssign(name) => Destination::Assign(name),
+            Destination::EffectAssignAndBreak { name, label } => {
+                Destination::AssignAndBreak { name, label }
+            }
+            Destination::Return | Destination::Assign(_) | Destination::AssignAndBreak { .. } => {
+                unreachable!("invariant violated: value destination is already direct")
+            }
+        }
+    }
+
+    fn is_effect(self) -> bool {
+        matches!(
+            self,
+            Destination::EffectReturn
+                | Destination::EffectAssign(_)
+                | Destination::EffectAssignAndBreak { .. }
+        )
     }
 }
 
@@ -540,6 +594,15 @@ impl Generator<'_> {
                 })
             }
             _ => {
+                if destination.is_effect() {
+                    return self.render_effect_destination(
+                        tree,
+                        writer,
+                        expression,
+                        destination.value(),
+                        context,
+                    );
+                }
                 let value = self.expression_value(tree, writer, expression, context)?;
                 self.render_destination(tree, writer, value, destination);
                 Ok(())
@@ -563,7 +626,32 @@ impl Generator<'_> {
                 writer.expression_line(format!("{name} = "), tree, value, ";");
                 writer.line(format!("break {label};"));
             }
+            Destination::EffectReturn
+            | Destination::EffectAssign(_)
+            | Destination::EffectAssignAndBreak { .. } => {
+                unreachable!("invariant violated: effect destination was not rendered directly")
+            }
         }
+    }
+
+    fn render_effect_destination(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expression: FunctionalExpressionId,
+        destination: Destination<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        if let ExpressionKind::Effect { effect } = &self.module.storage[expression].kind {
+            let mut renderer = self.renderer(tree, writer, context);
+            let effect = capture_effect(&mut renderer, effect)?;
+            return execute_effect(&mut renderer, effect, destination);
+        }
+
+        let effect = self.expression_value(tree, writer, expression, context)?;
+        let value = tree.call(effect, vec![]);
+        self.render_destination(tree, writer, value, destination);
+        Ok(())
     }
 
     fn expression_value(
@@ -1064,15 +1152,17 @@ fn render_case(
     }
     let scrutinees = values;
     match destination {
-        Destination::Return | Destination::AssignAndBreak { .. } => generator
-            .render_case_alternatives(
-                tree,
-                writer,
-                &scrutinees,
-                alternatives,
-                destination,
-                context,
-            ),
+        Destination::Return
+        | Destination::EffectReturn
+        | Destination::AssignAndBreak { .. }
+        | Destination::EffectAssignAndBreak { .. } => generator.render_case_alternatives(
+            tree,
+            writer,
+            &scrutinees,
+            alternatives,
+            destination,
+            context,
+        ),
         Destination::Assign(name) => {
             let label = context.allocate("$case");
             writer.block(format!("{label}: {{"), "}", |writer| {
@@ -1082,6 +1172,19 @@ fn render_case(
                     &scrutinees,
                     alternatives,
                     Destination::AssignAndBreak { name, label: &label },
+                    context,
+                )
+            })
+        }
+        Destination::EffectAssign(name) => {
+            let label = context.allocate("$case");
+            writer.block(format!("{label}: {{"), "}", |writer| {
+                generator.render_case_alternatives(
+                    tree,
+                    writer,
+                    &scrutinees,
+                    alternatives,
+                    Destination::EffectAssignAndBreak { name, label: &label },
                     context,
                 )
             })
@@ -1166,7 +1269,10 @@ fn render_guarded(
     let writer = &mut *renderer.writer;
     let context = &mut *renderer.context;
     match destination {
-        Destination::Return | Destination::AssignAndBreak { .. } => {
+        Destination::Return
+        | Destination::EffectReturn
+        | Destination::AssignAndBreak { .. }
+        | Destination::EffectAssignAndBreak { .. } => {
             generator.render_guard_alternatives(
                 tree,
                 writer,
@@ -1185,6 +1291,20 @@ fn render_guarded(
                     writer,
                     alternatives,
                     Destination::AssignAndBreak { name, label: &label },
+                    context,
+                )?;
+                generator.render_pattern_failure(writer);
+                Ok(())
+            })
+        }
+        Destination::EffectAssign(name) => {
+            let label = context.allocate("$guard");
+            writer.block(format!("{label}: {{"), "}", |writer| {
+                generator.render_guard_alternatives(
+                    tree,
+                    writer,
+                    alternatives,
+                    Destination::EffectAssignAndBreak { name, label: &label },
                     context,
                 )?;
                 generator.render_pattern_failure(writer);
@@ -1509,37 +1629,146 @@ fn effect_expression(
     renderer: &mut FunctionRenderer<'_, '_, '_>,
     effect: &EffectExpression,
 ) -> ModuleResult<ExpressionId> {
+    let effect = capture_effect(renderer, effect)?;
     let generator = renderer.generator;
     let tree = &mut *renderer.tree;
     let writer = &mut *renderer.writer;
     let context = &mut *renderer.context;
+    let effect_name = context.allocate("$effect");
+    writer.block(format!("const {effect_name} = () => {{"), "};", |writer| {
+        let mut renderer = generator.renderer(tree, writer, context);
+        execute_effect(&mut renderer, effect, Destination::Return)
+    })?;
+    Ok(tree.identifier(effect_name))
+}
+
+fn capture_effect(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    effect: &EffectExpression,
+) -> ModuleResult<CapturedEffect> {
     match effect {
         EffectExpression::Pure(value) => {
-            let value = generator.expression_value(tree, writer, *value, context)?;
-            let value_name = context.allocate("$value");
-            writer.expression_line(format!("const {value_name} = "), tree, value, ";");
-            let value = tree.identifier(value_name);
-            Ok(tree.arrow(vec![], value))
+            let value = capture_effect_value(renderer, *value, "$value")?;
+            Ok(CapturedEffect::Pure { value })
         }
         EffectExpression::Bind { action, parameter, body } => {
-            let action = generator.expression_value(tree, writer, *action, context)?;
-            let action_name = context.allocate("$action");
-            writer.expression_line(format!("const {action_name} = "), tree, action, ";");
-            let effect_name = context.allocate("$effect");
-            writer.block(format!("const {effect_name} = () => {{"), "};", |writer| {
-                let parameter_name = context.allocate(&parameter.name);
-                let action = tree.identifier(&action_name);
-                let call = tree.call(action, vec![]);
-                writer.expression_line(format!("const {parameter_name} = "), tree, call, ";");
-                context.bind_direct(parameter, parameter_name);
-                let continuation = generator.expression_value(tree, writer, *body, context)?;
-                let call = tree.call(continuation, vec![]);
-                writer.expression_line("return ", tree, call, ";");
-                Ok::<(), ModuleError>(())
-            })?;
-            Ok(tree.identifier(effect_name))
+            let action = capture_effect_action(renderer, *action, "$action")?;
+            Ok(CapturedEffect::Bind { action, parameter: parameter.clone(), body: *body })
+        }
+        EffectExpression::Map { function, action } => {
+            let function = capture_effect_value(renderer, *function, "$function")?;
+            let action = capture_effect_action(renderer, *action, "$action")?;
+            Ok(CapturedEffect::Map { function, action })
+        }
+        EffectExpression::Apply { function_action, argument_action } => {
+            let function_action =
+                capture_effect_action(renderer, *function_action, "$functionAction")?;
+            let argument_action =
+                capture_effect_action(renderer, *argument_action, "$argumentAction")?;
+            Ok(CapturedEffect::Apply { function_action, argument_action })
         }
     }
+}
+
+fn capture_effect_action(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    expression: FunctionalExpressionId,
+    preferred_name: &str,
+) -> ModuleResult<CapturedEffectAction> {
+    let generator = renderer.generator;
+    if let ExpressionKind::Effect { effect } = &generator.module.storage[expression].kind {
+        let effect = capture_effect(renderer, effect)?;
+        return Ok(CapturedEffectAction::Effect(Box::new(effect)));
+    }
+
+    let expression = capture_effect_value(renderer, expression, preferred_name)?;
+    Ok(CapturedEffectAction::Expression(expression))
+}
+
+fn capture_effect_value(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    expression: FunctionalExpressionId,
+    preferred_name: &str,
+) -> ModuleResult<ExpressionId> {
+    let generator = renderer.generator;
+    let tree = &mut *renderer.tree;
+    let writer = &mut *renderer.writer;
+    let context = &mut *renderer.context;
+    let value = generator.expression_value(tree, writer, expression, context)?;
+    let name = context.allocate(preferred_name);
+    writer.expression_line(format!("const {name} = "), tree, value, ";");
+    Ok(tree.identifier(name))
+}
+
+fn execute_effect(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    effect: CapturedEffect,
+    destination: Destination<'_>,
+) -> ModuleResult<()> {
+    match effect {
+        CapturedEffect::Pure { value } => {
+            renderer.generator.render_destination(
+                renderer.tree,
+                renderer.writer,
+                value,
+                destination,
+            );
+            Ok(())
+        }
+        CapturedEffect::Bind { action, parameter, body } => {
+            let (_, parameter_name) = execute_effect_action(renderer, action, &parameter.name)?;
+            renderer.context.bind_direct(&parameter, parameter_name);
+            renderer.generator.render_expression(
+                renderer.tree,
+                renderer.writer,
+                body,
+                destination.effect(),
+                renderer.context,
+            )
+        }
+        CapturedEffect::Map { function, action } => {
+            let (value, _) = execute_effect_action(renderer, action, "$value")?;
+            let result = renderer.tree.call(function, vec![value]);
+            renderer.generator.render_destination(
+                renderer.tree,
+                renderer.writer,
+                result,
+                destination,
+            );
+            Ok(())
+        }
+        CapturedEffect::Apply { function_action, argument_action } => {
+            let (function, _) = execute_effect_action(renderer, function_action, "$function")?;
+            let (argument, _) = execute_effect_action(renderer, argument_action, "$argument")?;
+            let result = renderer.tree.call(function, vec![argument]);
+            renderer.generator.render_destination(
+                renderer.tree,
+                renderer.writer,
+                result,
+                destination,
+            );
+            Ok(())
+        }
+    }
+}
+
+fn execute_effect_action(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    action: CapturedEffectAction,
+    preferred_name: &str,
+) -> ModuleResult<(ExpressionId, String)> {
+    let name = renderer.context.allocate(preferred_name);
+    match action {
+        CapturedEffectAction::Expression(action) => {
+            let value = renderer.tree.call(action, vec![]);
+            renderer.writer.expression_line(format!("const {name} = "), renderer.tree, value, ";");
+        }
+        CapturedEffectAction::Effect(effect) => {
+            renderer.writer.line(format!("let {name};"));
+            execute_effect(renderer, *effect, Destination::Assign(&name))?;
+        }
+    }
+    Ok((renderer.tree.identifier(&name), name))
 }
 
 fn local_expression(
@@ -1780,6 +2009,14 @@ fn collect_expression_references(
                 collect_expression_references(module, *action, seen, globals);
                 collect_expression_references(module, *body, seen, globals);
             }
+            EffectExpression::Map { function, action } => {
+                collect_expression_references(module, *function, seen, globals);
+                collect_expression_references(module, *action, seen, globals);
+            }
+            EffectExpression::Apply { function_action, argument_action } => {
+                collect_expression_references(module, *function_action, seen, globals);
+                collect_expression_references(module, *argument_action, seen, globals);
+            }
         },
     }
 }
@@ -1981,9 +2218,16 @@ fn collect_expression_children(
             EffectExpression::Pure(value) => {
                 collect_expression_globals(module, *value, false, globals);
             }
-            EffectExpression::Bind { action, body, .. } => {
+            EffectExpression::Bind { action, .. } => {
                 collect_expression_globals(module, *action, false, globals);
-                collect_expression_globals(module, *body, false, globals);
+            }
+            EffectExpression::Map { function, action } => {
+                collect_expression_globals(module, *function, false, globals);
+                collect_expression_globals(module, *action, false, globals);
+            }
+            EffectExpression::Apply { function_action, argument_action } => {
+                collect_expression_globals(module, *function_action, false, globals);
+                collect_expression_globals(module, *argument_action, false, globals);
             }
         },
     }

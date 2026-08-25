@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign firstAction
@@ -8,10 +9,10 @@ expression: report
 
 @export foreign independentAction
 
-@export sequential = bind bindEffect1 firstAction (\first%0 -> secondAction first%0)
+@export sequential = effect.bind firstAction \first%0 -> secondAction first%0
 
-@export independent = apply applyEffect1
-  (map functorEffect (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
+@export independent = effect.apply
+  (effect.map (\first%1 second%2 -> { first: first%1, second: second%2 }) firstAction)
   independentAction
 
-@export pureValue = pure applicativeEffect 42
+@export pureValue = effect.pure 42

@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+timedAdo :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { seed :: Prim.String } }
+
+Types

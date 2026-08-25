@@ -1,0 +1,13 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructEffect
+
+@export timedAdo = \seed%2 ->
+  effect.apply
+    (effect.map
+      (\first%0 second%1 -> { first: first%0, second: second%1 })
+      (constructEffect "ado-first" seed%2))
+    (constructEffect "ado-second" { seed: seed%2 })

@@ -1,0 +1,23 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructEffect
+
+@export foreign mark
+
+@export chained = \seed%0 ->
+  effect.bind (constructEffect "first" seed%0)
+    \first%1 -> effect.bind (constructEffect "second" { first: first%1 })
+      \second%3 -> constructEffect "third" { first: first%1, second: second%3 }
+
+@export discarded = \seed%7 ->
+  effect.bind (constructEffect "discard-first" Unit)
+    \$unit%5 -> let
+      result%6 = mark "discard-let" seed%7
+    in constructEffect "discard-second" result%6
+
+@export pureAfterBind = \seed%8 ->
+  effect.bind (constructEffect "pure-action" seed%8)
+    \value%9 -> effect.pure (mark "pure-body" { value: value%9 })

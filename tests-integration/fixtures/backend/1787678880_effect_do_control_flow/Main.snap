@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+branched :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+patternLet :: Prim.String -> Effect.Effect Prim.String
+
+Types

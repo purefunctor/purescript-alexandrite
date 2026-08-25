@@ -225,6 +225,10 @@ fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
         ExpressionKind::Effect { effect } => match effect {
             EffectExpression::Pure(value) => vec![*value],
             EffectExpression::Bind { action, body, .. } => vec![*action, *body],
+            EffectExpression::Map { function, action } => vec![*function, *action],
+            EffectExpression::Apply { function_action, argument_action } => {
+                vec![*function_action, *argument_action]
+            }
         },
     }
 }
