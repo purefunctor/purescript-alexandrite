@@ -29,7 +29,6 @@ export function addCaptured(amount) {
 export function nestedJoin(outer) {
   return inner => {
     if (outer) {
-      const captured = foreignValue;
       let $result;
       if (inner) {
         $result = 1 | 0;
@@ -37,7 +36,7 @@ export function nestedJoin(outer) {
         $result = 2 | 0;
       }
       const result = $result;
-      return addInt(captured)(result);
+      return addInt(foreignValue)(result);
     } else {
       return 0 | 0;
     }

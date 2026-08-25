@@ -1,11 +1,10 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export constructor Pair/2
 
 @export identity = \value%0 -> value%0
 
-@export use = let
-  alias%1 = identity
-in Pair (alias%1 42) (alias%1 "x")
+@export use = Pair (identity 42) (identity "x")

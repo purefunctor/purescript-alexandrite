@@ -161,12 +161,12 @@ pub enum Literal {
     Number(SmolStr),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expression {
     pub kind: ExpressionKind,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpressionKind {
     Literal { literal: Literal },
     Array { elements: Arc<[ExpressionId]> },
@@ -205,44 +205,44 @@ pub enum BinaryOperator {
     IntegerMultiply,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EffectExpression {
     Pure(ExpressionId),
     Bind { action: ExpressionId, parameter: Parameter, body: ExpressionId },
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordField {
     pub field: Field,
     pub expression: ExpressionId,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordUpdate {
     Leaf { field: Field, expression: ExpressionId },
     Branch { field: Field, updates: Arc<[RecordUpdate]> },
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Binding {
     pub parameter: Parameter,
     pub expression: ExpressionId,
     pub source_order: usize,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CaseAlternative {
     pub patterns: Arc<[PatternId]>,
     pub expression: ExpressionId,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuardedAlternative {
     pub guards: Arc<[Guard]>,
     pub expression: ExpressionId,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Guard {
     Boolean(ExpressionId),
     Pattern { expression: ExpressionId, pattern: PatternId },

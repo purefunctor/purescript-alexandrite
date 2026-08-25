@@ -4,7 +4,4 @@ export function identity(value) {
   return value;
 }
 
-export const use = (() => {
-  const alias = identity;
-  return Pair(alias(42 | 0))(alias("x"));
-})();
+export const use = Pair(identity(42 | 0))(identity("x"));

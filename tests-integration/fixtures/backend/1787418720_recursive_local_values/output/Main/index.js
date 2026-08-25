@@ -58,18 +58,13 @@ export function caseRecursive(condition) {
 }
 
 export function letRecursive(condition) {
-  let $lazy_go;
-  $lazy_go = $runtime.binding("go", () => {
-    const wrapped = current => {
-      if (current) {
-        return $lazy_go()(false);
-      } else {
-        return 40 | 0;
-      }
-    };
-    return wrapped;
-  });
-  const go = $lazy_go();
+  const go = current => {
+    if (current) {
+      return go(false);
+    } else {
+      return 40 | 0;
+    }
+  };
   return go(condition);
 }
 

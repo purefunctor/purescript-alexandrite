@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign observe
@@ -10,14 +11,16 @@ expression: report
 
 @export integerAdd = \left%1 right%2 -> integer.add left%1 right%2
 
-@export integerSubtract = \left%3 right%4 -> integer.subtract left%3 right%4
+@export inlineIntegerAdd = \left%4 right%5 -> integer.add left%4 right%5
 
-@export integerMultiply = \left%5 right%6 -> integer.multiply left%5 right%6
+@export integerSubtract = \left%6 right%7 -> integer.subtract left%6 right%7
 
-@export integerNegate = \value%7 -> integer.negate value%7
+@export integerMultiply = \left%8 right%9 -> integer.multiply left%8 right%9
 
-@export integerAddOrder = \$boolean%8@(_) -> integer.add (observe "left" 20) (observe "right" 22)
+@export integerNegate = \value%10 -> integer.negate value%10
+
+@export integerAddOrder = \$boolean%11@(_) -> integer.add (observe "left" 20) (observe "right" 22)
 
 @export partiallyAppliedAdd = add semiringInt 1
 
-@export lookalikeAdd = \left%9 right%10 -> add semiringInt left%9 right%10
+@export lookalikeAdd = \left%12 right%13 -> add semiringInt left%12 right%13

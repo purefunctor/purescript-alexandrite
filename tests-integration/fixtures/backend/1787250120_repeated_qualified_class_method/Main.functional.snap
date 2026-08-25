@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export compareTwice = \eqADict%0 ->
@@ -88,9 +89,10 @@ expression: report
     else false
 
 @export whereIsolation = \left%54 right%55 ->
-  let
-    helper%53 = \helperLeft%56 helperRight%57 -> eq (eqArray eqInt) helperLeft%56 helperRight%57
-  in if helper%53 left%54 right%55 then eq (eqArray eqInt) left%54 right%55 else false
+  if (\helperLeft%56 helperRight%57 -> eq (eqArray eqInt) helperLeft%56 helperRight%57) left%54
+    right%55
+    then eq (eqArray eqInt) left%54 right%55
+    else false
 
 @export equationScope = \$boolean%58 $array%59 $array%60 ->
   let
