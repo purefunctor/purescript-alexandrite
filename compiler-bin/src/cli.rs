@@ -106,6 +106,10 @@ pub struct CompileOptions {
     #[arg(long)]
     pub json_errors: bool,
 
+    /// Maximum number of human-readable diagnostics to print.
+    #[arg(long, value_name("COUNT"))]
+    pub diagnostic_limit: Option<usize>,
+
     /// PureScript source paths or glob patterns.
     #[arg(value_name("INPUT"), required = true)]
     pub inputs: Vec<PathBuf>,
@@ -243,6 +247,8 @@ mod tests {
             "--codegen",
             "corefn,docs,js,sourcemaps",
             "--json-errors",
+            "--diagnostic-limit",
+            "20",
             "src/**/*.purs",
             ".spago/p/prelude-6.0.2/src/**/*.purs",
         ]);
@@ -250,6 +256,7 @@ mod tests {
         assert_eq!(options.output, current_directory_path("output"));
         assert_eq!(options.codegen.as_deref(), Some("corefn,docs,js,sourcemaps"));
         assert!(options.json_errors);
+        assert_eq!(options.diagnostic_limit, Some(20));
         assert_eq!(
             options.inputs,
             vec![
