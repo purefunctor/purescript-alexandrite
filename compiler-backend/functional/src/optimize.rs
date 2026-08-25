@@ -1,5 +1,6 @@
 //! Simplification of functional trees before backend-specific code generation.
 
+use itertools::Itertools;
 use rustc_hash::FxHashSet;
 
 use crate::tree::{
@@ -215,8 +216,8 @@ fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
             children
         }
         ExpressionKind::Let { bindings, body, .. } => {
-            let mut children =
-                bindings.iter().map(|binding| binding.expression).collect::<Vec<_>>();
+            let binding_expressions = bindings.iter().map(|binding| binding.expression);
+            let mut children = binding_expressions.collect_vec();
             children.push(*body);
             children
         }
