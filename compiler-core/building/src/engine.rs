@@ -1965,9 +1965,7 @@ mod tests {
         let javascript_error = engine.javascript(main).unwrap().unwrap_err();
         assert!(matches!(
             javascript_error,
-            javascript::ModuleError::ControlFlow(ssa::ModuleError::Functional(
-                nbe::ModuleError::Unsupported { .. }
-            ))
+            javascript::ModuleError::Functional(nbe::ModuleError::Unsupported { .. })
         ));
 
         engine.set_content(main, "module Main where\n\nlife = 42");

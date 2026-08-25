@@ -2,90 +2,84 @@ import * as $foreign from "./foreign.js";
 import * as $runtime from "../runtime.js";
 
 export function applicationRecursive(token) {
-  function first$initialize(second) {
-    function first$initialize$closure(second) {
-      return condition => {
-        if (condition) {
-          return second()(false);
-        } else {
-          return 1 | 0;
-        }
-      };
-    }
-    return observe("first")(first$initialize$closure(second));
-  }
-  function second$initialize(first) {
-    function second$initialize$closure(first) {
-      return condition => {
-        if (condition) {
-          return first()(false);
-        } else {
-          return 2 | 0;
-        }
-      };
-    }
-    return observe("second")(second$initialize$closure(first));
-  }
-  let first$lazy;
-  let second$lazy;
-  first$lazy = $runtime.binding("first", () => first$initialize(second$lazy));
-  second$lazy = $runtime.binding("second", () => second$initialize(first$lazy));
-  const first = first$lazy();
-  const second = second$lazy();
+  let $lazy_first;
+  let $lazy_second;
+  $lazy_first = $runtime.binding("first", () => {
+    const $function = observe("first");
+    const $closure = condition => {
+      if (condition) {
+        return $lazy_second()(false);
+      } else {
+        return 1 | 0;
+      }
+    };
+    const $argument = $closure;
+    const $call = $function($argument);
+    return $call;
+  });
+  $lazy_second = $runtime.binding("second", () => {
+    const $function$1 = observe("second");
+    const $closure$1 = condition$1 => {
+      if (condition$1) {
+        return $lazy_first()(false);
+      } else {
+        return 2 | 0;
+      }
+    };
+    const $argument$1 = $closure$1;
+    const $call$1 = $function$1($argument$1);
+    return $call$1;
+  });
+  const first = $lazy_first();
+  const second = $lazy_second();
   return { result: first(true), trace: readTrace(token) };
 }
 
 export function caseRecursive(condition) {
-  function go$initialize(condition, go) {
+  let $lazy_go;
+  $lazy_go = $runtime.binding("go", () => {
     if (condition === true) {
-      function go$initialize$closure(go) {
-        return current => {
-          if (current) {
-            return go()(false);
-          } else {
-            return 30 | 0;
-          }
-        };
-      }
-      return go$initialize$closure(go);
-    } else {
-      if (condition === false) {
-        return $boolean => 31 | 0;
-      } else {
-        throw new Error("Pattern match failure");
-      }
+      const $closure = current => {
+        if (current) {
+          return $lazy_go()(false);
+        } else {
+          return 30 | 0;
+        }
+      };
+      return $closure;
     }
-  }
-  let go$lazy;
-  go$lazy = $runtime.binding("go", () => go$initialize(condition, go$lazy));
-  return go$lazy()(true);
+    if (condition === false) {
+      return $boolean => 31 | 0;
+    }
+    throw new Error("Pattern match failure");
+  });
+  const go = $lazy_go();
+  return go(true);
 }
 
 export function letRecursive(condition) {
-  function go$initialize(go) {
-    function go$initialize$1$closure(go) {
-      return current => {
-        if (current) {
-          return go()(false);
-        } else {
-          return 40 | 0;
-        }
-      };
-    }
-    return go$initialize$1$closure(go);
-  }
-  let go$lazy;
-  go$lazy = $runtime.binding("go", () => go$initialize(go$lazy));
-  return go$lazy()(condition);
+  let $lazy_go;
+  $lazy_go = $runtime.binding("go", () => {
+    const wrapped = current => {
+      if (current) {
+        return $lazy_go()(false);
+      } else {
+        return 40 | 0;
+      }
+    };
+    return wrapped;
+  });
+  const go = $lazy_go();
+  return go(condition);
 }
 
 export function strictCycle($boolean) {
-  function value$initialize(value) {
-    return wrap(value());
-  }
-  let value$lazy;
-  value$lazy = $runtime.binding("value", () => value$initialize(value$lazy));
-  return value$lazy();
+  let $lazy_value;
+  $lazy_value = $runtime.binding("value", () => {
+    return wrap($lazy_value());
+  });
+  const value = $lazy_value();
+  return value;
 }
 
 export function wrap(value) {
@@ -97,26 +91,22 @@ export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
 
 export const recordRecursive = (() => {
-  function first$initialize(second) {
-    return { value: second() };
-  }
-  function second$initialize(first) {
-    function second$initialize$1$closure(first) {
-      return condition => {
-        if (condition) {
-          return (first()).value(false);
-        } else {
-          return 20 | 0;
-        }
-      };
-    }
-    return second$initialize$1$closure(first);
-  }
-  let first$lazy;
-  let second$lazy;
-  first$lazy = $runtime.binding("first", () => first$initialize(second$lazy));
-  second$lazy = $runtime.binding("second", () => second$initialize(first$lazy));
-  const first = first$lazy();
-  const second = second$lazy();
+  let $lazy_first;
+  let $lazy_second;
+  $lazy_first = $runtime.binding("first", () => {
+    return { value: $lazy_second() };
+  });
+  $lazy_second = $runtime.binding("second", () => {
+    const $closure = condition => {
+      if (condition) {
+        return ($lazy_first()).value(false);
+      } else {
+        return 20 | 0;
+      }
+    };
+    return $closure;
+  });
+  const first = $lazy_first();
+  const second = $lazy_second();
   return same(first.value)(second);
 })();

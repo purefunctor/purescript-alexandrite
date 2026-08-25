@@ -2,7 +2,8 @@ import * as Library from "../Library/index.js";
 
 export function unbox($box) {
   if (Array.isArray($box) && $box[0] === "Box") {
-    return $box[1];
+    const value = $box[1];
+    return value;
   } else {
     throw new Error("Pattern match failure");
   }

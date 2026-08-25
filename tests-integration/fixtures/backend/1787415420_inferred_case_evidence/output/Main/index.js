@@ -3,18 +3,14 @@ export function empty(dictionary) {
 }
 
 export function chooseEmpty(emptyCollectionDict) {
-  function chooseEmpty$closure(emptyCollectionDict) {
-    return section33 => {
-      if (section33 === true) {
-        return empty(emptyCollectionDict);
-      } else {
-        if (section33 === false) {
-          return empty(emptyCollectionDict);
-        } else {
-          throw new Error("Pattern match failure");
-        }
-      }
-    };
-  }
-  return chooseEmpty$closure(emptyCollectionDict);
+  const $closure = section33 => {
+    if (section33 === true) {
+      return empty(emptyCollectionDict);
+    }
+    if (section33 === false) {
+      return empty(emptyCollectionDict);
+    }
+    throw new Error("Pattern match failure");
+  };
+  return $closure;
 }

@@ -41,12 +41,9 @@ export function inlineCapturedClosure(captured) {
 }
 
 export function keepMultiUseClosure(captured) {
-  function keepMultiUseClosure$closure(captured) {
-    return $boolean => {
-      return captured;
-    };
-  }
-  const closure = keepMultiUseClosure$closure(captured);
+  const closure = $boolean => {
+    return captured;
+  };
   return { first: closure, second: closure };
 }
 
@@ -69,24 +66,25 @@ export function inlineOrderedCalls(first) {
 
 export function keepReorderedCalls(first) {
   return second => {
-    const call = first(true);
-    return { first: second(false), second: call };
+    const firstResult = first(true);
+    const secondResult = second(false);
+    return { first: secondResult, second: firstResult };
   };
 }
 
 export function keepMultiUseCall($function) {
   return value => {
-    const call = $function(value);
-    return { first: call, second: call };
+    const result = $function(value);
+    return { first: result, second: result };
   };
 }
 
 export function keepCallBeforeBranch(condition) {
   return $function => {
     return value => {
-      const call = $function(value);
+      const result = $function(value);
       if (condition) {
-        return call;
+        return result;
       } else {
         return value;
       }
@@ -96,11 +94,10 @@ export function keepCallBeforeBranch(condition) {
 
 export function keepTestCall($function) {
   return value => {
-    const call = $function(value);
-    if (Array.isArray(call) && call.length === 0) {
+    const $scrutinee = $function(value);
+    if (Array.isArray($scrutinee) && $scrutinee.length === 0) {
       return true;
-    } else {
-      return false;
     }
+    return false;
   };
 }

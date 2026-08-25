@@ -10,14 +10,8 @@ export function lessThanOrEqual(dictionary) {
   return dictionary.lessThanOrEqual;
 }
 
-export const eqInt = (() => {
-  return { eq: $int => $int$1 => true };
-})();
+export const eqInt = { eq: $int => $int$1 => true };
 
-export const eqBoolean = (() => {
-  return { eq: $boolean => $boolean$1 => true };
-})();
+export const eqBoolean = { eq: $boolean => $boolean$1 => true };
 
-export const orderedInt = (() => {
-  return { Eq0: () => eqInt, lessThanOrEqual: $int => $int$1 => true };
-})();
+export const orderedInt = { Eq0: () => eqInt, lessThanOrEqual: $int => $int$1 => true };

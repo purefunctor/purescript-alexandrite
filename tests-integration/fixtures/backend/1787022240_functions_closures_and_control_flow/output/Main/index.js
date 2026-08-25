@@ -23,9 +23,8 @@ export function choose(condition) {
 export function literalCase(value) {
   if (value === (0 | 0)) {
     return "zero";
-  } else {
-    return "other";
   }
+  return "other";
 }
 
 export const partial = choose(true)(42 | 0);

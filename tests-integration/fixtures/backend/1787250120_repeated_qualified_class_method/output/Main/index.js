@@ -1,18 +1,16 @@
 import * as Data_Eq from "../Data.Eq/index.js";
 
 export function compareTwice(eqADict) {
-  function compareTwice$closure(eqADict) {
-    return left => {
-      return right => {
-        if (Data_Eq.eq(eqADict)(left)(right)) {
-          return Data_Eq.eq(eqADict)(right)(left);
-        } else {
-          return false;
-        }
-      };
+  const $closure = left => {
+    return right => {
+      if (Data_Eq.eq(eqADict)(left)(right)) {
+        return Data_Eq.eq(eqADict)(right)(left);
+      } else {
+        return false;
+      }
     };
-  }
-  return compareTwice$closure(eqADict);
+  };
+  return $closure;
 }
 
 export function compareIntsTwice(left) {
@@ -27,9 +25,9 @@ export function compareIntsTwice(left) {
 
 export function compareArraysTwice(left) {
   return right => {
-    const call = Data_Eq.eqArray(Data_Eq.eqInt);
-    if (Data_Eq.eq(call)(left)(right)) {
-      return Data_Eq.eq(call)(right)(left);
+    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
+    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
+      return Data_Eq.eq(eqArrayDict)(right)(left);
     } else {
       return false;
     }
@@ -43,31 +41,29 @@ export function compareArraysOnce(left) {
 }
 
 export function compareGenericArraysTwice(eqADict) {
-  function compareGenericArraysTwice$closure(eqADict) {
-    return left => {
-      return right => {
-        const call = Data_Eq.eqArray(eqADict);
-        if (Data_Eq.eq(call)(left)(right)) {
-          return Data_Eq.eq(call)(right)(left);
-        } else {
-          return false;
-        }
-      };
+  const $closure = left => {
+    return right => {
+      const eqArrayDict = Data_Eq.eqArray(eqADict);
+      if (Data_Eq.eq(eqArrayDict)(left)(right)) {
+        return Data_Eq.eq(eqArrayDict)(right)(left);
+      } else {
+        return false;
+      }
     };
-  }
-  return compareGenericArraysTwice$closure(eqADict);
+  };
+  return $closure;
 }
 
 export function compareNestedArraysTwice(left) {
   return right => {
     return nestedLeft => {
       return nestedRight => {
-        const call = Data_Eq.eqArray(Data_Eq.eqInt);
-        const call$1 = Data_Eq.eqArray(call);
-        if (Data_Eq.eq(call$1)(nestedLeft)(nestedRight)) {
-          return Data_Eq.eq(call$1)(nestedRight)(nestedLeft);
+        const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
+        const eqArrayDict$1 = Data_Eq.eqArray(eqArrayDict);
+        if (Data_Eq.eq(eqArrayDict$1)(nestedLeft)(nestedRight)) {
+          return Data_Eq.eq(eqArrayDict$1)(nestedRight)(nestedLeft);
         } else {
-          return Data_Eq.eq(call)(left)(right);
+          return Data_Eq.eq(eqArrayDict)(left)(right);
         }
       };
     };
@@ -76,32 +72,26 @@ export function compareNestedArraysTwice(left) {
 
 export function distinctGivens(eqADict) {
   return eqBDict => {
-    function distinctGivens$closure(eqADict, eqBDict) {
-      return leftA => {
-        return rightA => {
-          return leftB => {
-            return rightB => {
-              function if$join$1(result$1) {
-                return result$1;
-              }
-
-              const call = Data_Eq.eqArray(eqADict);
-              const call$1 = Data_Eq.eqArray(eqBDict);
-              if (Data_Eq.eq(call)(leftA)(rightA)) {
-                return Data_Eq.eq(call)(rightA)(leftA);
+    const $closure = leftA => {
+      return rightA => {
+        return leftB => {
+          return rightB => {
+            const eqArrayDict = Data_Eq.eqArray(eqADict);
+            const eqArrayDict$1 = Data_Eq.eqArray(eqBDict);
+            if (Data_Eq.eq(eqArrayDict)(leftA)(rightA)) {
+              return Data_Eq.eq(eqArrayDict)(rightA)(leftA);
+            } else {
+              if (Data_Eq.eq(eqArrayDict$1)(leftB)(rightB)) {
+                return Data_Eq.eq(eqArrayDict$1)(rightB)(leftB);
               } else {
-                if (Data_Eq.eq(call$1)(leftB)(rightB)) {
-                  return if$join$1(Data_Eq.eq(call$1)(rightB)(leftB));
-                } else {
-                  return if$join$1(false);
-                }
+                return false;
               }
-            };
+            }
           };
         };
       };
-    }
-    return distinctGivens$closure(eqADict, eqBDict);
+    };
+    return $closure;
   };
 }
 
@@ -109,19 +99,15 @@ export function distinctSubgoals(leftInt) {
   return rightInt => {
     return leftBoolean => {
       return rightBoolean => {
-        function if$join$1(result$1) {
-          return result$1;
-        }
-
-        const call = Data_Eq.eqArray(Data_Eq.eqInt);
-        const call$1 = Data_Eq.eqArray(Data_Eq.eqBoolean);
-        if (Data_Eq.eq(call)(leftInt)(rightInt)) {
-          return Data_Eq.eq(call)(rightInt)(leftInt);
+        const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
+        const eqArrayDict$1 = Data_Eq.eqArray(Data_Eq.eqBoolean);
+        if (Data_Eq.eq(eqArrayDict)(leftInt)(rightInt)) {
+          return Data_Eq.eq(eqArrayDict)(rightInt)(leftInt);
         } else {
-          if (Data_Eq.eq(call$1)(leftBoolean)(rightBoolean)) {
-            return if$join$1(Data_Eq.eq(call$1)(rightBoolean)(leftBoolean));
+          if (Data_Eq.eq(eqArrayDict$1)(leftBoolean)(rightBoolean)) {
+            return Data_Eq.eq(eqArrayDict$1)(rightBoolean)(leftBoolean);
           } else {
-            return if$join$1(false);
+            return false;
           }
         }
       };
@@ -131,16 +117,12 @@ export function distinctSubgoals(leftInt) {
 
 export function compareArraysThrice(left) {
   return right => {
-    function if$join$1(result$1) {
-      return result$1;
-    }
-
-    const call = Data_Eq.eqArray(Data_Eq.eqInt);
-    if (Data_Eq.eq(call)(left)(right)) {
-      if (Data_Eq.eq(call)(right)(left)) {
-        return if$join$1(Data_Eq.eq(call)(left)(right));
+    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
+    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
+      if (Data_Eq.eq(eqArrayDict)(right)(left)) {
+        return Data_Eq.eq(eqArrayDict)(left)(right);
       } else {
-        return if$join$1(false);
+        return false;
       }
     } else {
       return false;
@@ -150,9 +132,9 @@ export function compareArraysThrice(left) {
 
 export function compareNestedArraysWhole(left) {
   return right => {
-    const call$1 = Data_Eq.eqArray(Data_Eq.eqArray(Data_Eq.eqInt));
-    if (Data_Eq.eq(call$1)(left)(right)) {
-      return Data_Eq.eq(call$1)(right)(left);
+    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqArray(Data_Eq.eqInt));
+    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
+      return Data_Eq.eq(eqArrayDict)(right)(left);
     } else {
       return false;
     }
@@ -160,51 +142,53 @@ export function compareNestedArraysWhole(left) {
 }
 
 export function compareSuperclassArraysTwice(orderedADict) {
-  function compareSuperclassArraysTwice$closure(orderedADict) {
-    return left => {
-      return right => {
-        const call$1 = Data_Eq.eqArray(orderedADict.Eq0());
-        if (Data_Eq.eq(call$1)(left)(right)) {
-          return Data_Eq.eq(call$1)(right)(left);
-        } else {
-          return false;
-        }
-      };
+  const $closure = left => {
+    return right => {
+      const eqArrayDict = Data_Eq.eqArray(orderedADict.Eq0());
+      if (Data_Eq.eq(eqArrayDict)(left)(right)) {
+        return Data_Eq.eq(eqArrayDict)(right)(left);
+      } else {
+        return false;
+      }
     };
-  }
-  return compareSuperclassArraysTwice$closure(orderedADict);
+  };
+  return $closure;
 }
 
 export function compareSuperclassTwice(orderedADict) {
-  function compareSuperclassTwice$closure(orderedADict) {
-    return left => {
-      return right => {
-        const call = orderedADict.Eq0();
-        if (Data_Eq.eq(call)(left)(right)) {
-          return Data_Eq.eq(call)(right)(left);
-        } else {
-          return false;
-        }
-      };
+  const $closure = left => {
+    return right => {
+      const Eq0Dict = orderedADict.Eq0();
+      if (Data_Eq.eq(Eq0Dict)(left)(right)) {
+        return Data_Eq.eq(Eq0Dict)(right)(left);
+      } else {
+        return false;
+      }
     };
-  }
-  return compareSuperclassTwice$closure(orderedADict);
+  };
+  return $closure;
 }
 
 export function lambdaScope(left) {
   return right => {
     if (Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right)) {
-      function lambdaScope$closure(lambdaLeft) {
+      const $closure = lambdaLeft => {
         return lambdaRight => {
-          const call = Data_Eq.eqArray(Data_Eq.eqInt);
-          if (Data_Eq.eq(call)(lambdaLeft)(lambdaRight)) {
-            return Data_Eq.eq(call)(lambdaRight)(lambdaLeft);
+          const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
+          if (Data_Eq.eq(eqArrayDict)(lambdaLeft)(lambdaRight)) {
+            return Data_Eq.eq(eqArrayDict)(lambdaRight)(lambdaLeft);
           } else {
             return false;
           }
         };
-      }
-      return lambdaScope$closure(left)(right);
+      };
+      const $function = $closure;
+      const $argument = left;
+      const $call = $function($argument);
+      const $function$1 = $call;
+      const $argument$1 = right;
+      const $call$1 = $function$1($argument$1);
+      return $call$1;
     } else {
       return false;
     }
@@ -213,9 +197,12 @@ export function lambdaScope(left) {
 
 export function whereIsolation(left) {
   return right => {
-    if ((helperLeft => helperRight => Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(helperLeft)(
-      helperRight
-    ))(left)(right)) {
+    const helper = helperLeft => {
+      return helperRight => {
+        return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(helperLeft)(helperRight);
+      };
+    };
+    if (helper(left)(right)) {
       return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right);
     } else {
       return false;
@@ -226,16 +213,18 @@ export function whereIsolation(left) {
 export function equationScope($boolean) {
   return $array => {
     return $array$1 => {
-      const call = Data_Eq.eqArray(Data_Eq.eqInt);
+      const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
       if ($boolean === true) {
-        return Data_Eq.eq(call)($array)($array$1);
-      } else {
-        if ($boolean === false) {
-          return Data_Eq.eq(call)($array$1)($array);
-        } else {
-          throw new Error("Pattern match failure");
-        }
+        const left = $array;
+        const right = $array$1;
+        return Data_Eq.eq(eqArrayDict)(left)(right);
       }
+      if ($boolean === false) {
+        const left$1 = $array;
+        const right$1 = $array$1;
+        return Data_Eq.eq(eqArrayDict)(right$1)(left$1);
+      }
+      throw new Error("Pattern match failure");
     };
   };
 }

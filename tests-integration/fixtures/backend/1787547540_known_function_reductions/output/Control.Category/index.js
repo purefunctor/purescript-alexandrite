@@ -2,6 +2,4 @@ export function identity(dictionary) {
   return dictionary.identity;
 }
 
-export const categoryFn = (() => {
-  return { identity: value => value };
-})();
+export const categoryFn = { identity: value => value };

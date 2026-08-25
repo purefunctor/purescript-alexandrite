@@ -10,5 +10,5 @@ itertools = "0.15.0"
 la-arena = "0.3.1"
 pretty = "0.12"
 rustc-hash = "2.1.3"
-ssa = { version = "0.1.0", path = "../ssa" }
+nbe = { version = "0.1.0", path = "../nbe" }
 thiserror = "2.0.20"

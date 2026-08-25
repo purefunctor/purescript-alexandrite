@@ -1,6 +1,6 @@
 use rustc_hash::FxHashSet;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(super) struct NameAllocator {
     names: FxHashSet<String>,
 }

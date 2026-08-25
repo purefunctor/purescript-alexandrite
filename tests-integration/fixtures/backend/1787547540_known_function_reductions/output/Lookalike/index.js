@@ -12,6 +12,4 @@ export function unsafeCoerce(value) {
   return value;
 }
 
-export const categoryFn = (() => {
-  return { identity: value => value };
-})();
+export const categoryFn = { identity: value => value };

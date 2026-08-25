@@ -28,17 +28,16 @@ export function addCaptured(amount) {
 
 export function nestedJoin(outer) {
   return inner => {
-    function if$join$1(result$1, foreignValue$1) {
-      return addInt(foreignValue$1)(result$1);
-    }
-
     if (outer) {
-      const foreignValue$1 = foreignValue;
+      const captured = foreignValue;
+      let $result;
       if (inner) {
-        return if$join$1(1 | 0, foreignValue$1);
+        $result = 1 | 0;
       } else {
-        return if$join$1(2 | 0, foreignValue$1);
+        $result = 2 | 0;
       }
+      const result = $result;
+      return addInt(captured)(result);
     } else {
       return 0 | 0;
     }
@@ -71,34 +70,24 @@ export function isOdd(value) {
 
 export function capturedMutual(captured) {
   return condition => {
-    function localSecond$function(captured, localFirst) {
-      return $boolean => {
-        if ($boolean === true) {
-          return captured;
-        } else {
-          if ($boolean === false) {
-            return localFirst(true);
-          } else {
-            throw new Error("Pattern match failure");
-          }
-        }
-      };
-    }
-    function localFirst$function(captured, localSecond) {
-      return $boolean => {
-        if ($boolean === true) {
-          return captured;
-        } else {
-          if ($boolean === false) {
-            return localSecond(true);
-          } else {
-            throw new Error("Pattern match failure");
-          }
-        }
-      };
-    }
-    const localSecond = $boolean => localSecond$function(captured, localFirst)($boolean);
-    const localFirst = $boolean => localFirst$function(captured, localSecond)($boolean);
+    const localSecond = $boolean => {
+      if ($boolean === true) {
+        return captured;
+      }
+      if ($boolean === false) {
+        return localFirst(true);
+      }
+      throw new Error("Pattern match failure");
+    };
+    const localFirst = $boolean$1 => {
+      if ($boolean$1 === true) {
+        return captured;
+      }
+      if ($boolean$1 === false) {
+        return localSecond(true);
+      }
+      throw new Error("Pattern match failure");
+    };
     return localFirst(condition);
   };
 }
@@ -106,21 +95,17 @@ export function capturedMutual(captured) {
 export function first(choice) {
   if (Array.isArray(choice) && choice[0] === "None") {
     return 0 | 0;
-  } else {
-    if (Array.isArray(choice) && choice[0] === "Pair") {
-      const left = choice[1];
-      const argument = choice[2];
-      return left;
-    } else {
-      throw new Error("Pattern match failure");
-    }
   }
+  if (Array.isArray(choice) && choice[0] === "Pair") {
+    const left = choice[1];
+    return left;
+  }
+  throw new Error("Pattern match failure");
 }
 
 export function partialPattern($choice) {
   if (Array.isArray($choice) && $choice[0] === "Pair") {
     const left = $choice[1];
-    const argument = $choice[2];
     return left;
   } else {
     throw new Error("Pattern match failure");
@@ -129,7 +114,8 @@ export function partialPattern($choice) {
 
 export function unwrapWrapped($wrapped) {
   if (Array.isArray($wrapped) && $wrapped[0] === "Wrapped") {
-    return $wrapped[1];
+    const value = $wrapped[1];
+    return value;
   } else {
     throw new Error("Pattern match failure");
   }
@@ -162,7 +148,11 @@ export const model = {
 };
 
 export const updated = (() => {
-  return { ...model, count: 1 | 0, nested: { ...model.nested, enabled: false } };
+  const $record = model;
+  const $field = 1 | 0;
+  const $field$1 = false;
+  const $update = { ...$record, count: $field, nested: { ...$record.nested, enabled: $field$1 } };
+  return $update;
 })();
 
 export const curried = apply(addCaptured(2 | 0))(40 | 0);

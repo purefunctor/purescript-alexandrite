@@ -17,112 +17,77 @@ export function roundTrip(value) {
 }
 
 const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstructors", () => {
-  function genericVoidNoConstructors$initialize$closure(value) {
+  const $closure = value => {
     return Data_Generic_Rep.to($lazy_genericVoidNoConstructors())(value);
-  }
-  function genericVoidNoConstructors$initialize$closure$1(value) {
-    return Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value);
-  }
-  return {
-    to: genericVoidNoConstructors$initialize$closure,
-    from: genericVoidNoConstructors$initialize$closure$1
   };
+  const $field = $closure;
+  const $closure$1 = value$1 => {
+    return Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value$1);
+  };
+  const $field$1 = $closure$1;
+  const $record = { to: $field, from: $field$1 };
+  return $record;
 });
 
-export const newtypeTypeIdentifierInt = (() => {
-  return { Coercible0: () => ({}) };
-})();
+export const newtypeTypeIdentifierInt = { Coercible0: () => ({}) };
 
 export const wrapped = 42 | 0;
 
 export const unwrapped = Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
 
 export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = (() => {
-  function genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure(representation) {
-    function case$1(representation) {
-      if (Array.isArray(representation) && representation[0] === "Inr") {
-        const argument$2 = representation[1];
-        if (Array.isArray(argument$2) && argument$2[0] === "Inl") {
-          const argument$3 = argument$2[1];
-          if (Array.isArray(argument$3) && argument$3[0] === "Constructor") {
-            return Single(argument$3[1]);
-          } else {
-            return case$2(representation);
-          }
-        } else {
-          return case$2(representation);
-        }
-      } else {
-        return case$2(representation);
-      }
+  const $closure = representation => {
+    if (Array.isArray(representation) && representation[0] === "Inl" && Array.isArray(
+      representation[1]
+    ) && representation[1][0] === "Constructor" && Array.isArray(
+      representation[1][1]
+    ) && representation[1][1][0] === "NoArguments") {
+      return Empty;
     }
-
-    function case$2(representation) {
-      if (Array.isArray(representation) && representation[0] === "Inr") {
-        const argument$4 = representation[1];
-        if (Array.isArray(argument$4) && argument$4[0] === "Inr") {
-          const argument$5 = argument$4[1];
-          if (Array.isArray(argument$5) && argument$5[0] === "Constructor") {
-            const argument$6 = argument$5[1];
-            if (Array.isArray(argument$6) && argument$6[0] === "Product") {
-              const field0$1 = argument$6[1];
-              const field1 = argument$6[2];
-              return Pair(field0$1)(field1);
-            } else {
-              throw new Error("Pattern match failure");
-            }
-          } else {
-            throw new Error("Pattern match failure");
-          }
-        } else {
-          throw new Error("Pattern match failure");
-        }
-      } else {
-        throw new Error("Pattern match failure");
-      }
+    if (Array.isArray(representation) && representation[0] === "Inr" && Array.isArray(
+      representation[1]
+    ) && representation[1][0] === "Inl" && Array.isArray(
+      representation[1][1]
+    ) && representation[1][1][0] === "Constructor") {
+      const field0 = representation[1][1][1];
+      return Single(field0);
     }
-
-    if (Array.isArray(representation) && representation[0] === "Inl") {
-      const argument = representation[1];
-      if (Array.isArray(argument) && argument[0] === "Constructor") {
-        const argument$1 = argument[1];
-        if (Array.isArray(argument$1) && argument$1[0] === "NoArguments") {
-          return Empty;
-        } else {
-          return case$1(representation);
-        }
-      } else {
-        return case$1(representation);
-      }
-    } else {
-      return case$1(representation);
+    if (Array.isArray(representation) && representation[0] === "Inr" && Array.isArray(
+      representation[1]
+    ) && representation[1][0] === "Inr" && Array.isArray(
+      representation[1][1]
+    ) && representation[1][1][0] === "Constructor" && Array.isArray(
+      representation[1][1][1]
+    ) && representation[1][1][1][0] === "Product") {
+      const field0$1 = representation[1][1][1][1];
+      const field1 = representation[1][1][1][2];
+      return Pair(field0$1)(field1);
     }
-  }
-  function genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1(value) {
+    throw new Error("Pattern match failure");
+  };
+  const $field = $closure;
+  const $closure$1 = value => {
     if (Array.isArray(value) && value[0] === "Empty") {
       return Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(Data_Generic_Rep.NoArguments));
-    } else {
-      if (Array.isArray(value) && value[0] === "Single") {
-        return Data_Generic_Rep.Inr(Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(value[1])));
-      } else {
-        if (Array.isArray(value) && value[0] === "Pair") {
-          const field0$1 = value[1];
-          const field1 = value[2];
-          return Data_Generic_Rep.Inr(
-            Data_Generic_Rep.Inr(
-              Data_Generic_Rep.Constructor(Data_Generic_Rep.Product(field0$1)(field1))
-            )
-          );
-        } else {
-          throw new Error("Pattern match failure");
-        }
-      }
     }
-  }
-  return {
-    to: genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure,
-    from: genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt$initialize$closure$1
+    if (Array.isArray(value) && value[0] === "Single") {
+      const field0$2 = value[1];
+      return Data_Generic_Rep.Inr(Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(field0$2)));
+    }
+    if (Array.isArray(value) && value[0] === "Pair") {
+      const field0$3 = value[1];
+      const field1$1 = value[2];
+      return Data_Generic_Rep.Inr(
+        Data_Generic_Rep.Inr(
+          Data_Generic_Rep.Constructor(Data_Generic_Rep.Product(field0$3)(field1$1))
+        )
+      );
+    }
+    throw new Error("Pattern match failure");
   };
+  const $field$1 = $closure$1;
+  const $record = { to: $field, from: $field$1 };
+  return $record;
 })();
 
 export const emptyRoundTrip = roundTrip(Empty);

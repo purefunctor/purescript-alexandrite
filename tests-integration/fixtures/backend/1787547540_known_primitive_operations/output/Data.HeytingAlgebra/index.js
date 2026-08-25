@@ -3,12 +3,14 @@ export function not(dictionary) {
 }
 
 export const heytingAlgebraBoolean = (() => {
-  function heytingAlgebraBoolean$initialize$closure(value) {
+  const $closure = value => {
     if (value) {
       return false;
     } else {
       return true;
     }
-  }
-  return { not: heytingAlgebraBoolean$initialize$closure };
+  };
+  const $field = $closure;
+  const $record = { not: $field };
+  return $record;
 })();

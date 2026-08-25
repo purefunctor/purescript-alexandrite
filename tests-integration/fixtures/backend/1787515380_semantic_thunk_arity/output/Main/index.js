@@ -22,6 +22,4 @@ export function useSuperclass(childADict) {
 
 export const ordinaryUnitCall = ordinaryUnit(Unit);
 
-export const parentInt = (() => {
-  return { parent: value => value };
-})();
+export const parentInt = { parent: value => value };

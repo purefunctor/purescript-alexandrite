@@ -5,6 +5,6 @@ export function identity(value) {
 }
 
 export const use = (() => {
-  const identity$1 = identity;
-  return Pair(identity$1(42 | 0))(identity$1("x"));
+  const alias = identity;
+  return Pair(alias(42 | 0))(alias("x"));
 })();

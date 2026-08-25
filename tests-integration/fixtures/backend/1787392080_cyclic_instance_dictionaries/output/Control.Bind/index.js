@@ -6,6 +6,4 @@ export function discard(dictionary) {
   return dictionary.discard;
 }
 
-export const discardUnit = (() => {
-  return { discard: bindFDict => bind(bindFDict) };
-})();
+export const discardUnit = { discard: bindFDict => bind(bindFDict) };

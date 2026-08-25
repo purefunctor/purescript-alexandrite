@@ -3,13 +3,19 @@ export function name(dictionary) {
 }
 
 export function use(namedADict) {
-  return value => name(namedADict)(value);
+  const $closure = value => {
+    const alias = name;
+    return alias(namedADict)(value);
+  };
+  return $closure;
 }
 
 export function useLet(namedADict) {
-  return value => name(namedADict)(value);
+  const $closure = value => {
+    const alias = name;
+    return alias(namedADict)(value);
+  };
+  return $closure;
 }
 
-export const namedString = (() => {
-  return { name: value => value };
-})();
+export const namedString = { name: value => value };

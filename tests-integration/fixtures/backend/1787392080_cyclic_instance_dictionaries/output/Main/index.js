@@ -13,23 +13,11 @@ export function liftApplicative(applicativeFunctorDict) {
 }
 
 export function applyMonad(monadMonadDict) {
-  function applyMonad$closure(monadMonadDict) {
-    return functions => {
-      return values => {
-        function applyMonad$closure$closure(monadMonadDict, values) {
-          return $function => {
-            return Control_Bind.bind(monadMonadDict.Bind1())(values)(
-              value => Control_Applicative.pure(monadMonadDict.Applicative0())($function(value))
-            );
-          };
-        }
-        return Control_Bind.bind(monadMonadDict.Bind1())(functions)(
-          applyMonad$closure$closure(monadMonadDict, values)
-        );
-      };
-    };
-  }
-  return applyMonad$closure(monadMonadDict);
+  return functions => values => Control_Bind.bind(monadMonadDict.Bind1())(functions)(
+    $function => Control_Bind.bind(monadMonadDict.Bind1())(values)(
+      value => Control_Applicative.pure(monadMonadDict.Applicative0())($function(value))
+    )
+  );
 }
 
 const $lazy_functorBox = $runtime.binding("functorBox", () => {
@@ -45,16 +33,20 @@ const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
 });
 
 const $lazy_bindBox = $runtime.binding("bindBox", () => {
-  function bindBox$initialize$closure$1($box) {
-    return continuation => {
-      if (Array.isArray($box) && $box[0] === "Box") {
-        return continuation($box[1]);
-      } else {
-        throw new Error("Pattern match failure");
-      }
-    };
-  }
-  return { Apply0: () => $lazy_applyBox(), bind: bindBox$initialize$closure$1 };
+  const $field = () => $lazy_applyBox();
+  const $closure = $box => {
+    if (Array.isArray($box) && $box[0] === "Box") {
+      const value = $box[1];
+      return continuation => {
+        return continuation(value);
+      };
+    } else {
+      throw new Error("Pattern match failure");
+    }
+  };
+  const $field$1 = $closure;
+  const $record = { Apply0: $field, bind: $field$1 };
+  return $record;
 });
 
 const $lazy_monadBox = $runtime.binding("monadBox", () => {
@@ -72,10 +64,10 @@ export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
 
 export const result = (() => {
-  const call$3 = Data_Functor.map($lazy_functorBox())(value => value)(Box(42 | 0));
-  if (Array.isArray(call$3) && call$3[0] === "Box") {
-    return call$3[1];
-  } else {
-    throw new Error("Pattern match failure");
+  const $scrutinee = Data_Functor.map($lazy_functorBox())(value => value)(Box(42 | 0));
+  if (Array.isArray($scrutinee) && $scrutinee[0] === "Box") {
+    const value$1 = $scrutinee[1];
+    return value$1;
   }
+  throw new Error("Pattern match failure");
 })();

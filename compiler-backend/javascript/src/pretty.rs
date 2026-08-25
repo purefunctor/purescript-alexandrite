@@ -327,7 +327,34 @@ impl<'a> Writer<'a> {
         render_then(tree, &mut then_writer)?;
         let mut else_writer = Writer::new(self.arena);
         render_else(tree, &mut else_writer)?;
+        self.push_if_else(tree, condition, then_writer, else_writer);
+        Ok(())
+    }
 
+    pub(crate) fn if_else_with_state<E, S>(
+        &mut self,
+        tree: &mut Tree,
+        condition: ExpressionId,
+        state: &mut S,
+        render_then: impl FnOnce(&mut Tree, &mut Writer<'a>, &mut S) -> Result<(), E>,
+        render_else: impl FnOnce(&mut Tree, &mut Writer<'a>, &mut S) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut then_writer = Writer::new(self.arena);
+        render_then(tree, &mut then_writer, state)?;
+        let mut else_writer = Writer::new(self.arena);
+        render_else(tree, &mut else_writer, state)?;
+
+        self.push_if_else(tree, condition, then_writer, else_writer);
+        Ok(())
+    }
+
+    fn push_if_else(
+        &mut self,
+        tree: &Tree,
+        condition: ExpressionId,
+        then_writer: Writer<'a>,
+        else_writer: Writer<'a>,
+    ) {
         let condition = Printer { arena: self.arena, tree }.expression(condition);
         let then_document = then_writer.document();
         let else_document = else_writer.document();
@@ -343,7 +370,6 @@ impl<'a> Writer<'a> {
             .append(self.arena.hardline())
             .append("}");
         self.push_line(document);
-        Ok(())
     }
 
     pub(crate) fn re_export(&mut self, specifiers: impl IntoIterator<Item = String>, path: &str) {

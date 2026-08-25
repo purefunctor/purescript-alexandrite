@@ -1,3 +1,5 @@
 export function sequence(input) {
-  return input;
+  const first = input;
+  const second = first;
+  return second;
 }

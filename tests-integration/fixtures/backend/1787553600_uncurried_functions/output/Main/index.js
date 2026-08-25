@@ -28,9 +28,7 @@ export const chooseSecond = $foreign["chooseSecond"];
 
 export const directRun = chooseSecond(1 | 0, 42 | 0);
 
-export const directMadeRun = (() => {
-  return ((first, second) => second)(1 | 0, 42 | 0);
-})();
+export const directMadeRun = ((first, second) => second)(1 | 0, 42 | 0);
 
 export const directNestedRun = madeNested(1 | 0, 2 | 0, 42 | 0);
 
@@ -42,8 +40,6 @@ export const partialRun = Data_Function_Uncurried.runFn2(chooseSecond)(1 | 0);
 
 export const indirectMake = Data_Function_Uncurried.mkFn2(chooseSecondCurried);
 
-export const lookalikeMade = (() => {
-  return Lookalike.mkFn2(first => second => second);
-})();
+export const lookalikeMade = Lookalike.mkFn2(first => second => second);
 
 export const lookalikeRun = Lookalike.runFn2(lookalikeMade)(1 | 0)(42 | 0);

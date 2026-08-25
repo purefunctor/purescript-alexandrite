@@ -1421,9 +1421,9 @@ dependencies = [
  "files",
  "itertools 0.15.0",
  "la-arena",
+ "nbe",
  "pretty",
  "rustc-hash",
- "ssa",
  "thiserror",
 ]
 

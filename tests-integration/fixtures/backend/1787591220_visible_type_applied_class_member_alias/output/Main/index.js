@@ -3,5 +3,9 @@ export function name(dictionary) {
 }
 
 export function use(namedBodyDict) {
-  return $body => name(namedBodyDict);
+  const $closure = $body => {
+    const alias = name;
+    return alias(namedBodyDict);
+  };
+  return $closure;
 }
