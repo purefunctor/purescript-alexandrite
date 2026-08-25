@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructST ::
+  forall (region :: Control.Monad.ST.Internal.Region) a.
+    Prim.String -> a -> Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) a
+mark :: forall a. Prim.String -> a -> a
+chained ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.String ->
+    Control.Monad.ST.Internal.ST
+      (region :: Control.Monad.ST.Internal.Region)
+      { first :: Prim.String, second :: { first :: Prim.String } }
+discarded ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.String ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.String
+pureAfterBind ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.String ->
+    Control.Monad.ST.Internal.ST
+      (region :: Control.Monad.ST.Internal.Region)
+      { value :: Prim.String }
+
+Types

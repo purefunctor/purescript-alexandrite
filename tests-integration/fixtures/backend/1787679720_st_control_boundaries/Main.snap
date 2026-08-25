@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructST ::
+  forall (region :: Control.Monad.ST.Internal.Region) a.
+    Prim.String -> a -> Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) a
+mark :: forall a. Prim.String -> a -> a
+branched ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.Boolean ->
+    Prim.String ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.String
+patternLet ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.String ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.String
+genericBind ::
+  forall (m :: Prim.Type -> Prim.Type) a b.
+    Control.Bind.Bind (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) a ->
+    (a -> (m :: Prim.Type -> Prim.Type) b) ->
+    (m :: Prim.Type -> Prim.Type) b
+aliased ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Prim.String ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.String
+deferredST ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.String
+deferredValue :: Prim.String
+
+Types

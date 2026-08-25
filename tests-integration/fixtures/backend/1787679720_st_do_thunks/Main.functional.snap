@@ -1,0 +1,25 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructST
+
+@export foreign mark
+
+@export chained = \seed%0 ->
+  bind bindST (constructST "first" seed%0)
+    (\first%1 ->
+      bind bindST (constructST "second" { first: first%1 })
+        (\second%3 -> constructST "third" { first: first%1, second: second%3 }))
+
+@export discarded = \seed%7 ->
+  discard discardUnit bindST (constructST "discard-first" Unit)
+    (\$unit%5@(_) ->
+      let
+        result%6 = mark "discard-let" seed%7
+      in constructST "discard-second" result%6)
+
+@export pureAfterBind = \seed%8 ->
+  bind bindST (constructST "pure-action" seed%8)
+    (\value%9 -> pure applicativeST (mark "pure-body" { value: value%9 }))
