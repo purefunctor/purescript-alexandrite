@@ -21,26 +21,3 @@ expression: report
 @export pureAfterBind = \seed%8 ->
   effect.bind (constructEffect "pure-action" seed%8)
     \value%9 -> effect.pure (mark "pure-body" { value: value%9 })
-
-@export branched = \choose%13 seed%11 ->
-  effect.bind (constructEffect "branch-action" seed%11)
-    \value%12 -> if choose%13
-      then constructEffect "branch-then" value%12
-      else constructEffect "branch-else" value%12
-
-@export patternLet = \seed%14 ->
-  effect.bind (constructEffect "pattern-action" seed%14)
-    \value%15 -> let
-      { selected: selected%16 } = { selected: value%15 }
-    in constructEffect "pattern-result" selected%16
-
-@export genericBind = \bindMDict%17 -> bind bindMDict%17
-
-@export aliased = \seed%18 ->
-  genericBind bindEffect (constructEffect "alias-first" seed%18)
-    (\value%19 -> constructEffect "alias-second" value%19)
-
-@export deferredEffect = effect.bind (constructEffect "deferred-action" "ignored")
-  \value%20 -> constructEffect "deferred-result" deferredValue
-
-@export deferredValue = mark "deferred-value" "deferred"

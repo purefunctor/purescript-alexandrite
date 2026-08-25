@@ -5,6 +5,7 @@ expression: diagnostics_report
 ---
 Terms
 constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
-timedAdo :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { seed :: Prim.String } }
+branched :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+patternLet :: Prim.String -> Effect.Effect Prim.String
 
 Types

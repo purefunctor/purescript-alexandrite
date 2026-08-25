@@ -9,16 +9,5 @@ mark :: forall a. Prim.String -> a -> a
 chained :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { first :: Prim.String } }
 discarded :: Prim.String -> Effect.Effect Prim.String
 pureAfterBind :: Prim.String -> Effect.Effect { value :: Prim.String }
-branched :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
-patternLet :: Prim.String -> Effect.Effect Prim.String
-genericBind ::
-  forall (m :: Prim.Type -> Prim.Type) a b.
-    Control.Bind.Bind (m :: Prim.Type -> Prim.Type) =>
-    (m :: Prim.Type -> Prim.Type) a ->
-    (a -> (m :: Prim.Type -> Prim.Type) b) ->
-    (m :: Prim.Type -> Prim.Type) b
-aliased :: Prim.String -> Effect.Effect Prim.String
-deferredEffect :: Effect.Effect Prim.String
-deferredValue :: Prim.String
 
 Types

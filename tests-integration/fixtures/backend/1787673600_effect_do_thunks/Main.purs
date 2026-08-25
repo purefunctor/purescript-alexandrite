@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Applicative (pure)
-import Control.Bind (class Bind, bind, discard)
+import Control.Bind (bind, discard)
 import Data.Unit (Unit(..))
 import Effect (Effect)
 
@@ -34,35 +34,3 @@ pureAfterBind seed = do
   let
     result = { value }
   pure (mark "pure-body" result)
-
-branched :: Boolean -> String -> Effect String
-branched choose seed = do
-  value <- constructEffect "branch-action" seed
-  if choose then
-    constructEffect "branch-then" value
-  else
-    constructEffect "branch-else" value
-
-patternLet :: String -> Effect String
-patternLet seed = do
-  value <- constructEffect "pattern-action" seed
-  let
-    { selected } = { selected: value }
-  constructEffect "pattern-result" selected
-
-genericBind :: forall m a b. Bind m => m a -> (a -> m b) -> m b
-genericBind = bind
-
-aliased :: String -> Effect String
-aliased seed =
-  genericBind
-    (constructEffect "alias-first" seed)
-    (\value -> constructEffect "alias-second" value)
-
-deferredEffect :: Effect String
-deferredEffect = do
-  value <- constructEffect "deferred-action" "ignored"
-  constructEffect "deferred-result" deferredValue
-
-deferredValue :: String
-deferredValue = mark "deferred-value" "deferred"

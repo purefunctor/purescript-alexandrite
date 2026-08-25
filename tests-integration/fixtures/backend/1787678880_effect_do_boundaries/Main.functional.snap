@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructEffect
+
+@export foreign mark
+
+@export genericBind = \bindMDict%0 -> bind bindMDict%0
+
+@export aliased = \seed%1 ->
+  genericBind bindEffect (constructEffect "alias-first" seed%1)
+    (\value%2 -> constructEffect "alias-second" value%2)
+
+@export deferredEffect = effect.bind (constructEffect "deferred-action" "ignored")
+  \value%3 -> constructEffect "deferred-result" deferredValue
+
+@export deferredValue = mark "deferred-value" "deferred"

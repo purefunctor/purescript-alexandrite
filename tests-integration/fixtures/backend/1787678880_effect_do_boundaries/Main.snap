@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+mark :: forall a. Prim.String -> a -> a
+genericBind ::
+  forall (m :: Prim.Type -> Prim.Type) a b.
+    Control.Bind.Bind (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) a ->
+    (a -> (m :: Prim.Type -> Prim.Type) b) ->
+    (m :: Prim.Type -> Prim.Type) b
+aliased :: Prim.String -> Effect.Effect Prim.String
+deferredEffect :: Effect.Effect Prim.String
+deferredValue :: Prim.String
+
+Types
