@@ -22,10 +22,8 @@ pub(super) fn collect_module_references(module: &Module) -> Vec<Global> {
 }
 
 pub(super) fn cyclic_instance_initializers(module: &Module) -> FxHashSet<GlobalId> {
-    let values = module
-        .declarations
-        .iter()
-        .filter_map(|declaration| match declaration.kind {
+    let initializers =
+        module.declarations.iter().filter_map(|declaration| match declaration.kind {
             DeclarationKind::Value(expression)
                 if !is_abstraction(&module.storage[expression].kind) =>
             {
@@ -34,34 +32,41 @@ pub(super) fn cyclic_instance_initializers(module: &Module) -> FxHashSet<GlobalI
             DeclarationKind::Value(_)
             | DeclarationKind::Constructor { .. }
             | DeclarationKind::Foreign => None,
-        })
-        .collect_vec();
-    let positions = values
-        .iter()
-        .enumerate()
-        .map(|(position, (id, _))| (*id, position))
-        .collect::<FxHashMap<_, _>>();
-    let mut dependencies = vec![Vec::new(); values.len()];
-    for (position, (_, expression)) in values.iter().enumerate() {
+        });
+    let initializers = initializers.collect_vec();
+
+    let initializer_positions =
+        initializers.iter().enumerate().map(|(position, (global_id, _))| (*global_id, position));
+    let initializer_positions = initializer_positions.collect::<FxHashMap<_, _>>();
+
+    let mut initializer_dependencies = vec![Vec::new(); initializers.len()];
+    for (position, (_, expression)) in initializers.iter().enumerate() {
         let mut globals = FxHashSet::default();
         collect_expression_globals(module, *expression, true, &mut globals);
-        dependencies[position]
-            .extend(globals.into_iter().filter_map(|global| positions.get(&global).copied()));
-        dependencies[position].sort_unstable();
-        dependencies[position].dedup();
+        let referenced_initializer_positions =
+            globals.into_iter().filter_map(|global| initializer_positions.get(&global).copied());
+        initializer_dependencies[position].extend(referenced_initializer_positions);
+        initializer_dependencies[position].sort_unstable();
+        initializer_dependencies[position].dedup();
     }
-    let mut cyclic = FxHashSet::default();
-    for position in 0..values.len() {
-        let mut visited = FxHashSet::default();
-        if reaches_initializer(position, position, &dependencies, &mut visited) {
-            cyclic.insert(values[position].0);
+
+    let mut cyclic_initializers = FxHashSet::default();
+    for position in 0..initializers.len() {
+        let mut visited_initializers = FxHashSet::default();
+        if reaches_initializer(
+            position,
+            position,
+            &initializer_dependencies,
+            &mut visited_initializers,
+        ) {
+            cyclic_initializers.insert(initializers[position].0);
         }
     }
-    if cyclic.iter().all(|id| matches!(id, GlobalId::Instance(_))) {
-        cyclic
-    } else {
-        FxHashSet::default()
-    }
+
+    let mut global_ids = cyclic_initializers.iter();
+    let all_initializers_are_instances =
+        global_ids.all(|global_id| matches!(global_id, GlobalId::Instance(_)));
+    if all_initializers_are_instances { cyclic_initializers } else { FxHashSet::default() }
 }
 
 pub(super) fn has_local_lazy_initializers(module: &Module) -> bool {
