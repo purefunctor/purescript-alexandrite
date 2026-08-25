@@ -271,6 +271,7 @@ dependencies = [
  "documenting",
  "files",
  "foreign-javascript",
+ "functional",
  "indexing",
  "interner",
  "javascript",
@@ -278,7 +279,6 @@ dependencies = [
  "lexing",
  "lock_api",
  "lowering",
- "nbe",
  "parking_lot",
  "parsing",
  "prim-constants",
@@ -909,6 +909,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
+name = "functional"
+version = "0.1.0"
+dependencies = [
+ "building-types",
+ "checking",
+ "files",
+ "indexing",
+ "itertools 0.15.0",
+ "la-arena",
+ "lowering",
+ "pretty",
+ "resolving",
+ "rustc-hash",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
 name = "futures"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1418,9 +1436,9 @@ version = "0.1.0"
 dependencies = [
  "building-types",
  "files",
+ "functional",
  "itertools 0.15.0",
  "la-arena",
- "nbe",
  "pretty",
  "rustc-hash",
  "thiserror",
@@ -1692,24 +1710,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "nbe"
-version = "0.1.0"
-dependencies = [
- "building-types",
- "checking",
- "files",
- "indexing",
- "itertools 0.15.0",
- "la-arena",
- "lowering",
- "pretty",
- "resolving",
- "rustc-hash",
- "smol_str",
- "thiserror",
 ]
 
 [[package]]
@@ -3194,6 +3194,7 @@ dependencies = [
  "diagnostics",
  "documentation",
  "files",
+ "functional",
  "glob",
  "indexing",
  "insta",
@@ -3203,7 +3204,6 @@ dependencies = [
  "line-index",
  "lowering",
  "lsp-types",
- "nbe",
  "prim-constants",
  "process_control",
  "serde_json",

@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export foreign foreignValue
+
+@export foreign foreignFunction
+
+@export value = foreignFunction foreignValue

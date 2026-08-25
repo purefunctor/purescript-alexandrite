@@ -1,0 +1,50 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export foreign same
+
+@export foreign observe
+
+@export foreign readTrace
+
+@export applicationRecursive = \token%1 ->
+  let
+    rec second%2 = observe "second"
+      (\condition%3 ->
+        if condition%3 then first%0 false else 2)
+    rec first%0 = observe "first"
+      (\condition%4 ->
+        if condition%4 then second%2 false else 1)
+  in { result: first%0 true, trace: readTrace token%1 }
+
+@export recordRecursive = let
+  rec second%6 = \condition%7 ->
+    if condition%7 then first%5.value false else 20
+  rec first%5 = { value: second%6 }
+in same first%5.value second%6
+
+@export caseRecursive = \condition%9 ->
+  let
+    rec go%8 = case condition%9 of
+      true ->
+        \current%10 ->
+          if current%10 then go%8 false else 30
+      false ->
+        \$boolean%11@(_) -> 31
+  in go%8 true
+
+@export letRecursive = \condition%13 ->
+  let
+    rec go%12 = let
+      wrapped%14 = \current%15 ->
+        if current%15 then go%12 false else 40
+    in wrapped%14
+  in go%12 condition%13
+
+@export strictCycle = \$boolean%17@(_) ->
+  let
+    rec value%16 = wrap value%16
+  in value%16
+
+@export wrap = \value%18 -> value%18

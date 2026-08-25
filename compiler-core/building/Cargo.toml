@@ -9,13 +9,13 @@ checking = { version = "0.1.0", path = "../../compiler-frontend/checking" }
 documenting = { version = "0.1.0", path = "../../compiler-frontend/documenting" }
 files = { version = "0.1.0", path = "../files" }
 foreign-javascript = { version = "0.1.0", path = "../../compiler-backend/foreign-javascript" }
+functional = { version = "0.1.0", path = "../../compiler-backend/functional" }
 indexing = { version = "0.1.0", path = "../../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../interner" }
 javascript = { version = "0.1.0", path = "../../compiler-backend/javascript" }
 lexing = { version = "0.1.0", path = "../../compiler-frontend/lexing" }
 lock_api = "0.4.14"
 lowering = { version = "0.1.0", path = "../../compiler-frontend/lowering" }
-nbe = { version = "0.1.0", path = "../../compiler-backend/nbe" }
 parking_lot = "0.12.5"
 parsing = { version = "0.1.0", path = "../../compiler-frontend/parsing" }
 prim-constants = { version = "0.1.0", path = "../prim-constants" }

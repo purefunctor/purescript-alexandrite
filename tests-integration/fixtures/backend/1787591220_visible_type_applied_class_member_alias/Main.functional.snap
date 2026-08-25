@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export name = \dictionary%0 -> dictionary%0.name
+
+@export use = \namedBodyDict%1 ->
+  \$body%3@(_) ->
+    let
+      alias%2 = name
+    in alias%2 namedBodyDict%1

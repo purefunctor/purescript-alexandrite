@@ -1,0 +1,5 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export select = \$record%2@({ first: first%1, nested: { second: second%0 } }) -> second%0

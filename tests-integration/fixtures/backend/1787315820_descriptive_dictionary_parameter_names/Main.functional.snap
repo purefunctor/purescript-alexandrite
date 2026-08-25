@@ -1,0 +1,41 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export equal = \dictionary%0 -> dictionary%0.equal
+
+@export convert = \dictionary%1 -> dictionary%1.convert
+
+@export available = \dictionary%2 -> dictionary%2.available
+
+@export constructor Wrapper/1
+
+@export genericEqual = \equalValueDict%3 -> \left%4 right%5 -> equal equalValueDict%3 left%4 right%5
+
+@export arrayEqual = \equalArrayValueDict%6 ->
+  \left%7 right%8 -> equal equalArrayValueDict%6 left%7 right%8
+
+@export wrapperEqual = \equalWrapperValueDict%9 ->
+  \left%10 right%11 -> equal equalWrapperValueDict%9 left%10 right%11
+
+@export concreteEqual = \equalIntDict%12 ->
+  \left%13 right%14 -> equal equalIntDict%12 left%13 right%14
+
+@export convertToInt = \convertValueIntDict%15 ->
+  \value%16 -> convert convertValueIntDict%15 value%16
+
+@export distinctEqual = \equalLeftDict%17 equalRightDict%20 ->
+  \left1%18 left2%19 right1%21 right2%22 ->
+    {
+      left: equal equalLeftDict%17 left1%18 left2%19,
+      right: equal equalRightDict%20 right1%21 right2%22
+    }
+
+@export duplicateEqual = \equalValueDict%26 equalValueDict%23 ->
+  \left%24 right%25 -> equal equalValueDict%23 left%24 right%25
+
+@export parameterCollision = \equalValueDict%28 ->
+  \equalValueDict%27 left%29 right%30 ->
+    if equalValueDict%27 then equal equalValueDict%28 left%29 right%30 else false
+
+@export isAvailable = \availableDict%31 -> available availableDict%31

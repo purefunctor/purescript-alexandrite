@@ -1,0 +1,33 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export forward = later
+
+@export later = 42
+
+@export recursive[2] first = \$boolean%0 ->
+  case $boolean%0 of
+    true ->
+      1
+    false ->
+      second true
+
+@export recursive[2] second = \$boolean%1 ->
+  case $boolean%1 of
+    true ->
+      2
+    false ->
+      first true
+
+@export recursive[3] recursiveValue = {
+  run:
+    \value%2 ->
+      if value%2 then 3 else recursivePeer.run true
+}
+
+@export recursive[3] recursivePeer = {
+  run:
+    \value%3 ->
+      if value%3 then 4 else recursiveValue.run true
+}

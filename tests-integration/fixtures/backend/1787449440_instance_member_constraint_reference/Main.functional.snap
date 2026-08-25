@@ -1,0 +1,7 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export unwrap = \value%0 -> value%0
+
+@export instance eqWrapper = \eqADict%1 -> { eq: on (eq eqADict%1) unwrap }

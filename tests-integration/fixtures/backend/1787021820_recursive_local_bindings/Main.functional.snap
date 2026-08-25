@@ -1,0 +1,47 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export mutual = \condition%1 ->
+  let
+    rec second%2 = \$boolean%3 ->
+      case $boolean%3 of
+        true ->
+          2
+        false ->
+          first%0 true
+    rec first%0 = \$boolean%4 ->
+      case $boolean%4 of
+        true ->
+          1
+        false ->
+          second%2 true
+  in first%0 condition%1
+
+@export capturedMutual = \captured%9 condition%6 ->
+  let
+    rec second%7 = \$boolean%8 ->
+      case $boolean%8 of
+        true ->
+          captured%9
+        false ->
+          first%5 true
+    rec first%5 = \$boolean%10 ->
+      case $boolean%10 of
+        true ->
+          captured%9
+        false ->
+          second%7 true
+  in first%5 condition%6
+
+@export nestedRecursive = \condition%12 ->
+  let
+    rec go%11 = \$boolean%13 ->
+      case $boolean%13 of
+        true ->
+          let
+            nested%14 = go%11 false
+          in nested%14
+        false ->
+          0
+  in go%11 condition%12

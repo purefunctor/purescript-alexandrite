@@ -6,10 +6,10 @@ foreign JavaScript modules.
 ## Components
 
 - **foreign-javascript**: parses foreign modules and validates their exports against PureScript declarations
-- **nbe**: converts checked modules into owned functional trees for normalization by evaluation
+- **functional**: converts checked modules into owned functional trees for backend optimization
 - **javascript**: emits ES2022 JavaScript modules from functional trees
 
-Preserve the direction `frontend → nbe → javascript`. Backend representations should be owned
+Preserve the direction `frontend → functional → javascript`. Backend representations should be owned
 and should not introduce dependencies from frontend crates back into code generation.
 
 ## Verification

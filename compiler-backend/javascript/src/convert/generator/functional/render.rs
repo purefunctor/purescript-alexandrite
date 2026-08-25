@@ -6,13 +6,13 @@ mod structure;
 mod syntax;
 
 use files::FileId;
-use itertools::Itertools;
-use nbe::tree::{
+use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
     ExpressionId as FunctionalExpressionId, ExpressionKind, Global, GlobalId, Guard,
     GuardedAlternative, LocalId, Module as FunctionalModule, Parameter, PatternId, PatternKind,
     RecordUpdate,
 };
+use itertools::Itertools;
 use pretty::Arena as DocumentArena;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -1671,7 +1671,7 @@ impl Generator<'_> {
             .expect("invariant violated: JavaScript global has no allocated name")
     }
 
-    fn module_dependency(&self, file_id: FileId) -> &nbe::tree::ModuleDependency {
+    fn module_dependency(&self, file_id: FileId) -> &functional::tree::ModuleDependency {
         self.module
             .dependencies
             .iter()
@@ -1688,8 +1688,8 @@ fn global_file(id: GlobalId) -> FileId {
     match id {
         GlobalId::Term(file_id, _) => file_id,
         GlobalId::Instance(
-            nbe::tree::InstanceIdentity::Declared(file_id, _)
-            | nbe::tree::InstanceIdentity::Derived(file_id, _),
+            functional::tree::InstanceIdentity::Declared(file_id, _)
+            | functional::tree::InstanceIdentity::Derived(file_id, _),
         ) => file_id,
     }
 }

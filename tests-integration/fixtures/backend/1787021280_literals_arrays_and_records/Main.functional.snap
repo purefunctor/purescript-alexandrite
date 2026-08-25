@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export integer = 42
+
+@export number = 1.5
+
+@export character = 'a'
+
+@export string = "alexandrite"
+
+@export boolean = true
+
+@export array = [1, 2, 3]
+
+@export record = { integer: 42, nested: { value: "nested" } }
+
+@export projection = record.nested.value

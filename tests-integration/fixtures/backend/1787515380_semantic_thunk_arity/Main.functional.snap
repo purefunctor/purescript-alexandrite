@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export constructor Unit/0
+
+@export ordinaryUnit = \value%0 -> value%0
+
+@export ordinaryUnitCall = ordinaryUnit Unit
+
+@export parent = \dictionary%1 -> dictionary%1.parent
+
+@export child = \dictionary%2 -> dictionary%2.child
+
+@export instance parentInt = { parent: \value%3 -> value%3 }
+
+@export instance childArray = \parentArrayADict%4 ->
+  { "Parent0": \() -> parentArrayADict%4, child: \value%5 -> value%5 }
+
+@export useSuperclass = \childADict%6 -> \value%7 -> parent (childADict%6."Parent0"()) value%7

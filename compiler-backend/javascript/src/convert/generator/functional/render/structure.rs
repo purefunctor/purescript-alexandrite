@@ -1,7 +1,7 @@
 //! Module-level references and lazy binding requirements.
 
+use functional::tree::{DeclarationKind, ExpressionKind, Global, GlobalId, Module};
 use itertools::Itertools;
-use nbe::tree::{DeclarationKind, ExpressionKind, Global, GlobalId, Module};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{

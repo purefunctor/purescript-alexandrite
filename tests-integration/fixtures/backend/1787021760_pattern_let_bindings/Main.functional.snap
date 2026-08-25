@@ -1,0 +1,13 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export unwrap = \wrapped%1 ->
+  let
+    value%0 = wrapped%1
+  in value%0
+
+@export select = \record%3 ->
+  let
+    { first: first%4, second: second%2 } = record%3
+  in second%2

@@ -1,6 +1,6 @@
 //! Functional abstraction and parameter classification.
 
-use nbe::tree::{ExpressionKind, Parameter, PatternId, PatternKind, Storage};
+use functional::tree::{ExpressionKind, Parameter, PatternId, PatternKind, Storage};
 
 pub(super) fn is_abstraction(kind: &ExpressionKind) -> bool {
     matches!(kind, ExpressionKind::Abstraction { .. } | ExpressionKind::UncurriedAbstraction { .. })

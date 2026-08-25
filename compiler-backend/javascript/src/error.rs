@@ -6,7 +6,7 @@ pub type ModuleResult<T> = Result<T, ModuleError>;
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ModuleError {
     #[error(transparent)]
-    Functional(#[from] nbe::ModuleError),
+    Functional(#[from] functional::ModuleError),
     #[error("cannot convert functional module {file_id:?} to JavaScript: {state}")]
     Unsupported { file_id: FileId, state: UnsupportedState },
 }

@@ -1,11 +1,11 @@
 //! JavaScript expressions for atomic functional syntax.
 
 use files::FileId;
-use itertools::Itertools;
-use nbe::tree::{
+use functional::tree::{
     BinaryOperator as FunctionalBinaryOperator, Literal, ReflectableEvidence, ReflectableOrdering,
     SynthesizedEvidence, UnaryOperator as FunctionalUnaryOperator,
 };
+use itertools::Itertools;
 
 use super::super::super::names::identifier_is_binding;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};

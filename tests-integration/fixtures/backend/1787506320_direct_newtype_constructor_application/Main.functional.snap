@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export direct = 42
+
+@export firstClass = \value%0 -> value%0
+
+@export indirect = firstClass 43

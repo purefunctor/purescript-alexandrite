@@ -1,0 +1,23 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export Direct { append }
+
+@export Origin { Just, await, foreignValue, measure, visible }
+
+@export Transitive { marker }
+
+@export constructorValue = Just 42
+
+@export operatorValue = append (visible 23) 9
+
+@export localCollision = append
+
+@export foreignResult = foreignValue
+
+@export hostileResult = await
+
+@export measured = measure measureInt 41
+
+@export transitiveMarker = marker

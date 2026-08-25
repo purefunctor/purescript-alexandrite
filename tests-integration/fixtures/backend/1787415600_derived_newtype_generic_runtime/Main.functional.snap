@@ -1,0 +1,62 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export instance newtypeTypeIdentifierInt = { "Coercible0": \() -> <trivial evidence> }
+
+@export wrapped = 42
+
+@export unwrapped = unwrap newtypeTypeIdentifierInt wrapped
+
+@export constructor Empty/0
+
+@export constructor Single/1
+
+@export constructor Pair/2
+
+@export instance genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = {
+  to:
+    \representation%0 ->
+      case representation%0 of
+        Inl (Constructor NoArguments) ->
+          Empty
+        Inr (Inl (Constructor field0%1)) ->
+          Single field0%1
+        Inr (Inr (Constructor (Product field0%2 field1%3))) ->
+          Pair field0%2 field1%3,
+  from:
+    \value%4 ->
+      case value%4 of
+        Empty ->
+          Inl (Constructor NoArguments)
+        Single field0%5 ->
+          Inr (Inl (Constructor field0%5))
+        Pair field0%6 field1%7 ->
+          Inr (Inr (Constructor (Product field0%6 field1%7)))
+}
+
+@export roundTrip = \value%8 ->
+  to
+    genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt
+    (from
+      genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt
+      value%8)
+
+@export emptyRoundTrip = roundTrip Empty
+
+@export singleRoundTrip = roundTrip (Single 6)
+
+@export pairRoundTrip = roundTrip (Pair 7 8)
+
+@export instance genericVoidNoConstructors = {
+  to:
+    \value%9 ->
+      case value%9 of
+        _ ->
+          to genericVoidNoConstructors value%9,
+  from:
+    \value%10 ->
+      case value%10 of
+        _ ->
+          from genericVoidNoConstructors value%10
+}

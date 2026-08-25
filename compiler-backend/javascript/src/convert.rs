@@ -9,10 +9,10 @@ use crate::error::ModuleResult;
 use crate::module::Module;
 
 pub fn convert_module(
-    queries: &impl nbe::ExternalQueries,
+    queries: &impl functional::ExternalQueries,
     file_id: FileId,
 ) -> QueryResult<ModuleResult<Module>> {
-    let functional = match queries.nbe(file_id)? {
+    let functional = match queries.functional(file_id)? {
         Ok(functional) => functional,
         Err(error) => return Ok(Err(error.into())),
     };
