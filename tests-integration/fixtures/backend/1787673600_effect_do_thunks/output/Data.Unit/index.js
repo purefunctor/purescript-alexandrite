@@ -1,1 +1,1 @@
-export const Unit = ["Unit"];
+export const Unit = "Unit";

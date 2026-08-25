@@ -1,10 +1,10 @@
-export const Empty = ["Empty"];
+export const Empty = "Empty";
 export const One = $value0 => ["One", $value0];
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 export const Outer = $value0 => ["Outer", $value0];
 
 export function first($choice) {
-  if (Array.isArray($choice) && $choice[0] === "Empty") {
+  if ($choice === "Empty") {
     return Empty;
   }
   if (Array.isArray($choice) && $choice[0] === "One") {

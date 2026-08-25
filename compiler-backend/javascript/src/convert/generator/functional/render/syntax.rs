@@ -90,6 +90,10 @@ pub(super) fn curried_call_expression(
 }
 
 pub(super) fn constructor_expression(tree: &mut Tree, name: &str, arity: usize) -> ExpressionId {
+    if arity == 0 {
+        return tree.string(name);
+    }
+
     let arguments = (0..arity).map(|index| format!("$value{index}")).collect_vec();
     let values = arguments.iter().map(|argument| tree.identifier(argument)).collect_vec();
     let tag = tree.string(name);
@@ -127,8 +131,7 @@ pub(super) fn synthesized_evidence_expression(
                         ReflectableOrdering::Equal => "EQ",
                         ReflectableOrdering::Greater => "GT",
                     };
-                    let tag = tree.string(tag);
-                    tree.array(vec![tag])
+                    tree.string(tag)
                 }
             };
             let reflect = tree.arrow(vec!["$proxy".to_owned()], value);

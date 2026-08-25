@@ -1,4 +1,4 @@
-export const Empty = ["Empty"];
+export const Empty = "Empty";
 export const One = $value0 => ["One", $value0];
 
 export function booleanGuard(value) {

@@ -1,1 +1,1 @@
-export const Proxy = ["Proxy"];
+export const Proxy = "Proxy";
