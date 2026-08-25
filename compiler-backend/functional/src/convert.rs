@@ -1483,70 +1483,86 @@ where
         {
             return Ok(*argument);
         }
+        if let Some(kind) = self.known_operator_application(known_function, &known_arguments)? {
+            return Ok(self.expression(kind));
+        }
+        Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+    }
+
+    fn known_operator_application(
+        &self,
+        function: ExpressionId,
+        arguments: &[ExpressionId],
+    ) -> QueryResult<Option<ExpressionKind>> {
         if let Some([value]) = self.known_instance_member_arguments(
-            known_function,
-            &known_arguments,
+            function,
+            arguments,
             "Data.HeytingAlgebra",
             "not",
             "Data.HeytingAlgebra",
             "heytingAlgebraBoolean",
         )? {
-            return Ok(self.expression(ExpressionKind::Unary {
+            return Ok(Some(ExpressionKind::Unary {
                 operator: UnaryOperator::BooleanNot,
                 value: *value,
             }));
         }
         if let Some([value]) = self.known_instance_member_arguments(
-            known_function,
-            &known_arguments,
+            function,
+            arguments,
             "Data.Ring",
             "negate",
             "Data.Ring",
             "ringInt",
         )? {
-            return Ok(self.expression(ExpressionKind::Unary {
+            return Ok(Some(ExpressionKind::Unary {
                 operator: UnaryOperator::IntegerNegate,
                 value: *value,
             }));
         }
-        let binary = if let Some(arguments) = self.known_instance_member_arguments(
-            known_function,
-            &known_arguments,
+        if let Some([left, right]) = self.known_instance_member_arguments(
+            function,
+            arguments,
             "Data.Semiring",
             "add",
             "Data.Semiring",
             "semiringInt",
         )? {
-            Some((BinaryOperator::IntegerAdd, arguments))
-        } else if let Some(arguments) = self.known_instance_member_arguments(
-            known_function,
-            &known_arguments,
+            return Ok(Some(ExpressionKind::Binary {
+                operator: BinaryOperator::IntegerAdd,
+                left: *left,
+                right: *right,
+            }));
+        }
+        if let Some([left, right]) = self.known_instance_member_arguments(
+            function,
+            arguments,
             "Data.Ring",
             "sub",
             "Data.Ring",
             "ringInt",
         )? {
-            Some((BinaryOperator::IntegerSubtract, arguments))
-        } else if let Some(arguments) = self.known_instance_member_arguments(
-            known_function,
-            &known_arguments,
+            return Ok(Some(ExpressionKind::Binary {
+                operator: BinaryOperator::IntegerSubtract,
+                left: *left,
+                right: *right,
+            }));
+        }
+        if let Some([left, right]) = self.known_instance_member_arguments(
+            function,
+            arguments,
             "Data.Semiring",
             "mul",
             "Data.Semiring",
             "semiringInt",
         )? {
-            Some((BinaryOperator::IntegerMultiply, arguments))
-        } else {
-            None
-        };
-        if let Some((operator, [left, right])) = binary {
-            return Ok(self.expression(ExpressionKind::Binary {
-                operator,
+            return Ok(Some(ExpressionKind::Binary {
+                operator: BinaryOperator::IntegerMultiply,
                 left: *left,
                 right: *right,
             }));
         }
-        Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+        Ok(None)
     }
 
     fn known_effect_application(
