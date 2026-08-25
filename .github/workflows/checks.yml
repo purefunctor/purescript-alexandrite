@@ -93,19 +93,18 @@ jobs:
       - name: Prepare core and Acme corpus
         working-directory: candidate
         env:
-          CORPUS_DIR: ${{ github.workspace }}/compatibility-cache
+          PACKAGE_CACHE_DIR: ${{ github.workspace }}/compatibility-cache
         run: |
           target/release/tests-compatibility prepare \
             --preset core \
             --preset acme \
-            --registry-dir "$CORPUS_DIR/registry" \
-            --index-dir "$CORPUS_DIR/registry-index" \
-            --cache-dir "$CORPUS_DIR"
+            --cache-dir "$PACKAGE_CACHE_DIR"
 
       - name: Collect base and candidate reports
         id: reports
         env:
-          CORPUS_DIR: ${{ github.workspace }}/compatibility-cache
+          CORPUS_DIR: ${{ github.workspace }}/candidate/target/compatibility
+          PACKAGE_CACHE_DIR: ${{ github.workspace }}/compatibility-cache
           REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
         run: |
           mkdir -p "$REPORT_DIR"
@@ -119,7 +118,7 @@ jobs:
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
               --index-dir "$CORPUS_DIR/registry-index" \
-              --cache-dir "$CORPUS_DIR" \
+              --cache-dir "$PACKAGE_CACHE_DIR" \
               --json-output "$REPORT_DIR/base.json"
           ) > "$REPORT_DIR/base.log" 2>&1
           base_status=$?
@@ -131,7 +130,7 @@ jobs:
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
               --index-dir "$CORPUS_DIR/registry-index" \
-              --cache-dir "$CORPUS_DIR" \
+              --cache-dir "$PACKAGE_CACHE_DIR" \
               --json-output "$REPORT_DIR/candidate.json"
           ) > "$REPORT_DIR/candidate.log" 2>&1
           candidate_status=$?
