@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign node
+
+@export foreign attribute
+
+@export foreign text
+
+@export render = \state%1 ->
+  node "main" [attribute "root"]
+    [node "span"
+        [attribute
+            ((\value%2 ->
+              if value%2 then "active" else "inactive")
+              state%1)]
+        [text "first"],
+      node "span" [] [text "second"]]

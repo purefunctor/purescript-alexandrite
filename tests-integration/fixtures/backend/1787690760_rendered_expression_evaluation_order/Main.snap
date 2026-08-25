@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+collect :: Prim.Int -> Prim.Int -> Prim.Int -> Prim.Array Prim.Int
+failAt :: Prim.String -> Prim.Boolean -> Prim.Int -> Prim.Int
+observe :: Prim.String -> Prim.Int -> Prim.Int
+observedRecord :: { value :: Prim.Int }
+ordered :: Prim.Boolean -> Prim.Boolean -> Prim.Array Prim.Int
+reused :: Prim.Array Prim.Int
+
+Types
