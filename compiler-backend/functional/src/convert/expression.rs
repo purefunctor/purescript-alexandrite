@@ -1,4 +1,17 @@
-use super::*;
+use std::sync::Arc;
+
+use checking::tree as checking_tree;
+use smol_str::format_smolstr;
+
+use crate::error::UnsupportedState;
+use crate::tree::{
+    CaseAlternative, ExpressionId, ExpressionKind, Literal, PatternId, PatternKind, RecordField,
+    RecordPatternField, RecordUpdate,
+};
+
+use super::declaration::{function_patterns, guarded_expression, let_bindings};
+use super::evidence::evidence_variable;
+use super::{BindingSource, Context, ConversionResult};
 
 pub(super) fn convert_expression(
     context: &mut Context<'_, impl checking::ExternalQueries>,

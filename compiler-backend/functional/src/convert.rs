@@ -5,26 +5,13 @@ mod declaration;
 mod evidence;
 mod expression;
 
-use evidence::{EvidenceScope, evidence_variable};
-use expression::{convert_expression, convert_pattern, patterns};
-
-use declaration::{
-    derive_declaration, function_patterns, guarded_expression, instance_declaration, let_bindings,
-    term_declaration,
-};
-
 use std::sync::Arc;
 
 use building_types::{QueryError, QueryResult};
-use checking::evidence::{
-    Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
-};
+use checking::evidence::{EvidenceBinderId, EvidenceVarId, InstanceCandidateOrigin};
 use checking::tree as checking_tree;
 use files::FileId;
-use indexing::{
-    DeriveItemId, IndexedTermItemKind, IndexedTypeItemKind, InstanceItemId, OrderedTermItemId,
-    TermItemId,
-};
+use indexing::{IndexedTermItemKind, IndexedTypeItemKind, OrderedTermItemId, TermItemId};
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
@@ -33,13 +20,14 @@ use thiserror::Error;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::optimize::inline_simple_bindings;
 use crate::tree::{
-    Binding, CaseAlternative, Declaration, DeclarationKind, Expression, ExpressionId,
-    ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard, GuardedAlternative,
-    IndirectModuleExports, InstanceIdentity, Literal, LocalId, Module, ModuleDependency,
-    ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecordField, RecordPatternField,
-    RecordUpdate, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering, Storage,
-    SuperclassIdentity, SynthesizedEvidence,
+    Declaration, DeclarationKind, Expression, ExpressionId, ExpressionKind, Field, FieldIdentity,
+    Global, GlobalId, IndirectModuleExports, InstanceIdentity, LocalId, Module, ModuleDependency,
+    ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecursiveGroupId, Storage,
+    SuperclassIdentity,
 };
+
+use self::declaration::{derive_declaration, instance_declaration, term_declaration};
+use self::evidence::EvidenceScope;
 
 type ConversionResult<T> = Result<T, ConversionError>;
 

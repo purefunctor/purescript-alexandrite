@@ -1,4 +1,19 @@
-use super::*;
+use std::sync::Arc;
+
+use building_types::QueryResult;
+use checking::evidence::{
+    Evidence, EvidenceBinderId, EvidenceId, EvidenceState, EvidenceVarId, InstanceCandidateOrigin,
+};
+use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::{SmolStr, format_smolstr};
+
+use crate::error::UnsupportedState;
+use crate::tree::{
+    Binding, ExpressionId, ExpressionKind, Parameter, ReflectableEvidence, ReflectableOrdering,
+    SynthesizedEvidence,
+};
+
+use super::{BindingSource, Context, ConversionResult, lowercase_initial};
 
 const MAX_EVIDENCE_NAME_FRAGMENTS: usize = 4;
 

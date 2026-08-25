@@ -1,4 +1,20 @@
-use super::*;
+use std::sync::Arc;
+
+use checking::evidence::Evidence;
+use checking::tree as checking_tree;
+use indexing::{DeriveItemId, IndexedTermItemKind, InstanceItemId, TermItemId};
+use rustc_hash::FxHashMap;
+use smol_str::{SmolStr, format_smolstr};
+
+use crate::error::UnsupportedState;
+use crate::tree::{
+    Binding, CaseAlternative, Declaration, DeclarationKind, ExpressionId, ExpressionKind, Global,
+    GlobalId, Guard, GuardedAlternative, InstanceIdentity, PatternId, PatternKind, RecordField,
+};
+
+use super::evidence::evidence_variable;
+use super::expression::{convert_expression, convert_pattern, patterns};
+use super::{Context, ConversionResult};
 
 pub(super) fn term_declaration(
     context: &mut Context<'_, impl checking::ExternalQueries>,
