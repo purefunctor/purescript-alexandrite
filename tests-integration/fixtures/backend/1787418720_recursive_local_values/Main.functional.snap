@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign same
@@ -36,10 +37,8 @@ in same first%5.value second%6
 
 @export letRecursive = \condition%13 ->
   let
-    rec go%12 = let
-      wrapped%14 = \current%15 ->
-        if current%15 then go%12 false else 40
-    in wrapped%14
+    rec go%12 = \current%15 ->
+      if current%15 then go%12 false else 40
   in go%12 condition%13
 
 @export strictCycle = \$boolean%17@(_) ->

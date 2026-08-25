@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export identity = \value%0 -> value%0
@@ -21,41 +22,47 @@ expression: report
 
 @export inlineCapturedClosure = \captured%11 -> \$boolean%10@(_) -> captured%11
 
-@export keepMultiUseClosure = \captured%14 ->
+@export inlineAlias = \value%13 -> value%13
+
+@export inlineRepeatedAlias = \value%15 -> { first: value%15, second: value%15 }
+
+@export inlineSingleUseProperty = \record%17 -> identity record%17.value
+
+@export keepMultiUseClosure = \captured%20 ->
   let
-    closure%12 = \$boolean%13@(_) -> captured%14
-  in { first: closure%12, second: closure%12 }
+    closure%18 = \$boolean%19@(_) -> captured%20
+  in { first: closure%18, second: closure%18 }
 
-@export keepMultiUse = \record%16 ->
+@export keepMultiUse = \record%22 ->
   let
-    value%15 = record%16.value
-  in { first: value%15, second: value%15 }
+    value%21 = record%22.value
+  in { first: value%21, second: value%21 }
 
-@export inlineAcrossCall = \record%17 function%18 ->
-  { projected: record%17.value, called: function%18 true }
+@export inlineAcrossCall = \record%23 function%24 ->
+  { projected: record%23.value, called: function%24 true }
 
-@export inlineOrderedCalls = \first%19 second%20 ->
-  { first: first%19 true, second: second%20 false }
+@export inlineOrderedCalls = \first%25 second%26 ->
+  { first: first%25 true, second: second%26 false }
 
-@export keepReorderedCalls = \first%24 second%23 ->
+@export keepReorderedCalls = \first%30 second%29 ->
   let
-    firstResult%22 = first%24 true
+    firstResult%28 = first%30 true
   in let
-    secondResult%21 = second%23 false
-  in { first: secondResult%21, second: firstResult%22 }
+    secondResult%27 = second%29 false
+  in { first: secondResult%27, second: firstResult%28 }
 
-@export keepMultiUseCall = \function%26 value%27 ->
+@export keepMultiUseCall = \function%32 value%33 ->
   let
-    result%25 = function%26 value%27
-  in { first: result%25, second: result%25 }
+    result%31 = function%32 value%33
+  in { first: result%31, second: result%31 }
 
-@export keepCallBeforeBranch = \condition%28 function%31 value%30 ->
+@export keepCallBeforeBranch = \condition%34 function%37 value%36 ->
   let
-    result%29 = function%31 value%30
-  in if condition%28 then result%29 else value%30
+    result%35 = function%37 value%36
+  in if condition%34 then result%35 else value%36
 
-@export keepTestCall = \function%32 value%33 ->
-  case function%32 value%33 of
+@export keepTestCall = \function%38 value%39 ->
+  case function%38 value%39 of
     [] ->
       true
     _ ->

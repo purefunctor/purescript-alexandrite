@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign addInt
@@ -46,10 +47,8 @@ expression: report
 @export nestedJoin = \outer%8 inner%11 ->
   if outer%8
     then let
-      captured%9 = foreignValue
-    in let
       result%10 = if inner%11 then 1 else 2
-    in addInt captured%9 result%10
+    in addInt foreignValue result%10
     else 0
 
 @export recursive[19] countdown = \value%12 ->

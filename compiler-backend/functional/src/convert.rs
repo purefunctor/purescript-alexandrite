@@ -18,6 +18,7 @@ use smol_str::{SmolStr, format_smolstr};
 use thiserror::Error;
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
+use crate::optimize::inline_simple_bindings;
 use crate::tree::{
     BinaryOperator, Binding, CaseAlternative, Declaration, DeclarationKind, Expression,
     ExpressionId, ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard,
@@ -206,6 +207,16 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
         declarations.extend(declaration);
     }
     validate_runtime_exports(&context, &declarations, &surface)?;
+
+    let recursive_globals = declarations
+        .iter()
+        .filter_map(|declaration| declaration.recursive_group.map(|_| declaration.global.id));
+    let recursive_globals = recursive_globals.collect::<FxHashSet<_>>();
+    for declaration in &declarations {
+        if let DeclarationKind::Value(expression) = declaration.kind {
+            inline_simple_bindings(&mut context.storage, expression, &recursive_globals);
+        }
+    }
 
     let dependencies = context.dependencies.iter().map(|(&file_id, module_name)| {
         ModuleDependency { file_id, module_name: SmolStr::clone(module_name) }

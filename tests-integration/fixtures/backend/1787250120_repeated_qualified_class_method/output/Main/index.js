@@ -197,12 +197,9 @@ export function lambdaScope(left) {
 
 export function whereIsolation(left) {
   return right => {
-    const helper = helperLeft => {
-      return helperRight => {
-        return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(helperLeft)(helperRight);
-      };
-    };
-    if (helper(left)(right)) {
+    if ((helperLeft => helperRight => Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(helperLeft)(
+      helperRight
+    ))(left)(right)) {
       return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right);
     } else {
       return false;

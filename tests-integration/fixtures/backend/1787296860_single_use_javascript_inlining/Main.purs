@@ -27,6 +27,21 @@ inlineRecord value = { value }
 inlineCapturedClosure :: Boolean -> Boolean -> Boolean
 inlineCapturedClosure captured = \_ -> captured
 
+inlineAlias :: Boolean -> Boolean
+inlineAlias value =
+  let alias = value
+  in alias
+
+inlineRepeatedAlias :: Boolean -> { first :: Boolean, second :: Boolean }
+inlineRepeatedAlias value =
+  let alias = value
+  in { first: alias, second: alias }
+
+inlineSingleUseProperty :: { value :: Boolean } -> Boolean
+inlineSingleUseProperty record =
+  let value = record.value
+  in identity value
+
 keepMultiUseClosure
   :: Boolean
   -> { first :: Boolean -> Boolean, second :: Boolean -> Boolean }

@@ -12,6 +12,12 @@ export function integerAdd(left) {
   };
 }
 
+export function inlineIntegerAdd(left) {
+  return right => {
+    return left + right | 0;
+  };
+}
+
 export function integerSubtract(left) {
   return right => {
     return left - right | 0;

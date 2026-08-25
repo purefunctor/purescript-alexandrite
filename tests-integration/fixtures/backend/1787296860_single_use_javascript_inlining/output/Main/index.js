@@ -40,6 +40,18 @@ export function inlineCapturedClosure(captured) {
   return $boolean => captured;
 }
 
+export function inlineAlias(value) {
+  return value;
+}
+
+export function inlineRepeatedAlias(value) {
+  return { first: value, second: value };
+}
+
+export function inlineSingleUseProperty(record) {
+  return identity(record.value);
+}
+
 export function keepMultiUseClosure(captured) {
   const closure = $boolean => {
     return captured;

@@ -14,6 +14,11 @@ booleanNot value = HeytingAlgebra.not value
 integerAdd :: Int -> Int -> Int
 integerAdd left right = Semiring.add left right
 
+inlineIntegerAdd :: Int -> Int -> Int
+inlineIntegerAdd left right =
+  let result = Semiring.add left right
+  in result
+
 integerSubtract :: Int -> Int -> Int
 integerSubtract left right = Ring.sub left right
 
