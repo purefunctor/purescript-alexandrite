@@ -1849,78 +1849,37 @@ where
         let ExpressionKind::Global { global } = &self.storage[expression].kind else {
             return Ok(false);
         };
-        let GlobalId::Instance(identity) = global.id else { return Ok(false) };
-        let (instance_file, instance) = match identity {
-            InstanceIdentity::Declared(file_id, instance_id) => {
-                let checked = if file_id == self.file_id {
-                    Arc::clone(&self.checked)
-                } else {
-                    self.queries.checked(file_id)?
-                };
-                (file_id, checked.lookup_instance(instance_id))
-            }
-            InstanceIdentity::Derived(file_id, derive_id) => {
-                let checked = if file_id == self.file_id {
-                    Arc::clone(&self.checked)
-                } else {
-                    self.queries.checked(file_id)?
-                };
-                (file_id, checked.lookup_derived_instance(derive_id))
-            }
+        let GlobalId::Instance(InstanceIdentity::Declared(instance_file, instance_id)) = global.id
+        else {
+            return Ok(false);
         };
+        if self.queries.module_file("Effect") != Some(instance_file)
+            && self.queries.module_file("Control.Monad.ST.Internal") != Some(instance_file)
+        {
+            return Ok(false);
+        }
+
+        let checked = if instance_file == self.file_id {
+            Arc::clone(&self.checked)
+        } else {
+            self.queries.checked(instance_file)?
+        };
+        let instance = checked.lookup_instance(instance_id);
         let Some(instance) = instance else { return Ok(false) };
         if expected_class.is_some_and(|class| instance.resolution != class) {
             return Ok(false);
         }
 
-        let instance_module_name = self.source_module_name(instance_file)?;
-        let (type_module_name, type_name) = match instance_module_name.as_str() {
-            "Effect" => ("Effect", "Effect"),
-            "Control.Monad.ST.Internal" => ("Control.Monad.ST.Internal", "ST"),
-            _ => return Ok(false),
+        let indexed = self.indexed_module(instance_file)?;
+        let canonical_instances = indexed.items.iter_instances().filter_map(|(_, candidate)| {
+            let candidate_instance = checked.lookup_instance(candidate.id)?;
+            (candidate_instance.resolution == instance.resolution).then_some(candidate.id)
+        });
+        let mut canonical_instances = canonical_instances.take(2);
+        let Some(canonical_instance) = canonical_instances.next() else {
+            return Ok(false);
         };
-
-        let mut signature = instance.signature;
-        let mut instance_type = loop {
-            signature = match self.queries.lookup_type(signature) {
-                checking::Type::Application(_, argument) => break argument,
-                checking::Type::Forall(_, body)
-                | checking::Type::Constrained(_, body)
-                | checking::Type::Kinded(body, _) => body,
-                checking::Type::Constructor(_, _)
-                | checking::Type::KindApplication(_, _)
-                | checking::Type::Function(_, _)
-                | checking::Type::Row(_)
-                | checking::Type::Rigid(_, _, _)
-                | checking::Type::Integer(_)
-                | checking::Type::String(..)
-                | checking::Type::Unification(_)
-                | checking::Type::Free(_)
-                | checking::Type::Unknown(_) => return Ok(false),
-            };
-        };
-        loop {
-            instance_type = match self.queries.lookup_type(instance_type) {
-                checking::Type::Application(function, _)
-                | checking::Type::KindApplication(function, _)
-                | checking::Type::Kinded(function, _) => function,
-                checking::Type::Constructor(file_id, type_id) => {
-                    let constructor_name = self.type_item_name(file_id, type_id)?;
-                    return Ok(constructor_name.as_deref() == Some(type_name)
-                        && self.source_module_name(file_id)? == type_module_name);
-                }
-                checking::Type::Forall(_, _)
-                | checking::Type::Constrained(_, _)
-                | checking::Type::Function(_, _)
-                | checking::Type::Row(_)
-                | checking::Type::Rigid(_, _, _)
-                | checking::Type::Integer(_)
-                | checking::Type::String(..)
-                | checking::Type::Unification(_)
-                | checking::Type::Free(_)
-                | checking::Type::Unknown(_) => return Ok(false),
-            };
-        }
+        Ok(canonical_instances.next().is_none() && instance_id == canonical_instance)
     }
 
     fn expression(&mut self, kind: ExpressionKind) -> ExpressionId {
