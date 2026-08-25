@@ -16,6 +16,8 @@ jobs:
     name: Publish compatibility report
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
+    concurrency:
+      group: compatibility-comment-${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Download compatibility report
