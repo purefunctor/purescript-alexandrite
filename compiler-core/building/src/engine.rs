@@ -147,7 +147,6 @@ struct DerivedStorage {
     checked: Shards<FileId, DerivedState<Arc<CheckedModule>>>,
     documented: Shards<FileId, DerivedState<Arc<DocumentedModule>>>,
     nbe: Shards<FileId, DerivedState<nbe::ModuleResult<Arc<nbe::tree::Module>>>>,
-    ssa: Shards<FileId, DerivedState<ssa::ModuleResult<Arc<ssa::tree::Module>>>>,
     javascript: Shards<FileId, DerivedState<javascript::ModuleResult<Arc<javascript::Module>>>>,
 }
 
@@ -174,7 +173,6 @@ fn query_references_file(query: QueryKey, file_id: FileId) -> bool {
         | QueryKey::Checked(id)
         | QueryKey::Documented(id)
         | QueryKey::Nbe(id)
-        | QueryKey::Ssa(id)
         | QueryKey::JavaScript(id) => id == file_id,
         QueryKey::ForeignContent(_)
         | QueryKey::ForeignModule(_)
@@ -574,7 +572,6 @@ impl QueryEngine {
                 QueryKey::Checked(k) => derived_changed!(checked, k),
                 QueryKey::Documented(k) => derived_changed!(documented, k),
                 QueryKey::Nbe(k) => derived_changed!(nbe, k),
-                QueryKey::Ssa(k) => derived_changed!(ssa, k),
                 QueryKey::JavaScript(k) => derived_changed!(javascript, k),
             }
         }
@@ -862,7 +859,6 @@ impl QueryEngine {
             checked,
             documented,
             nbe,
-            ssa,
             javascript,
         );
 
@@ -1168,18 +1164,6 @@ impl QueryEngine {
         )
     }
 
-    pub fn ssa(&self, id: FileId) -> QueryResult<ssa::ModuleResult<Arc<ssa::tree::Module>>> {
-        self.query(
-            QueryKey::Ssa(id),
-            id,
-            |derived| &derived.ssa,
-            |this| {
-                let converted = ssa::convert_module(this, id)?;
-                Ok(converted.map(Arc::new))
-            },
-        )
-    }
-
     pub fn javascript(
         &self,
         id: FileId,
@@ -1300,12 +1284,6 @@ impl QueryProxy for QueryEngine {
 impl nbe::ExternalQueries for QueryEngine {
     fn nbe(&self, file_id: FileId) -> QueryResult<nbe::ModuleResult<Arc<nbe::tree::Module>>> {
         QueryEngine::nbe(self, file_id)
-    }
-}
-
-impl ssa::ExternalQueries for QueryEngine {
-    fn ssa(&self, file_id: FileId) -> QueryResult<ssa::ModuleResult<Arc<ssa::tree::Module>>> {
-        QueryEngine::ssa(self, file_id)
     }
 }
 
@@ -1884,13 +1862,10 @@ mod tests {
         engine.set_module_file("Main", main);
 
         let nbe_initial = engine.nbe(main).unwrap().unwrap();
-        let ssa_initial = engine.ssa(main).unwrap().unwrap();
         let javascript_initial = engine.javascript(main).unwrap().unwrap();
         let nbe_repeated = engine.nbe(main).unwrap().unwrap();
-        let ssa_repeated = engine.ssa(main).unwrap().unwrap();
         let javascript_repeated = engine.javascript(main).unwrap().unwrap();
         assert!(Arc::ptr_eq(&nbe_initial, &nbe_repeated));
-        assert!(Arc::ptr_eq(&ssa_initial, &ssa_repeated));
         assert!(Arc::ptr_eq(&javascript_initial, &javascript_repeated));
 
         {
@@ -1905,41 +1880,29 @@ mod tests {
             assert!(dependencies.contains(&QueryKey::Checked(main)));
         }
         {
-            let shard = engine.derived.ssa.shard(&main).read();
-            let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
-                unreachable!("invariant violated: expected computed query");
-            };
-            assert_eq!(dependencies.as_ref(), &[QueryKey::Nbe(main)]);
-        }
-        {
             let shard = engine.derived.javascript.shard(&main).read();
             let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
                 unreachable!("invariant violated: expected computed query");
             };
-            assert_eq!(dependencies.as_ref(), &[QueryKey::Ssa(main)]);
+            assert_eq!(dependencies.as_ref(), &[QueryKey::Nbe(main)]);
         }
 
         let unrelated = files.insert("Unrelated.purs", "module Unrelated where\n\nvalue = 1");
         engine.set_content(unrelated, files.content(unrelated));
         engine.set_module_file("Unrelated", unrelated);
 
-        let ssa_after_unrelated = engine.ssa(main).unwrap().unwrap();
         let nbe_after_unrelated = engine.nbe(main).unwrap().unwrap();
         let javascript_after_unrelated = engine.javascript(main).unwrap().unwrap();
         assert!(Arc::ptr_eq(&nbe_initial, &nbe_after_unrelated));
-        assert!(Arc::ptr_eq(&ssa_initial, &ssa_after_unrelated));
         assert!(Arc::ptr_eq(&javascript_initial, &javascript_after_unrelated));
 
         engine.set_content(main, "module Main where\n\nlife = 43");
 
-        let ssa_changed = engine.ssa(main).unwrap().unwrap();
         let nbe_changed = engine.nbe(main).unwrap().unwrap();
         let javascript_changed = engine.javascript(main).unwrap().unwrap();
         assert!(!Arc::ptr_eq(&nbe_initial, &nbe_changed));
-        assert!(!Arc::ptr_eq(&ssa_initial, &ssa_changed));
         assert!(!Arc::ptr_eq(&javascript_initial, &javascript_changed));
         assert_ne!(nbe_initial, nbe_changed);
-        assert_ne!(ssa_initial, ssa_changed);
         assert_ne!(javascript_initial, javascript_changed);
     }
 
@@ -1956,12 +1919,6 @@ mod tests {
         let nbe_error = engine.nbe(main).unwrap().unwrap_err();
         assert!(matches!(nbe_error, nbe::ModuleError::Unsupported { .. }));
 
-        let ssa_error = engine.ssa(main).unwrap().unwrap_err();
-        assert!(matches!(
-            ssa_error,
-            ssa::ModuleError::Functional(nbe::ModuleError::Unsupported { .. })
-        ));
-
         let javascript_error = engine.javascript(main).unwrap().unwrap_err();
         assert!(matches!(
             javascript_error,
@@ -1971,7 +1928,6 @@ mod tests {
         engine.set_content(main, "module Main where\n\nlife = 42");
 
         engine.nbe(main).unwrap().unwrap();
-        engine.ssa(main).unwrap().unwrap();
         engine.javascript(main).unwrap().unwrap();
     }
 

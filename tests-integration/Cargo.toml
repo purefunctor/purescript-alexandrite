@@ -25,7 +25,6 @@ prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
 process_control = "5.2"
 serde_json = "1.0"
 similar = "3"
-ssa = { version = "0.1.0", path = "../compiler-backend/ssa" }
 stabilizing = { version = "0.1.0", path = "../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-frontend/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-frontend/syntax" }

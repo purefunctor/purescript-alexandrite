@@ -24,7 +24,6 @@ rustc-hash = "2.1.3"
 stabilizing = { version = "0.1.0", path = "../../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../../compiler-frontend/sugar" }
 smol_str = "0.3.2"
-ssa = { version = "0.1.0", path = "../../compiler-backend/ssa" }
 thread_local = "1.1.10"
 
 [dev-dependencies]

@@ -285,7 +285,6 @@ dependencies = [
  "resolving",
  "rustc-hash",
  "smol_str",
- "ssa",
  "stabilizing",
  "sugar",
  "thread_local",
@@ -2953,23 +2952,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ssa"
-version = "0.1.0"
-dependencies = [
- "building-types",
- "files",
- "indexing",
- "itertools 0.15.0",
- "la-arena",
- "lowering",
- "nbe",
- "pretty",
- "rustc-hash",
- "smol_str",
- "thiserror",
-]
-
-[[package]]
 name = "stabilizing"
 version = "0.1.0"
 dependencies = [
@@ -3226,7 +3208,6 @@ dependencies = [
  "process_control",
  "serde_json",
  "similar 3.1.2",
- "ssa",
  "stabilizing",
  "sugar",
  "syntax",

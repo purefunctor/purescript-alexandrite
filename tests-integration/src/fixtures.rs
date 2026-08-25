@@ -248,10 +248,6 @@ pub fn backend(path: &Path) -> FixtureResult {
     let checking_report = crate::generated::basic::report_checked(&engine, id);
     let foreign_report = crate::generated::basic::report_foreign(&engine, id);
     let diagnostics_report = format!("{checking_report}{foreign_report}");
-    let ssa_report = match engine.ssa(id)? {
-        Ok(module) => ssa::pretty::render(&module),
-        Err(error) => error.to_string(),
-    };
     let generated = tempfile::tempdir()?;
     match javascript_modules(&engine, id)? {
         Ok(modules) => modules.write_to(&files, generated.path())?,
@@ -259,15 +255,11 @@ pub fn backend(path: &Path) -> FixtureResult {
     }
     verify_output(&fixture.join("output"), generated.path())?;
     run_javascript_verification(&fixture)?;
-    let ssa_snapshot = format!("{file}.ssa");
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(fixture);
     settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| {
-        insta::assert_snapshot!(file, diagnostics_report);
-        insta::assert_snapshot!(ssa_snapshot, ssa_report);
-    });
+    settings.bind(|| insta::assert_snapshot!(file, diagnostics_report));
 
     Ok(())
 }
