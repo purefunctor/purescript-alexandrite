@@ -8,11 +8,11 @@ expression: report
 @export use = \namedADict%1 ->
   \value%3 ->
     let
-      alias%2 = \namedADict%4 -> namedADict%4.name
+      alias%2 = name
     in alias%2 namedADict%1 value%3
 
-@export useLet = \namedADict%5 ->
-  \value%7 ->
+@export useLet = \namedADict%4 ->
+  \value%6 ->
     let
-      alias%6 = \namedADict%8 -> namedADict%8.name
-    in alias%6 namedADict%5 value%7
+      alias%5 = name
+    in alias%5 namedADict%4 value%6

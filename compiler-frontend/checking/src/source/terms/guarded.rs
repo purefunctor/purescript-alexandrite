@@ -1,12 +1,9 @@
 //! Implements checking and inference rules for guarded and where expressions.
 
-use std::sync::Arc;
-
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::substitute::SubstituteName;
-use crate::core::{Type, TypeId, normalise, signature, unification};
+use crate::core::TypeId;
 use crate::source::terms::form_let;
 use crate::source::{binder, terms};
 use crate::state::CheckState;
@@ -73,73 +70,6 @@ where
     Q: ExternalQueries,
 {
     guarded_expression_core(state, context, guarded, GuardedExpressionMode::Subsume { expected })
-}
-
-pub fn subsume_elaborated_guarded_expression<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    mut guarded: ElaboratedGuardedExpression,
-    abstractions: &[signature::SkolemisedAbstraction],
-    expected: TypeId,
-) -> QueryResult<ElaboratedGuardedExpression>
-where
-    Q: ExternalQueries,
-{
-    let alternatives = Arc::get_mut(&mut guarded.guarded_expression.alternatives)
-        .expect("invariant violated: inferred guarded alternatives are shared");
-    for alternative in alternatives {
-        let expression = terms::ElaboratedExpression {
-            type_id: guarded.type_id,
-            expression: alternative.where_expression.expression,
-        };
-        let expression =
-            instantiate_expression_abstractions(state, context, expression, abstractions)?;
-        let expression =
-            terms::application::subtype_expression(state, context, expression, expected)?;
-        alternative.where_expression.expression = expression.expression;
-    }
-    guarded.type_id = expected;
-    Ok(guarded)
-}
-
-fn instantiate_expression_abstractions<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    mut expression: terms::ElaboratedExpression,
-    abstractions: &[signature::SkolemisedAbstraction],
-) -> QueryResult<terms::ElaboratedExpression>
-where
-    Q: ExternalQueries,
-{
-    for abstraction in abstractions {
-        let type_id = normalise::expand(state, context, expression.type_id)?;
-        match (*abstraction, context.lookup_type(type_id)) {
-            (
-                signature::SkolemisedAbstraction::Type { rigid, .. },
-                Type::Forall(inferred_binder, body),
-            ) => {
-                let binder = context.lookup_forall_binder(inferred_binder);
-                expression.type_id = SubstituteName::one(state, context, binder.name, rigid, body)?;
-            }
-            (
-                signature::SkolemisedAbstraction::Constraint { constraint },
-                Type::Constrained(inferred_constraint, result),
-            ) => {
-                unification::unify(state, context, inferred_constraint, constraint)?;
-                let evidence = state.push_wanted(constraint);
-                let kind = tree::ExpressionKind::EvidenceApplication {
-                    function: expression.expression,
-                    evidence,
-                    constraint,
-                };
-                expression = terms::allocate_expression(state, result, kind);
-            }
-            _ => panic!(
-                "invariant violated: inferred alias type abstractions do not match signature"
-            ),
-        }
-    }
-    Ok(expression)
 }
 
 fn guarded_expression_core<Q>(
