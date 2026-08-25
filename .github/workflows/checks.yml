@@ -48,6 +48,36 @@ jobs:
       - name: Run integration tests
         run: cargo nextest run -p tests-integration
 
+  compatibility_build_cache:
+    name: Package compatibility build cache
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          path: base
+
+      - name: Install Rust toolchain
+        run: rustup update stable && rustup default stable
+
+      - name: Cache compatibility build artifacts
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          add-job-id-key: "false"
+          cache-bin: "false"
+          cache-workspace-crates: "true"
+          key: ${{ github.sha }}
+          prefix-key: "v2-compatibility-build"
+          workspaces: |
+            base -> ../compatibility-target
+
+      - name: Build compatibility verifier
+        run: >-
+          cargo build --release --manifest-path base/Cargo.toml
+          --target-dir compatibility-target -p tests-compatibility
+
   compatibility:
     name: Package compatibility
     if: github.event_name == 'pull_request'
@@ -70,32 +100,46 @@ jobs:
       - name: Install Rust toolchain
         run: rustup update stable && rustup default stable
 
-      - name: Cache compatibility build and package artifacts
+      - name: Cache compatibility build artifacts
         uses: Swatinem/rust-cache@v2.9.1
         with:
+          add-job-id-key: "false"
           cache-bin: "false"
-          cache-directories: |
+          cache-workspace-crates: "true"
+          cache-on-failure: "true"
+          key: ${{ github.event.pull_request.base.sha }}
+          prefix-key: "v2-compatibility-build"
+          workspaces: |
+            base -> ../compatibility-target
+
+      - name: Restore compatibility packages
+        id: compatibility-package-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: |
             compatibility-cache/downloads
             compatibility-cache/sources
-          cache-on-failure: "true"
           key: >-
-            ${{ github.event.pull_request.base.sha }}-${{ hashFiles('base/tests-compatibility/purescript-*.txt', 'candidate/tests-compatibility/purescript-*.txt') }}
-          prefix-key: "v1-compatibility"
-          workspaces: |
-            base -> target
-            candidate -> target
+            v1-compatibility-packages-pr-${{ github.event.pull_request.number }}-${{ hashFiles('base/tests-compatibility/purescript-*.txt', 'candidate/tests-compatibility/purescript-*.txt') }}
+          restore-keys: |
+            v1-compatibility-packages-pr-${{ github.event.pull_request.number }}-
 
       - name: Build compatibility verifiers
         run: |
-          cargo build --release --manifest-path base/Cargo.toml -p tests-compatibility
-          cargo build --release --manifest-path candidate/Cargo.toml -p tests-compatibility
+          mkdir -p compatibility-binaries
+          cargo build --release --manifest-path base/Cargo.toml \
+            --target-dir compatibility-target -p tests-compatibility
+          cp compatibility-target/release/tests-compatibility compatibility-binaries/base
+          cargo build --release --manifest-path candidate/Cargo.toml \
+            --target-dir compatibility-target -p tests-compatibility
+          cp compatibility-target/release/tests-compatibility compatibility-binaries/candidate
 
       - name: Prepare core and Acme corpus
         working-directory: candidate
         env:
           PACKAGE_CACHE_DIR: ${{ github.workspace }}/compatibility-cache
         run: |
-          target/release/tests-compatibility prepare \
+          ../compatibility-binaries/candidate prepare \
             --preset core \
             --preset acme \
             --cache-dir "$PACKAGE_CACHE_DIR"
@@ -113,7 +157,7 @@ jobs:
           set +e
           (
             cd base
-            target/release/tests-compatibility verify \
+            ../compatibility-binaries/base verify \
               --preset core \
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
@@ -125,7 +169,7 @@ jobs:
 
           (
             cd candidate
-            target/release/tests-compatibility verify \
+            ../compatibility-binaries/candidate verify \
               --preset core \
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
@@ -146,7 +190,7 @@ jobs:
           REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
         run: |
           set +e
-          candidate/target/release/tests-compatibility compare \
+          compatibility-binaries/candidate compare \
             --base-report "$REPORT_DIR/base.json" \
             --candidate-report "$REPORT_DIR/candidate.json" \
             --json-output "$REPORT_DIR/comparison.json" \
@@ -171,6 +215,18 @@ jobs:
           path: compatibility-artifacts
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Save compatibility packages
+        if: >-
+          always() &&
+          steps.compatibility-package-cache.outputs.cache-hit != 'true' &&
+          steps.compatibility-package-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            compatibility-cache/downloads
+            compatibility-cache/sources
+          key: ${{ steps.compatibility-package-cache.outputs.cache-primary-key }}
 
       - name: Enforce compatibility result
         if: always()
