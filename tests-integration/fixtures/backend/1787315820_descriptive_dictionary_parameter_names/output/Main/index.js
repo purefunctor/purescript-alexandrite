@@ -48,20 +48,18 @@ export function duplicateEqual(equalValueDict) {
 }
 
 export function parameterCollision(equalValueDict) {
-  function parameterCollision$closure(equalValueDict) {
-    return equalValueDict$1 => {
-      return left => {
-        return right => {
-          if (equalValueDict$1) {
-            return equal(equalValueDict)(left)(right);
-          } else {
-            return false;
-          }
-        };
+  const $closure = equalValueDict$1 => {
+    return left => {
+      return right => {
+        if (equalValueDict$1) {
+          return equal(equalValueDict)(left)(right);
+        } else {
+          return false;
+        }
       };
     };
-  }
-  return parameterCollision$closure(equalValueDict);
+  };
+  return $closure;
 }
 
 export function isAvailable(availableDict) {

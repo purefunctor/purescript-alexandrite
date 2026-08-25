@@ -7,18 +7,10 @@ export const bindEffect = $foreign["bindEffect"];
 
 export const functorEffect = { map: mapEffect };
 
-export const applyEffect1 = (() => {
-  return { Functor0: () => functorEffect, apply: applyEffect };
-})();
+export const applyEffect1 = { Functor0: () => functorEffect, apply: applyEffect };
 
-export const applicativeEffect = (() => {
-  return { Apply0: () => applyEffect1, pure: pureEffect };
-})();
+export const applicativeEffect = { Apply0: () => applyEffect1, pure: pureEffect };
 
-export const bindEffect1 = (() => {
-  return { Apply0: () => applyEffect1, bind: bindEffect };
-})();
+export const bindEffect1 = { Apply0: () => applyEffect1, bind: bindEffect };
 
-export const monadEffect = (() => {
-  return { Applicative0: () => applicativeEffect, Bind1: () => bindEffect1 };
-})();
+export const monadEffect = { Applicative0: () => applicativeEffect, Bind1: () => bindEffect1 };

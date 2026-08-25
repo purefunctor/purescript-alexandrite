@@ -1,0 +1,106 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export compareTwice = \eqADict%0 ->
+  \left%1 right%2 ->
+    if eq eqADict%0 left%1 right%2 then eq eqADict%0 right%2 left%1 else false
+
+@export compareIntsTwice = \left%3 right%4 ->
+  if eq eqInt left%3 right%4 then eq eqInt right%4 left%3 else false
+
+@export compareArraysTwice = \left%5 right%6 ->
+  let
+    eqArrayDict%7 = eqArray eqInt
+  in if eq eqArrayDict%7 left%5 right%6 then eq eqArrayDict%7 right%6 left%5 else false
+
+@export compareArraysOnce = \left%8 right%9 -> eq (eqArray eqInt) left%8 right%9
+
+@export compareGenericArraysTwice = \eqADict%10 ->
+  \left%11 right%12 ->
+    let
+      eqArrayDict%13 = eqArray eqADict%10
+    in if eq eqArrayDict%13 left%11 right%12 then eq eqArrayDict%13 right%12 left%11 else false
+
+@export compareNestedArraysTwice = \left%18 right%19 nestedLeft%14 nestedRight%15 ->
+  let
+    eqArrayDict%17 = eqArray eqInt
+    eqArrayDict%16 = eqArray eqArrayDict%17
+  in if eq eqArrayDict%16 nestedLeft%14 nestedRight%15
+    then eq eqArrayDict%16 nestedRight%15 nestedLeft%14
+    else eq eqArrayDict%17 left%18 right%19
+
+@export distinctGivens = \eqADict%20 eqBDict%24 ->
+  \leftA%21 rightA%22 leftB%25 rightB%26 ->
+    let
+      eqArrayDict%23 = eqArray eqADict%20
+      eqArrayDict%27 = eqArray eqBDict%24
+    in if eq eqArrayDict%23 leftA%21 rightA%22
+      then eq eqArrayDict%23 rightA%22 leftA%21
+      else if eq eqArrayDict%27 leftB%25 rightB%26
+        then eq eqArrayDict%27 rightB%26 leftB%25
+        else false
+
+@export distinctSubgoals = \leftInt%28 rightInt%29 leftBoolean%31 rightBoolean%32 ->
+  let
+    eqArrayDict%30 = eqArray eqInt
+    eqArrayDict%33 = eqArray eqBoolean
+  in if eq eqArrayDict%30 leftInt%28 rightInt%29
+    then eq eqArrayDict%30 rightInt%29 leftInt%28
+    else if eq eqArrayDict%33 leftBoolean%31 rightBoolean%32
+      then eq eqArrayDict%33 rightBoolean%32 leftBoolean%31
+      else false
+
+@export compareArraysThrice = \left%34 right%35 ->
+  let
+    eqArrayDict%36 = eqArray eqInt
+  in if eq eqArrayDict%36 left%34 right%35
+    then if eq eqArrayDict%36 right%35 left%34 then eq eqArrayDict%36 left%34 right%35 else false
+    else false
+
+@export compareNestedArraysWhole = \left%37 right%38 ->
+  let
+    eqArrayDict%39 = eqArray (eqArray eqInt)
+  in if eq eqArrayDict%39 left%37 right%38 then eq eqArrayDict%39 right%38 left%37 else false
+
+@export compareSuperclassArraysTwice = \orderedADict%40 ->
+  \left%41 right%42 ->
+    let
+      eqArrayDict%43 = eqArray (orderedADict%40."Eq0"())
+    in if eq eqArrayDict%43 left%41 right%42 then eq eqArrayDict%43 right%42 left%41 else false
+
+@export compareSuperclassTwice = \orderedADict%44 ->
+  \left%45 right%46 ->
+    let
+      Eq0Dict%47 = orderedADict%44."Eq0"()
+    in if eq Eq0Dict%47 left%45 right%46 then eq Eq0Dict%47 right%46 left%45 else false
+
+@export lambdaScope = \left%48 right%49 ->
+  if eq (eqArray eqInt) left%48 right%49
+    then (\lambdaLeft%50 lambdaRight%51 ->
+      let
+        eqArrayDict%52 = eqArray eqInt
+      in if eq eqArrayDict%52 lambdaLeft%50 lambdaRight%51
+        then eq eqArrayDict%52 lambdaRight%51 lambdaLeft%50
+        else false)
+      left%48
+      right%49
+    else false
+
+@export whereIsolation = \left%54 right%55 ->
+  let
+    helper%53 = \helperLeft%56 helperRight%57 -> eq (eqArray eqInt) helperLeft%56 helperRight%57
+  in if helper%53 left%54 right%55 then eq (eqArray eqInt) left%54 right%55 else false
+
+@export equationScope = \$boolean%58 $array%59 $array%60 ->
+  let
+    eqArrayDict%65 = eqArray eqInt
+  in case $boolean%58, $array%59, $array%60 of
+    true, left%61, right%62 ->
+      eq eqArrayDict%65 left%61 right%62
+    false, left%63, right%64 ->
+      eq eqArrayDict%65 right%64 left%63
+
+@export firstComparison = eq eqInt 1 2
+
+@export secondComparison = eq eqInt 3 4

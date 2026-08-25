@@ -1,0 +1,15 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export foreign addInt
+
+@export foreign multiplyInt
+
+@export constantAdd = addInt 20 22
+
+@export constantMultiply = multiplyInt 6 7
+
+@export overflowAdd = addInt 2147483647 1
+
+@export unknownAdd = addInt

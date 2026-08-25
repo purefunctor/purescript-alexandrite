@@ -1,6 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 265
-expression: ssa_report
----
-@export foreign const requested;

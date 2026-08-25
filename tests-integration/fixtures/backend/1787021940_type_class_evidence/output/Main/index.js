@@ -21,9 +21,7 @@ export const lessThanInt = $foreign["lessThanInt"];
 
 export const equalInt1 = { equal: equalInt };
 
-export const orderedInt = (() => {
-  return { Equal0: () => equalInt1, lessThan: lessThanInt };
-})();
+export const orderedInt = { Equal0: () => equalInt1, lessThan: lessThanInt };
 
 export const concreteEqual = equal(equalInt1)(1 | 0)(2 | 0);
 

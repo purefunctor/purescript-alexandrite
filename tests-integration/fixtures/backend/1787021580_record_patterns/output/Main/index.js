@@ -1,4 +1,5 @@
 export function select($record) {
   const first = $record.first;
-  return $record.nested.second;
+  const second = $record.nested.second;
+  return second;
 }

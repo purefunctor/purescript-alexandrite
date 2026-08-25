@@ -8,20 +8,17 @@ export function showIdentity(showADict) {
 }
 
 export const eqBox = (() => {
-  function eqBox$initialize$closure(left) {
+  const $closure = left => {
     return right => {
-      if (Array.isArray(left) && left[0] === "Box") {
-        if (Array.isArray(right) && right[0] === "Box") {
-          return true;
-        } else {
-          throw new Error("Pattern match failure");
-        }
-      } else {
-        throw new Error("Pattern match failure");
+      if (Array.isArray(left) && left[0] === "Box" && Array.isArray(right) && right[0] === "Box") {
+        return true;
       }
+      throw new Error("Pattern match failure");
     };
-  }
-  return { eq: eqBox$initialize$closure };
+  };
+  const $field = $closure;
+  const $record = { eq: $field };
+  return $record;
 })();
 
 export const equal = Data_Eq.eq(eqBox)(Box)(Box);

@@ -32,7 +32,7 @@ impl TestCategory {
 
     pub fn test_targets(&self) -> &'static [&'static str] {
         match self {
-            TestCategory::Backend => &["backend", "nbe"],
+            TestCategory::Backend => &["backend", "functional"],
             TestCategory::Checking => &["checking"],
             TestCategory::Semantic => &["semantic"],
             TestCategory::Lowering => &["lowering"],

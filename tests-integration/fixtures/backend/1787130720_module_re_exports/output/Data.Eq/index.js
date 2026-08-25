@@ -26,14 +26,8 @@ export function eqRecordConsType(eqRecordRowlistTailRowDict) {
   };
 }
 
-export const eqInt = (() => {
-  return { eq: $int => $int$1 => true };
-})();
+export const eqInt = { eq: $int => $int$1 => true };
 
-export const eqBoolean = (() => {
-  return { eq: $boolean => $boolean$1 => true };
-})();
+export const eqBoolean = { eq: $boolean => $boolean$1 => true };
 
-export const eqRecordNilType = (() => {
-  return { eqRecord: $nil => $record => $record$1 => true };
-})();
+export const eqRecordNilType = { eqRecord: $nil => $record => $record$1 => true };

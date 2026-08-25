@@ -1,6 +1,0 @@
----
-source: tests-integration/tests/nbe.rs
-assertion_line: 14
-expression: report
----
-@export foreign _null

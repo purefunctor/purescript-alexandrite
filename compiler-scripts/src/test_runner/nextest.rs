@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn backend_runs_backend_and_nbe_reporters_with_filters() {
+    fn backend_runs_backend_and_functional_reporters_with_filters() {
         let command = build_nextest_command(TestCategory::Backend, &args(&["constructor"], false));
         let arguments = command_arguments(&command);
 
@@ -118,7 +118,7 @@ mod tests {
                 "--test",
                 "backend",
                 "--test",
-                "nbe",
+                "functional",
                 "constructor",
                 "--status-level=none",
             ]

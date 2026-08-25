@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export foreign await
+
+@export arguments = await
+
+@export default = { "hyphen-label": arguments }
+
+@export readLabel = \record%0 -> record%0."hyphen-label"
+
+@export emptyLabel = { "": arguments }
+
+@export readEmptyLabel = \record%1 -> record%1.""
+
+@export constructor Tagged/1
+
+@export tagged = Tagged default

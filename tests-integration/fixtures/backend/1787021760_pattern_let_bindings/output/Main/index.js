@@ -1,8 +1,10 @@
 export function unwrap(wrapped) {
-  return wrapped;
+  const value = wrapped;
+  return value;
 }
 
 export function select(record) {
   const first = record.first;
-  return record.second;
+  const second = record.second;
+  return second;
 }

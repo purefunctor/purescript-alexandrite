@@ -1,0 +1,7 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export model = { count: 0, nested: { enabled: true, label: "before" } }
+
+@export updated = model { count = 1, nested { enabled = false, label = "after" } }

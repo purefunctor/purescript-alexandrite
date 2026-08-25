@@ -1,0 +1,30 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export foreign observe
+
+@export foreign readTrace
+
+@export directApply = (\value%0 -> value%0) 42
+
+@export directApplyOrder = \$boolean%2@(_) ->
+  observe "function" (\value%1 -> value%1) (observe "argument" 42)
+
+@export flippedApply = (\value%3 -> value%3) 42
+
+@export flippedApplyOrder = \$boolean%7@(_) ->
+  let
+    applyArgument%5 = observe "argument" 42
+    applyFunction%6 = observe "function" (\value%4 -> value%4)
+  in applyFunction%6 applyArgument%5
+
+@export functionIdentity = 42
+
+@export coerced = 42
+
+@export lookalikeApply = apply (\value%8 -> value%8) 42
+
+@export lookalikeIdentity = identity categoryFn 42
+
+@export lookalikeCoerce = unsafeCoerce 42

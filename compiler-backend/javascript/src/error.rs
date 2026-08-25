@@ -6,8 +6,8 @@ pub type ModuleResult<T> = Result<T, ModuleError>;
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ModuleError {
     #[error(transparent)]
-    ControlFlow(#[from] ssa::ModuleError),
-    #[error("cannot convert SSA module {file_id:?} to JavaScript: {state}")]
+    Functional(#[from] functional::ModuleError),
+    #[error("cannot convert functional module {file_id:?} to JavaScript: {state}")]
     Unsupported { file_id: FileId, state: UnsupportedState },
 }
 
@@ -19,4 +19,6 @@ pub enum UnsupportedState {
     CyclicInitializers,
     #[error("local global {name:?} has no JavaScript declaration")]
     MissingGlobal { name: String },
+    #[error("local value {name:?} has no JavaScript binding")]
+    MissingLocal { name: String },
 }

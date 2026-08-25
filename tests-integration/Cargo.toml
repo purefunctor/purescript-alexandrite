@@ -11,6 +11,7 @@ checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
 diagnostics = { version = "0.1.0", path = "../compiler-frontend/diagnostics" }
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 files = { version = "0.1.0", path = "../compiler-core/files" }
+functional = { version = "0.1.0", path = "../compiler-backend/functional" }
 glob = "0.3.4"
 indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 interner = { version = "0.1.0", path = "../compiler-core/interner" }
@@ -20,12 +21,10 @@ javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-frontend/lowering" }
 lsp-types.workspace = true
-nbe = { version = "0.1.0", path = "../compiler-backend/nbe" }
 prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }
 process_control = "5.2"
 serde_json = "1.0"
 similar = "3"
-ssa = { version = "0.1.0", path = "../compiler-backend/ssa" }
 stabilizing = { version = "0.1.0", path = "../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-frontend/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-frontend/syntax" }
@@ -61,7 +60,7 @@ name = "lsp"
 harness = false
 
 [[test]]
-name = "nbe"
+name = "functional"
 harness = false
 
 [[test]]

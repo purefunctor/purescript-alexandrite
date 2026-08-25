@@ -5,32 +5,31 @@ export const Box = $value0 => ["Box", $value0];
 export function multiEquation($choice) {
   if (Array.isArray($choice) && $choice[0] === "None") {
     return 0 | 0;
-  } else {
-    if (Array.isArray($choice) && $choice[0] === "Some") {
-      return $choice[1];
-    } else {
-      throw new Error("Pattern match failure");
-    }
   }
+  if (Array.isArray($choice) && $choice[0] === "Some") {
+    const value = $choice[1];
+    return value;
+  }
+  throw new Error("Pattern match failure");
 }
 
 export function mixedArity($boolean) {
   return $int => {
     if ($boolean === true) {
       return (value => value)($int);
-    } else {
-      if ($boolean === false) {
-        return $int;
-      } else {
-        throw new Error("Pattern match failure");
-      }
     }
+    if ($boolean === false) {
+      const value$1 = $int;
+      return value$1;
+    }
+    throw new Error("Pattern match failure");
   };
 }
 
 export function singleConstructor($box) {
   if (Array.isArray($box) && $box[0] === "Box") {
-    return $box[1];
+    const value = $box[1];
+    return value;
   } else {
     throw new Error("Pattern match failure");
   }
@@ -51,7 +50,6 @@ export function rigidWildcard($value) {
 }
 
 export function namedPattern(record) {
-  const value = record.value;
   return record;
 }
 

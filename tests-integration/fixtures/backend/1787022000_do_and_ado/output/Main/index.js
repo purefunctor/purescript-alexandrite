@@ -9,16 +9,14 @@ export const firstAction = $foreign["firstAction"];
 export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
 
-export const sequential = (() => {
-  return Control_Bind.bind(Effect.bindEffect1)(firstAction)(first => secondAction(first));
-})();
+export const sequential = Control_Bind.bind(Effect.bindEffect1)(firstAction)(
+  first => secondAction(first)
+);
 
-export const independent = (() => {
-  return Control_Apply.apply(Effect.applyEffect1)(
-    Data_Functor.map(Effect.functorEffect)(first => second => ({ first: first, second: second }))(
-      firstAction
-    )
-  )(independentAction);
-})();
+export const independent = Control_Apply.apply(Effect.applyEffect1)(
+  Data_Functor.map(Effect.functorEffect)(first => second => ({ first: first, second: second }))(
+    firstAction
+  )
+)(independentAction);
 
 export const pureValue = Control_Applicative.pure(Effect.applicativeEffect)(42 | 0);

@@ -1,0 +1,7 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export recursive[0] first = second
+
+@export recursive[0] second = first

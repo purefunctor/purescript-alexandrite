@@ -26,8 +26,7 @@ pub enum QueryKey {
     CheckedCore,
     Checked(FileId),
     Documented(FileId),
-    Nbe(FileId),
-    Ssa(FileId),
+    Functional(FileId),
     JavaScript(FileId),
 }
 

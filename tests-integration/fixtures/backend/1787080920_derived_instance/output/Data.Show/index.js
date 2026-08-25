@@ -6,6 +6,4 @@ export function showArray(showADict) {
   return { show: $array => "" };
 }
 
-export const showInt = (() => {
-  return { show: $int => "" };
-})();
+export const showInt = { show: $int => "" };

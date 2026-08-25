@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export unbox = \$box%1@(Box value%0) -> value%0
+
+@export fromLibrary = unbox box
+
+@export directReference = libraryValue

@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+expression: report
+---
+@export symbol = reflectSymbol (symbol "alexandrite") Proxy
+
+@export reflectedString = reflectType (reflectable "reflected") Proxy
+
+@export reflectedInteger = reflectType (reflectable 42) Proxy
+
+@export reflectedTrue = reflectType (reflectable true) Proxy
+
+@export reflectedFalse = reflectType (reflectable false) Proxy
+
+@export reflectedLess = reflectType (reflectable LT) Proxy
+
+@export reflectedEqual = reflectType (reflectable EQ) Proxy
+
+@export reflectedGreater = reflectType (reflectable GT) Proxy
