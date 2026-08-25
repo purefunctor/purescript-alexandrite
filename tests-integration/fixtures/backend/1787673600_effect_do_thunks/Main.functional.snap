@@ -24,13 +24,27 @@ expression: report
   bind bindEffect (constructEffect "pure-action" seed%8)
     (\value%9 -> pure applicativeEffect (mark "pure-body" { value: value%9 }))
 
-@export genericBind = \bindMDict%11 -> bind bindMDict%11
+@export branched = \choose%13 seed%11 ->
+  bind bindEffect (constructEffect "branch-action" seed%11)
+    (\value%12 ->
+      if choose%13
+        then constructEffect "branch-then" value%12
+        else constructEffect "branch-else" value%12)
 
-@export aliased = \seed%12 ->
-  genericBind bindEffect (constructEffect "alias-first" seed%12)
-    (\value%13 -> constructEffect "alias-second" value%13)
+@export patternLet = \seed%14 ->
+  bind bindEffect (constructEffect "pattern-action" seed%14)
+    (\value%15 ->
+      let
+        { selected: selected%16 } = { selected: value%15 }
+      in constructEffect "pattern-result" selected%16)
+
+@export genericBind = \bindMDict%17 -> bind bindMDict%17
+
+@export aliased = \seed%18 ->
+  genericBind bindEffect (constructEffect "alias-first" seed%18)
+    (\value%19 -> constructEffect "alias-second" value%19)
 
 @export deferredEffect = bind bindEffect (constructEffect "deferred-action" "ignored")
-  (\value%14 -> constructEffect "deferred-result" deferredValue)
+  (\value%20 -> constructEffect "deferred-result" deferredValue)
 
 @export deferredValue = mark "deferred-value" "deferred"

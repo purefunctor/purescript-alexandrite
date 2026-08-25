@@ -35,6 +35,21 @@ pureAfterBind seed = do
     result = { value }
   pure (mark "pure-body" result)
 
+branched :: Boolean -> String -> Effect String
+branched choose seed = do
+  value <- constructEffect "branch-action" seed
+  if choose then
+    constructEffect "branch-then" value
+  else
+    constructEffect "branch-else" value
+
+patternLet :: String -> Effect String
+patternLet seed = do
+  value <- constructEffect "pattern-action" seed
+  let
+    { selected } = { selected: value }
+  constructEffect "pattern-result" selected
+
 genericBind :: forall m a b. Bind m => m a -> (a -> m b) -> m b
 genericBind = bind
 

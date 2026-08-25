@@ -31,6 +31,34 @@ export function pureAfterBind(seed) {
   );
 }
 
+export function branched(choose) {
+  return seed => {
+    const $function = Control_Bind.bind(Effect.bindEffect)(constructEffect("branch-action")(seed));
+    const $closure = value => {
+      if (choose) {
+        return constructEffect("branch-then")(value);
+      } else {
+        return constructEffect("branch-else")(value);
+      }
+    };
+    const $argument = $closure;
+    const $call = $function($argument);
+    return $call;
+  };
+}
+
+export function patternLet(seed) {
+  const $function = Control_Bind.bind(Effect.bindEffect)(constructEffect("pattern-action")(seed));
+  const $closure = value => {
+    const $scrutinee = { selected: value };
+    const selected = $scrutinee.selected;
+    return constructEffect("pattern-result")(selected);
+  };
+  const $argument = $closure;
+  const $call = $function($argument);
+  return $call;
+}
+
 export function genericBind(bindMDict) {
   return Control_Bind.bind(bindMDict);
 }
