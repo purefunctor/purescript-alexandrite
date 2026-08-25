@@ -70,6 +70,21 @@ jobs:
       - name: Install Rust toolchain
         run: rustup update stable && rustup default stable
 
+      - name: Cache compatibility build and package artifacts
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          cache-bin: "false"
+          cache-directories: |
+            compatibility-cache/downloads
+            compatibility-cache/sources
+          cache-on-failure: "true"
+          key: >-
+            ${{ github.event.pull_request.base.sha }}-${{ hashFiles('base/tests-compatibility/purescript-*.txt', 'candidate/tests-compatibility/purescript-*.txt') }}
+          prefix-key: "v1-compatibility"
+          workspaces: |
+            base -> target
+            candidate -> target
+
       - name: Build compatibility verifiers
         run: |
           cargo build --release --manifest-path base/Cargo.toml -p tests-compatibility
@@ -77,12 +92,19 @@ jobs:
 
       - name: Prepare core and Acme corpus
         working-directory: candidate
-        run: target/release/tests-compatibility prepare --preset core --preset acme
+        env:
+          PACKAGE_CACHE_DIR: ${{ github.workspace }}/compatibility-cache
+        run: |
+          target/release/tests-compatibility prepare \
+            --preset core \
+            --preset acme \
+            --cache-dir "$PACKAGE_CACHE_DIR"
 
       - name: Collect base and candidate reports
         id: reports
         env:
           CORPUS_DIR: ${{ github.workspace }}/candidate/target/compatibility
+          PACKAGE_CACHE_DIR: ${{ github.workspace }}/compatibility-cache
           REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
         run: |
           mkdir -p "$REPORT_DIR"
@@ -96,7 +118,7 @@ jobs:
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
               --index-dir "$CORPUS_DIR/registry-index" \
-              --cache-dir "$CORPUS_DIR" \
+              --cache-dir "$PACKAGE_CACHE_DIR" \
               --json-output "$REPORT_DIR/base.json"
           ) > "$REPORT_DIR/base.log" 2>&1
           base_status=$?
@@ -108,7 +130,7 @@ jobs:
               --preset acme \
               --registry-dir "$CORPUS_DIR/registry" \
               --index-dir "$CORPUS_DIR/registry-index" \
-              --cache-dir "$CORPUS_DIR" \
+              --cache-dir "$PACKAGE_CACHE_DIR" \
               --json-output "$REPORT_DIR/candidate.json"
           ) > "$REPORT_DIR/candidate.log" 2>&1
           candidate_status=$?
