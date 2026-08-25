@@ -4,34 +4,28 @@ import * as $foreign from "./foreign.js";
 
 export function branched(choose) {
   return seed => {
-    const $function = Control_Bind.bind(Control_Monad_ST_Internal.bindST)(
-      constructST("branch-action")(seed)
-    );
-    const $closure = value => {
+    const $action = constructST("branch-action")(seed);
+    const $effect = () => {
+      const value = $action();
       if (choose) {
-        return constructST("branch-then")(value);
+        return constructST("branch-then")(value)();
       } else {
-        return constructST("branch-else")(value);
+        return constructST("branch-else")(value)();
       }
     };
-    const $argument = $closure;
-    const $call = $function($argument);
-    return $call;
+    return $effect;
   };
 }
 
 export function patternLet(seed) {
-  const $function = Control_Bind.bind(Control_Monad_ST_Internal.bindST)(
-    constructST("pattern-action")(seed)
-  );
-  const $closure = value => {
+  const $action = constructST("pattern-action")(seed);
+  const $effect = () => {
+    const value = $action();
     const $scrutinee = { selected: value };
     const selected = $scrutinee.selected;
-    return constructST("pattern-result")(selected);
+    return constructST("pattern-result")(selected)();
   };
-  const $argument = $closure;
-  const $call = $function($argument);
-  return $call;
+  return $effect;
 }
 
 export function genericBind(bindMDict) {
@@ -47,8 +41,13 @@ export function aliased(seed) {
 export const constructST = $foreign["constructST"];
 export const mark = $foreign["mark"];
 
-export const deferredST = Control_Bind.bind(Control_Monad_ST_Internal.bindST)(
-  constructST("deferred-action")("ignored")
-)(value => constructST("deferred-result")(deferredValue));
+export const deferredST = (() => {
+  const $action = constructST("deferred-action")("ignored");
+  const $effect = () => {
+    const value = $action();
+    return constructST("deferred-result")(deferredValue)();
+  };
+  return $effect;
+})();
 
 export const deferredValue = mark("deferred-value")("deferred");

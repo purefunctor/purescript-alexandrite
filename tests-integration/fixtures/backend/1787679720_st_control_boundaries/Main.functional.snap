@@ -8,16 +8,16 @@ expression: report
 @export foreign mark
 
 @export branched = \choose%2 seed%0 ->
-  bind bindST (constructST "branch-action" seed%0)
-    (\value%1 ->
-      if choose%2 then constructST "branch-then" value%1 else constructST "branch-else" value%1)
+  effect.bind (constructST "branch-action" seed%0)
+    \value%1 -> if choose%2
+      then constructST "branch-then" value%1
+      else constructST "branch-else" value%1
 
 @export patternLet = \seed%3 ->
-  bind bindST (constructST "pattern-action" seed%3)
-    (\value%4 ->
-      let
-        { selected: selected%5 } = { selected: value%4 }
-      in constructST "pattern-result" selected%5)
+  effect.bind (constructST "pattern-action" seed%3)
+    \value%4 -> let
+      { selected: selected%5 } = { selected: value%4 }
+    in constructST "pattern-result" selected%5
 
 @export genericBind = \bindMDict%6 -> bind bindMDict%6
 
@@ -25,7 +25,7 @@ expression: report
   genericBind bindST (constructST "alias-first" seed%7)
     (\value%8 -> constructST "alias-second" value%8)
 
-@export deferredST = bind bindST (constructST "deferred-action" "ignored")
-  (\value%9 -> constructST "deferred-result" deferredValue)
+@export deferredST = effect.bind (constructST "deferred-action" "ignored")
+  \value%9 -> constructST "deferred-result" deferredValue
 
 @export deferredValue = mark "deferred-value" "deferred"

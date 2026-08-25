@@ -1465,7 +1465,7 @@ where
         {
             return self.flipped_application(*argument, *function);
         }
-        if let Some([value]) = self.known_effect_instance_member_arguments(
+        if let Some([value]) = self.known_thunk_instance_member_arguments(
             known_function,
             &known_arguments,
             "Control.Applicative",
@@ -1475,7 +1475,7 @@ where
                 self.expression(ExpressionKind::Effect { effect: EffectExpression::Pure(*value) })
             );
         }
-        if let Some([action, continuation]) = self.known_effect_instance_member_arguments(
+        if let Some([action, continuation]) = self.known_thunk_instance_member_arguments(
             known_function,
             &known_arguments,
             "Control.Bind",
@@ -1495,14 +1495,14 @@ where
                 "Control.Bind",
                 "discardUnit",
             )?
-            && self.known_effect_instance(*bind_dictionary, None)?
+            && self.known_thunk_instance(*bind_dictionary, None)?
             && let Some((parameter, body)) = self.effect_continuation(*continuation)
         {
             return Ok(self.expression(ExpressionKind::Effect {
                 effect: EffectExpression::Bind { action: *action, parameter, body },
             }));
         }
-        if let Some([function, action]) = self.known_effect_instance_member_arguments(
+        if let Some([function, action]) = self.known_thunk_instance_member_arguments(
             known_function,
             &known_arguments,
             "Data.Functor",
@@ -1513,7 +1513,7 @@ where
             }));
         }
         if let Some([function_action, argument_action]) = self
-            .known_effect_instance_member_arguments(
+            .known_thunk_instance_member_arguments(
                 known_function,
                 &known_arguments,
                 "Control.Apply",
@@ -1774,7 +1774,7 @@ where
         Ok(Some(arguments))
     }
 
-    fn known_effect_instance_member_arguments<'a>(
+    fn known_thunk_instance_member_arguments<'a>(
         &self,
         expression: ExpressionId,
         arguments: &'a [ExpressionId],
@@ -1790,7 +1790,7 @@ where
         else {
             return Ok(None);
         };
-        if !self.known_effect_instance(record, Some(class))? {
+        if !self.known_thunk_instance(record, Some(class))? {
             return Ok(None);
         }
         Ok(Some(arguments))
@@ -1841,7 +1841,7 @@ where
             && self.source_module_name(instance_file)? == module_name)
     }
 
-    fn known_effect_instance(
+    fn known_thunk_instance(
         &self,
         expression: ExpressionId,
         expected_class: Option<(FileId, TypeItemId)>,
@@ -1869,25 +1869,48 @@ where
             }
         };
         let Some(instance) = instance else { return Ok(false) };
-        if self.source_module_name(instance_file)? != "Effect"
-            || expected_class.is_some_and(|class| instance.resolution != class)
-        {
+        if expected_class.is_some_and(|class| instance.resolution != class) {
             return Ok(false);
         }
 
+        let instance_module_name = self.source_module_name(instance_file)?;
+        let (type_module_name, type_name) = match instance_module_name.as_str() {
+            "Effect" => ("Effect", "Effect"),
+            "Control.Monad.ST.Internal" => ("Control.Monad.ST.Internal", "ST"),
+            _ => return Ok(false),
+        };
+
         let mut signature = instance.signature;
-        loop {
+        let mut instance_type = loop {
             signature = match self.queries.lookup_type(signature) {
-                checking::Type::Application(_, argument) => argument,
+                checking::Type::Application(_, argument) => break argument,
                 checking::Type::Forall(_, body)
                 | checking::Type::Constrained(_, body)
                 | checking::Type::Kinded(body, _) => body,
+                checking::Type::Constructor(_, _)
+                | checking::Type::KindApplication(_, _)
+                | checking::Type::Function(_, _)
+                | checking::Type::Row(_)
+                | checking::Type::Rigid(_, _, _)
+                | checking::Type::Integer(_)
+                | checking::Type::String(..)
+                | checking::Type::Unification(_)
+                | checking::Type::Free(_)
+                | checking::Type::Unknown(_) => return Ok(false),
+            };
+        };
+        loop {
+            instance_type = match self.queries.lookup_type(instance_type) {
+                checking::Type::Application(function, _)
+                | checking::Type::KindApplication(function, _)
+                | checking::Type::Kinded(function, _) => function,
                 checking::Type::Constructor(file_id, type_id) => {
                     let constructor_name = self.type_item_name(file_id, type_id)?;
-                    return Ok(constructor_name.as_deref() == Some("Effect")
-                        && self.source_module_name(file_id)? == "Effect");
+                    return Ok(constructor_name.as_deref() == Some(type_name)
+                        && self.source_module_name(file_id)? == type_module_name);
                 }
-                checking::Type::KindApplication(_, _)
+                checking::Type::Forall(_, _)
+                | checking::Type::Constrained(_, _)
                 | checking::Type::Function(_, _)
                 | checking::Type::Row(_)
                 | checking::Type::Rigid(_, _, _)
