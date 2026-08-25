@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+mark :: forall a. Prim.String -> a -> a
+timedAdo :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { seed :: Prim.String } }
+identity :: forall a. a -> a
+mapped :: Prim.String -> Effect.Effect Prim.String
+applied :: Prim.String -> Effect.Effect Prim.String
+capturedPure :: Prim.String -> Effect.Effect Prim.String
+
+Types

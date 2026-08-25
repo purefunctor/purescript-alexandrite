@@ -1,0 +1,36 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign constructEffect
+
+@export foreign mark
+
+@export chained = \seed%0 ->
+  bind bindEffect (constructEffect "first" seed%0)
+    (\first%1 ->
+      bind bindEffect (constructEffect "second" { first: first%1 })
+        (\second%3 -> constructEffect "third" { first: first%1, second: second%3 }))
+
+@export discarded = \seed%7 ->
+  discard discardUnit bindEffect (constructEffect "discard-first" Unit)
+    (\$unit%5@(_) ->
+      let
+        result%6 = mark "discard-let" seed%7
+      in constructEffect "discard-second" result%6)
+
+@export pureAfterBind = \seed%8 ->
+  bind bindEffect (constructEffect "pure-action" seed%8)
+    (\value%9 -> pure applicativeEffect (mark "pure-body" { value: value%9 }))
+
+@export genericBind = \bindMDict%11 -> bind bindMDict%11
+
+@export aliased = \seed%12 ->
+  genericBind bindEffect (constructEffect "alias-first" seed%12)
+    (\value%13 -> constructEffect "alias-second" value%13)
+
+@export deferredEffect = bind bindEffect (constructEffect "deferred-action" "ignored")
+  (\value%14 -> constructEffect "deferred-result" deferredValue)
+
+@export deferredValue = mark "deferred-value" "deferred"
