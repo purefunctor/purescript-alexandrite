@@ -7,19 +7,21 @@ export const Single = $value0 => ["Single", $value0];
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 
 export function roundTrip(value) {
-  return genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.to(
-    genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt.from(
-      value
-    )
+  return Data_Generic_Rep.to(
+    genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt
+  )(
+    Data_Generic_Rep.from(
+      genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt
+    )(value)
   );
 }
 
 const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstructors", () => {
   function genericVoidNoConstructors$initialize$closure(value) {
-    return ($lazy_genericVoidNoConstructors()).to(value);
+    return Data_Generic_Rep.to($lazy_genericVoidNoConstructors())(value);
   }
   function genericVoidNoConstructors$initialize$closure$1(value) {
-    return ($lazy_genericVoidNoConstructors()).from(value);
+    return Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value);
   }
   return {
     to: genericVoidNoConstructors$initialize$closure,

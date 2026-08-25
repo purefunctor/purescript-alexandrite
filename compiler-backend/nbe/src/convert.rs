@@ -311,7 +311,8 @@ fn runtime_term_global(
                 Ok(Some(context.term_global(file_id, term_id)?))
             }
         }
-        IndexedTermItemKind::ClassMember { .. } | IndexedTermItemKind::Operator { .. } => Ok(None),
+        IndexedTermItemKind::ClassMember { .. } => Ok(Some(context.term_global(file_id, term_id)?)),
+        IndexedTermItemKind::Operator { .. } => Ok(None),
     }
 }
 
@@ -348,23 +349,24 @@ fn term_declaration(
     let indexed_module = Arc::clone(&context.indexed);
     let checked = Arc::clone(&context.checked);
     let indexed = &indexed_module.items[term_id];
-    if matches!(
-        indexed.kind,
-        IndexedTermItemKind::ClassMember { .. } | IndexedTermItemKind::Operator { .. }
-    ) {
+    if matches!(indexed.kind, IndexedTermItemKind::Operator { .. }) {
         return Ok(None);
     }
-    let declaration_id = checked
-        .tree
-        .lookup_term(term_id)
-        .ok_or_else(|| context.unsupported(UnsupportedState::MissingTermDeclaration(term_id)))?;
-    let declaration = &checked.tree[declaration_id];
     let item_name = match &indexed.name {
         Some(name) => SmolStr::clone(name),
         None => context.term_fallback(term_id),
     };
     let global = Global { id: GlobalId::Term(context.file_id, term_id), item_name };
     let recursive_group = context.recursive_groups.get(&term_id).copied();
+    if matches!(indexed.kind, IndexedTermItemKind::ClassMember { .. }) {
+        let kind = DeclarationKind::Value(class_member_selector(context, term_id)?);
+        return Ok(Some(Declaration { global, exported, recursive_group, kind }));
+    }
+    let declaration_id = checked
+        .tree
+        .lookup_term(term_id)
+        .ok_or_else(|| context.unsupported(UnsupportedState::MissingTermDeclaration(term_id)))?;
+    let declaration = &checked.tree[declaration_id];
     let kind = match &declaration.kind {
         checking_tree::TermDeclarationKind::Value(value) => {
             DeclarationKind::Value(value_declaration(context, value)?)
@@ -381,6 +383,17 @@ fn term_declaration(
         }
     };
     Ok(Some(Declaration { global, exported, recursive_group, kind }))
+}
+
+fn class_member_selector(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    term_id: TermItemId,
+) -> ConversionResult<ExpressionId> {
+    let dictionary = context.fresh_parameter("dictionary".into())?;
+    let record = context.expression(ExpressionKind::Local { parameter: dictionary.clone() });
+    let field = context.member_field((context.file_id, term_id))?;
+    let body = context.expression(ExpressionKind::Project { record, field });
+    Ok(context.parameter_abstraction([dictionary], body))
 }
 
 fn instance_declaration(
@@ -744,10 +757,6 @@ fn convert_expression(
         }
         checking_tree::ExpressionKind::EvidenceApplication { function, evidence, .. } => {
             let evidence = evidence_variable(context, *evidence)?;
-            if let Some(resolution) = class_member_resolution(context, *function)? {
-                let field = context.member_field(resolution)?;
-                return Ok(context.expression(ExpressionKind::Project { record: evidence, field }));
-            }
             let function = convert_expression(context, *function)?;
             return context.application(function, [evidence]);
         }
@@ -789,32 +798,6 @@ fn convert_expression(
         }
     };
     Ok(context.expression(kind))
-}
-
-fn class_member_resolution(
-    context: &Context<'_, impl checking::ExternalQueries>,
-    expression_id: checking_tree::ExpressionId,
-) -> QueryResult<Option<(FileId, TermItemId)>> {
-    let expression = &context.checked.tree[expression_id];
-    let resolution = match expression.kind {
-        checking_tree::ExpressionKind::Variable { resolution }
-        | checking_tree::ExpressionKind::RecordPun { resolution, .. } => resolution,
-        _ => return Ok(None),
-    };
-    let checking_tree::VariableResolution::Source(resolution) = resolution else {
-        return Ok(None);
-    };
-    let lowering::TermVariableResolution::Reference(file_id, term_id) = resolution else {
-        return Ok(None);
-    };
-    let indexed = if file_id == context.file_id {
-        Arc::clone(&context.indexed)
-    } else {
-        context.queries.indexed(file_id)?
-    };
-    let is_class_member =
-        matches!(indexed.items[term_id].kind, IndexedTermItemKind::ClassMember { .. });
-    Ok(is_class_member.then_some((file_id, term_id)))
 }
 
 fn case_alternative(
@@ -1471,13 +1454,13 @@ where
         {
             return self.flipped_application(*argument, *function);
         }
-        if self.known_instance_member(
+        if let Some([argument]) = self.known_instance_member_arguments(
             known_function,
+            &known_arguments,
             "Control.Category",
             "identity",
             "categoryFn",
-        )? && let [argument] = known_arguments.as_slice()
-        {
+        )? {
             return Ok(*argument);
         }
         if self.known_term(known_function, "Unsafe.Coerce", "unsafeCoerce")?
@@ -1485,42 +1468,58 @@ where
         {
             return Ok(*argument);
         }
-        if self.known_instance_member(
+        if let Some([value]) = self.known_instance_member_arguments(
             known_function,
+            &known_arguments,
             "Data.HeytingAlgebra",
             "not",
             "heytingAlgebraBoolean",
-        )? && let [value] = known_arguments.as_slice()
-        {
+        )? {
             return Ok(self.expression(ExpressionKind::Unary {
                 operator: UnaryOperator::BooleanNot,
                 value: *value,
             }));
         }
-        if self.known_instance_member(known_function, "Data.Ring", "negate", "ringInt")?
-            && let [value] = known_arguments.as_slice()
-        {
+        if let Some([value]) = self.known_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Data.Ring",
+            "negate",
+            "ringInt",
+        )? {
             return Ok(self.expression(ExpressionKind::Unary {
                 operator: UnaryOperator::IntegerNegate,
                 value: *value,
             }));
         }
-        let binary_operator =
-            if self.known_instance_member(known_function, "Data.Semiring", "add", "semiringInt")? {
-                Some(BinaryOperator::IntegerAdd)
-            } else if self.known_instance_member(known_function, "Data.Ring", "sub", "ringInt")? {
-                Some(BinaryOperator::IntegerSubtract)
-            } else if self.known_instance_member(
-                known_function,
-                "Data.Semiring",
-                "mul",
-                "semiringInt",
-            )? {
-                Some(BinaryOperator::IntegerMultiply)
-            } else {
-                None
-            };
-        if let (Some(operator), [left, right]) = (binary_operator, known_arguments.as_slice()) {
+        let binary = if let Some(arguments) = self.known_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Data.Semiring",
+            "add",
+            "semiringInt",
+        )? {
+            Some((BinaryOperator::IntegerAdd, arguments))
+        } else if let Some(arguments) = self.known_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Data.Ring",
+            "sub",
+            "ringInt",
+        )? {
+            Some((BinaryOperator::IntegerSubtract, arguments))
+        } else if let Some(arguments) = self.known_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Data.Semiring",
+            "mul",
+            "semiringInt",
+        )? {
+            Some((BinaryOperator::IntegerMultiply, arguments))
+        } else {
+            None
+        };
+        if let Some((operator, [left, right])) = binary {
             return Ok(self.expression(ExpressionKind::Binary {
                 operator,
                 left: *left,
@@ -1649,33 +1648,47 @@ where
         Ok((arity <= 10 && global.item_name == canonical_name).then_some(arity))
     }
 
-    fn known_instance_member(
+    fn known_instance_member_arguments<'a>(
         &self,
         expression: ExpressionId,
+        arguments: &'a [ExpressionId],
         module_name: &str,
         member_name: &str,
         instance_name: &str,
-    ) -> QueryResult<bool> {
-        let ExpressionKind::Project { record, field } = &self.storage[expression].kind else {
-            return Ok(false);
+    ) -> QueryResult<Option<&'a [ExpressionId]>> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(None);
         };
-        let FieldIdentity::Member(member_file, _) = field.identity else {
-            return Ok(false);
+        let GlobalId::Term(member_file, member_id) = global.id else {
+            return Ok(None);
         };
-        if field.name != member_name || self.source_module_name(member_file)? != module_name {
-            return Ok(false);
+        let indexed = self.indexed_module(member_file)?;
+        if !matches!(indexed.items[member_id].kind, IndexedTermItemKind::ClassMember { .. })
+            || global.item_name != member_name
+        {
+            return Ok(None);
+        };
+        let Some((record, arguments)) = arguments.split_first() else {
+            return Ok(None);
+        };
+        if self.source_module_name(member_file)? != module_name {
+            return Ok(None);
         }
         let ExpressionKind::Global { global } = &self.storage[*record].kind else {
-            return Ok(false);
+            return Ok(None);
         };
-        let GlobalId::Instance(identity) = global.id else { return Ok(false) };
+        let GlobalId::Instance(identity) = global.id else { return Ok(None) };
         let instance_file = match identity {
             InstanceIdentity::Declared(file_id, _) | InstanceIdentity::Derived(file_id, _) => {
                 file_id
             }
         };
-        Ok(global.item_name == instance_name
-            && self.source_module_name(instance_file)? == module_name)
+        if global.item_name != instance_name
+            || self.source_module_name(instance_file)? != module_name
+        {
+            return Ok(None);
+        }
+        Ok(Some(arguments))
     }
 
     fn expression(&mut self, kind: ExpressionKind) -> ExpressionId {

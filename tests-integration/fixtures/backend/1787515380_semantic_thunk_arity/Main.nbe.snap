@@ -9,9 +9,13 @@ expression: report
 
 @export ordinaryUnitCall = ordinaryUnit Unit
 
-@export instance parentInt = { parent: \value%1 -> value%1 }
+@export parent = \dictionary%1 -> dictionary%1.parent
 
-@export instance childArray = \parentArrayADict%2 ->
-  { "Parent0": \() -> parentArrayADict%2, child: \value%3 -> value%3 }
+@export child = \dictionary%2 -> dictionary%2.child
 
-@export useSuperclass = \childADict%4 -> \value%5 -> (childADict%4."Parent0"()).parent value%5
+@export instance parentInt = { parent: \value%3 -> value%3 }
+
+@export instance childArray = \parentArrayADict%4 ->
+  { "Parent0": \() -> parentArrayADict%4, child: \value%5 -> value%5 }
+
+@export useSuperclass = \childADict%6 -> \value%7 -> parent (childADict%6."Parent0"()) value%7

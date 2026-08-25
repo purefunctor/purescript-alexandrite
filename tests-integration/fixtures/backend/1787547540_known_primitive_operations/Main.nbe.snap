@@ -19,6 +19,6 @@ expression: report
 
 @export integerAddOrder = \$boolean%8@(_) -> integer.add (observe "left" 20) (observe "right" 22)
 
-@export partiallyAppliedAdd = semiringInt.add 1
+@export partiallyAppliedAdd = add semiringInt 1
 
-@export lookalikeAdd = \left%9 right%10 -> semiringInt.add left%9 right%10
+@export lookalikeAdd = \left%9 right%10 -> add semiringInt left%9 right%10

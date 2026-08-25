@@ -3,6 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
+@export function empty(dictionary) {
+  entry() {
+    const empty = dictionary.empty;
+    return empty;
+  }
+}
+
 @export function chooseEmpty(emptyCollectionDict) {
   entry() {
     const closure = closure(chooseEmpty$closure, emptyCollectionDict);
@@ -37,11 +44,13 @@ closure chooseEmpty$closure[emptyCollectionDict](section33) {
     return result;
   }
   match$success() {
-    const empty = emptyCollectionDict.empty;
-    case$join(empty);
+    const empty = global(empty);
+    const call = source.call(empty, emptyCollectionDict);
+    case$join(call);
   }
   match$success$1() {
-    const empty$1 = emptyCollectionDict.empty;
-    case$join(empty$1);
+    const empty$1 = global(empty);
+    const call$1 = source.call(empty$1, emptyCollectionDict);
+    case$join(call$1);
   }
 }

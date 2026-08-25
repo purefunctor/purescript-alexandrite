@@ -1,19 +1,35 @@
+import * as Control_Applicative from "../Control.Applicative/index.js";
+import * as Control_Apply from "../Control.Apply/index.js";
+import * as Control_Bind from "../Control.Bind/index.js";
+import * as Data_Functor from "../Data.Functor/index.js";
 import * as $runtime from "../runtime.js";
 
 export const Box = $value0 => ["Box", $value0];
 
 export function liftApplicative(applicativeFunctorDict) {
-  return $function => value => (applicativeFunctorDict.Apply0()).apply(
-    applicativeFunctorDict.pure($function)
+  return $function => value => Control_Apply.apply(applicativeFunctorDict.Apply0())(
+    Control_Applicative.pure(applicativeFunctorDict)($function)
   )(value);
 }
 
 export function applyMonad(monadMonadDict) {
-  return functions => values => (monadMonadDict.Bind1()).bind(functions)(
-    $function => (monadMonadDict.Bind1()).bind(values)(
-      value => (monadMonadDict.Applicative0()).pure($function(value))
-    )
-  );
+  function applyMonad$closure(monadMonadDict) {
+    return functions => {
+      return values => {
+        function applyMonad$closure$closure(monadMonadDict, values) {
+          return $function => {
+            return Control_Bind.bind(monadMonadDict.Bind1())(values)(
+              value => Control_Applicative.pure(monadMonadDict.Applicative0())($function(value))
+            );
+          };
+        }
+        return Control_Bind.bind(monadMonadDict.Bind1())(functions)(
+          applyMonad$closure$closure(monadMonadDict, values)
+        );
+      };
+    };
+  }
+  return applyMonad$closure(monadMonadDict);
 }
 
 const $lazy_functorBox = $runtime.binding("functorBox", () => {
@@ -56,9 +72,9 @@ export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
 
 export const result = (() => {
-  const call$2 = ($lazy_functorBox()).map(value => value)(Box(42 | 0));
-  if (Array.isArray(call$2) && call$2[0] === "Box") {
-    return call$2[1];
+  const call$3 = Data_Functor.map($lazy_functorBox())(value => value)(Box(42 | 0));
+  if (Array.isArray(call$3) && call$3[0] === "Box") {
+    return call$3[1];
   } else {
     throw new Error("Pattern match failure");
   }

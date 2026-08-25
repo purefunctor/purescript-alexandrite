@@ -34,11 +34,11 @@ export function integerAddOrder($boolean) {
 
 export function lookalikeAdd(left) {
   return right => {
-    return Lookalike.semiringInt.add(left)(right);
+    return Lookalike.add(Lookalike.semiringInt)(left)(right);
   };
 }
 
 export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
 
-export const partiallyAppliedAdd = Data_Semiring.semiringInt.add(1 | 0);
+export const partiallyAppliedAdd = Data_Semiring.add(Data_Semiring.semiringInt)(1 | 0);

@@ -12,22 +12,24 @@ expression: ssa_report
 
 @export function compareIntsTwice(left, right) {
   entry() {
+    const eq = global(eq);
     const eqInt = global(eqInt);
-    const eq = eqInt.eq;
-    const call = source.call(eq, left);
-    const call$1 = source.call(call, right);
-    if (call$1) {
+    const call = source.call(eq, eqInt);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    if (call$2) {
       then();
     } else {
       else();
     }
   }
   then() {
+    const eq$1 = global(eq);
     const eqInt$1 = global(eqInt);
-    const eq$1 = eqInt$1.eq;
-    const call$2 = source.call(eq$1, right);
-    const call$3 = source.call(call$2, left);
-    if$join(call$3);
+    const call$3 = source.call(eq$1, eqInt$1);
+    const call$4 = source.call(call$3, right);
+    const call$5 = source.call(call$4, left);
+    if$join(call$5);
   }
   else() {
     const literal = false;
@@ -43,20 +45,22 @@ expression: ssa_report
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    if (call$2) {
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, right);
-    const call$4 = source.call(call$3, left);
-    if$join(call$4);
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, right);
+    const call$6 = source.call(call$5, left);
+    if$join(call$6);
   }
   else() {
     const literal = false;
@@ -69,13 +73,14 @@ expression: ssa_report
 
 @export function compareArraysOnce(left, right) {
   entry() {
+    const eq = global(eq);
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    return call$2;
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    return call$3;
   }
 }
 
@@ -93,26 +98,29 @@ expression: ssa_report
     const call = source.call(eqArray, eqInt);
     const eqArray$1 = global(eqArray);
     const call$1 = source.call(eqArray$1, call);
-    const eq = call$1.eq;
-    const call$2 = source.call(eq, nestedLeft);
-    const call$3 = source.call(call$2, nestedRight);
-    if (call$3) {
+    const eq = global(eq);
+    const call$2 = source.call(eq, call$1);
+    const call$3 = source.call(call$2, nestedLeft);
+    const call$4 = source.call(call$3, nestedRight);
+    if (call$4) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call$1.eq;
-    const call$4 = source.call(eq$1, nestedRight);
-    const call$5 = source.call(call$4, nestedLeft);
-    if$join(call$5);
+    const eq$1 = global(eq);
+    const call$5 = source.call(eq$1, call$1);
+    const call$6 = source.call(call$5, nestedRight);
+    const call$7 = source.call(call$6, nestedLeft);
+    if$join(call$7);
   }
   else() {
-    const eq$2 = call.eq;
-    const call$6 = source.call(eq$2, left);
-    const call$7 = source.call(call$6, right);
-    if$join(call$7);
+    const eq$2 = global(eq);
+    const call$8 = source.call(eq$2, call);
+    const call$9 = source.call(call$8, left);
+    const call$10 = source.call(call$9, right);
+    if$join(call$10);
   }
   if$join(result) {
     return result;
@@ -134,26 +142,29 @@ expression: ssa_report
     const eqArray$1 = global(eqArray);
     const eqBoolean = global(eqBoolean);
     const call$1 = source.call(eqArray$1, eqBoolean);
-    const eq = call.eq;
-    const call$2 = source.call(eq, leftInt);
-    const call$3 = source.call(call$2, rightInt);
-    if (call$3) {
+    const eq = global(eq);
+    const call$2 = source.call(eq, call);
+    const call$3 = source.call(call$2, leftInt);
+    const call$4 = source.call(call$3, rightInt);
+    if (call$4) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$4 = source.call(eq$1, rightInt);
-    const call$5 = source.call(call$4, leftInt);
-    if$join(call$5);
+    const eq$1 = global(eq);
+    const call$5 = source.call(eq$1, call);
+    const call$6 = source.call(call$5, rightInt);
+    const call$7 = source.call(call$6, leftInt);
+    if$join(call$7);
   }
   else() {
-    const eq$2 = call$1.eq;
-    const call$6 = source.call(eq$2, leftBoolean);
-    const call$7 = source.call(call$6, rightBoolean);
-    if (call$7) {
+    const eq$2 = global(eq);
+    const call$8 = source.call(eq$2, call$1);
+    const call$9 = source.call(call$8, leftBoolean);
+    const call$10 = source.call(call$9, rightBoolean);
+    if (call$10) {
       then$1();
     } else {
       else$1();
@@ -163,10 +174,11 @@ expression: ssa_report
     return result;
   }
   then$1() {
-    const eq$3 = call$1.eq;
-    const call$8 = source.call(eq$3, rightBoolean);
-    const call$9 = source.call(call$8, leftBoolean);
-    if$join$1(call$9);
+    const eq$3 = global(eq);
+    const call$11 = source.call(eq$3, call$1);
+    const call$12 = source.call(call$11, rightBoolean);
+    const call$13 = source.call(call$12, leftBoolean);
+    if$join$1(call$13);
   }
   else$1() {
     const literal = false;
@@ -182,20 +194,22 @@ expression: ssa_report
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    if (call$2) {
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, right);
-    const call$4 = source.call(call$3, left);
-    if (call$4) {
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, right);
+    const call$6 = source.call(call$5, left);
+    if (call$6) {
       then$1();
     } else {
       else$1();
@@ -209,10 +223,11 @@ expression: ssa_report
     return result;
   }
   then$1() {
-    const eq$2 = call.eq;
-    const call$5 = source.call(eq$2, left);
-    const call$6 = source.call(call$5, right);
-    if$join$1(call$6);
+    const eq$2 = global(eq);
+    const call$7 = source.call(eq$2, call);
+    const call$8 = source.call(call$7, left);
+    const call$9 = source.call(call$8, right);
+    if$join$1(call$9);
   }
   else$1() {
     const literal = false;
@@ -230,20 +245,22 @@ expression: ssa_report
     const eqInt = global(eqInt);
     const call = source.call(eqArray$1, eqInt);
     const call$1 = source.call(eqArray, call);
-    const eq = call$1.eq;
-    const call$2 = source.call(eq, left);
-    const call$3 = source.call(call$2, right);
-    if (call$3) {
+    const eq = global(eq);
+    const call$2 = source.call(eq, call$1);
+    const call$3 = source.call(call$2, left);
+    const call$4 = source.call(call$3, right);
+    if (call$4) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call$1.eq;
-    const call$4 = source.call(eq$1, right);
-    const call$5 = source.call(call$4, left);
-    if$join(call$5);
+    const eq$1 = global(eq);
+    const call$5 = source.call(eq$1, call$1);
+    const call$6 = source.call(call$5, right);
+    const call$7 = source.call(call$6, left);
+    if$join(call$7);
   }
   else() {
     const literal = false;
@@ -270,13 +287,14 @@ expression: ssa_report
 
 @export function lambdaScope(left, right) {
   entry() {
+    const eq = global(eq);
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    if (call$2) {
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
       then();
     } else {
       else();
@@ -284,9 +302,9 @@ expression: ssa_report
   }
   then() {
     const closure = closure(lambdaScope$closure);
-    const call$3 = source.call(closure, left);
-    const call$4 = source.call(call$3, right);
-    if$join(call$4);
+    const call$4 = source.call(closure, left);
+    const call$5 = source.call(call$4, right);
+    if$join(call$5);
   }
   else() {
     const literal = false;
@@ -309,13 +327,14 @@ expression: ssa_report
     }
   }
   then() {
+    const eq = global(eq);
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call$2 = source.call(eqArray, eqInt);
-    const eq = call$2.eq;
-    const call$3 = source.call(eq, left);
-    const call$4 = source.call(call$3, right);
-    if$join(call$4);
+    const call$3 = source.call(eq, call$2);
+    const call$4 = source.call(call$3, left);
+    const call$5 = source.call(call$4, right);
+    if$join(call$5);
   }
   else() {
     const literal = false;
@@ -356,59 +375,65 @@ expression: ssa_report
     return result;
   }
   match$success() {
-    const eq = call.eq;
-    const call$1 = source.call(eq, $array);
-    const call$2 = source.call(call$1, $array$1);
-    case$join(call$2);
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, $array);
+    const call$3 = source.call(call$2, $array$1);
+    case$join(call$3);
   }
   match$success$1() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, $array$1);
-    const call$4 = source.call(call$3, $array);
-    case$join(call$4);
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, $array$1);
+    const call$6 = source.call(call$5, $array);
+    case$join(call$6);
   }
 }
 
 @export const firstComparison = initialize {
   entry() {
+    const eq = global(eq);
     const eqInt = global(eqInt);
-    const eq = eqInt.eq;
+    const call = source.call(eq, eqInt);
     const literal = 1;
-    const call = source.call(eq, literal);
+    const call$1 = source.call(call, literal);
     const literal$1 = 2;
-    const call$1 = source.call(call, literal$1);
-    return call$1;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
   }
 }
 
 @export const secondComparison = initialize {
   entry() {
+    const eq = global(eq);
     const eqInt = global(eqInt);
-    const eq = eqInt.eq;
+    const call = source.call(eq, eqInt);
     const literal = 3;
-    const call = source.call(eq, literal);
+    const call$1 = source.call(call, literal);
     const literal$1 = 4;
-    const call$1 = source.call(call, literal$1);
-    return call$1;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
   }
 }
 
 closure compareTwice$closure[eqADict](left, right) {
   entry() {
-    const eq = eqADict.eq;
-    const call = source.call(eq, left);
-    const call$1 = source.call(call, right);
-    if (call$1) {
+    const eq = global(eq);
+    const call = source.call(eq, eqADict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    if (call$2) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = eqADict.eq;
-    const call$2 = source.call(eq$1, right);
-    const call$3 = source.call(call$2, left);
-    if$join(call$3);
+    const eq$1 = global(eq);
+    const call$3 = source.call(eq$1, eqADict);
+    const call$4 = source.call(call$3, right);
+    const call$5 = source.call(call$4, left);
+    if$join(call$5);
   }
   else() {
     const literal = false;
@@ -423,20 +448,22 @@ closure compareGenericArraysTwice$closure[eqADict](left, right) {
   entry() {
     const eqArray = global(eqArray);
     const call = source.call(eqArray, eqADict);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    if (call$2) {
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, right);
-    const call$4 = source.call(call$3, left);
-    if$join(call$4);
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, right);
+    const call$6 = source.call(call$5, left);
+    if$join(call$6);
   }
   else() {
     const literal = false;
@@ -453,26 +480,29 @@ closure distinctGivens$closure[eqADict, eqBDict](leftA, rightA, leftB, rightB) {
     const call = source.call(eqArray, eqADict);
     const eqArray$1 = global(eqArray);
     const call$1 = source.call(eqArray$1, eqBDict);
-    const eq = call.eq;
-    const call$2 = source.call(eq, leftA);
-    const call$3 = source.call(call$2, rightA);
-    if (call$3) {
+    const eq = global(eq);
+    const call$2 = source.call(eq, call);
+    const call$3 = source.call(call$2, leftA);
+    const call$4 = source.call(call$3, rightA);
+    if (call$4) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$4 = source.call(eq$1, rightA);
-    const call$5 = source.call(call$4, leftA);
-    if$join(call$5);
+    const eq$1 = global(eq);
+    const call$5 = source.call(eq$1, call);
+    const call$6 = source.call(call$5, rightA);
+    const call$7 = source.call(call$6, leftA);
+    if$join(call$7);
   }
   else() {
-    const eq$2 = call$1.eq;
-    const call$6 = source.call(eq$2, leftB);
-    const call$7 = source.call(call$6, rightB);
-    if (call$7) {
+    const eq$2 = global(eq);
+    const call$8 = source.call(eq$2, call$1);
+    const call$9 = source.call(call$8, leftB);
+    const call$10 = source.call(call$9, rightB);
+    if (call$10) {
       then$1();
     } else {
       else$1();
@@ -482,10 +512,11 @@ closure distinctGivens$closure[eqADict, eqBDict](leftA, rightA, leftB, rightB) {
     return result;
   }
   then$1() {
-    const eq$3 = call$1.eq;
-    const call$8 = source.call(eq$3, rightB);
-    const call$9 = source.call(call$8, leftB);
-    if$join$1(call$9);
+    const eq$3 = global(eq);
+    const call$11 = source.call(eq$3, call$1);
+    const call$12 = source.call(call$11, rightB);
+    const call$13 = source.call(call$12, leftB);
+    if$join$1(call$13);
   }
   else$1() {
     const literal = false;
@@ -502,20 +533,22 @@ closure compareSuperclassArraysTwice$closure[orderedADict](left, right) {
     const Eq0 = orderedADict.Eq0;
     const call = source.call(Eq0);
     const call$1 = source.call(eqArray, call);
-    const eq = call$1.eq;
-    const call$2 = source.call(eq, left);
-    const call$3 = source.call(call$2, right);
-    if (call$3) {
+    const eq = global(eq);
+    const call$2 = source.call(eq, call$1);
+    const call$3 = source.call(call$2, left);
+    const call$4 = source.call(call$3, right);
+    if (call$4) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call$1.eq;
-    const call$4 = source.call(eq$1, right);
-    const call$5 = source.call(call$4, left);
-    if$join(call$5);
+    const eq$1 = global(eq);
+    const call$5 = source.call(eq$1, call$1);
+    const call$6 = source.call(call$5, right);
+    const call$7 = source.call(call$6, left);
+    if$join(call$7);
   }
   else() {
     const literal = false;
@@ -530,20 +563,22 @@ closure compareSuperclassTwice$closure[orderedADict](left, right) {
   entry() {
     const Eq0 = orderedADict.Eq0;
     const call = source.call(Eq0);
-    const eq = call.eq;
-    const call$1 = source.call(eq, left);
-    const call$2 = source.call(call$1, right);
-    if (call$2) {
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    if (call$3) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, right);
-    const call$4 = source.call(call$3, left);
-    if$join(call$4);
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, right);
+    const call$6 = source.call(call$5, left);
+    if$join(call$6);
   }
   else() {
     const literal = false;
@@ -559,20 +594,22 @@ closure lambdaScope$closure[](lambdaLeft, lambdaRight) {
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, lambdaLeft);
-    const call$2 = source.call(call$1, lambdaRight);
-    if (call$2) {
+    const eq = global(eq);
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, lambdaLeft);
+    const call$3 = source.call(call$2, lambdaRight);
+    if (call$3) {
       then();
     } else {
       else();
     }
   }
   then() {
-    const eq$1 = call.eq;
-    const call$3 = source.call(eq$1, lambdaRight);
-    const call$4 = source.call(call$3, lambdaLeft);
-    if$join(call$4);
+    const eq$1 = global(eq);
+    const call$4 = source.call(eq$1, call);
+    const call$5 = source.call(call$4, lambdaRight);
+    const call$6 = source.call(call$5, lambdaLeft);
+    if$join(call$6);
   }
   else() {
     const literal = false;
@@ -585,12 +622,13 @@ closure lambdaScope$closure[](lambdaLeft, lambdaRight) {
 
 closure whereIsolation$closure[](helperLeft, helperRight) {
   entry() {
+    const eq = global(eq);
     const eqArray = global(eqArray);
     const eqInt = global(eqInt);
     const call = source.call(eqArray, eqInt);
-    const eq = call.eq;
-    const call$1 = source.call(eq, helperLeft);
-    const call$2 = source.call(call$1, helperRight);
-    return call$2;
+    const call$1 = source.call(eq, call);
+    const call$2 = source.call(call$1, helperLeft);
+    const call$3 = source.call(call$2, helperRight);
+    return call$3;
   }
 }

@@ -1,3 +1,4 @@
+import * as Data_Eq from "../Data.Eq/index.js";
 import * as Data_Show from "../Data.Show/index.js";
 
 export const Box = ["Box"];
@@ -23,6 +24,6 @@ export const eqBox = (() => {
   return { eq: eqBox$initialize$closure };
 })();
 
-export const equal = eqBox.eq(Box)(Box);
+export const equal = Data_Eq.eq(eqBox)(Box)(Box);
 
-export const rendered = (showIdentity(Data_Show.showInt)).show(42 | 0);
+export const rendered = Data_Show.show(showIdentity(Data_Show.showInt))(42 | 0);

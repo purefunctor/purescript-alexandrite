@@ -13,8 +13,8 @@ expression: report
           true
 }
 
-@export equal = eqBox.eq Box Box
+@export equal = eq eqBox Box Box
 
 @export instance showIdentity = \showADict%2 -> showADict%2
 
-@export rendered = (showIdentity showInt).show 42
+@export rendered = show (showIdentity showInt) 42

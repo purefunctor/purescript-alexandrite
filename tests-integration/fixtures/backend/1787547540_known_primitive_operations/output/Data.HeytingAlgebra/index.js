@@ -1,3 +1,7 @@
+export function not(dictionary) {
+  return dictionary.not;
+}
+
 export const heytingAlgebraBoolean = (() => {
   function heytingAlgebraBoolean$initialize$closure(value) {
     if (value) {

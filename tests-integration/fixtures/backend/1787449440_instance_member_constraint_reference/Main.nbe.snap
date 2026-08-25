@@ -5,4 +5,4 @@ expression: report
 ---
 @export unwrap = \value%0 -> value%0
 
-@export instance eqWrapper = \eqADict%1 -> { eq: on eqADict%1.eq unwrap }
+@export instance eqWrapper = \eqADict%1 -> { eq: on (eq eqADict%1) unwrap }

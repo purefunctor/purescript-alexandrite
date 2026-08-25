@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 233
+assertion_line: 269
 expression: ssa_report
 ---
 @export foreign const firstAction;
@@ -11,40 +11,44 @@ expression: ssa_report
 
 @export const sequential = initialize {
   entry() {
+    const bind = global(bind);
     const bindEffect1 = global(bindEffect1);
-    const bind = bindEffect1.bind;
+    const call = source.call(bind, bindEffect1);
     const firstAction = global(firstAction);
-    const call = source.call(bind, firstAction);
+    const call$1 = source.call(call, firstAction);
     const closure = closure(sequential$initialize$closure);
-    const call$1 = source.call(call, closure);
-    return call$1;
+    const call$2 = source.call(call$1, closure);
+    return call$2;
   }
 }
 
 @export const independent = initialize {
   entry() {
+    const apply = global(apply);
     const applyEffect1 = global(applyEffect1);
-    const apply = applyEffect1.apply;
+    const call = source.call(apply, applyEffect1);
+    const map = global(map);
     const functorEffect = global(functorEffect);
-    const map = functorEffect.map;
+    const call$1 = source.call(map, functorEffect);
     const closure = closure(independent$initialize$closure);
-    const call = source.call(map, closure);
+    const call$2 = source.call(call$1, closure);
     const firstAction = global(firstAction);
-    const call$1 = source.call(call, firstAction);
-    const call$2 = source.call(apply, call$1);
+    const call$3 = source.call(call$2, firstAction);
+    const call$4 = source.call(call, call$3);
     const independentAction = global(independentAction);
-    const call$3 = source.call(call$2, independentAction);
-    return call$3;
+    const call$5 = source.call(call$4, independentAction);
+    return call$5;
   }
 }
 
 @export const pureValue = initialize {
   entry() {
+    const pure = global(pure);
     const applicativeEffect = global(applicativeEffect);
-    const pure = applicativeEffect.pure;
+    const call = source.call(pure, applicativeEffect);
     const literal = 42;
-    const call = source.call(pure, literal);
-    return call;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 

@@ -1,3 +1,3 @@
 export const append = 99 | 0;
 
-export { Just, "await", foreignValue, visible } from "../Origin/index.js";
+export { Just, "await", foreignValue, measure, visible } from "../Origin/index.js";

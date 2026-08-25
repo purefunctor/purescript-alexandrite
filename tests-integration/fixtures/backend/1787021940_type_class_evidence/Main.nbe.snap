@@ -3,6 +3,10 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
+@export equal = \dictionary%0 -> dictionary%0.equal
+
+@export lessThan = \dictionary%1 -> dictionary%1.lessThan
+
 @export foreign equalInt
 
 @export foreign lessThanInt
@@ -11,11 +15,11 @@ expression: report
 
 @export instance orderedInt = { "Equal0": \() -> equalInt1, lessThan: lessThanInt }
 
-@export genericEqual = \equalADict%0 -> \left%1 right%2 -> equalADict%0.equal left%1 right%2
+@export genericEqual = \equalADict%2 -> \left%3 right%4 -> equal equalADict%2 left%3 right%4
 
-@export concreteEqual = equalInt1.equal 1 2
+@export concreteEqual = equal equalInt1 1 2
 
-@export concreteLessThan = orderedInt.lessThan 1 2
+@export concreteLessThan = lessThan orderedInt 1 2
 
-@export superclassEqual = \orderedADict%3 ->
-  \left%4 right%5 -> (orderedADict%3."Equal0"()).equal left%4 right%5
+@export superclassEqual = \orderedADict%5 ->
+  \left%6 right%7 -> equal (orderedADict%5."Equal0"()) left%6 right%7

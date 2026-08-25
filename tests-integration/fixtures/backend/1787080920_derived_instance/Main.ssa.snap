@@ -15,13 +15,14 @@ expression: ssa_report
 
 @export const equal = initialize {
   entry() {
+    const eq = global(eq);
     const eqBox = global(eqBox);
-    const eq = eqBox.eq;
+    const call = source.call(eq, eqBox);
     const Box = constructor(Box);
-    const call = source.call(eq, Box);
+    const call$1 = source.call(call, Box);
     const Box$1 = constructor(Box);
-    const call$1 = source.call(call, Box$1);
-    return call$1;
+    const call$2 = source.call(call$1, Box$1);
+    return call$2;
   }
 }
 
@@ -33,13 +34,14 @@ expression: ssa_report
 
 @export const rendered = initialize {
   entry() {
+    const show = global(show);
     const showIdentity = global(showIdentity);
     const showInt = global(showInt);
     const call = source.call(showIdentity, showInt);
-    const show = call.show;
+    const call$1 = source.call(show, call);
     const literal = 42;
-    const call$1 = source.call(show, literal);
-    return call$1;
+    const call$2 = source.call(call$1, literal);
+    return call$2;
   }
 }
 

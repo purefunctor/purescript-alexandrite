@@ -3,6 +3,13 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
+@export function name(dictionary) {
+  entry() {
+    const name = dictionary.name;
+    return name;
+  }
+}
+
 @export function use(namedBodyDict) {
   entry() {
     const closure = closure(use$closure, namedBodyDict);
@@ -10,17 +17,10 @@ expression: ssa_report
   }
 }
 
-closure use$closure$closure[](namedBodyDict) {
-  entry() {
-    const name = namedBodyDict.name;
-    return name;
-  }
-}
-
 closure use$closure[namedBodyDict]($body) {
   entry() {
-    const closure = closure(use$closure$closure);
-    const call = source.call(closure, namedBodyDict);
+    const name = global(name);
+    const call = source.call(name, namedBodyDict);
     return call;
   }
 }

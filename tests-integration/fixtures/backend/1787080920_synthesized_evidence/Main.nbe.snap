@@ -3,18 +3,18 @@ source: tests-integration/tests/nbe.rs
 assertion_line: 14
 expression: report
 ---
-@export symbol = (symbol "alexandrite").reflectSymbol Proxy
+@export symbol = reflectSymbol (symbol "alexandrite") Proxy
 
-@export reflectedString = (reflectable "reflected").reflectType Proxy
+@export reflectedString = reflectType (reflectable "reflected") Proxy
 
-@export reflectedInteger = (reflectable 42).reflectType Proxy
+@export reflectedInteger = reflectType (reflectable 42) Proxy
 
-@export reflectedTrue = (reflectable true).reflectType Proxy
+@export reflectedTrue = reflectType (reflectable true) Proxy
 
-@export reflectedFalse = (reflectable false).reflectType Proxy
+@export reflectedFalse = reflectType (reflectable false) Proxy
 
-@export reflectedLess = (reflectable LT).reflectType Proxy
+@export reflectedLess = reflectType (reflectable LT) Proxy
 
-@export reflectedEqual = (reflectable EQ).reflectType Proxy
+@export reflectedEqual = reflectType (reflectable EQ) Proxy
 
-@export reflectedGreater = (reflectable GT).reflectType Proxy
+@export reflectedGreater = reflectType (reflectable GT) Proxy

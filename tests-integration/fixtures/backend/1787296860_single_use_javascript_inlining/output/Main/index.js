@@ -40,10 +40,6 @@ export function inlineCapturedClosure(captured) {
   return $boolean => captured;
 }
 
-export function inlineNestedClosureCapture(record) {
-  return $boolean => (projected => $boolean => projected)(record.value);
-}
-
 export function keepMultiUseClosure(captured) {
   function keepMultiUseClosure$closure(captured) {
     return $boolean => {

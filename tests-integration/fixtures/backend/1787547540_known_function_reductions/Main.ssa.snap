@@ -86,11 +86,12 @@ expression: ssa_report
 
 @export const lookalikeIdentity = initialize {
   entry() {
+    const identity = global(identity);
     const categoryFn = global(categoryFn);
-    const identity = categoryFn.identity;
+    const call = source.call(identity, categoryFn);
     const literal = 42;
-    const call = source.call(identity, literal);
-    return call;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 

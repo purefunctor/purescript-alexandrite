@@ -1,11 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 142
+assertion_line: 269
 expression: ssa_report
 ---
 @export Direct { append }
 
-@export Origin { Just, await, foreignValue, visible }
+@export Origin { Just, await, foreignValue, measure, visible }
 
 @export Transitive { marker }
 
@@ -54,11 +54,12 @@ expression: ssa_report
 
 @export const measured = initialize {
   entry() {
+    const measure = global(measure);
     const measureInt = global(measureInt);
-    const measure = measureInt.measure;
+    const call = source.call(measure, measureInt);
     const literal = 41;
-    const call = source.call(measure, literal);
-    return call;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 

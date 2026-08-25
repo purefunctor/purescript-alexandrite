@@ -3,6 +3,20 @@ source: tests-integration/src/fixtures.rs
 assertion_line: 269
 expression: ssa_report
 ---
+@export function equal(dictionary) {
+  entry() {
+    const equal = dictionary.equal;
+    return equal;
+  }
+}
+
+@export function lessThan(dictionary) {
+  entry() {
+    const lessThan = dictionary.lessThan;
+    return lessThan;
+  }
+}
+
 @export foreign const equalInt;
 
 @export foreign const lessThanInt;
@@ -33,25 +47,27 @@ expression: ssa_report
 
 @export const concreteEqual = initialize {
   entry() {
+    const equal = global(equal);
     const equalInt1 = global(equalInt1);
-    const equal = equalInt1.equal;
+    const call = source.call(equal, equalInt1);
     const literal = 1;
-    const call = source.call(equal, literal);
+    const call$1 = source.call(call, literal);
     const literal$1 = 2;
-    const call$1 = source.call(call, literal$1);
-    return call$1;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
   }
 }
 
 @export const concreteLessThan = initialize {
   entry() {
+    const lessThan = global(lessThan);
     const orderedInt = global(orderedInt);
-    const lessThan = orderedInt.lessThan;
+    const call = source.call(lessThan, orderedInt);
     const literal = 1;
-    const call = source.call(lessThan, literal);
+    const call$1 = source.call(call, literal);
     const literal$1 = 2;
-    const call$1 = source.call(call, literal$1);
-    return call$1;
+    const call$2 = source.call(call$1, literal$1);
+    return call$2;
   }
 }
 
@@ -71,20 +87,22 @@ closure orderedInt$initialize$closure[]() {
 
 closure genericEqual$closure[equalADict](left, right) {
   entry() {
-    const equal = equalADict.equal;
-    const call = source.call(equal, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const equal = global(equal);
+    const call = source.call(equal, equalADict);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
 
 closure superclassEqual$closure[orderedADict](left, right) {
   entry() {
+    const equal = global(equal);
     const Equal0 = orderedADict.Equal0;
     const call = source.call(Equal0);
-    const equal = call.equal;
-    const call$1 = source.call(equal, left);
-    const call$2 = source.call(call$1, right);
-    return call$2;
+    const call$1 = source.call(equal, call);
+    const call$2 = source.call(call$1, left);
+    const call$3 = source.call(call$2, right);
+    return call$3;
   }
 }

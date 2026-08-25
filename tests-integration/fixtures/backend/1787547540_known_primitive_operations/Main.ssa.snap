@@ -61,20 +61,22 @@ expression: ssa_report
 
 @export const partiallyAppliedAdd = initialize {
   entry() {
+    const add = global(add);
     const semiringInt = global(semiringInt);
-    const add = semiringInt.add;
+    const call = source.call(add, semiringInt);
     const literal = 1;
-    const call = source.call(add, literal);
-    return call;
+    const call$1 = source.call(call, literal);
+    return call$1;
   }
 }
 
 @export function lookalikeAdd(left, right) {
   entry() {
+    const add = global(add);
     const semiringInt = global(semiringInt);
-    const add = semiringInt.add;
-    const call = source.call(add, left);
-    const call$1 = source.call(call, right);
-    return call$1;
+    const call = source.call(add, semiringInt);
+    const call$1 = source.call(call, left);
+    const call$2 = source.call(call$1, right);
+    return call$2;
   }
 }
