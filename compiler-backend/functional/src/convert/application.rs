@@ -13,6 +13,12 @@ use crate::tree::{
 
 use super::{Context, ConversionResult};
 
+struct ClassMemberApplication<'a> {
+    class: (FileId, TypeItemId),
+    record: ExpressionId,
+    arguments: &'a [ExpressionId],
+}
+
 impl<'c, Q> Context<'c, Q>
 where
     Q: checking::ExternalQueries,
@@ -356,12 +362,8 @@ where
         instance_module_name: &str,
         instance_name: &str,
     ) -> QueryResult<Option<&'a [ExpressionId]>> {
-        let Some((_, record, arguments)) = self.known_class_member_arguments(
-            expression,
-            arguments,
-            member_module_name,
-            member_name,
-        )?
+        let Some(ClassMemberApplication { record, arguments, .. }) = self
+            .known_class_member_arguments(expression, arguments, member_module_name, member_name)?
         else {
             return Ok(None);
         };
@@ -378,12 +380,8 @@ where
         member_module_name: &str,
         member_name: &str,
     ) -> QueryResult<Option<&'a [ExpressionId]>> {
-        let Some((class, record, arguments)) = self.known_class_member_arguments(
-            expression,
-            arguments,
-            member_module_name,
-            member_name,
-        )?
+        let Some(ClassMemberApplication { class, record, arguments }) = self
+            .known_class_member_arguments(expression, arguments, member_module_name, member_name)?
         else {
             return Ok(None);
         };
@@ -399,7 +397,7 @@ where
         arguments: &'a [ExpressionId],
         module_name: &str,
         member_name: &str,
-    ) -> QueryResult<Option<((FileId, TypeItemId), ExpressionId, &'a [ExpressionId])>> {
+    ) -> QueryResult<Option<ClassMemberApplication<'a>>> {
         let ExpressionKind::Global { global } = &self.storage[expression].kind else {
             return Ok(None);
         };
@@ -416,7 +414,8 @@ where
         let Some((record, arguments)) = arguments.split_first() else {
             return Ok(None);
         };
-        Ok(Some(((member_file, parent), *record, arguments)))
+        let class = (member_file, parent);
+        Ok(Some(ClassMemberApplication { class, record: *record, arguments }))
     }
 
     fn known_named_instance(
