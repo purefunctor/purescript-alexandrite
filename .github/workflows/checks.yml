@@ -120,6 +120,7 @@ jobs:
       - name: Compare compatibility reports
         id: comparison
         env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPORT_DIR: ${{ github.workspace }}/compatibility-artifacts
         run: |
           set +e
@@ -127,11 +128,16 @@ jobs:
             --base-report "$REPORT_DIR/base.json" \
             --candidate-report "$REPORT_DIR/candidate.json" \
             --json-output "$REPORT_DIR/comparison.json" \
-            --summary-output "$GITHUB_STEP_SUMMARY" \
+            --summary-output "$REPORT_DIR/summary.md" \
             --github-annotations \
             2>&1 | tee "$REPORT_DIR/comparison.log"
           comparison_status=${PIPESTATUS[0]}
           set -e
+
+          if [[ -f "$REPORT_DIR/summary.md" ]]; then
+            cat "$REPORT_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          printf '%s\n' "$PR_NUMBER" > "$REPORT_DIR/pull-request-number"
 
           echo "status=$comparison_status" >> "$GITHUB_OUTPUT"
 

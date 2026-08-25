@@ -1,0 +1,89 @@
+name: Compatibility PR comment
+
+on:
+  workflow_run:
+    workflows:
+      - Cargo Build & Test
+    types:
+      - completed
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Publish compatibility report
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: compatibility-comment-${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Download compatibility report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: >-
+          gh run download "$RUN_ID" --repo "$REPOSITORY"
+          --name compatibility-reports --dir compatibility-artifacts
+
+      - name: Publish compatibility report
+        uses: actions/github-script@v9
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPORT_PATH: compatibility-artifacts/summary.md
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- compatibility-regression-report -->';
+            const issueNumber = Number(
+              fs.readFileSync('compatibility-artifacts/pull-request-number', 'utf8').trim()
+            );
+
+            const pullRequest = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: issueNumber,
+            });
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            if (
+              pullRequest.data.state !== 'open' ||
+              pullRequest.data.base.repo.full_name !== repository ||
+              pullRequest.data.head.sha !== process.env.HEAD_SHA
+            ) {
+              core.info('Skipping a compatibility report for an outdated pull request revision.');
+              return;
+            }
+
+            const report = fs.readFileSync(process.env.REPORT_PATH, 'utf8');
+            const footer = `\n\n[View workflow run](${process.env.RUN_URL})`;
+            const maximumReportLength = 60_000 - marker.length - footer.length;
+            const visibleReport = report.length > maximumReportLength
+              ? `${report.slice(0, maximumReportLength)}\n\n_The report was truncated; download the workflow artifact for full details._`
+              : report;
+            const body = `${marker}\n${visibleReport.trimEnd()}${footer}`;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo,
+              issue_number: issueNumber,
+              per_page: 100,
+            });
+            const previousComment = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker)
+            );
+
+            if (previousComment) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: previousComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issueNumber,
+                body,
+              });
+            }
