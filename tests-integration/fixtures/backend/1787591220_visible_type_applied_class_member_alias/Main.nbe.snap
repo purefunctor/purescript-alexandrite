@@ -1,0 +1,10 @@
+---
+source: tests-integration/tests/nbe.rs
+assertion_line: 14
+expression: report
+---
+@export use = \namedBodyDict%0 ->
+  \$body%3@(_) ->
+    let
+      alias%1 = \namedBodyDict%2 -> namedBodyDict%2.name
+    in alias%1 namedBodyDict%0

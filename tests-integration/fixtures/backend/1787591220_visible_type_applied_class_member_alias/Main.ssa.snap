@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export function use(namedBodyDict) {
+  entry() {
+    const closure = closure(use$closure, namedBodyDict);
+    return closure;
+  }
+}
+
+closure use$closure$closure[](namedBodyDict) {
+  entry() {
+    const name = namedBodyDict.name;
+    return name;
+  }
+}
+
+closure use$closure[namedBodyDict]($body) {
+  entry() {
+    const closure = closure(use$closure$closure);
+    const call = source.call(closure, namedBodyDict);
+    return call;
+  }
+}

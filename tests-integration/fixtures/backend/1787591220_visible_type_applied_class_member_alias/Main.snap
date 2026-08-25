@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 268
+expression: diagnostics_report
+---
+Terms
+name :: forall t0 (@a :: t0). Main.Named @t0 (a :: t0) => Prim.String
+use :: forall body. Main.Named @Prim.Type body => body -> Prim.String
+
+Types
+Named :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (a :: t0). Main.Named @t0 (a :: t0)
+  name :: forall t0 (@a :: t0). Main.Named @t0 (a :: t0) => Prim.String

@@ -178,9 +178,17 @@ impl Generator<'_> {
                 && inlineable.contains(result)
             {
                 if let InstructionValue::Closure { function, captures } = value
-                    && let Some(expression) =
-                        self.inline_closure_expression(output.tree, *function, captures, context)?
+                    && let Some(expression) = self.inline_closure_expression(
+                        output.tree,
+                        *function,
+                        captures,
+                        context,
+                        &expressions,
+                    )?
                 {
+                    for capture in captures.iter().copied() {
+                        expressions.remove(capture);
+                    }
                     expressions.insert(*result, expression);
                     continue;
                 }
@@ -260,10 +268,15 @@ impl Generator<'_> {
         function_id: FunctionId,
         captures: &[ValueId],
         parent_context: &FunctionContext,
+        parent_expressions: &BlockExpressionContext<'_>,
     ) -> ModuleResult<Option<ExpressionId>> {
         // Factory calls snapshot captured values, whereas lexical closures capture bindings. They
         // are equivalent only when the generated JavaScript never reassigns those bindings.
-        if captures.iter().any(|capture| !parent_context.value_is_lexically_stable(*capture)) {
+        let capture_is_unstable = captures.iter().any(|capture| {
+            parent_expressions.get(*capture).is_none()
+                && !parent_context.value_is_lexically_stable(*capture)
+        });
+        if capture_is_unstable {
             return Ok(None);
         }
 
@@ -285,9 +298,12 @@ impl Generator<'_> {
 
         let capture_names = {
             let function_captures = function.captures.iter().copied();
-            let parent_capture_names =
-                captures.iter().map(|capture| parent_context.value(*capture).to_owned());
-            iter::zip(function_captures, parent_capture_names)
+            let captures = iter::zip(function_captures, captures.iter().copied());
+            let captures = captures
+                .filter(|(_, parent_capture)| parent_expressions.get(*parent_capture).is_none());
+            captures.map(|(function_capture, parent_capture)| {
+                (function_capture, parent_context.value(parent_capture).to_owned())
+            })
         };
         let capture_names = capture_names.collect::<FxHashMap<_, _>>();
 
@@ -299,8 +315,8 @@ impl Generator<'_> {
         };
         let inlineable = context.inlineable_values(function.entry);
         let instructions_are_inlineable = block.instructions.iter().all(|instruction| {
-            if let Instruction::Assign { result, value } = instruction {
-                inlineable.contains(result) && !matches!(value, InstructionValue::Closure { .. })
+            if let Instruction::Assign { result, .. } = instruction {
+                inlineable.contains(result)
             } else {
                 false
             }
@@ -314,7 +330,24 @@ impl Generator<'_> {
             let Instruction::Assign { result, value } = instruction else {
                 unreachable!("invariant violated: inline closure contains a non-assignment")
             };
-            let expression = self.instruction_expression(tree, value, &expressions)?;
+            let expression = if let InstructionValue::Closure { function, captures } = value {
+                let Some(expression) = self.inline_closure_expression(
+                    tree,
+                    *function,
+                    captures,
+                    &context,
+                    &expressions,
+                )?
+                else {
+                    return Ok(None);
+                };
+                for capture in captures.iter().copied() {
+                    expressions.remove(capture);
+                }
+                expression
+            } else {
+                self.instruction_expression(tree, value, &expressions)?
+            };
             expressions.insert(*result, expression);
         }
         let mut expression = expressions.expression(tree, value);
@@ -335,6 +368,18 @@ impl Generator<'_> {
                 let parameter = context.value(*parameter).to_owned();
                 expression = tree.arrow(vec![parameter], expression);
             }
+        }
+
+        let pending_captures = iter::zip(function.captures.iter(), captures.iter());
+        let pending_captures = pending_captures.filter_map(|(function_capture, parent_capture)| {
+            parent_expressions
+                .get(*parent_capture)
+                .map(|expression| (context.value(*function_capture).to_owned(), expression))
+        });
+        let (parameters, arguments): (Vec<_>, Vec<_>) = pending_captures.unzip();
+        if !parameters.is_empty() {
+            expression = tree.arrow(parameters, expression);
+            expression = tree.call(expression, arguments);
         }
         Ok(Some(expression))
     }

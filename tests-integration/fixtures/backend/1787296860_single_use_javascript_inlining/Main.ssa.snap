@@ -83,6 +83,13 @@ expression: ssa_report
   }
 }
 
+@export function inlineNestedClosureCapture(record) {
+  entry() {
+    const closure = closure(inlineNestedClosureCapture$closure, record);
+    return closure;
+  }
+}
+
 @export function keepMultiUseClosure(captured) {
   entry() {
     const closure = closure(keepMultiUseClosure$closure, captured);
@@ -197,6 +204,20 @@ closure inlineClosure$closure[](item) {
 closure inlineCapturedClosure$closure[captured]($boolean) {
   entry() {
     return captured;
+  }
+}
+
+closure inlineNestedClosureCapture$closure$closure[projected]($boolean) {
+  entry() {
+    return projected;
+  }
+}
+
+closure inlineNestedClosureCapture$closure[record]($boolean) {
+  entry() {
+    const value = record.value;
+    const closure = closure(inlineNestedClosureCapture$closure$closure, value);
+    return closure;
   }
 }
 

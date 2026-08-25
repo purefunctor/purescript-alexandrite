@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 269
+expression: ssa_report
+---
+@export constructor Pair/2;
+
+@export function identity(value) {
+  entry() {
+    return value;
+  }
+}
+
+@export const use = initialize {
+  entry() {
+    const identity = global(identity);
+    const Pair = constructor(Pair);
+    const literal = 42;
+    const call = source.call(identity, literal);
+    const call$1 = source.call(Pair, call);
+    const literal$1 = "x";
+    const call$2 = source.call(identity, literal$1);
+    const call$3 = source.call(call$1, call$2);
+    return call$3;
+  }
+}
