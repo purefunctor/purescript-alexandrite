@@ -10,7 +10,7 @@ use checking::tree as checking_tree;
 use files::FileId;
 use indexing::{
     DeriveItemId, IndexedTermItemKind, IndexedTypeItemKind, InstanceItemId, OrderedTermItemId,
-    TermItemId,
+    TermItemId, TypeItemId,
 };
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -20,8 +20,8 @@ use thiserror::Error;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::optimize::inline_simple_bindings;
 use crate::tree::{
-    BinaryOperator, Binding, CaseAlternative, Declaration, DeclarationKind, Expression,
-    ExpressionId, ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard,
+    BinaryOperator, Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
+    Expression, ExpressionId, ExpressionKind, Field, FieldIdentity, Global, GlobalId, Guard,
     GuardedAlternative, IndirectModuleExports, InstanceIdentity, Literal, LocalId, Module,
     ModuleDependency, ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecordField,
     RecordPatternField, RecordUpdate, RecursiveGroupId, ReflectableEvidence, ReflectableOrdering,
@@ -1465,11 +1465,74 @@ where
         {
             return self.flipped_application(*argument, *function);
         }
+        if let Some([value]) = self.known_effect_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Control.Applicative",
+            "pure",
+        )? {
+            return Ok(
+                self.expression(ExpressionKind::Effect { effect: EffectExpression::Pure(*value) })
+            );
+        }
+        if let Some([action, continuation]) = self.known_effect_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Control.Bind",
+            "bind",
+        )? && let Some((parameter, body)) = self.effect_continuation(*continuation)
+        {
+            return Ok(self.expression(ExpressionKind::Effect {
+                effect: EffectExpression::Bind { action: *action, parameter, body },
+            }));
+        }
+        if let Some([bind_dictionary, action, continuation]) = self
+            .known_instance_member_arguments(
+                known_function,
+                &known_arguments,
+                "Control.Bind",
+                "discard",
+                "Control.Bind",
+                "discardUnit",
+            )?
+            && self.known_effect_instance(*bind_dictionary, None)?
+            && let Some((parameter, body)) = self.effect_continuation(*continuation)
+        {
+            return Ok(self.expression(ExpressionKind::Effect {
+                effect: EffectExpression::Bind { action: *action, parameter, body },
+            }));
+        }
+        if let Some([function, action]) = self.known_effect_instance_member_arguments(
+            known_function,
+            &known_arguments,
+            "Data.Functor",
+            "map",
+        )? {
+            return Ok(self.expression(ExpressionKind::Effect {
+                effect: EffectExpression::Map { function: *function, action: *action },
+            }));
+        }
+        if let Some([function_action, argument_action]) = self
+            .known_effect_instance_member_arguments(
+                known_function,
+                &known_arguments,
+                "Control.Apply",
+                "apply",
+            )?
+        {
+            return Ok(self.expression(ExpressionKind::Effect {
+                effect: EffectExpression::Apply {
+                    function_action: *function_action,
+                    argument_action: *argument_action,
+                },
+            }));
+        }
         if let Some([argument]) = self.known_instance_member_arguments(
             known_function,
             &known_arguments,
             "Control.Category",
             "identity",
+            "Control.Category",
             "categoryFn",
         )? {
             return Ok(*argument);
@@ -1484,6 +1547,7 @@ where
             &known_arguments,
             "Data.HeytingAlgebra",
             "not",
+            "Data.HeytingAlgebra",
             "heytingAlgebraBoolean",
         )? {
             return Ok(self.expression(ExpressionKind::Unary {
@@ -1496,6 +1560,7 @@ where
             &known_arguments,
             "Data.Ring",
             "negate",
+            "Data.Ring",
             "ringInt",
         )? {
             return Ok(self.expression(ExpressionKind::Unary {
@@ -1508,6 +1573,7 @@ where
             &known_arguments,
             "Data.Semiring",
             "add",
+            "Data.Semiring",
             "semiringInt",
         )? {
             Some((BinaryOperator::IntegerAdd, arguments))
@@ -1516,6 +1582,7 @@ where
             &known_arguments,
             "Data.Ring",
             "sub",
+            "Data.Ring",
             "ringInt",
         )? {
             Some((BinaryOperator::IntegerSubtract, arguments))
@@ -1524,6 +1591,7 @@ where
             &known_arguments,
             "Data.Semiring",
             "mul",
+            "Data.Semiring",
             "semiringInt",
         )? {
             Some((BinaryOperator::IntegerMultiply, arguments))
@@ -1538,6 +1606,29 @@ where
             }));
         }
         Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+    }
+
+    fn effect_continuation(&self, continuation: ExpressionId) -> Option<(Parameter, ExpressionId)> {
+        let ExpressionKind::Abstraction { parameters, body } = &self.storage[continuation].kind
+        else {
+            return None;
+        };
+        let [pattern] = parameters.as_ref() else { return None };
+        let parameter = match &self.storage[*pattern].kind {
+            PatternKind::Variable(parameter) => parameter.clone(),
+            PatternKind::Named { parameter, pattern }
+                if matches!(self.storage[*pattern].kind, PatternKind::Wildcard) =>
+            {
+                parameter.clone()
+            }
+            PatternKind::Named { .. }
+            | PatternKind::Wildcard
+            | PatternKind::Literal(_)
+            | PatternKind::Array(_)
+            | PatternKind::Record(_)
+            | PatternKind::Constructor { .. } => return None,
+        };
+        Some((parameter, *body))
     }
 
     fn uncurry_abstraction(
@@ -1663,10 +1754,55 @@ where
         &self,
         expression: ExpressionId,
         arguments: &'a [ExpressionId],
-        module_name: &str,
+        member_module_name: &str,
         member_name: &str,
+        instance_module_name: &str,
         instance_name: &str,
     ) -> QueryResult<Option<&'a [ExpressionId]>> {
+        let Some((_, record, arguments)) = self.known_class_member_arguments(
+            expression,
+            arguments,
+            member_module_name,
+            member_name,
+        )?
+        else {
+            return Ok(None);
+        };
+        if !self.known_named_instance(record, instance_module_name, instance_name)? {
+            return Ok(None);
+        }
+        Ok(Some(arguments))
+    }
+
+    fn known_effect_instance_member_arguments<'a>(
+        &self,
+        expression: ExpressionId,
+        arguments: &'a [ExpressionId],
+        member_module_name: &str,
+        member_name: &str,
+    ) -> QueryResult<Option<&'a [ExpressionId]>> {
+        let Some((class, record, arguments)) = self.known_class_member_arguments(
+            expression,
+            arguments,
+            member_module_name,
+            member_name,
+        )?
+        else {
+            return Ok(None);
+        };
+        if !self.known_effect_instance(record, Some(class))? {
+            return Ok(None);
+        }
+        Ok(Some(arguments))
+    }
+
+    fn known_class_member_arguments<'a>(
+        &self,
+        expression: ExpressionId,
+        arguments: &'a [ExpressionId],
+        module_name: &str,
+        member_name: &str,
+    ) -> QueryResult<Option<((FileId, TypeItemId), ExpressionId, &'a [ExpressionId])>> {
         let ExpressionKind::Global { global } = &self.storage[expression].kind else {
             return Ok(None);
         };
@@ -1674,32 +1810,94 @@ where
             return Ok(None);
         };
         let indexed = self.indexed_module(member_file)?;
-        if !matches!(indexed.items[member_id].kind, IndexedTermItemKind::ClassMember { .. })
-            || global.item_name != member_name
-        {
+        let IndexedTermItemKind::ClassMember { parent, .. } = indexed.items[member_id].kind else {
             return Ok(None);
         };
+        if global.item_name != member_name || self.source_module_name(member_file)? != module_name {
+            return Ok(None);
+        }
         let Some((record, arguments)) = arguments.split_first() else {
             return Ok(None);
         };
-        if self.source_module_name(member_file)? != module_name {
-            return Ok(None);
-        }
-        let ExpressionKind::Global { global } = &self.storage[*record].kind else {
-            return Ok(None);
+        Ok(Some(((member_file, parent), *record, arguments)))
+    }
+
+    fn known_named_instance(
+        &self,
+        expression: ExpressionId,
+        module_name: &str,
+        instance_name: &str,
+    ) -> QueryResult<bool> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(false);
         };
-        let GlobalId::Instance(identity) = global.id else { return Ok(None) };
+        let GlobalId::Instance(identity) = global.id else { return Ok(false) };
         let instance_file = match identity {
             InstanceIdentity::Declared(file_id, _) | InstanceIdentity::Derived(file_id, _) => {
                 file_id
             }
         };
-        if global.item_name != instance_name
-            || self.source_module_name(instance_file)? != module_name
+        Ok(global.item_name == instance_name
+            && self.source_module_name(instance_file)? == module_name)
+    }
+
+    fn known_effect_instance(
+        &self,
+        expression: ExpressionId,
+        expected_class: Option<(FileId, TypeItemId)>,
+    ) -> QueryResult<bool> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(false);
+        };
+        let GlobalId::Instance(identity) = global.id else { return Ok(false) };
+        let (instance_file, instance) = match identity {
+            InstanceIdentity::Declared(file_id, instance_id) => {
+                let checked = if file_id == self.file_id {
+                    Arc::clone(&self.checked)
+                } else {
+                    self.queries.checked(file_id)?
+                };
+                (file_id, checked.lookup_instance(instance_id))
+            }
+            InstanceIdentity::Derived(file_id, derive_id) => {
+                let checked = if file_id == self.file_id {
+                    Arc::clone(&self.checked)
+                } else {
+                    self.queries.checked(file_id)?
+                };
+                (file_id, checked.lookup_derived_instance(derive_id))
+            }
+        };
+        let Some(instance) = instance else { return Ok(false) };
+        if self.source_module_name(instance_file)? != "Effect"
+            || expected_class.is_some_and(|class| instance.resolution != class)
         {
-            return Ok(None);
+            return Ok(false);
         }
-        Ok(Some(arguments))
+
+        let mut signature = instance.signature;
+        loop {
+            signature = match self.queries.lookup_type(signature) {
+                checking::Type::Application(_, argument) => argument,
+                checking::Type::Forall(_, body)
+                | checking::Type::Constrained(_, body)
+                | checking::Type::Kinded(body, _) => body,
+                checking::Type::Constructor(file_id, type_id) => {
+                    let constructor_name = self.type_item_name(file_id, type_id)?;
+                    return Ok(constructor_name.as_deref() == Some("Effect")
+                        && self.source_module_name(file_id)? == "Effect");
+                }
+                checking::Type::KindApplication(_, _)
+                | checking::Type::Function(_, _)
+                | checking::Type::Row(_)
+                | checking::Type::Rigid(_, _, _)
+                | checking::Type::Integer(_)
+                | checking::Type::String(..)
+                | checking::Type::Unification(_)
+                | checking::Type::Free(_)
+                | checking::Type::Unknown(_) => return Ok(false),
+            };
+        }
     }
 
     fn expression(&mut self, kind: ExpressionKind) -> ExpressionId {

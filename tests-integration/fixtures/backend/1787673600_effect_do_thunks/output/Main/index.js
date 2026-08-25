@@ -1,62 +1,63 @@
-import * as Control_Applicative from "../Control.Applicative/index.js";
 import * as Control_Bind from "../Control.Bind/index.js";
 import * as Data_Unit from "../Data.Unit/index.js";
 import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 export function chained(seed) {
-  return Control_Bind.bind(Effect.bindEffect)(constructEffect("first")(seed))(
-    first => Control_Bind.bind(Effect.bindEffect)(constructEffect("second")({ first: first }))(
-      second => constructEffect("third")({ first: first, second: second })
-    )
-  );
+  const $action = constructEffect("first")(seed);
+  const $effect = () => {
+    const first = $action();
+    const $action$1 = constructEffect("second")({ first: first });
+    const second = $action$1();
+    return constructEffect("third")({ first: first, second: second })();
+  };
+  return $effect;
 }
 
 export function discarded(seed) {
-  const $function = Control_Bind.discard(Control_Bind.discardUnit)(Effect.bindEffect)(
-    constructEffect("discard-first")(Data_Unit.Unit)
-  );
-  const $closure = $unit => {
+  const $action = constructEffect("discard-first")(Data_Unit.Unit);
+  const $effect = () => {
+    const $unit = $action();
     const result = mark("discard-let")(seed);
-    return constructEffect("discard-second")(result);
+    return constructEffect("discard-second")(result)();
   };
-  const $argument = $closure;
-  const $call = $function($argument);
-  return $call;
+  return $effect;
 }
 
 export function pureAfterBind(seed) {
-  return Control_Bind.bind(Effect.bindEffect)(constructEffect("pure-action")(seed))(
-    value => Control_Applicative.pure(Effect.applicativeEffect)(mark("pure-body")({ value: value }))
-  );
+  const $action = constructEffect("pure-action")(seed);
+  const $effect = () => {
+    const value = $action();
+    const $value = mark("pure-body")({ value: value });
+    return $value;
+  };
+  return $effect;
 }
 
 export function branched(choose) {
   return seed => {
-    const $function = Control_Bind.bind(Effect.bindEffect)(constructEffect("branch-action")(seed));
-    const $closure = value => {
+    const $action = constructEffect("branch-action")(seed);
+    const $effect = () => {
+      const value = $action();
       if (choose) {
-        return constructEffect("branch-then")(value);
+        return constructEffect("branch-then")(value)();
       } else {
-        return constructEffect("branch-else")(value);
+        return constructEffect("branch-else")(value)();
       }
     };
-    const $argument = $closure;
-    const $call = $function($argument);
-    return $call;
+    return $effect;
   };
 }
 
 export function patternLet(seed) {
-  const $function = Control_Bind.bind(Effect.bindEffect)(constructEffect("pattern-action")(seed));
-  const $closure = value => {
+  const $action = constructEffect("pattern-action")(seed);
+  const $effect = () => {
+    const value = $action();
     const $scrutinee = { selected: value };
     const selected = $scrutinee.selected;
-    return constructEffect("pattern-result")(selected);
+    return constructEffect("pattern-result")(selected)();
   };
-  const $argument = $closure;
-  const $call = $function($argument);
-  return $call;
+  return $effect;
 }
 
 export function genericBind(bindMDict) {
@@ -72,8 +73,13 @@ export function aliased(seed) {
 export const constructEffect = $foreign["constructEffect"];
 export const mark = $foreign["mark"];
 
-export const deferredEffect = Control_Bind.bind(Effect.bindEffect)(
-  constructEffect("deferred-action")("ignored")
-)(value => constructEffect("deferred-result")(deferredValue));
+export const deferredEffect = (() => {
+  const $action = constructEffect("deferred-action")("ignored");
+  const $effect = () => {
+    const value = $action();
+    return constructEffect("deferred-result")(deferredValue)();
+  };
+  return $effect;
+})();
 
 export const deferredValue = mark("deferred-value")("deferred");

@@ -209,6 +209,8 @@ pub enum BinaryOperator {
 pub enum EffectExpression {
     Pure(ExpressionId),
     Bind { action: ExpressionId, parameter: Parameter, body: ExpressionId },
+    Map { function: ExpressionId, action: ExpressionId },
+    Apply { function_action: ExpressionId, argument_action: ExpressionId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

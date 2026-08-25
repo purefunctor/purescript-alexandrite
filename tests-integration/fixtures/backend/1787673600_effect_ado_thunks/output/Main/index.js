@@ -1,15 +1,17 @@
-import * as Control_Applicative from "../Control.Applicative/index.js";
-import * as Control_Apply from "../Control.Apply/index.js";
-import * as Data_Functor from "../Data.Functor/index.js";
-import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 export function timedAdo(seed) {
-  return Control_Apply.apply(Effect.applyEffect)(
-    Data_Functor.map(Effect.functorEffect)(first => second => ({ first: first, second: second }))(
-      constructEffect("ado-first")(seed)
-    )
-  )(constructEffect("ado-second")({ seed: seed }));
+  const $function = first => second => ({ first: first, second: second });
+  const $action = constructEffect("ado-first")(seed);
+  const $argumentAction = constructEffect("ado-second")({ seed: seed });
+  const $effect = () => {
+    let $function$1;
+    const $value = $action();
+    $function$1 = $function($value);
+    const $argument = $argumentAction();
+    return $function$1($argument);
+  };
+  return $effect;
 }
 
 export function identity(value) {
@@ -17,19 +19,32 @@ export function identity(value) {
 }
 
 export function mapped(value) {
-  return Data_Functor.map(Effect.functorEffect)(mark("map-function")(identity))(
-    constructEffect("map-action")(value)
-  );
+  const $function = mark("map-function")(identity);
+  const $action = constructEffect("map-action")(value);
+  const $effect = () => {
+    const $value = $action();
+    return $function($value);
+  };
+  return $effect;
 }
 
 export function applied(value) {
-  return Control_Apply.apply(Effect.applyEffect)(
-    constructEffect("apply-function-action")(identity)
-  )(constructEffect("apply-value-action")(value));
+  const $functionAction = constructEffect("apply-function-action")(identity);
+  const $argumentAction = constructEffect("apply-value-action")(value);
+  const $effect = () => {
+    const $function = $functionAction();
+    const $argument = $argumentAction();
+    return $function($argument);
+  };
+  return $effect;
 }
 
 export function capturedPure(value) {
-  return Control_Applicative.pure(Effect.applicativeEffect)(mark("pure-value")(value));
+  const $value = mark("pure-value")(value);
+  const $effect = () => {
+    return $value;
+  };
+  return $effect;
 }
 
 export const constructEffect = $foreign["constructEffect"];

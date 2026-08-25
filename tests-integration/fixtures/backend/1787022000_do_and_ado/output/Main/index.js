@@ -1,22 +1,36 @@
-import * as Control_Applicative from "../Control.Applicative/index.js";
-import * as Control_Apply from "../Control.Apply/index.js";
-import * as Control_Bind from "../Control.Bind/index.js";
-import * as Data_Functor from "../Data.Functor/index.js";
-import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 
 export const firstAction = $foreign["firstAction"];
 export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
 
-export const sequential = Control_Bind.bind(Effect.bindEffect1)(firstAction)(
-  first => secondAction(first)
-);
+export const sequential = (() => {
+  const $action = firstAction;
+  const $effect = () => {
+    const first = $action();
+    return secondAction(first)();
+  };
+  return $effect;
+})();
 
-export const independent = Control_Apply.apply(Effect.applyEffect1)(
-  Data_Functor.map(Effect.functorEffect)(first => second => ({ first: first, second: second }))(
-    firstAction
-  )
-)(independentAction);
+export const independent = (() => {
+  const $function = first => second => ({ first: first, second: second });
+  const $action = firstAction;
+  const $argumentAction = independentAction;
+  const $effect = () => {
+    let $function$1;
+    const $value = $action();
+    $function$1 = $function($value);
+    const $argument = $argumentAction();
+    return $function$1($argument);
+  };
+  return $effect;
+})();
 
-export const pureValue = Control_Applicative.pure(Effect.applicativeEffect)(42 | 0);
+export const pureValue = (() => {
+  const $value = 42 | 0;
+  const $effect = () => {
+    return $value;
+  };
+  return $effect;
+})();

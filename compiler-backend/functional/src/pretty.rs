@@ -388,6 +388,32 @@ impl<'a> Printer<'a, '_> {
                     .nest(2);
                 self.arena.text("effect.bind ").append(action).append(continuation).group()
             }
+            EffectExpression::Map { function, action } => {
+                let function = self.expression_at(*function, ExpressionPrecedence::Atom);
+                let action = self.expression_at(*action, ExpressionPrecedence::Atom);
+                let arguments = self
+                    .arena
+                    .line()
+                    .append(function)
+                    .append(self.arena.line())
+                    .append(action)
+                    .nest(2);
+                self.arena.text("effect.map").append(arguments).group()
+            }
+            EffectExpression::Apply { function_action, argument_action } => {
+                let function_action =
+                    self.expression_at(*function_action, ExpressionPrecedence::Atom);
+                let argument_action =
+                    self.expression_at(*argument_action, ExpressionPrecedence::Atom);
+                let arguments = self
+                    .arena
+                    .line()
+                    .append(function_action)
+                    .append(self.arena.line())
+                    .append(argument_action)
+                    .nest(2);
+                self.arena.text("effect.apply").append(arguments).group()
+            }
         }
     }
 
