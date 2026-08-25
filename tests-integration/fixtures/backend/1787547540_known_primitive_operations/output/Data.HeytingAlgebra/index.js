@@ -10,7 +10,5 @@ export const heytingAlgebraBoolean = (() => {
       return true;
     }
   };
-  const $field = $closure;
-  const $record = { not: $field };
-  return $record;
+  return { not: $closure };
 })();

@@ -175,13 +175,7 @@ export function lambdaScope(left) {
           }
         };
       };
-      const $function = $closure;
-      const $argument = left;
-      const $call = $function($argument);
-      const $function$1 = $call;
-      const $argument$1 = right;
-      const $call$1 = $function$1($argument$1);
-      return $call$1;
+      return $closure(left)(right);
     } else {
       return false;
     }

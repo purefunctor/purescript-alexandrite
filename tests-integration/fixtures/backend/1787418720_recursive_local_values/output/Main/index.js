@@ -5,7 +5,6 @@ export function applicationRecursive(token) {
   let $lazy_first;
   let $lazy_second;
   $lazy_first = $runtime.binding("first", () => {
-    const $function = observe("first");
     const $closure = condition => {
       if (condition) {
         return $lazy_second()(false);
@@ -13,12 +12,9 @@ export function applicationRecursive(token) {
         return 1 | 0;
       }
     };
-    const $argument = $closure;
-    const $call = $function($argument);
-    return $call;
+    return observe("first")($closure);
   });
   $lazy_second = $runtime.binding("second", () => {
-    const $function$1 = observe("second");
     const $closure$1 = condition$1 => {
       if (condition$1) {
         return $lazy_first()(false);
@@ -26,9 +22,7 @@ export function applicationRecursive(token) {
         return 2 | 0;
       }
     };
-    const $argument$1 = $closure$1;
-    const $call$1 = $function$1($argument$1);
-    return $call$1;
+    return observe("second")($closure$1);
   });
   const first = $lazy_first();
   const second = $lazy_second();

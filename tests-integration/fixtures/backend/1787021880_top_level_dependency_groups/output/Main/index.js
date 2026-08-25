@@ -30,9 +30,7 @@ export const recursiveValue = (() => {
       return recursivePeer.run(true);
     }
   };
-  const $field = $closure;
-  const $record = { run: $field };
-  return $record;
+  return { run: $closure };
 })();
 
 export const recursivePeer = (() => {
@@ -43,7 +41,5 @@ export const recursivePeer = (() => {
       return recursiveValue.run(true);
     }
   };
-  const $field = $closure;
-  const $record = { run: $field };
-  return $record;
+  return { run: $closure };
 })();

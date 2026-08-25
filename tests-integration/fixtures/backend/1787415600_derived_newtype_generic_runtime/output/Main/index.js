@@ -20,13 +20,10 @@ const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstruct
   const $closure = value => {
     return Data_Generic_Rep.to($lazy_genericVoidNoConstructors())(value);
   };
-  const $field = $closure;
   const $closure$1 = value$1 => {
     return Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value$1);
   };
-  const $field$1 = $closure$1;
-  const $record = { to: $field, from: $field$1 };
-  return $record;
+  return { to: $closure, from: $closure$1 };
 });
 
 export const newtypeTypeIdentifierInt = { Coercible0: () => ({}) };
@@ -63,7 +60,6 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
     }
     throw new Error("Pattern match failure");
   };
-  const $field = $closure;
   const $closure$1 = value => {
     if (value === "Empty") {
       return Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(Data_Generic_Rep.NoArguments));
@@ -83,9 +79,7 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
     }
     throw new Error("Pattern match failure");
   };
-  const $field$1 = $closure$1;
-  const $record = { to: $field, from: $field$1 };
-  return $record;
+  return { to: $closure, from: $closure$1 };
 })();
 
 export const emptyRoundTrip = roundTrip(Empty);

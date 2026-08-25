@@ -5,10 +5,9 @@ export const updated = (() => {
   const $field = 1 | 0;
   const $field$1 = false;
   const $field$2 = "after";
-  const $update = {
+  return {
     ...$record,
     count: $field,
     nested: { ...$record.nested, enabled: $field$1, label: $field$2 }
   };
-  return $update;
 })();

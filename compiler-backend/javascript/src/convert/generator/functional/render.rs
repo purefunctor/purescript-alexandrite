@@ -83,6 +83,12 @@ struct PatternPlan {
     bindings: Vec<(String, ExpressionId)>,
 }
 
+// Pending expressions must be evaluated before rendering an eager later sibling.
+struct RenderedExpression {
+    value: ExpressionId,
+    pending_evaluation: bool,
+}
+
 struct ModuleRenderer<'a, 'm, 'd> {
     generator: &'a Generator<'m>,
     tree: &'a mut Tree,
@@ -676,101 +682,193 @@ impl Generator<'_> {
         expression: FunctionalExpressionId,
         context: &mut FunctionContext,
     ) -> ModuleResult<ExpressionId> {
+        let expression = self.rendered_expression(tree, writer, expression, context)?;
+        Ok(expression.value)
+    }
+
+    fn rendered_expression(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expression: FunctionalExpressionId,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<RenderedExpression> {
         if let Some(expression) = self.try_inline_expression(tree, expression, context)? {
-            return Ok(expression);
+            return Ok(RenderedExpression { value: expression, pending_evaluation: true });
         }
+        self.render_non_inline_expression(tree, writer, expression, context)
+    }
+
+    fn render_non_inline_expression(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expression: FunctionalExpressionId,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<RenderedExpression> {
         match &self.module.storage[expression].kind {
             ExpressionKind::Array { elements } => {
                 let mut values = Vec::with_capacity(elements.len());
                 for element in elements.iter() {
-                    let value = self.expression_value(tree, writer, *element, context)?;
-                    let value = self.materialize_value(tree, writer, value, "$element", context);
+                    let value =
+                        if let Some(value) = self.try_inline_expression(tree, *element, context)? {
+                            RenderedExpression { value, pending_evaluation: true }
+                        } else {
+                            if self.expression_rendering_is_eager(*element) {
+                                self.materialize_rendered_expressions(
+                                    tree,
+                                    writer,
+                                    &mut values,
+                                    "$element",
+                                    context,
+                                );
+                            }
+                            self.render_non_inline_expression(tree, writer, *element, context)?
+                        };
                     values.push(value);
                 }
-                let array = tree.array(values);
-                Ok(self.materialize_value(tree, writer, array, "$array", context))
+                let values = values.into_iter().map(|value| value.value).collect();
+                let value = tree.array(values);
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Record { fields } => {
-                let mut properties = Vec::with_capacity(fields.len());
+                let mut rendered_fields = Vec::with_capacity(fields.len());
                 for field in fields.iter() {
-                    let value = self.expression_value(tree, writer, field.expression, context)?;
-                    let value = self.materialize_value(tree, writer, value, "$field", context);
-                    properties
-                        .push(ObjectProperty::Field { name: field.field.name.to_string(), value });
+                    let value = if let Some(value) =
+                        self.try_inline_expression(tree, field.expression, context)?
+                    {
+                        RenderedExpression { value, pending_evaluation: true }
+                    } else {
+                        if self.expression_rendering_is_eager(field.expression) {
+                            let values = rendered_fields.iter_mut().map(|(_, value)| value);
+                            for value in values {
+                                self.materialize_rendered_expression(
+                                    tree, writer, value, "$field", context,
+                                );
+                            }
+                        }
+                        self.render_non_inline_expression(tree, writer, field.expression, context)?
+                    };
+                    rendered_fields.push((field.field.name.to_string(), value));
                 }
-                let record = tree.object(properties);
-                Ok(self.materialize_value(tree, writer, record, "$record", context))
+                let properties = rendered_fields
+                    .into_iter()
+                    .map(|(name, value)| ObjectProperty::Field { name, value: value.value });
+                let value = tree.object(properties.collect());
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::RecordUpdate { record, updates } => {
-                let update =
+                let value =
                     self.record_update_expression(tree, writer, *record, updates, context)?;
-                Ok(self.materialize_value(tree, writer, update, "$update", context))
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Project { record, field } => {
-                let record = self.expression_value(tree, writer, *record, context)?;
-                let record = self.materialize_value(tree, writer, record, "$record", context);
-                let value = tree.member(record, field.name.as_str());
-                Ok(self.materialize_value(tree, writer, value, "$field", context))
+                let record = self.rendered_expression(tree, writer, *record, context)?;
+                let value = tree.member(record.value, field.name.as_str());
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Unary { operator, value } => {
-                let value = self.expression_value(tree, writer, *value, context)?;
-                let value = self.materialize_value(tree, writer, value, "$operand", context);
-                let result = unary_expression(tree, *operator, value);
-                Ok(self.materialize_value(tree, writer, result, "$result", context))
+                let value = self.rendered_expression(tree, writer, *value, context)?;
+                let value = unary_expression(tree, *operator, value.value);
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Binary { operator, left, right } => {
-                let left = self.expression_value(tree, writer, *left, context)?;
-                let left = self.materialize_value(tree, writer, left, "$left", context);
-                let right = self.expression_value(tree, writer, *right, context)?;
-                let right = self.materialize_value(tree, writer, right, "$right", context);
-                let result = binary_expression(tree, *operator, left, right);
-                Ok(self.materialize_value(tree, writer, result, "$result", context))
+                let mut left = self.rendered_expression(tree, writer, *left, context)?;
+                let right =
+                    if let Some(value) = self.try_inline_expression(tree, *right, context)? {
+                        RenderedExpression { value, pending_evaluation: true }
+                    } else {
+                        if self.expression_rendering_is_eager(*right) {
+                            self.materialize_rendered_expression(
+                                tree, writer, &mut left, "$left", context,
+                            );
+                        }
+                        self.render_non_inline_expression(tree, writer, *right, context)?
+                    };
+                let value = binary_expression(tree, *operator, left.value, right.value);
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Abstraction { parameters, body } => {
                 let name = context.allocate("$closure");
                 self.render_abstraction_binding(
                     tree, writer, &name, parameters, *body, false, context,
                 )?;
-                Ok(tree.identifier(name))
+                let value = tree.identifier(name);
+                Ok(RenderedExpression { value, pending_evaluation: false })
             }
             ExpressionKind::UncurriedAbstraction { parameters, body } => {
                 let name = context.allocate("$closure");
                 self.render_abstraction_binding(
                     tree, writer, &name, parameters, *body, true, context,
                 )?;
-                Ok(tree.identifier(name))
+                let value = tree.identifier(name);
+                Ok(RenderedExpression { value, pending_evaluation: false })
             }
             ExpressionKind::Application { function, arguments } => {
-                let function = self.expression_value(tree, writer, *function, context)?;
-                let mut function =
-                    self.materialize_value(tree, writer, function, "$function", context);
+                let mut function = self.rendered_expression(tree, writer, *function, context)?;
                 if arguments.is_empty() {
-                    let call = tree.call(function, vec![]);
-                    return Ok(self.materialize_value(tree, writer, call, "$call", context));
+                    let value = tree.call(function.value, vec![]);
+                    return Ok(RenderedExpression { value, pending_evaluation: true });
                 }
                 for argument in arguments.iter() {
-                    let value = self.expression_value(tree, writer, *argument, context)?;
-                    let value = self.materialize_value(tree, writer, value, "$argument", context);
-                    let call = tree.call(function, vec![value]);
-                    function = self.materialize_value(tree, writer, call, "$call", context);
+                    let argument = if let Some(value) =
+                        self.try_inline_expression(tree, *argument, context)?
+                    {
+                        RenderedExpression { value, pending_evaluation: true }
+                    } else {
+                        if self.expression_rendering_is_eager(*argument) {
+                            self.materialize_rendered_expression(
+                                tree,
+                                writer,
+                                &mut function,
+                                "$function",
+                                context,
+                            );
+                        }
+                        self.render_non_inline_expression(tree, writer, *argument, context)?
+                    };
+                    let value = tree.call(function.value, vec![argument.value]);
+                    function = RenderedExpression { value, pending_evaluation: true };
                 }
                 Ok(function)
             }
             ExpressionKind::UncurriedApplication { function, arguments } => {
-                let function = self.expression_value(tree, writer, *function, context)?;
-                let function = self.materialize_value(tree, writer, function, "$function", context);
+                let mut function = self.rendered_expression(tree, writer, *function, context)?;
                 let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments.iter() {
-                    let value = self.expression_value(tree, writer, *argument, context)?;
-                    let value = self.materialize_value(tree, writer, value, "$argument", context);
+                    let value = if let Some(value) =
+                        self.try_inline_expression(tree, *argument, context)?
+                    {
+                        RenderedExpression { value, pending_evaluation: true }
+                    } else {
+                        if self.expression_rendering_is_eager(*argument) {
+                            self.materialize_rendered_expression(
+                                tree,
+                                writer,
+                                &mut function,
+                                "$function",
+                                context,
+                            );
+                            self.materialize_rendered_expressions(
+                                tree,
+                                writer,
+                                &mut values,
+                                "$argument",
+                                context,
+                            );
+                        }
+                        self.render_non_inline_expression(tree, writer, *argument, context)?
+                    };
                     values.push(value);
                 }
-                let call = tree.call(function, values);
-                Ok(self.materialize_value(tree, writer, call, "$call", context))
+                let values = values.into_iter().map(|value| value.value).collect();
+                let value = tree.call(function.value, values);
+                Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Effect { effect } => {
                 let mut renderer = self.renderer(tree, writer, context);
-                effect_expression(&mut renderer, effect)
+                let value = effect_expression(&mut renderer, effect)?;
+                Ok(RenderedExpression { value, pending_evaluation: false })
             }
             ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
@@ -786,7 +884,8 @@ impl Generator<'_> {
                     Destination::Assign(&name),
                     context,
                 )?;
-                Ok(tree.identifier(name))
+                let value = tree.identifier(name);
+                Ok(RenderedExpression { value, pending_evaluation: false })
             }
             ExpressionKind::Literal { .. }
             | ExpressionKind::Constructor { .. }
@@ -796,6 +895,47 @@ impl Generator<'_> {
             | ExpressionKind::TrivialEvidence => {
                 unreachable!("invariant violated: atomic functional expression was not inlineable")
             }
+        }
+    }
+
+    fn expression_rendering_is_eager(&self, expression: FunctionalExpressionId) -> bool {
+        match &self.module.storage[expression].kind {
+            ExpressionKind::Literal { .. }
+            | ExpressionKind::Constructor { .. }
+            | ExpressionKind::Global { .. }
+            | ExpressionKind::Local { .. }
+            | ExpressionKind::Abstraction { .. }
+            | ExpressionKind::UncurriedAbstraction { .. }
+            | ExpressionKind::SynthesizedEvidence { .. }
+            | ExpressionKind::TrivialEvidence => false,
+            ExpressionKind::Array { elements } => {
+                elements.iter().any(|element| self.expression_rendering_is_eager(*element))
+            }
+            ExpressionKind::Record { fields } => {
+                fields.iter().any(|field| self.expression_rendering_is_eager(field.expression))
+            }
+            ExpressionKind::Project { record, .. }
+            | ExpressionKind::Unary { value: record, .. } => {
+                self.expression_rendering_is_eager(*record)
+            }
+            ExpressionKind::Binary { left, right, .. } => {
+                self.expression_rendering_is_eager(*left)
+                    || self.expression_rendering_is_eager(*right)
+            }
+            ExpressionKind::Application { function, arguments }
+            | ExpressionKind::UncurriedApplication { function, arguments } => {
+                self.expression_rendering_is_eager(*function)
+                    || arguments
+                        .iter()
+                        .any(|argument| self.expression_rendering_is_eager(*argument))
+            }
+            ExpressionKind::RecordUpdate { .. }
+            | ExpressionKind::IfThenElse { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Guarded { .. }
+            | ExpressionKind::Let { .. }
+            | ExpressionKind::LetPattern { .. }
+            | ExpressionKind::Effect { .. } => true,
         }
     }
 
@@ -1586,6 +1726,35 @@ impl Generator<'_> {
         let name = context.allocate("$scrutinee");
         writer.expression_line(format!("const {name} = "), tree, value, ";");
         tree.identifier(name)
+    }
+
+    fn materialize_rendered_expression(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expression: &mut RenderedExpression,
+        preferred: &str,
+        context: &mut FunctionContext,
+    ) {
+        if !expression.pending_evaluation {
+            return;
+        }
+        expression.value =
+            self.materialize_value(tree, writer, expression.value, preferred, context);
+        expression.pending_evaluation = false;
+    }
+
+    fn materialize_rendered_expressions(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expressions: &mut [RenderedExpression],
+        preferred: &str,
+        context: &mut FunctionContext,
+    ) {
+        for expression in expressions {
+            self.materialize_rendered_expression(tree, writer, expression, preferred, context);
+        }
     }
 
     fn materialize_value(

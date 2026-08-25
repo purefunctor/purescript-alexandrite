@@ -16,9 +16,7 @@ export const eqBox = (() => {
       throw new Error("Pattern match failure");
     };
   };
-  const $field = $closure;
-  const $record = { eq: $field };
-  return $record;
+  return { eq: $closure };
 })();
 
 export const equal = Data_Eq.eq(eqBox)(Box)(Box);

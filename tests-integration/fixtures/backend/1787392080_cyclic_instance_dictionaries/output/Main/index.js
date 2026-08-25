@@ -33,7 +33,6 @@ const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
 });
 
 const $lazy_bindBox = $runtime.binding("bindBox", () => {
-  const $field = () => $lazy_applyBox();
   const $closure = $box => {
     if (Array.isArray($box) && $box[0] === "Box") {
       const value = $box[1];
@@ -44,9 +43,7 @@ const $lazy_bindBox = $runtime.binding("bindBox", () => {
       throw new Error("Pattern match failure");
     }
   };
-  const $field$1 = $closure;
-  const $record = { Apply0: $field, bind: $field$1 };
-  return $record;
+  return { Apply0: () => $lazy_applyBox(), bind: $closure };
 });
 
 const $lazy_monadBox = $runtime.binding("monadBox", () => {
