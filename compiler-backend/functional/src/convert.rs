@@ -1465,67 +1465,8 @@ where
         {
             return self.flipped_application(*argument, *function);
         }
-        if let Some([value]) = self.known_thunk_instance_member_arguments(
-            known_function,
-            &known_arguments,
-            "Control.Applicative",
-            "pure",
-        )? {
-            return Ok(
-                self.expression(ExpressionKind::Effect { effect: EffectExpression::Pure(*value) })
-            );
-        }
-        if let Some([action, continuation]) = self.known_thunk_instance_member_arguments(
-            known_function,
-            &known_arguments,
-            "Control.Bind",
-            "bind",
-        )? && let Some((parameter, body)) = self.effect_continuation(*continuation)
-        {
-            return Ok(self.expression(ExpressionKind::Effect {
-                effect: EffectExpression::Bind { action: *action, parameter, body },
-            }));
-        }
-        if let Some([bind_dictionary, action, continuation]) = self
-            .known_instance_member_arguments(
-                known_function,
-                &known_arguments,
-                "Control.Bind",
-                "discard",
-                "Control.Bind",
-                "discardUnit",
-            )?
-            && self.known_thunk_instance(*bind_dictionary, None)?
-            && let Some((parameter, body)) = self.effect_continuation(*continuation)
-        {
-            return Ok(self.expression(ExpressionKind::Effect {
-                effect: EffectExpression::Bind { action: *action, parameter, body },
-            }));
-        }
-        if let Some([function, action]) = self.known_thunk_instance_member_arguments(
-            known_function,
-            &known_arguments,
-            "Data.Functor",
-            "map",
-        )? {
-            return Ok(self.expression(ExpressionKind::Effect {
-                effect: EffectExpression::Map { function: *function, action: *action },
-            }));
-        }
-        if let Some([function_action, argument_action]) = self
-            .known_thunk_instance_member_arguments(
-                known_function,
-                &known_arguments,
-                "Control.Apply",
-                "apply",
-            )?
-        {
-            return Ok(self.expression(ExpressionKind::Effect {
-                effect: EffectExpression::Apply {
-                    function_action: *function_action,
-                    argument_action: *argument_action,
-                },
-            }));
+        if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
+            return Ok(self.expression(ExpressionKind::Effect { effect }));
         }
         if let Some([argument]) = self.known_instance_member_arguments(
             known_function,
@@ -1606,6 +1547,55 @@ where
             }));
         }
         Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+    }
+
+    fn known_effect_application(
+        &self,
+        function: ExpressionId,
+        arguments: &[ExpressionId],
+    ) -> QueryResult<Option<EffectExpression>> {
+        if let Some([value]) = self.known_thunk_instance_member_arguments(
+            function,
+            arguments,
+            "Control.Applicative",
+            "pure",
+        )? {
+            return Ok(Some(EffectExpression::Pure(*value)));
+        }
+        if let Some([action, continuation]) =
+            self.known_thunk_instance_member_arguments(function, arguments, "Control.Bind", "bind")?
+            && let Some((parameter, body)) = self.effect_continuation(*continuation)
+        {
+            return Ok(Some(EffectExpression::Bind { action: *action, parameter, body }));
+        }
+        if let Some([bind_dictionary, action, continuation]) = self
+            .known_instance_member_arguments(
+                function,
+                arguments,
+                "Control.Bind",
+                "discard",
+                "Control.Bind",
+                "discardUnit",
+            )?
+            && self.known_thunk_instance(*bind_dictionary, None)?
+            && let Some((parameter, body)) = self.effect_continuation(*continuation)
+        {
+            return Ok(Some(EffectExpression::Bind { action: *action, parameter, body }));
+        }
+        if let Some([function, action]) =
+            self.known_thunk_instance_member_arguments(function, arguments, "Data.Functor", "map")?
+        {
+            return Ok(Some(EffectExpression::Map { function: *function, action: *action }));
+        }
+        if let Some([function_action, argument_action]) = self
+            .known_thunk_instance_member_arguments(function, arguments, "Control.Apply", "apply")?
+        {
+            return Ok(Some(EffectExpression::Apply {
+                function_action: *function_action,
+                argument_action: *argument_action,
+            }));
+        }
+        Ok(None)
     }
 
     fn effect_continuation(&self, continuation: ExpressionId) -> Option<(Parameter, ExpressionId)> {
