@@ -1,7 +1,7 @@
 import * as Library from "../Library/index.js";
 import * as $foreign from "./foreign.js";
 
-export const None = ["None"];
+export const None = "None";
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 
 export function readHostile(value) {
@@ -92,7 +92,7 @@ export function capturedMutual(captured) {
 }
 
 export function first(choice) {
-  if (Array.isArray(choice) && choice[0] === "None") {
+  if (choice === "None") {
     return 0 | 0;
   }
   if (Array.isArray(choice) && choice[0] === "Pair") {

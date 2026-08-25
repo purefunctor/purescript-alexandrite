@@ -22,14 +22,14 @@ export const reflectedFalse = Data_Reflectable.reflectType({ reflectType: $proxy
   Type_Proxy.Proxy
 );
 
-export const reflectedLess = Data_Reflectable.reflectType({ reflectType: $proxy => ["LT"] })(
+export const reflectedLess = Data_Reflectable.reflectType({ reflectType: $proxy => "LT" })(
   Type_Proxy.Proxy
 );
 
-export const reflectedEqual = Data_Reflectable.reflectType({ reflectType: $proxy => ["EQ"] })(
+export const reflectedEqual = Data_Reflectable.reflectType({ reflectType: $proxy => "EQ" })(
   Type_Proxy.Proxy
 );
 
-export const reflectedGreater = Data_Reflectable.reflectType({ reflectType: $proxy => ["GT"] })(
+export const reflectedGreater = Data_Reflectable.reflectType({ reflectType: $proxy => "GT" })(
   Type_Proxy.Proxy
 );

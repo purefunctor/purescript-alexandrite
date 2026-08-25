@@ -2,7 +2,7 @@ import * as Data_Generic_Rep from "../Data.Generic.Rep/index.js";
 import * as Data_Newtype from "../Data.Newtype/index.js";
 import * as $runtime from "../runtime.js";
 
-export const Empty = ["Empty"];
+export const Empty = "Empty";
 export const Single = $value0 => ["Single", $value0];
 export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
 
@@ -39,9 +39,7 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
   const $closure = representation => {
     if (Array.isArray(representation) && representation[0] === "Inl" && Array.isArray(
       representation[1]
-    ) && representation[1][0] === "Constructor" && Array.isArray(
-      representation[1][1]
-    ) && representation[1][1][0] === "NoArguments") {
+    ) && representation[1][0] === "Constructor" && representation[1][1] === "NoArguments") {
       return Empty;
     }
     if (Array.isArray(representation) && representation[0] === "Inr" && Array.isArray(
@@ -67,7 +65,7 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
   };
   const $field = $closure;
   const $closure$1 = value => {
-    if (Array.isArray(value) && value[0] === "Empty") {
+    if (value === "Empty") {
       return Data_Generic_Rep.Inl(Data_Generic_Rep.Constructor(Data_Generic_Rep.NoArguments));
     }
     if (Array.isArray(value) && value[0] === "Single") {

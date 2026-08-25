@@ -1,4 +1,4 @@
-export const Unit = ["Unit"];
+export const Unit = "Unit";
 
 export function ordinaryUnit(value) {
   return value;

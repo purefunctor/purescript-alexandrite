@@ -1501,14 +1501,18 @@ impl Generator<'_> {
                 }
             }
             PatternKind::Constructor { global, arguments } => {
-                let array = tree.identifier("Array");
-                let is_array = tree.member(array, "isArray");
-                let is_array = tree.call(is_array, vec![value]);
-                plan.conditions.push(is_array);
-                let zero = tree.number("0");
-                let tag = tree.index(value, zero);
                 let expected = tree.string(global.item_name.as_str());
-                plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, tag, expected));
+                if arguments.is_empty() {
+                    plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, value, expected));
+                } else {
+                    let array = tree.identifier("Array");
+                    let is_array = tree.member(array, "isArray");
+                    let is_array = tree.call(is_array, vec![value]);
+                    plan.conditions.push(is_array);
+                    let zero = tree.number("0");
+                    let tag = tree.index(value, zero);
+                    plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, tag, expected));
+                }
                 for (index, pattern) in arguments.iter().enumerate() {
                     let index = tree.number((index + 1).to_string());
                     let argument = tree.index(value, index);

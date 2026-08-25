@@ -2,7 +2,7 @@ import * as Data_Eq from "../Data.Eq/index.js";
 import * as $foreign from "./foreign.js";
 
 export const Just = $value0 => ["Just", $value0];
-const Nothing = ["Nothing"];
+const Nothing = "Nothing";
 
 export function visible(value) {
   return value;
@@ -38,9 +38,7 @@ export const eqOption = (() => {
           return false;
         }
       }
-      if (Array.isArray(left) && left[0] === "Nothing" && Array.isArray(
-        right
-      ) && right[0] === "Nothing") {
+      if (left === "Nothing" && right === "Nothing") {
         return true;
       }
       return false;

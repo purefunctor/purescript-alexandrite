@@ -1,9 +1,9 @@
-export const None = ["None"];
+export const None = "None";
 export const Some = $value0 => ["Some", $value0];
 export const Box = $value0 => ["Box", $value0];
 
 export function multiEquation($choice) {
-  if (Array.isArray($choice) && $choice[0] === "None") {
+  if ($choice === "None") {
     return 0 | 0;
   }
   if (Array.isArray($choice) && $choice[0] === "Some") {
