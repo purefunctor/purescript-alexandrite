@@ -318,9 +318,9 @@ fn render_named_function(
 }
 
 impl Generator<'_> {
-    fn first_argument<'a>(
+    fn first_argument(
         &self,
-        parameters: &'a [PatternId],
+        parameters: &[PatternId],
         context: &mut FunctionContext,
     ) -> (String, Option<PatternId>) {
         match parameters.first().copied() {

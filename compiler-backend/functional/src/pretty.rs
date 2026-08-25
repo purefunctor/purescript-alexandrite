@@ -100,7 +100,14 @@ impl<'a> Printer<'a, '_> {
             | ExpressionKind::Effect { .. }
             | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
-            _ => ExpressionPrecedence::Atom,
+            ExpressionKind::Literal { .. }
+            | ExpressionKind::Array { .. }
+            | ExpressionKind::Record { .. }
+            | ExpressionKind::Project { .. }
+            | ExpressionKind::Constructor { .. }
+            | ExpressionKind::Global { .. }
+            | ExpressionKind::Local { .. }
+            | ExpressionKind::TrivialEvidence => ExpressionPrecedence::Atom,
         };
         let document = self.expression_unparenthesized(expression_id);
         if precedence < required_precedence {
