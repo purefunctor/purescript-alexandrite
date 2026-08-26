@@ -43,13 +43,12 @@ pub(crate) struct Generator<'m> {
     reserved_module_names: FxHashSet<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum LocalBinding {
     Direct(String),
     Lazy(String),
 }
 
-#[derive(Clone)]
 struct FunctionContext {
     allocator: NameAllocator,
     locals: FxHashMap<LocalId, LocalBinding>,
@@ -1192,12 +1191,63 @@ impl Generator<'_> {
         expression: FunctionalExpressionId,
         context: &mut FunctionContext,
     ) -> ModuleResult<Option<ExpressionId>> {
-        let mut inline_context = context.clone();
-        let expression = self.inline_expression(tree, expression, &mut inline_context)?;
-        if expression.is_some() {
-            *context = inline_context;
+        if !self.expression_can_inline(expression) {
+            return Ok(None);
         }
-        Ok(expression)
+        let expression = self
+            .inline_expression(tree, expression, context)?
+            .expect("invariant violated: inline eligibility did not match expression rendering");
+        Ok(Some(expression))
+    }
+
+    fn expression_can_inline(&self, expression: FunctionalExpressionId) -> bool {
+        match &self.module.storage[expression].kind {
+            ExpressionKind::Literal { .. }
+            | ExpressionKind::Constructor { .. }
+            | ExpressionKind::Global { .. }
+            | ExpressionKind::Local { .. }
+            | ExpressionKind::SynthesizedEvidence { .. }
+            | ExpressionKind::TrivialEvidence => true,
+            ExpressionKind::Array { elements } => {
+                elements.iter().all(|element| self.expression_can_inline(*element))
+            }
+            ExpressionKind::Record { fields } => {
+                fields.iter().all(|field| self.expression_can_inline(field.expression))
+            }
+            ExpressionKind::Project { record, .. }
+            | ExpressionKind::Unary { value: record, .. } => self.expression_can_inline(*record),
+            ExpressionKind::Binary { left, right, .. } => {
+                self.expression_can_inline(*left) && self.expression_can_inline(*right)
+            }
+            ExpressionKind::Abstraction { parameters, body }
+            | ExpressionKind::UncurriedAbstraction { parameters, body } => {
+                parameters.iter().all(|pattern| self.pattern_can_inline(*pattern))
+                    && self.expression_can_inline(*body)
+            }
+            ExpressionKind::Application { function, arguments, .. }
+            | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
+                self.expression_can_inline(*function)
+                    && arguments.iter().all(|argument| self.expression_can_inline(*argument))
+            }
+            ExpressionKind::RecordUpdate { .. }
+            | ExpressionKind::IfThenElse { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Guarded { .. }
+            | ExpressionKind::Let { .. }
+            | ExpressionKind::LetPattern { .. }
+            | ExpressionKind::Effect { .. } => false,
+        }
+    }
+
+    fn pattern_can_inline(&self, pattern: PatternId) -> bool {
+        match &self.module.storage[pattern].kind {
+            PatternKind::Variable(_) | PatternKind::Wildcard => true,
+            PatternKind::Named { pattern, .. } => self.pattern_can_inline(*pattern),
+            PatternKind::Literal(_)
+            | PatternKind::Array(_)
+            | PatternKind::Record(_)
+            | PatternKind::Constructor { .. } => false,
+        }
     }
 
     fn inline_abstraction(
