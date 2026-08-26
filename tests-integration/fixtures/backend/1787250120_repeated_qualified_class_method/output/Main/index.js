@@ -207,12 +207,12 @@ const $lazy_eqRecursive = $runtime.binding("eqRecursive", () => {
   return { eq: (left) => (right) => /* @__PURE__ */ Data_Eq.eq($lazy_eqRecursive())(left)(right) };
 });
 const eqIntDictEq = /* @__PURE__ */ Data_Eq.eq(Data_Eq.eqInt);
-export const firstComparison = /* @__PURE__ */ eqIntDictEq(1 | 0)(2 | 0);
-export const secondComparison = /* @__PURE__ */ eqIntDictEq(3 | 0)(4 | 0);
-export const eqRecursive = $lazy_eqRecursive();
 const eqArrayIntDict = /* @__PURE__ */ Data_Eq.eqArray(Data_Eq.eqInt);
 const eqArrayBooleanDict = /* @__PURE__ */ Data_Eq.eqArray(Data_Eq.eqBoolean);
 const eqArrayIntDictEq = /* @__PURE__ */ Data_Eq.eq(eqArrayIntDict);
 const eqArrayArrayIntDict = /* @__PURE__ */ Data_Eq.eqArray(eqArrayIntDict);
 const eqArrayBooleanDictEq = /* @__PURE__ */ Data_Eq.eq(eqArrayBooleanDict);
 const eqArrayArrayIntDictEq = /* @__PURE__ */ Data_Eq.eq(eqArrayArrayIntDict);
+export const firstComparison = /* @__PURE__ */ eqIntDictEq(1 | 0)(2 | 0);
+export const secondComparison = /* @__PURE__ */ eqIntDictEq(3 | 0)(4 | 0);
+export const eqRecursive = $lazy_eqRecursive();

@@ -2182,8 +2182,11 @@ fn sorted_value_declarations<'m>(
         .module
         .declarations
         .iter()
-        .filter(|declaration| matches!(declaration.kind, DeclarationKind::Value(_)))
-        .collect_vec();
+        .filter(|declaration| matches!(declaration.kind, DeclarationKind::Value(_)));
+    let mut values = values.collect_vec();
+    // An ordinary initializer can call a source function whose body uses generated evidence.
+    // Prefer generated declarations whenever explicit dependencies leave their order unconstrained.
+    values.sort_by_key(|declaration| !matches!(declaration.global.id, GlobalId::Generated(_, _)));
     let positions = values
         .iter()
         .enumerate()
