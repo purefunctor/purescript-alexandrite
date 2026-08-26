@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+node :: Prim.String -> Prim.Array Prim.String -> Prim.Array Prim.String -> Prim.String
+attribute :: Prim.String -> Prim.String
+text :: Prim.String -> Prim.String
+render :: Prim.Boolean -> Prim.String
+
+Types

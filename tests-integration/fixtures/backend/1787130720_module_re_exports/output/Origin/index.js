@@ -44,9 +44,7 @@ export const eqOption = (() => {
       return false;
     };
   };
-  const $field = $closure;
-  const $record = { eq: $field };
-  return $record;
+  return { eq: $closure };
 })();
 
 export const measureInt = { measure: value => value };

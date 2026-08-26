@@ -1,0 +1,23 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign collect
+
+@export foreign failAt
+
+@export foreign observe
+
+@export foreign observedRecord
+
+@export ordered = \branch%2 shouldThrow%1 ->
+  collect (observe "before" observedRecord.value)
+    ((\value%3 ->
+      if branch%2 then observe "branch-true" value%3 else observe "branch-false" value%3)
+      (failAt "middle" shouldThrow%1 2))
+    (observe "after" 3)
+
+@export reused = let
+  value%4 = observe "reused" 4
+in [value%4, value%4]

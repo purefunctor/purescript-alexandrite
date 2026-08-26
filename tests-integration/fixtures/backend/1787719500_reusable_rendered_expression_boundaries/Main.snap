@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+Box :: Prim.Int -> Main.Box
+constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+observe :: Prim.String -> Prim.Int -> Prim.Int
+observed :: { apply :: Prim.Int -> Prim.Int, value :: Prim.Int }
+stableApplication :: (Prim.Int -> Prim.Int) -> Prim.Boolean -> Prim.Int
+observedApplication :: Prim.Boolean -> Prim.Int
+stableArray :: Prim.Int -> Prim.Boolean -> Prim.Array Prim.Int
+observedArray :: Prim.Boolean -> Prim.Array Prim.Int
+stablePure :: Prim.Int -> Effect.Effect Prim.Int
+stableMap :: (Prim.Int -> Prim.Int) -> Effect.Effect Prim.Int
+observedMap :: Prim.Boolean -> Effect.Effect Prim.Int
+mixedApply :: Prim.Boolean -> Effect.Effect Prim.Int
+joinedEffect :: Prim.Boolean -> Prim.Array (Effect.Effect Prim.Int)
+joinedPattern :: Prim.Boolean -> Prim.Int
+
+Types
+Box :: Prim.Type
+
+Roles
+Box = []

@@ -1,0 +1,38 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign failAt
+
+@export foreign makeModel
+
+@export foreign observe
+
+@export updateLocal = \source%0 ->
+  source%0 {
+    first = observe "local-first" 10,
+    nested { value = observe "local-nested" 20 },
+    last = observe "local-last" 30
+  }
+
+@export updateCall = \shouldThrow%1 ->
+  (makeModel "call") {
+    first = observe "call-first" 10,
+    nested { value = failAt "call-nested" shouldThrow%1 20 },
+    last = observe "call-last" 30
+  }
+
+@export updateDeep = \$boolean%2@(_) ->
+  (makeModel "deep") {
+    nested { value = observe "deep-nested" 50, inner { value = observe "deep-inner" 60 } }
+  }
+
+@export updateControl = \condition%4 source%3 ->
+  source%3 {
+    first = observe "control-first" 10,
+    nested { value = if condition%4 then observe "control-then" 30 else observe "control-else" 31 },
+    last = observe "control-last" 32
+  }
+
+@export updateOpen = \source%5 -> source%5 { first = observe "open-first" 40 }

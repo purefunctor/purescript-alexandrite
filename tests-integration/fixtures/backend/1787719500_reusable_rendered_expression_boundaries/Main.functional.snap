@@ -1,0 +1,48 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Box/1
+
+@export foreign constructEffect
+
+@export foreign observe
+
+@export foreign observed
+
+@export stableApplication = \function%0 condition%1 ->
+  function%0 (if condition%1 then observe "application-then" 1 else observe "application-else" 2)
+
+@export observedApplication = \condition%2 ->
+  observed.apply (if condition%2 then observe "observed-then" 3 else observe "observed-else" 4)
+
+@export stableArray = \value%3 condition%4 ->
+  [value%3, if condition%4 then observe "array-then" 5 else observe "array-else" 6]
+
+@export observedArray = \condition%5 ->
+  [observed.value,
+    if condition%5 then observe "observed-array-then" 7 else observe "observed-array-else" 8]
+
+@export stablePure = \value%6 -> effect.pure value%6
+
+@export stableMap = \function%7 -> effect.map function%7 (constructEffect "stable-map" 9)
+
+@export observedMap = \$boolean%8@(_) ->
+  effect.map observed.apply (constructEffect "observed-map" 10)
+
+@export mixedApply = \$boolean%11@(_) ->
+  effect.apply
+    (constructEffect "mixed-function" (\value%9 -> observe "mixed-call" value%9))
+    (effect.bind (constructEffect "mixed-argument-first" 18)
+      \value%10 -> constructEffect "mixed-argument-second" value%10)
+
+@export joinedEffect = \condition%12 ->
+  [if condition%12
+      then effect.map observed.apply (constructEffect "joined-then" 16)
+      else effect.map observed.apply (constructEffect "joined-else" 17)]
+
+@export joinedPattern = \condition%13 ->
+  case if condition%13 then Box (observe "pattern-then" 11) else Box (observe "pattern-else" 12) of
+    Box value%14 ->
+      value%14
