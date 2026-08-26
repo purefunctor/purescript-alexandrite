@@ -5,6 +5,8 @@ mod inline;
 mod structure;
 mod syntax;
 
+use std::sync::Arc;
+
 use files::FileId;
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
@@ -15,6 +17,7 @@ use functional::tree::{
 use itertools::Itertools;
 use oxc_allocator::Allocator;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::SmolStr;
 
 use super::super::names::NameAllocator;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
@@ -40,7 +43,7 @@ pub(crate) struct Generator<'m> {
     foreign_namespace: Option<String>,
     runtime_namespace: Option<String>,
     lazy_global_names: FxHashMap<GlobalId, String>,
-    reserved_module_names: FxHashSet<String>,
+    reserved_module_names: Arc<FxHashSet<SmolStr>>,
 }
 
 #[derive(Debug)]
@@ -102,9 +105,9 @@ struct FunctionRenderer<'a, 'm, 't, 'd> {
 }
 
 impl FunctionContext {
-    fn new(reserved: &FxHashSet<String>) -> FunctionContext {
+    fn new(reserved: &Arc<FxHashSet<SmolStr>>) -> FunctionContext {
         FunctionContext {
-            allocator: NameAllocator::with_reserved(reserved.iter().cloned()),
+            allocator: NameAllocator::with_reserved(Arc::clone(reserved)),
             locals: FxHashMap::default(),
         }
     }
@@ -199,6 +202,7 @@ impl<'m> Generator<'m> {
         });
         let lazy_global_names = lazy_global_names.collect();
         let reserved_module_names = allocator.allocated_names().cloned().collect();
+        let reserved_module_names = Arc::new(reserved_module_names);
 
         Generator {
             module,
