@@ -1,0 +1,27 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign addInt
+
+@export constructor Leaf/1
+
+@export constructor Branch/2
+
+@export constructor Empty/0
+
+@export constructor Push/2
+
+@export sumTree = \tree%0 -> walkTree tree%0 "Empty" 0
+
+@export recursive[5] walkTree = \tree%1 stack%3 accumulator%4 ->
+  case tree%1 of
+    Leaf value%2 ->
+      case stack%3 of
+        Empty ->
+          addInt accumulator%4 value%2
+        Push next%5 rest%6 ->
+          walkTree next%5 rest%6 (addInt accumulator%4 value%2)
+    Branch left%7 right%8 ->
+      walkTree left%7 { tag: "Push", _1: right%8, _2: stack%3 } accumulator%4

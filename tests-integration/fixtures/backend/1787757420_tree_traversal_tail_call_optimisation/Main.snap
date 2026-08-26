@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 265
+expression: diagnostics_report
+---
+Terms
+addInt :: Prim.Int -> Prim.Int -> Prim.Int
+Leaf :: Prim.Int -> Main.Tree
+Branch :: Main.Tree -> Main.Tree -> Main.Tree
+Empty :: Main.TreeStack
+Push :: Main.Tree -> Main.TreeStack -> Main.TreeStack
+sumTree :: Main.Tree -> Prim.Int
+walkTree :: Main.Tree -> Main.TreeStack -> Prim.Int -> Prim.Int
+
+Types
+Tree :: Prim.Type
+TreeStack :: Prim.Type
+
+Roles
+Tree = []
+TreeStack = []

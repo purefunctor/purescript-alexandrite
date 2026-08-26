@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 265
+expression: diagnostics_report
+---
+Terms
+equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+decrementInt :: Prim.Int -> Prim.Int
+incrementInt :: Prim.Int -> Prim.Int
+tailAccumulator :: Prim.Int -> Prim.Int -> Prim.Int
+rotateArguments :: Prim.Int -> Prim.Int -> Prim.Int -> Prim.Int
+
+Types

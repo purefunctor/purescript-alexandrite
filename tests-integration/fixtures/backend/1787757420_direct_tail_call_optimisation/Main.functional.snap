@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export foreign incrementInt
+
+@export recursive[3] tailAccumulator = \value%0 accumulator%1 ->
+  if equalInt value%0 0
+    then accumulator%1
+    else tailAccumulator (decrementInt value%0) (incrementInt accumulator%1)
+
+@export recursive[4] rotateArguments = \iterations%2 left%3 right%4 ->
+  if equalInt iterations%2 0
+    then left%3
+    else rotateArguments (decrementInt iterations%2) right%4 left%3

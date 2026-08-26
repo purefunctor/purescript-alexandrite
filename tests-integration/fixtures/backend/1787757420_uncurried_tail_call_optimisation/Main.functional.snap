@@ -1,0 +1,15 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export foreign incrementInt
+
+@export recursive[3] uncurriedTail = uncurried \value%0, accumulator%1 ->
+  if equalInt value%0 0
+    then accumulator%1
+    else uncurried.call uncurriedTail((decrementInt value%0), (incrementInt accumulator%1))

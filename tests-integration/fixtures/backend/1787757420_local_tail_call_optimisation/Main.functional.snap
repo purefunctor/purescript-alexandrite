@@ -1,0 +1,14 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export localTail = \value%1 ->
+  let
+    rec go%0 = \current%2 ->
+      if equalInt current%2 0 then current%2 else go%0 (decrementInt current%2)
+  in go%0 value%1
