@@ -106,3 +106,8 @@ expression: report
 @export firstComparison = eq eqInt 1 2
 
 @export secondComparison = eq eqInt 3 4
+
+@export instance eqRecursive = { eq: \left%66 right%67 -> eq eqRecursive left%66 right%67 }
+
+@export compareRecursiveTwice = \left%68 right%69 ->
+  if eq eqRecursive left%68 right%69 then eq eqRecursive right%69 left%68 else false

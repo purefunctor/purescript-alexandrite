@@ -1,4 +1,5 @@
 import * as Data_Eq from "../Data.Eq/index.js";
+import * as $runtime from "../runtime.js";
 
 export function compareTwice(eqADict) {
   const $closure = left => {
@@ -226,6 +227,22 @@ export function equationScope($boolean) {
   };
 }
 
+export function compareRecursiveTwice(left) {
+  return right => {
+    if (Data_Eq.eq($lazy_eqRecursive())(left)(right)) {
+      return Data_Eq.eq($lazy_eqRecursive())(right)(left);
+    } else {
+      return false;
+    }
+  };
+}
+
+const $lazy_eqRecursive = $runtime.binding("eqRecursive", () => {
+  return { eq: left => right => Data_Eq.eq($lazy_eqRecursive())(left)(right) };
+});
+
 export const firstComparison = Data_Eq.eq(Data_Eq.eqInt)(1 | 0)(2 | 0);
 
 export const secondComparison = Data_Eq.eq(Data_Eq.eqInt)(3 | 0)(4 | 0);
+
+export const eqRecursive = $lazy_eqRecursive();
