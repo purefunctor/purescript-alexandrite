@@ -8,5 +8,5 @@ export function compareInts(left) {
     }
   };
 }
-export const initialized = compareInts(1 | 0)(1 | 0);
 const eqIntDictEq = /* @__PURE__ */ Data_Eq.eq(Data_Eq.eqInt);
+export const initialized = compareInts(1 | 0)(1 | 0);
