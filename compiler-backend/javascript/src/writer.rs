@@ -306,7 +306,15 @@ impl<'a> Writer<'a> {
         let mut body = Writer::new(self.allocator);
         let result = render(&mut body);
         let arrow = self.arrow_expression(&[], body.statements);
-        let call = Expression::new_call_expression(SPAN, arrow, None, [], false, &self.builder);
+        let call = Expression::new_call_expression_with_pure(
+            SPAN,
+            arrow,
+            None,
+            [],
+            false,
+            true,
+            &self.builder,
+        );
         let statement =
             self.variable_statement(VariableDeclarationKind::Const, name, Some(call), exported);
         self.statements.push(statement);

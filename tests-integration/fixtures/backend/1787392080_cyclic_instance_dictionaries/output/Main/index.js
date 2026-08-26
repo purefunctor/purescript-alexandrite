@@ -5,18 +5,18 @@ import * as Data_Functor from "../Data.Functor/index.js";
 import * as $runtime from "../runtime.js";
 export const Box = ($value0) => ["Box", $value0];
 export function liftApplicative(applicativeFunctorDict) {
-  return ($function) => (value) => Control_Apply.apply(applicativeFunctorDict.Apply0())(Control_Applicative.pure(applicativeFunctorDict)($function))(value);
+  return ($function) => (value) => /* @__PURE__ */ Control_Apply.apply(/* @__PURE__ */ applicativeFunctorDict.Apply0())(/* @__PURE__ */ Control_Applicative.pure(applicativeFunctorDict)($function))(value);
 }
 export function applyMonad(monadMonadDict) {
-  return (functions) => (values) => Control_Bind.bind(monadMonadDict.Bind1())(functions)(($function) => Control_Bind.bind(monadMonadDict.Bind1())(values)((value) => Control_Applicative.pure(monadMonadDict.Applicative0())($function(value))));
+  return (functions) => (values) => /* @__PURE__ */ Control_Bind.bind(/* @__PURE__ */ monadMonadDict.Bind1())(functions)(($function) => /* @__PURE__ */ Control_Bind.bind(/* @__PURE__ */ monadMonadDict.Bind1())(values)((value) => /* @__PURE__ */ Control_Applicative.pure(/* @__PURE__ */ monadMonadDict.Applicative0())($function(value))));
 }
 const $lazy_functorBox = $runtime.binding("functorBox", () => {
-  return { map: liftApplicative($lazy_applicativeBox()) };
+  return { map: /* @__PURE__ */ liftApplicative($lazy_applicativeBox()) };
 });
 const $lazy_applyBox = $runtime.binding("applyBox", () => {
   return {
     Functor0: () => $lazy_functorBox(),
-    apply: applyMonad($lazy_monadBox())
+    apply: /* @__PURE__ */ applyMonad($lazy_monadBox())
   };
 });
 const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
@@ -52,8 +52,8 @@ export const applyBox = $lazy_applyBox();
 export const applicativeBox = $lazy_applicativeBox();
 export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
-export const result = (() => {
-  const $scrutinee = Data_Functor.map($lazy_functorBox())((value) => value)(["Box", 42 | 0]);
+export const result = /* @__PURE__ */ (() => {
+  const $scrutinee = /* @__PURE__ */ Data_Functor.map($lazy_functorBox())((value) => value)(["Box", 42 | 0]);
   if (Array.isArray($scrutinee) && $scrutinee[0] === "Box") {
     const value$1 = $scrutinee[1];
     return value$1;

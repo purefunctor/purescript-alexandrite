@@ -132,7 +132,7 @@ export const model = {
   "hostile-field": $await,
   ["__proto__"]: "data, not a prototype"
 };
-export const updated = (() => {
+export const updated = /* @__PURE__ */ (() => {
   return {
     ...model,
     count: 1 | 0,
@@ -151,5 +151,5 @@ export const pair = [
 export const crossModule = unwrapWrapped(Library.wrapped);
 export const forwardReference = Library.forward;
 export const measureInt = { measure: addInt(1 | 0) };
-export const evidenceValue = measure(measureInt)(41 | 0);
+export const evidenceValue = /* @__PURE__ */ measure(measureInt)(41 | 0);
 export { $await as "await" };

@@ -5,7 +5,7 @@ export const model = {
     label: "before"
   }
 };
-export const updated = (() => {
+export const updated = /* @__PURE__ */ (() => {
   return {
     ...model,
     count: 1 | 0,

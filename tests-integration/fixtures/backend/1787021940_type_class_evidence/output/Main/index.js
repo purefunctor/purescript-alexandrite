@@ -6,10 +6,10 @@ export function lessThan(dictionary) {
   return dictionary.lessThan;
 }
 export function genericEqual(equalADict) {
-  return (left) => (right) => equal(equalADict)(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(equalADict)(left)(right);
 }
 export function superclassEqual(orderedADict) {
-  return (left) => (right) => equal(orderedADict.Equal0())(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(/* @__PURE__ */ orderedADict.Equal0())(left)(right);
 }
 export const equalInt = $foreign["equalInt"];
 export const lessThanInt = $foreign["lessThanInt"];
@@ -18,5 +18,5 @@ export const orderedInt = {
   Equal0: () => equalInt1,
   lessThan: lessThanInt
 };
-export const concreteEqual = equal(equalInt1)(1 | 0)(2 | 0);
-export const concreteLessThan = lessThan(orderedInt)(1 | 0)(2 | 0);
+export const concreteEqual = /* @__PURE__ */ equal(equalInt1)(1 | 0)(2 | 0);
+export const concreteLessThan = /* @__PURE__ */ lessThan(orderedInt)(1 | 0)(2 | 0);

@@ -201,7 +201,7 @@ impl<'a> Printer<'a, '_> {
                     abstraction.append(body).group()
                 }
             }
-            ExpressionKind::Application { function, arguments } => {
+            ExpressionKind::Application { function, arguments, .. } => {
                 let function = self.expression_at(*function, ExpressionPrecedence::Application);
                 if arguments.is_empty() {
                     function.append("()")
@@ -214,7 +214,7 @@ impl<'a> Printer<'a, '_> {
                     function.append(arguments).group()
                 }
             }
-            ExpressionKind::UncurriedApplication { function, arguments } => {
+            ExpressionKind::UncurriedApplication { function, arguments, .. } => {
                 let function = self.expression_at(*function, ExpressionPrecedence::Application);
                 let arguments = arguments
                     .iter()

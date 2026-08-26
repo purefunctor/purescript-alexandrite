@@ -9,14 +9,14 @@ export const Pair = ($value0) => ($value1) => [
   $value1
 ];
 export function roundTrip(value) {
-  return Data_Generic_Rep.to(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt)(Data_Generic_Rep.from(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt)(value));
+  return /* @__PURE__ */ Data_Generic_Rep.to(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt)(/* @__PURE__ */ Data_Generic_Rep.from(genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt)(value));
 }
 const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstructors", () => {
   const $closure = (value) => {
-    return Data_Generic_Rep.to($lazy_genericVoidNoConstructors())(value);
+    return /* @__PURE__ */ Data_Generic_Rep.to($lazy_genericVoidNoConstructors())(value);
   };
   const $closure$1 = (value$1) => {
-    return Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value$1);
+    return /* @__PURE__ */ Data_Generic_Rep.from($lazy_genericVoidNoConstructors())(value$1);
   };
   return {
     to: $closure,
@@ -25,8 +25,8 @@ const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstruct
 });
 export const newtypeTypeIdentifierInt = { Coercible0: () => ({}) };
 export const wrapped = 42 | 0;
-export const unwrapped = Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
-export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = (() => {
+export const unwrapped = /* @__PURE__ */ Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
+export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = /* @__PURE__ */ (() => {
   const $closure = (representation) => {
     if (Array.isArray(representation) && representation[0] === "Inl" && Array.isArray(representation[1]) && representation[1][0] === "Constructor" && representation[1][1] === "NoArguments") {
       return "Empty";

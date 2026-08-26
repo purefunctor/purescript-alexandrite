@@ -214,8 +214,8 @@ fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
         ExpressionKind::Binary { left, right, .. } => vec![*left, *right],
         ExpressionKind::Abstraction { body, .. }
         | ExpressionKind::UncurriedAbstraction { body, .. } => vec![*body],
-        ExpressionKind::Application { function, arguments }
-        | ExpressionKind::UncurriedApplication { function, arguments } => {
+        ExpressionKind::Application { function, arguments, .. }
+        | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
             let mut children = Vec::with_capacity(arguments.len() + 1);
             children.push(*function);
             children.extend(arguments.iter().copied());

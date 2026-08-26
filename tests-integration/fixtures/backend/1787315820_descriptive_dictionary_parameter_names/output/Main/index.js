@@ -9,31 +9,31 @@ export function available(dictionary) {
   return dictionary.available;
 }
 export function genericEqual(equalValueDict) {
-  return (left) => (right) => equal(equalValueDict)(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(equalValueDict)(left)(right);
 }
 export function arrayEqual(equalArrayValueDict) {
-  return (left) => (right) => equal(equalArrayValueDict)(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(equalArrayValueDict)(left)(right);
 }
 export function wrapperEqual(equalWrapperValueDict) {
-  return (left) => (right) => equal(equalWrapperValueDict)(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(equalWrapperValueDict)(left)(right);
 }
 export function concreteEqual(equalIntDict) {
-  return (left) => (right) => equal(equalIntDict)(left)(right);
+  return (left) => (right) => /* @__PURE__ */ equal(equalIntDict)(left)(right);
 }
 export function convertToInt(convertValueIntDict) {
-  return (value) => convert(convertValueIntDict)(value);
+  return (value) => /* @__PURE__ */ convert(convertValueIntDict)(value);
 }
 export function distinctEqual(equalLeftDict) {
   return (equalRightDict) => {
     return (left1) => (left2) => (right1) => (right2) => ({
-      left: equal(equalLeftDict)(left1)(left2),
-      right: equal(equalRightDict)(right1)(right2)
+      left: /* @__PURE__ */ equal(equalLeftDict)(left1)(left2),
+      right: /* @__PURE__ */ equal(equalRightDict)(right1)(right2)
     });
   };
 }
 export function duplicateEqual(equalValueDict) {
   return (equalValueDict$1) => {
-    return (left) => (right) => equal(equalValueDict$1)(left)(right);
+    return (left) => (right) => /* @__PURE__ */ equal(equalValueDict$1)(left)(right);
   };
 }
 export function parameterCollision(equalValueDict) {
@@ -41,7 +41,7 @@ export function parameterCollision(equalValueDict) {
     return (left) => {
       return (right) => {
         if (equalValueDict$1) {
-          return equal(equalValueDict)(left)(right);
+          return /* @__PURE__ */ equal(equalValueDict)(left)(right);
         } else {
           return false;
         }
@@ -51,5 +51,5 @@ export function parameterCollision(equalValueDict) {
   return $closure;
 }
 export function isAvailable(availableDict) {
-  return available(availableDict);
+  return /* @__PURE__ */ available(availableDict);
 }

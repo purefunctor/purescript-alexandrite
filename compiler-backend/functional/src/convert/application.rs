@@ -28,11 +28,29 @@ where
         function: ExpressionId,
         arguments: impl IntoIterator<Item = ExpressionId>,
     ) -> ConversionResult<ExpressionId> {
+        self.application_with_synthetic(function, arguments, false)
+    }
+
+    pub(super) fn synthetic_application(
+        &mut self,
+        function: ExpressionId,
+        arguments: impl IntoIterator<Item = ExpressionId>,
+    ) -> ConversionResult<ExpressionId> {
+        self.application_with_synthetic(function, arguments, true)
+    }
+
+    fn application_with_synthetic(
+        &mut self,
+        function: ExpressionId,
+        arguments: impl IntoIterator<Item = ExpressionId>,
+        synthetic: bool,
+    ) -> ConversionResult<ExpressionId> {
         let arguments = arguments.into_iter();
         let arguments = arguments.collect_vec();
         if arguments.is_empty() {
             return Ok(function);
         }
+        let synthetic = synthetic || self.application_is_synthetic(function);
         let (known_function, known_arguments) = self.application_spine(function, &arguments);
         if let ExpressionKind::Constructor { global } = &self.storage[known_function].kind {
             let global = global.clone();
@@ -65,6 +83,7 @@ where
             return Ok(self.expression(ExpressionKind::UncurriedApplication {
                 function: *function,
                 arguments: arguments.into(),
+                synthetic,
             }));
         }
         if self.known_term(known_function, "Data.Function", "apply")?
@@ -98,7 +117,11 @@ where
         if let Some(kind) = self.known_operator_application(known_function, &known_arguments)? {
             return Ok(self.expression(kind));
         }
-        Ok(self.expression(ExpressionKind::Application { function, arguments: arguments.into() }))
+        Ok(self.expression(ExpressionKind::Application {
+            function,
+            arguments: arguments.into(),
+            synthetic,
+        }))
     }
 
     fn known_operator_application(
@@ -287,7 +310,7 @@ where
         arguments: &[ExpressionId],
     ) -> (ExpressionId, Vec<ExpressionId>) {
         let mut groups = vec![arguments];
-        while let ExpressionKind::Application { function: inner, arguments } =
+        while let ExpressionKind::Application { function: inner, arguments, .. } =
             &self.storage[function].kind
         {
             function = *inner;
@@ -295,6 +318,14 @@ where
         }
         let arguments = groups.into_iter().rev().flatten().copied();
         (function, arguments.collect())
+    }
+
+    fn application_is_synthetic(&self, expression: ExpressionId) -> bool {
+        matches!(
+            self.storage[expression].kind,
+            ExpressionKind::Application { synthetic: true, .. }
+                | ExpressionKind::UncurriedApplication { synthetic: true, .. }
+        )
     }
 
     fn flipped_application(

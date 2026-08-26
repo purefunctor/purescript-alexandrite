@@ -4,5 +4,5 @@ export function unwrap(value) {
   return value;
 }
 export function eqWrapper(eqADict) {
-  return { eq: Data_Function.on(Data_Eq.eq(eqADict))(unwrap) };
+  return { eq: Data_Function.on(/* @__PURE__ */ Data_Eq.eq(eqADict))(unwrap) };
 }

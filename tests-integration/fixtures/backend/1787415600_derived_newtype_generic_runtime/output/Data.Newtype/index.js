@@ -1,7 +1,7 @@
 import * as Safe_Coerce from "../Safe.Coerce/index.js";
 export function wrap(newtypeTADict) {
-  return Safe_Coerce.coerce({});
+  return /* @__PURE__ */ Safe_Coerce.coerce({});
 }
 export function unwrap(newtypeTADict) {
-  return Safe_Coerce.coerce(newtypeTADict.Coercible0());
+  return /* @__PURE__ */ Safe_Coerce.coerce(/* @__PURE__ */ newtypeTADict.Coercible0());
 }
