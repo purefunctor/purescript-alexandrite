@@ -89,12 +89,12 @@ where
         if self.known_term(known_function, "Data.Function", "apply")?
             && let [function, argument] = known_arguments.as_slice()
         {
-            return self.application(*function, [*argument]);
+            return self.application_with_synthetic(*function, [*argument], synthetic);
         }
         if self.known_term(known_function, "Data.Function", "applyFlipped")?
             && let [argument, function] = known_arguments.as_slice()
         {
-            return self.flipped_application(*argument, *function);
+            return self.flipped_application(*argument, *function, synthetic);
         }
         if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
             return Ok(self.expression(ExpressionKind::Effect { effect }));
@@ -332,9 +332,10 @@ where
         &mut self,
         argument: ExpressionId,
         function: ExpressionId,
+        synthetic: bool,
     ) -> ConversionResult<ExpressionId> {
         if self.expression_is_stable(argument) || self.expression_is_stable(function) {
-            return self.application(function, [argument]);
+            return self.application_with_synthetic(function, [argument], synthetic);
         }
 
         let argument_parameter = self.fresh_parameter("applyArgument".into())?;
@@ -343,7 +344,7 @@ where
             self.expression(ExpressionKind::Local { parameter: argument_parameter.clone() });
         let function_local =
             self.expression(ExpressionKind::Local { parameter: function_parameter.clone() });
-        let body = self.application(function_local, [argument_local])?;
+        let body = self.application_with_synthetic(function_local, [argument_local], synthetic)?;
         let bindings = [
             Binding { parameter: argument_parameter, expression: argument, source_order: 0 },
             Binding { parameter: function_parameter, expression: function, source_order: 1 },
