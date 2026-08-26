@@ -3,7 +3,7 @@ use std::io;
 use std::path::PathBuf;
 
 use clap::builder::{PathBufValueParser, TypedValueParser};
-use clap::{ArgAction, Args, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 use path_absolutize::Absolutize;
 use tracing::level_filters::LevelFilter;
 
@@ -110,9 +110,20 @@ pub struct CompileOptions {
     #[arg(long, value_name("COUNT"))]
     pub diagnostic_limit: Option<usize>,
 
+    /// When to use colors in human-readable diagnostics.
+    #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
+    pub color: ColorChoice,
+
     /// PureScript source paths or glob patterns.
     #[arg(value_name("INPUT"), required = true)]
     pub inputs: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ColorChoice {
+    Auto,
+    Always,
+    Never,
 }
 
 #[derive(Debug, Args)]
@@ -249,6 +260,8 @@ mod tests {
             "--json-errors",
             "--diagnostic-limit",
             "20",
+            "--color",
+            "always",
             "src/**/*.purs",
             ".spago/p/prelude-6.0.2/src/**/*.purs",
         ]);
@@ -257,6 +270,7 @@ mod tests {
         assert_eq!(options.codegen.as_deref(), Some("corefn,docs,js,sourcemaps"));
         assert!(options.json_errors);
         assert_eq!(options.diagnostic_limit, Some(20));
+        assert_eq!(options.color, ColorChoice::Always);
         assert_eq!(
             options.inputs,
             vec![

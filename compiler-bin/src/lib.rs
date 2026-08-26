@@ -44,6 +44,7 @@ pub fn run() {
                 inputs: options.inputs,
                 json_errors: options.json_errors,
                 diagnostic_limit: options.diagnostic_limit,
+                color: options.color,
             });
         }
         cli::Command::Docs(options) => {
