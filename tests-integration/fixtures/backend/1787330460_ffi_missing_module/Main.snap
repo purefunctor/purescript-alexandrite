@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 265
 expression: diagnostics_report
 ---
 Terms
@@ -8,8 +9,11 @@ requested :: Prim.Int
 Types
 
 Diagnostics
-error[MissingFFIModule]: No JavaScript FFI module was found for foreign import 'requested'
-  --> 3:1..3:32
-  |
-3 | foreign import requested :: Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [MissingFFIModule] · Main.purs:3:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'requested'
+  │
+  │   foreign import requested :: Int
+  │   ╰──────────────────────────────
+  •

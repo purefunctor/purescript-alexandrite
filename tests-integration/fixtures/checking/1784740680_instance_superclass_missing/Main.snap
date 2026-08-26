@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -22,8 +22,11 @@ Roles
 Missing = []
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Parent Missing
-  --> 11:1..11:23
-   |
-11 | instance Child Missing
-   | ^~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:11:1
+  •
+  │
+  • No instance found for: Parent Missing
+  │
+  │   instance Child Missing
+  │   ╰─────────────────────
+  •

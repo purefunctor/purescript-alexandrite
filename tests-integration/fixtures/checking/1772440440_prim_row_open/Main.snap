@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -99,13 +99,20 @@ forceSolve ::
 Types
 
 Diagnostics
-error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "missing" ?79
-  --> 33:1..43:4
-   |
-33 | forceSolve =
-   | ^~~~~~~~~~~~
-error[AmbiguousConstraint]: Ambiguous constraint: Lacks @Type "a" ( a :: Int | ?82 )
-  --> 33:1..43:4
-   |
-33 | forceSolve =
-   | ^~~~~~~~~~~~
+Error! · [AmbiguousConstraint] · Main.purs:33:1
+  •
+  │
+  • Ambiguous constraint: Lacks @Type "missing" ?79
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [AmbiguousConstraint] · Main.purs:33:1
+  •
+  │
+  • Ambiguous constraint: Lacks @Type "a" ( a :: Int | ?82 )
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

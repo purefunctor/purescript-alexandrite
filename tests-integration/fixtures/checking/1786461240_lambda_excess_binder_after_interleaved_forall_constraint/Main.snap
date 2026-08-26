@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -22,18 +22,29 @@ Unit = []
 Proxy = [Phantom]
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Function ?1' with 'Proxy'
-  --> 15:16..15:33
-   |
-15 | test = consume \_ extra -> Proxy
-   |                ^~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy value'
-  --> 15:16..15:33
-   |
-15 | test = consume \_ extra -> Proxy
-   |                ^~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?1 -> Proxy ?3' with 'Proxy value'
-  --> 15:16..15:33
-   |
-15 | test = consume \_ extra -> Proxy
-   |                ^~~~~~~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:15:16
+  •
+  │
+  • Cannot unify 'Function ?1' with 'Proxy'
+  │
+  │   test = consume \_ extra -> Proxy
+  │                  ╰────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:15:16
+  •
+  │
+  • Cannot unify 'Function ?1 (Proxy ?3)' with 'Proxy value'
+  │
+  │   test = consume \_ extra -> Proxy
+  │                  ╰────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:15:16
+  •
+  │
+  • Cannot unify '?1 -> Proxy ?3' with 'Proxy value'
+  │
+  │   test = consume \_ extra -> Proxy
+  │                  ╰────────────────
+  •

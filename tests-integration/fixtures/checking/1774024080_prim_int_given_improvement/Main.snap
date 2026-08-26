@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,8 +20,11 @@ forceSolve ::
 Types
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Add 1 2 4
-  --> 12:1..15:4
-   |
-12 | forceSolve =
-   | ^~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:12:1
+  •
+  │
+  • No instance found for: Add 1 2 4
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

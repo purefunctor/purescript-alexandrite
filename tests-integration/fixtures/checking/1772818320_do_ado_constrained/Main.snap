@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -107,13 +107,18 @@ Roles
 Tuple = [Representational, Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Discard (m :: Type -> Type)
-  --> 44:1..44:44
-   |
-44 | testDoDiscard :: forall m. Monad m => m Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Monad (m :: Type -> Type) is in scope
-  trivia: Bind (m :: Type -> Type) is in scope
-  trivia: Applicative (m :: Type -> Type) is in scope
-  trivia: Apply (m :: Type -> Type) is in scope
-  trivia: Functor (m :: Type -> Type) is in scope
+Error! · [NoInstanceFound] · Main.purs:44:1
+  •
+  │
+  • No instance found for: Discard (m :: Type -> Type)
+  │
+  │   testDoDiscard :: forall m. Monad m => m Int
+  │   ╰──────────────────────────────────────────
+  • while
+  │
+  │   Monad (m :: Type -> Type) is in scope
+  │   Bind (m :: Type -> Type) is in scope
+  │   Applicative (m :: Type -> Type) is in scope
+  │   Apply (m :: Type -> Type) is in scope
+  │   Functor (m :: Type -> Type) is in scope
+  •

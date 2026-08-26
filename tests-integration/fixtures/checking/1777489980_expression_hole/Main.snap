@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -9,9 +9,14 @@ hole :: forall t0. t0
 Types
 
 Diagnostics
-error[TermHole]: Hole '?hole' has inferred type: t0
-  --> 3:8..3:13
-  |
-3 | hole = ?hole
-  |        ^~~~~
-  trivia: hole :: t0 is in scope
+Error! · [TermHole] · Main.purs:3:8
+  •
+  │
+  • Hole '?hole' has inferred type: t0
+  │
+  │   hole = ?hole
+  │          ╰────
+  • while
+  │
+  │   hole :: t0 is in scope
+  •

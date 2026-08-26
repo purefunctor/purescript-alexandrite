@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,8 +20,11 @@ Pair = [Representational, Representational]
 Nested = [Representational, Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: t0
-  --> 10:1..10:34
-   |
-10 | derive instance Profunctor Nested
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CovariantOccurrence] · Main.purs:10:1
+  •
+  │
+  • Type variable occurs in covariant position: t0
+  │
+  │   derive instance Profunctor Nested
+  │   ╰────────────────────────────────
+  •

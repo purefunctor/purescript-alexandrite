@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,33 +16,56 @@ derive Data.Eq.Eq1 Library.ImportedOpaque
 derive Data.Ord.Ord1 Library.ImportedOpaque
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: ImportedStructural a
-  --> 7:1..7:50
-  |
-7 | derive instance Eq a => Eq (ImportedStructural a)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedStructural a1
-  --> 8:1..8:52
-  |
-8 | derive instance Ord a => Ord (ImportedStructural a)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedLifted
-  --> 10:1..10:35
-   |
-10 | derive instance Eq1 ImportedLifted
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedLifted
-  --> 11:1..11:36
-   |
-11 | derive instance Ord1 ImportedLifted
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedOpaque
-  --> 13:1..13:35
-   |
-13 | derive instance Eq1 ImportedOpaque
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ImportedOpaque
-  --> 14:1..14:36
-   |
-14 | derive instance Ord1 ImportedOpaque
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:7:1
+  •
+  │
+  • Cannot derive for type: ImportedStructural a
+  │
+  │   derive instance Eq a => Eq (ImportedStructural a)
+  │   ╰────────────────────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: ImportedStructural a1
+  │
+  │   derive instance Ord a => Ord (ImportedStructural a)
+  │   ╰──────────────────────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:10:1
+  •
+  │
+  • Cannot derive for type: ImportedLifted
+  │
+  │   derive instance Eq1 ImportedLifted
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:11:1
+  •
+  │
+  • Cannot derive for type: ImportedLifted
+  │
+  │   derive instance Ord1 ImportedLifted
+  │   ╰──────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:13:1
+  •
+  │
+  • Cannot derive for type: ImportedOpaque
+  │
+  │   derive instance Eq1 ImportedOpaque
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:14:1
+  •
+  │
+  • Cannot derive for type: ImportedOpaque
+  │
+  │   derive instance Ord1 ImportedOpaque
+  │   ╰──────────────────────────────────
+  •

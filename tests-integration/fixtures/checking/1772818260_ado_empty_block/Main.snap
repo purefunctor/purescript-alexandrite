@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,13 +17,20 @@ Roles
 Effect = [Nominal]
 
 Diagnostics
-error[EmptyAdoBlock]: Empty ado block
-  --> 9:9..9:12
-  |
-9 | test1 = ado
-  |         ^~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 9:9..9:12
-  |
-9 | test1 = ado
-  |         ^~~
+Error! · [EmptyAdoBlock] · Main.purs:9:9
+  •
+  │
+  • Empty ado block
+  │
+  │   test1 = ado
+  │           ╰──
+  •
+
+Error! · [CannotUnify] · Main.purs:9:9
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   test1 = ado
+  │           ╰──
+  •

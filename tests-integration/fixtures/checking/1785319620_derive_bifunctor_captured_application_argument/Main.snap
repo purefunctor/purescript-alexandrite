@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -27,13 +27,20 @@ Outer = [Representational, Representational]
 NestedCaptured = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Triple t0 Int t1
-  --> 8:1..8:35
-  |
-8 | derive instance Bifunctor Captured
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Outer (Triple t2 Int Boolean) t3
-  --> 13:1..13:41
-   |
-13 | derive instance Bifunctor NestedCaptured
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: Triple t0 Int t1
+  │
+  │   derive instance Bifunctor Captured
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:13:1
+  •
+  │
+  • Cannot derive for type: Outer (Triple t2 Int Boolean) t3
+  │
+  │   derive instance Bifunctor NestedCaptured
+  │   ╰───────────────────────────────────────
+  •

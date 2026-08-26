@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -23,10 +23,15 @@ Roles
 Pair = [Representational, Representational]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Test (Pair String b)
-  --> 11:1..12:13
-   |
-11 | instance testRight :: Test (Pair String b) where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall a. Test (Pair a Int) is matching
-  trivia: forall b. Test (Pair String b) is matching
+Error! · [OverlappingInstances] · Main.purs:11:1
+  •
+  │
+  • Overlapping type class instances found for: Test (Pair String b)
+  │
+  │   instance testRight :: Test (Pair String b) where
+  │   ╰───────────────────────────────────────────────
+  • while
+  │
+  │   forall a. Test (Pair a Int) is matching
+  │   forall b. Test (Pair String b) is matching
+  •

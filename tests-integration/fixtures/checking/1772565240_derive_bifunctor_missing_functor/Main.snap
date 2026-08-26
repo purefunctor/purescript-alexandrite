@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -24,13 +24,20 @@ Roles
 WrapBoth = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) t0
-  --> 6:1..6:41
-  |
-6 | derive instance Bifunctor (WrapBoth f g)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: (g :: Type -> Type) t1
-  --> 6:1..6:41
-  |
-6 | derive instance Bifunctor (WrapBoth f g)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:6:1
+  •
+  │
+  • Cannot derive for type: (f :: Type -> Type) t0
+  │
+  │   derive instance Bifunctor (WrapBoth f g)
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:6:1
+  •
+  │
+  • Cannot derive for type: (g :: Type -> Type) t1
+  │
+  │   derive instance Bifunctor (WrapBoth f g)
+  │   ╰───────────────────────────────────────
+  •

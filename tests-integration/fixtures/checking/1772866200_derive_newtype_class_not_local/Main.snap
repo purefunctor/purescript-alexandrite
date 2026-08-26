@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -11,8 +11,11 @@ Derived
 derive forall t0. Data.Newtype.Newtype @Prim.Type Lib.Wrapper t0
 
 Diagnostics
-error[NonLocalNewtype]: Expected a local newtype, got: Wrapper
-  --> 6:1..6:34
-  |
-6 | derive instance Newtype Wrapper _
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NonLocalNewtype] · Main.purs:6:1
+  •
+  │
+  • Expected a local newtype, got: Wrapper
+  │
+  │   derive instance Newtype Wrapper _
+  │   ╰────────────────────────────────
+  •

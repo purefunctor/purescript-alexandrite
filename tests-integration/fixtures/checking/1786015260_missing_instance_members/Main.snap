@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -21,16 +21,27 @@ instance Prim.TypeError.Fail (Prim.TypeError.Text "empty") => Main.Render Prim.B
 instance Prim.TypeError.Fail (Prim.TypeError.Text "partial") => Main.Render Prim.String
 
 Diagnostics
-warning[MissingInstanceMembers]: Instance is missing class members
-  --> 9:1..9:20
-  |
-9 | instance Render Int
-  | ^~~~~~~~~~~~~~~~~~~
-  trivia: render is not implemented
-  trivia: renderWithIndent is not implemented
-warning[MissingInstanceMembers]: Instance is missing class members
-  --> 13:1..14:23
-   |
-13 | instance Fail (Text "partial") => Render String where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: renderWithIndent is not implemented
+Warning! · [MissingInstanceMembers] · Main.purs:9:1
+  •
+  │
+  • Instance is missing class members
+  │
+  │   instance Render Int
+  │   ╰──────────────────
+  • while
+  │
+  │   render is not implemented
+  │   renderWithIndent is not implemented
+  •
+
+Warning! · [MissingInstanceMembers] · Main.purs:13:1
+  •
+  │
+  • Instance is missing class members
+  │
+  │   instance Fail (Text "partial") => Render String where
+  │   ╰────────────────────────────────────────────────────
+  • while
+  │
+  │   renderWithIndent is not implemented
+  •

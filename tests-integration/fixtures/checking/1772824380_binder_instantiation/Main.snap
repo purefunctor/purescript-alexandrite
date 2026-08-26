@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -22,13 +22,20 @@ Maybe = [Representational]
 Id = []
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Boolean' with 'Int'
-  --> 11:31..11:35
-   |
-11 |   Just f -> let _ = f 42 in f true
-   |                               ^~~~
-error[CannotUnify]: Cannot unify 'Boolean' with 'Int'
-  --> 20:24..20:28
-   |
-20 |   in let _ = f 42 in f true
-   |                        ^~~~
+Error! · [CannotUnify] · Main.purs:11:31
+  •
+  │
+  • Cannot unify 'Boolean' with 'Int'
+  │
+  │     Just f -> let _ = f 42 in f true
+  │                                 ╰───
+  •
+
+Error! · [CannotUnify] · Main.purs:20:24
+  •
+  │
+  • Cannot unify 'Boolean' with 'Int'
+  │
+  │     in let _ = f 42 in f true
+  │                          ╰───
+  •

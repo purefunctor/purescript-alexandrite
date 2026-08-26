@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -11,13 +11,20 @@ Derived
 derive Data.Show.Show
 
 Diagnostics
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 0
-  --> 5:1..5:29
-  |
-5 | derive newtype instance Show
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type -> Constraint' with 'Constraint'
-  --> 5:1..5:29
-  |
-5 | derive newtype instance Show
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [DeriveInvalidArity] · Main.purs:5:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 0
+  │
+  │   derive newtype instance Show
+  │   ╰───────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Type -> Constraint' with 'Constraint'
+  │
+  │   derive newtype instance Show
+  │   ╰───────────────────────────
+  •

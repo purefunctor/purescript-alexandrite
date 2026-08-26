@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,8 +15,11 @@ Roles
 Maybe = [Representational]
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Nothing
-  --> 6:3..9:6
-  |
-6 |   let
-  |   ^~~
+Warning! · [MissingPatterns] · Main.purs:6:3
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nothing
+  │
+  │     let
+  │     ╰──
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,8 +16,11 @@ Roles
 List = [Representational]
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Nil
-  --> 7:1..7:30
-  |
-7 | head :: forall a. List a -> a
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:7:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nil
+  │
+  │   head :: forall a. List a -> a
+  │   ╰────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,13 +16,20 @@ Roles
 Triple = [Representational, Representational, Representational]
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Type' with 'Type -> Type'
-  --> 6:27..6:46
-  |
-6 | derive instance Bifunctor (Triple Int String)
-  |                           ^~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Triple Int String
-  --> 6:1..6:46
-  |
-6 | derive instance Bifunctor (Triple Int String)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:6:27
+  •
+  │
+  • Cannot unify 'Type' with 'Type -> Type'
+  │
+  │   derive instance Bifunctor (Triple Int String)
+  │                             ╰──────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:6:1
+  •
+  │
+  • Cannot derive for type: Triple Int String
+  │
+  │   derive instance Bifunctor (Triple Int String)
+  │   ╰────────────────────────────────────────────
+  •

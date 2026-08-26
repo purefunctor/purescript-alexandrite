@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -22,8 +22,11 @@ Roles
 Box = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Show a
-  --> 9:1..11:24
-  |
-9 | instance Show (Box a) where
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:9:1
+  •
+  │
+  • No instance found for: Show a
+  │
+  │   instance Show (Box a) where
+  │   ╰──────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,18 +16,29 @@ Roles
 Box = []
 
 Diagnostics
-error[DeriveInvalidArity]: Invalid arity for derive: expected 2, got 1
-  --> 7:1..7:28
-  |
-7 | derive instance Generic Box
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type -> Constraint' with 'Constraint'
-  --> 7:1..7:28
-  |
-7 | derive instance Generic Box
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 2, got 1
-  --> 7:1..7:28
-  |
-7 | derive instance Generic Box
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [DeriveInvalidArity] · Main.purs:7:1
+  •
+  │
+  • Invalid arity for derive: expected 2, got 1
+  │
+  │   derive instance Generic Box
+  │   ╰──────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:7:1
+  •
+  │
+  • Cannot unify 'Type -> Constraint' with 'Constraint'
+  │
+  │   derive instance Generic Box
+  │   ╰──────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:7:1
+  •
+  │
+  • Invalid arity for derive: expected 2, got 1
+  │
+  │   derive instance Generic Box
+  │   ╰──────────────────────────
+  •

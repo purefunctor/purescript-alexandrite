@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -31,63 +31,110 @@ Roles
 Pair = [Representational, Representational]
 
 Diagnostics
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 16:1..16:28
-   |
-16 | derive instance Eq Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 17:1..17:29
-   |
-17 | derive instance Ord Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 18:1..18:33
-   |
-18 | derive instance Functor Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 19:1..19:35
-   |
-19 | derive instance Bifunctor Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 20:1..20:34
-   |
-20 | derive instance Foldable Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 21:1..21:36
-   |
-21 | derive instance Bifoldable Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 22:1..22:37
-   |
-22 | derive instance Traversable Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 23:1..23:39
-   |
-23 | derive instance Bitraversable Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 24:1..24:39
-   |
-24 | derive instance Contravariant Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 25:1..25:36
-   |
-25 | derive instance Profunctor Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 26:1..26:29
-   |
-26 | derive instance Eq1 Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[DeriveInvalidArity]: Invalid arity for derive: expected 1, got 2
-  --> 27:1..27:30
-   |
-27 | derive instance Ord1 Pair Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [DeriveInvalidArity] · Main.purs:16:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Eq Pair Int
+  │   ╰──────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:17:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Ord Pair Int
+  │   ╰───────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:18:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Functor Pair Int
+  │   ╰───────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:19:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Bifunctor Pair Int
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:20:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Foldable Pair Int
+  │   ╰────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:21:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Bifoldable Pair Int
+  │   ╰──────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:22:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Traversable Pair Int
+  │   ╰───────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:23:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Bitraversable Pair Int
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:24:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Contravariant Pair Int
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:25:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Profunctor Pair Int
+  │   ╰──────────────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:26:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Eq1 Pair Int
+  │   ╰───────────────────────────
+  •
+
+Error! · [DeriveInvalidArity] · Main.purs:27:1
+  •
+  │
+  • Invalid arity for derive: expected 1, got 2
+  │
+  │   derive instance Ord1 Pair Int
+  │   ╰────────────────────────────
+  •

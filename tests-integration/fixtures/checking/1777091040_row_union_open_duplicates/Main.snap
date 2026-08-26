@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -44,13 +44,20 @@ Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'String' with 'Int'
-  --> 17:1..21:4
-   |
-17 | forceSolve =
-   | ^~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '( a :: String )' with '( a :: Int )'
-  --> 17:1..21:4
-   |
-17 | forceSolve =
-   | ^~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify 'String' with 'Int'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify '( a :: String )' with '( a :: Int )'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

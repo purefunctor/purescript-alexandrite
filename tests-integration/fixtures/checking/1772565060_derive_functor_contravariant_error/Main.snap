@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -24,8 +24,11 @@ Reader = [Representational, Representational]
 Cont = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: t0
-  --> 6:1..6:34
-  |
-6 | derive instance Functor Predicate
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [ContravariantOccurrence] · Main.purs:6:1
+  •
+  │
+  • Type variable occurs in contravariant position: t0
+  │
+  │   derive instance Functor Predicate
+  │   ╰────────────────────────────────
+  •

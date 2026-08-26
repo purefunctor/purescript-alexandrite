@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -11,13 +11,20 @@ testExhaustive :: Prim.Array Prim.Int -> Prim.Int
 Types
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: _
-  --> 3:1..3:38
-  |
-3 | testNonExhaustive :: Array Int -> Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-warning[RedundantPattern]: Pattern match has redundant patterns: [_]
-  --> 7:1..7:34
-  |
-7 | testRedundant :: Array Int -> Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:3:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: _
+  │
+  │   testNonExhaustive :: Array Int -> Int
+  │   ╰────────────────────────────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:7:1
+  •
+  │
+  • Pattern match has redundant patterns: [_]
+  │
+  │   testRedundant :: Array Int -> Int
+  │   ╰────────────────────────────────
+  •

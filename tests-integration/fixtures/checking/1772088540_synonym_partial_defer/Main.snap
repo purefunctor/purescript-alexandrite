@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -27,13 +27,20 @@ Roles
 Identity = [Representational]
 
 Diagnostics
-error[PartialSynonymApplication]: Partial type synonym application
-  --> 13:12..13:23
-   |
-13 | type Bad = ReaderT Int
-   |            ^~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 13:12..13:23
-   |
-13 | type Bad = ReaderT Int
-   |            ^~~~~~~~~~~
+Error! · [PartialSynonymApplication] · Main.purs:13:12
+  •
+  │
+  • Partial type synonym application
+  │
+  │   type Bad = ReaderT Int
+  │              ╰──────────
+  •
+
+Error! · [CannotUnify] · Main.purs:13:12
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   type Bad = ReaderT Int
+  │              ╰──────────
+  •

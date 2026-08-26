@@ -56,19 +56,6 @@ fn line_text<'a>(line_index: &LineIndex, content: &'a str, line: u32) -> Option<
     Some(text.trim_end_matches(['\n', '\r']))
 }
 
-fn caret_marker(line: &str, start_col: u32, end_col: Option<u32>) -> String {
-    let line_len = line.chars().count() as u32;
-    let start = start_col.min(line_len);
-    let end = end_col.unwrap_or(line_len).min(line_len);
-
-    if end <= start {
-        format!("{}^", " ".repeat(start as usize))
-    } else {
-        let tilde_count = (end - start).saturating_sub(1) as usize;
-        format!("{}^{}", " ".repeat(start as usize), "~".repeat(tilde_count))
-    }
-}
-
 fn span_location(
     line_index: &LineIndex,
     content: &str,
@@ -77,15 +64,6 @@ fn span_location(
     let start = offset_to_display_position(line_index, content, TextSize::from(span.start))?;
     let end = offset_to_display_position(line_index, content, TextSize::from(span.end))?;
     Some(((start.line, start.column), (end.line, end.column)))
-}
-
-pub fn format_rustc(diagnostics: &[Diagnostic], content: &str) -> String {
-    format_rustc_inner(diagnostics, content, None)
-}
-
-/// Retained for integration and compatibility snapshot stability, not command-line output.
-pub fn format_rustc_with_path(diagnostics: &[Diagnostic], content: &str, path: &str) -> String {
-    format_rustc_inner(diagnostics, content, Some(path))
 }
 
 pub fn format_rich_with_path(
@@ -198,13 +176,6 @@ fn painted(text: impl AsRef<str>, ansi: &str, color: bool) -> String {
     if color { format!("{ansi}{}{ANSI_RESET}", text.as_ref()) } else { text.as_ref().to_string() }
 }
 
-fn severity_name(severity: Severity) -> &'static str {
-    match severity {
-        Severity::Error => "error",
-        Severity::Warning => "warning",
-    }
-}
-
 fn severity_color(severity: Severity) -> &'static str {
     match severity {
         Severity::Error => ANSI_BOLD_RED,
@@ -272,94 +243,6 @@ fn paint_quoted_text(text: &str, color: bool) -> String {
     if quoted {
         output.push_str(ANSI_RESET);
     }
-    output
-}
-
-fn format_rustc_inner(diagnostics: &[Diagnostic], content: &str, path: Option<&str>) -> String {
-    let line_index = LineIndex::new(content);
-    let mut output = String::new();
-
-    for diagnostic in diagnostics {
-        let severity = severity_name(diagnostic.severity);
-        output.push_str(&format!("{severity}[{}]: {}\n", diagnostic.code, diagnostic.message));
-
-        let primary = diagnostic.span;
-        if let Some(((start_line, start_col), (end_line, end_col))) =
-            span_location(&line_index, content, primary)
-        {
-            let display_start_line = start_line + 1;
-            let display_start_col = start_col + 1;
-            let display_end_line = end_line + 1;
-            let display_end_col = end_col + 1;
-
-            if let Some(path) = path {
-                output.push_str(&format!(
-                    "  --> {path}:{}:{}..{}:{}\n",
-                    display_start_line, display_start_col, display_end_line, display_end_col
-                ));
-            } else {
-                output.push_str(&format!(
-                    "  --> {}:{}..{}:{}\n",
-                    display_start_line, display_start_col, display_end_line, display_end_col
-                ));
-            }
-
-            if let Some(line) = line_text(&line_index, content, start_line) {
-                let line_num_width = display_start_line.to_string().len();
-                output.push_str(&format!("{:>width$} |\n", "", width = line_num_width));
-                output.push_str(&format!("{} | {}\n", display_start_line, line));
-
-                let marker_end_col = if start_line == end_line { Some(end_col) } else { None };
-                let marker = caret_marker(line, start_col, marker_end_col);
-                output.push_str(&format!("{:>width$} | {}\n", "", marker, width = line_num_width));
-            }
-        }
-
-        for trivia in &diagnostic.trivia {
-            output.push_str(&format!("  trivia: {trivia}\n"));
-        }
-
-        for related in &diagnostic.related {
-            output.push_str(&format!("  note: {}\n", related.message));
-
-            if let Some(((start_line, start_col), (end_line, end_col))) =
-                span_location(&line_index, content, related.span)
-            {
-                let display_start_line = start_line + 1;
-                let display_start_col = start_col + 1;
-                let display_end_line = end_line + 1;
-                let display_end_col = end_col + 1;
-
-                if let Some(path) = path {
-                    output.push_str(&format!(
-                        "    --> {path}:{}:{}..{}:{}\n",
-                        display_start_line, display_start_col, display_end_line, display_end_col
-                    ));
-                } else {
-                    output.push_str(&format!(
-                        "    --> {}:{}..{}:{}\n",
-                        display_start_line, display_start_col, display_end_line, display_end_col
-                    ));
-                }
-
-                if let Some(line) = line_text(&line_index, content, start_line) {
-                    let line_num_width = display_start_line.to_string().len();
-                    output.push_str(&format!("  {:>width$} |\n", "", width = line_num_width));
-                    output.push_str(&format!("  {} | {}\n", display_start_line, line));
-
-                    let marker_end_col = if start_line == end_line { Some(end_col) } else { None };
-                    let marker = caret_marker(line, start_col, marker_end_col);
-                    output.push_str(&format!(
-                        "  {:>width$} | {}\n",
-                        "",
-                        marker,
-                        width = line_num_width
-                    ));
-                }
-            }
-        }
-    }
-
     output
 }
 

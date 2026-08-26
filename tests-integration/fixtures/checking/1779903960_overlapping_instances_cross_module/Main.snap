@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,16 +17,27 @@ Roles
 Y = []
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: C X Y
-  --> 7:1..7:22
-  |
-7 | instance cxy :: C X Y
-  | ^~~~~~~~~~~~~~~~~~~~~
-  trivia: forall t0. C X t0 is matching
-  trivia: C X Y is matching
-warning[MissingInstanceMembers]: Instance is missing class members
-  --> 7:1..7:22
-  |
-7 | instance cxy :: C X Y
-  | ^~~~~~~~~~~~~~~~~~~~~
-  trivia: test is not implemented
+Error! · [OverlappingInstances] · Main.purs:7:1
+  •
+  │
+  • Overlapping type class instances found for: C X Y
+  │
+  │   instance cxy :: C X Y
+  │   ╰────────────────────
+  • while
+  │
+  │   forall t0. C X t0 is matching
+  │   C X Y is matching
+  •
+
+Warning! · [MissingInstanceMembers] · Main.purs:7:1
+  •
+  │
+  • Instance is missing class members
+  │
+  │   instance cxy :: C X Y
+  │   ╰────────────────────
+  • while
+  │
+  │   test is not implemented
+  •

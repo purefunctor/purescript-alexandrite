@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -18,13 +18,20 @@ class forall (a :: Prim.Type). Main.Eq a
   show :: forall @a. Main.Eq a => a -> Prim.String
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq a
-  --> 7:1..11:7
-  |
-7 | evidenceDoesNotEscape
-  | ^~~~~~~~~~~~~~~~~~~~~
-error[EscapedSkolem]: Type variable 'a1' has escaped its scope, appearing in type 'a1'
-  --> 19:1..19:55
-   |
-19 | typeDoesNotEscape = consume { value: \value -> value }
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:7:1
+  •
+  │
+  • No instance found for: Eq a
+  │
+  │   evidenceDoesNotEscape
+  │   ╰────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:19:1
+  •
+  │
+  • Type variable 'a1' has escaped its scope, appearing in type 'a1'
+  │
+  │   typeDoesNotEscape = consume { value: \value -> value }
+  │   ╰─────────────────────────────────────────────────────
+  •

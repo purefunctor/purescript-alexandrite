@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -25,8 +25,11 @@ Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Lacks @Type "a" ( a :: Int )
-  --> 17:1..17:78
-   |
-17 | forceSolve = { lacksOpen: lacksOpen empty, lacksPresent: lacksPresent empty }
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:17:1
+  •
+  │
+  • No instance found for: Lacks @Type "a" ( a :: Int )
+  │
+  │   forceSolve = { lacksOpen: lacksOpen empty, lacksPresent: lacksPresent empty }
+  │   ╰────────────────────────────────────────────────────────────────────────────
+  •

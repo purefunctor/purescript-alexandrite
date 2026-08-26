@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,8 +20,11 @@ Roles
 Reader = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Int -> t0
-  --> 16:1..16:35
-   |
-16 | derive instance Traversable Reader
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:16:1
+  •
+  │
+  • Cannot derive for type: Int -> t0
+  │
+  │   derive instance Traversable Reader
+  │   ╰─────────────────────────────────
+  •

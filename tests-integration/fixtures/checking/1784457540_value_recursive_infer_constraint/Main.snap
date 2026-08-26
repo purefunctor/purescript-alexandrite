@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,10 +15,15 @@ class forall (a :: Prim.Type). Main.Semigroup a
   append :: forall @a. Main.Semigroup a => a -> a -> a
 
 Diagnostics
-error[CannotGeneraliseRecursiveFunction]: Unable to generalise the type of this recursive function.
-  --> 6:1..6:39
-  |
-6 | test value = append value (test value)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: The inferred type was: forall t0. Semigroup t0 => t0 -> t0
-  trivia: Try adding a type signature.
+Error! · [CannotGeneraliseRecursiveFunction] · Main.purs:6:1
+  •
+  │
+  • Unable to generalise the type of this recursive function.
+  │
+  │   test value = append value (test value)
+  │   ╰─────────────────────────────────────
+  • while
+  │
+  │   The inferred type was: forall t0. Semigroup t0 => t0 -> t0
+  │   Try adding a type signature.
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -24,10 +24,15 @@ Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: ShowP @k (a :: k)
-  --> 13:1..14:21
-   |
-13 | instance showPSecond :: ShowP a where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall k1 (a1 :: k1). ShowP @k1 (a1 :: k1) is matching
-  trivia: forall k (a :: k). ShowP @k (a :: k) is matching
+Error! · [OverlappingInstances] · Main.purs:13:1
+  •
+  │
+  • Overlapping type class instances found for: ShowP @k (a :: k)
+  │
+  │   instance showPSecond :: ShowP a where
+  │   ╰────────────────────────────────────
+  • while
+  │
+  │   forall k1 (a1 :: k1). ShowP @k1 (a1 :: k1) is matching
+  │   forall k (a :: k). ShowP @k (a :: k) is matching
+  •

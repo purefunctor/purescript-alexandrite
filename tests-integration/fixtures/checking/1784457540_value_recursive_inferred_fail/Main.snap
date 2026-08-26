@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -10,8 +10,11 @@ test :: Prim.Int
 Types
 
 Diagnostics
-error[CustomFailure]: failure was demanded
-  --> 8:1..8:45
-  |
-8 | test = if true then test else guardedFailure
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CustomFailure] · Main.purs:8:1
+  •
+  │
+  • failure was demanded
+  │
+  │   test = if true then test else guardedFailure
+  │   ╰───────────────────────────────────────────
+  •

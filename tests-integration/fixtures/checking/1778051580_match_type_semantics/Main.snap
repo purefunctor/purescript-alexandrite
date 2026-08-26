@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -41,23 +41,38 @@ Unit = []
 Output = []
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: IsEq x Unit Output
-  --> 17:1..17:41
-   |
-17 | testSkolemRight :: forall x. x -> Output
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq Unit x1 Output
-  --> 20:1..20:40
-   |
-20 | testSkolemLeft :: forall x. x -> Output
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: IsEq y x2 Output
-  --> 23:1..23:47
-   |
-23 | testSkolemIsEq :: forall x y. x -> y -> Output
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: RowSame @Type { params :: Unit | ?47 } { query :: Unit | ?50 }
-  --> 44:1..44:25
-   |
-44 | testOpenRowsNoFd :: Unit
-   | ^~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:17:1
+  •
+  │
+  • No instance found for: IsEq x Unit Output
+  │
+  │   testSkolemRight :: forall x. x -> Output
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: IsEq Unit x1 Output
+  │
+  │   testSkolemLeft :: forall x. x -> Output
+  │   ╰──────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:23:1
+  •
+  │
+  • No instance found for: IsEq y x2 Output
+  │
+  │   testSkolemIsEq :: forall x y. x -> y -> Output
+  │   ╰─────────────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:44:1
+  •
+  │
+  • No instance found for: RowSame @Type { params :: Unit | ?47 } { query :: Unit | ?50 }
+  │
+  │   testOpenRowsNoFd :: Unit
+  │   ╰───────────────────────
+  •

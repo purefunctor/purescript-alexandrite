@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,8 +15,11 @@ type Add a b = a
 type Bad = Main.Add Prim.Int "hello"
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Symbol' with 'Type'
-  --> 8:18..8:25
-  |
-8 | type Bad = Int + "hello"
-  |                  ^~~~~~~
+Error! · [CannotUnify] · Main.purs:8:18
+  •
+  │
+  • Cannot unify 'Symbol' with 'Type'
+  │
+  │   type Bad = Int + "hello"
+  │                    ╰──────
+  •

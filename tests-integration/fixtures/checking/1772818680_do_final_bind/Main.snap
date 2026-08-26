@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -13,13 +13,20 @@ test' ::
 Types
 
 Diagnostics
-warning[InvalidFinalBind]: Invalid final bind statement in do expression
-  --> 9:3..9:14
-  |
-9 |   x <- pure 1
-  |   ^~~~~~~~~~~
-warning[InvalidFinalBind]: Invalid final bind statement in do expression
-  --> 12:3..12:14
-   |
-12 |   x <- pure 1
-   |   ^~~~~~~~~~~
+Warning! · [InvalidFinalBind] · Main.purs:9:3
+  •
+  │
+  • Invalid final bind statement in do expression
+  │
+  │     x <- pure 1
+  │     ╰──────────
+  •
+
+Warning! · [InvalidFinalBind] · Main.purs:12:3
+  •
+  │
+  • Invalid final bind statement in do expression
+  │
+  │     x <- pure 1
+  │     ╰──────────
+  •

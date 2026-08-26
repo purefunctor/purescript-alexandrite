@@ -240,13 +240,16 @@ pub fn backend(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let fixture = snapshot_path(folder);
     let file = module_name(path)?;
+    let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
+        invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
+    })?;
     let (engine, files) = crate::load_compiler(folder);
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
 
-    let checking_report = crate::generated::basic::report_checked(&engine, id);
-    let foreign_report = crate::generated::basic::report_foreign(&engine, id);
+    let checking_report = crate::generated::basic::report_checked(&engine, id, display_path);
+    let foreign_report = crate::generated::basic::report_foreign(&engine, id, display_path);
     let diagnostics_report = format!("{checking_report}{foreign_report}");
     let generated = tempfile::tempdir()?;
     match javascript_modules(&engine, id)? {
@@ -267,12 +270,15 @@ pub fn backend(path: &Path) -> FixtureResult {
 pub fn checking(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
+    let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
+        invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
+    })?;
     let (engine, _) = crate::load_compiler(folder);
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
 
-    let report = crate::generated::basic::report_checked(&engine, id);
+    let report = crate::generated::basic::report_checked(&engine, id, display_path);
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(snapshot_path(folder));

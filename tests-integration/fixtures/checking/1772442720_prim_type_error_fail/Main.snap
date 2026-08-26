@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -26,14 +26,21 @@ Roles
 Proxy = [Phantom]
 
 Diagnostics
-error[CustomFailure]: This operation is not allowed
-  --> 11:1..11:20
-   |
-11 | useFailBasic :: Int
-   | ^~~~~~~~~~~~~~~~~~~
-error[CustomFailure]: Error:
-Type String
-  --> 17:1..17:31
-   |
-17 | useFailComplex :: Proxy String
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CustomFailure] · Main.purs:11:1
+  •
+  │
+  • This operation is not allowed
+  │
+  │   useFailBasic :: Int
+  │   ╰──────────────────
+  •
+
+Error! · [CustomFailure] · Main.purs:17:1
+  •
+  │
+  • Error:
+  │ Type String
+  │
+  │   useFailComplex :: Proxy String
+  │   ╰─────────────────────────────
+  •

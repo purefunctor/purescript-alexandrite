@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,8 +17,11 @@ Instances
 instance Main.C Prim.Boolean
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: false
-  --> 6:1..7:13
-  |
-6 | instance cBool :: C Boolean where
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:6:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: false
+  │
+  │   instance cBool :: C Boolean where
+  │   ╰────────────────────────────────
+  •

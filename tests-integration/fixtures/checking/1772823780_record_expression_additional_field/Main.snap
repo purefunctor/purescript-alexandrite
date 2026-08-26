@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -9,8 +9,11 @@ test :: { a :: Prim.Int }
 Types
 
 Diagnostics
-error[AdditionalProperty]: Additional properties not allowed: b
-  --> 4:8..4:22
-  |
-4 | test = { a: 1, b: 2 }
-  |        ^~~~~~~~~~~~~~
+Error! · [AdditionalProperty] · Main.purs:4:8
+  •
+  │
+  • Additional properties not allowed: b
+  │
+  │   test = { a: 1, b: 2 }
+  │          ╰─────────────
+  •

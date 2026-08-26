@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,8 +15,11 @@ Roles
 Maybe = [Representational]
 
 Diagnostics
-warning[RedundantPattern]: Pattern match has redundant patterns: Just _
-  --> 5:8..8:15
-  |
-5 | test = case _ of
-  |        ^~~~~~~~~
+Warning! · [RedundantPattern] · Main.purs:5:8
+  •
+  │
+  • Pattern match has redundant patterns: Just _
+  │
+  │   test = case _ of
+  │          ╰────────
+  •

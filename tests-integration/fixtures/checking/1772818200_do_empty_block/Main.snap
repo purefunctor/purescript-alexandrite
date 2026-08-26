@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,13 +16,20 @@ Roles
 Effect = [Nominal]
 
 Diagnostics
-error[EmptyDoBlock]: Empty do block
-  --> 9:8..9:10
-  |
-9 | test = do
-  |        ^~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 9:8..9:10
-  |
-9 | test = do
-  |        ^~
+Error! · [EmptyDoBlock] · Main.purs:9:8
+  •
+  │
+  • Empty do block
+  │
+  │   test = do
+  │          ╰─
+  •
+
+Error! · [CannotUnify] · Main.purs:9:8
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   test = do
+  │          ╰─
+  •

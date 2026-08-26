@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -14,8 +14,11 @@ Roles
 Nominal = [Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Coercible @Type (Nominal Int) (Nominal String)
-  --> 12:1..12:56
-   |
-12 | coerceNominalDifferent :: Nominal Int -> Nominal String
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:12:1
+  •
+  │
+  • No instance found for: Coercible @Type (Nominal Int) (Nominal String)
+  │
+  │   coerceNominalDifferent :: Nominal Int -> Nominal String
+  │   ╰──────────────────────────────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -21,8 +21,11 @@ List = [Representational]
 Container = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Coercible @Type (Maybe t0) (List t0)
-  --> 11:1..11:62
-   |
-11 | coerceContainerDifferent :: Container Maybe -> Container List
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:11:1
+  •
+  │
+  • No instance found for: Coercible @Type (Maybe t0) (List t0)
+  │
+  │   coerceContainerDifferent :: Container Maybe -> Container List
+  │   ╰────────────────────────────────────────────────────────────
+  •

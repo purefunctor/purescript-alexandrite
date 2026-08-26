@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,13 +16,20 @@ Roles
 Effect = [Nominal]
 
 Diagnostics
-error[InvalidFinalLet]: Invalid final let statement in do expression
-  --> 11:3..11:36
-   |
-11 |   let _ = expectString record.field
-   |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Int' with 'String'
-  --> 11:24..11:36
-   |
-11 |   let _ = expectString record.field
-   |                        ^~~~~~~~~~~~
+Error! · [InvalidFinalLet] · Main.purs:11:3
+  •
+  │
+  • Invalid final let statement in do expression
+  │
+  │     let _ = expectString record.field
+  │     ╰────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:11:24
+  •
+  │
+  • Cannot unify 'Int' with 'String'
+  │
+  │     let _ = expectString record.field
+  │                          ╰───────────
+  •

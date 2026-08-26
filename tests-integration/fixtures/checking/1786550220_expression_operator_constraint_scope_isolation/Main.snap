@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,8 +17,11 @@ Classes
 class forall (t0 :: Prim.Type) (a :: t0). Main.First @t0 (a :: t0)
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: First @Type Int
-  --> 16:1..16:12
-   |
-16 | test :: Int
-   | ^~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:16:1
+  •
+  │
+  • No instance found for: First @Type Int
+  │
+  │   test :: Int
+  │   ╰──────────
+  •
