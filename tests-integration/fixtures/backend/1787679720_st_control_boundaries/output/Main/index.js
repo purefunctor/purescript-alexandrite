@@ -5,7 +5,7 @@ import * as $foreign from "./foreign.js";
 export function branched(choose) {
   return seed => {
     const $action = constructST("branch-action")(seed);
-    const $effect = () => {
+    return () => {
       const value = $action();
       if (choose) {
         return constructST("branch-then")(value)();
@@ -13,19 +13,17 @@ export function branched(choose) {
         return constructST("branch-else")(value)();
       }
     };
-    return $effect;
   };
 }
 
 export function patternLet(seed) {
   const $action = constructST("pattern-action")(seed);
-  const $effect = () => {
+  return () => {
     const value = $action();
     const $scrutinee = { selected: value };
     const selected = $scrutinee.selected;
     return constructST("pattern-result")(selected)();
   };
-  return $effect;
 }
 
 export function genericBind(bindMDict) {
@@ -43,11 +41,10 @@ export const mark = $foreign["mark"];
 
 export const deferredST = (() => {
   const $action = constructST("deferred-action")("ignored");
-  const $effect = () => {
+  return () => {
     const value = $action();
     return constructST("deferred-result")(deferredValue)();
   };
-  return $effect;
 })();
 
 export const deferredValue = mark("deferred-value")("deferred");

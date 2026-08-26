@@ -7,30 +7,24 @@ export function identity(value) {
 export function mapped(value) {
   const $function = mark("map-function")(identity);
   const $action = constructEffect("map-action")(value);
-  const $effect = () => {
-    const $value = $action();
-    return $function($value);
+  return () => {
+    return $function($action());
   };
-  return $effect;
 }
 
 export function applied(value) {
   const $functionAction = constructEffect("apply-function-action")(identity);
   const $argumentAction = constructEffect("apply-value-action")(value);
-  const $effect = () => {
-    const $function = $functionAction();
-    const $argument = $argumentAction();
-    return $function($argument);
+  return () => {
+    return $functionAction()($argumentAction());
   };
-  return $effect;
 }
 
 export function capturedPure(value) {
   const $value = mark("pure-value")(value);
-  const $effect = () => {
+  return () => {
     return $value;
   };
-  return $effect;
 }
 
 export const constructEffect = $foreign["constructEffect"];

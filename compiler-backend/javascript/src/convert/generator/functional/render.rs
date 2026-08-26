@@ -609,13 +609,15 @@ impl Generator<'_> {
             }
             ExpressionKind::LetPattern { pattern, value, body } => {
                 let source = *value;
-                let value = self.expression_value(tree, writer, source, context)?;
+                let value = self.rendered_expression(tree, writer, source, context)?;
                 let value = self.materialize_pattern_value(tree, writer, source, value, context);
                 let plan = self.pattern_plan(tree, *pattern, value, None, context)?;
                 self.render_pattern_scope(tree, writer, plan, context, |tree, writer, context| {
                     self.render_expression(tree, writer, *body, destination, context)
                 })
             }
+            ExpressionKind::Effect { effect } if !destination.is_effect() => self
+                .render_effect_expression_destination(tree, writer, effect, destination, context),
             _ => {
                 if destination.is_effect() {
                     return self.render_effect_destination(
@@ -674,6 +676,38 @@ impl Generator<'_> {
         let effect = self.expression_value(tree, writer, expression, context)?;
         let value = tree.call(effect, vec![]);
         self.render_destination(tree, writer, value, destination);
+        Ok(())
+    }
+
+    fn render_effect_expression_destination(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        effect: &EffectExpression,
+        destination: Destination<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let mut renderer = self.renderer(tree, writer, context);
+        let effect = capture_effect(&mut renderer, effect)?;
+        let (header, break_label) = match destination {
+            Destination::Return => ("return () => {".to_owned(), None),
+            Destination::Assign(name) => (format!("{name} = () => {{"), None),
+            Destination::AssignAndBreak { name, label } => {
+                (format!("{name} = () => {{"), Some(label))
+            }
+            Destination::EffectReturn
+            | Destination::EffectAssign(_)
+            | Destination::EffectAssignAndBreak { .. } => {
+                unreachable!("invariant violated: effect destination returned an effect thunk")
+            }
+        };
+        writer.block(header, "};", |writer| {
+            let mut renderer = self.renderer(tree, writer, context);
+            execute_effect(&mut renderer, effect, Destination::Return)
+        })?;
+        if let Some(label) = break_label {
+            writer.line(format!("break {label};"));
+        }
         Ok(())
     }
 
@@ -1370,7 +1404,7 @@ fn render_case(
     let context = &mut *renderer.context;
     let mut values = Vec::with_capacity(scrutinees.len());
     for scrutinee in scrutinees {
-        let value = generator.expression_value(tree, writer, *scrutinee, context)?;
+        let value = generator.rendered_expression(tree, writer, *scrutinee, context)?;
         let value = generator.materialize_pattern_value(tree, writer, *scrutinee, value, context);
         values.push(value);
     }
@@ -1591,7 +1625,7 @@ impl Generator<'_> {
             }
             Guard::Pattern { expression: value, pattern } => {
                 let source = *value;
-                let value = self.expression_value(tree, writer, source, context)?;
+                let value = self.rendered_expression(tree, writer, source, context)?;
                 let value = self.materialize_pattern_value(tree, writer, source, value, context);
                 let plan = self.pattern_plan(tree, *pattern, value, None, context)?;
                 let condition = combine_conditions(tree, &plan.conditions);
@@ -1780,20 +1814,22 @@ impl Generator<'_> {
         tree: &mut Tree,
         writer: &mut Writer<'_>,
         source: FunctionalExpressionId,
-        value: ExpressionId,
+        value: RenderedExpression,
         context: &mut FunctionContext,
     ) -> ExpressionId {
-        if matches!(
-            self.module.storage[source].kind,
-            ExpressionKind::Literal { .. }
-                | ExpressionKind::Constructor { .. }
-                | ExpressionKind::Global { .. }
-                | ExpressionKind::Local { .. }
-        ) {
-            return value;
+        if !value.pending_evaluation
+            || matches!(
+                self.module.storage[source].kind,
+                ExpressionKind::Literal { .. }
+                    | ExpressionKind::Constructor { .. }
+                    | ExpressionKind::Global { .. }
+                    | ExpressionKind::Local { .. }
+            )
+        {
+            return value.value;
         }
         let name = context.allocate("$scrutinee");
-        writer.expression_line(format!("const {name} = "), tree, value, ";");
+        writer.expression_line(format!("const {name} = "), tree, value.value, ";");
         tree.identifier(name)
     }
 
@@ -1805,7 +1841,7 @@ impl Generator<'_> {
         preferred: &str,
         context: &mut FunctionContext,
     ) {
-        if !expression.pending_evaluation {
+        if rendered_expression_is_reusable(tree, expression) {
             return;
         }
         expression.value =
@@ -1978,9 +2014,13 @@ fn capture_effect_value(
     let tree = &mut *renderer.tree;
     let writer = &mut *renderer.writer;
     let context = &mut *renderer.context;
-    let value = generator.expression_value(tree, writer, expression, context)?;
+    let expression_is_reusable = generator.functional_expression_is_reusable(expression, context);
+    let value = generator.rendered_expression(tree, writer, expression, context)?;
+    if expression_is_reusable || rendered_expression_is_reusable(tree, &value) {
+        return Ok(value.value);
+    }
     let name = context.allocate(preferred_name);
-    writer.expression_line(format!("const {name} = "), tree, value, ";");
+    writer.expression_line(format!("const {name} = "), tree, value.value, ";");
     Ok(tree.identifier(name))
 }
 
@@ -2011,7 +2051,7 @@ fn execute_effect(
             )
         }
         CapturedEffect::Map { function, action } => {
-            let (value, _) = execute_effect_action(renderer, action, "$value")?;
+            let value = execute_effect_action_value(renderer, action, "$value")?;
             let result = renderer.tree.call(function, vec![value]);
             renderer.generator.render_destination(
                 renderer.tree,
@@ -2022,8 +2062,12 @@ fn execute_effect(
             Ok(())
         }
         CapturedEffect::Apply { function_action, argument_action } => {
-            let (function, _) = execute_effect_action(renderer, function_action, "$function")?;
-            let (argument, _) = execute_effect_action(renderer, argument_action, "$argument")?;
+            let function = if matches!(&argument_action, CapturedEffectAction::Effect(_)) {
+                execute_effect_action(renderer, function_action, "$function")?.0
+            } else {
+                execute_effect_action_value(renderer, function_action, "$function")?
+            };
+            let argument = execute_effect_action_value(renderer, argument_action, "$argument")?;
             let result = renderer.tree.call(function, vec![argument]);
             renderer.generator.render_destination(
                 renderer.tree,
@@ -2032,6 +2076,22 @@ fn execute_effect(
                 destination,
             );
             Ok(())
+        }
+    }
+}
+
+fn execute_effect_action_value(
+    renderer: &mut FunctionRenderer<'_, '_, '_>,
+    action: CapturedEffectAction,
+    preferred_name: &str,
+) -> ModuleResult<ExpressionId> {
+    match action {
+        CapturedEffectAction::Expression(action) => Ok(renderer.tree.call(action, vec![])),
+        CapturedEffectAction::Effect(effect) => {
+            let name = renderer.context.allocate(preferred_name);
+            renderer.writer.line(format!("let {name};"));
+            execute_effect(renderer, *effect, Destination::Assign(&name))?;
+            Ok(renderer.tree.identifier(name))
         }
     }
 }

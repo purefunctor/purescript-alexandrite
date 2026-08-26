@@ -17,11 +17,10 @@ export const mark = $foreign["mark"];
 
 export const deferredEffect = (() => {
   const $action = constructEffect("deferred-action")("ignored");
-  const $effect = () => {
+  return () => {
     const value = $action();
     return constructEffect("deferred-result")(deferredValue)();
   };
-  return $effect;
 })();
 
 export const deferredValue = mark("deferred-value")("deferred");
