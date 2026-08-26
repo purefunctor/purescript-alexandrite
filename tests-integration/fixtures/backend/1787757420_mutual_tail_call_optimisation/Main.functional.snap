@@ -1,0 +1,14 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export recursive[2] mutualEven = \value%0 ->
+  if equalInt value%0 0 then true else mutualOdd (decrementInt value%0)
+
+@export recursive[2] mutualOdd = \value%1 ->
+  if equalInt value%1 0 then false else mutualEven (decrementInt value%1)

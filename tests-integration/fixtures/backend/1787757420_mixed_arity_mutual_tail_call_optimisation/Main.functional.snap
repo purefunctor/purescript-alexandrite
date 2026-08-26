@@ -1,0 +1,14 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export recursive[2] singleArgument = \value%0 ->
+  if equalInt value%0 0 then value%0 else twoArguments (decrementInt value%0) 0
+
+@export recursive[2] twoArguments = \value%1 accumulator%2 ->
+  if equalInt value%1 0 then accumulator%2 else singleArgument (decrementInt value%1)
