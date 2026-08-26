@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 262
 expression: diagnostics_report
 ---
 Terms
@@ -36,5 +37,13 @@ whereIsolation :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
 equationScope :: Prim.Boolean -> Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
 firstComparison :: Prim.Boolean
 secondComparison :: Prim.Boolean
+compareRecursiveTwice :: Main.Recursive -> Main.Recursive -> Prim.Boolean
 
 Types
+Recursive :: Prim.Type
+
+Instances
+instance Data.Eq.Eq Main.Recursive
+
+Roles
+Recursive = []

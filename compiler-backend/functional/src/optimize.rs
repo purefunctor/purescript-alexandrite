@@ -17,6 +17,35 @@ pub fn inline_simple_bindings(
     optimize_expression(storage, expression, recursive_globals, &mut visited);
 }
 
+pub(crate) fn reachable_expressions(
+    storage: &Storage,
+    roots: impl IntoIterator<Item = ExpressionId>,
+) -> FxHashSet<ExpressionId> {
+    let mut reachable = FxHashSet::default();
+    let mut pending = roots.into_iter().collect::<Vec<_>>();
+    while let Some(expression) = pending.pop() {
+        if !reachable.insert(expression) {
+            continue;
+        }
+        pending.extend(expression_children(&storage[expression].kind));
+    }
+    reachable
+}
+
+pub(crate) fn expression_globals(
+    storage: &Storage,
+    expression: ExpressionId,
+) -> FxHashSet<GlobalId> {
+    let reachable = reachable_expressions(storage, [expression]);
+    let globals = reachable.into_iter().filter_map(|expression| match &storage[expression].kind {
+        ExpressionKind::Constructor { global } | ExpressionKind::Global { global } => {
+            Some(global.id)
+        }
+        _ => None,
+    });
+    globals.collect()
+}
+
 fn optimize_expression(
     storage: &mut Storage,
     expression: ExpressionId,

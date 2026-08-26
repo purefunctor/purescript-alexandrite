@@ -109,3 +109,12 @@ firstComparison = Eq.eq 1 2
 
 secondComparison :: Boolean
 secondComparison = Eq.eq 3 4
+
+data Recursive
+
+instance Eq.Eq Recursive where
+  eq left right = Eq.eq left right
+
+compareRecursiveTwice :: Recursive -> Recursive -> Boolean
+compareRecursiveTwice left right =
+  if Eq.eq left right then Eq.eq right left else false

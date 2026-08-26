@@ -61,7 +61,7 @@ impl<'a> Printer<'a, '_> {
             }
             DeclarationKind::Value(expression) => {
                 let prefix = match declaration.global.id {
-                    GlobalId::Term(..) => "",
+                    GlobalId::Term(..) | GlobalId::Generated(..) => "",
                     GlobalId::Instance(..) => "instance ",
                 };
                 let recursion = declaration

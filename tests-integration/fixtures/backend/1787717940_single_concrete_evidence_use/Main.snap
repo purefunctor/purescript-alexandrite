@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+compareArraysOnce :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+
+Types

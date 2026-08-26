@@ -117,13 +117,14 @@ fn convert_instance_declaration(
     let parameters = parameters.collect::<ConversionResult<Vec<_>>>()?;
 
     let body = context.evidence_scope(|context| match &instance.implementation {
-        checking_tree::InstanceImplementation::Delegate { evidence, .. } => {
-            evidence_variable(context, *evidence)
+        checking_tree::InstanceImplementation::Delegate { constraint, evidence } => {
+            evidence_variable(context, *evidence, Some(*constraint))
         }
         checking_tree::InstanceImplementation::Members(members) => {
             let mut fields = Vec::new();
             for superclass in instance.superclasses.iter() {
-                let expression = evidence_variable(context, superclass.evidence)?;
+                let expression =
+                    evidence_variable(context, superclass.evidence, Some(superclass.constraint))?;
                 let expression = context.expression(ExpressionKind::Abstraction {
                     parameters: Arc::from([]),
                     body: expression,

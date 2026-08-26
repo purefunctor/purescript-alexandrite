@@ -98,10 +98,16 @@ pub(super) fn convert_expression(
             let argument = convert_expression(context, *argument)?;
             return context.application(function, [argument]);
         }
-        checking_tree::ExpressionKind::EvidenceApplication { function, evidence, .. } => {
-            let evidence = evidence_variable(context, *evidence)?;
+        checking_tree::ExpressionKind::EvidenceApplication { function, evidence, constraint } => {
+            let evidence_expression = evidence_variable(context, *evidence, Some(*constraint))?;
             let function = convert_expression(context, *function)?;
-            return context.application(function, [evidence]);
+            let selection = context.application(function, [evidence_expression])?;
+            return context.record_closed_member_selection(
+                function,
+                *evidence,
+                *constraint,
+                selection,
+            );
         }
         checking_tree::ExpressionKind::EvidenceAbstraction { binder, expression } => {
             let parameter = context.evidence_parameter(*binder)?;
