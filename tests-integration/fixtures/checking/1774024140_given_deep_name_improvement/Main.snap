@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 296
 expression: report
 ---
 Terms
@@ -14,6 +14,29 @@ nonHeadGivenImprovement ::
       ()
       ( a :: Type.Proxy.Proxy @Prim.Int 2 ) =>
     Type.Proxy.Proxy @Prim.Int (n :: Prim.Int)
-forceSolve :: { nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2 }
+functionGivenImprovement ::
+  forall value.
+    Prim.Row.Union @Prim.Type ( a :: value -> Prim.String ) () ( a :: Prim.Int -> Prim.String ) =>
+    Type.Proxy.Proxy @Prim.Type value
+leftOpenRowGivenImprovement ::
+  forall (row :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: { x :: Prim.Int | (row :: Prim.Row Prim.Type) } )
+      ()
+      ( a :: { x :: Prim.Int, y :: Prim.String } ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
+rightOpenRowGivenImprovement ::
+  forall (row :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      ( a :: { x :: Prim.Int, y :: Prim.String } )
+      ()
+      ( a :: { x :: Prim.Int | (row :: Prim.Row Prim.Type) } ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (row :: Prim.Row Prim.Type)
+forceSolve ::
+  { functionGivenImprovement :: Type.Proxy.Proxy @Prim.Type Prim.Int
+  , leftOpenRowGivenImprovement :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( y :: Prim.String )
+  , nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2
+  , rightOpenRowGivenImprovement :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( y :: Prim.String )
+  }
 
 Types

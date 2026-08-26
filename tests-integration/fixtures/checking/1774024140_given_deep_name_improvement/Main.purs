@@ -13,5 +13,27 @@ nonHeadGivenImprovement
   => Proxy n
 nonHeadGivenImprovement = needsAdd
 
+functionGivenImprovement
+  :: forall value
+   . Row.Union (a :: value -> String) () (a :: Int -> String)
+  => Proxy value
+functionGivenImprovement = Proxy
+
+leftOpenRowGivenImprovement
+  :: forall row
+   . Row.Union (a :: Record (x :: Int | row)) () (a :: Record (x :: Int, y :: String))
+  => Proxy row
+leftOpenRowGivenImprovement = Proxy
+
+rightOpenRowGivenImprovement
+  :: forall row
+   . Row.Union (a :: Record (x :: Int, y :: String)) () (a :: Record (x :: Int | row))
+  => Proxy row
+rightOpenRowGivenImprovement = Proxy
+
 forceSolve =
-  { nonHeadGivenImprovement }
+  { nonHeadGivenImprovement
+  , functionGivenImprovement
+  , leftOpenRowGivenImprovement
+  , rightOpenRowGivenImprovement
+  }
