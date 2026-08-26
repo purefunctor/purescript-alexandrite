@@ -15,6 +15,7 @@ unwrap :: forall a. Main.Identity a -> a
 nested :: forall a. Main.Nested a -> Main.Choice a
 bind :: forall a b. a -> (a -> b) -> b
 ordinaryBind :: Main.Identity Prim.Int -> Prim.Int
+partialBind :: Prim.Partial => Main.Choice Prim.Int -> Prim.Int
 
 Types
 Choice :: Prim.Type -> Prim.Type
