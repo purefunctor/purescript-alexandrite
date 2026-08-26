@@ -9,6 +9,6 @@ export const local = [
   1 | 0,
   "local"
 ];
-export const partial = Local(2 | 0);
+export const partial = /* @__PURE__ */ Local(2 | 0);
 export const empty = "Empty";
 export const external = ["External", "external"];

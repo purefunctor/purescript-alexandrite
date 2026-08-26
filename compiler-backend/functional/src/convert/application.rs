@@ -50,7 +50,7 @@ where
         if arguments.is_empty() {
             return Ok(function);
         }
-        let synthetic = synthetic || self.application_is_synthetic(function);
+        let mut synthetic = synthetic || self.application_is_synthetic(function);
         let (known_function, known_arguments) = self.application_spine(function, &arguments);
         if let ExpressionKind::Constructor { global } = &self.storage[known_function].kind {
             let global = global.clone();
@@ -66,6 +66,7 @@ where
                 let elements = elements.collect();
                 return Ok(self.expression(ExpressionKind::Array { elements }));
             }
+            synthetic = true;
         }
         if let Some(arity) =
             self.known_numbered_term_arity(known_function, "Data.Function.Uncurried", "mkFn")?
