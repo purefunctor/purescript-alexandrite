@@ -5,6 +5,8 @@ mod inline;
 mod structure;
 mod syntax;
 
+use std::sync::Arc;
+
 use files::FileId;
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
@@ -15,6 +17,7 @@ use functional::tree::{
 use itertools::Itertools;
 use oxc_allocator::Allocator;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::SmolStr;
 
 use super::super::names::NameAllocator;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
@@ -40,16 +43,15 @@ pub(crate) struct Generator<'m> {
     foreign_namespace: Option<String>,
     runtime_namespace: Option<String>,
     lazy_global_names: FxHashMap<GlobalId, String>,
-    reserved_module_names: FxHashSet<String>,
+    reserved_module_names: Arc<FxHashSet<SmolStr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum LocalBinding {
     Direct(String),
     Lazy(String),
 }
 
-#[derive(Clone)]
 struct FunctionContext {
     allocator: NameAllocator,
     locals: FxHashMap<LocalId, LocalBinding>,
@@ -108,9 +110,9 @@ struct FunctionRenderer<'a, 'm, 't, 'd> {
 }
 
 impl FunctionContext {
-    fn new(reserved: &FxHashSet<String>) -> FunctionContext {
+    fn new(reserved: &Arc<FxHashSet<SmolStr>>) -> FunctionContext {
         FunctionContext {
-            allocator: NameAllocator::with_reserved(reserved.iter().cloned()),
+            allocator: NameAllocator::with_reserved(Arc::clone(reserved)),
             locals: FxHashMap::default(),
         }
     }
@@ -205,6 +207,7 @@ impl<'m> Generator<'m> {
         });
         let lazy_global_names = lazy_global_names.collect();
         let reserved_module_names = allocator.allocated_names().cloned().collect();
+        let reserved_module_names = Arc::new(reserved_module_names);
 
         Generator {
             module,
@@ -1197,12 +1200,63 @@ impl Generator<'_> {
         expression: FunctionalExpressionId,
         context: &mut FunctionContext,
     ) -> ModuleResult<Option<ExpressionId>> {
-        let mut inline_context = context.clone();
-        let expression = self.inline_expression(tree, expression, &mut inline_context)?;
-        if expression.is_some() {
-            *context = inline_context;
+        if !self.expression_can_inline(expression) {
+            return Ok(None);
         }
-        Ok(expression)
+        let expression = self
+            .inline_expression(tree, expression, context)?
+            .expect("invariant violated: inline eligibility did not match expression rendering");
+        Ok(Some(expression))
+    }
+
+    fn expression_can_inline(&self, expression: FunctionalExpressionId) -> bool {
+        match &self.module.storage[expression].kind {
+            ExpressionKind::Literal { .. }
+            | ExpressionKind::Constructor { .. }
+            | ExpressionKind::Global { .. }
+            | ExpressionKind::Local { .. }
+            | ExpressionKind::SynthesizedEvidence { .. }
+            | ExpressionKind::TrivialEvidence => true,
+            ExpressionKind::Array { elements } => {
+                elements.iter().all(|element| self.expression_can_inline(*element))
+            }
+            ExpressionKind::Record { fields } => {
+                fields.iter().all(|field| self.expression_can_inline(field.expression))
+            }
+            ExpressionKind::Project { record, .. }
+            | ExpressionKind::Unary { value: record, .. } => self.expression_can_inline(*record),
+            ExpressionKind::Binary { left, right, .. } => {
+                self.expression_can_inline(*left) && self.expression_can_inline(*right)
+            }
+            ExpressionKind::Abstraction { parameters, body }
+            | ExpressionKind::UncurriedAbstraction { parameters, body } => {
+                parameters.iter().all(|pattern| self.pattern_can_inline(*pattern))
+                    && self.expression_can_inline(*body)
+            }
+            ExpressionKind::Application { function, arguments, .. }
+            | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
+                self.expression_can_inline(*function)
+                    && arguments.iter().all(|argument| self.expression_can_inline(*argument))
+            }
+            ExpressionKind::RecordUpdate { .. }
+            | ExpressionKind::IfThenElse { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Guarded { .. }
+            | ExpressionKind::Let { .. }
+            | ExpressionKind::LetPattern { .. }
+            | ExpressionKind::Effect { .. } => false,
+        }
+    }
+
+    fn pattern_can_inline(&self, pattern: PatternId) -> bool {
+        match &self.module.storage[pattern].kind {
+            PatternKind::Variable(_) | PatternKind::Wildcard => true,
+            PatternKind::Named { pattern, .. } => self.pattern_can_inline(*pattern),
+            PatternKind::Literal(_)
+            | PatternKind::Array(_)
+            | PatternKind::Record(_)
+            | PatternKind::Constructor { .. } => false,
+        }
     }
 
     fn inline_abstraction(
@@ -2538,10 +2592,10 @@ fn collect_expression_children(
     descend_abstractions: bool,
     globals: &mut FxHashSet<GlobalId>,
 ) {
-    let mut seen = FxHashSet::default();
-    let mut references = Vec::new();
-    collect_expression_references(module, expression, &mut seen, &mut references);
     if descend_abstractions {
+        let mut seen = FxHashSet::default();
+        let mut references = vec![];
+        collect_expression_references(module, expression, &mut seen, &mut references);
         globals.extend(references.into_iter().map(|global| global.id));
         return;
     }

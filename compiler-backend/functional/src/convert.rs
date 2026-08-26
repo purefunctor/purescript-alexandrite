@@ -48,6 +48,11 @@ enum BindingSource {
     Evidence(EvidenceBinderId),
 }
 
+struct Dependency {
+    module_name: SmolStr,
+    indexed: Option<Arc<indexing::IndexedModule>>,
+}
+
 pub fn convert_module(
     queries: &impl checking::ExternalQueries,
     file_id: FileId,
@@ -76,7 +81,7 @@ struct Context<'c, Q> {
     checked: Arc<checking::CheckedModule>,
     recursive_groups: FxHashMap<TermItemId, RecursiveGroupId>,
     record_pun_names: FxHashMap<lowering::RecordPunId, SmolStr>,
-    dependencies: FxHashMap<FileId, SmolStr>,
+    dependencies: FxHashMap<FileId, Dependency>,
 
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
@@ -184,8 +189,9 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
         }
     }
 
-    let dependencies = context.dependencies.iter().map(|(&file_id, module_name)| {
-        ModuleDependency { file_id, module_name: SmolStr::clone(module_name) }
+    let dependencies = context.dependencies.iter().map(|(&file_id, dependency)| ModuleDependency {
+        file_id,
+        module_name: SmolStr::clone(&dependency.module_name),
     });
     let mut dependencies = dependencies.collect_vec();
     dependencies.sort_by(|left, right| {
@@ -240,7 +246,8 @@ fn runtime_exports(
     }
     indirect.sort_by(|left, right| {
         context.dependencies[&left.file_id]
-            .cmp(&context.dependencies[&right.file_id])
+            .module_name
+            .cmp(&context.dependencies[&right.file_id].module_name)
             .then_with(|| left.file_id.cmp(&right.file_id))
     });
 
@@ -553,6 +560,9 @@ where
         if file_id == self.file_id {
             return Ok(SmolStr::clone(&self.module_name));
         }
+        if let Some(dependency) = self.dependencies.get(&file_id) {
+            return Ok(SmolStr::clone(&dependency.module_name));
+        }
         let content = self.queries.content(file_id)?;
         let (parsed, _) = self.queries.parsed(file_id)?;
         let name = parsed
@@ -564,6 +574,10 @@ where
     fn indexed_module(&self, file_id: FileId) -> QueryResult<Arc<indexing::IndexedModule>> {
         if file_id == self.file_id {
             Ok(Arc::clone(&self.indexed))
+        } else if let Some(indexed) =
+            self.dependencies.get(&file_id).and_then(|dependency| dependency.indexed.as_ref())
+        {
+            Ok(Arc::clone(indexed))
         } else {
             self.queries.indexed(file_id)
         }
@@ -585,7 +599,7 @@ where
         } else {
             self.term_fallback(term_id)
         };
-        self.register_dependency(file_id)?;
+        self.register_dependency(file_id, Some(Arc::clone(&indexed)))?;
         Ok(Global { id: GlobalId::Term(file_id, term_id), item_name })
     }
 
@@ -627,16 +641,20 @@ where
                 file_id
             }
         };
-        self.register_dependency(file_id)?;
+        self.register_dependency(file_id, None)?;
         Ok(Global { id: GlobalId::Instance(identity), item_name })
     }
 
-    fn register_dependency(&mut self, file_id: FileId) -> QueryResult<()> {
+    fn register_dependency(
+        &mut self,
+        file_id: FileId,
+        indexed: Option<Arc<indexing::IndexedModule>>,
+    ) -> QueryResult<()> {
         if file_id == self.file_id || self.dependencies.contains_key(&file_id) {
             return Ok(());
         }
         let module_name = self.source_module_name(file_id)?;
-        self.dependencies.insert(file_id, module_name);
+        self.dependencies.insert(file_id, Dependency { module_name, indexed });
         Ok(())
     }
 

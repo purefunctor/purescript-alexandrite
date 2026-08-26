@@ -1,15 +1,18 @@
-use rustc_hash::FxHashSet;
+use std::iter;
+use std::sync::Arc;
 
-#[derive(Debug, Default, Clone)]
+use rustc_hash::FxHashSet;
+use smol_str::SmolStr;
+
+#[derive(Debug, Default)]
 pub(super) struct NameAllocator {
-    names: FxHashSet<String>,
+    reserved: Arc<FxHashSet<SmolStr>>,
+    names: FxHashSet<SmolStr>,
 }
 
 impl NameAllocator {
-    pub(super) fn with_reserved(names: impl IntoIterator<Item = String>) -> NameAllocator {
-        let names = names.into_iter();
-        let names = names.collect();
-        NameAllocator { names }
+    pub(super) fn with_reserved(reserved: Arc<FxHashSet<SmolStr>>) -> NameAllocator {
+        NameAllocator { reserved, names: FxHashSet::default() }
     }
 
     pub(super) fn allocate(&mut self, preferred: &str) -> String {
@@ -19,15 +22,17 @@ impl NameAllocator {
         }
         let mut candidate = normalized.clone();
         let mut suffix = 1;
-        while !self.names.insert(candidate.clone()) {
+        while self.reserved.contains(candidate.as_str())
+            || !self.names.insert(SmolStr::new(&candidate))
+        {
             candidate = format!("{normalized}${suffix}");
             suffix += 1;
         }
         candidate
     }
 
-    pub(super) fn allocated_names(&self) -> impl Iterator<Item = &String> {
-        self.names.iter()
+    pub(super) fn allocated_names(&self) -> impl Iterator<Item = &SmolStr> {
+        iter::chain(self.reserved.iter(), self.names.iter())
     }
 }
 

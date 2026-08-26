@@ -1445,6 +1445,7 @@ dependencies = [
  "oxc_span",
  "oxc_syntax",
  "rustc-hash",
+ "smol_str",
  "thiserror",
 ]
 
