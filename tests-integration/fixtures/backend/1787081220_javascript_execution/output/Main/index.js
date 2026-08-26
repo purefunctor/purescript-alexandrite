@@ -87,23 +87,23 @@ export function first(choice) {
   if (choice === "None") {
     return 0 | 0;
   }
-  if (Array.isArray(choice) && choice[0] === "Pair") {
-    const left = choice[1];
+  if (choice[0] === "Pair") {
+    const [, left] = choice;
     return left;
   }
   throw new Error("Pattern match failure");
 }
 export function partialPattern($choice) {
-  if (Array.isArray($choice) && $choice[0] === "Pair") {
-    const left = $choice[1];
+  if ($choice[0] === "Pair") {
+    const [, left] = $choice;
     return left;
   } else {
     throw new Error("Pattern match failure");
   }
 }
 export function unwrapWrapped($wrapped) {
-  if (Array.isArray($wrapped) && $wrapped[0] === "Wrapped") {
-    const value = $wrapped[1];
+  if ($wrapped[0] === "Wrapped") {
+    const [, value] = $wrapped;
     return value;
   } else {
     throw new Error("Pattern match failure");

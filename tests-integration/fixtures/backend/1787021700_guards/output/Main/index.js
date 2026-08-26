@@ -10,8 +10,8 @@ export function booleanGuard(value) {
   throw new Error("Pattern match failure");
 }
 export function patternGuard(choice) {
-  if (Array.isArray(choice) && choice[0] === "One") {
-    const value = choice[1];
+  if (choice[0] === "One") {
+    const [, value] = choice;
     return value;
   }
   if (true) {
@@ -29,8 +29,8 @@ export function caseBooleanGuard(value) {
 }
 export function casePatternGuard(choice) {
   {
-    if (Array.isArray(choice) && choice[0] === "One") {
-      const value = choice[1];
+    if (choice[0] === "One") {
+      const [, value] = choice;
       return value;
     }
   }

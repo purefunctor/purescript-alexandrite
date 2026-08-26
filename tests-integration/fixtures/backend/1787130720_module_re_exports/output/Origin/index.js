@@ -19,9 +19,9 @@ const $await = 17 | 0;
 export const eqOption = /* @__PURE__ */ (() => {
   const $closure = (left) => {
     return (right) => {
-      if (Array.isArray(left) && left[0] === "Just" && Array.isArray(right) && right[0] === "Just") {
-        const left0 = left[1];
-        const right0 = right[1];
+      if (left[0] === "Just" && right[0] === "Just") {
+        const [, left0] = left;
+        const [, right0] = right;
         if (/* @__PURE__ */ Data_Eq.eq(Data_Eq.eqInt)(left0)(right0)) {
           return true;
         } else {

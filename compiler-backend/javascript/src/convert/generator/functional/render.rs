@@ -80,7 +80,12 @@ enum CapturedEffect {
 #[derive(Default)]
 struct PatternPlan {
     conditions: Vec<ExpressionId>,
-    bindings: Vec<(String, ExpressionId)>,
+    bindings: Vec<PatternBinding>,
+}
+
+enum PatternBinding {
+    Variable { name: String, value: ExpressionId },
+    Constructor { names: Vec<Option<String>>, value: ExpressionId },
 }
 
 // Pending expressions must be evaluated before rendering an eager later sibling.
@@ -1712,8 +1717,15 @@ impl Generator<'_> {
     }
 
     fn render_pattern_bindings(&self, tree: &Tree, writer: &mut Writer<'_>, plan: &PatternPlan) {
-        for (name, value) in &plan.bindings {
-            writer.constant(tree, name, *value, false);
+        for binding in &plan.bindings {
+            match binding {
+                PatternBinding::Variable { name, value } => {
+                    writer.constant(tree, name, *value, false);
+                }
+                PatternBinding::Constructor { names, value } => {
+                    writer.constant_array_pattern(tree, names, *value);
+                }
+            }
         }
     }
 
@@ -1788,18 +1800,40 @@ impl Generator<'_> {
                 if arguments.is_empty() {
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, value, expected));
                 } else {
-                    let array = tree.identifier("Array");
-                    let is_array = tree.member(array, "isArray");
-                    let is_array = tree.call(is_array, vec![value]);
-                    plan.conditions.push(is_array);
                     let zero = tree.number("0");
                     let tag = tree.index(value, zero);
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, tag, expected));
                 }
-                for (index, pattern) in arguments.iter().enumerate() {
+
+                let mut argument_names = Vec::with_capacity(arguments.len());
+                for pattern in arguments.iter() {
+                    let name = pattern_parameter(&self.module.storage, *pattern)
+                        .map(|parameter| context.allocate(&parameter.name));
+                    argument_names.push(name);
+                }
+                if argument_names.iter().any(Option::is_some) {
+                    let mut names = Vec::with_capacity(argument_names.len() + 1);
+                    names.push(None);
+                    names.extend(argument_names.iter().cloned());
+                    while names.last().is_some_and(Option::is_none) {
+                        names.pop();
+                    }
+                    plan.bindings.push(PatternBinding::Constructor { names, value });
+                }
+
+                for (index, (pattern, name)) in
+                    arguments.iter().zip(argument_names.iter()).enumerate()
+                {
                     let index = tree.number((index + 1).to_string());
                     let argument = tree.index(value, index);
-                    self.extend_pattern_plan(tree, *pattern, argument, None, context, plan)?;
+                    self.extend_pattern_plan(
+                        tree,
+                        *pattern,
+                        argument,
+                        name.as_deref(),
+                        context,
+                        plan,
+                    )?;
                 }
             }
         }
@@ -1819,7 +1853,7 @@ impl Generator<'_> {
         } else {
             let name = context.allocate(&parameter.name);
             context.bind_direct(parameter, name.clone());
-            plan.bindings.push((name, value));
+            plan.bindings.push(PatternBinding::Variable { name, value });
         }
     }
 

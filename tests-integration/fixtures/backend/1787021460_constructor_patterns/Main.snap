@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 262
 expression: diagnostics_report
 ---
 Terms
@@ -9,6 +10,7 @@ Pair :: forall @a. a -> a -> Main.Choice a
 Identity :: forall @a. a -> Main.Identity a
 Outer :: forall @a. Main.Choice a -> Main.Nested a
 first :: forall a. Main.Choice a -> Main.Choice a
+pair :: forall a. Main.Choice a -> Main.Choice a
 unwrap :: forall a. Main.Identity a -> a
 nested :: forall a. Main.Nested a -> Main.Choice a
 bind :: forall a b. a -> (a -> b) -> b

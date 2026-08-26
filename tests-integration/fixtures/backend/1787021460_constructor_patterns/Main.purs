@@ -13,6 +13,10 @@ first whole@(Pair left _) = case whole of
   Pair _ _ -> One left
   _ -> Empty
 
+pair :: forall a. Choice a -> Choice a
+pair (Pair left right) = Pair left right
+pair choice = choice
+
 unwrap :: forall a. Identity a -> a
 unwrap (Identity value) = value
 

@@ -167,6 +167,34 @@ impl<'a> Writer<'a> {
         self.statements.push(statement);
     }
 
+    pub(crate) fn constant_array_pattern(
+        &mut self,
+        tree: &Tree<'_>,
+        names: &[Option<String>],
+        value: ExpressionId,
+    ) {
+        let names = names.iter().map(|name| name.as_deref().map(|name| self.binding_pattern(name)));
+        let names = ArenaVec::from_iter_in(names, &self.allocator);
+        let pattern = BindingPattern::new_array_pattern(SPAN, names, None, &self.builder);
+        let declarator = VariableDeclarator::new(
+            SPAN,
+            pattern,
+            None,
+            Some(tree.expression_in(value, self.allocator)),
+            false,
+            &self.builder,
+        );
+        let declarations = ArenaVec::from_array_in([declarator], &self.allocator);
+        let declaration = VariableDeclaration::boxed(
+            SPAN,
+            VariableDeclarationKind::Const,
+            declarations,
+            false,
+            &self.builder,
+        );
+        self.statements.push(Statement::VariableDeclaration(declaration));
+    }
+
     pub(crate) fn mutable(&mut self, name: &str) {
         let statement = self.variable_statement(VariableDeclarationKind::Let, name, None, false);
         self.statements.push(statement);
