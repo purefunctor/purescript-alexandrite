@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export constructor Box/0
@@ -12,7 +13,7 @@ expression: report
           true
 }
 
-@export equal = eq eqBox Box Box
+@export equal = eq eqBox "Box" "Box"
 
 @export instance showIdentity = \showADict%2 -> showADict%2
 

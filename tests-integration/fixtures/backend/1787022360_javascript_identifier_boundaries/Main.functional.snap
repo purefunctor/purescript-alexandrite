@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign await
@@ -16,4 +17,4 @@ expression: report
 
 @export constructor Tagged/1
 
-@export tagged = Tagged default
+@export tagged = ["Tagged", default]

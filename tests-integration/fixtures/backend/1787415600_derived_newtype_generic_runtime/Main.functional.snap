@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export instance newtypeTypeIdentifierInt = { "Coercible0": \() -> <trivial evidence> }
@@ -19,20 +20,20 @@ expression: report
     \representation%0 ->
       case representation%0 of
         Inl (Constructor NoArguments) ->
-          Empty
+          "Empty"
         Inr (Inl (Constructor field0%1)) ->
-          Single field0%1
+          ["Single", field0%1]
         Inr (Inr (Constructor (Product field0%2 field1%3))) ->
-          Pair field0%2 field1%3,
+          ["Pair", field0%2, field1%3],
   from:
     \value%4 ->
       case value%4 of
         Empty ->
-          Inl (Constructor NoArguments)
+          ["Inl", ["Constructor", "NoArguments"]]
         Single field0%5 ->
-          Inr (Inl (Constructor field0%5))
+          ["Inr", ["Inl", ["Constructor", field0%5]]]
         Pair field0%6 field1%7 ->
-          Inr (Inr (Constructor (Product field0%6 field1%7)))
+          ["Inr", ["Inr", ["Constructor", ["Product", field0%6, field1%7]]]]
 }
 
 @export roundTrip = \value%8 ->
@@ -42,11 +43,11 @@ expression: report
       genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt
       value%8)
 
-@export emptyRoundTrip = roundTrip Empty
+@export emptyRoundTrip = roundTrip "Empty"
 
-@export singleRoundTrip = roundTrip (Single 6)
+@export singleRoundTrip = roundTrip ["Single", 6]
 
-@export pairRoundTrip = roundTrip (Pair 7 8)
+@export pairRoundTrip = roundTrip ["Pair", 7, 8]
 
 @export instance genericVoidNoConstructors = {
   to:

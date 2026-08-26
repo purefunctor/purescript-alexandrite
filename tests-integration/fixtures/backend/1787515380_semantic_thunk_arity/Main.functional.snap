@@ -1,12 +1,13 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export constructor Unit/0
 
 @export ordinaryUnit = \value%0 -> value%0
 
-@export ordinaryUnitCall = ordinaryUnit Unit
+@export ordinaryUnitCall = ordinaryUnit "Unit"
 
 @export parent = \dictionary%1 -> dictionary%1.parent
 

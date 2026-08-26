@@ -10,7 +10,7 @@ const $await = $foreign["await"];
 const $arguments = $await;
 const $default = { "hyphen-label": $arguments };
 export const emptyLabel = { "": $arguments };
-export const tagged = Tagged($default);
+export const tagged = ["Tagged", $default];
 export { $await as "await" };
 export { $arguments as "arguments" };
 export { $default as "default" };

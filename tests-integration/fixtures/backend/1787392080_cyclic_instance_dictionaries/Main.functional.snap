@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export constructor Box/1
@@ -28,6 +29,6 @@ expression: report
 
 @export instance monadBox = { "Applicative0": \() -> applicativeBox, "Bind1": \() -> bindBox }
 
-@export result = case map functorBox (\value%11 -> value%11) (Box 42) of
+@export result = case map functorBox (\value%11 -> value%11) ["Box", 42] of
   Box value%12 ->
     value%12

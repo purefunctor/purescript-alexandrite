@@ -13,7 +13,7 @@ expression: report
       \second%3 -> constructEffect "third" { first: first%1, second: second%3 }
 
 @export discarded = \seed%7 ->
-  effect.bind (constructEffect "discard-first" Unit)
+  effect.bind (constructEffect "discard-first" "Unit")
     \$unit%5 -> let
       result%6 = mark "discard-let" seed%7
     in constructEffect "discard-second" result%6
