@@ -6,7 +6,7 @@ export function multiEquation($choice) {
     return 0 | 0;
   }
   if ($choice[0] === "Some") {
-    const [_, value] = $choice;
+    const [, value] = $choice;
     return value;
   }
   throw new Error("Pattern match failure");
@@ -25,7 +25,7 @@ export function mixedArity($boolean) {
 }
 export function singleConstructor($box) {
   if ($box[0] === "Box") {
-    const [_, value] = $box;
+    const [, value] = $box;
     return value;
   } else {
     throw new Error("Pattern match failure");

@@ -11,12 +11,12 @@ export function first($choice) {
     return "Empty";
   }
   if ($choice[0] === "One") {
-    const [_, value] = $choice;
+    const [, value] = $choice;
     return ["One", value];
   }
   if ($choice[0] === "Pair") {
     const whole = $choice;
-    const [_, left] = $choice;
+    const [, left] = $choice;
     if (whole[0] === "Pair") {
       return ["One", left];
     }
@@ -26,7 +26,7 @@ export function first($choice) {
 }
 export function pair($choice) {
   if ($choice[0] === "Pair") {
-    const [_, left, right] = $choice;
+    const [, left, right] = $choice;
     return [
       "Pair",
       left,
@@ -41,7 +41,7 @@ export function unwrap(value) {
 }
 export function nested($nested) {
   if ($nested[0] === "Outer" && $nested[1][0] === "One") {
-    const [_, value] = $nested[1];
+    const [, value] = $nested[1];
     return ["One", value];
   }
   return "Empty";

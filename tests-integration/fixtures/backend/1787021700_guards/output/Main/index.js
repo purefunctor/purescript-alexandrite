@@ -11,7 +11,7 @@ export function booleanGuard(value) {
 }
 export function patternGuard(choice) {
   if (choice[0] === "One") {
-    const [_, value] = choice;
+    const [, value] = choice;
     return value;
   }
   if (true) {
@@ -30,7 +30,7 @@ export function caseBooleanGuard(value) {
 export function casePatternGuard(choice) {
   {
     if (choice[0] === "One") {
-      const [_, value] = choice;
+      const [, value] = choice;
       return value;
     }
   }

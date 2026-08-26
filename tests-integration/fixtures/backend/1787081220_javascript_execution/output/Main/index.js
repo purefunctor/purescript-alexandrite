@@ -88,14 +88,14 @@ export function first(choice) {
     return 0 | 0;
   }
   if (choice[0] === "Pair") {
-    const [_, left] = choice;
+    const [, left] = choice;
     return left;
   }
   throw new Error("Pattern match failure");
 }
 export function partialPattern($choice) {
   if ($choice[0] === "Pair") {
-    const [_, left] = $choice;
+    const [, left] = $choice;
     return left;
   } else {
     throw new Error("Pattern match failure");
@@ -103,7 +103,7 @@ export function partialPattern($choice) {
 }
 export function unwrapWrapped($wrapped) {
   if ($wrapped[0] === "Wrapped") {
-    const [_, value] = $wrapped;
+    const [, value] = $wrapped;
     return value;
   } else {
     throw new Error("Pattern match failure");

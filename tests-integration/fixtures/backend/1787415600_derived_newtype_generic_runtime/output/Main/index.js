@@ -32,11 +32,11 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
       return "Empty";
     }
     if (representation[0] === "Inr" && representation[1][0] === "Inl" && representation[1][1][0] === "Constructor") {
-      const [_, field0] = representation[1][1];
+      const [, field0] = representation[1][1];
       return ["Single", field0];
     }
     if (representation[0] === "Inr" && representation[1][0] === "Inr" && representation[1][1][0] === "Constructor" && representation[1][1][1][0] === "Product") {
-      const [_, field0$1, field1] = representation[1][1][1];
+      const [, field0$1, field1] = representation[1][1][1];
       return [
         "Pair",
         field0$1,
@@ -50,11 +50,11 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
       return ["Inl", ["Constructor", "NoArguments"]];
     }
     if (value[0] === "Single") {
-      const [_, field0$2] = value;
+      const [, field0$2] = value;
       return ["Inr", ["Inl", ["Constructor", field0$2]]];
     }
     if (value[0] === "Pair") {
-      const [_, field0$3, field1$1] = value;
+      const [, field0$3, field1$1] = value;
       return ["Inr", ["Inr", ["Constructor", [
         "Product",
         field0$3,

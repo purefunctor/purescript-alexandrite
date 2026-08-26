@@ -1812,18 +1812,8 @@ impl Generator<'_> {
                     argument_names.push(name);
                 }
                 if argument_names.iter().any(Option::is_some) {
-                    let constructor_bindings = plan
-                        .bindings
-                        .iter()
-                        .filter(|binding| matches!(binding, PatternBinding::Constructor { .. }))
-                        .count();
-                    let discarded = if constructor_bindings == 0 {
-                        "_".to_owned()
-                    } else {
-                        format!("_${constructor_bindings}")
-                    };
                     let mut names = Vec::with_capacity(argument_names.len() + 1);
-                    names.push(Some(discarded));
+                    names.push(None);
                     names.extend(argument_names.iter().cloned());
                     while names.last().is_some_and(Option::is_none) {
                         names.pop();

@@ -20,8 +20,8 @@ export const eqOption = /* @__PURE__ */ (() => {
   const $closure = (left) => {
     return (right) => {
       if (left[0] === "Just" && right[0] === "Just") {
-        const [_, left0] = left;
-        const [_$1, right0] = right;
+        const [, left0] = left;
+        const [, right0] = right;
         if (/* @__PURE__ */ Data_Eq.eq(Data_Eq.eqInt)(left0)(right0)) {
           return true;
         } else {

@@ -1,7 +1,7 @@
 import * as Library from "../Library/index.js";
 export function unbox($box) {
   if ($box[0] === "Box") {
-    const [_, value] = $box;
+    const [, value] = $box;
     return value;
   } else {
     throw new Error("Pattern match failure");
