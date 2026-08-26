@@ -20,7 +20,9 @@ use super::super::names::NameAllocator;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::module::{Module, module_filename, runtime_filename};
 use crate::pretty::Writer;
-use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree};
+use crate::tree::{
+    BinaryOperator, Expression as JavascriptExpression, ExpressionId, ObjectProperty, Tree,
+};
 
 use self::analysis::{VisitState, visit_initializer};
 use self::inline::{is_abstraction, pattern_parameter};
@@ -714,7 +716,7 @@ impl Generator<'_> {
                         if let Some(value) = self.try_inline_expression(tree, *element, context)? {
                             RenderedExpression { value, pending_evaluation: true }
                         } else {
-                            if self.expression_rendering_is_eager(*element) {
+                            if self.expression_rendering_is_eager(*element, context) {
                                 self.materialize_rendered_expressions(
                                     tree,
                                     writer,
@@ -739,7 +741,7 @@ impl Generator<'_> {
                     {
                         RenderedExpression { value, pending_evaluation: true }
                     } else {
-                        if self.expression_rendering_is_eager(field.expression) {
+                        if self.expression_rendering_is_eager(field.expression, context) {
                             let values = rendered_fields.iter_mut().map(|(_, value)| value);
                             for value in values {
                                 self.materialize_rendered_expression(
@@ -778,7 +780,7 @@ impl Generator<'_> {
                     if let Some(value) = self.try_inline_expression(tree, *right, context)? {
                         RenderedExpression { value, pending_evaluation: true }
                     } else {
-                        if self.expression_rendering_is_eager(*right) {
+                        if self.expression_rendering_is_eager(*right, context) {
                             self.materialize_rendered_expression(
                                 tree, writer, &mut left, "$left", context,
                             );
@@ -816,7 +818,7 @@ impl Generator<'_> {
                     {
                         RenderedExpression { value, pending_evaluation: true }
                     } else {
-                        if self.expression_rendering_is_eager(*argument) {
+                        if self.expression_rendering_is_eager(*argument, context) {
                             self.materialize_rendered_expression(
                                 tree,
                                 writer,
@@ -841,7 +843,7 @@ impl Generator<'_> {
                     {
                         RenderedExpression { value, pending_evaluation: true }
                     } else {
-                        if self.expression_rendering_is_eager(*argument) {
+                        if self.expression_rendering_is_eager(*argument, context) {
                             self.materialize_rendered_expression(
                                 tree,
                                 writer,
@@ -898,7 +900,11 @@ impl Generator<'_> {
         }
     }
 
-    fn expression_rendering_is_eager(&self, expression: FunctionalExpressionId) -> bool {
+    fn expression_rendering_is_eager(
+        &self,
+        expression: FunctionalExpressionId,
+        context: &FunctionContext,
+    ) -> bool {
         match &self.module.storage[expression].kind {
             ExpressionKind::Literal { .. }
             | ExpressionKind::Constructor { .. }
@@ -909,33 +915,96 @@ impl Generator<'_> {
             | ExpressionKind::SynthesizedEvidence { .. }
             | ExpressionKind::TrivialEvidence => false,
             ExpressionKind::Array { elements } => {
-                elements.iter().any(|element| self.expression_rendering_is_eager(*element))
+                elements.iter().any(|element| self.expression_rendering_is_eager(*element, context))
             }
-            ExpressionKind::Record { fields } => {
-                fields.iter().any(|field| self.expression_rendering_is_eager(field.expression))
+            ExpressionKind::Record { fields } => fields
+                .iter()
+                .any(|field| self.expression_rendering_is_eager(field.expression, context)),
+            ExpressionKind::RecordUpdate { record, updates } => {
+                self.expression_rendering_is_eager(*record, context)
+                    || record_updates_reuse_source(updates)
+                        && !self.functional_expression_is_reusable(*record, context)
+                    || self.record_updates_rendering_is_eager(updates, context)
             }
             ExpressionKind::Project { record, .. }
             | ExpressionKind::Unary { value: record, .. } => {
-                self.expression_rendering_is_eager(*record)
+                self.expression_rendering_is_eager(*record, context)
             }
             ExpressionKind::Binary { left, right, .. } => {
-                self.expression_rendering_is_eager(*left)
-                    || self.expression_rendering_is_eager(*right)
+                self.expression_rendering_is_eager(*left, context)
+                    || self.expression_rendering_is_eager(*right, context)
             }
             ExpressionKind::Application { function, arguments }
             | ExpressionKind::UncurriedApplication { function, arguments } => {
-                self.expression_rendering_is_eager(*function)
+                self.expression_rendering_is_eager(*function, context)
                     || arguments
                         .iter()
-                        .any(|argument| self.expression_rendering_is_eager(*argument))
+                        .any(|argument| self.expression_rendering_is_eager(*argument, context))
             }
-            ExpressionKind::RecordUpdate { .. }
-            | ExpressionKind::IfThenElse { .. }
+            ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
             | ExpressionKind::Let { .. }
             | ExpressionKind::LetPattern { .. }
             | ExpressionKind::Effect { .. } => true,
+        }
+    }
+
+    fn functional_expression_is_reusable(
+        &self,
+        expression: FunctionalExpressionId,
+        context: &FunctionContext,
+    ) -> bool {
+        match &self.module.storage[expression].kind {
+            ExpressionKind::Literal { .. } => true,
+            ExpressionKind::Constructor { global } | ExpressionKind::Global { global } => {
+                global_file(global.id) == self.module.file_id
+                    && !self.lazy_global_names.contains_key(&global.id)
+            }
+            ExpressionKind::Local { parameter } => {
+                matches!(context.locals.get(&parameter.id), Some(LocalBinding::Direct(_)))
+            }
+            ExpressionKind::Array { .. }
+            | ExpressionKind::Record { .. }
+            | ExpressionKind::RecordUpdate { .. }
+            | ExpressionKind::Project { .. }
+            | ExpressionKind::Unary { .. }
+            | ExpressionKind::Binary { .. }
+            | ExpressionKind::Abstraction { .. }
+            | ExpressionKind::UncurriedAbstraction { .. }
+            | ExpressionKind::Application { .. }
+            | ExpressionKind::UncurriedApplication { .. }
+            | ExpressionKind::IfThenElse { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Guarded { .. }
+            | ExpressionKind::Let { .. }
+            | ExpressionKind::LetPattern { .. }
+            | ExpressionKind::Effect { .. }
+            | ExpressionKind::SynthesizedEvidence { .. }
+            | ExpressionKind::TrivialEvidence => false,
+        }
+    }
+
+    fn record_updates_rendering_is_eager(
+        &self,
+        updates: &[RecordUpdate],
+        context: &FunctionContext,
+    ) -> bool {
+        updates.iter().any(|update| self.record_update_rendering_is_eager(update, context))
+    }
+
+    fn record_update_rendering_is_eager(
+        &self,
+        update: &RecordUpdate,
+        context: &FunctionContext,
+    ) -> bool {
+        match update {
+            RecordUpdate::Leaf { expression, .. } => {
+                self.expression_rendering_is_eager(*expression, context)
+            }
+            RecordUpdate::Branch { updates, .. } => {
+                self.record_updates_rendering_is_eager(updates, context)
+            }
         }
     }
 
@@ -1778,39 +1847,66 @@ impl Generator<'_> {
         updates: &[RecordUpdate],
         context: &mut FunctionContext,
     ) -> ModuleResult<ExpressionId> {
-        let record = self.expression_value(tree, writer, record, context)?;
-        let record_name = context.allocate("$record");
-        writer.expression_line(format!("const {record_name} = "), tree, record, ";");
-        let record = tree.identifier(record_name);
-        self.record_updates(tree, writer, record, updates, context)
+        let record = self.rendered_expression(tree, writer, record, context)?;
+        let record_is_reusable = rendered_expression_is_reusable(tree, &record);
+        self.record_updates(tree, writer, record.value, record_is_reusable, updates, context)
     }
 
     fn record_updates(
         &self,
         tree: &mut Tree,
         writer: &mut Writer<'_>,
-        record: ExpressionId,
+        mut record: ExpressionId,
+        record_is_reusable: bool,
         updates: &[RecordUpdate],
         context: &mut FunctionContext,
     ) -> ModuleResult<ExpressionId> {
+        if record_updates_reuse_source(updates) && !record_is_reusable {
+            record = self.materialize_value(tree, writer, record, "$record", context);
+        }
         let mut properties = Vec::with_capacity(updates.len() + 1);
         properties.push(ObjectProperty::Spread(record));
         for update in updates {
+            if self.record_update_rendering_is_eager(update, context) {
+                let value = tree.object(std::mem::take(&mut properties));
+                let value = self.materialize_value(tree, writer, value, "$record", context);
+                properties.push(ObjectProperty::Spread(value));
+            }
             match update {
                 RecordUpdate::Leaf { field, expression } => {
-                    let value = self.expression_value(tree, writer, *expression, context)?;
-                    let value = self.materialize_value(tree, writer, value, "$field", context);
-                    properties.push(ObjectProperty::Field { name: field.name.to_string(), value });
+                    let value = self.rendered_expression(tree, writer, *expression, context)?;
+                    properties.push(ObjectProperty::Field {
+                        name: field.name.to_string(),
+                        value: value.value,
+                    });
                 }
                 RecordUpdate::Branch { field, updates } => {
+                    // Nested updates revisit their original source paths. Reusing the path here
+                    // preserves each observable property read while the root record remains stable.
                     let nested = tree.member(record, field.name.as_str());
-                    let value = self.record_updates(tree, writer, nested, updates, context)?;
+                    let value =
+                        self.record_updates(tree, writer, nested, true, updates, context)?;
                     properties.push(ObjectProperty::Field { name: field.name.to_string(), value });
                 }
             }
         }
         Ok(tree.object(properties))
     }
+}
+
+fn rendered_expression_is_reusable(tree: &Tree, expression: &RenderedExpression) -> bool {
+    !expression.pending_evaluation
+        || matches!(
+            tree[expression.value],
+            JavascriptExpression::Identifier(_)
+                | JavascriptExpression::String(_)
+                | JavascriptExpression::Number(_)
+                | JavascriptExpression::Boolean(_)
+        )
+}
+
+fn record_updates_reuse_source(updates: &[RecordUpdate]) -> bool {
+    updates.iter().any(|update| matches!(update, RecordUpdate::Branch { .. }))
 }
 
 fn effect_expression(

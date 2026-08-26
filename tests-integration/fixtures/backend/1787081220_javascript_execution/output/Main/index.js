@@ -147,10 +147,7 @@ export const model = {
 };
 
 export const updated = (() => {
-  const $record = model;
-  const $field = 1 | 0;
-  const $field$1 = false;
-  return { ...$record, count: $field, nested: { ...$record.nested, enabled: $field$1 } };
+  return { ...model, count: 1 | 0, nested: { ...model.nested, enabled: false } };
 })();
 
 export const curried = apply(addCaptured(2 | 0))(40 | 0);

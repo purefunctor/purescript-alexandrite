@@ -1,7 +1,13 @@
 module Main where
 
+type Inner =
+  { value :: Int
+  , untouched :: Int
+  }
+
 type Nested =
   { value :: Int
+  , inner :: Inner
   , untouched :: Int
   }
 
@@ -34,13 +40,25 @@ updateCall shouldThrow =
     , last = observe "call-last" 30
     }
 
+updateDeep :: Boolean -> Model
+updateDeep _ =
+  (makeModel "deep")
+    { nested
+        { value = observe "deep-nested" 50
+        , inner { value = observe "deep-inner" 60 }
+        }
+    }
+
 updateControl :: Boolean -> Model -> Model
 updateControl condition source =
   source
     { first = observe "control-first" 10
-    , last =
-        if condition then observe "control-then" 30
-        else observe "control-else" 31
+    , nested
+        { value =
+            if condition then observe "control-then" 30
+            else observe "control-else" 31
+        }
+    , last = observe "control-last" 32
     }
 
 updateOpen

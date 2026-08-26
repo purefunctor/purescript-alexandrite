@@ -1,50 +1,56 @@
 import * as $foreign from "./foreign.js";
 
 export function updateLocal(source) {
-  const $record = source;
-  const $field = observe("local-first")(10 | 0);
-  const $field$1 = observe("local-nested")(20 | 0);
-  const $field$2 = observe("local-last")(30 | 0);
   return {
-    ...$record,
-    first: $field,
-    nested: { ...$record.nested, value: $field$1 },
-    last: $field$2
+    ...source,
+    first: observe("local-first")(10 | 0),
+    nested: { ...source.nested, value: observe("local-nested")(20 | 0) },
+    last: observe("local-last")(30 | 0)
   };
 }
 
 export function updateCall(shouldThrow) {
   const $record = makeModel("call");
-  const $field = observe("call-first")(10 | 0);
-  const $field$1 = failAt("call-nested")(shouldThrow)(20 | 0);
-  const $field$2 = observe("call-last")(30 | 0);
   return {
     ...$record,
-    first: $field,
-    nested: { ...$record.nested, value: $field$1 },
-    last: $field$2
+    first: observe("call-first")(10 | 0),
+    nested: { ...$record.nested, value: failAt("call-nested")(shouldThrow)(20 | 0) },
+    last: observe("call-last")(30 | 0)
+  };
+}
+
+export function updateDeep($boolean) {
+  const $record = makeModel("deep");
+  return {
+    ...$record,
+    nested: {
+      ...$record.nested,
+      value: observe("deep-nested")(50 | 0),
+      inner: { ...$record.nested.inner, value: observe("deep-inner")(60 | 0) }
+    }
   };
 }
 
 export function updateControl(condition) {
   return source => {
-    const $record = source;
-    const $field = observe("control-first")(10 | 0);
+    const $record = { ...source, first: observe("control-first")(10 | 0) };
+    const $record$1 = { ...source.nested };
     let $result;
     if (condition) {
       $result = observe("control-then")(30 | 0);
     } else {
       $result = observe("control-else")(31 | 0);
     }
-    const $field$1 = $result;
-    return { ...$record, first: $field, last: $field$1 };
+    return {
+      ...$record,
+      nested: { ...$record$1, value: $result },
+      last: observe("control-last")(32 | 0)
+    };
   };
 }
 
 export function updateOpen(source) {
-  const $record = source;
-  const $field = observe("open-first")(40 | 0);
-  return { ...$record, first: $field };
+  return { ...source, first: observe("open-first")(40 | 0) };
 }
 
 export const failAt = $foreign["failAt"];

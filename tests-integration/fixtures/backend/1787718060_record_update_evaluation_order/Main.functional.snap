@@ -23,10 +23,16 @@ expression: report
     last = observe "call-last" 30
   }
 
-@export updateControl = \condition%3 source%2 ->
-  source%2 {
-    first = observe "control-first" 10,
-    last = if condition%3 then observe "control-then" 30 else observe "control-else" 31
+@export updateDeep = \$boolean%2@(_) ->
+  (makeModel "deep") {
+    nested { value = observe "deep-nested" 50, inner { value = observe "deep-inner" 60 } }
   }
 
-@export updateOpen = \source%4 -> source%4 { first = observe "open-first" 40 }
+@export updateControl = \condition%4 source%3 ->
+  source%3 {
+    first = observe "control-first" 10,
+    nested { value = if condition%4 then observe "control-then" 30 else observe "control-else" 31 },
+    last = observe "control-last" 32
+  }
+
+@export updateOpen = \source%5 -> source%5 { first = observe "open-first" 40 }

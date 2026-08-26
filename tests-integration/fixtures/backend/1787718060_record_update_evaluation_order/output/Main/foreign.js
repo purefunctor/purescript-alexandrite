@@ -20,8 +20,13 @@ const tracedRecord = (label, fields) =>
 
 export const makeModel = label => {
   trace.push(`make:${label}`);
+  const inner = tracedRecord(`${label}.nested.inner`, {
+    value: 6,
+    untouched: 7,
+  });
   const nested = tracedRecord(`${label}.nested`, {
     value: 2,
+    inner,
     untouched: 5,
   });
   return tracedRecord(label, {
