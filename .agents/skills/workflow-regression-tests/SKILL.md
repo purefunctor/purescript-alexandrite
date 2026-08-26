@@ -1,11 +1,11 @@
 ---
 name: workflow-regression-tests
-description: "Workflow for splitting a known compiler bug fix into auditable jj history. Use when the current or parent commit already contains a compiler fix and needs a preceding failing integration-test fixture plus a fix commit that updates the same checking, semantic, lowering, resolving, or LSP snapshot."
+description: "Workflow for producing auditable Git or jj history for a known compiler bug fix. Use when a compiler fix needs a failing integration-test fixture followed by a fix commit that updates the same checking, semantic, lowering, resolving, or LSP snapshot."
 ---
 
 # Workflow: Regression Tests
 
-Use this when the fix is already known and the working copy, current commit, or parent commit contains the bug fix.
+Use this when the fix is known and needs an auditable regression test. The Jujutsu workflow can split a fix that is already present; the Git workflow starts before the fix is applied and moves forward through ordinary commits.
 
 The goal is an auditable two-commit history:
 
@@ -38,7 +38,7 @@ Use the category that owns the observable regression:
 
 Use the `workflow-integration-tests` skill for fixture authoring details. Use the command reference at `.agents/skills/workflow-integration-tests/reference/compiler-scripts.md` for runner syntax, filters, snapshots, and trace debugging.
 
-## Workflow
+## Jujutsu workflow
 
 ### 1. Preserve the existing fix commit
 
@@ -100,6 +100,47 @@ just t <category> NNN --accept
 ```
 
 The diff should show the undesirable behavior being removed or replaced by the correct behavior. This is commonly a deleted `Diagnostics` section or a targeted type/constraint change in the same snapshot added by the previous commit.
+
+## Git-only workflow
+
+The Git workflow is strictly forward-moving: start from the buggy compiler state, commit the failing fixture, then apply and commit the fix. Do not use rebase, reset, or temporary history manipulation to manufacture this order after the fix is committed.
+
+If the fix is already present in the working tree or local history, stop and decide with the user whether to preserve the existing order or start again from the buggy base. Do not rewrite or discard their work implicitly.
+
+### 1. Commit the failing fixture
+
+Start from a clean feature branch where the bug still reproduces. Create the fixture and accept the snapshot of the undesirable behavior:
+
+```bash
+git status --short
+just t <category> --create "<descriptive name>"
+just t <category> NNN --accept
+```
+
+Review and commit only the new fixture:
+
+```bash
+git diff -- tests-integration/fixtures/<category>/NNN_<name>
+git add tests-integration/fixtures/<category>/NNN_<name>
+git commit -m "Add failing test case for <bug>"
+```
+
+### 2. Apply the fix and update the snapshot
+
+Implement the compiler fix only after the failing fixture commit exists. Run the same fixture and inspect the change before accepting it:
+
+```bash
+just t <category> NNN --diff
+just t <category> NNN --accept
+```
+
+Review and commit the compiler changes together with the updated snapshot:
+
+```bash
+git diff -- <compiler-paths> tests-integration/fixtures/<category>/NNN_<name>
+git add <compiler-paths> tests-integration/fixtures/<category>/NNN_<name>
+git commit -m "Fix <bug>"
+```
 
 ## Snapshot review checklist
 
