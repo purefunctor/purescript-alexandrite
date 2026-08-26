@@ -672,6 +672,8 @@ dependencies = [
  "smol_str",
  "stabilizing",
  "syntax",
+ "textwrap",
+ "unicode-width",
 ]
 
 [[package]]

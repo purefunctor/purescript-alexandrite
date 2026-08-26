@@ -18,6 +18,7 @@ use rayon::prelude::*;
 use thiserror::Error;
 use url::Url;
 
+use crate::cli::ColorChoice;
 use crate::walk;
 
 const CARGO_PROGRESS_REGION_WIDTH: usize = 50;
@@ -29,6 +30,7 @@ pub struct CompileConfig {
     pub inputs: Vec<PathBuf>,
     pub json_errors: bool,
     pub diagnostic_limit: Option<usize>,
+    pub color: ColorChoice,
 }
 
 #[derive(Debug, Error)]
@@ -94,7 +96,22 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let has_errors = report_diagnostics(&engine, &files, &source_ids, config.diagnostic_limit)?;
+    let color = match config.color {
+        ColorChoice::Auto => {
+            let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
+            io::stderr().is_terminal() && !no_color
+        }
+        ColorChoice::Always => true,
+        ColorChoice::Never => false,
+    };
+    let has_errors = report_diagnostics(
+        &engine,
+        &files,
+        &source_ids,
+        &current_directory,
+        config.diagnostic_limit,
+        color,
+    )?;
     if has_errors {
         return Err(CompileError::Diagnostics);
     }
@@ -168,11 +185,21 @@ fn load_source(
     Ok(source_id)
 }
 
+fn display_source_path(source_path: &str, current_directory: &Path) -> String {
+    if let Some(file_path) = Url::parse(source_path).ok().and_then(|url| url.to_file_path().ok()) {
+        file_path.strip_prefix(current_directory).unwrap_or(&file_path).display().to_string()
+    } else {
+        source_path.to_owned()
+    }
+}
+
 fn report_diagnostics(
     engine: &QueryEngine,
     files: &FileLifecycle<(), ()>,
     source_ids: &[FileId],
+    current_directory: &Path,
     diagnostic_limit: Option<usize>,
+    color: bool,
 ) -> Result<bool, CompileError> {
     let progress = MultiProgress::new();
     progress.set_move_cursor(true);
@@ -229,12 +256,9 @@ fn report_diagnostics(
         let display_path = if all.is_empty() {
             None
         } else {
-            let path = files.source_path(file_id).expect("input source has no lifecycle path");
-            let display_path = Url::parse(&path)
-                .ok()
-                .and_then(|url| url.to_file_path().ok())
-                .map_or_else(|| path.to_string(), |path| path.display().to_string());
-            Some(display_path)
+            let source_path =
+                files.source_path(file_id).expect("input source has no lifecycle path");
+            Some(display_source_path(&source_path, current_directory))
         };
         Ok::<_, CompileError>((has_errors, all, content, display_path))
     });
@@ -245,6 +269,8 @@ fn report_diagnostics(
     let mut has_errors = false;
     let mut remaining = diagnostic_limit.unwrap_or(usize::MAX);
     let mut omitted = 0;
+    let mut rendered_any = false;
+    let separate_from_progress = io::stderr().is_terminal();
     for (file_has_errors, all, content, display_path) in diagnostics {
         has_errors |= file_has_errors;
         let rendered_count = remaining.min(all.len());
@@ -252,12 +278,17 @@ fn report_diagnostics(
         remaining -= rendered_count;
 
         if rendered_count > 0 {
+            if !rendered_any && separate_from_progress {
+                eprint!("\n\n");
+            }
+            rendered_any = true;
             let display_path =
                 display_path.expect("non-empty diagnostics must have a display path");
-            let rendered = diagnostics::format_rustc_with_path(
+            let rendered = diagnostics::format_rich_with_path(
                 &all[..rendered_count],
                 &content,
                 &display_path,
+                color,
             );
             eprint!("{rendered}");
         }
