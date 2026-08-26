@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+Local :: forall @a @b. a -> b -> Main.Local a b
+Empty :: Main.Empty
+local :: Main.Local Prim.Int Prim.String
+partial :: forall a. a -> Main.Local Prim.Int a
+empty :: Main.Empty
+external :: Library.External Prim.String
+
+Types
+Local :: Prim.Type -> Prim.Type -> Prim.Type
+Empty :: Prim.Type
+
+Roles
+Local = [Representational, Representational]
+Empty = []

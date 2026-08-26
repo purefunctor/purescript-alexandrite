@@ -1,0 +1,16 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Local/2
+
+@export constructor Empty/0
+
+@export local = Local 1 "local"
+
+@export partial = Local 2
+
+@export empty = Empty
+
+@export external = External "external"
