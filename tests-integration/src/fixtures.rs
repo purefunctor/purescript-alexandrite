@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
+use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -206,17 +207,20 @@ fn run_javascript_verification(folder: &Path) -> FixtureResult {
         return Ok(());
     }
 
-    let output = Command::new("node")
+    let mut stdout = tempfile::tempfile()?;
+    let mut stderr = tempfile::tempfile()?;
+    let mut child = Command::new("node")
         .arg("verify.mjs")
         .current_dir(folder)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?
-        .controlled_with_output()
+        .stdout(Stdio::from(stdout.try_clone()?))
+        .stderr(Stdio::from(stderr.try_clone()?))
+        .spawn()?;
+    let status = child
+        .controlled()
         .time_limit(JAVASCRIPT_VERIFICATION_TIMEOUT)
         .terminate_for_timeout()
         .wait()?;
-    let Some(output) = output else {
+    let Some(status) = status else {
         let message = format!(
             "Node verification timed out after {} seconds for {}",
             JAVASCRIPT_VERIFICATION_TIMEOUT.as_secs(),
@@ -224,14 +228,20 @@ fn run_javascript_verification(folder: &Path) -> FixtureResult {
         );
         return Err(invalid_data(message).into());
     };
-    if output.status.success() {
+    if status.success() {
         return Ok(());
     }
+    stdout.rewind()?;
+    stderr.rewind()?;
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    stdout.read_to_end(&mut stdout_bytes)?;
+    stderr.read_to_end(&mut stderr_bytes)?;
     let message = format!(
         "Node verification failed for {}\nstdout:\n{}\nstderr:\n{}",
         script.display(),
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        String::from_utf8_lossy(&stdout_bytes),
+        String::from_utf8_lossy(&stderr_bytes)
     );
     Err(invalid_data(message).into())
 }
