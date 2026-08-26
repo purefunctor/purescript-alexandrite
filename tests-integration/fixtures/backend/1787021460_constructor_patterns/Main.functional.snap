@@ -24,15 +24,22 @@ expression: report
         _ ->
           "Empty"
 
-@export unwrap = \value%4 -> value%4
+@export pair = \$choice%4 ->
+  case $choice%4 of
+    Pair left%5 right%6 ->
+      ["Pair", left%5, right%6]
+    choice%7 ->
+      choice%7
 
-@export nested = \$nested%5 ->
-  case $nested%5 of
-    Outer (One value%6) ->
-      ["One", value%6]
+@export unwrap = \value%8 -> value%8
+
+@export nested = \$nested%9 ->
+  case $nested%9 of
+    Outer (One value%10) ->
+      ["One", value%10]
     _ ->
       "Empty"
 
-@export bind = \value%8 continuation%7 -> continuation%7 value%8
+@export bind = \value%12 continuation%11 -> continuation%11 value%12
 
-@export ordinaryBind = \identity%9 -> bind identity%9 (\value%10 -> value%10)
+@export ordinaryBind = \identity%13 -> bind identity%13 (\value%14 -> value%14)

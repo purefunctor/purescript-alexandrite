@@ -28,7 +28,7 @@ const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
 const $lazy_bindBox = $runtime.binding("bindBox", () => {
   const $closure = ($box) => {
     if (Array.isArray($box) && $box[0] === "Box") {
-      const value = $box[1];
+      const [_, value] = $box;
       return (continuation) => {
         return continuation(value);
       };
@@ -55,7 +55,7 @@ export const monadBox = $lazy_monadBox();
 export const result = /* @__PURE__ */ (() => {
   const $scrutinee = /* @__PURE__ */ Data_Functor.map($lazy_functorBox())((value) => value)(["Box", 42 | 0]);
   if (Array.isArray($scrutinee) && $scrutinee[0] === "Box") {
-    const value$1 = $scrutinee[1];
+    const [_, value$1] = $scrutinee;
     return value$1;
   }
   throw new Error("Pattern match failure");

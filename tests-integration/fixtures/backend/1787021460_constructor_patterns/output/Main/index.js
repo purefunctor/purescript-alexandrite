@@ -11,12 +11,12 @@ export function first($choice) {
     return "Empty";
   }
   if (Array.isArray($choice) && $choice[0] === "One") {
-    const value = $choice[1];
+    const [_, value] = $choice;
     return ["One", value];
   }
   if (Array.isArray($choice) && $choice[0] === "Pair") {
     const whole = $choice;
-    const left = $choice[1];
+    const [_, left] = $choice;
     if (Array.isArray(whole) && whole[0] === "Pair") {
       return ["One", left];
     }
@@ -24,12 +24,24 @@ export function first($choice) {
   }
   throw new Error("Pattern match failure");
 }
+export function pair($choice) {
+  if (Array.isArray($choice) && $choice[0] === "Pair") {
+    const [_, left, right] = $choice;
+    return [
+      "Pair",
+      left,
+      right
+    ];
+  }
+  const choice = $choice;
+  return choice;
+}
 export function unwrap(value) {
   return value;
 }
 export function nested($nested) {
   if (Array.isArray($nested) && $nested[0] === "Outer" && Array.isArray($nested[1]) && $nested[1][0] === "One") {
-    const value = $nested[1][1];
+    const [_, value] = $nested[1];
     return ["One", value];
   }
   return "Empty";

@@ -96,7 +96,7 @@ export function joinedPattern(condition) {
     $result = ["Box", observe("pattern-else")(12 | 0)];
   }
   if (Array.isArray($result) && $result[0] === "Box") {
-    const value = $result[1];
+    const [_, value] = $result;
     return value;
   }
   throw new Error("Pattern match failure");
