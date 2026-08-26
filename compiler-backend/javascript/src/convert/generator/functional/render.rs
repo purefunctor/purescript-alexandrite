@@ -2504,10 +2504,10 @@ fn collect_expression_children(
     descend_abstractions: bool,
     globals: &mut FxHashSet<GlobalId>,
 ) {
-    let mut seen = FxHashSet::default();
-    let mut references = Vec::new();
-    collect_expression_references(module, expression, &mut seen, &mut references);
     if descend_abstractions {
+        let mut seen = FxHashSet::default();
+        let mut references = vec![];
+        collect_expression_references(module, expression, &mut seen, &mut references);
         globals.extend(references.into_iter().map(|global| global.id));
         return;
     }
