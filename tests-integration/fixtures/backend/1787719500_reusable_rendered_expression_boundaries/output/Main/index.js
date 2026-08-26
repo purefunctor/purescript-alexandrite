@@ -1,9 +1,7 @@
 import * as $foreign from "./foreign.js";
-
-export const Box = $value0 => ["Box", $value0];
-
+export const Box = ($value0) => ["Box", $value0];
 export function stableApplication($function) {
-  return condition => {
+  return (condition) => {
     let $result;
     if (condition) {
       $result = observe("application-then")(1 | 0);
@@ -13,7 +11,6 @@ export function stableApplication($function) {
     return $function($result);
   };
 }
-
 export function observedApplication(condition) {
   const $function = observed.apply;
   let $result;
@@ -24,9 +21,8 @@ export function observedApplication(condition) {
   }
   return $function($result);
 }
-
 export function stableArray(value) {
-  return condition => {
+  return (condition) => {
     let $result;
     if (condition) {
       $result = observe("array-then")(5 | 0);
@@ -36,7 +32,6 @@ export function stableArray(value) {
     return [value, $result];
   };
 }
-
 export function observedArray(condition) {
   const $element = observed.value;
   let $result;
@@ -47,20 +42,17 @@ export function observedArray(condition) {
   }
   return [$element, $result];
 }
-
 export function stablePure(value) {
   return () => {
     return value;
   };
 }
-
 export function stableMap($function) {
   const $action = constructEffect("stable-map")(9 | 0);
   return () => {
     return $function($action());
   };
 }
-
 export function observedMap($boolean) {
   const $function = observed.apply;
   const $action = constructEffect("observed-map")(10 | 0);
@@ -68,9 +60,8 @@ export function observedMap($boolean) {
     return $function($action());
   };
 }
-
 export function mixedApply($boolean) {
-  const $functionAction = constructEffect("mixed-function")(value => observe("mixed-call")(value));
+  const $functionAction = constructEffect("mixed-function")((value) => observe("mixed-call")(value));
   const $action = constructEffect("mixed-argument-first")(18 | 0);
   return () => {
     const $function = $functionAction();
@@ -80,7 +71,6 @@ export function mixedApply($boolean) {
     return $function($argument);
   };
 }
-
 export function joinedEffect(condition) {
   let $result;
   if (condition) {
@@ -98,7 +88,6 @@ export function joinedEffect(condition) {
   }
   return [$result];
 }
-
 export function joinedPattern(condition) {
   let $result;
   if (condition) {
@@ -112,7 +101,6 @@ export function joinedPattern(condition) {
   }
   throw new Error("Pattern match failure");
 }
-
 export const constructEffect = $foreign["constructEffect"];
 export const observe = $foreign["observe"];
 export const observed = $foreign["observed"];

@@ -31,7 +31,7 @@ impl NameAllocator {
     }
 }
 
-pub(super) fn identifier_is_binding(identifier: &str) -> bool {
+pub(crate) fn identifier_is_binding(identifier: &str) -> bool {
     normalize_identifier(identifier) == identifier && !identifier_is_reserved(identifier)
 }
 

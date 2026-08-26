@@ -16,13 +16,8 @@ export function matchesSeparatedNumber($number) {
   }
   return false;
 }
-
 export const separatedNumber = 4294967295;
-
 export const separatedNumberParts = 1234;
-
 export const separatedExponent = 1200;
-
 export const separatedUpperExponent = 1300;
-
 export const separatedNegativeExponent = 14;

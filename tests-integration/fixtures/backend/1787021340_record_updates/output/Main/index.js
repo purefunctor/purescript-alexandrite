@@ -1,5 +1,18 @@
-export const model = { count: 0 | 0, nested: { enabled: true, label: "before" } };
-
+export const model = {
+  count: 0 | 0,
+  nested: {
+    enabled: true,
+    label: "before"
+  }
+};
 export const updated = (() => {
-  return { ...model, count: 1 | 0, nested: { ...model.nested, enabled: false, label: "after" } };
+  return {
+    ...model,
+    count: 1 | 0,
+    nested: {
+      ...model.nested,
+      enabled: false,
+      label: "after"
+    }
+  };
 })();

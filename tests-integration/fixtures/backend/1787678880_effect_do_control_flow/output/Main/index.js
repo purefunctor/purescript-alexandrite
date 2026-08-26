@@ -1,7 +1,6 @@
 import * as $foreign from "./foreign.js";
-
 export function branched(choose) {
-  return seed => {
+  return (seed) => {
     const $action = constructEffect("branch-action")(seed);
     return () => {
       const value = $action();
@@ -13,7 +12,6 @@ export function branched(choose) {
     };
   };
 }
-
 export function patternLet(seed) {
   const $action = constructEffect("pattern-action")(seed);
   return () => {
@@ -23,5 +21,4 @@ export function patternLet(seed) {
     return constructEffect("pattern-result")(selected)();
   };
 }
-
 export const constructEffect = $foreign["constructEffect"];

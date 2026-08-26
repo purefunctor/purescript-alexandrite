@@ -1,9 +1,8 @@
 import * as Data_Eq from "../Data.Eq/index.js";
 import * as $runtime from "../runtime.js";
-
 export function compareTwice(eqADict) {
-  const $closure = left => {
-    return right => {
+  const $closure = (left) => {
+    return (right) => {
       if (Data_Eq.eq(eqADict)(left)(right)) {
         return Data_Eq.eq(eqADict)(right)(left);
       } else {
@@ -13,9 +12,8 @@ export function compareTwice(eqADict) {
   };
   return $closure;
 }
-
 export function compareIntsTwice(left) {
-  return right => {
+  return (right) => {
     if (eqIntDictEq(left)(right)) {
       return eqIntDictEq(right)(left);
     } else {
@@ -23,9 +21,8 @@ export function compareIntsTwice(left) {
     }
   };
 }
-
 export function compareArraysTwice(left) {
-  return right => {
+  return (right) => {
     if (eqArrayIntDictEq(left)(right)) {
       return eqArrayIntDictEq(right)(left);
     } else {
@@ -33,16 +30,14 @@ export function compareArraysTwice(left) {
     }
   };
 }
-
 export function compareArraysOnce(left) {
-  return right => {
+  return (right) => {
     return eqArrayIntDictEq(left)(right);
   };
 }
-
 export function compareGenericArraysTwice(eqADict) {
-  const $closure = left => {
-    return right => {
+  const $closure = (left) => {
+    return (right) => {
       const eqArrayDict = Data_Eq.eqArray(eqADict);
       if (Data_Eq.eq(eqArrayDict)(left)(right)) {
         return Data_Eq.eq(eqArrayDict)(right)(left);
@@ -53,11 +48,10 @@ export function compareGenericArraysTwice(eqADict) {
   };
   return $closure;
 }
-
 export function compareNestedArraysTwice(left) {
-  return right => {
-    return nestedLeft => {
-      return nestedRight => {
+  return (right) => {
+    return (nestedLeft) => {
+      return (nestedRight) => {
         if (eqArrayArrayIntDictEq(nestedLeft)(nestedRight)) {
           return eqArrayArrayIntDictEq(nestedRight)(nestedLeft);
         } else {
@@ -67,13 +61,12 @@ export function compareNestedArraysTwice(left) {
     };
   };
 }
-
 export function distinctGivens(eqADict) {
-  return eqBDict => {
-    const $closure = leftA => {
-      return rightA => {
-        return leftB => {
-          return rightB => {
+  return (eqBDict) => {
+    const $closure = (leftA) => {
+      return (rightA) => {
+        return (leftB) => {
+          return (rightB) => {
             const eqArrayDict = Data_Eq.eqArray(eqADict);
             const eqArrayDict$1 = Data_Eq.eqArray(eqBDict);
             if (Data_Eq.eq(eqArrayDict)(leftA)(rightA)) {
@@ -92,11 +85,10 @@ export function distinctGivens(eqADict) {
     return $closure;
   };
 }
-
 export function distinctSubgoals(leftInt) {
-  return rightInt => {
-    return leftBoolean => {
-      return rightBoolean => {
+  return (rightInt) => {
+    return (leftBoolean) => {
+      return (rightBoolean) => {
         if (eqArrayIntDictEq(leftInt)(rightInt)) {
           return eqArrayIntDictEq(rightInt)(leftInt);
         } else {
@@ -110,9 +102,8 @@ export function distinctSubgoals(leftInt) {
     };
   };
 }
-
 export function compareArraysThrice(left) {
-  return right => {
+  return (right) => {
     if (eqArrayIntDictEq(left)(right)) {
       if (eqArrayIntDictEq(right)(left)) {
         return eqArrayIntDictEq(left)(right);
@@ -124,9 +115,8 @@ export function compareArraysThrice(left) {
     }
   };
 }
-
 export function compareNestedArraysWhole(left) {
-  return right => {
+  return (right) => {
     if (eqArrayArrayIntDictEq(left)(right)) {
       return eqArrayArrayIntDictEq(right)(left);
     } else {
@@ -134,10 +124,9 @@ export function compareNestedArraysWhole(left) {
     }
   };
 }
-
 export function compareSuperclassArraysTwice(orderedADict) {
-  const $closure = left => {
-    return right => {
+  const $closure = (left) => {
+    return (right) => {
       const eqArrayDict = Data_Eq.eqArray(orderedADict.Eq0());
       if (Data_Eq.eq(eqArrayDict)(left)(right)) {
         return Data_Eq.eq(eqArrayDict)(right)(left);
@@ -148,10 +137,9 @@ export function compareSuperclassArraysTwice(orderedADict) {
   };
   return $closure;
 }
-
 export function compareSuperclassTwice(orderedADict) {
-  const $closure = left => {
-    return right => {
+  const $closure = (left) => {
+    return (right) => {
       const Eq0Dict = orderedADict.Eq0();
       if (Data_Eq.eq(Eq0Dict)(left)(right)) {
         return Data_Eq.eq(Eq0Dict)(right)(left);
@@ -162,12 +150,11 @@ export function compareSuperclassTwice(orderedADict) {
   };
   return $closure;
 }
-
 export function lambdaScope(left) {
-  return right => {
+  return (right) => {
     if (eqArrayIntDictEq(left)(right)) {
-      const $closure = lambdaLeft => {
-        return lambdaRight => {
+      const $closure = (lambdaLeft) => {
+        return (lambdaRight) => {
           if (eqArrayIntDictEq(lambdaLeft)(lambdaRight)) {
             return eqArrayIntDictEq(lambdaRight)(lambdaLeft);
           } else {
@@ -181,20 +168,18 @@ export function lambdaScope(left) {
     }
   };
 }
-
 export function whereIsolation(left) {
-  return right => {
-    if ((helperLeft => helperRight => eqArrayIntDictEq(helperLeft)(helperRight))(left)(right)) {
+  return (right) => {
+    if (((helperLeft) => (helperRight) => eqArrayIntDictEq(helperLeft)(helperRight))(left)(right)) {
       return eqArrayIntDictEq(left)(right);
     } else {
       return false;
     }
   };
 }
-
 export function equationScope($boolean) {
-  return $array => {
-    return $array$1 => {
+  return ($array) => {
+    return ($array$1) => {
       if ($boolean === true) {
         const left = $array;
         const right = $array$1;
@@ -209,9 +194,8 @@ export function equationScope($boolean) {
     };
   };
 }
-
 export function compareRecursiveTwice(left) {
-  return right => {
+  return (right) => {
     if (Data_Eq.eq($lazy_eqRecursive())(left)(right)) {
       return Data_Eq.eq($lazy_eqRecursive())(right)(left);
     } else {
@@ -219,19 +203,13 @@ export function compareRecursiveTwice(left) {
     }
   };
 }
-
 const $lazy_eqRecursive = $runtime.binding("eqRecursive", () => {
-  return { eq: left => right => Data_Eq.eq($lazy_eqRecursive())(left)(right) };
+  return { eq: (left) => (right) => Data_Eq.eq($lazy_eqRecursive())(left)(right) };
 });
-
 const eqIntDictEq = Data_Eq.eq(Data_Eq.eqInt);
-
 export const firstComparison = eqIntDictEq(1 | 0)(2 | 0);
-
 export const secondComparison = eqIntDictEq(3 | 0)(4 | 0);
-
 export const eqRecursive = $lazy_eqRecursive();
-
 const eqArrayIntDict = Data_Eq.eqArray(Data_Eq.eqInt);
 const eqArrayBooleanDict = Data_Eq.eqArray(Data_Eq.eqBoolean);
 const eqArrayIntDictEq = Data_Eq.eq(eqArrayIntDict);

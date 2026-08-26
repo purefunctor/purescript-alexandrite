@@ -6,8 +6,8 @@
 mod convert;
 mod error;
 mod module;
-mod pretty;
 mod tree;
+mod writer;
 
 pub use convert::convert_module;
 pub use error::{ModuleError, ModuleResult, UnsupportedState};

@@ -7,9 +7,7 @@ use functional::tree::{
 };
 use itertools::Itertools;
 
-use super::super::super::names::identifier_is_binding;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
-use crate::pretty::render_string;
 use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree, UnaryOperator};
 
 pub(super) fn literal_expression(
@@ -154,8 +152,4 @@ pub(super) fn combine_conditions(
             tree.binary(BinaryOperator::LogicalAnd, condition, next)
         }),
     )
-}
-
-pub(super) fn module_export_name(name: &str) -> String {
-    if identifier_is_binding(name) { name.to_owned() } else { render_string(name) }
 }

@@ -1,9 +1,8 @@
 export function not(dictionary) {
   return dictionary.not;
 }
-
 export const heytingAlgebraBoolean = (() => {
-  const $closure = value => {
+  const $closure = (value) => {
     if (value) {
       return false;
     } else {

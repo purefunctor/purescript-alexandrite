@@ -1,9 +1,8 @@
 export function empty(dictionary) {
   return dictionary.empty;
 }
-
 export function chooseEmpty(emptyCollectionDict) {
-  const $closure = section33 => {
+  const $closure = (section33) => {
     if (section33 === true) {
       return empty(emptyCollectionDict);
     }
