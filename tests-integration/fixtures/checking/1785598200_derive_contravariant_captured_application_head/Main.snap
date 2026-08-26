@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -24,8 +24,11 @@ Triple = [Phantom, Phantom, Phantom]
 Captured = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Triple @Type @Type @Type t0 Int String
-  --> 8:1..8:39
-  |
-8 | derive instance Contravariant Captured
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: Triple @Type @Type @Type t0 Int String
+  │
+  │   derive instance Contravariant Captured
+  │   ╰─────────────────────────────────────
+  •

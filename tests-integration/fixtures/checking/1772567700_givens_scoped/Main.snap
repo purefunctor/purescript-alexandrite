@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,9 +15,14 @@ class forall (a :: Prim.Type). Main.Given a
   consume :: forall @a. Main.Given a => a -> a
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Given Int
-  --> 6:1..6:41
-  |
-6 | testGiven :: forall a. Given a => a -> a
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Given a is in scope
+Error! · [NoInstanceFound] · Main.purs:6:1
+  •
+  │
+  • No instance found for: Given Int
+  │
+  │   testGiven :: forall a. Given a => a -> a
+  │   ╰───────────────────────────────────────
+  • while
+  │
+  │   Given a is in scope
+  •

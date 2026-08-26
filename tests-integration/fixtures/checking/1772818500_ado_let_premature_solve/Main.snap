@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -31,13 +31,20 @@ Effect = [Nominal]
 Unit = []
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Int' with 'String'
-  --> 27:15..27:18
-   |
-27 |   let f = a + 123
-   |               ^~~
-error[NoInstanceFound]: No instance found for: Semiring String
-  --> 24:1..24:20
-   |
-24 | test :: Effect Unit
-   | ^~~~~~~~~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:27:15
+  •
+  │
+  • Cannot unify 'Int' with 'String'
+  │
+  │     let f = a + 123
+  │                 ╰──
+  •
+
+Error! · [NoInstanceFound] · Main.purs:24:1
+  •
+  │
+  • No instance found for: Semiring String
+  │
+  │   test :: Effect Unit
+  │   ╰──────────────────
+  •

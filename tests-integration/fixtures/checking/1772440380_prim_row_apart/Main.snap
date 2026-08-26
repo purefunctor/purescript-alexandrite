@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -32,23 +32,38 @@ forceSolve ::
 Types
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'String' with 'Int'
-  --> 15:1..19:4
-   |
-15 | forceSolve =
-   | ^~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '( b :: String )' with '( b :: Int )'
-  --> 15:1..19:4
-   |
-15 | forceSolve =
-   | ^~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '( a :: Int, b :: String )' with '( missing :: Int | (t0 :: Row Type) )'
-  --> 15:1..19:4
-   |
-15 | forceSolve =
-   | ^~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Lacks @Type "b" ( a :: Int, b :: String )
-  --> 15:1..19:4
-   |
-15 | forceSolve =
-   | ^~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:15:1
+  •
+  │
+  • Cannot unify 'String' with 'Int'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [CannotUnify] · Main.purs:15:1
+  •
+  │
+  • Cannot unify '( b :: String )' with '( b :: Int )'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [CannotUnify] · Main.purs:15:1
+  •
+  │
+  • Cannot unify '( a :: Int, b :: String )' with '( missing :: Int | (t0 :: Row Type) )'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:15:1
+  •
+  │
+  • No instance found for: Lacks @Type "b" ( a :: Int, b :: String )
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

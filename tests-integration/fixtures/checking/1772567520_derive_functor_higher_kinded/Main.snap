@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -27,8 +27,11 @@ Wrap = [Representational, Nominal]
 WrapNoFunctor = [Representational, Nominal]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) t0
-  --> 9:1..9:42
-  |
-9 | derive instance Functor (WrapNoFunctor f)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:9:1
+  •
+  │
+  • Cannot derive for type: (f :: Type -> Type) t0
+  │
+  │   derive instance Functor (WrapNoFunctor f)
+  │   ╰────────────────────────────────────────
+  •

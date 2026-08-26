@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -60,9 +60,14 @@ Roles
 Wrap = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (f :: Type -> Type)
-  --> 30:1..32:19
-   |
-30 | instance TransformPlain Wrap where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Functor (f1 :: Type -> Type) is in scope
+Error! · [NoInstanceFound] · Main.purs:30:1
+  •
+  │
+  • No instance found for: Functor (f :: Type -> Type)
+  │
+  │   instance TransformPlain Wrap where
+  │   ╰─────────────────────────────────
+  • while
+  │
+  │   Functor (f1 :: Type -> Type) is in scope
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -23,25 +23,36 @@ Roles
 Compose = [Representational, Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Functor (Compose @Type @Type (f :: Type -> Type) (g :: Type -> Type))
-  --> 6:1..6:76
-  |
-6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Traversable (f :: Type -> Type) is in scope
-  trivia: Traversable (g :: Type -> Type) is in scope
-  trivia: Functor (f :: Type -> Type) is in scope
-  trivia: Foldable (f :: Type -> Type) is in scope
-  trivia: Functor (g :: Type -> Type) is in scope
-  trivia: Foldable (g :: Type -> Type) is in scope
-error[NoInstanceFound]: No instance found for: Foldable (Compose @Type @Type (f :: Type -> Type) (g :: Type -> Type))
-  --> 6:1..6:76
-  |
-6 | derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Traversable (f :: Type -> Type) is in scope
-  trivia: Traversable (g :: Type -> Type) is in scope
-  trivia: Functor (f :: Type -> Type) is in scope
-  trivia: Foldable (f :: Type -> Type) is in scope
-  trivia: Functor (g :: Type -> Type) is in scope
-  trivia: Foldable (g :: Type -> Type) is in scope
+Error! · [NoInstanceFound] · Main.purs:6:1
+  •
+  │
+  • No instance found for: Functor (Compose @Type @Type (f :: Type -> Type) (g :: Type -> Type))
+  │
+  │   derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
+  │   ╰──────────────────────────────────────────────────────────────────────────
+  • while
+  │
+  │   Traversable (f :: Type -> Type) is in scope
+  │   Traversable (g :: Type -> Type) is in scope
+  │   Functor (f :: Type -> Type) is in scope
+  │   Foldable (f :: Type -> Type) is in scope
+  │   Functor (g :: Type -> Type) is in scope
+  │   Foldable (g :: Type -> Type) is in scope
+  •
+
+Error! · [NoInstanceFound] · Main.purs:6:1
+  •
+  │
+  • No instance found for: Foldable (Compose @Type @Type (f :: Type -> Type) (g :: Type -> Type))
+  │
+  │   derive instance (Traversable f, Traversable g) => Traversable (Compose f g)
+  │   ╰──────────────────────────────────────────────────────────────────────────
+  • while
+  │
+  │   Traversable (f :: Type -> Type) is in scope
+  │   Traversable (g :: Type -> Type) is in scope
+  │   Functor (f :: Type -> Type) is in scope
+  │   Foldable (f :: Type -> Type) is in scope
+  │   Functor (g :: Type -> Type) is in scope
+  │   Foldable (g :: Type -> Type) is in scope
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,13 +17,20 @@ Instances
 instance Main.Show Prim.Int
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Int' with 'String'
-  --> 7:1..9:13
-  |
-7 | instance Show Int where
-  | ^~~~~~~~~~~~~~~~~~~~~~~
-error[InstanceMemberTypeMismatch]: Instance member type mismatch: expected 'Int -> String', got 'Int -> Int'
-  --> 7:1..9:13
-  |
-7 | instance Show Int where
-  | ^~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:7:1
+  •
+  │
+  • Cannot unify 'Int' with 'String'
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •
+
+Error! · [InstanceMemberTypeMismatch] · Main.purs:7:1
+  •
+  │
+  • Instance member type mismatch: expected 'Int -> String', got 'Int -> Int'
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,8 +16,11 @@ Roles
 Box = []
 
 Diagnostics
-error[CannotDeriveClass]: Cannot derive this class
-  --> 7:1..7:30
-  |
-7 | derive instance Generic Box _
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveClass] · Main.purs:7:1
+  •
+  │
+  • Cannot derive this class
+  │
+  │   derive instance Generic Box _
+  │   ╰────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -31,8 +31,11 @@ NoOrd = []
 ContainsNoOrd = []
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Ord NoOrd
-  --> 23:1..23:34
-   |
-23 | derive instance Ord ContainsNoOrd
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:23:1
+  •
+  │
+  • No instance found for: Ord NoOrd
+  │
+  │   derive instance Ord ContainsNoOrd
+  │   ╰────────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -19,8 +19,11 @@ Opaque = [Representational]
 Wrapped = [Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Opaque (t0 -> Int)
-  --> 8:1..8:38
-  |
-8 | derive instance Contravariant Wrapped
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: Opaque (t0 -> Int)
+  │
+  │   derive instance Contravariant Wrapped
+  │   ╰────────────────────────────────────
+  •

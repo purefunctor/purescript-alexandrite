@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -9,8 +9,11 @@ test :: Prim.Int -> Prim.Int
 Types
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Int' with 'Boolean'
-  --> 6:7..6:8
-  |
-6 |     | n -> 0
-  |       ^
+Error! · [CannotUnify] · Main.purs:6:7
+  •
+  │
+  • Cannot unify 'Int' with 'Boolean'
+  │
+  │       | n -> 0
+  │         ╰
+  •

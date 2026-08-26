@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -36,17 +36,28 @@ Wrap = [Representational, Nominal]
 WrapNoOrd1 = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Ord1 (f :: Type -> Type)
-  --> 14:1..14:46
-   |
-14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord a is in scope
-  trivia: Eq a is in scope
-error[NoInstanceFound]: No instance found for: Eq1 (f :: Type -> Type)
-  --> 14:1..14:46
-   |
-14 | derive instance Ord a => Ord (WrapNoOrd1 f a)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Ord a is in scope
-  trivia: Eq a is in scope
+Error! · [NoInstanceFound] · Main.purs:14:1
+  •
+  │
+  • No instance found for: Ord1 (f :: Type -> Type)
+  │
+  │   derive instance Ord a => Ord (WrapNoOrd1 f a)
+  │   ╰────────────────────────────────────────────
+  • while
+  │
+  │   Ord a is in scope
+  │   Eq a is in scope
+  •
+
+Error! · [NoInstanceFound] · Main.purs:14:1
+  •
+  │
+  • No instance found for: Eq1 (f :: Type -> Type)
+  │
+  │   derive instance Ord a => Ord (WrapNoOrd1 f a)
+  │   ╰────────────────────────────────────────────
+  • while
+  │
+  │   Ord a is in scope
+  │   Eq a is in scope
+  •

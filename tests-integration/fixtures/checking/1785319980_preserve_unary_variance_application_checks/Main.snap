@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -27,13 +27,20 @@ Wrapped = [Representational, Representational]
 Wrong = [Representational, Nominal, Phantom]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: (f :: Type -> Type) (t0 -> Int)
-  --> 7:1..7:42
-  |
-7 | derive instance Contravariant (Wrapped f)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: (f1 :: Type -> Type) t1
-  --> 10:1..10:37
-   |
-10 | derive instance Profunctor (Wrong f)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:7:1
+  •
+  │
+  • Cannot derive for type: (f :: Type -> Type) (t0 -> Int)
+  │
+  │   derive instance Contravariant (Wrapped f)
+  │   ╰────────────────────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:10:1
+  •
+  │
+  • Cannot derive for type: (f1 :: Type -> Type) t1
+  │
+  │   derive instance Profunctor (Wrong f)
+  │   ╰───────────────────────────────────
+  •

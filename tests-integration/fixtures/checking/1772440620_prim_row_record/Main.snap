@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -33,8 +33,12 @@ test2 :: { a :: Prim.Int, b :: Prim.String, x :: Prim.Int }
 Types
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Union @Type (r :: Row Type) ( b :: String ) ( b :: String | (r :: Row Type) )
-  --> 10:1..10:72
-   |
-10 | addField :: forall r. { a :: Int | r } -> { a :: Int, b :: String | r }
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Union @Type (r :: Row Type) ( b :: String ) ( b :: String | (r :: Row
+  │ Type) )
+  │
+  │   addField :: forall r. { a :: Int | r } -> { a :: Int, b :: String | r }
+  │   ╰──────────────────────────────────────────────────────────────────────
+  •

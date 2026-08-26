@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,13 +20,20 @@ ArrowSyntax = [Representational, Representational]
 ArrowConstructor = [Representational, Representational]
 
 Diagnostics
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: t0
-  --> 6:1..6:38
-  |
-6 | derive instance Bifunctor ArrowSyntax
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[ContravariantOccurrence]: Type variable occurs in contravariant position: t1
-  --> 9:1..9:43
-  |
-9 | derive instance Bifunctor ArrowConstructor
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [ContravariantOccurrence] · Main.purs:6:1
+  •
+  │
+  • Type variable occurs in contravariant position: t0
+  │
+  │   derive instance Bifunctor ArrowSyntax
+  │   ╰────────────────────────────────────
+  •
+
+Error! · [ContravariantOccurrence] · Main.purs:9:1
+  •
+  │
+  • Type variable occurs in contravariant position: t1
+  │
+  │   derive instance Bifunctor ArrowConstructor
+  │   ╰─────────────────────────────────────────
+  •

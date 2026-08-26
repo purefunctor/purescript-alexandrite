@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,8 +20,11 @@ Predicate = [Representational]
 DoubleNegative = [Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: t0
-  --> 9:1..9:45
-  |
-9 | derive instance Contravariant DoubleNegative
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CovariantOccurrence] · Main.purs:9:1
+  •
+  │
+  • Type variable occurs in covariant position: t0
+  │
+  │   derive instance Contravariant DoubleNegative
+  │   ╰───────────────────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -9,8 +9,11 @@ test :: { a :: Prim.Int, b :: Prim.Int }
 Types
 
 Diagnostics
-error[PropertyIsMissing]: Missing required properties: b
-  --> 4:8..4:16
-  |
-4 | test = { a: 1 }
-  |        ^~~~~~~~
+Error! · [PropertyIsMissing] · Main.purs:4:8
+  •
+  │
+  • Missing required properties: b
+  │
+  │   test = { a: 1 }
+  │          ╰───────
+  •

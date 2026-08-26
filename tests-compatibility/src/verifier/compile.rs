@@ -3,7 +3,7 @@ use std::fs;
 
 use building::{QueryEngine, QueryError, prim};
 use diagnostics::{
-    Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rustc_with_path,
+    Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rich_with_path,
 };
 use files::{FileId, Files, ForeignFiles};
 use rayon::prelude::*;
@@ -384,10 +384,11 @@ fn compiler_diagnostic(
         Severity::Error => DiagnosticSeverity::Error,
         Severity::Warning => DiagnosticSeverity::Warning,
     };
-    let human = format_rustc_with_path(
+    let human = format_rich_with_path(
         std::slice::from_ref(&diagnostic),
         &metadata.content,
         &metadata.relative_path,
+        false,
     );
 
     CompilerDiagnostic {

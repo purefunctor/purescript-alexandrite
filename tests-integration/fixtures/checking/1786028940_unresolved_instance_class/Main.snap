@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -8,13 +8,20 @@ Terms
 Types
 
 Diagnostics
-error[NotInScope]: 'Functor' is not in scope
-  --> 3:10..3:17
-  |
-3 | instance Functor Array where
-  |          ^~~~~~~
-error[NotInScope]: 'Missing.Functor' is not in scope
-  --> 5:10..5:25
-  |
-5 | instance Missing.Functor Array where
-  |          ^~~~~~~~~~~~~~~
+Error! · [NotInScope] · Main.purs:3:10
+  •
+  │
+  • 'Functor' is not in scope
+  │
+  │   instance Functor Array where
+  │            ╰──────
+  •
+
+Error! · [NotInScope] · Main.purs:5:10
+  •
+  │
+  • 'Missing.Functor' is not in scope
+  │
+  │   instance Missing.Functor Array where
+  │            ╰──────────────
+  •

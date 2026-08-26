@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,8 +20,11 @@ Effect = [Nominal]
 Unit = []
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'String' with 'Int'
-  --> 19:9..19:10
-   |
-19 |     f = a
-   |         ^
+Error! · [CannotUnify] · Main.purs:19:9
+  •
+  │
+  • Cannot unify 'String' with 'Int'
+  │
+  │       f = a
+  │           ╰
+  •

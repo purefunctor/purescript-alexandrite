@@ -4,7 +4,7 @@ use analyzer::position;
 use building::QueryEngine;
 use checking::core::pretty;
 use checking::{PrettyQueries, core};
-use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rustc};
+use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rich_with_path};
 use files::FileId;
 use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
@@ -226,7 +226,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     out
 }
 
-pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
+pub fn report_checked(engine: &QueryEngine, id: FileId, path: &str) -> String {
     let indexed = engine.indexed(id).unwrap();
     let checked = engine.checked(id).unwrap();
     let config = pretty::PrettyConfig::new().fully_qualified_names();
@@ -356,12 +356,12 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
         writeln!(out, "{name} = [{}]", roles_str.join(", ")).unwrap();
     }
 
-    write_checked_diagnostics(&mut out, engine, id, &indexed, &checked);
+    write_checked_diagnostics(&mut out, engine, id, path, &indexed, &checked);
 
     out
 }
 
-pub fn report_foreign(engine: &QueryEngine, id: FileId) -> String {
+pub fn report_foreign(engine: &QueryEngine, id: FileId, path: &str) -> String {
     let validation = engine.foreign_validation(id).unwrap();
     if validation.errors.is_empty() {
         return String::new();
@@ -384,7 +384,7 @@ pub fn report_foreign(engine: &QueryEngine, id: FileId) -> String {
 
     let mut out = String::new();
     heading(&mut out, "Diagnostics");
-    out.push_str(&format_rustc(&diagnostics, &content));
+    out.push_str(&format_rich_with_path(&diagnostics, &content, path, false));
     out
 }
 
@@ -494,6 +494,7 @@ fn write_checked_diagnostics(
     out: &mut String,
     engine: &QueryEngine,
     id: FileId,
+    path: &str,
     indexed: &indexing::IndexedModule,
     checked: &checking::CheckedModule,
 ) {
@@ -523,7 +524,7 @@ fn write_checked_diagnostics(
 
     if !all_diagnostics.is_empty() {
         writeln!(out, "\nDiagnostics").unwrap();
-        out.push_str(&format_rustc(&all_diagnostics, &content));
+        out.push_str(&format_rich_with_path(&all_diagnostics, &content, path, false));
     }
 }
 

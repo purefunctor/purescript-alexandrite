@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,13 +17,20 @@ Instances
 instance Main.Class
 
 Diagnostics
-error[InstanceHeadMismatch]: Instance head mismatch: expected 1 arguments, got 0
-  --> 1:1..9:18
-  |
-1 | module Main where
-  | ^~~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type -> Constraint' with 'Constraint'
-  --> 1:1..9:18
-  |
-1 | module Main where
-  | ^~~~~~~~~~~~~~~~~
+Error! · [InstanceHeadMismatch] · Main.purs:1:1
+  •
+  │
+  • Instance head mismatch: expected 1 arguments, got 0
+  │
+  │   module Main where
+  │   ╰────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:1:1
+  •
+  │
+  • Cannot unify 'Type -> Constraint' with 'Constraint'
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

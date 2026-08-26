@@ -1,5 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
+assertion_line: 265
 expression: diagnostics_report
 ---
 Terms
@@ -60,8 +61,11 @@ Roles
 Choice = []
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: None
-  --> 106:1..106:32
-    |
-106 | partialPattern :: Choice -> Int
-    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:106:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: None
+  │
+  │   partialPattern :: Choice -> Int
+  │   ╰──────────────────────────────
+  •

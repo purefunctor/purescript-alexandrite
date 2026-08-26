@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 268
+assertion_line: 265
 expression: diagnostics_report
 ---
 Terms
@@ -9,8 +9,12 @@ _null :: Prim.Int
 Types
 
 Diagnostics
-warning[UnparseableFFIModule]: Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax; Alexandrite treated the module as opaque and skipped export-name validation: Unexpected token
-  --> 3:1..3:28
-  |
-3 | foreign import _null :: Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [UnparseableFFIModule] · Main.purs:3:1
+  •
+  │
+  • Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax;
+  │ Alexandrite treated the module as opaque and skipped export-name validation: Unexpected token
+  │
+  │   foreign import _null :: Int
+  │   ╰──────────────────────────
+  •

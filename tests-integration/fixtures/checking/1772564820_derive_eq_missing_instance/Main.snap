@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -19,8 +19,11 @@ NoEq = []
 Box = []
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Eq NoEq
-  --> 9:1..9:23
-  |
-9 | derive instance Eq Box
-  | ^~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:9:1
+  •
+  │
+  • No instance found for: Eq NoEq
+  │
+  │   derive instance Eq Box
+  │   ╰─────────────────────
+  •

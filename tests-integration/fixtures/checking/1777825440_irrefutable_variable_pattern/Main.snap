@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -12,13 +12,20 @@ arrayLength :: forall a. Prim.Array a -> Prim.Int
 Types
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: _
-  --> 14:13..16:24
-   |
-14 | refutable = case _ of
-   |             ^~~~~~~~~
-error[NoInstanceFound]: No instance found for: Partial
-  --> 13:1..13:30
-   |
-13 | refutable :: Array Int -> Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:14:13
+  •
+  │
+  • Pattern match is not exhaustive. Missing: _
+  │
+  │   refutable = case _ of
+  │               ╰────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:13:1
+  •
+  │
+  • No instance found for: Partial
+  │
+  │   refutable :: Array Int -> Int
+  │   ╰────────────────────────────
+  •

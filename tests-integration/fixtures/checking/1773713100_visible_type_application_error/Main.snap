@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -10,13 +10,20 @@ test :: ?[invalid visible type application]
 Types
 
 Diagnostics
-error[NoVisibleTypeVariable]: No visible type variable for type application in: forall a. a -> a
-  --> 6:8..6:21
-  |
-6 | test = identity @Int
-  |        ^~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 6:8..6:21
-  |
-6 | test = identity @Int
-  |        ^~~~~~~~~~~~~
+Error! · [NoVisibleTypeVariable] · Main.purs:6:8
+  •
+  │
+  • No visible type variable for type application in: forall a. a -> a
+  │
+  │   test = identity @Int
+  │          ╰────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:6:8
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   test = identity @Int
+  │          ╰────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -17,8 +17,11 @@ Instances
 instance Main.Show Prim.Int
 
 Diagnostics
-error[TooManyBinders]: Too many binders: expected 1, got 2
-  --> 7:1..8:20
-  |
-7 | instance Show Int where
-  | ^~~~~~~~~~~~~~~~~~~~~~~
+Error! · [TooManyBinders] · Main.purs:7:1
+  •
+  │
+  • Too many binders: expected 1, got 2
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •

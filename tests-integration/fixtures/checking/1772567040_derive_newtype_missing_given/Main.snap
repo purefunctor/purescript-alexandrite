@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,8 +16,11 @@ Roles
 Identity = [Representational]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Show a
-  --> 7:1..7:42
-  |
-7 | derive newtype instance Show (Identity a)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:7:1
+  •
+  │
+  • No instance found for: Show a
+  │
+  │   derive newtype instance Show (Identity a)
+  │   ╰────────────────────────────────────────
+  •

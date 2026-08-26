@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -10,13 +10,20 @@ test' :: forall t0. t0
 Types
 
 Diagnostics
-error[InvalidFinalLet]: Invalid final let statement in do expression
-  --> 7:3..7:12
-  |
-7 |   let x = 1
-  |   ^~~~~~~~~
-error[InvalidFinalLet]: Invalid final let statement in do expression
-  --> 10:3..10:12
-   |
-10 |   let x = 1
-   |   ^~~~~~~~~
+Error! · [InvalidFinalLet] · Main.purs:7:3
+  •
+  │
+  • Invalid final let statement in do expression
+  │
+  │     let x = 1
+  │     ╰────────
+  •
+
+Error! · [InvalidFinalLet] · Main.purs:10:3
+  •
+  │
+  • Invalid final let statement in do expression
+  │
+  │     let x = 1
+  │     ╰────────
+  •

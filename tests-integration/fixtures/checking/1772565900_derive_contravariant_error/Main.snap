@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -20,13 +20,20 @@ Identity = [Representational]
 Producer = [Representational]
 
 Diagnostics
-error[CovariantOccurrence]: Type variable occurs in covariant position: t0
-  --> 6:1..6:39
-  |
-6 | derive instance Contravariant Identity
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[CovariantOccurrence]: Type variable occurs in covariant position: t1
-  --> 9:1..9:39
-  |
-9 | derive instance Contravariant Producer
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CovariantOccurrence] · Main.purs:6:1
+  •
+  │
+  • Type variable occurs in covariant position: t0
+  │
+  │   derive instance Contravariant Identity
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [CovariantOccurrence] · Main.purs:9:1
+  •
+  │
+  • Type variable occurs in covariant position: t1
+  │
+  │   derive instance Contravariant Producer
+  │   ╰─────────────────────────────────────
+  •

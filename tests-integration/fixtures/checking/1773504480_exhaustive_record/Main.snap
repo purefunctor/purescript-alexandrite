@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -19,18 +19,29 @@ Roles
 Maybe = [Representational]
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: { x: Nothing }
-  --> 8:1..8:35
-  |
-8 | test2 :: { x :: Maybe Int } -> Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-warning[RedundantPattern]: Pattern match has redundant patterns: _
-  --> 11:1..11:39
-   |
-11 | test3 :: { x :: Int, y :: Int } -> Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: { a: Nothing, b: _ }
-  --> 15:1..15:54
-   |
-15 | test4 :: { a :: Maybe Int, b :: Maybe String } -> Int
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:8:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: { x: Nothing }
+  │
+  │   test2 :: { x :: Maybe Int } -> Int
+  │   ╰─────────────────────────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:11:1
+  •
+  │
+  • Pattern match has redundant patterns: _
+  │
+  │   test3 :: { x :: Int, y :: Int } -> Int
+  │   ╰─────────────────────────────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:15:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: { a: Nothing, b: _ }
+  │
+  │   test4 :: { a :: Maybe Int, b :: Maybe String } -> Int
+  │   ╰────────────────────────────────────────────────────
+  •

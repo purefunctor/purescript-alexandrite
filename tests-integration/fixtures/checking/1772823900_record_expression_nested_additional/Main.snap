@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -9,8 +9,11 @@ test :: { outer :: { x :: Prim.Int } }
 Types
 
 Diagnostics
-error[AdditionalProperty]: Additional properties not allowed: y
-  --> 4:17..4:31
-  |
-4 | test = { outer: { x: 1, y: 2 } }
-  |                 ^~~~~~~~~~~~~~
+Error! · [AdditionalProperty] · Main.purs:4:17
+  •
+  │
+  • Additional properties not allowed: y
+  │
+  │   test = { outer: { x: 1, y: 2 } }
+  │                   ╰─────────────
+  •

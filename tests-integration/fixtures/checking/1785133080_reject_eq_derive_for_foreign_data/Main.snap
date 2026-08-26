@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,13 +16,20 @@ Roles
 Opaque = []
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Opaque
-  --> 8:1..8:26
-  |
-8 | derive instance Eq Opaque
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: Opaque
-  --> 9:1..9:27
-  |
-9 | derive instance Ord Opaque
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: Opaque
+  │
+  │   derive instance Eq Opaque
+  │   ╰────────────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:9:1
+  •
+  │
+  • Cannot derive for type: Opaque
+  │
+  │   derive instance Ord Opaque
+  │   ╰─────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -15,8 +15,11 @@ Roles
 Unit = []
 
 Diagnostics
-error[CannotUnify]: Cannot unify '?0 -> Int' with 'Int'
-  --> 8:17..8:28
-  |
-8 | test = consume (\value -> 0)
-  |                 ^~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:8:17
+  •
+  │
+  • Cannot unify '?0 -> Int' with 'Int'
+  │
+  │   test = consume (\value -> 0)
+  │                   ╰──────────
+  •

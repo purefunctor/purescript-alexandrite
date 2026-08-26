@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -27,8 +27,11 @@ Wrap = [Representational, Nominal]
 WrapNoFoldable = [Representational, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Foldable (f :: Type -> Type)
-  --> 9:1..9:44
-  |
-9 | derive instance Foldable (WrapNoFoldable f)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:9:1
+  •
+  │
+  • No instance found for: Foldable (f :: Type -> Type)
+  │
+  │   derive instance Foldable (WrapNoFoldable f)
+  │   ╰──────────────────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -11,8 +11,11 @@ Derived
 derive Data.Show.Show (Prim.Int -> Prim.Int)
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: Int -> Int
-  --> 5:1..5:42
-  |
-5 | derive newtype instance Show (Int -> Int)
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [CannotDeriveForType] · Main.purs:5:1
+  •
+  │
+  • Cannot derive for type: Int -> Int
+  │
+  │   derive newtype instance Show (Int -> Int)
+  │   ╰────────────────────────────────────────
+  •

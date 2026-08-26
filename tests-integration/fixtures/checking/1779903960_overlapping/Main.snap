@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -19,10 +19,15 @@ instance forall a. Main.Test a
 instance Main.Test Prim.Int
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Test Int
-  --> 9:1..10:13
-  |
-9 | instance testInt :: Test Int where
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: forall a. Test a is matching
-  trivia: Test Int is matching
+Error! · [OverlappingInstances] · Main.purs:9:1
+  •
+  │
+  • Overlapping type class instances found for: Test Int
+  │
+  │   instance testInt :: Test Int where
+  │   ╰─────────────────────────────────
+  • while
+  │
+  │   forall a. Test a is matching
+  │   Test Int is matching
+  •

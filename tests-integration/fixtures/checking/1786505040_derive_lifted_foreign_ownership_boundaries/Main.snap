@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -34,29 +34,50 @@ NoBase = [Nominal]
 Product = [Representational, Representational]
 
 Diagnostics
-error[CannotDeriveForType]: Cannot derive for type: ImportedAlias
-  --> 17:1..17:34
-   |
-17 | derive instance Eq1 ImportedAlias
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[PartialSynonymApplication]: Partial type synonym application
-  --> 27:21..27:31
-   |
-27 | derive instance Eq1 ProductInt
-   |                     ^~~~~~~~~~
-error[CannotUnify]: Cannot unify '?[partial synonym application]' with 'Type -> Type'
-  --> 27:21..27:31
-   |
-27 | derive instance Eq1 ProductInt
-   |                     ^~~~~~~~~~
-error[CannotDeriveForType]: Cannot derive for type: ?[partial synonym application]
-  --> 27:1..27:31
-   |
-27 | derive instance Eq1 ProductInt
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Eq (NoBase t0)
-  --> 21:1..21:27
-   |
-21 | derive instance Eq1 NoBase
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Eq t0 is in scope
+Error! · [CannotDeriveForType] · Main.purs:17:1
+  •
+  │
+  • Cannot derive for type: ImportedAlias
+  │
+  │   derive instance Eq1 ImportedAlias
+  │   ╰────────────────────────────────
+  •
+
+Error! · [PartialSynonymApplication] · Main.purs:27:21
+  •
+  │
+  • Partial type synonym application
+  │
+  │   derive instance Eq1 ProductInt
+  │                       ╰─────────
+  •
+
+Error! · [CannotUnify] · Main.purs:27:21
+  •
+  │
+  • Cannot unify '?[partial synonym application]' with 'Type -> Type'
+  │
+  │   derive instance Eq1 ProductInt
+  │                       ╰─────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:27:1
+  •
+  │
+  • Cannot derive for type: ?[partial synonym application]
+  │
+  │   derive instance Eq1 ProductInt
+  │   ╰─────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:21:1
+  •
+  │
+  • No instance found for: Eq (NoBase t0)
+  │
+  │   derive instance Eq1 NoBase
+  │   ╰─────────────────────────
+  • while
+  │
+  │   Eq t0 is in scope
+  •

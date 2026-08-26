@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -43,13 +43,20 @@ WrapBoth = [Representational, Representational, Nominal, Nominal]
 WrapBothNoConstraint = [Representational, Representational, Nominal, Nominal]
 
 Diagnostics
-error[NoInstanceFound]: No instance found for: Foldable (f :: Type -> Type)
-  --> 10:1..10:54
-   |
-10 | derive instance Bifoldable (WrapBothNoConstraint f g)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-error[NoInstanceFound]: No instance found for: Foldable (g :: Type -> Type)
-  --> 10:1..10:54
-   |
-10 | derive instance Bifoldable (WrapBothNoConstraint f g)
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Foldable (f :: Type -> Type)
+  │
+  │   derive instance Bifoldable (WrapBothNoConstraint f g)
+  │   ╰────────────────────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Foldable (g :: Type -> Type)
+  │
+  │   derive instance Bifoldable (WrapBothNoConstraint f g)
+  │   ╰────────────────────────────────────────────────────
+  •

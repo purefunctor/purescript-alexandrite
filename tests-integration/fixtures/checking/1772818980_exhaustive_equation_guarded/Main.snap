@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -10,8 +10,11 @@ testGuardedBoth :: Prim.Boolean -> Prim.Int
 Types
 
 Diagnostics
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: true
-  --> 3:1..3:30
-  |
-3 | testGuarded :: Boolean -> Int
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning! · [MissingPatterns] · Main.purs:3:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: true
+  │
+  │   testGuarded :: Boolean -> Int
+  │   ╰────────────────────────────
+  •

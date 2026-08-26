@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,8 +16,11 @@ Roles
 Foo = []
 
 Diagnostics
-error[ExpectedNewtype]: Expected a newtype, got: Foo
-  --> 7:1..7:33
-  |
-7 | derive newtype instance Show Foo
-  | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error! · [ExpectedNewtype] · Main.purs:7:1
+  •
+  │
+  • Expected a newtype, got: Foo
+  │
+  │   derive newtype instance Show Foo
+  │   ╰───────────────────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -21,138 +21,245 @@ Synonyms
 type MissingTypeOperator = ?[invalid operator chain]
 
 Diagnostics
-error[NotInScope]: 'absent' is not in scope
-  --> 4:19..4:25
-  |
-4 | missingVariable = absent
-  |                   ^~~~~~
-error[NotInScope]: 'Missing' is not in scope
-  --> 5:22..5:29
-  |
-5 | missingConstructor = Missing
-  |                      ^~~~~~~
-error[NotInScope]: '+' is not in scope
-  --> 6:21..6:22
-  |
-6 | missingOperator = 1 + 2
-  |                     ^
-error[NotInScope]: 'negate' is not in scope
-  --> 7:17..7:19
-  |
-7 | missingNegate = -1
-  |                 ^~
-error[NotInScope]: 'bind' is not in scope
-  --> 9:13..11:8
-  |
-9 | missingDo = do
-  |             ^~
-error[NotInScope]: 'absent' is not in scope
-  --> 10:12..10:18
-   |
-10 |   value <- absent
-   |            ^~~~~~
-error[NotInScope]: 'discard' is not in scope
-  --> 13:18..15:9
-   |
-13 | missingDiscard = do
-   |                  ^~
-error[NotInScope]: 'absent' is not in scope
-  --> 14:3..14:9
-   |
-14 |   absent
-   |   ^~~~~~
-error[NotInScope]: 'absent' is not in scope
-  --> 15:3..15:9
-   |
-15 |   absent
-   |   ^~~~~~
-error[NotInScope]: 'map' is not in scope
-  --> 17:14..20:11
-   |
-17 | missingAdo = ado
-   |              ^~~
-error[NotInScope]: 'apply' is not in scope
-  --> 17:14..20:11
-   |
-17 | missingAdo = ado
-   |              ^~~
-error[NotInScope]: 'absent' is not in scope
-  --> 18:12..18:18
-   |
-18 |   value <- absent
-   |            ^~~~~~
-error[NotInScope]: 'absent' is not in scope
-  --> 19:13..19:19
-   |
-19 |   second <- absent
-   |             ^~~~~~
-error[NotInScope]: 'pure' is not in scope
-  --> 22:15..23:7
-   |
-22 | missingPure = ado
-   |               ^~~
-error[NotInScope]: 'MissingType' is not in scope
-  --> 25:16..25:27
-   |
-25 | missingType :: MissingType
-   |                ^~~~~~~~~~~
-error[NotInScope]: 'absent' is not in scope
-  --> 26:15..26:21
-   |
-26 | missingType = absent
-   |               ^~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 28:28..28:40
-   |
-28 | type MissingTypeOperator = Int + String
-   |                            ^~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 4:19..4:25
-  |
-4 | missingVariable = absent
-  |                   ^~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 5:22..5:29
-  |
-5 | missingConstructor = Missing
-  |                      ^~~~~~~
-error[CannotUnify]: Cannot unify 'Type' with '?[invalid kind]'
-  --> 7:17..7:19
-  |
-7 | missingNegate = -1
-  |                 ^~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '(t0 :: Type -> Type) ((t0 :: Type -> Type) t1)'
-  --> 10:3..10:18
-   |
-10 |   value <- absent
-   |   ^~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) ?24'
-  --> 14:3..14:9
-   |
-14 |   absent
-   |   ^~~~~~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) t3'
-  --> 15:3..15:9
-   |
-15 |   absent
-   |   ^~~~~~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) t5'
-  --> 18:3..18:18
-   |
-18 |   value <- absent
-   |   ^~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) ?34'
-  --> 19:3..19:19
-   |
-19 |   second <- absent
-   |   ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?[missing constructor]' with 'Type'
-  --> 25:16..25:27
-   |
-25 | missingType :: MissingType
-   |                ^~~~~~~~~~~
-error[CannotUnify]: Cannot unify '?[missing expression]' with '?[missing constructor]'
-  --> 26:15..26:21
-   |
-26 | missingType = absent
-   |               ^~~~~~
+Error! · [NotInScope] · Main.purs:4:19
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │   missingVariable = absent
+  │                     ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:5:22
+  •
+  │
+  • 'Missing' is not in scope
+  │
+  │   missingConstructor = Missing
+  │                        ╰──────
+  •
+
+Error! · [NotInScope] · Main.purs:6:21
+  •
+  │
+  • '+' is not in scope
+  │
+  │   missingOperator = 1 + 2
+  │                       ╰
+  •
+
+Error! · [NotInScope] · Main.purs:7:17
+  •
+  │
+  • 'negate' is not in scope
+  │
+  │   missingNegate = -1
+  │                   ╰─
+  •
+
+Error! · [NotInScope] · Main.purs:9:13
+  •
+  │
+  • 'bind' is not in scope
+  │
+  │   missingDo = do
+  │               ╰─
+  •
+
+Error! · [NotInScope] · Main.purs:10:12
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │     value <- absent
+  │              ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:13:18
+  •
+  │
+  • 'discard' is not in scope
+  │
+  │   missingDiscard = do
+  │                    ╰─
+  •
+
+Error! · [NotInScope] · Main.purs:14:3
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │     absent
+  │     ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:15:3
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │     absent
+  │     ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:17:14
+  •
+  │
+  • 'map' is not in scope
+  │
+  │   missingAdo = ado
+  │                ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:17:14
+  •
+  │
+  • 'apply' is not in scope
+  │
+  │   missingAdo = ado
+  │                ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:18:12
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │     value <- absent
+  │              ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:19:13
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │     second <- absent
+  │               ╰─────
+  •
+
+Error! · [NotInScope] · Main.purs:22:15
+  •
+  │
+  • 'pure' is not in scope
+  │
+  │   missingPure = ado
+  │                 ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:25:16
+  •
+  │
+  • 'MissingType' is not in scope
+  │
+  │   missingType :: MissingType
+  │                  ╰──────────
+  •
+
+Error! · [NotInScope] · Main.purs:26:15
+  •
+  │
+  • 'absent' is not in scope
+  │
+  │   missingType = absent
+  │                 ╰─────
+  •
+
+Error! · [CannotUnify] · Main.purs:28:28
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   type MissingTypeOperator = Int + String
+  │                              ╰───────────
+  •
+
+Error! · [CannotUnify] · Main.purs:4:19
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   missingVariable = absent
+  │                     ╰─────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:22
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   missingConstructor = Missing
+  │                        ╰──────
+  •
+
+Error! · [CannotUnify] · Main.purs:7:17
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   missingNegate = -1
+  │                   ╰─
+  •
+
+Error! · [CannotUnify] · Main.purs:10:3
+  •
+  │
+  • Cannot unify '?[missing expression]' with '(t0 :: Type -> Type) ((t0 :: Type -> Type) t1)'
+  │
+  │     value <- absent
+  │     ╰──────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:3
+  •
+  │
+  • Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) ?24'
+  │
+  │     absent
+  │     ╰─────
+  •
+
+Error! · [CannotUnify] · Main.purs:15:3
+  •
+  │
+  • Cannot unify '?[missing expression]' with '(t2 :: Type -> Type) t3'
+  │
+  │     absent
+  │     ╰─────
+  •
+
+Error! · [CannotUnify] · Main.purs:18:3
+  •
+  │
+  • Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) t5'
+  │
+  │     value <- absent
+  │     ╰──────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:19:3
+  •
+  │
+  • Cannot unify '?[missing expression]' with '(t4 :: Type -> Type) ?34'
+  │
+  │     second <- absent
+  │     ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:25:16
+  •
+  │
+  • Cannot unify '?[missing constructor]' with 'Type'
+  │
+  │   missingType :: MissingType
+  │                  ╰──────────
+  •
+
+Error! · [CannotUnify] · Main.purs:26:15
+  •
+  │
+  • Cannot unify '?[missing expression]' with '?[missing constructor]'
+  │
+  │   missingType = absent
+  │                 ╰─────
+  •

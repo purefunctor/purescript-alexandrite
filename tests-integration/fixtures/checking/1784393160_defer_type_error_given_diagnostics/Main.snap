@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -21,13 +21,20 @@ Instances
 instance Main.Value Prim.Int
 
 Diagnostics
-error[CustomFailure]: failure was demanded
-  --> 14:1..14:18
-   |
-14 | useFailure :: Int
-   | ^~~~~~~~~~~~~~~~~
-warning[CustomWarning]: warning was demanded
-  --> 20:1..20:18
-   |
-20 | useWarning :: Int
-   | ^~~~~~~~~~~~~~~~~
+Error! · [CustomFailure] · Main.purs:14:1
+  •
+  │
+  • failure was demanded
+  │
+  │   useFailure :: Int
+  │   ╰────────────────
+  •
+
+Warning! · [CustomWarning] · Main.purs:20:1
+  •
+  │
+  • warning was demanded
+  │
+  │   useWarning :: Int
+  │   ╰────────────────
+  •

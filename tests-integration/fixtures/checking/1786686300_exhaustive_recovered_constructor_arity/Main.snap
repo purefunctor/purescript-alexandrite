@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -16,53 +16,92 @@ Roles
 Box = [Representational]
 
 Diagnostics
-error[CannotUnify]: Cannot unify 'Box' with 'Function ?4'
-  --> 5:1..5:17
-  |
-5 | test (Box _) = 0
-  | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Box t0' with 'Function ?4 (Box ?4)'
-  --> 5:1..5:17
-  |
-5 | test (Box _) = 0
-  | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Box t0' with '?4 -> Box ?4'
-  --> 5:1..5:17
-  |
-5 | test (Box _) = 0
-  | ^~~~~~~~~~~~~~~~
-warning[RedundantPattern]: Pattern match has redundant patterns: Box
-  --> 5:1..5:17
-  |
-5 | test (Box _) = 0
-  | ^~~~~~~~~~~~~~~~
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Other
-  --> 5:1..5:17
-  |
-5 | test (Box _) = 0
-  | ^~~~~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function t1' with 'Box'
-  --> 8:1..8:14
-  |
-8 | test2 Box = 0
-  | ^~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 'Function t1 (Box t1)' with 'Box ?8'
-  --> 8:1..8:14
-  |
-8 | test2 Box = 0
-  | ^~~~~~~~~~~~~
-error[CannotUnify]: Cannot unify 't1 -> Box t1' with 'Box ?8'
-  --> 8:1..8:14
-  |
-8 | test2 Box = 0
-  | ^~~~~~~~~~~~~
-warning[RedundantPattern]: Pattern match has redundant patterns: Box _
-  --> 8:1..8:14
-  |
-8 | test2 Box = 0
-  | ^~~~~~~~~~~~~
-warning[MissingPatterns]: Pattern match is not exhaustive. Missing: Other
-  --> 8:1..8:14
-  |
-8 | test2 Box = 0
-  | ^~~~~~~~~~~~~
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box' with 'Function ?4'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box t0' with 'Function ?4 (Box ?4)'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box t0' with '?4 -> Box ?4'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:5:1
+  •
+  │
+  • Pattern match has redundant patterns: Box
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:5:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Other
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 'Function t1' with 'Box'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 'Function t1 (Box t1)' with 'Box ?8'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 't1 -> Box t1' with 'Box ?8'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:8:1
+  •
+  │
+  • Pattern match has redundant patterns: Box _
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:8:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Other
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •

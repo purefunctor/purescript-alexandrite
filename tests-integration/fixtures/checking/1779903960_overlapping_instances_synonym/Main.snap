@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 286
 expression: report
 ---
 Terms
@@ -23,10 +23,15 @@ instance Main.Convert Prim.String Main.Bar
 instance Main.Convert Prim.String Prim.String
 
 Diagnostics
-error[OverlappingInstances]: Overlapping type class instances found for: Convert String String
-  --> 11:1..12:16
-   |
-11 | instance convertSS :: Convert String String where
-   | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  trivia: Convert String Bar is matching
-  trivia: Convert String String is matching
+Error! · [OverlappingInstances] · Main.purs:11:1
+  •
+  │
+  • Overlapping type class instances found for: Convert String String
+  │
+  │   instance convertSS :: Convert String String where
+  │   ╰────────────────────────────────────────────────
+  • while
+  │
+  │   Convert String Bar is matching
+  │   Convert String String is matching
+  •
