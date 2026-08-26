@@ -87,14 +87,14 @@ export function first(choice) {
   if (choice === "None") {
     return 0 | 0;
   }
-  if (Array.isArray(choice) && choice[0] === "Pair") {
+  if (choice[0] === "Pair") {
     const [_, left] = choice;
     return left;
   }
   throw new Error("Pattern match failure");
 }
 export function partialPattern($choice) {
-  if (Array.isArray($choice) && $choice[0] === "Pair") {
+  if ($choice[0] === "Pair") {
     const [_, left] = $choice;
     return left;
   } else {
@@ -102,7 +102,7 @@ export function partialPattern($choice) {
   }
 }
 export function unwrapWrapped($wrapped) {
-  if (Array.isArray($wrapped) && $wrapped[0] === "Wrapped") {
+  if ($wrapped[0] === "Wrapped") {
     const [_, value] = $wrapped;
     return value;
   } else {

@@ -1800,10 +1800,6 @@ impl Generator<'_> {
                 if arguments.is_empty() {
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, value, expected));
                 } else {
-                    let array = tree.identifier("Array");
-                    let is_array = tree.member(array, "isArray");
-                    let is_array = tree.call(is_array, vec![value]);
-                    plan.conditions.push(is_array);
                     let zero = tree.number("0");
                     let tag = tree.index(value, zero);
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, tag, expected));

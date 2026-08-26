@@ -1,6 +1,6 @@
 import * as Library from "../Library/index.js";
 export function unbox($box) {
-  if (Array.isArray($box) && $box[0] === "Box") {
+  if ($box[0] === "Box") {
     const [_, value] = $box;
     return value;
   } else {

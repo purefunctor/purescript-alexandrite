@@ -10,7 +10,7 @@ export function booleanGuard(value) {
   throw new Error("Pattern match failure");
 }
 export function patternGuard(choice) {
-  if (Array.isArray(choice) && choice[0] === "One") {
+  if (choice[0] === "One") {
     const [_, value] = choice;
     return value;
   }
@@ -29,7 +29,7 @@ export function caseBooleanGuard(value) {
 }
 export function casePatternGuard(choice) {
   {
-    if (Array.isArray(choice) && choice[0] === "One") {
+    if (choice[0] === "One") {
       const [_, value] = choice;
       return value;
     }

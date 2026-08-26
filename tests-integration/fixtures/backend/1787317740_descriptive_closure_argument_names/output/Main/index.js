@@ -5,7 +5,7 @@ export function multiEquation($choice) {
   if ($choice === "None") {
     return 0 | 0;
   }
-  if (Array.isArray($choice) && $choice[0] === "Some") {
+  if ($choice[0] === "Some") {
     const [_, value] = $choice;
     return value;
   }
@@ -24,7 +24,7 @@ export function mixedArity($boolean) {
   };
 }
 export function singleConstructor($box) {
-  if (Array.isArray($box) && $box[0] === "Box") {
+  if ($box[0] === "Box") {
     const [_, value] = $box;
     return value;
   } else {

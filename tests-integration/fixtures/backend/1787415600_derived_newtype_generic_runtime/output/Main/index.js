@@ -28,14 +28,14 @@ export const wrapped = 42 | 0;
 export const unwrapped = /* @__PURE__ */ Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
 export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = /* @__PURE__ */ (() => {
   const $closure = (representation) => {
-    if (Array.isArray(representation) && representation[0] === "Inl" && Array.isArray(representation[1]) && representation[1][0] === "Constructor" && representation[1][1] === "NoArguments") {
+    if (representation[0] === "Inl" && representation[1][0] === "Constructor" && representation[1][1] === "NoArguments") {
       return "Empty";
     }
-    if (Array.isArray(representation) && representation[0] === "Inr" && Array.isArray(representation[1]) && representation[1][0] === "Inl" && Array.isArray(representation[1][1]) && representation[1][1][0] === "Constructor") {
+    if (representation[0] === "Inr" && representation[1][0] === "Inl" && representation[1][1][0] === "Constructor") {
       const [_, field0] = representation[1][1];
       return ["Single", field0];
     }
-    if (Array.isArray(representation) && representation[0] === "Inr" && Array.isArray(representation[1]) && representation[1][0] === "Inr" && Array.isArray(representation[1][1]) && representation[1][1][0] === "Constructor" && Array.isArray(representation[1][1][1]) && representation[1][1][1][0] === "Product") {
+    if (representation[0] === "Inr" && representation[1][0] === "Inr" && representation[1][1][0] === "Constructor" && representation[1][1][1][0] === "Product") {
       const [_, field0$1, field1] = representation[1][1][1];
       return [
         "Pair",
@@ -49,11 +49,11 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
     if (value === "Empty") {
       return ["Inl", ["Constructor", "NoArguments"]];
     }
-    if (Array.isArray(value) && value[0] === "Single") {
+    if (value[0] === "Single") {
       const [_, field0$2] = value;
       return ["Inr", ["Inl", ["Constructor", field0$2]]];
     }
-    if (Array.isArray(value) && value[0] === "Pair") {
+    if (value[0] === "Pair") {
       const [_, field0$3, field1$1] = value;
       return ["Inr", ["Inr", ["Constructor", [
         "Product",
