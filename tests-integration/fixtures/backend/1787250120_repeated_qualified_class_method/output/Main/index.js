@@ -16,8 +16,8 @@ export function compareTwice(eqADict) {
 
 export function compareIntsTwice(left) {
   return right => {
-    if (Data_Eq.eq(Data_Eq.eqInt)(left)(right)) {
-      return Data_Eq.eq(Data_Eq.eqInt)(right)(left);
+    if (eqIntDictEq(left)(right)) {
+      return eqIntDictEq(right)(left);
     } else {
       return false;
     }
@@ -26,9 +26,8 @@ export function compareIntsTwice(left) {
 
 export function compareArraysTwice(left) {
   return right => {
-    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
-    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
-      return Data_Eq.eq(eqArrayDict)(right)(left);
+    if (eqArrayIntDictEq(left)(right)) {
+      return eqArrayIntDictEq(right)(left);
     } else {
       return false;
     }
@@ -37,7 +36,7 @@ export function compareArraysTwice(left) {
 
 export function compareArraysOnce(left) {
   return right => {
-    return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right);
+    return eqArrayIntDictEq(left)(right);
   };
 }
 
@@ -59,12 +58,10 @@ export function compareNestedArraysTwice(left) {
   return right => {
     return nestedLeft => {
       return nestedRight => {
-        const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
-        const eqArrayDict$1 = Data_Eq.eqArray(eqArrayDict);
-        if (Data_Eq.eq(eqArrayDict$1)(nestedLeft)(nestedRight)) {
-          return Data_Eq.eq(eqArrayDict$1)(nestedRight)(nestedLeft);
+        if (eqArrayArrayIntDictEq(nestedLeft)(nestedRight)) {
+          return eqArrayArrayIntDictEq(nestedRight)(nestedLeft);
         } else {
-          return Data_Eq.eq(eqArrayDict)(left)(right);
+          return eqArrayIntDictEq(left)(right);
         }
       };
     };
@@ -100,13 +97,11 @@ export function distinctSubgoals(leftInt) {
   return rightInt => {
     return leftBoolean => {
       return rightBoolean => {
-        const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
-        const eqArrayDict$1 = Data_Eq.eqArray(Data_Eq.eqBoolean);
-        if (Data_Eq.eq(eqArrayDict)(leftInt)(rightInt)) {
-          return Data_Eq.eq(eqArrayDict)(rightInt)(leftInt);
+        if (eqArrayIntDictEq(leftInt)(rightInt)) {
+          return eqArrayIntDictEq(rightInt)(leftInt);
         } else {
-          if (Data_Eq.eq(eqArrayDict$1)(leftBoolean)(rightBoolean)) {
-            return Data_Eq.eq(eqArrayDict$1)(rightBoolean)(leftBoolean);
+          if (eqArrayBooleanDictEq(leftBoolean)(rightBoolean)) {
+            return eqArrayBooleanDictEq(rightBoolean)(leftBoolean);
           } else {
             return false;
           }
@@ -118,10 +113,9 @@ export function distinctSubgoals(leftInt) {
 
 export function compareArraysThrice(left) {
   return right => {
-    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
-    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
-      if (Data_Eq.eq(eqArrayDict)(right)(left)) {
-        return Data_Eq.eq(eqArrayDict)(left)(right);
+    if (eqArrayIntDictEq(left)(right)) {
+      if (eqArrayIntDictEq(right)(left)) {
+        return eqArrayIntDictEq(left)(right);
       } else {
         return false;
       }
@@ -133,9 +127,8 @@ export function compareArraysThrice(left) {
 
 export function compareNestedArraysWhole(left) {
   return right => {
-    const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqArray(Data_Eq.eqInt));
-    if (Data_Eq.eq(eqArrayDict)(left)(right)) {
-      return Data_Eq.eq(eqArrayDict)(right)(left);
+    if (eqArrayArrayIntDictEq(left)(right)) {
+      return eqArrayArrayIntDictEq(right)(left);
     } else {
       return false;
     }
@@ -172,12 +165,11 @@ export function compareSuperclassTwice(orderedADict) {
 
 export function lambdaScope(left) {
   return right => {
-    if (Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right)) {
+    if (eqArrayIntDictEq(left)(right)) {
       const $closure = lambdaLeft => {
         return lambdaRight => {
-          const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
-          if (Data_Eq.eq(eqArrayDict)(lambdaLeft)(lambdaRight)) {
-            return Data_Eq.eq(eqArrayDict)(lambdaRight)(lambdaLeft);
+          if (eqArrayIntDictEq(lambdaLeft)(lambdaRight)) {
+            return eqArrayIntDictEq(lambdaRight)(lambdaLeft);
           } else {
             return false;
           }
@@ -198,10 +190,8 @@ export function lambdaScope(left) {
 
 export function whereIsolation(left) {
   return right => {
-    if ((helperLeft => helperRight => Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(helperLeft)(
-      helperRight
-    ))(left)(right)) {
-      return Data_Eq.eq(Data_Eq.eqArray(Data_Eq.eqInt))(left)(right);
+    if ((helperLeft => helperRight => eqArrayIntDictEq(helperLeft)(helperRight))(left)(right)) {
+      return eqArrayIntDictEq(left)(right);
     } else {
       return false;
     }
@@ -211,16 +201,15 @@ export function whereIsolation(left) {
 export function equationScope($boolean) {
   return $array => {
     return $array$1 => {
-      const eqArrayDict = Data_Eq.eqArray(Data_Eq.eqInt);
       if ($boolean === true) {
         const left = $array;
         const right = $array$1;
-        return Data_Eq.eq(eqArrayDict)(left)(right);
+        return eqArrayIntDictEq(left)(right);
       }
       if ($boolean === false) {
         const left$1 = $array;
         const right$1 = $array$1;
-        return Data_Eq.eq(eqArrayDict)(right$1)(left$1);
+        return eqArrayIntDictEq(right$1)(left$1);
       }
       throw new Error("Pattern match failure");
     };
@@ -241,8 +230,22 @@ const $lazy_eqRecursive = $runtime.binding("eqRecursive", () => {
   return { eq: left => right => Data_Eq.eq($lazy_eqRecursive())(left)(right) };
 });
 
-export const firstComparison = Data_Eq.eq(Data_Eq.eqInt)(1 | 0)(2 | 0);
+const eqIntDictEq = Data_Eq.eq(Data_Eq.eqInt);
 
-export const secondComparison = Data_Eq.eq(Data_Eq.eqInt)(3 | 0)(4 | 0);
+export const firstComparison = eqIntDictEq(1 | 0)(2 | 0);
+
+export const secondComparison = eqIntDictEq(3 | 0)(4 | 0);
 
 export const eqRecursive = $lazy_eqRecursive();
+
+const eqArrayIntDict = Data_Eq.eqArray(Data_Eq.eqInt);
+
+const eqArrayBooleanDict = Data_Eq.eqArray(Data_Eq.eqBoolean);
+
+const eqArrayIntDictEq = Data_Eq.eq(eqArrayIntDict);
+
+const eqArrayArrayIntDict = Data_Eq.eqArray(eqArrayIntDict);
+
+const eqArrayBooleanDictEq = Data_Eq.eq(eqArrayBooleanDict);
+
+const eqArrayArrayIntDictEq = Data_Eq.eq(eqArrayArrayIntDict);

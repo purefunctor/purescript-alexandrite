@@ -1919,7 +1919,7 @@ impl Generator<'_> {
 
 fn global_file(id: GlobalId) -> FileId {
     match id {
-        GlobalId::Term(file_id, _) => file_id,
+        GlobalId::Term(file_id, _) | GlobalId::Generated(file_id, _) => file_id,
         GlobalId::Instance(
             functional::tree::InstanceIdentity::Declared(file_id, _)
             | functional::tree::InstanceIdentity::Derived(file_id, _),

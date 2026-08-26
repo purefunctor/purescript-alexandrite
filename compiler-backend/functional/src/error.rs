@@ -48,4 +48,6 @@ pub enum UnsupportedState {
     InvalidInstancePrerequisite,
     #[error("local identity space is exhausted")]
     LocalIdentityOverflow,
+    #[error("generated global identity space is exhausted")]
+    GeneratedGlobalIdentityOverflow,
 }

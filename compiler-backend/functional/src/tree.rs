@@ -112,6 +112,7 @@ pub struct Global {
 pub enum GlobalId {
     Term(FileId, TermItemId),
     Instance(InstanceIdentity),
+    Generated(FileId, GeneratedGlobalId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -119,6 +120,9 @@ pub enum InstanceIdentity {
     Declared(FileId, InstanceId),
     Derived(FileId, DeriveId),
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GeneratedGlobalId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RecursiveGroupId(pub u32);

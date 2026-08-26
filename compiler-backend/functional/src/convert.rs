@@ -21,13 +21,13 @@ use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::optimize::inline_simple_bindings;
 use crate::tree::{
     Declaration, DeclarationKind, Expression, ExpressionId, ExpressionKind, Field, FieldIdentity,
-    Global, GlobalId, IndirectModuleExports, InstanceIdentity, LocalId, Module, ModuleDependency,
-    ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecursiveGroupId, Storage,
-    SuperclassIdentity,
+    GeneratedGlobalId, Global, GlobalId, IndirectModuleExports, InstanceIdentity, LocalId, Module,
+    ModuleDependency, ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecursiveGroupId,
+    Storage, SuperclassIdentity,
 };
 
 use self::declaration::{derive_declaration, instance_declaration, term_declaration};
-use self::evidence::EvidenceScope;
+use self::evidence::{EvidenceHoisting, EvidenceScope};
 
 type ConversionResult<T> = Result<T, ConversionError>;
 
@@ -80,8 +80,10 @@ struct Context<'c, Q> {
 
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
+    next_generated_global: u32,
     lowering_evidence: FxHashSet<EvidenceVarId>,
     evidence_scopes: Vec<EvidenceScope>,
+    evidence_hoisting: EvidenceHoisting,
 
     storage: Storage,
 }
@@ -139,8 +141,10 @@ where
 
             parameters: FxHashMap::default(),
             next_local: 0,
+            next_generated_global: 0,
             lowering_evidence: FxHashSet::default(),
             evidence_scopes: Vec::new(),
+            evidence_hoisting: EvidenceHoisting::default(),
 
             storage: Storage::default(),
         })
@@ -168,6 +172,7 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
         declarations.extend(declaration);
     }
     validate_runtime_exports(&context, &declarations, &surface)?;
+    context.hoist_closed_evidence(&mut declarations)?;
 
     let recursive_globals = declarations
         .iter()
@@ -432,6 +437,15 @@ where
             .checked_add(1)
             .ok_or_else(|| self.unsupported(UnsupportedState::LocalIdentityOverflow))?;
         Ok(Parameter { id, name })
+    }
+
+    fn fresh_generated_global(&mut self, item_name: SmolStr) -> ConversionResult<Global> {
+        let id = GeneratedGlobalId(self.next_generated_global);
+        self.next_generated_global = self
+            .next_generated_global
+            .checked_add(1)
+            .ok_or_else(|| self.unsupported(UnsupportedState::GeneratedGlobalIdentityOverflow))?;
+        Ok(Global { id: GlobalId::Generated(self.file_id, id), item_name })
     }
 
     fn parameter_abstraction(
