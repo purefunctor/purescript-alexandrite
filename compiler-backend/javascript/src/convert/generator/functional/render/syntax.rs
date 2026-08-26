@@ -79,12 +79,26 @@ pub(super) fn curried_call_expression(
     tree: &mut Tree,
     function: ExpressionId,
     arguments: Vec<ExpressionId>,
+    synthetic: bool,
 ) -> ExpressionId {
     if arguments.is_empty() {
-        return tree.call(function, vec![]);
+        return if synthetic {
+            tree.pure_call(function, vec![])
+        } else {
+            tree.call(function, vec![])
+        };
     }
     let arguments = arguments.into_iter();
-    arguments.fold(function, |function, argument| tree.call(function, vec![argument]))
+    let mut arguments = arguments.peekable();
+    let mut expression = function;
+    while let Some(argument) = arguments.next() {
+        expression = if synthetic && arguments.peek().is_none() {
+            tree.pure_call(expression, vec![argument])
+        } else {
+            tree.call(expression, vec![argument])
+        };
+    }
+    expression
 }
 
 pub(super) fn constructor_expression(tree: &mut Tree, name: &str, arity: usize) -> ExpressionId {

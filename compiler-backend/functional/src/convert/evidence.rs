@@ -162,7 +162,7 @@ fn convert_evidence(
             let arguments =
                 subgoals.iter().map(|&subgoal| evidence_variable(context, subgoal, None));
             let arguments = arguments.collect::<ConversionResult<Vec<_>>>()?;
-            let construction = context.application(function, arguments)?;
+            let construction = context.synthetic_application(function, arguments)?;
             if subgoals.is_empty() {
                 Ok(construction)
             } else {
@@ -181,6 +181,7 @@ fn convert_evidence(
             let construction = context.expression(ExpressionKind::Application {
                 function: accessor,
                 arguments: Arc::from([]),
+                synthetic: true,
             });
             context.record_evidence(evidence, construction, name, constraint)
         }

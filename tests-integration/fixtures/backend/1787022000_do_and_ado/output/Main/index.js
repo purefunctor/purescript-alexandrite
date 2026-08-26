@@ -2,13 +2,13 @@ import * as $foreign from "./foreign.js";
 export const firstAction = $foreign["firstAction"];
 export const secondAction = $foreign["secondAction"];
 export const independentAction = $foreign["independentAction"];
-export const sequential = (() => {
+export const sequential = /* @__PURE__ */ (() => {
   return () => {
     const first = firstAction();
     return secondAction(first)();
   };
 })();
-export const independent = (() => {
+export const independent = /* @__PURE__ */ (() => {
   const $function = (first) => (second) => ({
     first,
     second
@@ -19,7 +19,7 @@ export const independent = (() => {
     return $function$1(independentAction());
   };
 })();
-export const pureValue = (() => {
+export const pureValue = /* @__PURE__ */ (() => {
   return () => {
     return 42 | 0;
   };

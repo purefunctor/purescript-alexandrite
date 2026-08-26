@@ -1,10 +1,10 @@
 import * as Data_Reflectable from "../Data.Reflectable/index.js";
 import * as Data_Symbol from "../Data.Symbol/index.js";
-export const symbol = Data_Symbol.reflectSymbol({ reflectSymbol: ($proxy) => "alexandrite" })("Proxy");
-export const reflectedString = Data_Reflectable.reflectType({ reflectType: ($proxy) => "reflected" })("Proxy");
-export const reflectedInteger = Data_Reflectable.reflectType({ reflectType: ($proxy) => 42 | 0 })("Proxy");
-export const reflectedTrue = Data_Reflectable.reflectType({ reflectType: ($proxy) => true })("Proxy");
-export const reflectedFalse = Data_Reflectable.reflectType({ reflectType: ($proxy) => false })("Proxy");
-export const reflectedLess = Data_Reflectable.reflectType({ reflectType: ($proxy) => "LT" })("Proxy");
-export const reflectedEqual = Data_Reflectable.reflectType({ reflectType: ($proxy) => "EQ" })("Proxy");
-export const reflectedGreater = Data_Reflectable.reflectType({ reflectType: ($proxy) => "GT" })("Proxy");
+export const symbol = /* @__PURE__ */ Data_Symbol.reflectSymbol({ reflectSymbol: ($proxy) => "alexandrite" })("Proxy");
+export const reflectedString = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => "reflected" })("Proxy");
+export const reflectedInteger = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => 42 | 0 })("Proxy");
+export const reflectedTrue = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => true })("Proxy");
+export const reflectedFalse = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => false })("Proxy");
+export const reflectedLess = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => "LT" })("Proxy");
+export const reflectedEqual = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => "EQ" })("Proxy");
+export const reflectedGreater = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => "GT" })("Proxy");

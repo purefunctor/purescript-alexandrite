@@ -4,4 +4,4 @@ export function bind(dictionary) {
 export function discard(dictionary) {
   return dictionary.discard;
 }
-export const discardUnit = { discard: (bindFDict) => bind(bindFDict) };
+export const discardUnit = { discard: (bindFDict) => /* @__PURE__ */ bind(bindFDict) };

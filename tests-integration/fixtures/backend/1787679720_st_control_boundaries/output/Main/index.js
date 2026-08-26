@@ -24,14 +24,14 @@ export function patternLet(seed) {
   };
 }
 export function genericBind(bindMDict) {
-  return Control_Bind.bind(bindMDict);
+  return /* @__PURE__ */ Control_Bind.bind(bindMDict);
 }
 export function aliased(seed) {
-  return genericBind(Control_Monad_ST_Internal.bindST)(constructST("alias-first")(seed))((value) => constructST("alias-second")(value));
+  return /* @__PURE__ */ genericBind(Control_Monad_ST_Internal.bindST)(constructST("alias-first")(seed))((value) => constructST("alias-second")(value));
 }
 export const constructST = $foreign["constructST"];
 export const mark = $foreign["mark"];
-export const deferredST = (() => {
+export const deferredST = /* @__PURE__ */ (() => {
   const $action = constructST("deferred-action")("ignored");
   return () => {
     const value = $action();

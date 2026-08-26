@@ -106,7 +106,7 @@ pub(super) fn convert_expression(
         checking_tree::ExpressionKind::EvidenceApplication { function, evidence, constraint } => {
             let evidence_expression = evidence_variable(context, *evidence, Some(*constraint))?;
             let function = convert_expression(context, *function)?;
-            let selection = context.application(function, [evidence_expression])?;
+            let selection = context.synthetic_application(function, [evidence_expression])?;
             return context.record_closed_member_selection(
                 function,
                 *evidence,

@@ -4,7 +4,7 @@ export const Box = "Box";
 export function showIdentity(showADict) {
   return showADict;
 }
-export const eqBox = (() => {
+export const eqBox = /* @__PURE__ */ (() => {
   const $closure = (left) => {
     return (right) => {
       if (left === "Box" && right === "Box") {
@@ -15,5 +15,5 @@ export const eqBox = (() => {
   };
   return { eq: $closure };
 })();
-export const equal = Data_Eq.eq(eqBox)("Box")("Box");
-export const rendered = Data_Show.show(showIdentity(Data_Show.showInt))(42 | 0);
+export const equal = /* @__PURE__ */ Data_Eq.eq(eqBox)("Box")("Box");
+export const rendered = /* @__PURE__ */ Data_Show.show(/* @__PURE__ */ showIdentity(Data_Show.showInt))(42 | 0);

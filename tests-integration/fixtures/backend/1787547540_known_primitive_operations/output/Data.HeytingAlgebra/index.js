@@ -1,7 +1,7 @@
 export function not(dictionary) {
   return dictionary.not;
 }
-export const heytingAlgebraBoolean = (() => {
+export const heytingAlgebraBoolean = /* @__PURE__ */ (() => {
   const $closure = (value) => {
     if (value) {
       return false;

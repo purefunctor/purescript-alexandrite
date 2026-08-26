@@ -75,7 +75,7 @@ export function wrap(value) {
 export const same = $foreign["same"];
 export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
-export const recordRecursive = (() => {
+export const recordRecursive = /* @__PURE__ */ (() => {
   let $lazy_first;
   let $lazy_second;
   $lazy_first = $runtime.binding("first", () => {

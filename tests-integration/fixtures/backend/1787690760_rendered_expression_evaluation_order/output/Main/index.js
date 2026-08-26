@@ -15,7 +15,7 @@ export const collect = $foreign["collect"];
 export const failAt = $foreign["failAt"];
 export const observe = $foreign["observe"];
 export const observedRecord = $foreign["observedRecord"];
-export const reused = (() => {
+export const reused = /* @__PURE__ */ (() => {
   const value = observe("reused")(4 | 0);
   return [value, value];
 })();

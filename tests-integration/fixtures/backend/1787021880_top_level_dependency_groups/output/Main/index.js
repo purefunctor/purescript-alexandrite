@@ -18,7 +18,7 @@ export function second($boolean) {
 }
 export const later = 42 | 0;
 export const forward = later;
-export const recursiveValue = (() => {
+export const recursiveValue = /* @__PURE__ */ (() => {
   const $closure = (value) => {
     if (value) {
       return 3 | 0;
@@ -28,7 +28,7 @@ export const recursiveValue = (() => {
   };
   return { run: $closure };
 })();
-export const recursivePeer = (() => {
+export const recursivePeer = /* @__PURE__ */ (() => {
   const $closure = (value) => {
     if (value) {
       return 4 | 0;

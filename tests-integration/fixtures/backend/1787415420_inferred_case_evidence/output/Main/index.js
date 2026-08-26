@@ -4,10 +4,10 @@ export function empty(dictionary) {
 export function chooseEmpty(emptyCollectionDict) {
   const $closure = (section33) => {
     if (section33 === true) {
-      return empty(emptyCollectionDict);
+      return /* @__PURE__ */ empty(emptyCollectionDict);
     }
     if (section33 === false) {
-      return empty(emptyCollectionDict);
+      return /* @__PURE__ */ empty(emptyCollectionDict);
     }
     throw new Error("Pattern match failure");
   };

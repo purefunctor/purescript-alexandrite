@@ -65,6 +65,13 @@ impl<'a> Tree<'a> {
         expression.clone_in(allocator)
     }
 
+    pub(crate) fn clear_call_purity(&mut self, expression: ExpressionId) {
+        let expression = &mut self.expressions[Idx::from_raw(expression.0)];
+        if let Expression::CallExpression(call) = expression {
+            call.pure = false;
+        }
+    }
+
     pub(crate) fn expression_is_atomic(&self, expression: ExpressionId) -> bool {
         let expression = &self.expressions[Idx::from_raw(expression.0)];
         matches!(
@@ -158,6 +165,23 @@ impl<'a> Tree<'a> {
         callee: ExpressionId,
         arguments: Vec<ExpressionId>,
     ) -> ExpressionId {
+        self.call_with_purity(callee, arguments, false)
+    }
+
+    pub(crate) fn pure_call(
+        &mut self,
+        callee: ExpressionId,
+        arguments: Vec<ExpressionId>,
+    ) -> ExpressionId {
+        self.call_with_purity(callee, arguments, true)
+    }
+
+    fn call_with_purity(
+        &mut self,
+        callee: ExpressionId,
+        arguments: Vec<ExpressionId>,
+        pure: bool,
+    ) -> ExpressionId {
         let callee = self.expression(callee);
         let arguments = arguments.into_iter().map(|argument| {
             let expression = self.expression(argument);
@@ -165,8 +189,15 @@ impl<'a> Tree<'a> {
         });
         let arguments = arguments.collect_vec();
         let arguments = ArenaVec::from_iter_in(arguments, &self.allocator);
-        let expression =
-            Expression::new_call_expression(SPAN, callee, None, arguments, false, &self.builder);
+        let expression = Expression::new_call_expression_with_pure(
+            SPAN,
+            callee,
+            None,
+            arguments,
+            false,
+            pure,
+            &self.builder,
+        );
         self.allocate(expression)
     }
 

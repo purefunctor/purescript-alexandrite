@@ -840,13 +840,20 @@ impl Generator<'_> {
                 let value = tree.identifier(name);
                 Ok(RenderedExpression { value, pending_evaluation: false })
             }
-            ExpressionKind::Application { function, arguments } => {
+            ExpressionKind::Application { function, arguments, synthetic } => {
                 let mut function = self.rendered_expression(tree, writer, *function, context)?;
+                if *synthetic {
+                    tree.clear_call_purity(function.value);
+                }
                 if arguments.is_empty() {
-                    let value = tree.call(function.value, vec![]);
+                    let value = if *synthetic {
+                        tree.pure_call(function.value, vec![])
+                    } else {
+                        tree.call(function.value, vec![])
+                    };
                     return Ok(RenderedExpression { value, pending_evaluation: true });
                 }
-                for argument in arguments.iter() {
+                for (index, argument) in arguments.iter().enumerate() {
                     let argument = if let Some(value) =
                         self.try_inline_expression(tree, *argument, context)?
                     {
@@ -863,13 +870,21 @@ impl Generator<'_> {
                         }
                         self.render_non_inline_expression(tree, writer, *argument, context)?
                     };
-                    let value = tree.call(function.value, vec![argument.value]);
+                    let outermost = index + 1 == arguments.len();
+                    let value = if *synthetic && outermost {
+                        tree.pure_call(function.value, vec![argument.value])
+                    } else {
+                        tree.call(function.value, vec![argument.value])
+                    };
                     function = RenderedExpression { value, pending_evaluation: true };
                 }
                 Ok(function)
             }
-            ExpressionKind::UncurriedApplication { function, arguments } => {
+            ExpressionKind::UncurriedApplication { function, arguments, synthetic } => {
                 let mut function = self.rendered_expression(tree, writer, *function, context)?;
+                if *synthetic {
+                    tree.clear_call_purity(function.value);
+                }
                 let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments.iter() {
                     let value = if let Some(value) =
@@ -898,7 +913,11 @@ impl Generator<'_> {
                     values.push(value);
                 }
                 let values = values.into_iter().map(|value| value.value).collect_vec();
-                let value = tree.call(function.value, values);
+                let value = if *synthetic {
+                    tree.pure_call(function.value, values)
+                } else {
+                    tree.call(function.value, values)
+                };
                 Ok(RenderedExpression { value, pending_evaluation: true })
             }
             ExpressionKind::Effect { effect } => {
@@ -968,8 +987,8 @@ impl Generator<'_> {
                 self.expression_rendering_is_eager(*left, context)
                     || self.expression_rendering_is_eager(*right, context)
             }
-            ExpressionKind::Application { function, arguments }
-            | ExpressionKind::UncurriedApplication { function, arguments } => {
+            ExpressionKind::Application { function, arguments, .. }
+            | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
                 self.expression_rendering_is_eager(*function, context)
                     || arguments
                         .iter()
@@ -1116,10 +1135,13 @@ impl Generator<'_> {
                 };
                 expression
             }
-            ExpressionKind::Application { function, arguments } => {
+            ExpressionKind::Application { function, arguments, synthetic } => {
                 let Some(function) = self.inline_expression(tree, *function, context)? else {
                     return Ok(None);
                 };
+                if *synthetic {
+                    tree.clear_call_purity(function);
+                }
                 let Some(arguments) = arguments
                     .iter()
                     .map(|argument| self.inline_expression(tree, *argument, context))
@@ -1127,12 +1149,15 @@ impl Generator<'_> {
                 else {
                     return Ok(None);
                 };
-                curried_call_expression(tree, function, arguments)
+                curried_call_expression(tree, function, arguments, *synthetic)
             }
-            ExpressionKind::UncurriedApplication { function, arguments } => {
+            ExpressionKind::UncurriedApplication { function, arguments, synthetic } => {
                 let Some(function) = self.inline_expression(tree, *function, context)? else {
                     return Ok(None);
                 };
+                if *synthetic {
+                    tree.clear_call_purity(function);
+                }
                 let Some(arguments) = arguments
                     .iter()
                     .map(|argument| self.inline_expression(tree, *argument, context))
@@ -1140,7 +1165,11 @@ impl Generator<'_> {
                 else {
                     return Ok(None);
                 };
-                tree.call(function, arguments)
+                if *synthetic {
+                    tree.pure_call(function, arguments)
+                } else {
+                    tree.call(function, arguments)
+                }
             }
             ExpressionKind::SynthesizedEvidence { evidence } => {
                 synthesized_evidence_expression(tree, evidence)
@@ -2296,8 +2325,8 @@ fn collect_expression_references(
         | ExpressionKind::UncurriedAbstraction { body, .. } => {
             collect_expression_references(module, *body, seen, globals);
         }
-        ExpressionKind::Application { function, arguments }
-        | ExpressionKind::UncurriedApplication { function, arguments } => {
+        ExpressionKind::Application { function, arguments, .. }
+        | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
             collect_expression_references(module, *function, seen, globals);
             for argument in arguments.iter() {
                 collect_expression_references(module, *argument, seen, globals);
@@ -2508,8 +2537,8 @@ fn collect_expression_children(
             collect_expression_globals(module, *right, false, globals);
         }
         ExpressionKind::Abstraction { .. } | ExpressionKind::UncurriedAbstraction { .. } => {}
-        ExpressionKind::Application { function, arguments }
-        | ExpressionKind::UncurriedApplication { function, arguments } => {
+        ExpressionKind::Application { function, arguments, .. }
+        | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
             collect_expression_globals(module, *function, false, globals);
             for argument in arguments.iter() {
                 collect_expression_globals(module, *argument, false, globals);
