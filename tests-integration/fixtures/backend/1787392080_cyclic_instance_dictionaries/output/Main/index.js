@@ -3,7 +3,10 @@ import * as Control_Apply from "../Control.Apply/index.js";
 import * as Control_Bind from "../Control.Bind/index.js";
 import * as Data_Functor from "../Data.Functor/index.js";
 import * as $runtime from "../runtime.js";
-export const Box = ($value0) => ["Box", $value0];
+export const Box = ($value0) => ({
+  tag: "Box",
+  _1: $value0
+});
 export function liftApplicative(applicativeFunctorDict) {
   return ($function) => (value) => /* @__PURE__ */ Control_Apply.apply(/* @__PURE__ */ applicativeFunctorDict.Apply0())(/* @__PURE__ */ Control_Applicative.pure(applicativeFunctorDict)($function))(value);
 }
@@ -27,8 +30,8 @@ const $lazy_applicativeBox = $runtime.binding("applicativeBox", () => {
 });
 const $lazy_bindBox = $runtime.binding("bindBox", () => {
   const $closure = ($box) => {
-    if ($box[0] === "Box") {
-      const [, value] = $box;
+    if ($box.tag === "Box") {
+      const { _1: value } = $box;
       return (continuation) => {
         return continuation(value);
       };
@@ -53,9 +56,12 @@ export const applicativeBox = $lazy_applicativeBox();
 export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
 export const result = /* @__PURE__ */ (() => {
-  const $scrutinee = /* @__PURE__ */ Data_Functor.map($lazy_functorBox())((value) => value)(["Box", 42 | 0]);
-  if ($scrutinee[0] === "Box") {
-    const [, value$1] = $scrutinee;
+  const $scrutinee = /* @__PURE__ */ Data_Functor.map($lazy_functorBox())((value) => value)({
+    tag: "Box",
+    _1: 42 | 0
+  });
+  if ($scrutinee.tag === "Box") {
+    const { _1: value$1 } = $scrutinee;
     return value$1;
   }
   throw new Error("Pattern match failure");

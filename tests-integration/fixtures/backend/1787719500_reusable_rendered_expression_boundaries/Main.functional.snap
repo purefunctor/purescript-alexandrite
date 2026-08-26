@@ -44,7 +44,7 @@ expression: report
 
 @export joinedPattern = \condition%13 ->
   case if condition%13
-    then ["Box", observe "pattern-then" 11]
-    else ["Box", observe "pattern-else" 12] of
+    then { tag: "Box", _1: observe "pattern-then" 11 }
+    else { tag: "Box", _1: observe "pattern-else" 12 } of
     Box value%14 ->
       value%14

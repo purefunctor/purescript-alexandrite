@@ -1777,7 +1777,7 @@ impl Generator<'_> {
                     writer.constant(tree, name, *value, false);
                 }
                 PatternBinding::Constructor { names, value } => {
-                    writer.constant_array_pattern(tree, names, *value);
+                    writer.constant_object_pattern(tree, names, *value);
                 }
             }
         }
@@ -1854,8 +1854,7 @@ impl Generator<'_> {
                 if arguments.is_empty() {
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, value, expected));
                 } else {
-                    let zero = tree.number("0");
-                    let tag = tree.index(value, zero);
+                    let tag = tree.member(value, "tag");
                     plan.conditions.push(tree.binary(BinaryOperator::StrictEqual, tag, expected));
                 }
 
@@ -1865,21 +1864,13 @@ impl Generator<'_> {
                         .map(|parameter| context.allocate(&parameter.name));
                     argument_names.push(name);
                 }
-                if argument_names.iter().any(Option::is_some) {
-                    let mut names = Vec::with_capacity(argument_names.len() + 1);
-                    names.push(None);
-                    names.extend(argument_names.iter().cloned());
-                    while names.last().is_some_and(Option::is_none) {
-                        names.pop();
-                    }
-                    plan.bindings.push(PatternBinding::Constructor { names, value });
-                }
+                let binding_position = plan.bindings.len();
 
                 for (index, (pattern, name)) in
                     arguments.iter().zip(argument_names.iter()).enumerate()
                 {
-                    let index = tree.number((index + 1).to_string());
-                    let argument = tree.index(value, index);
+                    let field = format!("_{}", index + 1);
+                    let argument = tree.member(value, field);
                     self.extend_pattern_plan(
                         tree,
                         *pattern,
@@ -1888,6 +1879,12 @@ impl Generator<'_> {
                         context,
                         plan,
                     )?;
+                }
+                if argument_names.iter().any(Option::is_some) {
+                    plan.bindings.insert(
+                        binding_position,
+                        PatternBinding::Constructor { names: argument_names, value },
+                    );
                 }
             }
         }

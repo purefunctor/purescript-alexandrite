@@ -80,7 +80,7 @@ expression: report
 
 @export constructor Pair/2
 
-@export pair = ["Pair", 7, 8]
+@export pair = { tag: "Pair", _1: 7, _2: 8 }
 
 @export first = \choice%21 ->
   case choice%21 of

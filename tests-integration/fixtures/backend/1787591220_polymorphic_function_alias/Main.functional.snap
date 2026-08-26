@@ -7,4 +7,4 @@ expression: report
 
 @export identity = \value%0 -> value%0
 
-@export use = ["Pair", identity 42, identity "x"]
+@export use = { tag: "Pair", _1: identity 42, _2: identity "x" }

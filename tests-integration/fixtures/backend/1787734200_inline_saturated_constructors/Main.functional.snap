@@ -7,10 +7,10 @@ expression: report
 
 @export constructor Empty/0
 
-@export local = ["Local", 1, "local"]
+@export local = { tag: "Local", _1: 1, _2: "local" }
 
 @export partial = Local 2
 
 @export empty = "Empty"
 
-@export external = ["External", "external"]
+@export external = { tag: "External", _1: "external" }

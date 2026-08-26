@@ -1,6 +1,9 @@
 import * as Data_Eq from "../Data.Eq/index.js";
 import * as $foreign from "./foreign.js";
-export const Just = ($value0) => ["Just", $value0];
+export const Just = ($value0) => ({
+  tag: "Just",
+  _1: $value0
+});
 const Nothing = "Nothing";
 export function visible(value) {
   return value;
@@ -19,9 +22,9 @@ const $await = 17 | 0;
 export const eqOption = /* @__PURE__ */ (() => {
   const $closure = (left) => {
     return (right) => {
-      if (left[0] === "Just" && right[0] === "Just") {
-        const [, left0] = left;
-        const [, right0] = right;
+      if (left.tag === "Just" && right.tag === "Just") {
+        const { _1: left0 } = left;
+        const { _1: right0 } = right;
         if (/* @__PURE__ */ Data_Eq.eq(Data_Eq.eqInt)(left0)(right0)) {
           return true;
         } else {

@@ -1,4 +1,7 @@
-export const Wrapper = ($value0) => ["Wrapper", $value0];
+export const Wrapper = ($value0) => ({
+  tag: "Wrapper",
+  _1: $value0
+});
 export function equal(dictionary) {
   return dictionary.equal;
 }

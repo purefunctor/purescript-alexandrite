@@ -1,1 +1,4 @@
-export const External = ($value0) => ["External", $value0];
+export const External = ($value0) => ({
+  tag: "External",
+  _1: $value0
+});

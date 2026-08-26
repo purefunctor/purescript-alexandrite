@@ -9,7 +9,7 @@ expression: report
 
 @export Transitive { marker }
 
-@export constructorValue = ["Just", 42]
+@export constructorValue = { tag: "Just", _1: 42 }
 
 @export operatorValue = append (visible 23) 9
 

@@ -17,4 +17,4 @@ expression: report
 
 @export constructor Tagged/1
 
-@export tagged = ["Tagged", default]
+@export tagged = { tag: "Tagged", _1: default }

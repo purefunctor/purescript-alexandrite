@@ -16,18 +16,18 @@ expression: report
     Empty ->
       "Empty"
     One value%1 ->
-      ["One", value%1]
+      { tag: "One", _1: value%1 }
     whole%2@(Pair left%3 _) ->
       case whole%2 of
         Pair _ _ ->
-          ["One", left%3]
+          { tag: "One", _1: left%3 }
         _ ->
           "Empty"
 
 @export pair = \$choice%4 ->
   case $choice%4 of
     Pair left%5 right%6 ->
-      ["Pair", left%5, right%6]
+      { tag: "Pair", _1: left%5, _2: right%6 }
     choice%7 ->
       choice%7
 
@@ -36,7 +36,7 @@ expression: report
 @export nested = \$nested%9 ->
   case $nested%9 of
     Outer (One value%10) ->
-      ["One", value%10]
+      { tag: "One", _1: value%10 }
     _ ->
       "Empty"
 
