@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 265
+expression: diagnostics_report
+---
+Terms
+equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+decrementInt :: Prim.Int -> Prim.Int
+constructTick :: Prim.Int -> Effect.Effect Data.Unit.Unit
+effectTail :: Prim.Int -> Effect.Effect Prim.Int
+effectMutualEven :: Prim.Int -> Effect.Effect Prim.Boolean
+effectMutualOdd :: Prim.Int -> Effect.Effect Prim.Boolean
+effectMixedShort :: Prim.Int -> Effect.Effect Prim.Int
+effectMixedLong :: Prim.Int -> Prim.Int -> Effect.Effect Prim.Int
+
+Types

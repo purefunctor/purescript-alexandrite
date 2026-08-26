@@ -1,0 +1,35 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export foreign constructTick
+
+@export recursive[3] effectTail = \value%0 ->
+  if equalInt value%0 0
+    then effect.pure value%0
+    else effect.bind (constructTick value%0) \$unit%1 -> effectTail (decrementInt value%0)
+
+@export recursive[4] effectMutualEven = \value%2 ->
+  if equalInt value%2 0
+    then effect.pure true
+    else effect.bind (constructTick value%2) \$unit%3 -> effectMutualOdd (decrementInt value%2)
+
+@export recursive[4] effectMutualOdd = \value%4 ->
+  if equalInt value%4 0
+    then effect.pure false
+    else effect.bind (constructTick value%4) \$unit%5 -> effectMutualEven (decrementInt value%4)
+
+@export recursive[5] effectMixedShort = \value%6 ->
+  if equalInt value%6 0
+    then effect.pure value%6
+    else effect.bind (constructTick value%6) \$unit%7 -> effectMixedLong (decrementInt value%6) 0
+
+@export recursive[5] effectMixedLong = \value%8 accumulator%9 ->
+  if equalInt value%8 0
+    then effect.pure accumulator%9
+    else effect.bind (constructTick value%8) \$unit%10 -> effectMixedShort (decrementInt value%8)
