@@ -43,3 +43,6 @@ expression: report
 @export bind = \value%12 continuation%11 -> continuation%11 value%12
 
 @export ordinaryBind = \identity%13 -> bind identity%13 (\value%14 -> value%14)
+
+@export partialBind = \partialDict%18 ->
+  \choice%15 -> bind choice%15 (\$choice%17@(One value%16) -> value%16)

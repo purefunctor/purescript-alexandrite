@@ -29,3 +29,6 @@ bind value continuation = continuation value
 
 ordinaryBind :: Identity Int -> Int
 ordinaryBind identity = bind identity (\(Identity value) -> value)
+
+partialBind :: Partial => Choice Int -> Int
+partialBind choice = bind choice (\(One value) -> value)
