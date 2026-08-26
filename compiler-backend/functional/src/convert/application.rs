@@ -8,7 +8,7 @@ use smol_str::format_smolstr;
 
 use crate::tree::{
     BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId,
-    InstanceIdentity, Parameter, PatternKind, UnaryOperator,
+    InstanceIdentity, Literal, Parameter, PatternKind, UnaryOperator,
 };
 
 use super::{Context, ConversionResult};
@@ -34,6 +34,21 @@ where
             return Ok(function);
         }
         let (known_function, known_arguments) = self.application_spine(function, &arguments);
+        if let ExpressionKind::Constructor { global } = &self.storage[known_function].kind {
+            let global = global.clone();
+            let GlobalId::Term(file_id, term_id) = global.id else {
+                unreachable!("invariant violated: constructor has a non-term global identity")
+            };
+            let arity = self.constructor_arity(file_id, term_id)?;
+            if known_arguments.len() == arity {
+                let tag = self.expression(ExpressionKind::Literal {
+                    literal: Literal::String(global.item_name),
+                });
+                let elements = std::iter::once(tag).chain(known_arguments);
+                let elements = elements.collect();
+                return Ok(self.expression(ExpressionKind::Array { elements }));
+            }
+        }
         if let Some(arity) =
             self.known_numbered_term_arity(known_function, "Data.Function.Uncurried", "mkFn")?
             && arity >= 1

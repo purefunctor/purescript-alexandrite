@@ -91,9 +91,9 @@ export function joinedEffect(condition) {
 export function joinedPattern(condition) {
   let $result;
   if (condition) {
-    $result = Box(observe("pattern-then")(11 | 0));
+    $result = ["Box", observe("pattern-then")(11 | 0)];
   } else {
-    $result = Box(observe("pattern-else")(12 | 0));
+    $result = ["Box", observe("pattern-else")(12 | 0)];
   }
   if (Array.isArray($result) && $result[0] === "Box") {
     const value = $result[1];

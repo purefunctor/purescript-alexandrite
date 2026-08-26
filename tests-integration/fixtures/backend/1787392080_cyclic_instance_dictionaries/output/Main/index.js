@@ -53,7 +53,7 @@ export const applicativeBox = $lazy_applicativeBox();
 export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
 export const result = (() => {
-  const $scrutinee = Data_Functor.map($lazy_functorBox())((value) => value)(Box(42 | 0));
+  const $scrutinee = Data_Functor.map($lazy_functorBox())((value) => value)(["Box", 42 | 0]);
   if (Array.isArray($scrutinee) && $scrutinee[0] === "Box") {
     const value$1 = $scrutinee[1];
     return value$1;

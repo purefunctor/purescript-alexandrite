@@ -15,5 +15,5 @@ export const eqBox = (() => {
   };
   return { eq: $closure };
 })();
-export const equal = Data_Eq.eq(eqBox)(Box)(Box);
+export const equal = Data_Eq.eq(eqBox)("Box")("Box");
 export const rendered = Data_Show.show(showIdentity(Data_Show.showInt))(42 | 0);

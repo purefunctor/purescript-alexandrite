@@ -597,6 +597,23 @@ where
         Ok(matches!(indexed.items[type_id].kind, IndexedTypeItemKind::Newtype { .. }))
     }
 
+    fn constructor_arity(&self, file_id: FileId, term_id: TermItemId) -> ConversionResult<usize> {
+        let checked = if file_id == self.file_id {
+            Arc::clone(&self.checked)
+        } else {
+            self.queries.checked(file_id)?
+        };
+        let declaration_id = checked
+            .tree
+            .lookup_term(term_id)
+            .ok_or_else(|| self.unsupported(UnsupportedState::MissingTermDeclaration(term_id)))?;
+        let declaration = &checked.tree[declaration_id];
+        let checking_tree::TermDeclarationKind::Constructor(constructor) = &declaration.kind else {
+            unreachable!("invariant violated: constructor expression resolved to another term kind")
+        };
+        Ok(constructor.arguments.len())
+    }
+
     fn instance_global(&mut self, origin: InstanceCandidateOrigin) -> ConversionResult<Global> {
         let identity = match origin {
             InstanceCandidateOrigin::Instance(file_id, id) => {

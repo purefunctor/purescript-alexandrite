@@ -143,7 +143,11 @@ export const updated = (() => {
   };
 })();
 export const curried = apply(addCaptured(2 | 0))(40 | 0);
-export const pair = Pair(7 | 0)(8 | 0);
+export const pair = [
+  "Pair",
+  7 | 0,
+  8 | 0
+];
 export const crossModule = unwrapWrapped(Library.wrapped);
 export const forwardReference = Library.forward;
 export const measureInt = { measure: addInt(1 | 0) };

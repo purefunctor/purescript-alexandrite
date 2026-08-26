@@ -75,7 +75,12 @@ pub(super) fn convert_expression(
                     context.expression(ExpressionKind::Local { parameter: parameter.clone() });
                 return Ok(context.parameter_abstraction([parameter], body));
             }
-            ExpressionKind::Constructor { global: context.term_global(file_id, term_id)? }
+            let global = context.term_global(file_id, term_id)?;
+            if context.constructor_arity(file_id, term_id)? == 0 {
+                ExpressionKind::Literal { literal: Literal::String(global.item_name) }
+            } else {
+                ExpressionKind::Constructor { global }
+            }
         }
         checking_tree::ExpressionKind::Variable { resolution }
         | checking_tree::ExpressionKind::RecordPun { resolution, .. } => {

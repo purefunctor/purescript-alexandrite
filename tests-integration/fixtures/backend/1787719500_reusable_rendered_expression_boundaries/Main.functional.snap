@@ -43,6 +43,8 @@ expression: report
       else effect.map observed.apply (constructEffect "joined-else" 17)]
 
 @export joinedPattern = \condition%13 ->
-  case if condition%13 then Box (observe "pattern-then" 11) else Box (observe "pattern-else" 12) of
+  case if condition%13
+    then ["Box", observe "pattern-then" 11]
+    else ["Box", observe "pattern-else" 12] of
     Box value%14 ->
       value%14

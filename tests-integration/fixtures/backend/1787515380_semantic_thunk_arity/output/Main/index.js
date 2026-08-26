@@ -17,5 +17,5 @@ export function childArray(parentArrayADict) {
 export function useSuperclass(childADict) {
   return (value) => parent(childADict.Parent0())(value);
 }
-export const ordinaryUnitCall = ordinaryUnit(Unit);
+export const ordinaryUnitCall = ordinaryUnit("Unit");
 export const parentInt = { parent: (value) => value };

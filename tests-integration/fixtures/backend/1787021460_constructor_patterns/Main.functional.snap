@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export constructor Empty/0
@@ -13,24 +14,24 @@ expression: report
 @export first = \$choice%0 ->
   case $choice%0 of
     Empty ->
-      Empty
+      "Empty"
     One value%1 ->
-      One value%1
+      ["One", value%1]
     whole%2@(Pair left%3 _) ->
       case whole%2 of
         Pair _ _ ->
-          One left%3
+          ["One", left%3]
         _ ->
-          Empty
+          "Empty"
 
 @export unwrap = \value%4 -> value%4
 
 @export nested = \$nested%5 ->
   case $nested%5 of
     Outer (One value%6) ->
-      One value%6
+      ["One", value%6]
     _ ->
-      Empty
+      "Empty"
 
 @export bind = \value%8 continuation%7 -> continuation%7 value%8
 
