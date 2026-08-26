@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 296
+expression: report
+---
+Terms
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+UnaryContravariant :: forall @a. Main.Predicate a -> Main.UnaryContravariant a
+Box :: forall @a. a -> Main.Box a
+UnaryCovariant :: forall @a. Main.Box (a -> Prim.Boolean) -> Main.UnaryCovariant a
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+BinaryFirst :: forall @a. Main.Pair (a -> Prim.Boolean) Prim.Int -> Main.BinaryFirst a
+BinarySecond :: forall @a. Main.Pair Prim.Int (a -> Prim.Boolean) -> Main.BinarySecond a
+BinaryBoth :: forall @a. Main.Pair (a -> Prim.Boolean) (a -> Prim.String) -> Main.BinaryBoth a
+FunctionLike :: forall @a @b. (a -> b) -> Main.FunctionLike a b
+NestedProfunctor :: forall @a @b. Main.FunctionLike a b -> Main.NestedProfunctor a b
+
+Types
+Predicate :: Prim.Type -> Prim.Type
+UnaryContravariant :: Prim.Type -> Prim.Type
+Box :: Prim.Type -> Prim.Type
+UnaryCovariant :: Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+BinaryFirst :: Prim.Type -> Prim.Type
+BinarySecond :: Prim.Type -> Prim.Type
+BinaryBoth :: Prim.Type -> Prim.Type
+FunctionLike :: Prim.Type -> Prim.Type -> Prim.Type
+NestedProfunctor :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.UnaryContravariant
+derive Data.Functor.Functor Main.Box
+derive Data.Functor.Contravariant.Contravariant Main.UnaryCovariant
+derive Data.Bifunctor.Bifunctor Main.Pair
+derive forall a. Data.Functor.Functor (Main.Pair a)
+derive Data.Functor.Contravariant.Contravariant Main.BinaryFirst
+derive Data.Functor.Contravariant.Contravariant Main.BinarySecond
+derive Data.Functor.Contravariant.Contravariant Main.BinaryBoth
+derive Data.Profunctor.Profunctor Main.FunctionLike
+derive Data.Profunctor.Profunctor Main.NestedProfunctor
+
+Roles
+Predicate = [Representational]
+UnaryContravariant = [Representational]
+Box = [Representational]
+UnaryCovariant = [Representational]
+Pair = [Representational, Representational]
+BinaryFirst = [Representational]
+BinarySecond = [Representational]
+BinaryBoth = [Representational]
+FunctionLike = [Representational, Representational]
+NestedProfunctor = [Representational, Representational]
