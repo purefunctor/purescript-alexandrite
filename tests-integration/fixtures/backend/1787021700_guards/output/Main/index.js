@@ -1,6 +1,5 @@
 export const Empty = "Empty";
-export const One = $value0 => ["One", $value0];
-
+export const One = ($value0) => ["One", $value0];
 export function booleanGuard(value) {
   if (value) {
     return 1 | 0;
@@ -10,7 +9,6 @@ export function booleanGuard(value) {
   }
   throw new Error("Pattern match failure");
 }
-
 export function patternGuard(choice) {
   if (Array.isArray(choice) && choice[0] === "One") {
     const value = choice[1];
@@ -21,7 +19,6 @@ export function patternGuard(choice) {
   }
   throw new Error("Pattern match failure");
 }
-
 export function caseBooleanGuard(value) {
   {
     if (false) {
@@ -30,7 +27,6 @@ export function caseBooleanGuard(value) {
   }
   return 2 | 0;
 }
-
 export function casePatternGuard(choice) {
   {
     if (Array.isArray(choice) && choice[0] === "One") {
@@ -40,7 +36,6 @@ export function casePatternGuard(choice) {
   }
   return 0 | 0;
 }
-
 export function nestedCaseGuard(value) {
   if (value === true) {
     if (true) {

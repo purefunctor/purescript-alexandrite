@@ -7,7 +7,6 @@ export function first($boolean) {
   }
   throw new Error("Pattern match failure");
 }
-
 export function second($boolean) {
   if ($boolean === true) {
     return 2 | 0;
@@ -17,13 +16,10 @@ export function second($boolean) {
   }
   throw new Error("Pattern match failure");
 }
-
 export const later = 42 | 0;
-
 export const forward = later;
-
 export const recursiveValue = (() => {
-  const $closure = value => {
+  const $closure = (value) => {
     if (value) {
       return 3 | 0;
     } else {
@@ -32,9 +28,8 @@ export const recursiveValue = (() => {
   };
   return { run: $closure };
 })();
-
 export const recursivePeer = (() => {
-  const $closure = value => {
+  const $closure = (value) => {
     if (value) {
       return 4 | 0;
     } else {

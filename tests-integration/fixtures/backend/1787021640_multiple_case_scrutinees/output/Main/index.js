@@ -1,5 +1,5 @@
 export function choose(first) {
-  return second => {
+  return (second) => {
     if (first === true && second === true) {
       return 2 | 0;
     }

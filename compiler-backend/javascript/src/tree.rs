@@ -1,29 +1,26 @@
-use la_arena::{Arena, Idx};
+use itertools::Itertools;
+use la_arena::{Arena, Idx, RawIdx};
+use oxc_allocator::{Allocator, CloneIn, Vec as ArenaVec};
+use oxc_ast::ast::{
+    Argument, ArrayExpressionElement, ArrowFunctionBody, BindingPattern, Expression,
+    FormalParameter, FormalParameterKind, FormalParameters, ObjectPropertyKind, PropertyKey,
+};
+use oxc_ast::builder::AstBuilder;
+use oxc_span::SPAN;
+use oxc_syntax::number::NumberBase;
+use oxc_syntax::operator::{
+    BinaryOperator as OxcBinaryOperator, LogicalOperator, UnaryOperator as OxcUnaryOperator,
+};
 
-pub(crate) type ExpressionId = Idx<Expression>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ExpressionId(RawIdx);
 
-#[derive(Debug, Default)]
-pub(crate) struct Tree {
-    expressions: Arena<Expression>,
+pub(crate) struct Tree<'a> {
+    allocator: &'a Allocator,
+    builder: AstBuilder<'a>,
+    expressions: Arena<Expression<'a>>,
 }
 
-#[derive(Debug)]
-pub(crate) enum Expression {
-    Identifier(String),
-    String(String),
-    Number(String),
-    Boolean(bool),
-    Array(Vec<ExpressionId>),
-    Object(Vec<ObjectProperty>),
-    Call { callee: ExpressionId, arguments: Vec<ExpressionId> },
-    Member { object: ExpressionId, property: String },
-    Index { object: ExpressionId, index: ExpressionId },
-    Unary { operator: UnaryOperator, value: ExpressionId },
-    Binary { operator: BinaryOperator, left: ExpressionId, right: ExpressionId },
-    Arrow { parameters: Vec<String>, body: ExpressionId },
-}
-
-#[derive(Debug)]
 pub(crate) enum ObjectProperty {
     Field { name: String, value: ExpressionId },
     Spread(ExpressionId),
@@ -45,33 +42,115 @@ pub(crate) enum BinaryOperator {
     Multiply,
 }
 
-impl Tree {
-    pub(crate) fn allocate(&mut self, expression: Expression) -> ExpressionId {
-        self.expressions.alloc(expression)
+impl<'a> Tree<'a> {
+    pub(crate) fn new(allocator: &'a Allocator) -> Tree<'a> {
+        Tree { allocator, builder: AstBuilder::new(allocator), expressions: Arena::new() }
     }
 
-    pub(crate) fn identifier(&mut self, name: impl Into<String>) -> ExpressionId {
-        self.allocate(Expression::Identifier(name.into()))
+    fn allocate(&mut self, expression: Expression<'a>) -> ExpressionId {
+        ExpressionId(self.expressions.alloc(expression).into_raw())
     }
 
-    pub(crate) fn string(&mut self, value: impl Into<String>) -> ExpressionId {
-        self.allocate(Expression::String(value.into()))
+    pub(crate) fn expression(&self, expression: ExpressionId) -> Expression<'a> {
+        let expression = &self.expressions[Idx::from_raw(expression.0)];
+        expression.clone_in(self.allocator)
     }
 
-    pub(crate) fn number(&mut self, value: impl Into<String>) -> ExpressionId {
-        self.allocate(Expression::Number(value.into()))
+    pub(crate) fn expression_in<'b>(
+        &self,
+        expression: ExpressionId,
+        allocator: &'b Allocator,
+    ) -> Expression<'b> {
+        let expression = &self.expressions[Idx::from_raw(expression.0)];
+        expression.clone_in(allocator)
+    }
+
+    pub(crate) fn expression_is_atomic(&self, expression: ExpressionId) -> bool {
+        let expression = &self.expressions[Idx::from_raw(expression.0)];
+        matches!(
+            expression,
+            Expression::Identifier(_)
+                | Expression::StringLiteral(_)
+                | Expression::NumericLiteral(_)
+                | Expression::BooleanLiteral(_)
+        )
+    }
+
+    fn text(&self, value: &str) -> &'a str {
+        self.allocator.alloc_str(value)
+    }
+
+    pub(crate) fn identifier(&mut self, name: impl AsRef<str>) -> ExpressionId {
+        let name = self.text(name.as_ref());
+        let expression = Expression::new_identifier(SPAN, name, &self.builder);
+        self.allocate(expression)
+    }
+
+    pub(crate) fn string(&mut self, value: impl AsRef<str>) -> ExpressionId {
+        let value = self.text(value.as_ref());
+        let expression = Expression::new_string_literal(SPAN, value, None, &self.builder);
+        self.allocate(expression)
+    }
+
+    pub(crate) fn number(&mut self, value: impl AsRef<str>) -> ExpressionId {
+        let raw = value.as_ref();
+        let number = raw.parse().expect("invariant violated: JavaScript number is invalid");
+        let raw = self.text(raw).into();
+        let expression = Expression::new_numeric_literal(
+            SPAN,
+            number,
+            Some(raw),
+            NumberBase::Decimal,
+            &self.builder,
+        );
+        self.allocate(expression)
     }
 
     pub(crate) fn boolean(&mut self, value: bool) -> ExpressionId {
-        self.allocate(Expression::Boolean(value))
+        let expression = Expression::new_boolean_literal(SPAN, value, &self.builder);
+        self.allocate(expression)
     }
 
     pub(crate) fn array(&mut self, elements: Vec<ExpressionId>) -> ExpressionId {
-        self.allocate(Expression::Array(elements))
+        let elements = elements.into_iter().map(|element| {
+            let expression = self.expression(element);
+            ArrayExpressionElement::from(expression)
+        });
+        let elements = elements.collect_vec();
+        let elements = ArenaVec::from_iter_in(elements, &self.allocator);
+        let expression = Expression::new_array_expression(SPAN, elements, &self.builder);
+        self.allocate(expression)
     }
 
     pub(crate) fn object(&mut self, properties: Vec<ObjectProperty>) -> ExpressionId {
-        self.allocate(Expression::Object(properties))
+        let properties = properties.into_iter().map(|property| match property {
+            ObjectProperty::Field { name, value } => {
+                let value = self.expression(value);
+                let computed = name == "__proto__";
+                let key = if property_is_identifier(&name) && !computed {
+                    PropertyKey::new_static_identifier(SPAN, self.text(&name), &self.builder)
+                } else {
+                    PropertyKey::new_string_literal(SPAN, self.text(&name), None, &self.builder)
+                };
+                ObjectPropertyKind::new_object_property(
+                    SPAN,
+                    oxc_ast::ast::PropertyKind::Init,
+                    key,
+                    value,
+                    false,
+                    false,
+                    computed,
+                    &self.builder,
+                )
+            }
+            ObjectProperty::Spread(value) => {
+                ObjectPropertyKind::new_spread_property(SPAN, self.expression(value), &self.builder)
+            }
+        });
+        let properties = properties.collect_vec();
+        let properties = ArenaVec::from_iter_in(properties, &self.allocator);
+        let expression = Expression::new_object_expression(SPAN, properties, &self.builder);
+        self.allocate(expression)
     }
 
     pub(crate) fn call(
@@ -79,23 +158,56 @@ impl Tree {
         callee: ExpressionId,
         arguments: Vec<ExpressionId>,
     ) -> ExpressionId {
-        self.allocate(Expression::Call { callee, arguments })
+        let callee = self.expression(callee);
+        let arguments = arguments.into_iter().map(|argument| {
+            let expression = self.expression(argument);
+            Argument::from(expression)
+        });
+        let arguments = arguments.collect_vec();
+        let arguments = ArenaVec::from_iter_in(arguments, &self.allocator);
+        let expression =
+            Expression::new_call_expression(SPAN, callee, None, arguments, false, &self.builder);
+        self.allocate(expression)
     }
 
     pub(crate) fn member(
         &mut self,
         object: ExpressionId,
-        property: impl Into<String>,
+        property: impl AsRef<str>,
     ) -> ExpressionId {
-        self.allocate(Expression::Member { object, property: property.into() })
+        let object = self.expression(object);
+        let property = property.as_ref();
+        let expression = if property_is_identifier(property) {
+            let property =
+                oxc_ast::ast::IdentifierName::new(SPAN, self.text(property), &self.builder);
+            Expression::new_static_member_expression(SPAN, object, property, false, &self.builder)
+        } else {
+            let property =
+                Expression::new_string_literal(SPAN, self.text(property), None, &self.builder);
+            Expression::new_computed_member_expression(SPAN, object, property, false, &self.builder)
+        };
+        self.allocate(expression)
     }
 
     pub(crate) fn index(&mut self, object: ExpressionId, index: ExpressionId) -> ExpressionId {
-        self.allocate(Expression::Index { object, index })
+        let expression = Expression::new_computed_member_expression(
+            SPAN,
+            self.expression(object),
+            self.expression(index),
+            false,
+            &self.builder,
+        );
+        self.allocate(expression)
     }
 
     pub(crate) fn unary(&mut self, operator: UnaryOperator, value: ExpressionId) -> ExpressionId {
-        self.allocate(Expression::Unary { operator, value })
+        let operator = match operator {
+            UnaryOperator::LogicalNot => OxcUnaryOperator::LogicalNot,
+            UnaryOperator::Negate => OxcUnaryOperator::UnaryNegation,
+        };
+        let expression =
+            Expression::new_unary_expression(SPAN, operator, self.expression(value), &self.builder);
+        self.allocate(expression)
     }
 
     pub(crate) fn binary(
@@ -104,18 +216,78 @@ impl Tree {
         left: ExpressionId,
         right: ExpressionId,
     ) -> ExpressionId {
-        self.allocate(Expression::Binary { operator, left, right })
+        let left = self.expression(left);
+        let right = self.expression(right);
+        let expression = match operator {
+            BinaryOperator::LogicalAnd => Expression::new_logical_expression(
+                SPAN,
+                left,
+                LogicalOperator::And,
+                right,
+                &self.builder,
+            ),
+            operator => {
+                let operator = match operator {
+                    BinaryOperator::StrictEqual => OxcBinaryOperator::StrictEquality,
+                    BinaryOperator::BitwiseOr => OxcBinaryOperator::BitwiseOR,
+                    BinaryOperator::Add => OxcBinaryOperator::Addition,
+                    BinaryOperator::Subtract => OxcBinaryOperator::Subtraction,
+                    BinaryOperator::Multiply => OxcBinaryOperator::Multiplication,
+                    BinaryOperator::LogicalAnd => unreachable!(),
+                };
+                Expression::new_binary_expression(SPAN, left, operator, right, &self.builder)
+            }
+        };
+        self.allocate(expression)
     }
 
     pub(crate) fn arrow(&mut self, parameters: Vec<String>, body: ExpressionId) -> ExpressionId {
-        self.allocate(Expression::Arrow { parameters, body })
+        let parameters = parameters.into_iter().map(|parameter| {
+            let pattern =
+                BindingPattern::new_binding_identifier(SPAN, self.text(&parameter), &self.builder);
+            FormalParameter::new(
+                SPAN,
+                [],
+                pattern,
+                None,
+                None,
+                false,
+                None,
+                false,
+                false,
+                &self.builder,
+            )
+        });
+        let parameters = parameters.collect_vec();
+        let parameters = ArenaVec::from_iter_in(parameters, &self.allocator);
+        let parameters = FormalParameters::boxed(
+            SPAN,
+            FormalParameterKind::ArrowFormalParameters,
+            parameters,
+            None,
+            &self.builder,
+        );
+        let body = ArrowFunctionBody::from(self.expression(body));
+        let expression = Expression::new_arrow_function_expression(
+            SPAN,
+            false,
+            None,
+            parameters,
+            None,
+            body,
+            &self.builder,
+        );
+        self.allocate(expression)
     }
 }
 
-impl std::ops::Index<ExpressionId> for Tree {
-    type Output = Expression;
-
-    fn index(&self, expression: ExpressionId) -> &Expression {
-        &self.expressions[expression]
-    }
+fn property_is_identifier(name: &str) -> bool {
+    let mut characters = name.chars();
+    let Some(initial) = characters.next() else {
+        return false;
+    };
+    let valid_initial = initial.is_ascii_alphabetic() || initial == '_' || initial == '$';
+    let valid_subsequent = characters
+        .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '$');
+    valid_initial && valid_subsequent
 }

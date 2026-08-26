@@ -1,5 +1,5 @@
 export function mutual(condition) {
-  const second = $boolean => {
+  const second = ($boolean) => {
     if ($boolean === true) {
       return 2 | 0;
     }
@@ -8,7 +8,7 @@ export function mutual(condition) {
     }
     throw new Error("Pattern match failure");
   };
-  const first = $boolean$1 => {
+  const first = ($boolean$1) => {
     if ($boolean$1 === true) {
       return 1 | 0;
     }
@@ -19,10 +19,9 @@ export function mutual(condition) {
   };
   return first(condition);
 }
-
 export function capturedMutual(captured) {
-  return condition => {
-    const second = $boolean => {
+  return (condition) => {
+    const second = ($boolean) => {
       if ($boolean === true) {
         return captured;
       }
@@ -31,7 +30,7 @@ export function capturedMutual(captured) {
       }
       throw new Error("Pattern match failure");
     };
-    const first = $boolean$1 => {
+    const first = ($boolean$1) => {
       if ($boolean$1 === true) {
         return captured;
       }
@@ -43,9 +42,8 @@ export function capturedMutual(captured) {
     return first(condition);
   };
 }
-
 export function nestedRecursive(condition) {
-  const go = $boolean => {
+  const go = ($boolean) => {
     if ($boolean === true) {
       const nested = go(false);
       return nested;

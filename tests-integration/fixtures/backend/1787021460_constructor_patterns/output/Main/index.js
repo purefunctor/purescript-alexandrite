@@ -1,8 +1,11 @@
 export const Empty = "Empty";
-export const One = $value0 => ["One", $value0];
-export const Pair = $value0 => $value1 => ["Pair", $value0, $value1];
-export const Outer = $value0 => ["Outer", $value0];
-
+export const One = ($value0) => ["One", $value0];
+export const Pair = ($value0) => ($value1) => [
+  "Pair",
+  $value0,
+  $value1
+];
+export const Outer = ($value0) => ["Outer", $value0];
 export function first($choice) {
   if ($choice === "Empty") {
     return Empty;
@@ -21,27 +24,21 @@ export function first($choice) {
   }
   throw new Error("Pattern match failure");
 }
-
 export function unwrap(value) {
   return value;
 }
-
 export function nested($nested) {
-  if (Array.isArray($nested) && $nested[0] === "Outer" && Array.isArray(
-    $nested[1]
-  ) && $nested[1][0] === "One") {
+  if (Array.isArray($nested) && $nested[0] === "Outer" && Array.isArray($nested[1]) && $nested[1][0] === "One") {
     const value = $nested[1][1];
     return One(value);
   }
   return Empty;
 }
-
 export function bind(value) {
-  return continuation => {
+  return (continuation) => {
     return continuation(value);
   };
 }
-
 export function ordinaryBind(identity) {
-  return bind(identity)(value => value);
+  return bind(identity)((value) => value);
 }

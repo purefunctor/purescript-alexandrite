@@ -1,11 +1,10 @@
 import * as $foreign from "./foreign.js";
 import * as $runtime from "../runtime.js";
-
 export function applicationRecursive(token) {
   let $lazy_first;
   let $lazy_second;
   $lazy_first = $runtime.binding("first", () => {
-    const $closure = condition => {
+    const $closure = (condition) => {
       if (condition) {
         return $lazy_second()(false);
       } else {
@@ -15,7 +14,7 @@ export function applicationRecursive(token) {
     return observe("first")($closure);
   });
   $lazy_second = $runtime.binding("second", () => {
-    const $closure$1 = condition$1 => {
+    const $closure$1 = (condition$1) => {
       if (condition$1) {
         return $lazy_first()(false);
       } else {
@@ -26,14 +25,16 @@ export function applicationRecursive(token) {
   });
   const first = $lazy_first();
   const second = $lazy_second();
-  return { result: first(true), trace: readTrace(token) };
+  return {
+    result: first(true),
+    trace: readTrace(token)
+  };
 }
-
 export function caseRecursive(condition) {
   let $lazy_go;
   $lazy_go = $runtime.binding("go", () => {
     if (condition === true) {
-      const $closure = current => {
+      const $closure = (current) => {
         if (current) {
           return $lazy_go()(false);
         } else {
@@ -43,16 +44,15 @@ export function caseRecursive(condition) {
       return $closure;
     }
     if (condition === false) {
-      return $boolean => 31 | 0;
+      return ($boolean) => 31 | 0;
     }
     throw new Error("Pattern match failure");
   });
   const go = $lazy_go();
   return go(true);
 }
-
 export function letRecursive(condition) {
-  const go = current => {
+  const go = (current) => {
     if (current) {
       return go(false);
     } else {
@@ -61,7 +61,6 @@ export function letRecursive(condition) {
   };
   return go(condition);
 }
-
 export function strictCycle($boolean) {
   let $lazy_value;
   $lazy_value = $runtime.binding("value", () => {
@@ -70,15 +69,12 @@ export function strictCycle($boolean) {
   const value = $lazy_value();
   return value;
 }
-
 export function wrap(value) {
   return value;
 }
-
 export const same = $foreign["same"];
 export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
-
 export const recordRecursive = (() => {
   let $lazy_first;
   let $lazy_second;
@@ -86,9 +82,9 @@ export const recordRecursive = (() => {
     return { value: $lazy_second() };
   });
   $lazy_second = $runtime.binding("second", () => {
-    const $closure = condition => {
+    const $closure = (condition) => {
       if (condition) {
-        return ($lazy_first()).value(false);
+        return $lazy_first().value(false);
       } else {
         return 20 | 0;
       }

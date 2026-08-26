@@ -5,6 +5,8 @@ mod generator;
 use building_types::QueryResult;
 use files::FileId;
 
+pub(crate) use generator::identifier_is_binding;
+
 use crate::error::ModuleResult;
 use crate::module::Module;
 

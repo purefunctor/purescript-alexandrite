@@ -9,6 +9,10 @@ files = { version = "0.1.0", path = "../../compiler-core/files" }
 functional = { version = "0.1.0", path = "../functional" }
 itertools = "0.15.0"
 la-arena = "0.3.1"
-pretty = "0.12"
+oxc_allocator = "=0.146.0"
+oxc_codegen = { version = "=0.146.0", default-features = false }
+oxc_ast = "=0.146.0"
+oxc_span = "=0.146.0"
+oxc_syntax = "=0.146.0"
 rustc-hash = "2.1.3"
 thiserror = "2.0.20"
