@@ -1,11 +1,11 @@
 import * as Library from "../Library/index.js";
 import * as $foreign from "./foreign.js";
 export const None = "None";
-export const Pair = ($value0) => ($value1) => [
-  "Pair",
-  $value0,
-  $value1
-];
+export const Pair = ($value0) => ($value1) => ({
+  tag: "Pair",
+  _1: $value0,
+  _2: $value1
+});
 export function readHostile(value) {
   return value["hostile-field"];
 }
@@ -87,23 +87,23 @@ export function first(choice) {
   if (choice === "None") {
     return 0 | 0;
   }
-  if (choice[0] === "Pair") {
-    const [, left] = choice;
+  if (choice.tag === "Pair") {
+    const { _1: left } = choice;
     return left;
   }
   throw new Error("Pattern match failure");
 }
 export function partialPattern($choice) {
-  if ($choice[0] === "Pair") {
-    const [, left] = $choice;
+  if ($choice.tag === "Pair") {
+    const { _1: left } = $choice;
     return left;
   } else {
     throw new Error("Pattern match failure");
   }
 }
 export function unwrapWrapped($wrapped) {
-  if ($wrapped[0] === "Wrapped") {
-    const [, value] = $wrapped;
+  if ($wrapped.tag === "Wrapped") {
+    const { _1: value } = $wrapped;
     return value;
   } else {
     throw new Error("Pattern match failure");
@@ -143,11 +143,11 @@ export const updated = /* @__PURE__ */ (() => {
   };
 })();
 export const curried = apply(addCaptured(2 | 0))(40 | 0);
-export const pair = [
-  "Pair",
-  7 | 0,
-  8 | 0
-];
+export const pair = {
+  tag: "Pair",
+  _1: 7 | 0,
+  _2: 8 | 0
+};
 export const crossModule = unwrapWrapped(Library.wrapped);
 export const forwardReference = Library.forward;
 export const measureInt = { measure: addInt(1 | 0) };

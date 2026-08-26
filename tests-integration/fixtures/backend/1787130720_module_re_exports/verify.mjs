@@ -75,7 +75,7 @@ assertKeys(
 if (Direct.Just !== Origin.Just || Transitive.Just !== Origin.Just || Main.Just !== Origin.Just) {
   throw new Error("constructor re-export identity");
 }
-if (JSON.stringify(Transitive.Just(42)) !== JSON.stringify(["Just", 42])) {
+if (JSON.stringify(Transitive.Just(42)) !== JSON.stringify({ tag: "Just", _1: 42 })) {
   throw new Error("constructor representation");
 }
 if (
@@ -114,7 +114,7 @@ const actual = {
   transitiveMarker: Main.transitiveMarker,
 };
 const expected = {
-  constructorValue: ["Just", 42],
+  constructorValue: { tag: "Just", _1: 42 },
   operatorValue: 23,
   localCollision: 99,
   foreignResult: 7,

@@ -1,12 +1,18 @@
 export const None = "None";
-export const Some = ($value0) => ["Some", $value0];
-export const Box = ($value0) => ["Box", $value0];
+export const Some = ($value0) => ({
+  tag: "Some",
+  _1: $value0
+});
+export const Box = ($value0) => ({
+  tag: "Box",
+  _1: $value0
+});
 export function multiEquation($choice) {
   if ($choice === "None") {
     return 0 | 0;
   }
-  if ($choice[0] === "Some") {
-    const [, value] = $choice;
+  if ($choice.tag === "Some") {
+    const { _1: value } = $choice;
     return value;
   }
   throw new Error("Pattern match failure");
@@ -24,8 +30,8 @@ export function mixedArity($boolean) {
   };
 }
 export function singleConstructor($box) {
-  if ($box[0] === "Box") {
-    const [, value] = $box;
+  if ($box.tag === "Box") {
+    const { _1: value } = $box;
     return value;
   } else {
     throw new Error("Pattern match failure");

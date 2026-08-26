@@ -1,5 +1,8 @@
 import * as $foreign from "./foreign.js";
-export const Box = ($value0) => ["Box", $value0];
+export const Box = ($value0) => ({
+  tag: "Box",
+  _1: $value0
+});
 export function stableApplication($function) {
   return (condition) => {
     let $result;
@@ -91,12 +94,18 @@ export function joinedEffect(condition) {
 export function joinedPattern(condition) {
   let $result;
   if (condition) {
-    $result = ["Box", observe("pattern-then")(11 | 0)];
+    $result = {
+      tag: "Box",
+      _1: observe("pattern-then")(11 | 0)
+    };
   } else {
-    $result = ["Box", observe("pattern-else")(12 | 0)];
+    $result = {
+      tag: "Box",
+      _1: observe("pattern-else")(12 | 0)
+    };
   }
-  if ($result[0] === "Box") {
-    const [, value] = $result;
+  if ($result.tag === "Box") {
+    const { _1: value } = $result;
     return value;
   }
   throw new Error("Pattern match failure");

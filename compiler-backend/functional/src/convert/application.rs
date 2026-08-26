@@ -8,7 +8,7 @@ use smol_str::format_smolstr;
 
 use crate::tree::{
     BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId,
-    InstanceIdentity, Literal, Parameter, PatternKind, UnaryOperator,
+    InstanceIdentity, Literal, Parameter, PatternKind, RecordField, UnaryOperator,
 };
 
 use super::{Context, ConversionResult};
@@ -62,9 +62,14 @@ where
                 let tag = self.expression(ExpressionKind::Literal {
                     literal: Literal::String(global.item_name),
                 });
-                let elements = std::iter::once(tag).chain(known_arguments);
-                let elements = elements.collect();
-                return Ok(self.expression(ExpressionKind::Array { elements }));
+                let mut fields = Vec::with_capacity(known_arguments.len() + 1);
+                let field = self.label_field("tag".into());
+                fields.push(RecordField { field, expression: tag });
+                for (index, expression) in known_arguments.into_iter().enumerate() {
+                    let field = self.label_field(format_smolstr!("_{}", index + 1));
+                    fields.push(RecordField { field, expression });
+                }
+                return Ok(self.expression(ExpressionKind::Record { fields: fields.into() }));
             }
             synthetic = true;
         }

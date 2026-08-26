@@ -3,11 +3,12 @@
 use itertools::Itertools;
 use oxc_allocator::{Allocator, Vec as ArenaVec};
 use oxc_ast::ast::{
-    Argument, ArrowFunctionBody, AssignmentTarget, BindingIdentifier, BindingPattern, Declaration,
-    ExportSpecifier, Expression, FormalParameter, FormalParameterKind, FormalParameters, Function,
-    FunctionBody, FunctionType, ImportDeclarationSpecifier, ImportOrExportKind, LabelIdentifier,
-    ModuleExportName, Program, Statement, StringLiteral, VariableDeclaration,
-    VariableDeclarationKind, VariableDeclarator,
+    Argument, ArrowFunctionBody, AssignmentTarget, BindingIdentifier, BindingPattern,
+    BindingProperty, Declaration, ExportSpecifier, Expression, FormalParameter,
+    FormalParameterKind, FormalParameters, Function, FunctionBody, FunctionType,
+    ImportDeclarationSpecifier, ImportOrExportKind, LabelIdentifier, ModuleExportName, Program,
+    PropertyKey, Statement, StringLiteral, VariableDeclaration, VariableDeclarationKind,
+    VariableDeclarator,
 };
 use oxc_ast::builder::AstBuilder;
 use oxc_codegen::{Codegen, CodegenOptions, IndentChar};
@@ -167,15 +168,21 @@ impl<'a> Writer<'a> {
         self.statements.push(statement);
     }
 
-    pub(crate) fn constant_array_pattern(
+    pub(crate) fn constant_object_pattern(
         &mut self,
         tree: &Tree<'_>,
         names: &[Option<String>],
         value: ExpressionId,
     ) {
-        let names = names.iter().map(|name| name.as_deref().map(|name| self.binding_pattern(name)));
-        let names = ArenaVec::from_iter_in(names, &self.allocator);
-        let pattern = BindingPattern::new_array_pattern(SPAN, names, None, &self.builder);
+        let properties = names.iter().enumerate().filter_map(|(index, name)| {
+            let name = name.as_deref()?;
+            let field = format!("_{}", index + 1);
+            let key = PropertyKey::new_static_identifier(SPAN, self.text(&field), &self.builder);
+            let value = self.binding_pattern(name);
+            Some(BindingProperty::new(SPAN, key, value, false, false, &self.builder))
+        });
+        let properties = ArenaVec::from_iter_in(properties, &self.allocator);
+        let pattern = BindingPattern::new_object_pattern(SPAN, properties, None, &self.builder);
         let declarator = VariableDeclarator::new(
             SPAN,
             pattern,

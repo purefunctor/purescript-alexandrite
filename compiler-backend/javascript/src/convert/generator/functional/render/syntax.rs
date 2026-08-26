@@ -107,12 +107,14 @@ pub(super) fn constructor_expression(tree: &mut Tree, name: &str, arity: usize) 
     }
 
     let arguments = (0..arity).map(|index| format!("$value{index}")).collect_vec();
-    let values = arguments.iter().map(|argument| tree.identifier(argument)).collect_vec();
     let tag = tree.string(name);
-    let mut elements = Vec::with_capacity(values.len() + 1);
-    elements.push(tag);
-    elements.extend(values);
-    let mut expression = tree.array(elements);
+    let mut properties = Vec::with_capacity(arguments.len() + 1);
+    properties.push(ObjectProperty::Field { name: "tag".to_owned(), value: tag });
+    for (index, argument) in arguments.iter().enumerate() {
+        let value = tree.identifier(argument);
+        properties.push(ObjectProperty::Field { name: format!("_{}", index + 1), value });
+    }
+    let mut expression = tree.object(properties);
     for argument in arguments.into_iter().rev() {
         expression = tree.arrow(vec![argument], expression);
     }

@@ -1,5 +1,8 @@
 export const Empty = "Empty";
-export const One = ($value0) => ["One", $value0];
+export const One = ($value0) => ({
+  tag: "One",
+  _1: $value0
+});
 export function booleanGuard(value) {
   if (value) {
     return 1 | 0;
@@ -10,8 +13,8 @@ export function booleanGuard(value) {
   throw new Error("Pattern match failure");
 }
 export function patternGuard(choice) {
-  if (choice[0] === "One") {
-    const [, value] = choice;
+  if (choice.tag === "One") {
+    const { _1: value } = choice;
     return value;
   }
   if (true) {
@@ -29,8 +32,8 @@ export function caseBooleanGuard(value) {
 }
 export function casePatternGuard(choice) {
   {
-    if (choice[0] === "One") {
-      const [, value] = choice;
+    if (choice.tag === "One") {
+      const { _1: value } = choice;
       return value;
     }
   }
