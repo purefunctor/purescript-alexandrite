@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+failAt :: Prim.String -> Prim.Boolean -> Prim.Int -> Prim.Int
+makeModel :: Prim.String -> Main.Model
+observe :: Prim.String -> Prim.Int -> Prim.Int
+updateLocal :: Main.Model -> Main.Model
+updateCall :: Prim.Boolean -> Main.Model
+updateControl :: Prim.Boolean -> Main.Model -> Main.Model
+updateOpen ::
+  forall (row :: Prim.Row Prim.Type).
+    { first :: Prim.Int | (row :: Prim.Row Prim.Type) } ->
+    { first :: Prim.Int | (row :: Prim.Row Prim.Type) }
+
+Types
+Nested :: Prim.Type
+Model :: Prim.Type
+
+Synonyms
+type Nested = { untouched :: Prim.Int, value :: Prim.Int }
+type Model = { first :: Prim.Int, last :: Prim.Int, nested :: Main.Nested, untouched :: Prim.Int }

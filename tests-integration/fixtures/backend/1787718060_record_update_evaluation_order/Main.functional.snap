@@ -1,0 +1,32 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign failAt
+
+@export foreign makeModel
+
+@export foreign observe
+
+@export updateLocal = \source%0 ->
+  source%0 {
+    first = observe "local-first" 10,
+    nested { value = observe "local-nested" 20 },
+    last = observe "local-last" 30
+  }
+
+@export updateCall = \shouldThrow%1 ->
+  (makeModel "call") {
+    first = observe "call-first" 10,
+    nested { value = failAt "call-nested" shouldThrow%1 20 },
+    last = observe "call-last" 30
+  }
+
+@export updateControl = \condition%3 source%2 ->
+  source%2 {
+    first = observe "control-first" 10,
+    last = if condition%3 then observe "control-then" 30 else observe "control-else" 31
+  }
+
+@export updateOpen = \source%4 -> source%4 { first = observe "open-first" 40 }
