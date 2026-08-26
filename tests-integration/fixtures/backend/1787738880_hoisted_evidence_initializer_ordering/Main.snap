@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 262
+expression: diagnostics_report
+---
+Terms
+compareInts :: Prim.Int -> Prim.Int -> Prim.Boolean
+initialized :: Prim.Boolean
+
+Types
