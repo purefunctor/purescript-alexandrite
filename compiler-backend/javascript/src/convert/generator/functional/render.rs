@@ -501,6 +501,8 @@ fn render_lazy_initializers(renderer: &mut ModuleRenderer<'_, '_, '_>) -> Module
 
 fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_>) -> ModuleResult<()> {
     let generator = renderer.generator;
+    let mut rendered = false;
+    let mut previous_was_generated = false;
     for declaration in sorted_value_declarations(generator)? {
         let DeclarationKind::Value(expression) = declaration.kind else {
             unreachable!("invariant violated: sorted JavaScript declaration is not a value")
@@ -508,12 +510,20 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_>) -> Modul
         if is_abstraction(&generator.module.storage[expression].kind) {
             continue;
         }
+
+        let generated = matches!(declaration.global.id, GlobalId::Generated(_, _));
+        if rendered && (!previous_was_generated || !generated) {
+            renderer.writer.blank();
+        }
+
         let name = generator.global_name(declaration.global.id);
         let export =
             if generator.declaration_is_inline_exported(declaration) { "export " } else { "" };
+
         if let Some(lazy_name) = generator.lazy_global_names.get(&declaration.global.id) {
             renderer.writer.line(format!("{export}const {name} = {lazy_name}();"));
-            renderer.writer.blank();
+            rendered = true;
+            previous_was_generated = generated;
             continue;
         }
 
@@ -542,6 +552,11 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_>) -> Modul
                 },
             )?;
         }
+
+        rendered = true;
+        previous_was_generated = generated;
+    }
+    if rendered {
         renderer.writer.blank();
     }
     Ok(())

@@ -239,13 +239,8 @@ export const secondComparison = eqIntDictEq(3 | 0)(4 | 0);
 export const eqRecursive = $lazy_eqRecursive();
 
 const eqArrayIntDict = Data_Eq.eqArray(Data_Eq.eqInt);
-
 const eqArrayBooleanDict = Data_Eq.eqArray(Data_Eq.eqBoolean);
-
 const eqArrayIntDictEq = Data_Eq.eq(eqArrayIntDict);
-
 const eqArrayArrayIntDict = Data_Eq.eqArray(eqArrayIntDict);
-
 const eqArrayBooleanDictEq = Data_Eq.eq(eqArrayBooleanDict);
-
 const eqArrayArrayIntDictEq = Data_Eq.eq(eqArrayArrayIntDict);
