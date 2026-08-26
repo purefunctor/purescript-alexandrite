@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 296
+expression: report
+---
+Terms
+CovariantRecord :: forall @a. { value :: a } -> Main.CovariantRecord a
+BivariantRecord :: forall @a @b. { first :: a, second :: b } -> Main.BivariantRecord a b
+ContravariantRecord :: forall @a. { predicate :: a -> Prim.Boolean } -> Main.ContravariantRecord a
+ProfunctorRecord :: forall @a @b. { run :: a -> b } -> Main.ProfunctorRecord a b
+
+Types
+CovariantRecord :: Prim.Type -> Prim.Type
+BivariantRecord :: Prim.Type -> Prim.Type -> Prim.Type
+ContravariantRecord :: Prim.Type -> Prim.Type
+ProfunctorRecord :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.CovariantRecord
+derive Data.Foldable.Foldable Main.CovariantRecord
+derive Data.Traversable.Traversable Main.CovariantRecord
+derive Data.Bifunctor.Bifunctor Main.BivariantRecord
+derive Data.Functor.Contravariant.Contravariant Main.ContravariantRecord
+derive Data.Profunctor.Profunctor Main.ProfunctorRecord
+
+Roles
+CovariantRecord = [Representational]
+BivariantRecord = [Representational, Representational]
+ContravariantRecord = [Representational]
+ProfunctorRecord = [Representational, Representational]
