@@ -6,6 +6,7 @@ use functional::tree::{
     SynthesizedEvidence, UnaryOperator as FunctionalUnaryOperator,
 };
 use itertools::Itertools;
+use smol_str::{SmolStr, format_smolstr};
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree, UnaryOperator};
@@ -106,7 +107,7 @@ pub(super) fn constructor_expression(tree: &mut Tree, name: &str, arity: usize) 
         return tree.string(name);
     }
 
-    let arguments = (0..arity).map(|index| format!("$value{index}")).collect_vec();
+    let arguments = (0..arity).map(|index| format_smolstr!("$value{index}")).collect_vec();
     let tag = tree.string(name);
     let mut properties = Vec::with_capacity(arguments.len() + 1);
     properties.push(ObjectProperty::Field { name: "tag".to_owned(), value: tag });
@@ -128,7 +129,7 @@ pub(super) fn synthesized_evidence_expression(
     match evidence {
         SynthesizedEvidence::IsSymbol(symbol) => {
             let symbol = tree.string(symbol.as_str());
-            let reflect = tree.arrow(vec!["$proxy".to_owned()], symbol);
+            let reflect = tree.arrow(vec![SmolStr::new_static("$proxy")], symbol);
             tree.object(vec![ObjectProperty::Field {
                 name: "reflectSymbol".to_owned(),
                 value: reflect,
@@ -148,7 +149,7 @@ pub(super) fn synthesized_evidence_expression(
                     tree.string(tag)
                 }
             };
-            let reflect = tree.arrow(vec!["$proxy".to_owned()], value);
+            let reflect = tree.arrow(vec![SmolStr::new_static("$proxy")], value);
             tree.object(vec![ObjectProperty::Field {
                 name: "reflectType".to_owned(),
                 value: reflect,

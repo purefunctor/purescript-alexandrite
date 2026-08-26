@@ -4,6 +4,7 @@ mod analysis;
 mod inline;
 mod structure;
 mod syntax;
+mod tail_call;
 
 use std::sync::Arc;
 
@@ -17,12 +18,12 @@ use functional::tree::{
 use itertools::Itertools;
 use oxc_allocator::Allocator;
 use rustc_hash::{FxHashMap, FxHashSet};
-use smol_str::SmolStr;
+use smol_str::{SmolStr, format_smolstr};
 
 use super::super::names::NameAllocator;
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
 use crate::module::{Module, module_filename, runtime_filename};
-use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree};
+use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree, UnaryOperator};
 use crate::writer::{BindingCallTarget, Writer};
 
 use self::analysis::{VisitState, visit_initializer};
@@ -34,33 +35,43 @@ use self::syntax::{
     binary_expression, combine_conditions, constructor_expression, curried_call_expression,
     literal_expression, synthesized_evidence_expression, unary_expression,
 };
+use self::tail_call::{
+    TailCallContext, TailCallGroup, TailCallIdentity, TailCallProfile, global_profiles,
+    local_profiles, tail_call_group,
+};
 
 pub(crate) struct Generator<'m> {
     module: &'m FunctionalModule,
-    global_names: FxHashMap<GlobalId, String>,
-    external_module_namespaces: FxHashMap<FileId, String>,
+    global_names: FxHashMap<GlobalId, SmolStr>,
+    external_module_namespaces: FxHashMap<FileId, SmolStr>,
     external_references: Vec<Global>,
-    foreign_namespace: Option<String>,
-    runtime_namespace: Option<String>,
-    lazy_global_names: FxHashMap<GlobalId, String>,
+    foreign_namespace: Option<SmolStr>,
+    runtime_namespace: Option<SmolStr>,
+    lazy_global_names: FxHashMap<GlobalId, SmolStr>,
+    global_tail_call_groups: Vec<TailCallGroup>,
+    global_tail_call_group_positions: FxHashMap<GlobalId, usize>,
     reserved_module_names: Arc<FxHashSet<SmolStr>>,
 }
 
 #[derive(Debug)]
 enum LocalBinding {
-    Direct(String),
-    Lazy(String),
+    Direct(SmolStr),
+    Lazy(SmolStr),
 }
 
 struct FunctionContext {
     allocator: NameAllocator,
     locals: FxHashMap<LocalId, LocalBinding>,
+    tail_calls: Option<TailCallContext>,
 }
 
 #[derive(Clone, Copy)]
 enum Destination<'a> {
     Return,
+    TailEffectThunkReturn,
+    TailEffectReturn,
     EffectReturn,
+    EffectTailEffectReturn,
     Assign(&'a str),
     EffectAssign(&'a str),
     AssignAndBreak { name: &'a str, label: &'a str },
@@ -86,14 +97,64 @@ struct PatternPlan {
 }
 
 enum PatternBinding {
-    Variable { name: String, value: ExpressionId },
-    Constructor { names: Vec<Option<String>>, value: ExpressionId },
+    Variable { name: SmolStr, value: ExpressionId },
+    Constructor { names: Vec<Option<SmolStr>>, value: ExpressionId },
 }
 
 // Pending expressions must be evaluated before rendering an eager later sibling.
 struct RenderedExpression {
     value: ExpressionId,
     pending_evaluation: bool,
+}
+
+struct TailCallWrapper<'a> {
+    name: &'a str,
+    group: &'a TailCallGroup,
+    profile: &'a TailCallProfile,
+    state: usize,
+}
+
+struct CurriedTailCallWrapper<'a> {
+    group: &'a TailCallGroup,
+    profile: &'a TailCallProfile,
+    state: usize,
+    arguments: &'a [SmolStr],
+    remaining: &'a [SmolStr],
+}
+
+struct TailCallWrapperResult<'a> {
+    group: &'a TailCallGroup,
+    profile: &'a TailCallProfile,
+    state: usize,
+    arguments: &'a [SmolStr],
+}
+
+struct CurriedParameter<'a> {
+    pattern: PatternId,
+    argument: &'a str,
+    remaining: &'a [PatternId],
+    body: FunctionalExpressionId,
+}
+
+struct UncurriedParameters<'a> {
+    patterns: &'a [PatternId],
+    arguments: &'a [SmolStr],
+    position: usize,
+    body: FunctionalExpressionId,
+}
+
+struct AbstractionBinding<'a> {
+    name: &'a str,
+    parameters: &'a [PatternId],
+    body: FunctionalExpressionId,
+    uncurried: bool,
+}
+
+struct GuardSequence<'a, 'd> {
+    guards: &'a [Guard],
+    position: usize,
+    expression: FunctionalExpressionId,
+    destination: Destination<'d>,
 }
 
 struct ModuleRenderer<'a, 'm, 't, 'd> {
@@ -114,18 +175,19 @@ impl FunctionContext {
         FunctionContext {
             allocator: NameAllocator::with_reserved(Arc::clone(reserved)),
             locals: FxHashMap::default(),
+            tail_calls: None,
         }
     }
 
-    fn allocate(&mut self, preferred: &str) -> String {
+    fn allocate(&mut self, preferred: impl AsRef<str>) -> SmolStr {
         self.allocator.allocate(preferred)
     }
 
-    fn bind_direct(&mut self, parameter: &Parameter, name: String) {
+    fn bind_direct(&mut self, parameter: &Parameter, name: SmolStr) {
         self.locals.insert(parameter.id, LocalBinding::Direct(name));
     }
 
-    fn bind_lazy(&mut self, parameter: &Parameter, name: String) {
+    fn bind_lazy(&mut self, parameter: &Parameter, name: SmolStr) {
         self.locals.insert(parameter.id, LocalBinding::Lazy(name));
     }
 }
@@ -134,11 +196,14 @@ impl<'a> Destination<'a> {
     fn effect(self) -> Destination<'a> {
         match self {
             Destination::Return => Destination::EffectReturn,
+            Destination::TailEffectReturn => Destination::EffectTailEffectReturn,
             Destination::Assign(name) => Destination::EffectAssign(name),
             Destination::AssignAndBreak { name, label } => {
                 Destination::EffectAssignAndBreak { name, label }
             }
-            Destination::EffectReturn
+            Destination::TailEffectThunkReturn
+            | Destination::EffectReturn
+            | Destination::EffectTailEffectReturn
             | Destination::EffectAssign(_)
             | Destination::EffectAssignAndBreak { .. } => {
                 unreachable!("invariant violated: effect destination is already indirect")
@@ -149,11 +214,16 @@ impl<'a> Destination<'a> {
     fn value(self) -> Destination<'a> {
         match self {
             Destination::EffectReturn => Destination::Return,
+            Destination::EffectTailEffectReturn => Destination::TailEffectReturn,
             Destination::EffectAssign(name) => Destination::Assign(name),
             Destination::EffectAssignAndBreak { name, label } => {
                 Destination::AssignAndBreak { name, label }
             }
-            Destination::Return | Destination::Assign(_) | Destination::AssignAndBreak { .. } => {
+            Destination::Return
+            | Destination::TailEffectThunkReturn
+            | Destination::TailEffectReturn
+            | Destination::Assign(_)
+            | Destination::AssignAndBreak { .. } => {
                 unreachable!("invariant violated: value destination is already direct")
             }
         }
@@ -163,6 +233,7 @@ impl<'a> Destination<'a> {
         matches!(
             self,
             Destination::EffectReturn
+                | Destination::EffectTailEffectReturn
                 | Destination::EffectAssign(_)
                 | Destination::EffectAssignAndBreak { .. }
         )
@@ -189,7 +260,7 @@ impl<'m> Generator<'m> {
                 .expect("invariant violated: external global has no module dependency");
             external_module_namespaces
                 .entry(file_id)
-                .or_insert_with(|| allocator.allocate(&dependency.module_name.replace('.', "_")));
+                .or_insert_with(|| allocator.allocate(dependency.module_name.replace('.', "_")));
         }
 
         let has_foreign = module
@@ -202,10 +273,39 @@ impl<'m> Generator<'m> {
         let runtime_namespace = requires_runtime.then(|| allocator.allocate("$runtime"));
         let lazy_global_names = lazy_globals.into_iter().map(|id| {
             let global_name = &global_names[&id];
-            let lazy_name = allocator.allocate(&format!("$lazy_{global_name}"));
+            let lazy_name = allocator.allocate(format_smolstr!("$lazy_{global_name}"));
             (id, lazy_name)
         });
         let lazy_global_names = lazy_global_names.collect();
+        let mut global_tail_call_groups = Vec::new();
+        let mut global_tail_call_group_positions = FxHashMap::default();
+        for profiles in global_profiles(module) {
+            let Some(TailCallIdentity::Global(_)) =
+                profiles.first().map(|profile| profile.identity)
+            else {
+                continue;
+            };
+            let mut dispatcher_names = profiles.iter().map(|profile| {
+                let TailCallIdentity::Global(global) = profile.identity else {
+                    unreachable!("invariant violated: global tail-call group contains a local")
+                };
+                global_names[&global].as_str()
+            });
+            let dispatcher_suffix = dispatcher_names.join("_");
+            let preferred = format_smolstr!("$tail_{dispatcher_suffix}");
+            let dispatcher_name = allocator.allocate(&preferred);
+            let Some(group) = tail_call_group(module, profiles, dispatcher_name) else {
+                continue;
+            };
+            let position = global_tail_call_groups.len();
+            for profile in &group.profiles {
+                let TailCallIdentity::Global(global) = profile.identity else {
+                    unreachable!("invariant violated: global tail-call group contains a local")
+                };
+                global_tail_call_group_positions.insert(global, position);
+            }
+            global_tail_call_groups.push(group);
+        }
         let reserved_module_names = allocator.allocated_names().cloned().collect();
         let reserved_module_names = Arc::new(reserved_module_names);
 
@@ -217,6 +317,8 @@ impl<'m> Generator<'m> {
             foreign_namespace,
             runtime_namespace,
             lazy_global_names,
+            global_tail_call_groups,
+            global_tail_call_group_positions,
             reserved_module_names,
         }
     }
@@ -316,6 +418,7 @@ fn render_constructors(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
 
 fn render_source_functions(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> ModuleResult<()> {
     let generator = renderer.generator;
+    let mut rendered_groups = FxHashSet::default();
     for declaration in generator.module.declarations.iter() {
         let DeclarationKind::Value(expression) = declaration.kind else {
             continue;
@@ -327,6 +430,18 @@ fn render_source_functions(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> Mod
         ) {
             continue;
         }
+        if let Some(&position) =
+            generator.global_tail_call_group_positions.get(&declaration.global.id)
+        {
+            if rendered_groups.insert(position) {
+                render_global_tail_call_group(
+                    renderer,
+                    &generator.global_tail_call_groups[position],
+                )?;
+                renderer.writer.blank();
+            }
+            continue;
+        }
         let name = generator.global_name(declaration.global.id);
         let exported = generator.declaration_is_inline_exported(declaration);
         let mut context = FunctionContext::new(&generator.reserved_module_names);
@@ -336,6 +451,383 @@ fn render_source_functions(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> Mod
         renderer.writer.blank();
     }
     Ok(())
+}
+
+fn render_global_tail_call_group(
+    renderer: &mut ModuleRenderer<'_, '_, '_, '_>,
+    group: &TailCallGroup,
+) -> ModuleResult<()> {
+    let generator = renderer.generator;
+    let mut context = FunctionContext::new(&generator.reserved_module_names);
+    if !group.is_singleton() {
+        let state_name = context.allocate("$state");
+        let argument_names = (0..group.maximum_arity)
+            .map(|position| context.allocate(format_smolstr!("$argument{position}")))
+            .collect_vec();
+        let tail_calls = TailCallContext::new(group, state_name.clone(), argument_names.clone());
+        let mut dispatcher_parameters = vec![state_name];
+        dispatcher_parameters.extend(argument_names);
+        context.tail_calls = Some(tail_calls);
+        renderer.writer.function(
+            &group.dispatcher_name,
+            dispatcher_parameters,
+            false,
+            |writer| {
+                generator.render_tail_call_dispatcher(renderer.tree, writer, group, &mut context)
+            },
+        )?;
+        context.tail_calls = None;
+    }
+
+    for (state, profile) in group.profiles.iter().enumerate() {
+        let TailCallIdentity::Global(global) = profile.identity else {
+            unreachable!("invariant violated: global tail-call group contains a local")
+        };
+        let declaration = generator
+            .module
+            .declarations
+            .iter()
+            .find(|declaration| declaration.global.id == global)
+            .expect("invariant violated: tail-call profile has no declaration");
+        let name = generator.global_name(global);
+        let exported = generator.declaration_is_inline_exported(declaration);
+        generator.render_global_tail_call_wrapper(
+            renderer.tree,
+            renderer.writer,
+            TailCallWrapper { name, group, profile, state },
+            exported,
+            &mut context,
+        )?;
+    }
+    Ok(())
+}
+
+impl Generator<'_> {
+    fn render_tail_call_dispatcher(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        group: &TailCallGroup,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let condition = tree.boolean(true);
+        let condition = writer.expression(tree, condition);
+        writer.while_loop(condition, |writer| {
+            if group.is_singleton() {
+                return self.render_tail_call_profile(tree, writer, &group.profiles[0], context);
+            }
+            let tail_calls = context
+                .tail_calls
+                .as_ref()
+                .expect("invariant violated: tail-call dispatcher has no context");
+            let state_name = tail_calls
+                .state_name
+                .as_ref()
+                .expect("invariant violated: mutual tail-call dispatcher has no state");
+            let current_state = tree.identifier(state_name);
+            let cases = group.profiles.iter().enumerate().map(|(state, profile)| {
+                let state = tree.number(state.to_string());
+                let name = self.tail_call_profile_name(profile, context);
+                (state, name)
+            });
+            let cases = cases.collect_vec();
+            writer.switch(tree, current_state, &cases, |position, tree, writer| {
+                self.render_tail_call_profile(tree, writer, &group.profiles[position], context)
+            })
+        })
+    }
+
+    fn tail_call_profile_name(
+        &self,
+        profile: &TailCallProfile,
+        context: &FunctionContext,
+    ) -> SmolStr {
+        match profile.identity {
+            TailCallIdentity::Global(global) => self.global_names[&global].clone(),
+            TailCallIdentity::Local(local) => match context.locals.get(&local) {
+                Some(LocalBinding::Direct(name)) => name.clone(),
+                Some(LocalBinding::Lazy(_)) | None => {
+                    unreachable!("invariant violated: tail-call profile has no direct local name")
+                }
+            },
+        }
+    }
+
+    fn render_tail_call_profile(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        profile: &TailCallProfile,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        self.render_tail_call_parameters(tree, writer, profile, 0, context)
+    }
+
+    fn render_tail_call_parameters(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        profile: &TailCallProfile,
+        position: usize,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let Some(pattern) = profile.parameters.get(position).copied() else {
+            let destination = if profile.effect_step {
+                Destination::TailEffectThunkReturn
+            } else {
+                Destination::Return
+            };
+            return self.render_expression(tree, writer, profile.body, destination, context);
+        };
+        let argument = context
+            .tail_calls
+            .as_ref()
+            .expect("invariant violated: tail-call profile has no context")
+            .argument_names
+            .get(position)
+            .expect("invariant violated: tail-call profile exceeds dispatcher arity")
+            .clone();
+        // A closure created during an iteration must capture that iteration's value rather than
+        // the mutable slot that advances the loop.
+        let current_argument = context.allocate(format_smolstr!("$currentArgument{position}"));
+        let value = tree.identifier(&argument);
+        writer.constant(tree, &current_argument, value, false);
+        let value = tree.identifier(&current_argument);
+        let plan = self.pattern_plan(tree, pattern, value, Some(&current_argument), context)?;
+        self.render_pattern_scope(tree, writer, plan, context, |tree, writer, context| {
+            self.render_tail_call_parameters(tree, writer, profile, position + 1, context)
+        })
+    }
+
+    fn render_global_tail_call_wrapper(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        wrapper: TailCallWrapper<'_>,
+        exported: bool,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let TailCallWrapper { name, group, profile, state } = wrapper;
+        let arguments = profile
+            .parameters
+            .iter()
+            .map(|pattern| self.allocate_pattern_argument(*pattern, context))
+            .collect_vec();
+        if profile.uncurried {
+            return writer.function(name, arguments.clone(), exported, |writer| {
+                self.render_tail_call_wrapper_result(
+                    tree,
+                    writer,
+                    TailCallWrapperResult { group, profile, state, arguments: &arguments },
+                    context,
+                )
+            });
+        }
+        let Some((first, remaining)) = arguments.split_first() else {
+            unreachable!("invariant violated: curried tail-call function has no parameters")
+        };
+        writer.function(name, vec![first.clone()], exported, |writer| {
+            self.render_curried_tail_call_wrapper(
+                tree,
+                writer,
+                CurriedTailCallWrapper { group, profile, state, arguments: &arguments, remaining },
+                context,
+            )
+        })
+    }
+
+    fn render_local_tail_call_wrapper(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        wrapper: TailCallWrapper<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let TailCallWrapper { name, group, profile, state } = wrapper;
+        let arguments = profile
+            .parameters
+            .iter()
+            .map(|pattern| self.allocate_pattern_argument(*pattern, context))
+            .collect_vec();
+        if profile.uncurried {
+            return writer.constant_arrow(name, arguments.clone(), |writer| {
+                self.render_tail_call_wrapper_result(
+                    tree,
+                    writer,
+                    TailCallWrapperResult { group, profile, state, arguments: &arguments },
+                    context,
+                )
+            });
+        }
+        let Some((first, remaining)) = arguments.split_first() else {
+            unreachable!("invariant violated: curried tail-call function has no parameters")
+        };
+        writer.constant_arrow(name, vec![first.clone()], |writer| {
+            self.render_curried_tail_call_wrapper(
+                tree,
+                writer,
+                CurriedTailCallWrapper { group, profile, state, arguments: &arguments, remaining },
+                context,
+            )
+        })
+    }
+
+    fn render_curried_tail_call_wrapper(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        wrapper: CurriedTailCallWrapper<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let CurriedTailCallWrapper { group, profile, state, arguments, remaining } = wrapper;
+        let Some((argument, remaining)) = remaining.split_first() else {
+            return self.render_tail_call_wrapper_result(
+                tree,
+                writer,
+                TailCallWrapperResult { group, profile, state, arguments },
+                context,
+            );
+        };
+        writer.return_arrow(vec![argument.clone()], |writer| {
+            self.render_curried_tail_call_wrapper(
+                tree,
+                writer,
+                CurriedTailCallWrapper { group, profile, state, arguments, remaining },
+                context,
+            )
+        })
+    }
+
+    fn render_tail_call_wrapper_result(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        wrapper: TailCallWrapperResult<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let TailCallWrapperResult { group, profile, state, arguments } = wrapper;
+        if group.is_singleton() && !profile.effect_step {
+            return self.render_singleton_tail_call_loop(tree, writer, group, arguments, context);
+        }
+        if group.is_singleton() {
+            self.render_singleton_effect_dispatcher(tree, writer, group, context)?;
+        }
+
+        let dispatcher = tree.identifier(&group.dispatcher_name);
+        let state = tree.number(state.to_string());
+        let mut values = vec![state];
+        values.extend(arguments.iter().map(|argument| tree.identifier(argument)));
+        for _ in arguments.len()..group.maximum_arity {
+            values.push(tree.null());
+        }
+        let initial = tree.call(dispatcher, values);
+        if !profile.effect_step {
+            writer.return_expression(tree, initial);
+            return Ok(());
+        }
+
+        let initial_name = context.allocate("$initialStep");
+        writer.constant(tree, &initial_name, initial, false);
+        writer.return_arrow(vec![], |writer| {
+            self.render_tail_effect_loop(tree, writer, group, &initial_name, context)
+        })
+    }
+
+    fn render_singleton_tail_call_loop(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        group: &TailCallGroup,
+        arguments: &[SmolStr],
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        // Curried outer arguments can be captured by a reusable partial application. Copy every
+        // argument before iterating so one invocation cannot mutate the next invocation's input.
+        let argument_names = arguments
+            .iter()
+            .enumerate()
+            .map(|(position, argument)| {
+                let name = context.allocate(format_smolstr!("$argument{position}"));
+                let value = tree.identifier(argument);
+                writer.mutable_value(tree, &name, value);
+                name
+            })
+            .collect_vec();
+        let tail_calls = TailCallContext::singleton(group, argument_names);
+        let outer_tail_calls = context.tail_calls.replace(tail_calls);
+        let result = self.render_tail_call_dispatcher(tree, writer, group, context);
+        context.tail_calls = outer_tail_calls;
+        result
+    }
+
+    fn render_singleton_effect_dispatcher(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        group: &TailCallGroup,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let state_name = context.allocate("$state");
+        let argument_names = (0..group.maximum_arity)
+            .map(|position| context.allocate(format_smolstr!("$argument{position}")))
+            .collect_vec();
+        let tail_calls = TailCallContext::new(group, state_name.clone(), argument_names.clone());
+        let mut dispatcher_parameters = vec![state_name];
+        dispatcher_parameters.extend(argument_names);
+        let outer_tail_calls = context.tail_calls.replace(tail_calls);
+        writer.constant_arrow(&group.dispatcher_name, dispatcher_parameters, |writer| {
+            self.render_tail_call_dispatcher(tree, writer, group, context)
+        })?;
+        context.tail_calls = outer_tail_calls;
+        Ok(())
+    }
+
+    fn render_tail_effect_loop(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        group: &TailCallGroup,
+        initial_name: &str,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        // A step returns `[false, value]` when complete or `[true, state, ...arguments]` for a
+        // tail call. Constructing the next step only after the current action has run preserves
+        // Effect construction timing, while resetting to the captured initial step makes the
+        // generated thunk safely reusable.
+        let step_name = context.allocate("$step");
+        let result_name = context.allocate("$result");
+        writer.mutable(&step_name);
+        let initial = tree.identifier(initial_name);
+        writer.assign(tree, &step_name, initial);
+        let condition = tree.boolean(true);
+        let condition = writer.expression(tree, condition);
+        writer.while_loop(condition, |writer| {
+            let step = tree.identifier(&step_name);
+            let result = tree.call(step, vec![]);
+            writer.constant(tree, &result_name, result, false);
+            let result = tree.identifier(&result_name);
+            let marker_index = tree.number("0");
+            let marker = tree.index(result, marker_index);
+            let complete = tree.unary(UnaryOperator::LogicalNot, marker);
+            writer.if_block(tree, complete, |tree, writer| {
+                let result = tree.identifier(&result_name);
+                let value_index = tree.number("1");
+                let value = tree.index(result, value_index);
+                writer.return_expression(tree, value);
+            });
+
+            let dispatcher = tree.identifier(&group.dispatcher_name);
+            let values = (0..=group.maximum_arity).map(|position| {
+                let result = tree.identifier(&result_name);
+                let index = tree.number((position + 1).to_string());
+                tree.index(result, index)
+            });
+            let values = values.collect_vec();
+            let next_step = tree.call(dispatcher, values);
+            writer.assign(tree, &step_name, next_step);
+            Ok(())
+        })
+    }
 }
 
 fn render_named_function(
@@ -356,10 +848,12 @@ fn render_named_function(
                     generator.render_curried_parameter(
                         tree,
                         writer,
-                        parameter,
-                        &argument,
-                        &parameters[1..],
-                        *body,
+                        CurriedParameter {
+                            pattern: parameter,
+                            argument: &argument,
+                            remaining: &parameters[1..],
+                            body: *body,
+                        },
                         context,
                     )
                 } else {
@@ -374,7 +868,15 @@ fn render_named_function(
                 .collect_vec();
             writer.function(name, arguments.clone(), exported, |writer| {
                 generator.render_uncurried_parameters(
-                    tree, writer, parameters, &arguments, 0, *body, context,
+                    tree,
+                    writer,
+                    UncurriedParameters {
+                        patterns: parameters,
+                        arguments: &arguments,
+                        position: 0,
+                        body: *body,
+                    },
+                    context,
                 )
             })
         }
@@ -387,10 +889,10 @@ impl Generator<'_> {
         &self,
         parameters: &[PatternId],
         context: &mut FunctionContext,
-    ) -> (String, Option<PatternId>) {
+    ) -> (SmolStr, Option<PatternId>) {
         match parameters.first().copied() {
             Some(pattern) => (self.allocate_pattern_argument(pattern, context), Some(pattern)),
-            None => (String::new(), None),
+            None => (SmolStr::new_static(""), None),
         }
     }
 
@@ -398,12 +900,10 @@ impl Generator<'_> {
         &self,
         tree: &mut Tree,
         writer: &mut Writer<'_>,
-        pattern: PatternId,
-        argument: &str,
-        remaining: &[PatternId],
-        body: FunctionalExpressionId,
+        parameter: CurriedParameter<'_>,
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
+        let CurriedParameter { pattern, argument, remaining, body } = parameter;
         let value = tree.identifier(argument);
         let plan = self.pattern_plan(tree, pattern, value, Some(argument), context)?;
         self.render_pattern_scope(tree, writer, plan, context, |tree, writer, context| {
@@ -413,7 +913,10 @@ impl Generator<'_> {
             let argument = self.allocate_pattern_argument(*pattern, context);
             writer.return_arrow(vec![argument.clone()], |writer| {
                 self.render_curried_parameter(
-                    tree, writer, *pattern, &argument, remaining, body, context,
+                    tree,
+                    writer,
+                    CurriedParameter { pattern: *pattern, argument: &argument, remaining, body },
+                    context,
                 )
             })
         })
@@ -423,12 +926,10 @@ impl Generator<'_> {
         &self,
         tree: &mut Tree,
         writer: &mut Writer<'_>,
-        patterns: &[PatternId],
-        arguments: &[String],
-        position: usize,
-        body: FunctionalExpressionId,
+        parameters: UncurriedParameters<'_>,
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
+        let UncurriedParameters { patterns, arguments, position, body } = parameters;
         let Some(pattern) = patterns.get(position).copied() else {
             return self.render_expression(tree, writer, body, Destination::Return, context);
         };
@@ -439,10 +940,7 @@ impl Generator<'_> {
             self.render_uncurried_parameters(
                 tree,
                 writer,
-                patterns,
-                arguments,
-                position + 1,
-                body,
+                UncurriedParameters { patterns, arguments, position: position + 1, body },
                 context,
             )
         })
@@ -575,6 +1073,20 @@ impl Generator<'_> {
         destination: Destination<'_>,
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
+        if let Some(tail_call) = context
+            .tail_calls
+            .as_ref()
+            .and_then(|tail_calls| tail_calls.call(self.module, expression))
+            && matches!(
+                destination,
+                Destination::Return
+                    | Destination::TailEffectThunkReturn
+                    | Destination::EffectTailEffectReturn
+            )
+        {
+            return self.render_tail_call(tree, writer, tail_call, destination, context);
+        }
+
         match &self.module.storage[expression].kind {
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression_value(tree, writer, *condition, context)?;
@@ -615,6 +1127,10 @@ impl Generator<'_> {
             ExpressionKind::Effect { effect } if !destination.is_effect() => self
                 .render_effect_expression_destination(tree, writer, effect, destination, context),
             _ => {
+                if matches!(destination, Destination::TailEffectThunkReturn) {
+                    return self
+                        .render_tail_effect_thunk_destination(tree, writer, expression, context);
+                }
                 if destination.is_effect() {
                     return self.render_effect_destination(
                         tree,
@@ -633,13 +1149,18 @@ impl Generator<'_> {
 
     fn render_destination(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         writer: &mut Writer<'_>,
         value: ExpressionId,
         destination: Destination<'_>,
     ) {
         match destination {
             Destination::Return => writer.return_expression(tree, value),
+            Destination::TailEffectReturn => {
+                let complete = tree.boolean(false);
+                let result = tree.array(vec![complete, value]);
+                writer.return_expression(tree, result);
+            }
             Destination::Assign(name) => {
                 writer.assign(tree, name, value);
             }
@@ -647,7 +1168,9 @@ impl Generator<'_> {
                 writer.assign(tree, name, value);
                 writer.break_label(label);
             }
-            Destination::EffectReturn
+            Destination::TailEffectThunkReturn
+            | Destination::EffectReturn
+            | Destination::EffectTailEffectReturn
             | Destination::EffectAssign(_)
             | Destination::EffectAssignAndBreak { .. } => {
                 unreachable!("invariant violated: effect destination was not rendered directly")
@@ -693,6 +1216,13 @@ impl Generator<'_> {
                 })?;
                 None
             }
+            Destination::TailEffectThunkReturn => {
+                writer.return_arrow(vec![], |writer| {
+                    let mut renderer = self.renderer(tree, writer, context);
+                    execute_effect(&mut renderer, effect, Destination::TailEffectReturn)
+                })?;
+                None
+            }
             Destination::Assign(name) => {
                 writer.assign_arrow(name, vec![], |writer| {
                     let mut renderer = self.renderer(tree, writer, context);
@@ -707,7 +1237,9 @@ impl Generator<'_> {
                 })?;
                 Some(label)
             }
-            Destination::EffectReturn
+            Destination::TailEffectReturn
+            | Destination::EffectReturn
+            | Destination::EffectTailEffectReturn
             | Destination::EffectAssign(_)
             | Destination::EffectAssignAndBreak { .. } => {
                 unreachable!("invariant violated: effect destination returned an effect thunk")
@@ -716,6 +1248,78 @@ impl Generator<'_> {
         if let Some(label) = break_label {
             writer.break_label(label);
         }
+        Ok(())
+    }
+
+    fn render_tail_effect_thunk_destination(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        expression: FunctionalExpressionId,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let mut renderer = self.renderer(tree, writer, context);
+        let effect = capture_effect_value(&mut renderer, expression, "$effect")?;
+        writer.return_arrow(vec![], |writer| {
+            let value = tree.call(effect, vec![]);
+            self.render_destination(tree, writer, value, Destination::TailEffectReturn);
+            Ok(())
+        })
+    }
+
+    fn render_tail_call(
+        &self,
+        tree: &mut Tree,
+        writer: &mut Writer<'_>,
+        tail_call: tail_call::TailCall,
+        destination: Destination<'_>,
+        context: &mut FunctionContext,
+    ) -> ModuleResult<()> {
+        let target = tail_call.target;
+        let tail_calls = context
+            .tail_calls
+            .as_ref()
+            .expect("invariant violated: rendered tail call has no context");
+        let state_name = tail_calls.state_name.clone();
+        let argument_names = tail_calls.argument_names.clone();
+
+        if matches!(destination, Destination::EffectTailEffectReturn) {
+            let marker = tree.boolean(true);
+            let state = tree.number(target.state.to_string());
+            let mut values = vec![marker, state];
+            for argument in tail_call.arguments {
+                let value = self.expression_value(tree, writer, argument, context)?;
+                let value = if tree.expression_is_atomic(value) {
+                    value
+                } else {
+                    self.materialize_value(tree, writer, value, "$tailArgument", context)
+                };
+                values.push(value);
+            }
+            for _ in target.arity..argument_names.len() {
+                values.push(tree.null());
+            }
+            let result = tree.array(values);
+            writer.return_expression(tree, result);
+            return Ok(());
+        }
+
+        for (name, argument) in argument_names.iter().zip(tail_call.arguments) {
+            let value = self.expression_value(tree, writer, argument, context)?;
+            if tree.expression_identifier(value) == Some(name) {
+                continue;
+            }
+            writer.assign(tree, name, value);
+        }
+        for name in argument_names.iter().skip(target.arity) {
+            let null = tree.null();
+            writer.assign(tree, name, null);
+        }
+        if let Some(state_name) = state_name {
+            let state = tree.number(target.state.to_string());
+            writer.assign(tree, &state_name, state);
+        }
+        writer.continue_loop();
         Ok(())
     }
 
@@ -835,7 +1439,10 @@ impl Generator<'_> {
             ExpressionKind::Abstraction { parameters, body } => {
                 let name = context.allocate("$closure");
                 self.render_abstraction_binding(
-                    tree, writer, &name, parameters, *body, false, context,
+                    tree,
+                    writer,
+                    AbstractionBinding { name: &name, parameters, body: *body, uncurried: false },
+                    context,
                 )?;
                 let value = tree.identifier(name);
                 Ok(RenderedExpression { value, pending_evaluation: false })
@@ -843,7 +1450,10 @@ impl Generator<'_> {
             ExpressionKind::UncurriedAbstraction { parameters, body } => {
                 let name = context.allocate("$closure");
                 self.render_abstraction_binding(
-                    tree, writer, &name, parameters, *body, true, context,
+                    tree,
+                    writer,
+                    AbstractionBinding { name: &name, parameters, body: *body, uncurried: true },
+                    context,
                 )?;
                 let value = tree.identifier(name);
                 Ok(RenderedExpression { value, pending_evaluation: false })
@@ -1298,11 +1908,11 @@ impl Generator<'_> {
     ) -> bool {
         match &self.module.storage[pattern].kind {
             PatternKind::Variable(parameter) => {
-                context.bind_direct(parameter, argument.to_owned());
+                context.bind_direct(parameter, SmolStr::new(argument));
                 true
             }
             PatternKind::Named { parameter, pattern } => {
-                context.bind_direct(parameter, argument.to_owned());
+                context.bind_direct(parameter, SmolStr::new(argument));
                 self.bind_inline_pattern(*pattern, argument, context)
             }
             PatternKind::Wildcard => true,
@@ -1317,20 +1927,29 @@ impl Generator<'_> {
         &self,
         tree: &mut Tree,
         writer: &mut Writer<'_>,
-        name: &str,
-        parameters: &[PatternId],
-        body: FunctionalExpressionId,
-        uncurried: bool,
+        binding: AbstractionBinding<'_>,
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
-        if uncurried {
+        let AbstractionBinding { name, parameters, body, uncurried } = binding;
+        // A recursive call in a nested closure starts a distinct invocation; it cannot continue
+        // the loop whose current iteration created that closure.
+        let outer_tail_calls = context.tail_calls.take();
+        let result = if uncurried {
             let arguments = parameters
                 .iter()
                 .map(|pattern| self.allocate_pattern_argument(*pattern, context))
                 .collect_vec();
             writer.constant_arrow(name, arguments.clone(), |writer| {
                 self.render_uncurried_parameters(
-                    tree, writer, parameters, &arguments, 0, body, context,
+                    tree,
+                    writer,
+                    UncurriedParameters {
+                        patterns: parameters,
+                        arguments: &arguments,
+                        position: 0,
+                        body,
+                    },
+                    context,
                 )
             })
         } else {
@@ -1341,17 +1960,21 @@ impl Generator<'_> {
                     self.render_curried_parameter(
                         tree,
                         writer,
-                        parameter,
-                        &argument,
-                        &parameters[1..],
-                        body,
+                        CurriedParameter {
+                            pattern: parameter,
+                            argument: &argument,
+                            remaining: &parameters[1..],
+                            body,
+                        },
                         context,
                     )
                 } else {
                     self.render_expression(tree, writer, body, Destination::Return, context)
                 }
             })
-        }
+        };
+        context.tail_calls = outer_tail_calls;
+        result
     }
 }
 
@@ -1374,16 +1997,101 @@ fn render_let(
         for (binding, name) in bindings.iter().zip(&names) {
             context.bind_direct(&binding.parameter, name.clone());
         }
+
+        let profiles = local_profiles(generator.module, bindings);
+        let mut dispatcher_names = profiles.iter().map(|profile| {
+            let TailCallIdentity::Local(local) = profile.identity else {
+                unreachable!("invariant violated: local tail-call group contains a global")
+            };
+            let position = bindings
+                .iter()
+                .position(|binding| binding.parameter.id == local)
+                .expect("invariant violated: local tail-call profile has no binding");
+            names[position].as_str()
+        });
+        let dispatcher_suffix = dispatcher_names.join("_");
+        let dispatcher_name = context.allocate(format_smolstr!("$tail_{dispatcher_suffix}"));
+        if let Some(group) = tail_call_group(generator.module, profiles, dispatcher_name) {
+            if !group.is_singleton() {
+                let state_name = context.allocate("$state");
+                let argument_names = (0..group.maximum_arity)
+                    .map(|position| context.allocate(format_smolstr!("$argument{position}")))
+                    .collect_vec();
+                let tail_calls =
+                    TailCallContext::new(&group, state_name.clone(), argument_names.clone());
+                let mut dispatcher_parameters = vec![state_name];
+                dispatcher_parameters.extend(argument_names);
+                let outer_tail_calls = context.tail_calls.replace(tail_calls);
+                writer.constant_arrow(&group.dispatcher_name, dispatcher_parameters, |writer| {
+                    generator.render_tail_call_dispatcher(tree, writer, &group, context)
+                })?;
+                context.tail_calls = outer_tail_calls;
+            }
+
+            for (state, profile) in group.profiles.iter().enumerate() {
+                let TailCallIdentity::Local(local) = profile.identity else {
+                    unreachable!("invariant violated: local tail-call group contains a global")
+                };
+                let position = bindings
+                    .iter()
+                    .position(|binding| binding.parameter.id == local)
+                    .expect("invariant violated: local tail-call profile has no binding");
+                generator.render_local_tail_call_wrapper(
+                    tree,
+                    writer,
+                    TailCallWrapper { name: &names[position], group: &group, profile, state },
+                    context,
+                )?;
+            }
+
+            let optimized =
+                group.profiles.iter().map(|profile| profile.identity).collect::<FxHashSet<_>>();
+            for (binding, name) in bindings.iter().zip(&names) {
+                let identity = TailCallIdentity::Local(binding.parameter.id);
+                if optimized.contains(&identity) {
+                    continue;
+                }
+                match &generator.module.storage[binding.expression].kind {
+                    ExpressionKind::Abstraction { parameters, body } => {
+                        generator.render_abstraction_binding(
+                            tree,
+                            writer,
+                            AbstractionBinding { name, parameters, body: *body, uncurried: false },
+                            context,
+                        )?;
+                    }
+                    ExpressionKind::UncurriedAbstraction { parameters, body } => {
+                        generator.render_abstraction_binding(
+                            tree,
+                            writer,
+                            AbstractionBinding { name, parameters, body: *body, uncurried: true },
+                            context,
+                        )?;
+                    }
+                    _ => {
+                        unreachable!("invariant violated: recursive closure group contains a value")
+                    }
+                }
+            }
+            return Ok(());
+        }
+
         for (binding, name) in bindings.iter().zip(&names) {
             match &generator.module.storage[binding.expression].kind {
                 ExpressionKind::Abstraction { parameters, body } => {
                     generator.render_abstraction_binding(
-                        tree, writer, name, parameters, *body, false, context,
+                        tree,
+                        writer,
+                        AbstractionBinding { name, parameters, body: *body, uncurried: false },
+                        context,
                     )?;
                 }
                 ExpressionKind::UncurriedAbstraction { parameters, body } => {
                     generator.render_abstraction_binding(
-                        tree, writer, name, parameters, *body, true, context,
+                        tree,
+                        writer,
+                        AbstractionBinding { name, parameters, body: *body, uncurried: true },
+                        context,
                     )?;
                 }
                 _ => {
@@ -1403,13 +2111,19 @@ fn render_let(
             ExpressionKind::Abstraction { parameters, body } => {
                 context.bind_direct(&binding.parameter, name.clone());
                 generator.render_abstraction_binding(
-                    tree, writer, &name, parameters, *body, false, context,
+                    tree,
+                    writer,
+                    AbstractionBinding { name: &name, parameters, body: *body, uncurried: false },
+                    context,
                 )?;
             }
             ExpressionKind::UncurriedAbstraction { parameters, body } => {
                 context.bind_direct(&binding.parameter, name.clone());
                 generator.render_abstraction_binding(
-                    tree, writer, &name, parameters, *body, true, context,
+                    tree,
+                    writer,
+                    AbstractionBinding { name: &name, parameters, body: *body, uncurried: true },
+                    context,
                 )?;
             }
             _ => {
@@ -1440,7 +2154,7 @@ fn render_lazy_let(
     let names =
         bindings.iter().map(|binding| context.allocate(&binding.parameter.name)).collect_vec();
     let accessors =
-        names.iter().map(|name| context.allocate(&format!("$lazy_{name}"))).collect_vec();
+        names.iter().map(|name| context.allocate(format_smolstr!("$lazy_{name}"))).collect_vec();
     for ((binding, name), accessor) in bindings.iter().zip(&names).zip(&accessors) {
         let _ = name;
         context.bind_lazy(&binding.parameter, accessor.clone());
@@ -1495,7 +2209,10 @@ fn render_case(
     let scrutinees = values;
     match destination {
         Destination::Return
+        | Destination::TailEffectThunkReturn
+        | Destination::TailEffectReturn
         | Destination::EffectReturn
+        | Destination::EffectTailEffectReturn
         | Destination::AssignAndBreak { .. }
         | Destination::EffectAssignAndBreak { .. } => generator.render_case_alternatives(
             tree,
@@ -1612,7 +2329,10 @@ fn render_guarded(
     let context = &mut *renderer.context;
     match destination {
         Destination::Return
+        | Destination::TailEffectThunkReturn
+        | Destination::TailEffectReturn
         | Destination::EffectReturn
+        | Destination::EffectTailEffectReturn
         | Destination::AssignAndBreak { .. }
         | Destination::EffectAssignAndBreak { .. } => {
             generator.render_guard_alternatives(
@@ -1669,10 +2389,12 @@ impl Generator<'_> {
             self.render_guards(
                 tree,
                 writer,
-                &alternative.guards,
-                0,
-                alternative.expression,
-                destination,
+                GuardSequence {
+                    guards: &alternative.guards,
+                    position: 0,
+                    expression: alternative.expression,
+                    destination,
+                },
                 context,
             )?;
         }
@@ -1683,12 +2405,10 @@ impl Generator<'_> {
         &self,
         tree: &mut Tree,
         writer: &mut Writer<'_>,
-        guards: &[Guard],
-        position: usize,
-        expression: FunctionalExpressionId,
-        destination: Destination<'_>,
+        sequence: GuardSequence<'_, '_>,
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
+        let GuardSequence { guards, position, expression, destination } = sequence;
         let Some(guard) = guards.get(position) else {
             return self.render_expression(tree, writer, expression, destination, context);
         };
@@ -1699,10 +2419,7 @@ impl Generator<'_> {
                     self.render_guards(
                         tree,
                         writer,
-                        guards,
-                        position + 1,
-                        expression,
-                        destination,
+                        GuardSequence { guards, position: position + 1, expression, destination },
                         context,
                     )
                 })
@@ -1719,10 +2436,12 @@ impl Generator<'_> {
                         self.render_guards(
                             tree,
                             writer,
-                            guards,
-                            position + 1,
-                            expression,
-                            destination,
+                            GuardSequence {
+                                guards,
+                                position: position + 1,
+                                expression,
+                                destination,
+                            },
                             context,
                         )
                     })
@@ -1731,10 +2450,7 @@ impl Generator<'_> {
                     self.render_guards(
                         tree,
                         writer,
-                        guards,
-                        position + 1,
-                        expression,
-                        destination,
+                        GuardSequence { guards, position: position + 1, expression, destination },
                         context,
                     )
                 }
@@ -1900,7 +2616,7 @@ impl Generator<'_> {
         plan: &mut PatternPlan,
     ) {
         if let Some(root_name) = root_name {
-            context.bind_direct(parameter, root_name.to_owned());
+            context.bind_direct(parameter, SmolStr::new(root_name));
         } else {
             let name = context.allocate(&parameter.name);
             context.bind_direct(parameter, name.clone());
@@ -1912,7 +2628,7 @@ impl Generator<'_> {
         &self,
         pattern: PatternId,
         context: &mut FunctionContext,
-    ) -> String {
+    ) -> SmolStr {
         let preferred = pattern_parameter(&self.module.storage, pattern)
             .map(|parameter| parameter.name.as_str())
             .unwrap_or("$argument");
@@ -2203,7 +2919,7 @@ fn execute_effect_action(
     renderer: &mut FunctionRenderer<'_, '_, '_, '_>,
     action: CapturedEffectAction,
     preferred_name: &str,
-) -> ModuleResult<(ExpressionId, String)> {
+) -> ModuleResult<(ExpressionId, SmolStr)> {
     let name = renderer.context.allocate(preferred_name);
     match action {
         CapturedEffectAction::Expression(action) => {
@@ -2345,7 +3061,7 @@ impl Generator<'_> {
     fn global_name(&self, id: GlobalId) -> &str {
         self.global_names
             .get(&id)
-            .map(String::as_str)
+            .map(SmolStr::as_str)
             .expect("invariant violated: JavaScript global has no allocated name")
     }
 

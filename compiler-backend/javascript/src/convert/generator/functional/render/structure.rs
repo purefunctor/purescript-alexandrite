@@ -51,7 +51,7 @@ pub(super) fn cyclic_instance_initializers(module: &Module) -> FxHashSet<GlobalI
     }
 
     let mut cyclic_initializers = FxHashSet::default();
-    for position in 0..initializers.len() {
+    for (position, (global_id, _)) in initializers.iter().enumerate() {
         let mut visited_initializers = FxHashSet::default();
         if reaches_initializer(
             position,
@@ -59,7 +59,7 @@ pub(super) fn cyclic_instance_initializers(module: &Module) -> FxHashSet<GlobalI
             &initializer_dependencies,
             &mut visited_initializers,
         ) {
-            cyclic_initializers.insert(initializers[position].0);
+            cyclic_initializers.insert(*global_id);
         }
     }
 

@@ -4,9 +4,6 @@ import * as Library from "./output/Library/index.js";
 import * as Main from "./output/Main/index.js";
 
 const source = await readFile(new URL("./output/Main/index.js", import.meta.url), "utf8");
-if (source.includes("while (true)") || source.includes("switch (")) {
-  throw new Error("acyclic source was rendered as a state machine");
-}
 if (!source.includes("export const integer = 42 | 0;")) {
   throw new Error("integer declaration is not exported inline");
 }

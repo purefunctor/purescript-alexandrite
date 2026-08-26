@@ -1,10 +1,15 @@
 import * as $foreign from "./foreign.js";
 export function localTail(value) {
   const go = (current) => {
-    if (equalInt(current)(0 | 0)) {
-      return current;
-    } else {
-      return go(decrementInt(current));
+    let $argument0 = current;
+    while (true) {
+      const $currentArgument0 = $argument0;
+      if (equalInt($currentArgument0)(0 | 0)) {
+        return $currentArgument0;
+      } else {
+        $argument0 = decrementInt($currentArgument0);
+        continue;
+      }
     }
   };
   return go(value);
