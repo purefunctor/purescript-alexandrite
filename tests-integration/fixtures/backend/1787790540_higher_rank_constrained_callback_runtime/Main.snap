@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+before :: forall @value. Main.Before value => value -> value -> Prim.Boolean
+Left :: Main.Marker
+Right :: Main.Marker
+runComparison :: (forall value. Main.Before value => value -> value -> Prim.Boolean) -> Prim.Boolean
+result :: Prim.Boolean
+
+Types
+Before :: Prim.Type -> Prim.Constraint
+Marker :: Prim.Type
+
+Classes
+class forall (value :: Prim.Type). Main.Before value
+  before :: forall @value. Main.Before value => value -> value -> Prim.Boolean
+
+Instances
+instance Main.Before Main.Marker
+
+Roles
+Marker = []
