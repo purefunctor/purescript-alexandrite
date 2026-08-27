@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 314
+expression: report
+---
+data RightOnly :: forall k0. k0 -> Prim.Type -> Prim.Type
+data RightOnly @a @b
+  | RightOnly :: b -> Main.RightOnly a b
+
+data NestedRightOnly :: forall k0. k0 -> Prim.Type -> Prim.Type
+data NestedRightOnly @a @b
+  | NestedRightOnly :: Main.RightOnly @Prim.Type Prim.Int b -> Main.NestedRightOnly a b
+
+dictionary bifunctorRightOnlyType :: Data.Bifunctor.Bifunctor (Main.RightOnly @Prim.Type) where
+  bimap :: forall a b c d.
+  (a -> b) -> (c -> d) -> Main.RightOnly @Prim.Type a c -> Main.RightOnly @Prim.Type b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (RightOnly field0) -> RightOnly (secondFunction field0)
+
+dictionary bifunctorNestedRightOnlyType ::
+  Data.Bifunctor.Bifunctor (Main.NestedRightOnly @Prim.Type)
+  where
+  bimap :: forall a b c d.
+  (a -> b) -> (c -> d) -> Main.NestedRightOnly @Prim.Type a c -> Main.NestedRightOnly @Prim.Type b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (NestedRightOnly field0) -> NestedRightOnly
+        (bimap {bifunctorRightOnlyType} (\unchanged -> unchanged)
+          (\element -> secondFunction element)
+          field0)
