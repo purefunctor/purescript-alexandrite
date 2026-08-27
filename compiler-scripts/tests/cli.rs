@@ -13,6 +13,29 @@ fn run(current_directory: &Path, arguments: &[&str]) -> Output {
         .expect("compiler scripts should run")
 }
 
+#[cfg(unix)]
+fn write_failing_snapshot_cargo(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    std::fs::write(
+        path,
+        "#!/bin/sh\nif [ \"$1\" = \"nextest\" ]; then exit 0; fi\necho snapshot inspection failed >&2\nexit 19\n",
+    )
+    .unwrap();
+    let mut permissions = std::fs::metadata(path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(windows)]
+fn write_failing_snapshot_cargo(path: &Path) {
+    std::fs::write(
+        path.with_extension("cmd"),
+        "@echo off\r\nif \"%1\"==\"nextest\" exit /b 0\r\necho snapshot inspection failed 1>&2\r\nexit /b 19\r\n",
+    )
+    .unwrap();
+}
+
 #[test]
 fn creates_previews_and_deletes_a_fixture_through_the_cli() {
     let temporary = tempfile::tempdir().unwrap();
@@ -63,5 +86,26 @@ fn runs_a_fixture_category_end_to_end() {
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert!(
         String::from_utf8_lossy(&result.stdout).contains("All tests passed, no pending snapshots.")
+    );
+}
+
+#[test]
+fn reports_failed_pending_snapshot_inspection() {
+    let temporary = tempfile::tempdir().unwrap();
+    let binaries = temporary.path().join("bin");
+    std::fs::create_dir(&binaries).unwrap();
+    write_failing_snapshot_cargo(&binaries.join("cargo"));
+
+    let result = scripts()
+        .current_dir(temporary.path())
+        .env("PATH", binaries)
+        .args(["docs", "snapshot_failure"])
+        .output()
+        .expect("compiler scripts should run");
+
+    assert!(!result.status.success());
+    assert!(
+        String::from_utf8_lossy(&result.stderr)
+            .contains("cargo insta pending-snapshots failed: snapshot inspection failed")
     );
 }
