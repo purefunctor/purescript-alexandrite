@@ -13,27 +13,17 @@ fn run(current_directory: &Path, arguments: &[&str]) -> Output {
         .expect("compiler scripts should run")
 }
 
-#[cfg(unix)]
-fn write_failing_snapshot_cargo(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-
-    std::fs::write(
-        path,
-        "#!/bin/sh\nif [ \"$1\" = \"nextest\" ]; then exit 0; fi\necho snapshot inspection failed >&2\nexit 19\n",
-    )
-    .unwrap();
-    let mut permissions = std::fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o755);
-    std::fs::set_permissions(path, permissions).unwrap();
-}
-
-#[cfg(windows)]
-fn write_failing_snapshot_cargo(path: &Path) {
-    std::fs::write(
-        path.with_extension("cmd"),
-        "@echo off\r\nif \"%1\"==\"nextest\" exit /b 0\r\necho snapshot inspection failed 1>&2\r\nexit /b 19\r\n",
-    )
-    .unwrap();
+fn build_failing_snapshot_cargo(path: &Path) {
+    let source =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/failing_snapshot_cargo.rs");
+    let executable = path.with_extension(std::env::consts::EXE_EXTENSION);
+    let status = Command::new("rustc")
+        .arg(source)
+        .arg("-o")
+        .arg(executable)
+        .status()
+        .expect("rustc should run");
+    assert!(status.success(), "fake cargo should compile");
 }
 
 #[test]
@@ -94,7 +84,7 @@ fn reports_failed_pending_snapshot_inspection() {
     let temporary = tempfile::tempdir().unwrap();
     let binaries = temporary.path().join("bin");
     std::fs::create_dir(&binaries).unwrap();
-    write_failing_snapshot_cargo(&binaries.join("cargo"));
+    build_failing_snapshot_cargo(&binaries.join("cargo"));
 
     let result = scripts()
         .current_dir(temporary.path())
