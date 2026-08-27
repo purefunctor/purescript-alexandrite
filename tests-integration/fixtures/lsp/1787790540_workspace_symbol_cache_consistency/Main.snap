@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 380
+expression: report
+---
+WorkspaceSymbols query "cache"
+
+cacheAlpha Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 2:0..3:14
+cacheAlpine Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 5:0..6:15
+cacheBeta Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 8:0..9:13
+
+
+WorkspaceSymbols query "cache"
+
+cacheAlpha Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 2:0..3:14
+cacheAlpine Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 5:0..6:15
+cacheBeta Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 8:0..9:13
+
+
+WorkspaceSymbols query "cachea"
+
+cacheAlpha Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 2:0..3:14
+cacheAlpine Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 5:0..6:15
+
+
+WorkspaceSymbols query "cacheal"
+
+cacheAlpha Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 2:0..3:14
+cacheAlpine Function file:///tests-integration/fixtures/lsp/1787790540_workspace_symbol_cache_consistency/Main.purs @ 5:0..6:15
