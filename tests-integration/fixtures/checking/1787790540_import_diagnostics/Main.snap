@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 296
+expression: report
+---
+Terms
+
+Types
+
+Diagnostics
+Warning! · [DuplicateImport] · Main.purs:5:5
+  •
+  │
+  • Import list contains multiple references to 'value'
+  │
+  │     , value
+  │       ╰────
+  •
+  │ First imported here
+  │
+  │     ( value
+  │       ╰────
+  •
+
+Error! · [InvalidImportStatement] · Main.purs:8:1
+  •
+  │
+  • Cannot import module 'Missing'
+  │
+  │   import Missing
+  │   ╰─────────────
+  •
+
+Error! · [InvalidImportItem] · Main.purs:6:5
+  •
+  │
+  • Cannot import item 'missing'
+  │
+  │     , missing
+  │       ╰──────
+  •
