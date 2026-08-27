@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 268
+assertion_line: 275
 expression: diagnostics_report
 ---
 Terms
@@ -10,10 +10,6 @@ directApply :: Prim.Int
 directApplyOrder :: Prim.Boolean -> Prim.Int
 flippedApply :: Prim.Int
 flippedApplyOrder :: Prim.Boolean -> Prim.Int
-functionIdentity :: Prim.Int
-coerced :: Prim.Int
 lookalikeApply :: Prim.Int
-lookalikeIdentity :: Prim.Int
-lookalikeCoerce :: Prim.Int
 
 Types

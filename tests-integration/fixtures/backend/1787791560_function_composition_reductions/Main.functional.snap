@@ -1,0 +1,42 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign observe
+
+@export foreign readTrace
+
+@export composed = semigroupoidFunctionDictCompose (\value%0 -> value%0) (\value%1 -> value%1) 42
+
+@export composeOrder = \$boolean%4@(_) ->
+  semigroupoidFunctionDictCompose (observe "outer" (\value%2 -> value%2))
+    (observe "inner" (\value%3 -> value%3))
+    (observe "argument" 42)
+
+@export partiallyComposedOrder = \$boolean%8@(_) ->
+  let
+    composedFunction%5 = semigroupoidFunctionDictCompose (observe "outer" (\value%6 -> value%6))
+      (observe "inner" (\value%7 -> value%7))
+  in composedFunction%5 (observe "argument" 42)
+
+@export flippedComposed = composeFlipped semigroupoidFn (\value%9 -> value%9)
+  (\value%10 -> value%10)
+  42
+
+@export flippedComposeOrder = \$boolean%13@(_) ->
+  composeFlipped semigroupoidFn (observe "inner" (\value%11 -> value%11))
+    (observe "outer" (\value%12 -> value%12))
+    (observe "argument" 42)
+
+@export partiallyFlippedComposedOrder = \$boolean%17@(_) ->
+  let
+    composedFunction%14 = composeFlipped semigroupoidFn (observe "inner" (\value%15 -> value%15))
+      (observe "outer" (\value%16 -> value%16))
+  in composedFunction%14 (observe "argument" 42)
+
+@export lookalikeCompose = compose (\value%18 -> value%18) (\value%19 -> value%19) 42
+
+@export lookalikeComposeFlipped = composeFlipped (\value%20 -> value%20) (\value%21 -> value%21) 42
+
+semigroupoidFunctionDictCompose = compose semigroupoidFn

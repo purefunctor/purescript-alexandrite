@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+functionIdentity :: Prim.Int
+lookalikeIdentity :: Prim.Int
+
+Types

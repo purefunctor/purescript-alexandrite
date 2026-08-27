@@ -1,5 +1,6 @@
 ---
 source: tests-integration/tests/functional.rs
+assertion_line: 14
 expression: report
 ---
 @export foreign observe
@@ -19,12 +20,4 @@ expression: report
     applyFunction%6 = observe "function" (\value%4 -> value%4)
   in applyFunction%6 applyArgument%5
 
-@export functionIdentity = 42
-
-@export coerced = 42
-
 @export lookalikeApply = apply (\value%8 -> value%8) 42
-
-@export lookalikeIdentity = identity categoryFn 42
-
-@export lookalikeCoerce = unsafeCoerce 42
