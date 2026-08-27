@@ -1,6 +1,8 @@
 module Control.Category where
 
-class Category (category :: Type -> Type -> Type) where
+import Control.Semigroupoid (class Semigroupoid)
+
+class Semigroupoid category <= Category (category :: Type -> Type -> Type) where
   identity :: forall value. category value value
 
 instance categoryFn :: Category Function where

@@ -12,8 +12,4 @@ export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
 export const directApply = ((value) => value)(42 | 0);
 export const flippedApply = ((value) => value)(42 | 0);
-export const functionIdentity = 42 | 0;
-export const coerced = 42 | 0;
 export const lookalikeApply = Lookalike.apply((value) => value)(42 | 0);
-export const lookalikeIdentity = /* @__PURE__ */ Lookalike.identity(Lookalike.categoryFn)(42 | 0);
-export const lookalikeCoerce = Lookalike.unsafeCoerce(42 | 0);

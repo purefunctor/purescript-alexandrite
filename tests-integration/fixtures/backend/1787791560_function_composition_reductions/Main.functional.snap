@@ -1,0 +1,50 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign observe
+
+@export foreign readTrace
+
+@export composed = (\composeArgument%4 ->
+  (\value%0 -> value%0) ((\value%1 -> value%1) composeArgument%4))
+  42
+
+@export composeOrder = \$boolean%10@(_) ->
+  (let
+    composeOuter%7 = observe "outer" (\value%5 -> value%5)
+    composeInner%8 = observe "inner" (\value%6 -> value%6)
+  in \composeArgument%9 -> composeOuter%7 (composeInner%8 composeArgument%9))
+    (observe "argument" 42)
+
+@export partiallyComposedOrder = \$boolean%17@(_) ->
+  let
+    composedFunction%11 = let
+      composeOuter%14 = observe "outer" (\value%12 -> value%12)
+      composeInner%15 = observe "inner" (\value%13 -> value%13)
+    in \composeArgument%16 -> composeOuter%14 (composeInner%15 composeArgument%16)
+  in composedFunction%11 (observe "argument" 42)
+
+@export flippedComposed = (\composeArgument%22 ->
+  (\value%19 -> value%19) ((\value%18 -> value%18) composeArgument%22))
+  42
+
+@export flippedComposeOrder = \$boolean%28@(_) ->
+  (let
+    composeInner%25 = observe "inner" (\value%23 -> value%23)
+    composeOuter%26 = observe "outer" (\value%24 -> value%24)
+  in \composeArgument%27 -> composeOuter%26 (composeInner%25 composeArgument%27))
+    (observe "argument" 42)
+
+@export partiallyFlippedComposedOrder = \$boolean%35@(_) ->
+  let
+    composedFunction%29 = let
+      composeInner%32 = observe "inner" (\value%30 -> value%30)
+      composeOuter%33 = observe "outer" (\value%31 -> value%31)
+    in \composeArgument%34 -> composeOuter%33 (composeInner%32 composeArgument%34)
+  in composedFunction%29 (observe "argument" 42)
+
+@export lookalikeCompose = compose (\value%36 -> value%36) (\value%37 -> value%37) 42
+
+@export lookalikeComposeFlipped = composeFlipped (\value%38 -> value%38) (\value%39 -> value%39) 42

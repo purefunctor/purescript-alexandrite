@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+observe :: forall value. Prim.String -> value -> value
+readTrace :: Prim.Boolean -> Prim.Array Prim.String
+composed :: Prim.Int
+composeOrder :: Prim.Boolean -> Prim.Int
+partiallyComposedOrder :: Prim.Boolean -> Prim.Int
+flippedComposed :: Prim.Int
+flippedComposeOrder :: Prim.Boolean -> Prim.Int
+partiallyFlippedComposedOrder :: Prim.Boolean -> Prim.Int
+lookalikeCompose :: Prim.Int
+lookalikeComposeFlipped :: Prim.Int
+
+Types

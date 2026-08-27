@@ -1,0 +1,12 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export unsafelyCoerced = 42
+
+@export safelyCoerced = 42
+
+@export lookalikeUnsafeCoerce = unsafeCoerce 42
+
+@export lookalikeSafeCoerce = coerce 42

@@ -1,0 +1,8 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export functionIdentity = 42
+
+@export lookalikeIdentity = identity categoryFn 42

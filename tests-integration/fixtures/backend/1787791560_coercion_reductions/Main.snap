@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+unsafelyCoerced :: Prim.Int
+safelyCoerced :: Prim.Int
+lookalikeUnsafeCoerce :: Prim.Int
+lookalikeSafeCoerce :: Prim.Int
+
+Types
