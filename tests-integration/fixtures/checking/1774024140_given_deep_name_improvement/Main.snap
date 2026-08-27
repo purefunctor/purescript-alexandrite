@@ -1,12 +1,14 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 296
 expression: report
 ---
 Terms
 needsAdd ::
   forall (x :: Prim.Int).
     Prim.Int.Add 1 (x :: Prim.Int) 3 => Type.Proxy.Proxy @Prim.Int (x :: Prim.Int)
+needsInt ::
+  forall t0 (value :: t0). Main.IsInt @t0 (value :: t0) => Type.Proxy.Proxy @t0 (value :: t0)
 nonHeadGivenImprovement ::
   forall (n :: Prim.Int).
     Prim.Row.Union @Prim.Type
@@ -14,6 +16,20 @@ nonHeadGivenImprovement ::
       ()
       ( a :: Type.Proxy.Proxy @Prim.Int 2 ) =>
     Type.Proxy.Proxy @Prim.Int (n :: Prim.Int)
-forceSolve :: { nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2 }
+functionGivenImprovement ::
+  forall value.
+    Prim.Row.Union @Prim.Type ( a :: value -> Prim.String ) () ( a :: Prim.Int -> Prim.String ) =>
+    Type.Proxy.Proxy @Prim.Type value
+forceSolve ::
+  { functionGivenImprovement :: Type.Proxy.Proxy @Prim.Type Prim.Int
+  , nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2
+  }
 
 Types
+IsInt :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (value :: t0). Main.IsInt @t0 (value :: t0)
+
+Instances
+instance Main.IsInt @Prim.Type Prim.Int

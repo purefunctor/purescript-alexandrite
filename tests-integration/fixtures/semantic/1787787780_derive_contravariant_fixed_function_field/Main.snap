@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 314
+expression: report
+---
+data PredicateWithFormatter :: Prim.Type -> Prim.Type
+data PredicateWithFormatter @a
+  | PredicateWithFormatter ::
+    (a -> Prim.Boolean) -> (Prim.Int -> Prim.String) -> Main.PredicateWithFormatter a
+
+dictionary contravariantPredicateWithFormatter ::
+  Data.Functor.Contravariant.Contravariant Main.PredicateWithFormatter
+  where
+  cmap :: forall a b. (b -> a) -> Main.PredicateWithFormatter a -> Main.PredicateWithFormatter b
+  cmap = \function value ->
+    case value of
+      (PredicateWithFormatter field0 field1) -> PredicateWithFormatter
+        (\argument -> field0 (function argument))
+        field1
