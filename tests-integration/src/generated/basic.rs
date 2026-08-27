@@ -510,6 +510,10 @@ fn write_checked_diagnostics(
 
     let mut all_diagnostics = vec![];
 
+    for error in &indexed.errors {
+        all_diagnostics.extend(error.to_diagnostics(&context));
+    }
+
     for error in &lowered.errors {
         all_diagnostics.extend(error.to_diagnostics(&context));
     }
