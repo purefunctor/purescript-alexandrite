@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 314
+expression: report
+---
+qualifiedDo :: Control.Box Prim.Int
+qualifiedDo = bind action \value -> discard action \_ -> pure value
+
+qualifiedAdo :: Control.Box Prim.Int
+qualifiedAdo = apply (map (\left right -> left) action) action
+
+qualifiedPure :: Control.Box Prim.Int
+qualifiedPure = pure 1

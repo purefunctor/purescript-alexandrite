@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 331
+expression: report
+---
+module Main
+
+Expressions:
+
+"hello \
+  \world"@2:9
+  -> string String "hello \\\n  \\world"
+
+Types:

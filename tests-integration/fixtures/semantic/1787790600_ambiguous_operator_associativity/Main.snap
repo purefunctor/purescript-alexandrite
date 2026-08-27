@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 314
+expression: report
+---
+nonAssociative :: forall t0 t1. t0 -> t1 -> t0
+nonAssociative = \left -> \right -> left
+
+singleNonAssociative :: Prim.Int
+singleNonAssociative = nonAssociative 1 2
+
+ambiguousNonAssociative :: Prim.Int
+ambiguousNonAssociative = <error>
+
+leftAssociative :: forall t0 t1. t0 -> t1 -> t0
+leftAssociative = \left -> \right -> left
+
+rightAssociative :: forall t0 t1. t0 -> t1 -> t1
+rightAssociative = \left -> \right -> right
+
+validLeftAssociative :: Prim.Int
+validLeftAssociative = leftAssociative (leftAssociative 1 2) 3
+
+validRightAssociative :: Prim.Int
+validRightAssociative = rightAssociative 1 (rightAssociative 2 3)
+
+validMixedPrecedence :: Prim.Int
+validMixedPrecedence = leftAssociative 1 (rightAssociative 2 3)
+
+ambiguousMixedAssociativity :: Prim.Int
+ambiguousMixedAssociativity = <error>
