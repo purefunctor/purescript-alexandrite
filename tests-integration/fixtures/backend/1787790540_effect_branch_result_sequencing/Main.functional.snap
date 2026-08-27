@@ -1,0 +1,32 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor First/0
+
+@export constructor Second/0
+
+@export foreign constructEffect
+
+@export branchResult = \condition%0 seed%1 ->
+  effect.bind (if condition%0
+    then constructEffect "branch-then" seed%1
+    else constructEffect "branch-else" seed%1)
+    \selected%2 -> constructEffect "branch-after" selected%2
+
+@export caseResult = \choice%3 seed%4 ->
+  effect.bind (case choice%3 of
+    First ->
+      constructEffect "case-first" seed%4
+    Second ->
+      constructEffect "case-second" seed%4)
+    \selected%5 -> constructEffect "case-after" selected%5
+
+@export guardResult = \condition%8 seed%6 ->
+  effect.bind (case seed%6 of
+    value%7 ->
+      | condition%8 -> constructEffect "guard-true" value%7
+    value%9 ->
+      constructEffect "guard-false" value%9)
+    \selected%10 -> constructEffect "guard-after" selected%10
