@@ -7,6 +7,12 @@ import Type.Proxy (Proxy(..))
 needsAdd :: forall x. Add 1 x 3 => Proxy x
 needsAdd = Proxy
 
+class IsInt value
+instance IsInt Int
+
+needsInt :: forall value. IsInt value => Proxy value
+needsInt = Proxy
+
 nonHeadGivenImprovement
   :: forall n
    . Row.Union (a :: Proxy n) () (a :: Proxy 2)
@@ -17,23 +23,9 @@ functionGivenImprovement
   :: forall value
    . Row.Union (a :: value -> String) () (a :: Int -> String)
   => Proxy value
-functionGivenImprovement = Proxy
-
-leftOpenRowGivenImprovement
-  :: forall row
-   . Row.Union (a :: Record (x :: Int | row)) () (a :: Record (x :: Int, y :: String))
-  => Proxy row
-leftOpenRowGivenImprovement = Proxy
-
-rightOpenRowGivenImprovement
-  :: forall row
-   . Row.Union (a :: Record (x :: Int, y :: String)) () (a :: Record (x :: Int | row))
-  => Proxy row
-rightOpenRowGivenImprovement = Proxy
+functionGivenImprovement = needsInt
 
 forceSolve =
   { nonHeadGivenImprovement
   , functionGivenImprovement
-  , leftOpenRowGivenImprovement
-  , rightOpenRowGivenImprovement
   }
