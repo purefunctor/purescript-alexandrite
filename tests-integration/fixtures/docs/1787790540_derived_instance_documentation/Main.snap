@@ -1,0 +1,357 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 363
+expression: report
+---
+{
+  "manifest": {
+    "dependencies": {},
+    "description": null,
+    "license": null,
+    "location": null,
+    "modules": [
+      "Main",
+      "Remote",
+      "Wrapping"
+    ],
+    "name": "docs-fixture",
+    "version": "0.0.0"
+  },
+  "modules": [
+    {
+      "documentation": null,
+      "name": "Main",
+      "terms": [
+        {
+          "documentation": "A derived instance for an imported class and type.",
+          "kind": "Derive",
+          "name": "wrapRemote",
+          "signature": {
+            "argument": {
+              "reference": {
+                "module": "Remote",
+                "name": "Remote",
+                "package": "docs-fixture"
+              },
+              "tag": "constructor"
+            },
+            "function": {
+              "argument": {
+                "reference": {
+                  "module": "Prim",
+                  "name": "Type",
+                  "package": null
+                },
+                "tag": "constructor"
+              },
+              "function": {
+                "reference": {
+                  "module": "Wrapping",
+                  "name": "Wrap",
+                  "package": "docs-fixture"
+                },
+                "tag": "constructor"
+              },
+              "tag": "kindApplication"
+            },
+            "tag": "application"
+          }
+        }
+      ],
+      "types": [
+        {
+          "documentation": "A local class used by a derived instance.",
+          "form": {
+            "declaration": {
+              "binders": [
+                {
+                  "kind": {
+                    "kind": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "name": "t0",
+                    "tag": "rigid"
+                  },
+                  "name": "a",
+                  "visible": true
+                }
+              ]
+            },
+            "functionalDependencies": [],
+            "instances": [
+              {
+                "documentation": "A derived instance associated with both local declarations.",
+                "kind": "Derive",
+                "name": "localWrapBox",
+                "signature": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "LocalWrap",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "kindApplication"
+                  },
+                  "tag": "application"
+                }
+              }
+            ],
+            "members": [],
+            "signature": {
+              "binder": {
+                "kind": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "name": "t0",
+                "visible": false
+              },
+              "body": {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "t0",
+                  "tag": "rigid"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Constraint",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "forall"
+            },
+            "superclasses": [],
+            "tag": "class"
+          },
+          "name": "LocalWrap"
+        },
+        {
+          "documentation": "A local type used by derived instances.",
+          "form": {
+            "constructors": [
+              {
+                "documentation": null,
+                "kind": "Constructor",
+                "name": "Box",
+                "signature": {
+                  "reference": {
+                    "module": "Main",
+                    "name": "Box",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                }
+              }
+            ],
+            "declaration": {
+              "binders": []
+            },
+            "instances": [
+              {
+                "documentation": "A derived instance associated with both local declarations.",
+                "kind": "Derive",
+                "name": "localWrapBox",
+                "signature": {
+                  "argument": {
+                    "reference": {
+                      "module": "Main",
+                      "name": "Box",
+                      "package": "docs-fixture"
+                    },
+                    "tag": "constructor"
+                  },
+                  "function": {
+                    "argument": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "function": {
+                      "reference": {
+                        "module": "Main",
+                        "name": "LocalWrap",
+                        "package": "docs-fixture"
+                      },
+                      "tag": "constructor"
+                    },
+                    "tag": "kindApplication"
+                  },
+                  "tag": "application"
+                }
+              }
+            ],
+            "signature": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "data"
+          },
+          "name": "Box"
+        }
+      ]
+    },
+    {
+      "documentation": null,
+      "name": "Remote",
+      "terms": [],
+      "types": [
+        {
+          "documentation": "A remotely defined type.",
+          "form": {
+            "constructors": [
+              {
+                "documentation": null,
+                "kind": "Constructor",
+                "name": "Remote",
+                "signature": {
+                  "reference": {
+                    "module": "Remote",
+                    "name": "Remote",
+                    "package": "docs-fixture"
+                  },
+                  "tag": "constructor"
+                }
+              }
+            ],
+            "declaration": {
+              "binders": []
+            },
+            "instances": [],
+            "signature": {
+              "reference": {
+                "module": "Prim",
+                "name": "Type",
+                "package": null
+              },
+              "tag": "constructor"
+            },
+            "tag": "data"
+          },
+          "name": "Remote"
+        }
+      ]
+    },
+    {
+      "documentation": null,
+      "name": "Wrapping",
+      "terms": [],
+      "types": [
+        {
+          "documentation": "A remotely defined class.",
+          "form": {
+            "declaration": {
+              "binders": [
+                {
+                  "kind": {
+                    "kind": {
+                      "reference": {
+                        "module": "Prim",
+                        "name": "Type",
+                        "package": null
+                      },
+                      "tag": "constructor"
+                    },
+                    "name": "t0",
+                    "tag": "rigid"
+                  },
+                  "name": "a",
+                  "visible": true
+                }
+              ]
+            },
+            "functionalDependencies": [],
+            "instances": [],
+            "members": [],
+            "signature": {
+              "binder": {
+                "kind": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Type",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "name": "t0",
+                "visible": false
+              },
+              "body": {
+                "argument": {
+                  "kind": {
+                    "reference": {
+                      "module": "Prim",
+                      "name": "Type",
+                      "package": null
+                    },
+                    "tag": "constructor"
+                  },
+                  "name": "t0",
+                  "tag": "rigid"
+                },
+                "result": {
+                  "reference": {
+                    "module": "Prim",
+                    "name": "Constraint",
+                    "package": null
+                  },
+                  "tag": "constructor"
+                },
+                "tag": "function"
+              },
+              "tag": "forall"
+            },
+            "superclasses": [],
+            "tag": "class"
+          },
+          "name": "Wrap"
+        }
+      ]
+    }
+  ]
+}
