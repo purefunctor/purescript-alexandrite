@@ -92,7 +92,8 @@ fn check_uses_registered_packages_until_they_are_cleared() {
     assert!(checked.types.is_empty());
     assert!(checked.synonyms.is_empty());
     assert!(checked.errors.is_empty());
-    assert!(checked.timing.all().into_iter().all(|timing| timing >= 0.0));
+    let mut timings = checked.timing.all().into_iter();
+    assert!(timings.all(|timing| timing >= 0.0));
 
     let synonym_source =
         "module Main where\n\ntype Identity a = a\n\nidentity :: forall a. Identity a -> a\nidentity value = value";
