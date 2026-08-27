@@ -514,6 +514,7 @@ dependencies = [
  "serde",
  "serde_json",
  "similar 3.1.2",
+ "tempfile",
 ]
 
 [[package]]

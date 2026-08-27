@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::{env, fs};
 
-use anyhow::Context;
+use anyhow::{Context, bail};
 use console::style;
 use serde::Deserialize;
 
@@ -45,9 +45,12 @@ pub fn collect_pending_snapshots(
         .arg("insta")
         .arg("pending-snapshots")
         .arg("--as-json")
-        .stderr(Stdio::null())
         .output()
         .context("failed to run cargo insta")?;
+    if !pending_output.status.success() {
+        let stderr = String::from_utf8_lossy(&pending_output.stderr);
+        bail!("cargo insta pending-snapshots failed: {}", stderr.trim());
+    }
 
     let pending = String::from_utf8_lossy(&pending_output.stdout);
     let pending = pending.trim();

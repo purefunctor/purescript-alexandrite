@@ -294,7 +294,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2.85.4
         with:
-          tool: cargo-nextest,cargo-llvm-cov,just
+          tool: cargo-nextest,cargo-llvm-cov,cargo-insta,just
 
       - name: Build and Test
         run: |
