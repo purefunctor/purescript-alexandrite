@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+First :: Main.Choice
+Second :: Main.Choice
+constructEffect :: forall value. Prim.String -> value -> Effect.Effect value
+branchResult :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+caseResult :: Main.Choice -> Prim.String -> Effect.Effect Prim.String
+guardResult :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+
+Types
+Choice :: Prim.Type
+
+Roles
+Choice = []

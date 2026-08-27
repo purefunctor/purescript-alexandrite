@@ -1,0 +1,25 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export before = \dictionary%0 -> dictionary%0.before
+
+@export constructor Left/0
+
+@export constructor Right/0
+
+@export instance beforeMarker = {
+  before:
+    \$marker%1 $marker%2 ->
+      case $marker%1, $marker%2 of
+        Left, Right ->
+          true
+        _, _ ->
+          false
+}
+
+@export runComparison = \comparison%3 -> comparison%3 beforeMarker "Left" "Right"
+
+@export result = runComparison
+  (\beforeValueDict%4 -> \left%5 right%6 -> before beforeValueDict%4 left%5 right%6)

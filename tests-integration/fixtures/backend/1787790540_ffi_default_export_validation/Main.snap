@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 275
+expression: diagnostics_report
+---
+Terms
+requested :: Prim.Int
+
+Types
+
+Diagnostics
+Error! · [MissingFFIImplementation] · Main.purs:3:1
+  •
+  │
+  • JavaScript FFI module does not export 'requested'
+  │
+  │   foreign import requested :: Int
+  │   ╰──────────────────────────────
+  •
