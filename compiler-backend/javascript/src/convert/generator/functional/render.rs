@@ -263,8 +263,7 @@ impl<'m> Generator<'m> {
 }
 
 fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
-    let generator = renderer.generator;
-    let writer = &mut *renderer.writer;
+    let ModuleRenderer { generator, writer, .. } = renderer;
     let mut files = generator
         .external_module_namespaces
         .keys()
@@ -295,9 +294,7 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
 }
 
 fn render_constructors(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
+    let ModuleRenderer { generator, tree, writer } = renderer;
     let mut rendered = false;
     for declaration in generator.module.declarations.iter() {
         let DeclarationKind::Constructor { arity } = declaration.kind else {
@@ -344,10 +341,7 @@ fn render_named_function(
     expression: FunctionalExpressionId,
     exported: bool,
 ) -> ModuleResult<()> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     match &generator.module.storage[expression].kind {
         ExpressionKind::Abstraction { parameters, body } => {
             let (argument, parameter) = generator.first_argument(parameters, context);
@@ -450,9 +444,7 @@ impl Generator<'_> {
 }
 
 fn render_foreign_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
+    let ModuleRenderer { generator, tree, writer } = renderer;
     let Some(namespace) = &generator.foreign_namespace else {
         return;
     };
@@ -1360,10 +1352,7 @@ fn render_let(
     recursive: bool,
     bindings: &[Binding],
 ) -> ModuleResult<()> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     if recursive
         && bindings
             .iter()
@@ -1427,10 +1416,7 @@ fn render_lazy_let(
     renderer: &mut FunctionRenderer<'_, '_, '_, '_>,
     bindings: &[Binding],
 ) -> ModuleResult<()> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     let runtime = generator
         .runtime_namespace
         .as_deref()
@@ -1482,10 +1468,7 @@ fn render_case(
     alternatives: &[CaseAlternative],
     destination: Destination<'_>,
 ) -> ModuleResult<()> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     let mut values = Vec::with_capacity(scrutinees.len());
     for scrutinee in scrutinees {
         let value = generator.rendered_expression(tree, writer, *scrutinee, context)?;
@@ -1606,10 +1589,7 @@ fn render_guarded(
     alternatives: &[GuardedAlternative],
     destination: Destination<'_>,
 ) -> ModuleResult<()> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     match destination {
         Destination::Return
         | Destination::EffectReturn
@@ -2053,10 +2033,7 @@ fn effect_expression(
     effect: &EffectExpression,
 ) -> ModuleResult<ExpressionId> {
     let effect = capture_effect(renderer, effect)?;
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     let effect_name = context.allocate("$effect");
     writer.constant_arrow(&effect_name, vec![], |writer| {
         let mut renderer = generator.renderer(tree, writer, context);
@@ -2113,10 +2090,7 @@ fn capture_effect_value(
     expression: FunctionalExpressionId,
     preferred_name: &str,
 ) -> ModuleResult<ExpressionId> {
-    let generator = renderer.generator;
-    let tree = &mut *renderer.tree;
-    let writer = &mut *renderer.writer;
-    let context = &mut *renderer.context;
+    let FunctionRenderer { generator, tree, writer, context } = renderer;
     let expression_is_reusable = generator.functional_expression_is_reusable(expression, context);
     let value = generator.rendered_expression(tree, writer, expression, context)?;
     if expression_is_reusable || rendered_expression_is_reusable(tree, &value) {
@@ -2310,8 +2284,7 @@ fn sorted_value_declarations<'m>(
 }
 
 fn render_exports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
-    let generator = renderer.generator;
-    let writer = &mut *renderer.writer;
+    let ModuleRenderer { generator, writer, .. } = renderer;
     let mut rendered = false;
     for declaration in generator.module.declarations.iter() {
         if !declaration.exported {
