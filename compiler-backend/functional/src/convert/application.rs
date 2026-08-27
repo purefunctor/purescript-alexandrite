@@ -102,6 +102,11 @@ where
         {
             return self.flipped_application(*argument, *function, synthetic);
         }
+        if let Some(composition) =
+            self.known_composition_application(known_function, &known_arguments, synthetic)?
+        {
+            return Ok(composition);
+        }
         if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
             return Ok(self.expression(ExpressionKind::Effect { effect }));
         }
@@ -120,6 +125,11 @@ where
         {
             return Ok(*argument);
         }
+        if self.known_term(known_function, "Safe.Coerce", "coerce")?
+            && let [_, argument] = known_arguments.as_slice()
+        {
+            return Ok(*argument);
+        }
         if let Some(kind) = self.known_operator_application(known_function, &known_arguments)? {
             return Ok(self.expression(kind));
         }
@@ -128,6 +138,48 @@ where
             arguments: arguments.into(),
             synthetic,
         }))
+    }
+
+    fn known_composition_application(
+        &mut self,
+        function: ExpressionId,
+        arguments: &[ExpressionId],
+        synthetic: bool,
+    ) -> ConversionResult<Option<ExpressionId>> {
+        if let Some(arguments) = self.known_instance_member_arguments(
+            function,
+            arguments,
+            "Control.Semigroupoid",
+            "compose",
+            "Control.Semigroupoid",
+            "semigroupoidFn",
+        )? && let [outer, inner, remaining @ ..] = arguments
+            && let [] | [_] = remaining
+        {
+            let composition = self.function_composition(
+                *outer,
+                *inner,
+                remaining.first().copied(),
+                false,
+                synthetic,
+            )?;
+            return Ok(Some(composition));
+        }
+        if self.known_term(function, "Control.Semigroupoid", "composeFlipped")?
+            && let [dictionary, inner, outer, remaining @ ..] = arguments
+            && let [] | [_] = remaining
+            && self.known_named_instance(*dictionary, "Control.Semigroupoid", "semigroupoidFn")?
+        {
+            let composition = self.function_composition(
+                *outer,
+                *inner,
+                remaining.first().copied(),
+                true,
+                synthetic,
+            )?;
+            return Ok(Some(composition));
+        }
+        Ok(None)
     }
 
     fn known_operator_application(
@@ -360,6 +412,56 @@ where
             bindings: bindings.into(),
             body,
         }))
+    }
+
+    fn function_composition(
+        &mut self,
+        mut outer: ExpressionId,
+        mut inner: ExpressionId,
+        argument: Option<ExpressionId>,
+        flipped: bool,
+        synthetic: bool,
+    ) -> ConversionResult<ExpressionId> {
+        let stabilize_functions = argument.is_none()
+            || (flipped && !self.expression_is_stable(outer) && !self.expression_is_stable(inner));
+        let mut bindings = Vec::new();
+        let functions = if flipped {
+            [(&mut inner, "composeInner"), (&mut outer, "composeOuter")]
+        } else {
+            [(&mut outer, "composeOuter"), (&mut inner, "composeInner")]
+        };
+        for (function, name) in functions {
+            if stabilize_functions && !self.expression_is_stable(*function) {
+                let parameter = self.fresh_parameter(name.into())?;
+                let expression = *function;
+                *function = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
+                bindings.push(Binding { parameter, expression, source_order: bindings.len() });
+            }
+        }
+
+        let (argument, parameter) = if let Some(argument) = argument {
+            (argument, None)
+        } else {
+            let parameter = self.fresh_parameter("composeArgument".into())?;
+            let argument = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
+            (argument, Some(parameter))
+        };
+        let body = self.application_with_synthetic(inner, [argument], synthetic)?;
+        let body = self.application_with_synthetic(outer, [body], synthetic)?;
+        let body = if let Some(parameter) = parameter {
+            self.parameter_abstraction([parameter], body)
+        } else {
+            body
+        };
+        if bindings.is_empty() {
+            Ok(body)
+        } else {
+            Ok(self.expression(ExpressionKind::Let {
+                recursive: false,
+                bindings: bindings.into(),
+                body,
+            }))
+        }
     }
 
     fn expression_is_stable(&self, expression: ExpressionId) -> bool {

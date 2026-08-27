@@ -5,7 +5,7 @@ expression: report
 ---
 @export unsafelyCoerced = 42
 
-@export safelyCoerced = coerce <trivial evidence> 42
+@export safelyCoerced = 42
 
 @export lookalikeUnsafeCoerce = unsafeCoerce 42
 
