@@ -11,6 +11,7 @@ use oxc_syntax::number::NumberBase;
 use oxc_syntax::operator::{
     BinaryOperator as OxcBinaryOperator, LogicalOperator, UnaryOperator as OxcUnaryOperator,
 };
+use smol_str::SmolStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct ExpressionId(RawIdx);
@@ -80,7 +81,14 @@ impl<'a> Tree<'a> {
                 | Expression::StringLiteral(_)
                 | Expression::NumericLiteral(_)
                 | Expression::BooleanLiteral(_)
+                | Expression::NullLiteral(_)
         )
+    }
+
+    pub(crate) fn expression_identifier(&self, expression: ExpressionId) -> Option<&str> {
+        let expression = &self.expressions[Idx::from_raw(expression.0)];
+        let Expression::Identifier(identifier) = expression else { return None };
+        Some(identifier.name.as_str())
     }
 
     fn text(&self, value: &str) -> &'a str {
@@ -115,6 +123,11 @@ impl<'a> Tree<'a> {
 
     pub(crate) fn boolean(&mut self, value: bool) -> ExpressionId {
         let expression = Expression::new_boolean_literal(SPAN, value, &self.builder);
+        self.allocate(expression)
+    }
+
+    pub(crate) fn null(&mut self) -> ExpressionId {
+        let expression = Expression::new_null_literal(SPAN, &self.builder);
         self.allocate(expression)
     }
 
@@ -272,7 +285,7 @@ impl<'a> Tree<'a> {
         self.allocate(expression)
     }
 
-    pub(crate) fn arrow(&mut self, parameters: Vec<String>, body: ExpressionId) -> ExpressionId {
+    pub(crate) fn arrow(&mut self, parameters: Vec<SmolStr>, body: ExpressionId) -> ExpressionId {
         let parameters = parameters.into_iter().map(|parameter| {
             let pattern =
                 BindingPattern::new_binding_identifier(SPAN, self.text(&parameter), &self.builder);

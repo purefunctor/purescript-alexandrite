@@ -2,7 +2,7 @@ use std::iter;
 use std::sync::Arc;
 
 use rustc_hash::FxHashSet;
-use smol_str::SmolStr;
+use smol_str::{SmolStr, format_smolstr};
 
 #[derive(Debug, Default)]
 pub(super) struct NameAllocator {
@@ -15,17 +15,15 @@ impl NameAllocator {
         NameAllocator { reserved, names: FxHashSet::default() }
     }
 
-    pub(super) fn allocate(&mut self, preferred: &str) -> String {
-        let mut normalized = normalize_identifier(preferred);
+    pub(super) fn allocate(&mut self, preferred: impl AsRef<str>) -> SmolStr {
+        let mut normalized = normalize_identifier(preferred.as_ref());
         if identifier_is_reserved(&normalized) {
             normalized.insert(0, '$');
         }
-        let mut candidate = normalized.clone();
+        let mut candidate = SmolStr::new(&normalized);
         let mut suffix = 1;
-        while self.reserved.contains(candidate.as_str())
-            || !self.names.insert(SmolStr::new(&candidate))
-        {
-            candidate = format!("{normalized}${suffix}");
+        while self.reserved.contains(&candidate) || !self.names.insert(candidate.clone()) {
+            candidate = format_smolstr!("{normalized}${suffix}");
             suffix += 1;
         }
         candidate

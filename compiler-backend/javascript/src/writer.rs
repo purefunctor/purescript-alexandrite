@@ -1,5 +1,8 @@
 //! Oxc JavaScript program construction and code generation.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use itertools::Itertools;
 use oxc_allocator::{Allocator, Vec as ArenaVec};
 use oxc_ast::ast::{
@@ -7,13 +10,15 @@ use oxc_ast::ast::{
     BindingProperty, Declaration, ExportSpecifier, Expression, FormalParameter,
     FormalParameterKind, FormalParameters, Function, FunctionBody, FunctionType,
     ImportDeclarationSpecifier, ImportOrExportKind, LabelIdentifier, ModuleExportName, Program,
-    PropertyKey, Statement, StringLiteral, VariableDeclaration, VariableDeclarationKind,
-    VariableDeclarator,
+    PropertyKey, Statement, StringLiteral, SwitchCase, VariableDeclaration,
+    VariableDeclarationKind, VariableDeclarator,
 };
 use oxc_ast::builder::AstBuilder;
+use oxc_ast::{Comment, CommentKind, CommentPosition};
 use oxc_codegen::{Codegen, CodegenOptions, IndentChar};
-use oxc_span::{SPAN, SourceType};
+use oxc_span::{SPAN, SourceType, Span};
 use oxc_syntax::operator::AssignmentOperator;
+use smol_str::SmolStr;
 
 use crate::convert::identifier_is_binding;
 use crate::tree::{ExpressionId, Tree};
@@ -22,11 +27,51 @@ pub(crate) struct Writer<'a> {
     allocator: &'a Allocator,
     builder: AstBuilder<'a>,
     statements: Vec<Statement<'a>>,
+    comments: Rc<RefCell<Comments>>,
+}
+
+#[derive(Default)]
+struct Comments {
+    source_text: String,
+    comments: Vec<Comment>,
 }
 
 impl<'a> Writer<'a> {
     pub(crate) fn new(allocator: &'a Allocator) -> Writer<'a> {
-        Writer { allocator, builder: AstBuilder::new(allocator), statements: Vec::new() }
+        Writer {
+            allocator,
+            builder: AstBuilder::new(allocator),
+            statements: Vec::new(),
+            comments: Rc::new(RefCell::new(Comments::default())),
+        }
+    }
+
+    fn child(&self) -> Writer<'a> {
+        Writer {
+            allocator: self.allocator,
+            builder: AstBuilder::new(self.allocator),
+            statements: Vec::new(),
+            comments: Rc::clone(&self.comments),
+        }
+    }
+
+    fn line_comment(&self, text: &str) -> Span {
+        let mut comments = self.comments.borrow_mut();
+        let start = comments.source_text.len() as u32;
+        comments.source_text.push_str("// ");
+        comments.source_text.push_str(text);
+        let end = comments.source_text.len() as u32;
+        comments.source_text.push('\n');
+        let attached_to = comments.source_text.len() as u32;
+        comments.source_text.push(' ');
+
+        let mut comment = Comment::new(start, end, CommentKind::Line);
+        comment.attached_to = attached_to;
+        comment.position = CommentPosition::Leading;
+        comment.newlines =
+            oxc_ast::ast::CommentNewlines::Leading | oxc_ast::ast::CommentNewlines::Trailing;
+        comments.comments.push(comment);
+        Span::empty(attached_to)
     }
 
     fn text(&self, value: &str) -> &'a str {
@@ -41,7 +86,7 @@ impl<'a> Writer<'a> {
         BindingPattern::new_binding_identifier(SPAN, self.text(name), &self.builder)
     }
 
-    fn parameters(&self, parameters: &[String]) -> oxc_allocator::Box<'a, FormalParameters<'a>> {
+    fn parameters(&self, parameters: &[SmolStr]) -> oxc_allocator::Box<'a, FormalParameters<'a>> {
         let parameters = parameters.iter().map(|parameter| {
             FormalParameter::new(
                 SPAN,
@@ -82,7 +127,7 @@ impl<'a> Writer<'a> {
 
     fn arrow_expression(
         &self,
-        parameters: &[String],
+        parameters: &[SmolStr],
         statements: Vec<Statement<'a>>,
     ) -> Expression<'a> {
         let parameters = self.parameters(parameters);
@@ -171,7 +216,7 @@ impl<'a> Writer<'a> {
     pub(crate) fn constant_object_pattern(
         &mut self,
         tree: &Tree<'_>,
-        names: &[Option<String>],
+        names: &[Option<SmolStr>],
         value: ExpressionId,
     ) {
         let properties = names.iter().enumerate().filter_map(|(index, name)| {
@@ -204,6 +249,13 @@ impl<'a> Writer<'a> {
 
     pub(crate) fn mutable(&mut self, name: &str) {
         let statement = self.variable_statement(VariableDeclarationKind::Let, name, None, false);
+        self.statements.push(statement);
+    }
+
+    pub(crate) fn mutable_value(&mut self, tree: &Tree<'_>, name: &str, value: ExpressionId) {
+        let value = tree.expression_in(value, self.allocator);
+        let statement =
+            self.variable_statement(VariableDeclarationKind::Let, name, Some(value), false);
         self.statements.push(statement);
     }
 
@@ -240,14 +292,18 @@ impl<'a> Writer<'a> {
         self.statements.push(Statement::new_break_statement(SPAN, Some(label), &self.builder));
     }
 
+    pub(crate) fn continue_loop(&mut self) {
+        self.statements.push(Statement::new_continue_statement(SPAN, None, &self.builder));
+    }
+
     pub(crate) fn function<R>(
         &mut self,
         name: &str,
-        parameters: Vec<String>,
+        parameters: Vec<SmolStr>,
         exported: bool,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let function = Function::boxed(
             SPAN,
@@ -279,10 +335,10 @@ impl<'a> Writer<'a> {
     pub(crate) fn constant_arrow<R>(
         &mut self,
         name: &str,
-        parameters: Vec<String>,
+        parameters: Vec<SmolStr>,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let expression = self.arrow_expression(&parameters, body.statements);
         let statement =
@@ -293,10 +349,10 @@ impl<'a> Writer<'a> {
 
     pub(crate) fn return_arrow<R>(
         &mut self,
-        parameters: Vec<String>,
+        parameters: Vec<SmolStr>,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let expression = self.arrow_expression(&parameters, body.statements);
         self.statements.push(Statement::new_return_statement(
@@ -310,10 +366,10 @@ impl<'a> Writer<'a> {
     pub(crate) fn assign_arrow<R>(
         &mut self,
         name: &str,
-        parameters: Vec<String>,
+        parameters: Vec<SmolStr>,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let expression = self.arrow_expression(&parameters, body.statements);
         let target = AssignmentTarget::new_assignment_target_identifier(
@@ -338,7 +394,7 @@ impl<'a> Writer<'a> {
         exported: bool,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let arrow = self.arrow_expression(&[], body.statements);
         let call = Expression::new_call_expression_with_pure(
@@ -363,7 +419,7 @@ impl<'a> Writer<'a> {
         name: Expression<'a>,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let body = self.arrow_expression(&[], body.statements);
         let arguments = [Argument::from(name), Argument::from(body)];
@@ -401,9 +457,9 @@ impl<'a> Writer<'a> {
         render_then: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>) -> Result<(), E>,
         render_else: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>) -> Result<(), E>,
     ) -> Result<(), E> {
-        let mut then_writer = Writer::new(self.allocator);
+        let mut then_writer = self.child();
         render_then(tree, &mut then_writer)?;
-        let mut else_writer = Writer::new(self.allocator);
+        let mut else_writer = self.child();
         render_else(tree, &mut else_writer)?;
         let consequent = self.block_statement(then_writer.statements);
         let alternate = self.block_statement(else_writer.statements);
@@ -425,9 +481,9 @@ impl<'a> Writer<'a> {
         render_then: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>, &mut S) -> Result<(), E>,
         render_else: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>, &mut S) -> Result<(), E>,
     ) -> Result<(), E> {
-        let mut then_writer = Writer::new(self.allocator);
+        let mut then_writer = self.child();
         render_then(tree, &mut then_writer, state)?;
-        let mut else_writer = Writer::new(self.allocator);
+        let mut else_writer = self.child();
         render_else(tree, &mut else_writer, state)?;
         let consequent = self.block_statement(then_writer.statements);
         let alternate = self.block_statement(else_writer.statements);
@@ -447,7 +503,7 @@ impl<'a> Writer<'a> {
         condition: ExpressionId,
         render: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(tree, &mut body);
         let consequent = self.block_statement(body.statements);
         self.statements.push(Statement::new_if_statement(
@@ -461,7 +517,7 @@ impl<'a> Writer<'a> {
     }
 
     pub(crate) fn block<R>(&mut self, render: impl FnOnce(&mut Writer<'a>) -> R) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let statement = self.block_statement(body.statements);
         self.statements.push(statement);
@@ -473,12 +529,55 @@ impl<'a> Writer<'a> {
         label: &str,
         render: impl FnOnce(&mut Writer<'a>) -> R,
     ) -> R {
-        let mut body = Writer::new(self.allocator);
+        let mut body = self.child();
         let result = render(&mut body);
         let body = self.block_statement(body.statements);
         let label = LabelIdentifier::new(SPAN, self.text(label), &self.builder);
         self.statements.push(Statement::new_labeled_statement(SPAN, label, body, &self.builder));
         result
+    }
+
+    pub(crate) fn while_loop<R>(
+        &mut self,
+        tree: &mut Tree<'_>,
+        condition: ExpressionId,
+        render: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>) -> R,
+    ) -> R {
+        let mut body = self.child();
+        let result = render(tree, &mut body);
+        let body = self.block_statement(body.statements);
+        let condition = tree.expression_in(condition, self.allocator);
+        self.statements.push(Statement::new_while_statement(SPAN, condition, body, &self.builder));
+        result
+    }
+
+    pub(crate) fn switch<E>(
+        &mut self,
+        tree: &mut Tree<'_>,
+        discriminant: ExpressionId,
+        cases: &[(ExpressionId, SmolStr)],
+        mut render: impl FnMut(usize, &mut Tree<'_>, &mut Writer<'a>) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut switch_cases = Vec::with_capacity(cases.len());
+        for (position, (test, comment)) in cases.iter().enumerate() {
+            let span = self.line_comment(comment);
+            let mut body = self.child();
+            render(position, tree, &mut body)?;
+            let test = tree.expression_in(*test, self.allocator);
+            let body = self.block_statement(body.statements);
+            let consequent = ArenaVec::from_array_in([body], &self.allocator);
+            let switch_case = SwitchCase::new(span, Some(test), consequent, &self.builder);
+            switch_cases.push(switch_case);
+        }
+        let discriminant = tree.expression_in(discriminant, self.allocator);
+        let switch_cases = ArenaVec::from_iter_in(switch_cases, &self.allocator);
+        self.statements.push(Statement::new_switch_statement(
+            SPAN,
+            discriminant,
+            switch_cases,
+            &self.builder,
+        ));
+        Ok(())
     }
 
     pub(crate) fn throw_error(&mut self, message: &str) {
@@ -544,7 +643,21 @@ impl<'a> Writer<'a> {
 
     pub(crate) fn finish(self) -> String {
         let body = ArenaVec::from_iter_in(self.statements, &self.allocator);
-        let program = Program::new(SPAN, SourceType::mjs(), "", [], None, [], body, &self.builder);
+        let comments = self.comments.borrow();
+        let source_text = self.allocator.alloc_str(&comments.source_text);
+        let span = Span::new(0, source_text.len() as u32);
+        let program_comments =
+            ArenaVec::from_iter_in(comments.comments.iter().copied(), &self.allocator);
+        let program = Program::new(
+            span,
+            SourceType::mjs(),
+            source_text,
+            program_comments,
+            None,
+            [],
+            body,
+            &self.builder,
+        );
         let options = CodegenOptions {
             indent_char: IndentChar::Space,
             indent_width: 2,

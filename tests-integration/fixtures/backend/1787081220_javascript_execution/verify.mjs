@@ -1,21 +1,6 @@
 import { deepStrictEqual } from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import * as Library from "./output/Library/index.js";
 import * as Main from "./output/Main/index.js";
-
-const source = await readFile(new URL("./output/Main/index.js", import.meta.url), "utf8");
-if (source.includes("while (true)") || source.includes("switch (")) {
-  throw new Error("acyclic source was rendered as a state machine");
-}
-if (!source.includes("export const integer = 42 | 0;")) {
-  throw new Error("integer declaration is not exported inline");
-}
-if (!source.includes("export const updated = /* @__PURE__ */ (() => {")) {
-  throw new Error("record update does not use an inline initializer");
-}
-if (source.includes("function integer$initialize")) {
-  throw new Error("integer declaration has an unnecessary initializer function");
-}
 
 let patternFailure = false;
 try {

@@ -53,10 +53,15 @@ export function caseRecursive(condition) {
 }
 export function letRecursive(condition) {
   const go = (current) => {
-    if (current) {
-      return go(false);
-    } else {
-      return 40 | 0;
+    let $argument0 = current;
+    while (true) {
+      const $currentArgument0 = $argument0;
+      if ($currentArgument0) {
+        $argument0 = false;
+        continue;
+      } else {
+        return 40 | 0;
+      }
     }
   };
   return go(condition);

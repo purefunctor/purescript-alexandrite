@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export recursive[2] patternedTail = \$record%1@({ value: value%0 }) ->
+  if equalInt value%0 0 then value%0 else patternedTail { value: decrementInt value%0 }
