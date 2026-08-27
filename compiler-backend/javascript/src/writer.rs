@@ -539,12 +539,14 @@ impl<'a> Writer<'a> {
 
     pub(crate) fn while_loop<R>(
         &mut self,
-        condition: Expression<'a>,
-        render: impl FnOnce(&mut Writer<'a>) -> R,
+        tree: &mut Tree<'_>,
+        condition: ExpressionId,
+        render: impl FnOnce(&mut Tree<'_>, &mut Writer<'a>) -> R,
     ) -> R {
         let mut body = self.child();
-        let result = render(&mut body);
+        let result = render(tree, &mut body);
         let body = self.block_statement(body.statements);
+        let condition = tree.expression_in(condition, self.allocator);
         self.statements.push(Statement::new_while_statement(SPAN, condition, body, &self.builder));
         result
     }

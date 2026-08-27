@@ -133,13 +133,11 @@ pub(super) fn local_profiles(
     module: &Module,
     bindings: &[functional::tree::Binding],
 ) -> Vec<TailCallProfile> {
-    bindings
-        .iter()
-        .filter_map(|binding| {
-            let identity = TailCallIdentity::Local(binding.parameter.id);
-            function_profile(module, identity, binding.expression)
-        })
-        .collect()
+    let profiles = bindings.iter().filter_map(|binding| {
+        let identity = TailCallIdentity::Local(binding.parameter.id);
+        function_profile(module, identity, binding.expression)
+    });
+    profiles.collect()
 }
 
 pub(super) fn tail_call_group(

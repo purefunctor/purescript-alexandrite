@@ -511,8 +511,7 @@ impl Generator<'_> {
         context: &mut FunctionContext,
     ) -> ModuleResult<()> {
         let condition = tree.boolean(true);
-        let condition = writer.expression(tree, condition);
-        writer.while_loop(condition, |writer| {
+        writer.while_loop(tree, condition, |tree, writer| {
             if group.is_singleton() {
                 return self.render_tail_call_profile(tree, writer, &group.profiles[0], context);
             }
@@ -743,16 +742,13 @@ impl Generator<'_> {
     ) -> ModuleResult<()> {
         // Curried outer arguments can be captured by a reusable partial application. Copy every
         // argument before iterating so one invocation cannot mutate the next invocation's input.
-        let argument_names = arguments
-            .iter()
-            .enumerate()
-            .map(|(position, argument)| {
-                let name = context.allocate(format_smolstr!("$argument{position}"));
-                let value = tree.identifier(argument);
-                writer.mutable_value(tree, &name, value);
-                name
-            })
-            .collect_vec();
+        let mut argument_names = Vec::with_capacity(arguments.len());
+        for (position, argument) in arguments.iter().enumerate() {
+            let name = context.allocate(format_smolstr!("$argument{position}"));
+            let value = tree.identifier(argument);
+            writer.mutable_value(tree, &name, value);
+            argument_names.push(name);
+        }
         let tail_calls = TailCallContext::singleton(group, argument_names);
         let outer_tail_calls = context.tail_calls.replace(tail_calls);
         let result = self.render_tail_call_dispatcher(tree, writer, group, context);
@@ -800,8 +796,7 @@ impl Generator<'_> {
         let initial = tree.identifier(initial_name);
         writer.assign(tree, &step_name, initial);
         let condition = tree.boolean(true);
-        let condition = writer.expression(tree, condition);
-        writer.while_loop(condition, |writer| {
+        writer.while_loop(tree, condition, |tree, writer| {
             let step = tree.identifier(&step_name);
             let result = tree.call(step, vec![]);
             writer.constant(tree, &result_name, result, false);
@@ -2011,7 +2006,9 @@ fn render_let(
         });
         let dispatcher_suffix = dispatcher_names.join("_");
         let dispatcher_name = context.allocate(format_smolstr!("$tail_{dispatcher_suffix}"));
-        if let Some(group) = tail_call_group(generator.module, profiles, dispatcher_name) {
+        let optimized = if let Some(group) =
+            tail_call_group(generator.module, profiles, dispatcher_name)
+        {
             if !group.is_singleton() {
                 let state_name = context.allocate("$state");
                 let argument_names = (0..group.maximum_arity)
@@ -2044,39 +2041,17 @@ fn render_let(
                 )?;
             }
 
-            let optimized =
-                group.profiles.iter().map(|profile| profile.identity).collect::<FxHashSet<_>>();
-            for (binding, name) in bindings.iter().zip(&names) {
-                let identity = TailCallIdentity::Local(binding.parameter.id);
-                if optimized.contains(&identity) {
-                    continue;
-                }
-                match &generator.module.storage[binding.expression].kind {
-                    ExpressionKind::Abstraction { parameters, body } => {
-                        generator.render_abstraction_binding(
-                            tree,
-                            writer,
-                            AbstractionBinding { name, parameters, body: *body, uncurried: false },
-                            context,
-                        )?;
-                    }
-                    ExpressionKind::UncurriedAbstraction { parameters, body } => {
-                        generator.render_abstraction_binding(
-                            tree,
-                            writer,
-                            AbstractionBinding { name, parameters, body: *body, uncurried: true },
-                            context,
-                        )?;
-                    }
-                    _ => {
-                        unreachable!("invariant violated: recursive closure group contains a value")
-                    }
-                }
-            }
-            return Ok(());
-        }
+            let optimized = group.profiles.iter().map(|profile| profile.identity);
+            optimized.collect::<FxHashSet<_>>()
+        } else {
+            FxHashSet::default()
+        };
 
         for (binding, name) in bindings.iter().zip(&names) {
+            let identity = TailCallIdentity::Local(binding.parameter.id);
+            if optimized.contains(&identity) {
+                continue;
+            }
             match &generator.module.storage[binding.expression].kind {
                 ExpressionKind::Abstraction { parameters, body } => {
                     generator.render_abstraction_binding(
