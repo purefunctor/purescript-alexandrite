@@ -3,33 +3,26 @@ mod location;
 
 use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
+use std::time::Instant;
 use std::{env, fs, process};
 
 use building::{QueryEngine, prim};
 use documentation::schema::Location;
 use files::{FileId, Files};
+use indicatif::MultiProgress;
 use itertools::Itertools;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::Deserialize;
 
 use crate::docs::error::DocsError;
 use crate::docs::location::{manifest_location, package_reference_location};
-use crate::walk;
-
-macro_rules! warm_modules {
-    ($engine:expr, $modules:expr, $query:ident) => {
-        $modules.par_iter().try_for_each(|&id| {
-            let engine = $engine.snapshot();
-            let _ = engine.$query(id)?;
-            Ok::<(), DocsError>(())
-        })
-    };
-}
+use crate::{progress, walk};
 
 pub struct DocsConfig {
     pub output: PathBuf,
     pub spago_project: Option<PathBuf>,
     pub packages: Vec<PathBuf>,
+    pub quiet: bool,
 }
 
 pub struct TypeScriptConfig {
@@ -71,6 +64,11 @@ struct Package {
     dependencies: BTreeMap<String, String>,
     location: Option<Location>,
     modules: Vec<FileId>,
+}
+
+struct RenderedPackage {
+    manifest: documentation::schema::Package,
+    modules: Vec<documentation::schema::Module>,
 }
 
 #[derive(Debug, Default)]
@@ -122,27 +120,23 @@ enum PursLocation {
 }
 
 fn generate_documentation(config: DocsConfig) -> Result<(), DocsError> {
+    let started = Instant::now();
+    let show_progress = !config.quiet;
+    let preparation_progress = progress::bar(1, "Preparing", show_progress);
     let mut compiler = Compiler::default();
     prim::configure(&mut compiler.engine, &mut compiler.files);
 
     let packages = load_packages(&config, &mut compiler)?;
     let modules = package_modules(&packages);
+    preparation_progress.inc(1);
+    progress::finish(&preparation_progress);
 
-    warm_documentation_queries(&compiler.engine, &modules)?;
+    prepare_documentation_queries(&compiler.engine, &modules, show_progress)?;
+    let rendered = render_documentation(&compiler.engine, &packages, show_progress)?;
+    write_documentation(&config.output, &rendered, show_progress)?;
 
-    if config.output.exists() {
-        fs::remove_dir_all(&config.output)?;
-    }
-
-    write_packages_manifest(&compiler.engine, &config, &packages)?;
-
-    let package_by_file = packages
-        .iter()
-        .flat_map(|package| package.modules.iter().map(|&id| (id, package.name.as_str())))
-        .collect_vec();
-
-    for package in &packages {
-        generate_package_documentation(&config, &mut compiler, package, &package_by_file)?;
+    if show_progress {
+        progress::report_completion(started.elapsed());
     }
 
     Ok(())
@@ -152,17 +146,57 @@ fn package_modules(packages: &[Package]) -> Vec<FileId> {
     packages.iter().flat_map(|package| package.modules.iter().copied()).collect_vec()
 }
 
-fn warm_documentation_queries(engine: &QueryEngine, modules: &[FileId]) -> Result<(), DocsError> {
-    warm_modules!(engine, modules, indexed)?;
-    warm_modules!(engine, modules, resolved)?;
-    warm_modules!(engine, modules, lowered)?;
-    warm_modules!(engine, modules, grouped)?;
-    warm_modules!(engine, modules, bracketed)?;
-    warm_modules!(engine, modules, sectioned)?;
-    warm_modules!(engine, modules, checked)?;
-    warm_modules!(engine, modules, documented)?;
+fn prepare_documentation_queries(
+    engine: &QueryEngine,
+    modules: &[FileId],
+    show_progress: bool,
+) -> Result<(), DocsError> {
+    let progress = MultiProgress::new();
+    progress.set_move_cursor(true);
+    let analysing_progress = progress::phase(&progress, modules.len(), "Analyse", show_progress);
+    let elaborating_progress =
+        progress::phase(&progress, modules.len(), "Elaborate", show_progress);
+
+    let analysed = modules.par_iter().map(|&file_id| {
+        let engine = engine.snapshot();
+        let module_name = analyse_module(&engine, file_id)?;
+        if let Some(module_name) = &module_name {
+            progress::set_message(&analysing_progress, module_name);
+        }
+        analysing_progress.inc(1);
+        Ok::<_, DocsError>(module_name)
+    });
+    let module_names = analysed.collect::<Result<Vec<_>, _>>()?;
+    progress::finish(&analysing_progress);
+
+    let elaborated = modules.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
+        let engine = engine.snapshot();
+        if let Some(module_name) = module_name {
+            progress::set_message(&elaborating_progress, module_name);
+        }
+        engine.checked(file_id)?;
+        elaborating_progress.inc(1);
+        Ok::<_, DocsError>(())
+    });
+    elaborated.collect::<Result<Vec<_>, _>>()?;
+    progress::finish(&elaborating_progress);
 
     Ok(())
+}
+
+fn analyse_module(engine: &QueryEngine, file_id: FileId) -> Result<Option<String>, DocsError> {
+    let content = engine.content(file_id)?;
+    let (parsed, _) = engine.parsed(file_id)?;
+    let module_name = parsed.module_name(&content).map(|name| name.to_string());
+
+    engine.indexed(file_id)?;
+    engine.resolved(file_id)?;
+    engine.lowered(file_id)?;
+    engine.grouped(file_id)?;
+    engine.bracketed(file_id)?;
+    engine.sectioned(file_id)?;
+
+    Ok(module_name)
 }
 
 fn load_packages(config: &DocsConfig, compiler: &mut Compiler) -> Result<Vec<Package>, DocsError> {
@@ -374,11 +408,20 @@ fn package_version(reference: &spago::PackageReference) -> String {
     }
 }
 
-fn write_packages_manifest(
+fn render_documentation(
     engine: &QueryEngine,
-    config: &DocsConfig,
     packages: &[Package],
-) -> Result<(), DocsError> {
+    show_progress: bool,
+) -> Result<Vec<RenderedPackage>, DocsError> {
+    let package_by_file = packages.iter().flat_map(|package| {
+        package.modules.iter().map(|&file_id| (file_id, package.name.as_str()))
+    });
+    let package_by_file = package_by_file.collect_vec();
+    let module_counts = packages.iter().map(|package| package.modules.len());
+    let module_count = module_counts.sum();
+    let progress = progress::bar(module_count, "Document", show_progress);
+
+    let mut rendered = vec![];
     for package in packages {
         let package_input = documentation::PackageInput {
             name: &package.name,
@@ -389,39 +432,62 @@ fn write_packages_manifest(
             location: package.location.as_ref(),
             modules: &package.modules,
         };
-        let package = documentation::render_package_manifest(engine, &package_input)?;
+        let manifest = documentation::render_package_manifest(engine, &package_input)?;
 
-        let package_folder = config.output.join(&package.name);
-        fs::create_dir_all(&package_folder)?;
+        progress::set_message(&progress, &package.name);
+        let modules = package.modules.par_iter().map(|&file_id| {
+            let engine = engine.snapshot();
+            let module = documentation::render_module(&engine, file_id, &package_by_file)?;
+            if let Some(module) = &module {
+                progress::set_message(&progress, &module.name);
+            }
+            progress.inc(1);
+            Ok::<_, DocsError>(module)
+        });
+        let modules = modules.collect::<Result<Vec<_>, _>>()?;
+        let modules = modules.into_iter().flatten().collect_vec();
 
-        let manifest = package_folder.join("manifest.json");
-        let package = serde_json::to_string(&package)?;
-        fs::write(manifest, package)?;
+        rendered.push(RenderedPackage { manifest, modules });
     }
+    progress::finish(&progress);
 
-    Ok(())
+    Ok(rendered)
 }
 
-fn generate_package_documentation(
-    config: &DocsConfig,
-    compiler: &mut Compiler,
-    package: &Package,
-    package_by_file: &[(FileId, &str)],
+fn write_documentation(
+    output: &Path,
+    packages: &[RenderedPackage],
+    show_progress: bool,
 ) -> Result<(), DocsError> {
-    let modules_folder = config.output.join(&package.name).join("modules");
-    fs::create_dir_all(&modules_folder)?;
-
-    for &id in &package.modules {
-        let Some(module) = documentation::render_module(&compiler.engine, id, package_by_file)?
-        else {
-            continue;
-        };
-
-        let module_file = modules_folder.join(format!("{}.json", module.name));
-        let module = serde_json::to_string_pretty(&module)?;
-
-        fs::write(module_file, module)?;
+    if output.exists() {
+        fs::remove_dir_all(output)?;
     }
+
+    let file_counts = packages.iter().map(|package| package.modules.len() + 1);
+    let file_count = file_counts.sum();
+    let progress = progress::bar(file_count, "Output", show_progress);
+
+    for package in packages {
+        let package_folder = output.join(&package.manifest.name);
+        let modules_folder = package_folder.join("modules");
+        fs::create_dir_all(&modules_folder)?;
+
+        progress::set_message(&progress, &package.manifest.name);
+        let manifest_file = package_folder.join("manifest.json");
+        let manifest = serde_json::to_string(&package.manifest)?;
+        fs::write(manifest_file, manifest)?;
+        progress.inc(1);
+
+        for module in &package.modules {
+            progress::set_message(&progress, &module.name);
+            let module_file = modules_folder.join(format!("{}.json", module.name));
+            let module = serde_json::to_string_pretty(module)?;
+
+            fs::write(module_file, module)?;
+            progress.inc(1);
+        }
+    }
+    progress::finish(&progress);
 
     Ok(())
 }
@@ -730,6 +796,7 @@ mod tests {
             output: output.clone(),
             spago_project: None,
             packages: vec![package],
+            quiet: true,
         })
         .unwrap();
 
@@ -757,5 +824,18 @@ mod tests {
         ));
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn analysis_propagates_query_failures() {
+        let mut compiler = Compiler::default();
+        let file_id = compiler.files.insert("file:///Main.purs", "module Main where\n");
+
+        assert!(matches!(
+            analyse_module(&compiler.engine, file_id),
+            Err(DocsError::QueryError(building::QueryError::MissingContent {
+                file_id: missing_file_id
+            })) if missing_file_id == file_id
+        ));
     }
 }

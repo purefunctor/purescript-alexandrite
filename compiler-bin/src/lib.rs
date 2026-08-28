@@ -7,6 +7,7 @@ pub mod compile;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
+mod progress;
 pub mod walk;
 mod watch;
 
@@ -79,6 +80,7 @@ pub fn run() {
                         output: options.output,
                         spago_project: options.spago_project,
                         packages: options.packages,
+                        quiet: options.quiet,
                     });
                 }
             }
