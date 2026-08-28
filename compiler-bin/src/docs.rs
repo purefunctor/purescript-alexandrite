@@ -157,9 +157,9 @@ fn prepare_documentation_queries(
     let elaborating_progress =
         progress::phase(&progress, modules.len(), "Elaborate", show_progress);
 
-    let analysed = modules.par_iter().map(|&id| {
+    let analysed = modules.par_iter().map(|&file_id| {
         let engine = engine.snapshot();
-        let module_name = analyse_module(&engine, id)?;
+        let module_name = analyse_module(&engine, file_id)?;
         if let Some(module_name) = &module_name {
             progress::set_message(&analysing_progress, module_name);
         }
@@ -169,12 +169,12 @@ fn prepare_documentation_queries(
     let module_names = analysed.collect::<Result<Vec<_>, _>>()?;
     progress::finish(&analysing_progress);
 
-    let elaborated = modules.par_iter().zip(&module_names).map(|(&id, module_name)| {
+    let elaborated = modules.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
         let engine = engine.snapshot();
         if let Some(module_name) = module_name {
             progress::set_message(&elaborating_progress, module_name);
         }
-        engine.checked(id)?;
+        engine.checked(file_id)?;
         elaborating_progress.inc(1);
         Ok::<_, DocsError>(())
     });
@@ -184,17 +184,17 @@ fn prepare_documentation_queries(
     Ok(())
 }
 
-fn analyse_module(engine: &QueryEngine, id: FileId) -> Result<Option<String>, DocsError> {
-    let content = engine.content(id)?;
-    let (parsed, _) = engine.parsed(id)?;
+fn analyse_module(engine: &QueryEngine, file_id: FileId) -> Result<Option<String>, DocsError> {
+    let content = engine.content(file_id)?;
+    let (parsed, _) = engine.parsed(file_id)?;
     let module_name = parsed.module_name(&content).map(|name| name.to_string());
 
-    engine.indexed(id)?;
-    engine.resolved(id)?;
-    engine.lowered(id)?;
-    engine.grouped(id)?;
-    engine.bracketed(id)?;
-    engine.sectioned(id)?;
+    engine.indexed(file_id)?;
+    engine.resolved(file_id)?;
+    engine.lowered(file_id)?;
+    engine.grouped(file_id)?;
+    engine.bracketed(file_id)?;
+    engine.sectioned(file_id)?;
 
     Ok(module_name)
 }
@@ -413,11 +413,12 @@ fn render_documentation(
     packages: &[Package],
     show_progress: bool,
 ) -> Result<Vec<RenderedPackage>, DocsError> {
-    let package_by_file = packages
-        .iter()
-        .flat_map(|package| package.modules.iter().map(|&id| (id, package.name.as_str())))
-        .collect_vec();
-    let module_count = packages.iter().map(|package| package.modules.len()).sum();
+    let package_by_file = packages.iter().flat_map(|package| {
+        package.modules.iter().map(|&file_id| (file_id, package.name.as_str()))
+    });
+    let package_by_file = package_by_file.collect_vec();
+    let module_counts = packages.iter().map(|package| package.modules.len());
+    let module_count = module_counts.sum();
     let progress = progress::bar(module_count, "Document", show_progress);
 
     let mut rendered = vec![];
@@ -434,9 +435,9 @@ fn render_documentation(
         let manifest = documentation::render_package_manifest(engine, &package_input)?;
 
         progress::set_message(&progress, &package.name);
-        let modules = package.modules.par_iter().map(|&id| {
+        let modules = package.modules.par_iter().map(|&file_id| {
             let engine = engine.snapshot();
-            let module = documentation::render_module(&engine, id, &package_by_file)?;
+            let module = documentation::render_module(&engine, file_id, &package_by_file)?;
             if let Some(module) = &module {
                 progress::set_message(&progress, &module.name);
             }
@@ -462,7 +463,8 @@ fn write_documentation(
         fs::remove_dir_all(output)?;
     }
 
-    let file_count = packages.iter().map(|package| package.modules.len() + 1).sum();
+    let file_counts = packages.iter().map(|package| package.modules.len() + 1);
+    let file_count = file_counts.sum();
     let progress = progress::bar(file_count, "Output", show_progress);
 
     for package in packages {
@@ -827,12 +829,13 @@ mod tests {
     #[test]
     fn analysis_propagates_query_failures() {
         let mut compiler = Compiler::default();
-        let id = compiler.files.insert("file:///Main.purs", "module Main where\n");
+        let file_id = compiler.files.insert("file:///Main.purs", "module Main where\n");
 
         assert!(matches!(
-            analyse_module(&compiler.engine, id),
-            Err(DocsError::QueryError(building::QueryError::MissingContent { file_id }))
-                if file_id == id
+            analyse_module(&compiler.engine, file_id),
+            Err(DocsError::QueryError(building::QueryError::MissingContent {
+                file_id: missing_file_id
+            })) if missing_file_id == file_id
         ));
     }
 }
