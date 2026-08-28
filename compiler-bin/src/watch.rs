@@ -29,8 +29,6 @@ pub struct WatchConfig {
 
 #[derive(Debug, Error)]
 enum WatchError {
-    #[error(transparent)]
-    Compile(#[from] CompileError),
     #[error("failed to convert path to a file URL: {0}")]
     InvalidPath(PathBuf),
     #[error(transparent)]
@@ -64,7 +62,7 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
     if !config.quiet {
         report_changed_modules(&initial_change.modules, compile::use_color(config.color));
     }
-    rebuild(&mut workspace, &config)?;
+    rebuild_or_report(&mut workspace, &config);
 
     loop {
         let first = receiver.recv().map_err(|error| {
@@ -89,12 +87,19 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
             if !config.quiet {
                 report_changed_modules(&change.modules, compile::use_color(config.color));
             }
-            rebuild(&mut workspace, &config)?;
+            rebuild_or_report(&mut workspace, &config);
         }
     }
 }
 
-fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) -> Result<(), WatchError> {
+fn rebuild_or_report(workspace: &mut WatchWorkspace, config: &WatchConfig) {
+    if let Err(error) = rebuild(workspace, config) {
+        eprintln!("Compilation failed: {error}");
+        tracing::error!(?error, "Watch compilation failed");
+    }
+}
+
+fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) -> Result<(), CompileError> {
     if workspace.compilation.input_source_ids().is_empty() {
         if let Err(error) = workspace.reconcile_outputs(BTreeSet::new()) {
             eprintln!("Failed to remove stale output: {error}");
@@ -381,6 +386,7 @@ fn fallback_module_name(source_path: &Path) -> String {
 }
 
 fn persistent_watch_root(root: &Path) -> PathBuf {
+    // The parent remains watched so deleting the input root does not prevent observing its recreation.
     let mut candidate = root.parent().unwrap_or(root);
     while !candidate.exists() {
         let Some(parent) = candidate.parent() else {
@@ -516,5 +522,33 @@ mod tests {
         assert!(!stale.exists());
         assert!(retained.exists());
         assert_eq!(workspace.generated_outputs, BTreeSet::from([retained]));
+    }
+
+    #[test]
+    fn rebuilds_after_a_recoverable_output_error() {
+        let (temporary, mut workspace) = workspace();
+        let output = temporary.path().join("output");
+        let config = WatchConfig {
+            output: output.clone(),
+            inputs: vec![PathBuf::from("src/**/*.purs")],
+            quiet: true,
+            color: ColorChoice::Never,
+        };
+        fs::write(&output, "not a directory").unwrap();
+
+        rebuild_or_report(&mut workspace, &config);
+
+        fs::remove_file(&output).unwrap();
+        rebuild_or_report(&mut workspace, &config);
+        assert!(output.join("Main/index.js").is_file());
+    }
+
+    #[test]
+    fn watches_the_parent_of_an_existing_input_root() {
+        let temporary = TempDir::new().unwrap();
+        let input_root = temporary.path().join("src");
+        fs::create_dir(&input_root).unwrap();
+
+        assert_eq!(persistent_watch_root(&input_root), temporary.path());
     }
 }
