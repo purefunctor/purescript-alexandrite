@@ -153,13 +153,15 @@ pub(crate) fn load_source(
     let content = fs::read_to_string(path)?;
     compilation.observe_source(SourceUnitKey::clone(&unit), DiskObservation::Found(content.into()));
 
-    let disk = match fs::read_to_string(&foreign_path) {
-        Ok(content) => DiskObservation::Found(content.into()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
-        Err(error) => return Err(error.into()),
-    };
-
-    compilation.observe_foreign(unit, ForeignSourceKind::JavaScript, disk);
+    for kind in ForeignSourceKind::ALL {
+        let foreign_path = path.with_extension(kind.extension());
+        let disk = match fs::read_to_string(&foreign_path) {
+            Ok(content) => DiskObservation::Found(content.into()),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
+            Err(error) => return Err(error.into()),
+        };
+        compilation.observe_foreign(SourceUnitKey::clone(&unit), kind, disk);
+    }
     Ok(())
 }
 

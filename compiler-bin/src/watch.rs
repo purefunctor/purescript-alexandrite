@@ -264,7 +264,7 @@ impl WatchWorkspace {
                         source_paths.insert(path);
                     }
                 }
-                Some("js") => {
+                Some("js" | "jsx") => {
                     let source_path = path.with_extension("purs");
                     if self.source_paths.contains(&source_path) {
                         foreign_paths.insert(source_path);
@@ -327,20 +327,20 @@ fn observe_source_unit(
 ) -> Result<WorkspaceChange, WatchError> {
     let unit = source_unit(source_path)?;
     let previous_source = compilation.source_content(unit.source())?;
-    let previous_foreign = compilation.foreign_content(unit.foreign());
+    let previous_foreign =
+        ForeignSourceKind::ALL.map(|kind| compilation.foreign_content(unit.foreign_for(kind)));
     let previous_name = compilation.module_name(unit.source())?;
 
     let source = observe_disk(source_path);
     let mut lifecycle = compilation.observe_source(SourceUnitKey::clone(&unit), source);
-    let foreign = observe_disk(&source_path.with_extension("js"));
-    lifecycle.combine(compilation.observe_foreign(
-        SourceUnitKey::clone(&unit),
-        ForeignSourceKind::JavaScript,
-        foreign,
-    ));
+    for kind in ForeignSourceKind::ALL {
+        let foreign = observe_disk(&source_path.with_extension(kind.extension()));
+        lifecycle.combine(compilation.observe_foreign(SourceUnitKey::clone(&unit), kind, foreign));
+    }
 
     let current_source = compilation.source_content(unit.source())?;
-    let current_foreign = compilation.foreign_content(unit.foreign());
+    let current_foreign =
+        ForeignSourceKind::ALL.map(|kind| compilation.foreign_content(unit.foreign_for(kind)));
     let mut modules = BTreeSet::new();
     if previous_source != current_source || previous_foreign != current_foreign {
         let name = compilation.module_name(unit.source())?.or(previous_name);
@@ -354,14 +354,15 @@ fn observe_foreign(
     source_path: &Path,
 ) -> Result<WorkspaceChange, WatchError> {
     let unit = source_unit(source_path)?;
-    let previous_foreign = compilation.foreign_content(unit.foreign());
-    let foreign = observe_disk(&source_path.with_extension("js"));
-    let lifecycle = compilation.observe_foreign(
-        SourceUnitKey::clone(&unit),
-        ForeignSourceKind::JavaScript,
-        foreign,
-    );
-    let current_foreign = compilation.foreign_content(unit.foreign());
+    let previous_foreign =
+        ForeignSourceKind::ALL.map(|kind| compilation.foreign_content(unit.foreign_for(kind)));
+    let mut lifecycle = LifecycleChange::default();
+    for kind in ForeignSourceKind::ALL {
+        let foreign = observe_disk(&source_path.with_extension(kind.extension()));
+        lifecycle.combine(compilation.observe_foreign(SourceUnitKey::clone(&unit), kind, foreign));
+    }
+    let current_foreign =
+        ForeignSourceKind::ALL.map(|kind| compilation.foreign_content(unit.foreign_for(kind)));
     let mut modules = BTreeSet::new();
     if previous_foreign != current_foreign {
         let name = compilation.module_name(unit.source())?;
@@ -460,14 +461,22 @@ mod tests {
     fn synchronizes_foreign_changes_for_tracked_sources() {
         let (temporary, mut workspace) = workspace();
         let source_id = workspace.compilation.input_source_ids()[0];
-        let foreign = temporary.path().join("src/Main.js");
+        let foreign = temporary.path().join("src/Main.jsx");
         fs::write(&foreign, "export const value = 1;\n").unwrap();
 
         let change = workspace.synchronize_paths([foreign]).unwrap();
 
         assert_eq!(change.lifecycle.changed_sources().collect::<Vec<_>>(), vec![source_id]);
         assert_eq!(change.modules, BTreeSet::from([String::from("Main")]));
-        assert!(workspace.compilation.snapshot().foreign_file(source_id).is_some());
+        assert_eq!(
+            workspace.compilation.snapshot().foreign_file(source_id).map(|file| file.kind()),
+            Some(ForeignSourceKind::Jsx)
+        );
+
+        let javascript = temporary.path().join("src/Main.js");
+        fs::write(&javascript, "export const value = 2;\n").unwrap();
+        workspace.synchronize_paths([javascript]).unwrap();
+        assert_eq!(workspace.compilation.snapshot().foreign_files(source_id).count(), 2);
     }
 
     #[test]

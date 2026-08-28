@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+component :: Prim.Int
+
+Types
+
+Diagnostics
+Error! · [AmbiguousFFIModule] · Main.purs:3:1
+  •
+  │
+  • Both JavaScript and JSX FFI modules were found. Remove one of the foreign files
+  │
+  │   foreign import component :: Int
+  │   ╰──────────────────────────────
+  •
