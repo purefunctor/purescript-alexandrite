@@ -255,7 +255,6 @@ fn report_diagnostics(
     let mut remaining = config.diagnostic_limit.unwrap_or(usize::MAX);
     let mut omitted = 0;
     let mut rendered_any = false;
-    let separate_diagnostics = !config.progress || io::stderr().is_terminal();
     for (file_has_errors, all, content, display_path) in diagnostics {
         has_errors |= file_has_errors;
         let rendered_count = remaining.min(all.len());
@@ -263,8 +262,10 @@ fn report_diagnostics(
         remaining -= rendered_count;
 
         if rendered_count > 0 {
-            if !rendered_any && separate_diagnostics {
+            if !rendered_any && config.progress && io::stderr().is_terminal() {
                 eprint!("\n\n");
+            } else if !rendered_any && !config.progress {
+                eprintln!();
             }
             rendered_any = true;
             let display_path =
@@ -281,10 +282,6 @@ fn report_diagnostics(
     if omitted > 0 && config.diagnostic_limit != Some(0) {
         eprintln!("note: {omitted} additional diagnostics omitted by --diagnostic-limit");
     }
-    if rendered_any && !config.progress {
-        eprintln!();
-    }
-
     Ok(has_errors)
 }
 

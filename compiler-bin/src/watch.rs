@@ -93,7 +93,7 @@ fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) {
         if let Err(error) = workspace.reconcile_outputs(BTreeSet::new()) {
             eprintln!("Failed to remove stale output: {error}");
         }
-        eprintln!("No input files found; waiting for changes.");
+        println!("No input files found; waiting for changes.");
         return;
     }
 
@@ -137,9 +137,9 @@ fn report_changed_modules(module_names: &BTreeSet<String>, color: bool) {
     let omitted = count.saturating_sub(MODULE_DISPLAY_LIMIT);
 
     if omitted == 0 {
-        eprintln!("{timestamp} {count} {noun} changed: {displayed}");
+        println!("{timestamp} {count} {noun} changed: {displayed}");
     } else {
-        eprintln!("{timestamp} {count} {noun} changed: {displayed}, … +{omitted} more");
+        println!("{timestamp} {count} {noun} changed: {displayed}, … +{omitted} more");
     }
 }
 
