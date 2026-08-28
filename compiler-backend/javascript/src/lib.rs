@@ -14,3 +14,10 @@ pub use error::{ModuleError, ModuleResult, UnsupportedState};
 pub use module::{
     Module, foreign_module_filename, module_filename, runtime_filename, runtime_source,
 };
+
+use building_types::QueryResult;
+use files::{FileId, ForeignFileId};
+
+pub trait ExternalQueries: functional::ExternalQueries {
+    fn foreign_file(&self, file_id: FileId) -> QueryResult<Option<ForeignFileId>>;
+}

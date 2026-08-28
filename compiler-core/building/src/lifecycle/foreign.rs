@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use files::ForeignFileId;
+use files::{ForeignFileId, ForeignSourceKind};
 
 use super::*;
 use crate::QueryEngine;
@@ -169,7 +169,11 @@ where
         source_unit: &SourceUnit<Version, Metadata>,
         text: &Arc<str>,
     ) -> ForeignDocument<Version> {
-        let id = self.foreign_files.insert(Arc::clone(&unit.foreign), Arc::clone(text));
+        let id = self.foreign_files.insert(
+            ForeignSourceKind::JavaScript,
+            Arc::clone(&unit.foreign),
+            Arc::clone(text),
+        );
         engine.set_foreign_content(id, Arc::clone(text));
         if let Some(source_id) = source_unit.source_id() {
             engine.set_foreign_file(source_id, id);
@@ -183,7 +187,7 @@ where
             return;
         }
         let path = self.foreign_files.path(id);
-        let inserted_id = self.foreign_files.insert(path, Arc::clone(text));
+        let inserted_id = self.foreign_files.insert(id.kind(), path, Arc::clone(text));
         debug_assert_eq!(inserted_id, id);
         engine.set_foreign_content(id, Arc::clone(text));
     }

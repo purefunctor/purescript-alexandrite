@@ -36,7 +36,7 @@ use building_types::{
 };
 use checking::CheckedModule;
 use documenting::DocumentedModule;
-use files::{FileId, ForeignFileId};
+use files::{FileId, ForeignFileCandidates, ForeignFileId};
 use foreign_javascript::{ForeignModule, ForeignValidation};
 use graph::SnapshotGraph;
 use indexing::IndexedModule;
@@ -125,7 +125,7 @@ where
 #[derive(Default)]
 struct InputStorage {
     content: Shards<FileId, InputState<Arc<str>>>,
-    foreign: Shards<FileId, InputState<Option<ForeignFileId>>>,
+    foreign: Shards<FileId, InputState<ForeignFileCandidates>>,
     foreign_content: Shards<ForeignFileId, InputState<Arc<str>>>,
     module: Shards<ModuleNameId, InputState<Option<FileId>>>,
 }
@@ -889,7 +889,9 @@ impl QueryEngine {
     }
 
     pub fn set_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
-        self.set_input(source_id, |input| &input.foreign, Some(foreign_id));
+        let mut candidates = self.foreign_files(source_id);
+        candidates.set(foreign_id.kind(), Some(foreign_id));
+        self.set_input(source_id, |input| &input.foreign, candidates);
     }
 
     pub fn remove_foreign_file(&self, foreign_id: ForeignFileId) {
@@ -900,8 +902,8 @@ impl QueryEngine {
         for shard in &self.input.foreign.inner {
             let mut associations = shard.write();
             for state in associations.values_mut() {
-                if state.value == Some(foreign_id) {
-                    state.value = None;
+                if state.value.get(foreign_id.kind()) == Some(foreign_id) {
+                    state.value.set(foreign_id.kind(), None);
                     state.changed = changed;
                 }
             }
@@ -924,7 +926,12 @@ impl QueryEngine {
     }
 
     pub fn foreign_file(&self, source_id: FileId) -> Option<ForeignFileId> {
-        self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign).flatten()
+        self.foreign_files(source_id).unique()
+    }
+
+    pub fn foreign_files(&self, source_id: FileId) -> ForeignFileCandidates {
+        self.get_input(QueryKey::Foreign(source_id), source_id, |input| &input.foreign)
+            .unwrap_or_default()
     }
 
     pub fn foreign_module(&self, id: ForeignFileId) -> QueryResult<Option<Arc<ForeignModule>>> {
@@ -935,7 +942,7 @@ impl QueryEngine {
             |this| {
                 let module = this
                     .foreign_content(id)
-                    .map(|content| Arc::new(foreign_javascript::parse_module(&content)));
+                    .map(|content| Arc::new(foreign_javascript::parse_module(id.kind(), &content)));
                 Ok(module)
             },
         )
@@ -948,12 +955,14 @@ impl QueryEngine {
             |derived| &derived.foreign_validation,
             |this| {
                 let indexed = this.indexed(id)?;
-                let foreign = if let Some(foreign_id) = this.foreign_file(id) {
+                let candidates = this.foreign_files(id);
+                let foreign = if let Some(foreign_id) = candidates.unique() {
                     this.foreign_module(foreign_id)?
                 } else {
                     None
                 };
-                let validation = foreign_javascript::validate_module(&indexed, foreign.as_deref());
+                let validation =
+                    foreign_javascript::validate_module(&indexed, candidates, foreign.as_deref());
                 Ok(Arc::new(validation))
             },
         )
@@ -1294,6 +1303,12 @@ impl functional::ExternalQueries for QueryEngine {
     }
 }
 
+impl javascript::ExternalQueries for QueryEngine {
+    fn foreign_file(&self, file_id: FileId) -> QueryResult<Option<ForeignFileId>> {
+        Ok(QueryEngine::foreign_file(self, file_id))
+    }
+}
+
 impl checking::PrettyQueries for QueryEngine {
     fn lookup_type(&self, id: checking::TypeId) -> checking::Type {
         self.interned.checking.lookup_type(id)
@@ -1361,7 +1376,7 @@ mod tests {
     use std::sync::{Arc, Barrier};
 
     use building_types::{QueryError, QueryResult};
-    use files::{FileId, Files, ForeignFiles};
+    use files::{FileId, Files, ForeignFiles, ForeignSourceKind};
     use foreign_javascript::ForeignError;
     use parking_lot::Mutex;
     use resolving::ResolvedModule;
@@ -1729,8 +1744,16 @@ mod tests {
 
         let source = "module Main where\n\nforeign import life :: Int";
         let source_id = files.insert("src/Main.purs", source);
-        let first_id = foreign_files.insert("src/Main.js", "export const life = 1;");
-        let second_id = foreign_files.insert("src/Other.js", "export const life = 2;");
+        let first_id = foreign_files.insert(
+            ForeignSourceKind::JavaScript,
+            "src/Main.js",
+            "export const life = 1;",
+        );
+        let second_id = foreign_files.insert(
+            ForeignSourceKind::JavaScript,
+            "src/Other.js",
+            "export const life = 2;",
+        );
         engine.set_content(source_id, source);
 
         assert_eq!(engine.foreign_file(source_id), None);
@@ -1774,7 +1797,11 @@ mod tests {
             [ForeignError::MissingModule { name, .. }] if name == "life"
         ));
 
-        let foreign_id = foreign_files.insert("src/Main.js", "export const other = 42;");
+        let foreign_id = foreign_files.insert(
+            ForeignSourceKind::JavaScript,
+            "src/Main.js",
+            "export const other = 42;",
+        );
         engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
         engine.set_foreign_file(source_id, foreign_id);
 
@@ -1800,7 +1827,11 @@ mod tests {
 
         for number in 0..32 {
             let path = format!("src/Main-{number}.js");
-            let foreign_id = foreign_files.insert(path.as_str(), "export const life = 42;");
+            let foreign_id = foreign_files.insert(
+                ForeignSourceKind::JavaScript,
+                path.as_str(),
+                "export const life = 42;",
+            );
             engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
             engine.set_foreign_file(source_id, foreign_id);
 
@@ -1833,6 +1864,27 @@ mod tests {
     }
 
     #[test]
+    fn test_foreign_validation_rejects_javascript_and_jsx_candidates() {
+        let engine = QueryEngine::default();
+        let mut files = Files::default();
+        let mut foreign_files = ForeignFiles::default();
+
+        let source_id =
+            files.insert("src/Main.purs", "module Main where\n\nforeign import life :: Int");
+        engine.set_content(source_id, files.content(source_id));
+        for kind in ForeignSourceKind::ALL {
+            let path = format!("src/Main.{}", kind.extension());
+            let foreign_id = foreign_files.insert(kind, path, "export const life = 42;");
+            engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
+            engine.set_foreign_file(source_id, foreign_id);
+        }
+
+        assert_eq!(engine.foreign_file(source_id), None);
+        let validation = engine.foreign_validation(source_id).unwrap();
+        assert!(matches!(validation.errors.as_ref(), [ForeignError::AmbiguousModule { .. }]));
+    }
+
+    #[test]
     fn test_unparseable_foreign_modules_skip_export_validation() {
         let engine = QueryEngine::default();
         let mut files = Files::default();
@@ -1846,7 +1898,7 @@ mod tests {
             ["export _null = null;", "export const registerVersionProvider u => u;"];
         for (index, content) in malformed_modules.into_iter().enumerate() {
             let path = format!("src/Main-{index}.js");
-            let foreign_id = foreign_files.insert(path, content);
+            let foreign_id = foreign_files.insert(ForeignSourceKind::JavaScript, path, content);
             engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
             engine.set_foreign_file(source_id, foreign_id);
 
@@ -1891,7 +1943,10 @@ mod tests {
             let DerivedState::Computed { dependencies, .. } = shard.get(&main).unwrap() else {
                 unreachable!("invariant violated: expected computed query");
             };
-            assert_eq!(dependencies.as_ref(), &[QueryKey::Functional(main)]);
+            assert_eq!(
+                dependencies.as_ref(),
+                &[QueryKey::Functional(main), QueryKey::Foreign(main)]
+            );
         }
 
         let unrelated = files.insert("Unrelated.purs", "module Unrelated where\n\nvalue = 1");

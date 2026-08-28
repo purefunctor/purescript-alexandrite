@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use building::QueryEngine;
-use files::{Files, ForeignFiles};
+use files::{Files, ForeignFiles, ForeignSourceKind};
 use glob::glob;
 use prim_constants::MODULE_MAP;
 use tempfile::TempDir;
@@ -57,7 +57,11 @@ fn load_file(
         let foreign_url = Url::from_file_path(&foreign_path).unwrap();
         let foreign_content = fs::read_to_string(foreign_path).unwrap();
         let foreign_content = foreign_content.replace("\r\n", "\n");
-        let foreign_id = foreign_files.insert(foreign_url.as_str(), foreign_content);
+        let foreign_id = foreign_files.insert(
+            ForeignSourceKind::JavaScript,
+            foreign_url.as_str(),
+            foreign_content,
+        );
         engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
         engine.set_foreign_file(id, foreign_id);
     }

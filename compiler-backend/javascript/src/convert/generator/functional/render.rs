@@ -8,7 +8,7 @@ mod tail_call;
 
 use std::sync::Arc;
 
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
     ExpressionId as FunctionalExpressionId, ExpressionKind, Global, GlobalId, Guard,
@@ -45,12 +45,17 @@ pub(crate) struct Generator<'m> {
     global_names: FxHashMap<GlobalId, SmolStr>,
     external_module_namespaces: FxHashMap<FileId, SmolStr>,
     external_references: Vec<Global>,
-    foreign_namespace: Option<SmolStr>,
+    foreign_import: Option<ForeignImport>,
     runtime_namespace: Option<SmolStr>,
     lazy_global_names: FxHashMap<GlobalId, SmolStr>,
     global_tail_call_groups: Vec<TailCallGroup>,
     global_tail_call_group_positions: FxHashMap<GlobalId, usize>,
     reserved_module_names: Arc<FxHashSet<SmolStr>>,
+}
+
+struct ForeignImport {
+    namespace: SmolStr,
+    kind: ForeignSourceKind,
 }
 
 #[derive(Debug)]
@@ -241,7 +246,10 @@ impl<'a> Destination<'a> {
 }
 
 impl<'m> Generator<'m> {
-    pub(crate) fn new(module: &'m FunctionalModule) -> Generator<'m> {
+    pub(crate) fn new(
+        module: &'m FunctionalModule,
+        foreign_kind: Option<ForeignSourceKind>,
+    ) -> Generator<'m> {
         let mut allocator = NameAllocator::default();
         let mut global_names = FxHashMap::default();
         for declaration in module.declarations.iter() {
@@ -267,7 +275,10 @@ impl<'m> Generator<'m> {
             .declarations
             .iter()
             .any(|declaration| matches!(declaration.kind, DeclarationKind::Foreign));
-        let foreign_namespace = has_foreign.then(|| allocator.allocate("$foreign"));
+        let foreign_import = has_foreign.then(|| ForeignImport {
+            namespace: allocator.allocate("$foreign"),
+            kind: foreign_kind.unwrap_or(ForeignSourceKind::JavaScript),
+        });
         let lazy_globals = cyclic_instance_initializers(module);
         let requires_runtime = !lazy_globals.is_empty() || has_local_lazy_initializers(module);
         let runtime_namespace = requires_runtime.then(|| allocator.allocate("$runtime"));
@@ -314,7 +325,7 @@ impl<'m> Generator<'m> {
             global_names,
             external_module_namespaces,
             external_references,
-            foreign_namespace,
+            foreign_import,
             runtime_namespace,
             lazy_global_names,
             global_tail_call_groups,
@@ -341,7 +352,6 @@ impl<'m> Generator<'m> {
 
         let dependencies = self.module.dependencies.iter().map(|dependency| dependency.file_id);
         let dependencies = dependencies.collect_vec();
-        let requires_foreign = self.foreign_namespace.is_some();
         let requires_runtime = self.runtime_namespace.is_some();
         let source = writer.finish();
         Ok(Module::new(
@@ -349,7 +359,7 @@ impl<'m> Generator<'m> {
             self.module.name.to_string(),
             source,
             dependencies,
-            requires_foreign,
+            self.foreign_import.as_ref().map(|foreign_import| foreign_import.kind),
             requires_runtime,
         ))
     }
@@ -380,15 +390,16 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
         let path = format!("../{}", module_filename(module_name));
         writer.import_namespace(namespace, &path);
     }
-    if let Some(namespace) = &generator.foreign_namespace {
-        writer.import_namespace(namespace, "./foreign.js");
+    if let Some(foreign_import) = &generator.foreign_import {
+        let path = format!("./foreign.{}", foreign_import.kind.extension());
+        writer.import_namespace(&foreign_import.namespace, &path);
     }
     if let Some(namespace) = &generator.runtime_namespace {
         let path = format!("../{}", runtime_filename());
         writer.import_namespace(namespace, &path);
     }
     if !generator.external_references.is_empty()
-        || generator.foreign_namespace.is_some()
+        || generator.foreign_import.is_some()
         || generator.runtime_namespace.is_some()
     {
         writer.blank();
@@ -938,7 +949,7 @@ impl Generator<'_> {
 
 fn render_foreign_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
     let ModuleRenderer { generator, tree, writer } = renderer;
-    let Some(namespace) = &generator.foreign_namespace else {
+    let Some(foreign_import) = &generator.foreign_import else {
         return;
     };
     let mut rendered = false;
@@ -947,7 +958,7 @@ fn render_foreign_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
             continue;
         }
         let name = generator.global_name(declaration.global.id);
-        let object = tree.identifier(namespace);
+        let object = tree.identifier(&foreign_import.namespace);
         let index = tree.string(declaration.global.item_name.as_str());
         let access = tree.index(object, index);
         let exported = generator.declaration_is_inline_exported(declaration);

@@ -23,6 +23,7 @@ impl ToDiagnostics for ForeignError {
     {
         let declaration = match self {
             ForeignError::MissingModule { declaration, .. }
+            | ForeignError::AmbiguousModule { declaration }
             | ForeignError::MissingImplementation { declaration, .. }
             | ForeignError::Parse { declaration, .. } => declaration,
         };
@@ -39,6 +40,12 @@ impl ToDiagnostics for ForeignError {
             ForeignError::MissingModule { name, .. } => Diagnostic::error(
                 "MissingFFIModule",
                 format!("No JavaScript FFI module was found for foreign import '{name}'"),
+                span,
+                "foreign-javascript",
+            ),
+            ForeignError::AmbiguousModule { .. } => Diagnostic::error(
+                "AmbiguousFFIModule",
+                "Both JavaScript and JSX FFI modules were found. Remove one of the foreign files",
                 span,
                 "foreign-javascript",
             ),

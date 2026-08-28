@@ -5,7 +5,7 @@ use building::{QueryEngine, QueryError, prim};
 use diagnostics::{
     Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rich_with_path,
 };
-use files::{FileId, Files, ForeignFiles};
+use files::{FileId, Files, ForeignFiles, ForeignSourceKind};
 use rayon::prelude::*;
 use url::Url;
 
@@ -100,7 +100,7 @@ fn register_foreign_module(
     let uri = Url::from_file_path(&absolute_path)
         .map_err(|_| VerifierError::FileUrl(absolute_path.clone()))?
         .to_string();
-    let foreign_id = foreign_files.insert(uri, content.clone());
+    let foreign_id = foreign_files.insert(ForeignSourceKind::JavaScript, uri, content.clone());
     engine.set_foreign_content(foreign_id, content);
     engine.set_foreign_file(file_id, foreign_id);
     Ok(())
