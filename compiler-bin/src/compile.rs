@@ -5,20 +5,17 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{fmt, fs, io, process};
 
-use building::{
-    DiskObservation, FileLifecycle, ForeignEvent, LifecycleEvent, QueryEngine, QueryError,
-    SourceEvent, SourceUnitKey,
-};
+use building::{DiskObservation, QueryError, SourceUnitKey};
 use console::{Color, Style};
 use diagnostics::{DiagnosticsContext, Severity, ToDiagnostics};
 use files::FileId;
 use indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
-use prim_constants::MODULE_MAP;
 use rayon::prelude::*;
 use thiserror::Error;
 use url::Url;
 
 use crate::cli::ColorChoice;
+use crate::compilation::CompilationState;
 use crate::walk;
 
 const CARGO_PROGRESS_REGION_WIDTH: usize = 50;
@@ -80,15 +77,12 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
-    let engine = QueryEngine::default();
-    let mut files = FileLifecycle::<(), ()>::default();
-    configure_prim(&engine, &mut files);
+    let mut compilation = CompilationState::new();
 
-    let mut source_ids = vec![];
     for path in walked.files {
-        let source_id = load_source(&engine, &mut files, &path)?;
-        source_ids.push(source_id);
+        load_source(&mut compilation, &path)?;
     }
+    let source_ids = compilation.input_source_ids();
     preparation_progress.inc(1);
     finish_progress(&preparation_progress);
 
@@ -105,8 +99,7 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         ColorChoice::Never => false,
     };
     let has_errors = report_diagnostics(
-        &engine,
-        &files,
+        &compilation,
         &source_ids,
         &current_directory,
         config.diagnostic_limit,
@@ -116,41 +109,14 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         return Err(CompileError::Diagnostics);
     }
 
-    let modules = generate_modules(&engine, &files, &source_ids)?;
-    write_modules(&files, &modules, &config.output)?;
+    let modules = generate_modules(&compilation, &source_ids)?;
+    write_modules(&compilation, &modules, &config.output)?;
     report_completion(started.elapsed());
 
     Ok(())
 }
 
-fn configure_prim(engine: &QueryEngine, files: &mut FileLifecycle<(), ()>) {
-    for (name, content) in MODULE_MAP {
-        let source = format!("prim://localhost/{name}.purs");
-        let foreign = format!("prim://localhost/{name}.js");
-
-        let event = LifecycleEvent::Source {
-            unit: SourceUnitKey::new(source, foreign),
-            event: SourceEvent::DiskObserved {
-                disk: DiskObservation::Found(Arc::from(*content)),
-                metadata: (),
-            },
-        };
-
-        let change = files.apply(engine, event);
-        let id = change
-            .changed_sources()
-            .next()
-            .expect("invariant violated: Prim source lifecycle did not insert a source");
-
-        engine.set_module_file(name, id);
-    }
-}
-
-fn load_source(
-    engine: &QueryEngine,
-    files: &mut FileLifecycle<(), ()>,
-    path: &Path,
-) -> Result<FileId, CompileError> {
+fn load_source(compilation: &mut CompilationState, path: &Path) -> Result<(), CompileError> {
     let source_url =
         Url::from_file_path(path).map_err(|()| CompileError::InvalidPath(path.to_path_buf()))?;
     let foreign_path = path.with_extension("js");
@@ -160,19 +126,7 @@ fn load_source(
     let unit = SourceUnitKey::new(source_url.as_str(), foreign_url.as_str());
 
     let content = fs::read_to_string(path)?;
-    let event = LifecycleEvent::Source {
-        unit: SourceUnitKey::clone(&unit),
-        event: SourceEvent::DiskObserved {
-            disk: DiskObservation::Found(content.into()),
-            metadata: (),
-        },
-    };
-
-    let change = files.apply(engine, event);
-    let source_id = change
-        .changed_sources()
-        .next()
-        .expect("invariant violated: source lifecycle did not insert an input source");
+    compilation.observe_source(SourceUnitKey::clone(&unit), DiskObservation::Found(content.into()));
 
     let disk = match fs::read_to_string(&foreign_path) {
         Ok(content) => DiskObservation::Found(content.into()),
@@ -180,9 +134,8 @@ fn load_source(
         Err(error) => return Err(error.into()),
     };
 
-    let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::DiskObserved { disk } };
-    files.apply(engine, event);
-    Ok(source_id)
+    compilation.observe_foreign(unit, disk);
+    Ok(())
 }
 
 fn display_source_path(source_path: &str, current_directory: &Path) -> String {
@@ -194,8 +147,7 @@ fn display_source_path(source_path: &str, current_directory: &Path) -> String {
 }
 
 fn report_diagnostics(
-    engine: &QueryEngine,
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     source_ids: &[FileId],
     current_directory: &Path,
     diagnostic_limit: Option<usize>,
@@ -207,7 +159,7 @@ fn report_diagnostics(
     let checking_progress = phase_progress(&progress, source_ids.len(), "Elaborate");
 
     let diagnostics = source_ids.par_iter().map(|&file_id| {
-        let engine = engine.snapshot();
+        let engine = compilation.snapshot();
         let content = engine.content(file_id)?;
         let (parsed, _) = engine.parsed(file_id)?;
         let module_name = parsed.module_name(&content);
@@ -257,7 +209,7 @@ fn report_diagnostics(
             None
         } else {
             let source_path =
-                files.source_path(file_id).expect("input source has no lifecycle path");
+                compilation.source_path(file_id).expect("input source has no lifecycle path");
             Some(display_source_path(&source_path, current_directory))
         };
         Ok::<_, CompileError>((has_errors, all, content, display_path))
@@ -301,8 +253,7 @@ fn report_diagnostics(
 }
 
 fn generate_modules(
-    engine: &QueryEngine,
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     source_ids: &[FileId],
 ) -> Result<Vec<Arc<javascript::Module>>, CompileError> {
     let mut pending = source_ids.to_vec();
@@ -323,14 +274,14 @@ fn generate_modules(
         }
 
         let generated = frontier.par_iter().map(|&file_id| {
-            let engine = engine.snapshot();
+            let engine = compilation.snapshot();
             let content = engine.content(file_id)?;
             let (parsed, _) = engine.parsed(file_id)?;
             if let Some(module_name) = parsed.module_name(&content) {
                 set_progress_module(&progress, &module_name);
             }
             let module = engine.javascript(file_id)?.map_err(|source| {
-                let path = files
+                let path = compilation
                     .source_path(file_id)
                     .expect("invariant violated: generated module has no lifecycle path");
                 CompileError::JavaScript { path, source }
@@ -351,7 +302,7 @@ fn generate_modules(
 }
 
 fn write_modules(
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     modules: &[Arc<javascript::Module>],
     output: &Path,
 ) -> Result<(), CompileError> {
@@ -376,7 +327,7 @@ fn write_modules(
             return Ok(());
         }
 
-        let source_locator = files
+        let source_locator = compilation
             .source_path(module.file_id())
             .expect("invariant violated: generated module has no lifecycle path");
         let source_url = Url::parse(&source_locator)

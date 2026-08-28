@@ -2,6 +2,7 @@ use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
 pub mod cli;
+mod compilation;
 pub mod compile;
 pub mod docs;
 pub mod logging;
