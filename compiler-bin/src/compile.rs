@@ -365,19 +365,11 @@ fn write_modules(
             return Ok(outputs);
         }
 
-        let source_locator = compilation
-            .source_path(module.file_id())
-            .expect("invariant violated: generated module has no lifecycle path");
-        let source_url = Url::parse(&source_locator)
-            .map_err(|_| CompileError::InvalidPath(PathBuf::from(source_locator.as_ref())))?;
-        let source_path = source_url
-            .to_file_path()
-            .map_err(|()| CompileError::InvalidPath(PathBuf::from(source_locator.as_ref())))?;
-
-        let foreign_path = source_path.with_extension("js");
         let output_path = output.join(module.foreign_filename());
-        let foreign = fs::read(foreign_path)?;
-        write_if_changed(&output_path, &foreign)?;
+        let foreign = compilation
+            .source_foreign_content(module.file_id())
+            .expect("invariant violated: generated module requires missing foreign content");
+        write_if_changed(&output_path, foreign.as_bytes())?;
         outputs.push(output_path);
         progress.inc(1);
         Ok(outputs)

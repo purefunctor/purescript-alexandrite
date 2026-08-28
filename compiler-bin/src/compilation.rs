@@ -97,6 +97,15 @@ impl CompilationState {
         Some(content)
     }
 
+    pub fn source_foreign_content(&self, source_id: FileId) -> Option<Arc<str>> {
+        let foreign_id = self.engine.foreign_file(source_id)?;
+        let content = self
+            .engine
+            .foreign_content(foreign_id)
+            .expect("invariant violated: associated foreign file has no engine content");
+        Some(content)
+    }
+
     pub fn module_name(&self, locator: &str) -> Result<Option<String>, QueryError> {
         let Some(file_id) = self.files.source_id(locator) else {
             return Ok(None);
@@ -157,6 +166,10 @@ mod tests {
 
         assert_eq!(change.changed_sources().collect::<Vec<_>>(), vec![source_id]);
         assert!(compilation.snapshot().foreign_file(source_id).is_some());
+        assert_eq!(
+            compilation.source_foreign_content(source_id).as_deref(),
+            Some("export const value = 1;\n")
+        );
     }
 
     #[test]
