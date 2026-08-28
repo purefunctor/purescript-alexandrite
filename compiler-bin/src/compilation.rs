@@ -80,6 +80,24 @@ impl CompilationState {
     pub fn source_path(&self, file_id: FileId) -> Option<Arc<str>> {
         self.files.source_path(file_id)
     }
+
+    pub fn source_content(&self, locator: &str) -> Option<Arc<str>> {
+        let file_id = self.files.source_id(locator)?;
+        self.engine.content(file_id).ok()
+    }
+
+    pub fn foreign_content(&self, locator: &str) -> Option<Arc<str>> {
+        let foreign_id = self.files.foreign_id(locator)?;
+        self.engine.foreign_content(foreign_id)
+    }
+
+    pub fn module_name(&self, locator: &str) -> Option<String> {
+        let file_id = self.files.source_id(locator)?;
+        let engine = self.engine.snapshot();
+        let content = engine.content(file_id).ok()?;
+        let (parsed, _) = engine.parsed(file_id).ok()?;
+        parsed.module_name(&content).map(|name| name.to_string())
+    }
 }
 
 #[cfg(test)]

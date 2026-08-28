@@ -255,7 +255,7 @@ fn report_diagnostics(
     let mut remaining = config.diagnostic_limit.unwrap_or(usize::MAX);
     let mut omitted = 0;
     let mut rendered_any = false;
-    let separate_from_progress = io::stderr().is_terminal();
+    let separate_diagnostics = !config.progress || io::stderr().is_terminal();
     for (file_has_errors, all, content, display_path) in diagnostics {
         has_errors |= file_has_errors;
         let rendered_count = remaining.min(all.len());
@@ -263,7 +263,7 @@ fn report_diagnostics(
         remaining -= rendered_count;
 
         if rendered_count > 0 {
-            if !rendered_any && separate_from_progress {
+            if !rendered_any && separate_diagnostics {
                 eprint!("\n\n");
             }
             rendered_any = true;
@@ -280,6 +280,9 @@ fn report_diagnostics(
     }
     if omitted > 0 && config.diagnostic_limit != Some(0) {
         eprintln!("note: {omitted} additional diagnostics omitted by --diagnostic-limit");
+    }
+    if rendered_any && !config.progress {
+        eprintln!();
     }
 
     Ok(has_errors)
@@ -454,8 +457,10 @@ fn phase_progress(
     phase: &'static str,
     show: bool,
 ) -> ProgressBar {
-    let phase_progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
-    let phase_progress = progress.add(phase_progress);
+    if !show {
+        return ProgressBar::hidden();
+    }
+    let phase_progress = progress.add(ProgressBar::new(total as u64));
     configure_progress(&phase_progress, phase);
     phase_progress
 }

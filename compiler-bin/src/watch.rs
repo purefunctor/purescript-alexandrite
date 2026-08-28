@@ -5,6 +5,8 @@ use std::time::Duration;
 use std::{fs, io, process};
 
 use building::{DiskObservation, LifecycleChange, ReloadFailure, SourceUnitKey};
+use console::Style;
+use itertools::Itertools;
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use thiserror::Error;
@@ -16,6 +18,7 @@ use crate::compile::{self, BuildConfig, BuildOutcome, CompileError};
 use crate::walk;
 
 const DEBOUNCE_DURATION: Duration = Duration::from_millis(100);
+const MODULE_DISPLAY_LIMIT: usize = 3;
 
 pub struct WatchConfig {
     pub output: PathBuf,
@@ -55,7 +58,8 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
     for root in &workspace.watch_roots {
         watcher.watch(root, RecursiveMode::Recursive)?;
     }
-    report_lifecycle_warnings(&initial_change);
+    report_lifecycle_warnings(&initial_change.lifecycle);
+    report_changed_modules(&initial_change.modules, compile::use_color(config.color));
     rebuild(&mut workspace, &config);
 
     loop {
@@ -76,8 +80,9 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         }
 
         let change = workspace.synchronize_events(events)?;
-        report_lifecycle_warnings(&change);
-        if lifecycle_changed(&change) {
+        report_lifecycle_warnings(&change.lifecycle);
+        if !change.modules.is_empty() {
+            report_changed_modules(&change.modules, compile::use_color(config.color));
             rebuild(&mut workspace, &config);
         }
     }
@@ -103,12 +108,10 @@ fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) {
         Ok(BuildOutcome::Succeeded(outputs)) => {
             if let Err(error) = workspace.reconcile_outputs(outputs) {
                 eprintln!("Compilation succeeded, but stale output could not be removed: {error}");
-            } else {
-                eprintln!("Compilation succeeded; watching for changes.");
             }
         }
-        Ok(BuildOutcome::Diagnostics) => eprintln!("Compilation failed; watching for changes."),
-        Err(error) => eprintln!("Compilation failed: {error}; watching for changes."),
+        Ok(BuildOutcome::Diagnostics) => {}
+        Err(error) => eprintln!("\n\nCompilation failed: {error}\n"),
     }
 }
 
@@ -119,8 +122,38 @@ fn report_lifecycle_warnings(change: &LifecycleChange) {
     }
 }
 
-fn lifecycle_changed(change: &LifecycleChange) -> bool {
-    change.changed_sources().next().is_some() || !change.removed_sources().is_empty()
+fn report_changed_modules(module_names: &BTreeSet<String>, color: bool) {
+    if module_names.is_empty() {
+        return;
+    }
+
+    let timestamp = jiff::Zoned::now().strftime("%H:%M:%S");
+    let timestamp =
+        Style::new().cyan().dim().force_styling(color).apply_to(format!("[{timestamp}]"));
+    let count = module_names.len();
+    let noun = if count == 1 { "file" } else { "files" };
+    let mut displayed = module_names.iter().take(MODULE_DISPLAY_LIMIT).map(String::as_str);
+    let displayed = displayed.join(", ");
+    let omitted = count.saturating_sub(MODULE_DISPLAY_LIMIT);
+
+    if omitted == 0 {
+        eprintln!("{timestamp} {count} {noun} changed: {displayed}");
+    } else {
+        eprintln!("{timestamp} {count} {noun} changed: {displayed}, … +{omitted} more");
+    }
+}
+
+#[derive(Default)]
+struct WorkspaceChange {
+    lifecycle: LifecycleChange,
+    modules: BTreeSet<String>,
+}
+
+impl WorkspaceChange {
+    fn combine(&mut self, other: WorkspaceChange) {
+        self.lifecycle.combine(other.lifecycle);
+        self.modules.extend(other.modules);
+    }
 }
 
 struct WatchWorkspace {
@@ -139,7 +172,7 @@ impl WatchWorkspace {
         current_directory: PathBuf,
         inputs: Vec<PathBuf>,
         output: PathBuf,
-    ) -> Result<(WatchWorkspace, LifecycleChange), WatchError> {
+    ) -> Result<(WatchWorkspace, WorkspaceChange), WatchError> {
         let walked = walk::walk(&current_directory, &inputs)?;
         let watch_roots = walked.roots.iter().map(|root| persistent_watch_root(root)).collect();
         let source_paths = walked
@@ -148,7 +181,7 @@ impl WatchWorkspace {
             .filter(|path| !path.starts_with(&output))
             .collect::<BTreeSet<_>>();
         let mut compilation = CompilationState::new();
-        let mut initial_change = LifecycleChange::default();
+        let mut initial_change = WorkspaceChange::default();
         for path in &source_paths {
             initial_change.combine(observe_source_unit(&mut compilation, path)?);
         }
@@ -169,7 +202,7 @@ impl WatchWorkspace {
     fn synchronize_events(
         &mut self,
         events: impl IntoIterator<Item = Event>,
-    ) -> Result<LifecycleChange, WatchError> {
+    ) -> Result<WorkspaceChange, WatchError> {
         let mut rescan = false;
         let mut paths = BTreeSet::new();
         for event in events {
@@ -203,7 +236,7 @@ impl WatchWorkspace {
     fn synchronize_paths(
         &mut self,
         paths: impl IntoIterator<Item = PathBuf>,
-    ) -> Result<LifecycleChange, WatchError> {
+    ) -> Result<WorkspaceChange, WatchError> {
         let mut source_paths = BTreeSet::new();
         let mut foreign_paths = BTreeSet::new();
         for path in paths {
@@ -228,7 +261,7 @@ impl WatchWorkspace {
             }
         }
 
-        let mut change = LifecycleChange::default();
+        let mut change = WorkspaceChange::default();
         for path in source_paths {
             change.combine(observe_source_unit(&mut self.compilation, &path)?);
             if path.exists() {
@@ -243,7 +276,7 @@ impl WatchWorkspace {
         Ok(change)
     }
 
-    fn rescan(&mut self) -> Result<LifecycleChange, WatchError> {
+    fn rescan(&mut self) -> Result<WorkspaceChange, WatchError> {
         let walked = walk::walk(&self.current_directory, &self.inputs)?;
         let current_paths = walked
             .files
@@ -253,7 +286,7 @@ impl WatchWorkspace {
         let affected_paths = self.source_paths.union(&current_paths).cloned();
         let affected_paths = affected_paths.collect::<Vec<_>>();
 
-        let mut change = LifecycleChange::default();
+        let mut change = WorkspaceChange::default();
         for path in affected_paths {
             change.combine(observe_source_unit(&mut self.compilation, &path)?);
         }
@@ -278,22 +311,42 @@ impl WatchWorkspace {
 fn observe_source_unit(
     compilation: &mut CompilationState,
     source_path: &Path,
-) -> Result<LifecycleChange, WatchError> {
+) -> Result<WorkspaceChange, WatchError> {
     let unit = source_unit(source_path)?;
+    let previous_source = compilation.source_content(unit.source());
+    let previous_foreign = compilation.foreign_content(unit.foreign());
+    let previous_name = compilation.module_name(unit.source());
+
     let source = observe_disk(source_path);
-    let mut change = compilation.observe_source(SourceUnitKey::clone(&unit), source);
+    let mut lifecycle = compilation.observe_source(SourceUnitKey::clone(&unit), source);
     let foreign = observe_disk(&source_path.with_extension("js"));
-    change.combine(compilation.observe_foreign(unit, foreign));
-    Ok(change)
+    lifecycle.combine(compilation.observe_foreign(SourceUnitKey::clone(&unit), foreign));
+
+    let current_source = compilation.source_content(unit.source());
+    let current_foreign = compilation.foreign_content(unit.foreign());
+    let mut modules = BTreeSet::new();
+    if previous_source != current_source || previous_foreign != current_foreign {
+        let name = compilation.module_name(unit.source()).or(previous_name);
+        modules.insert(name.unwrap_or_else(|| fallback_module_name(source_path)));
+    }
+    Ok(WorkspaceChange { lifecycle, modules })
 }
 
 fn observe_foreign(
     compilation: &mut CompilationState,
     source_path: &Path,
-) -> Result<LifecycleChange, WatchError> {
+) -> Result<WorkspaceChange, WatchError> {
     let unit = source_unit(source_path)?;
+    let previous_foreign = compilation.foreign_content(unit.foreign());
     let foreign = observe_disk(&source_path.with_extension("js"));
-    Ok(compilation.observe_foreign(unit, foreign))
+    let lifecycle = compilation.observe_foreign(SourceUnitKey::clone(&unit), foreign);
+    let current_foreign = compilation.foreign_content(unit.foreign());
+    let mut modules = BTreeSet::new();
+    if previous_foreign != current_foreign {
+        let name = compilation.module_name(unit.source());
+        modules.insert(name.unwrap_or_else(|| fallback_module_name(source_path)));
+    }
+    Ok(WorkspaceChange { lifecycle, modules })
 }
 
 fn source_unit(source_path: &Path) -> Result<SourceUnitKey, WatchError> {
@@ -311,6 +364,13 @@ fn observe_disk(path: &Path) -> DiskObservation {
         Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
         Err(error) => DiskObservation::Failed(ReloadFailure::new(error.kind(), error.to_string())),
     }
+}
+
+fn fallback_module_name(source_path: &Path) -> String {
+    source_path
+        .file_stem()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| source_path.display().to_string())
 }
 
 fn persistent_watch_root(root: &Path) -> PathBuf {
@@ -354,7 +414,8 @@ mod tests {
         let original = workspace.compilation.input_source_ids()[0];
 
         fs::write(&main, "module Main where\n\nvalue = 2\n").unwrap();
-        workspace.synchronize_paths([main.clone()]).unwrap();
+        let change = workspace.synchronize_paths([main.clone()]).unwrap();
+        assert_eq!(change.modules, BTreeSet::from([String::from("Main")]));
         assert_eq!(workspace.compilation.input_source_ids(), vec![original]);
         assert_eq!(
             workspace.compilation.snapshot().content(original).unwrap().as_ref(),
@@ -363,11 +424,13 @@ mod tests {
 
         let added = temporary.path().join("src/Added.purs");
         fs::write(&added, "module Added where\n").unwrap();
-        workspace.synchronize_paths([added.clone()]).unwrap();
+        let change = workspace.synchronize_paths([added.clone()]).unwrap();
+        assert_eq!(change.modules, BTreeSet::from([String::from("Added")]));
         assert_eq!(workspace.compilation.input_source_ids().len(), 2);
 
         fs::remove_file(&main).unwrap();
-        workspace.synchronize_paths([main]).unwrap();
+        let change = workspace.synchronize_paths([main]).unwrap();
+        assert_eq!(change.modules, BTreeSet::from([String::from("Main")]));
         assert_eq!(workspace.compilation.input_source_ids().len(), 1);
     }
 
@@ -380,8 +443,19 @@ mod tests {
 
         let change = workspace.synchronize_paths([foreign]).unwrap();
 
-        assert_eq!(change.changed_sources().collect::<Vec<_>>(), vec![source_id]);
+        assert_eq!(change.lifecycle.changed_sources().collect::<Vec<_>>(), vec![source_id]);
+        assert_eq!(change.modules, BTreeSet::from([String::from("Main")]));
         assert!(workspace.compilation.snapshot().foreign_file(source_id).is_some());
+    }
+
+    #[test]
+    fn ignores_events_when_disk_content_is_unchanged() {
+        let (temporary, mut workspace) = workspace();
+        let main = temporary.path().join("src/Main.purs");
+
+        let change = workspace.synchronize_paths([main]).unwrap();
+
+        assert!(change.modules.is_empty());
     }
 
     #[test]
