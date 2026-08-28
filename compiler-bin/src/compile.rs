@@ -30,8 +30,22 @@ pub struct CompileConfig {
     pub color: ColorChoice,
 }
 
+pub(crate) struct BuildConfig<'a> {
+    pub output: &'a Path,
+    pub current_directory: &'a Path,
+    pub diagnostic_limit: Option<usize>,
+    pub color: bool,
+    pub progress: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum BuildOutcome {
+    Succeeded,
+    Diagnostics,
+}
+
 #[derive(Debug, Error)]
-enum CompileError {
+pub(crate) enum CompileError {
     #[error("compilation failed")]
     Diagnostics,
     #[error("failed to convert path to a file URL: {0}")]
@@ -73,7 +87,7 @@ pub fn start(config: CompileConfig) {
 
 fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let started = Instant::now();
-    let preparation_progress = compilation_progress(1, "Preparing");
+    let preparation_progress = compilation_progress(1, "Preparing", true);
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
@@ -90,33 +104,41 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let color = match config.color {
-        ColorChoice::Auto => {
-            let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
-            io::stderr().is_terminal() && !no_color
-        }
-        ColorChoice::Always => true,
-        ColorChoice::Never => false,
+    let build_config = BuildConfig {
+        output: &config.output,
+        current_directory: &current_directory,
+        diagnostic_limit: config.diagnostic_limit,
+        color: use_color(config.color),
+        progress: true,
     };
-    let has_errors = report_diagnostics(
-        &compilation,
-        &source_ids,
-        &current_directory,
-        config.diagnostic_limit,
-        color,
-    )?;
-    if has_errors {
+    if build(&compilation, &build_config)? == BuildOutcome::Diagnostics {
         return Err(CompileError::Diagnostics);
     }
 
-    let modules = generate_modules(&compilation, &source_ids)?;
-    write_modules(&compilation, &modules, &config.output)?;
     report_completion(started.elapsed());
 
     Ok(())
 }
 
-fn load_source(compilation: &mut CompilationState, path: &Path) -> Result<(), CompileError> {
+pub(crate) fn build(
+    compilation: &CompilationState,
+    config: &BuildConfig<'_>,
+) -> Result<BuildOutcome, CompileError> {
+    let source_ids = compilation.input_source_ids();
+    let has_errors = report_diagnostics(compilation, &source_ids, config)?;
+    if has_errors {
+        return Ok(BuildOutcome::Diagnostics);
+    }
+
+    let modules = generate_modules(compilation, &source_ids, config.progress)?;
+    write_modules(compilation, &modules, config.output, config.progress)?;
+    Ok(BuildOutcome::Succeeded)
+}
+
+pub(crate) fn load_source(
+    compilation: &mut CompilationState,
+    path: &Path,
+) -> Result<(), CompileError> {
     let source_url =
         Url::from_file_path(path).map_err(|()| CompileError::InvalidPath(path.to_path_buf()))?;
     let foreign_path = path.with_extension("js");
@@ -138,6 +160,17 @@ fn load_source(compilation: &mut CompilationState, path: &Path) -> Result<(), Co
     Ok(())
 }
 
+pub(crate) fn use_color(choice: ColorChoice) -> bool {
+    match choice {
+        ColorChoice::Auto => {
+            let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
+            io::stderr().is_terminal() && !no_color
+        }
+        ColorChoice::Always => true,
+        ColorChoice::Never => false,
+    }
+}
+
 fn display_source_path(source_path: &str, current_directory: &Path) -> String {
     if let Some(file_path) = Url::parse(source_path).ok().and_then(|url| url.to_file_path().ok()) {
         file_path.strip_prefix(current_directory).unwrap_or(&file_path).display().to_string()
@@ -149,14 +182,14 @@ fn display_source_path(source_path: &str, current_directory: &Path) -> String {
 fn report_diagnostics(
     compilation: &CompilationState,
     source_ids: &[FileId],
-    current_directory: &Path,
-    diagnostic_limit: Option<usize>,
-    color: bool,
+    config: &BuildConfig<'_>,
 ) -> Result<bool, CompileError> {
     let progress = MultiProgress::new();
     progress.set_move_cursor(true);
-    let analysing_progress = phase_progress(&progress, source_ids.len(), "Analyse");
-    let checking_progress = phase_progress(&progress, source_ids.len(), "Elaborate");
+    let analysing_progress =
+        phase_progress(&progress, source_ids.len(), "Analyse", config.progress);
+    let checking_progress =
+        phase_progress(&progress, source_ids.len(), "Elaborate", config.progress);
 
     let diagnostics = source_ids.par_iter().map(|&file_id| {
         let engine = compilation.snapshot();
@@ -210,7 +243,7 @@ fn report_diagnostics(
         } else {
             let source_path =
                 compilation.source_path(file_id).expect("input source has no lifecycle path");
-            Some(display_source_path(&source_path, current_directory))
+            Some(display_source_path(&source_path, config.current_directory))
         };
         Ok::<_, CompileError>((has_errors, all, content, display_path))
     });
@@ -219,7 +252,7 @@ fn report_diagnostics(
     finish_progress(&checking_progress);
 
     let mut has_errors = false;
-    let mut remaining = diagnostic_limit.unwrap_or(usize::MAX);
+    let mut remaining = config.diagnostic_limit.unwrap_or(usize::MAX);
     let mut omitted = 0;
     let mut rendered_any = false;
     let separate_from_progress = io::stderr().is_terminal();
@@ -240,12 +273,12 @@ fn report_diagnostics(
                 &all[..rendered_count],
                 &content,
                 &display_path,
-                color,
+                config.color,
             );
             eprint!("{rendered}");
         }
     }
-    if omitted > 0 && diagnostic_limit != Some(0) {
+    if omitted > 0 && config.diagnostic_limit != Some(0) {
         eprintln!("note: {omitted} additional diagnostics omitted by --diagnostic-limit");
     }
 
@@ -255,12 +288,13 @@ fn report_diagnostics(
 fn generate_modules(
     compilation: &CompilationState,
     source_ids: &[FileId],
+    show_progress: bool,
 ) -> Result<Vec<Arc<javascript::Module>>, CompileError> {
     let mut pending = source_ids.to_vec();
     let mut visited = HashSet::new();
 
     let initial_total = source_ids.iter().copied().collect::<HashSet<_>>().len();
-    let progress = compilation_progress(initial_total, "Codegen");
+    let progress = compilation_progress(initial_total, "Codegen", show_progress);
     let mut first_frontier = true;
     let mut modules = vec![];
     while !pending.is_empty() {
@@ -305,6 +339,7 @@ fn write_modules(
     compilation: &CompilationState,
     modules: &[Arc<javascript::Module>],
     output: &Path,
+    show_progress: bool,
 ) -> Result<(), CompileError> {
     if modules.iter().any(|module| module.requires_runtime()) {
         let runtime = output.join(javascript::runtime_filename());
@@ -312,7 +347,7 @@ fn write_modules(
         fs::write(runtime, javascript::runtime_source())?;
     }
 
-    let progress = compilation_progress(modules.len(), "Output");
+    let progress = compilation_progress(modules.len(), "Output", show_progress);
     modules.par_iter().try_for_each(|module| -> Result<(), CompileError> {
         set_progress_module(&progress, module.name());
         let output_path = output.join(module.filename());
@@ -346,8 +381,8 @@ fn write_modules(
     Ok(())
 }
 
-fn compilation_progress(total: usize, phase: &'static str) -> ProgressBar {
-    let progress = ProgressBar::new(total as u64);
+fn compilation_progress(total: usize, phase: &'static str, show: bool) -> ProgressBar {
+    let progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
     configure_progress(&progress, phase);
     progress
 }
@@ -397,8 +432,14 @@ fn configure_progress(progress: &ProgressBar, phase: &'static str) {
     progress.enable_steady_tick(SHIMMER_FRAME_INTERVAL);
 }
 
-fn phase_progress(progress: &MultiProgress, total: usize, phase: &'static str) -> ProgressBar {
-    let phase_progress = progress.add(ProgressBar::new(total as u64));
+fn phase_progress(
+    progress: &MultiProgress,
+    total: usize,
+    phase: &'static str,
+    show: bool,
+) -> ProgressBar {
+    let phase_progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
+    let phase_progress = progress.add(phase_progress);
     configure_progress(&phase_progress, phase);
     phase_progress
 }
