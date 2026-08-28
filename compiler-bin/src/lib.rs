@@ -80,6 +80,7 @@ pub fn run() {
                         output: options.output,
                         spago_project: options.spago_project,
                         packages: options.packages,
+                        quiet: options.quiet,
                     });
                 }
             }

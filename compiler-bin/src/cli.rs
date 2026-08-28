@@ -153,6 +153,9 @@ pub struct DocsOptions {
     /// Output directory for the generated documentation.
     #[arg(long, value_name("DIR"), default_value("docs"), value_parser = absolute_path_parser())]
     pub output: PathBuf,
+    /// Suppress documentation progress output.
+    #[arg(short, long)]
+    pub quiet: bool,
     /// Spago project directory containing spago.lock.
     #[arg(long, value_name("DIR"), conflicts_with("package"), value_parser = absolute_path_parser())]
     pub spago_project: Option<PathBuf>,
@@ -315,9 +318,10 @@ mod tests {
 
     #[test]
     fn single_package_folder() {
-        let options = docs(&["--package", "packages/effect"]);
+        let options = docs(&["--package", "packages/effect", "--quiet"]);
 
         assert_eq!(options.packages, vec![current_directory_path("packages/effect")]);
+        assert!(options.quiet);
     }
 
     #[test]
