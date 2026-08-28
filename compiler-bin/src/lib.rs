@@ -7,6 +7,7 @@ pub mod compile;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
+mod package;
 mod progress;
 pub mod walk;
 mod watch;
@@ -44,7 +45,8 @@ pub fn run() {
             });
             compile::start(compile::CompileConfig {
                 output: options.build.output,
-                inputs: options.build.inputs,
+                inputs: options.inputs,
+                packages: options.packages,
                 json_errors: options.json_errors,
                 quiet: options.build.quiet,
                 color: options.build.color,
@@ -59,7 +61,7 @@ pub fn run() {
             });
             watch::start(watch::WatchConfig {
                 output: options.build.output,
-                inputs: options.build.inputs,
+                inputs: options.inputs,
                 quiet: options.build.quiet,
                 color: options.build.color,
             });

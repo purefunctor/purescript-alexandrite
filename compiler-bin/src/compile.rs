@@ -15,11 +15,12 @@ use url::Url;
 
 use crate::cli::ColorChoice;
 use crate::compilation::CompilationState;
-use crate::{progress, walk};
+use crate::{package, progress, walk};
 
 pub struct CompileConfig {
     pub output: PathBuf,
     pub inputs: Vec<PathBuf>,
+    pub packages: Vec<PathBuf>,
     pub json_errors: bool,
     pub quiet: bool,
     pub color: ColorChoice,
@@ -46,6 +47,8 @@ pub(crate) enum CompileError {
     InvalidPath(PathBuf),
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error(transparent)]
+    Package(#[from] package::PackageError),
     #[error(transparent)]
     Query(#[from] QueryError),
     #[error(transparent)]
@@ -85,9 +88,14 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
+    let mut source_paths = walked.files.into_iter().collect::<BTreeSet<_>>();
+    for package in &config.packages {
+        source_paths.extend(package::source_files(&current_directory, package)?);
+    }
+
     let mut compilation = CompilationState::new();
 
-    for path in walked.files {
+    for path in source_paths {
         load_source(&mut compilation, &path)?;
     }
     let source_ids = compilation.input_source_ids();

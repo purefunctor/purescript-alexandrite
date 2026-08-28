@@ -94,6 +94,19 @@ pub struct CompileOptions {
     #[command(flatten)]
     pub build: BuildOptions,
 
+    /// Package folder to compile.
+    #[arg(
+        id = "package",
+        long = "package",
+        value_name("DIR"),
+        value_parser = absolute_path_parser()
+    )]
+    pub packages: Vec<PathBuf>,
+
+    /// PureScript source paths or glob patterns.
+    #[arg(value_name("INPUT"), required_unless_present("package"))]
+    pub inputs: Vec<PathBuf>,
+
     /// Code generation targets requested by build tools.
     #[arg(long, value_name("TARGETS"))]
     pub codegen: Option<String>,
@@ -109,6 +122,10 @@ pub struct CompileOptions {
 pub struct WatchOptions {
     #[command(flatten)]
     pub build: BuildOptions,
+
+    /// PureScript source paths or glob patterns.
+    #[arg(value_name("INPUT"), required = true)]
+    pub inputs: Vec<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -127,10 +144,6 @@ pub struct BuildOptions {
     /// When to use colors in human-readable diagnostics.
     #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
     pub color: ColorChoice,
-
-    /// PureScript source paths or glob patterns.
-    #[arg(value_name("INPUT"), required = true)]
-    pub inputs: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -240,6 +253,12 @@ mod tests {
         }
     }
 
+    fn compile_error_kind(args: &[&str]) -> ErrorKind {
+        let mut argv = vec!["alexandrite", "compile"];
+        argv.extend(args);
+        Cli::try_parse_from(argv).unwrap_err().kind()
+    }
+
     fn watch(args: &[&str]) -> WatchOptions {
         let mut argv = vec!["alexandrite", "watch"];
         argv.extend(args);
@@ -298,7 +317,7 @@ mod tests {
         assert!(options.build.quiet);
         assert_eq!(options.build.color, ColorChoice::Always);
         assert_eq!(
-            options.build.inputs,
+            options.inputs,
             vec![
                 PathBuf::from("src/**/*.purs"),
                 PathBuf::from(".spago/p/prelude-6.0.2/src/**/*.purs"),
@@ -313,7 +332,28 @@ mod tests {
         assert_eq!(options.build.output, current_directory_path("dist"));
         assert!(options.build.quiet);
         assert_eq!(options.build.color, ColorChoice::Never);
-        assert_eq!(options.build.inputs, vec![PathBuf::from("src/**/*.purs")]);
+        assert_eq!(options.inputs, vec![PathBuf::from("src/**/*.purs")]);
+    }
+
+    #[test]
+    fn compile_accepts_package_folders_without_inputs() {
+        let options =
+            compile(&["--package", "packages/effect", "--package", "packages/prelude", "--quiet"]);
+
+        assert_eq!(
+            options.packages,
+            vec![
+                current_directory_path("packages/effect"),
+                current_directory_path("packages/prelude"),
+            ]
+        );
+        assert!(options.inputs.is_empty());
+        assert!(options.build.quiet);
+    }
+
+    #[test]
+    fn compile_requires_inputs_or_a_package() {
+        insta::assert_debug_snapshot!(compile_error_kind(&[]), @"MissingRequiredArgument");
     }
 
     #[test]
