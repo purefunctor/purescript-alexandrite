@@ -1,0 +1,398 @@
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::time::Duration;
+use std::{fs, io, process};
+
+use building::{DiskObservation, LifecycleChange, ReloadFailure, SourceUnitKey};
+use notify::event::{CreateKind, ModifyKind, RemoveKind};
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use thiserror::Error;
+use url::Url;
+
+use crate::cli::ColorChoice;
+use crate::compilation::CompilationState;
+use crate::compile::{self, BuildConfig, BuildOutcome, CompileError};
+use crate::walk;
+
+const DEBOUNCE_DURATION: Duration = Duration::from_millis(100);
+
+pub struct WatchConfig {
+    pub output: PathBuf,
+    pub inputs: Vec<PathBuf>,
+    pub diagnostic_limit: Option<usize>,
+    pub color: ColorChoice,
+}
+
+#[derive(Debug, Error)]
+enum WatchError {
+    #[error(transparent)]
+    Compile(#[from] CompileError),
+    #[error("failed to convert path to a file URL: {0}")]
+    InvalidPath(PathBuf),
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error(transparent)]
+    Notify(#[from] notify::Error),
+    #[error(transparent)]
+    Walk(#[from] walk::Error),
+}
+
+pub fn start(config: WatchConfig) {
+    if let Err(error) = watch(config) {
+        eprintln!("Watch exited: {error}");
+        tracing::error!(?error, "Watch exited");
+        process::exit(1);
+    }
+}
+
+fn watch(config: WatchConfig) -> Result<(), WatchError> {
+    let current_directory = std::env::current_dir()?;
+    let (mut workspace, initial_change) =
+        WatchWorkspace::new(current_directory, config.inputs.clone(), config.output.clone())?;
+    let (sender, receiver) = mpsc::channel();
+    let mut watcher = RecommendedWatcher::new(sender, notify::Config::default())?;
+    for root in &workspace.watch_roots {
+        watcher.watch(root, RecursiveMode::Recursive)?;
+    }
+    report_lifecycle_warnings(&initial_change);
+    rebuild(&workspace, &config);
+
+    loop {
+        let first = receiver.recv().map_err(|error| {
+            io::Error::new(io::ErrorKind::BrokenPipe, format!("watch channel closed: {error}"))
+        })?;
+        let mut events = vec![first?];
+        loop {
+            match receiver.recv_timeout(DEBOUNCE_DURATION) {
+                Ok(event) => events.push(event?),
+                Err(RecvTimeoutError::Timeout) => break,
+                Err(RecvTimeoutError::Disconnected) => {
+                    return Err(
+                        io::Error::new(io::ErrorKind::BrokenPipe, "watch channel closed").into()
+                    );
+                }
+            }
+        }
+
+        let change = workspace.synchronize_events(events)?;
+        report_lifecycle_warnings(&change);
+        if lifecycle_changed(&change) {
+            rebuild(&workspace, &config);
+        }
+    }
+}
+
+fn rebuild(workspace: &WatchWorkspace, config: &WatchConfig) {
+    if workspace.compilation.input_source_ids().is_empty() {
+        eprintln!("No input files found; waiting for changes.");
+        return;
+    }
+
+    let build_config = BuildConfig {
+        output: &config.output,
+        current_directory: &workspace.current_directory,
+        diagnostic_limit: config.diagnostic_limit,
+        color: compile::use_color(config.color),
+        progress: false,
+    };
+    match compile::build(&workspace.compilation, &build_config) {
+        Ok(BuildOutcome::Succeeded) => eprintln!("Compilation succeeded; watching for changes."),
+        Ok(BuildOutcome::Diagnostics) => eprintln!("Compilation failed; watching for changes."),
+        Err(error) => eprintln!("Compilation failed: {error}; watching for changes."),
+    }
+}
+
+fn report_lifecycle_warnings(change: &LifecycleChange) {
+    for warning in change.warnings() {
+        tracing::warn!("{warning}");
+        eprintln!("Watch warning: {warning}");
+    }
+}
+
+fn lifecycle_changed(change: &LifecycleChange) -> bool {
+    change.changed_sources().next().is_some() || !change.removed_sources().is_empty()
+}
+
+struct WatchWorkspace {
+    current_directory: PathBuf,
+    inputs: Vec<PathBuf>,
+    output: PathBuf,
+    watch_roots: BTreeSet<PathBuf>,
+    source_globs: globset::GlobSet,
+    source_paths: BTreeSet<PathBuf>,
+    compilation: CompilationState,
+}
+
+impl WatchWorkspace {
+    fn new(
+        current_directory: PathBuf,
+        inputs: Vec<PathBuf>,
+        output: PathBuf,
+    ) -> Result<(WatchWorkspace, LifecycleChange), WatchError> {
+        let walked = walk::walk(&current_directory, &inputs)?;
+        let watch_roots = walked.roots.iter().map(|root| persistent_watch_root(root)).collect();
+        let source_paths = walked
+            .files
+            .into_iter()
+            .filter(|path| !path.starts_with(&output))
+            .collect::<BTreeSet<_>>();
+        let mut compilation = CompilationState::new();
+        let mut initial_change = LifecycleChange::default();
+        for path in &source_paths {
+            initial_change.combine(observe_source_unit(&mut compilation, path)?);
+        }
+
+        let workspace = WatchWorkspace {
+            current_directory,
+            inputs,
+            output,
+            watch_roots,
+            source_globs: walked.globs,
+            source_paths,
+            compilation,
+        };
+        Ok((workspace, initial_change))
+    }
+
+    fn synchronize_events(
+        &mut self,
+        events: impl IntoIterator<Item = Event>,
+    ) -> Result<LifecycleChange, WatchError> {
+        let mut rescan = false;
+        let mut paths = BTreeSet::new();
+        for event in events {
+            if !event.paths.is_empty()
+                && event.paths.iter().all(|path| path.starts_with(&self.output))
+            {
+                continue;
+            }
+            if event.need_rescan() {
+                rescan = true;
+            }
+            if matches!(event.kind, EventKind::Access(_)) {
+                continue;
+            }
+            if matches!(
+                event.kind,
+                EventKind::Create(CreateKind::Folder)
+                    | EventKind::Modify(ModifyKind::Name(_))
+                    | EventKind::Remove(RemoveKind::Folder)
+                    | EventKind::Any
+                    | EventKind::Other
+            ) {
+                rescan = true;
+            }
+            paths.extend(event.paths.into_iter().filter(|path| !path.starts_with(&self.output)));
+        }
+
+        if rescan { self.rescan() } else { self.synchronize_paths(paths) }
+    }
+
+    fn synchronize_paths(
+        &mut self,
+        paths: impl IntoIterator<Item = PathBuf>,
+    ) -> Result<LifecycleChange, WatchError> {
+        let mut source_paths = BTreeSet::new();
+        let mut foreign_paths = BTreeSet::new();
+        for path in paths {
+            if path.starts_with(&self.output) {
+                continue;
+            }
+            match path.extension().and_then(|extension| extension.to_str()) {
+                Some("purs") => {
+                    if self.source_paths.contains(&path)
+                        || !self.source_globs.matches(&path).is_empty()
+                    {
+                        source_paths.insert(path);
+                    }
+                }
+                Some("js") => {
+                    let source_path = path.with_extension("purs");
+                    if self.source_paths.contains(&source_path) {
+                        foreign_paths.insert(source_path);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let mut change = LifecycleChange::default();
+        for path in source_paths {
+            change.combine(observe_source_unit(&mut self.compilation, &path)?);
+            if path.exists() {
+                self.source_paths.insert(path);
+            } else {
+                self.source_paths.remove(&path);
+            }
+        }
+        for source_path in foreign_paths {
+            change.combine(observe_foreign(&mut self.compilation, &source_path)?);
+        }
+        Ok(change)
+    }
+
+    fn rescan(&mut self) -> Result<LifecycleChange, WatchError> {
+        let walked = walk::walk(&self.current_directory, &self.inputs)?;
+        let current_paths = walked
+            .files
+            .into_iter()
+            .filter(|path| !path.starts_with(&self.output))
+            .collect::<BTreeSet<_>>();
+        let affected_paths = self.source_paths.union(&current_paths).cloned();
+        let affected_paths = affected_paths.collect::<Vec<_>>();
+
+        let mut change = LifecycleChange::default();
+        for path in affected_paths {
+            change.combine(observe_source_unit(&mut self.compilation, &path)?);
+        }
+        self.source_globs = walked.globs;
+        self.source_paths = current_paths;
+        Ok(change)
+    }
+}
+
+fn observe_source_unit(
+    compilation: &mut CompilationState,
+    source_path: &Path,
+) -> Result<LifecycleChange, WatchError> {
+    let unit = source_unit(source_path)?;
+    let source = observe_disk(source_path);
+    let mut change = compilation.observe_source(SourceUnitKey::clone(&unit), source);
+    let foreign = observe_disk(&source_path.with_extension("js"));
+    change.combine(compilation.observe_foreign(unit, foreign));
+    Ok(change)
+}
+
+fn observe_foreign(
+    compilation: &mut CompilationState,
+    source_path: &Path,
+) -> Result<LifecycleChange, WatchError> {
+    let unit = source_unit(source_path)?;
+    let foreign = observe_disk(&source_path.with_extension("js"));
+    Ok(compilation.observe_foreign(unit, foreign))
+}
+
+fn source_unit(source_path: &Path) -> Result<SourceUnitKey, WatchError> {
+    let source_url = Url::from_file_path(source_path)
+        .map_err(|()| WatchError::InvalidPath(source_path.to_path_buf()))?;
+    let foreign_path = source_path.with_extension("js");
+    let foreign_url = Url::from_file_path(&foreign_path)
+        .map_err(|()| WatchError::InvalidPath(foreign_path.clone()))?;
+    Ok(SourceUnitKey::new(source_url.as_str(), foreign_url.as_str()))
+}
+
+fn observe_disk(path: &Path) -> DiskObservation {
+    match fs::read_to_string(path) {
+        Ok(content) => DiskObservation::Found(content.into()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
+        Err(error) => DiskObservation::Failed(ReloadFailure::new(error.kind(), error.to_string())),
+    }
+}
+
+fn persistent_watch_root(root: &Path) -> PathBuf {
+    let mut candidate = root.parent().unwrap_or(root);
+    while !candidate.exists() {
+        let Some(parent) = candidate.parent() else {
+            break;
+        };
+        candidate = parent;
+    }
+    if candidate.is_file() {
+        candidate.parent().unwrap_or(candidate).to_path_buf()
+    } else {
+        candidate.to_path_buf()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn workspace() -> (TempDir, WatchWorkspace) {
+        let temporary = TempDir::new().unwrap();
+        let root = temporary.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(root.join("src/Main.purs"), "module Main where\n\nvalue = 1\n").unwrap();
+        let (workspace, _) = WatchWorkspace::new(
+            root.to_path_buf(),
+            vec![PathBuf::from("src/**/*.purs")],
+            root.join("output"),
+        )
+        .unwrap();
+        (temporary, workspace)
+    }
+
+    #[test]
+    fn synchronizes_source_additions_modifications_and_deletions() {
+        let (temporary, mut workspace) = workspace();
+        let main = temporary.path().join("src/Main.purs");
+        let original = workspace.compilation.input_source_ids()[0];
+
+        fs::write(&main, "module Main where\n\nvalue = 2\n").unwrap();
+        workspace.synchronize_paths([main.clone()]).unwrap();
+        assert_eq!(workspace.compilation.input_source_ids(), vec![original]);
+        assert_eq!(
+            workspace.compilation.snapshot().content(original).unwrap().as_ref(),
+            "module Main where\n\nvalue = 2\n"
+        );
+
+        let added = temporary.path().join("src/Added.purs");
+        fs::write(&added, "module Added where\n").unwrap();
+        workspace.synchronize_paths([added.clone()]).unwrap();
+        assert_eq!(workspace.compilation.input_source_ids().len(), 2);
+
+        fs::remove_file(&main).unwrap();
+        workspace.synchronize_paths([main]).unwrap();
+        assert_eq!(workspace.compilation.input_source_ids().len(), 1);
+    }
+
+    #[test]
+    fn synchronizes_foreign_changes_for_tracked_sources() {
+        let (temporary, mut workspace) = workspace();
+        let source_id = workspace.compilation.input_source_ids()[0];
+        let foreign = temporary.path().join("src/Main.js");
+        fs::write(&foreign, "export const value = 1;\n").unwrap();
+
+        let change = workspace.synchronize_paths([foreign]).unwrap();
+
+        assert_eq!(change.changed_sources().collect::<Vec<_>>(), vec![source_id]);
+        assert!(workspace.compilation.snapshot().foreign_file(source_id).is_some());
+    }
+
+    #[test]
+    fn full_rescan_reloads_existing_sources_and_removes_missing_sources() {
+        let (temporary, mut workspace) = workspace();
+        let main = temporary.path().join("src/Main.purs");
+        let original = workspace.compilation.input_source_ids()[0];
+        fs::write(&main, "module Main where\n\nvalue = 2\n").unwrap();
+
+        workspace.rescan().unwrap();
+        assert_eq!(
+            workspace.compilation.snapshot().content(original).unwrap().as_ref(),
+            "module Main where\n\nvalue = 2\n"
+        );
+
+        fs::remove_file(main).unwrap();
+        workspace.rescan().unwrap();
+        assert!(workspace.compilation.input_source_ids().is_empty());
+    }
+
+    #[test]
+    fn excludes_output_from_source_membership() {
+        let temporary = TempDir::new().unwrap();
+        let root = temporary.path();
+        fs::create_dir_all(root.join("output")).unwrap();
+        fs::write(root.join("output/Generated.purs"), "module Generated where\n").unwrap();
+
+        let (workspace, _) = WatchWorkspace::new(
+            root.to_path_buf(),
+            vec![PathBuf::from("**/*.purs")],
+            root.join("output"),
+        )
+        .unwrap();
+
+        assert!(workspace.compilation.input_source_ids().is_empty());
+    }
+}

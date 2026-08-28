@@ -41,6 +41,8 @@ pub enum Command {
     Lsp(LspOptions),
     /// Compile PureScript modules to JavaScript (experimental).
     Compile(CompileOptions),
+    /// Compile PureScript modules and rebuild when inputs change (experimental).
+    Watch(WatchOptions),
     /// Documentation utilities.
     Docs(DocsOptions),
 }
@@ -90,11 +92,7 @@ pub struct LspOptions {
 #[derive(Debug, Args)]
 pub struct CompileOptions {
     #[command(flatten)]
-    pub logging: LoggingOptions,
-
-    /// Output directory for compiled modules.
-    #[arg(short, long, value_name("DIR"), default_value("output"), value_parser = absolute_path_parser())]
-    pub output: PathBuf,
+    pub build: BuildOptions,
 
     /// Code generation targets requested by build tools.
     #[arg(long, value_name("TARGETS"))]
@@ -105,6 +103,22 @@ pub struct CompileOptions {
     /// Full structured JSON diagnostics are not yet supported.
     #[arg(long)]
     pub json_errors: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct WatchOptions {
+    #[command(flatten)]
+    pub build: BuildOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct BuildOptions {
+    #[command(flatten)]
+    pub logging: LoggingOptions,
+
+    /// Output directory for compiled modules.
+    #[arg(short, long, value_name("DIR"), default_value("output"), value_parser = absolute_path_parser())]
+    pub output: PathBuf,
 
     /// Maximum number of human-readable diagnostics to print.
     #[arg(long, value_name("COUNT"))]
@@ -223,6 +237,16 @@ mod tests {
         }
     }
 
+    fn watch(args: &[&str]) -> WatchOptions {
+        let mut argv = vec!["alexandrite", "watch"];
+        argv.extend(args);
+        let cli = Cli::parse_from(argv);
+        match cli.command {
+            Some(Command::Watch(options)) => options,
+            _ => unreachable!("parsed command was not `watch`"),
+        }
+    }
+
     fn docs_error_kind(args: &[&str]) -> ErrorKind {
         let mut argv = vec!["alexandrite", "docs"];
         argv.extend(args);
@@ -266,18 +290,36 @@ mod tests {
             ".spago/p/prelude-6.0.2/src/**/*.purs",
         ]);
 
-        assert_eq!(options.output, current_directory_path("output"));
+        assert_eq!(options.build.output, current_directory_path("output"));
         assert_eq!(options.codegen.as_deref(), Some("corefn,docs,js,sourcemaps"));
         assert!(options.json_errors);
-        assert_eq!(options.diagnostic_limit, Some(20));
-        assert_eq!(options.color, ColorChoice::Always);
+        assert_eq!(options.build.diagnostic_limit, Some(20));
+        assert_eq!(options.build.color, ColorChoice::Always);
         assert_eq!(
-            options.inputs,
+            options.build.inputs,
             vec![
                 PathBuf::from("src/**/*.purs"),
                 PathBuf::from(".spago/p/prelude-6.0.2/src/**/*.purs"),
             ]
         );
+    }
+
+    #[test]
+    fn watch_accepts_compile_arguments() {
+        let options = watch(&[
+            "--output",
+            "dist",
+            "--diagnostic-limit",
+            "10",
+            "--color",
+            "never",
+            "src/**/*.purs",
+        ]);
+
+        assert_eq!(options.build.output, current_directory_path("dist"));
+        assert_eq!(options.build.diagnostic_limit, Some(10));
+        assert_eq!(options.build.color, ColorChoice::Never);
+        assert_eq!(options.build.inputs, vec![PathBuf::from("src/**/*.purs")]);
     }
 
     #[test]
