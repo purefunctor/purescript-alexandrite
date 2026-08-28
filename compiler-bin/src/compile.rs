@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -38,9 +38,9 @@ pub(crate) struct BuildConfig<'a> {
     pub progress: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum BuildOutcome {
-    Succeeded,
+    Succeeded(BTreeSet<PathBuf>),
     Diagnostics,
 }
 
@@ -111,7 +111,7 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         color: use_color(config.color),
         progress: true,
     };
-    if build(&compilation, &build_config)? == BuildOutcome::Diagnostics {
+    if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
 
@@ -131,8 +131,8 @@ pub(crate) fn build(
     }
 
     let modules = generate_modules(compilation, &source_ids, config.progress)?;
-    write_modules(compilation, &modules, config.output, config.progress)?;
-    Ok(BuildOutcome::Succeeded)
+    let outputs = write_modules(compilation, &modules, config.output, config.progress)?;
+    Ok(BuildOutcome::Succeeded(outputs))
 }
 
 pub(crate) fn load_source(
@@ -340,26 +340,29 @@ fn write_modules(
     modules: &[Arc<javascript::Module>],
     output: &Path,
     show_progress: bool,
-) -> Result<(), CompileError> {
+) -> Result<BTreeSet<PathBuf>, CompileError> {
+    let mut outputs = BTreeSet::new();
     if modules.iter().any(|module| module.requires_runtime()) {
         let runtime = output.join(javascript::runtime_filename());
         fs::create_dir_all(output)?;
-        fs::write(runtime, javascript::runtime_source())?;
+        write_if_changed(&runtime, javascript::runtime_source().as_bytes())?;
+        outputs.insert(runtime);
     }
 
     let progress = compilation_progress(modules.len(), "Output", show_progress);
-    modules.par_iter().try_for_each(|module| -> Result<(), CompileError> {
+    let module_outputs = modules.par_iter().map(|module| -> Result<Vec<PathBuf>, CompileError> {
         set_progress_module(&progress, module.name());
         let output_path = output.join(module.filename());
         let output_parent =
             output_path.parent().expect("invariant violated: module filename has no parent");
 
         fs::create_dir_all(output_parent)?;
-        fs::write(output_path, module.source())?;
+        write_if_changed(&output_path, module.source().as_bytes())?;
+        let mut outputs = vec![output_path];
 
         if !module.requires_foreign() {
             progress.inc(1);
-            return Ok(());
+            return Ok(outputs);
         }
 
         let source_locator = compilation
@@ -373,12 +376,25 @@ fn write_modules(
 
         let foreign_path = source_path.with_extension("js");
         let output_path = output.join(module.foreign_filename());
-        fs::copy(foreign_path, output_path)?;
+        let foreign = fs::read(foreign_path)?;
+        write_if_changed(&output_path, &foreign)?;
+        outputs.push(output_path);
         progress.inc(1);
-        Ok(())
-    })?;
+        Ok(outputs)
+    });
+    let module_outputs = module_outputs.collect::<Result<Vec<_>, _>>()?;
+    outputs.extend(module_outputs.into_iter().flatten());
     finish_progress(&progress);
-    Ok(())
+    Ok(outputs)
+}
+
+fn write_if_changed(path: &Path, content: &[u8]) -> io::Result<()> {
+    match fs::read(path) {
+        Ok(previous) if previous == content => Ok(()),
+        Ok(_) => fs::write(path, content),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::write(path, content),
+        Err(error) => Err(error),
+    }
 }
 
 fn compilation_progress(total: usize, phase: &'static str, show: bool) -> ProgressBar {

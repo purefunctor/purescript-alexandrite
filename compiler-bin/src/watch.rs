@@ -56,7 +56,7 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         watcher.watch(root, RecursiveMode::Recursive)?;
     }
     report_lifecycle_warnings(&initial_change);
-    rebuild(&workspace, &config);
+    rebuild(&mut workspace, &config);
 
     loop {
         let first = receiver.recv().map_err(|error| {
@@ -78,13 +78,16 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         let change = workspace.synchronize_events(events)?;
         report_lifecycle_warnings(&change);
         if lifecycle_changed(&change) {
-            rebuild(&workspace, &config);
+            rebuild(&mut workspace, &config);
         }
     }
 }
 
-fn rebuild(workspace: &WatchWorkspace, config: &WatchConfig) {
+fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) {
     if workspace.compilation.input_source_ids().is_empty() {
+        if let Err(error) = workspace.reconcile_outputs(BTreeSet::new()) {
+            eprintln!("Failed to remove stale output: {error}");
+        }
         eprintln!("No input files found; waiting for changes.");
         return;
     }
@@ -97,7 +100,13 @@ fn rebuild(workspace: &WatchWorkspace, config: &WatchConfig) {
         progress: false,
     };
     match compile::build(&workspace.compilation, &build_config) {
-        Ok(BuildOutcome::Succeeded) => eprintln!("Compilation succeeded; watching for changes."),
+        Ok(BuildOutcome::Succeeded(outputs)) => {
+            if let Err(error) = workspace.reconcile_outputs(outputs) {
+                eprintln!("Compilation succeeded, but stale output could not be removed: {error}");
+            } else {
+                eprintln!("Compilation succeeded; watching for changes.");
+            }
+        }
         Ok(BuildOutcome::Diagnostics) => eprintln!("Compilation failed; watching for changes."),
         Err(error) => eprintln!("Compilation failed: {error}; watching for changes."),
     }
@@ -121,6 +130,7 @@ struct WatchWorkspace {
     watch_roots: BTreeSet<PathBuf>,
     source_globs: globset::GlobSet,
     source_paths: BTreeSet<PathBuf>,
+    generated_outputs: BTreeSet<PathBuf>,
     compilation: CompilationState,
 }
 
@@ -150,6 +160,7 @@ impl WatchWorkspace {
             watch_roots,
             source_globs: walked.globs,
             source_paths,
+            generated_outputs: BTreeSet::new(),
             compilation,
         };
         Ok((workspace, initial_change))
@@ -249,6 +260,18 @@ impl WatchWorkspace {
         self.source_globs = walked.globs;
         self.source_paths = current_paths;
         Ok(change)
+    }
+
+    fn reconcile_outputs(&mut self, current: BTreeSet<PathBuf>) -> io::Result<()> {
+        for stale in self.generated_outputs.difference(&current) {
+            match fs::remove_file(stale) {
+                Ok(()) => {}
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+        self.generated_outputs = current;
+        Ok(())
     }
 }
 
@@ -394,5 +417,23 @@ mod tests {
         .unwrap();
 
         assert!(workspace.compilation.input_source_ids().is_empty());
+    }
+
+    #[test]
+    fn removes_outputs_missing_from_the_latest_successful_build() {
+        let (temporary, mut workspace) = workspace();
+        let stale = temporary.path().join("output/Stale/index.js");
+        let retained = temporary.path().join("output/Main/index.js");
+        fs::create_dir_all(stale.parent().unwrap()).unwrap();
+        fs::create_dir_all(retained.parent().unwrap()).unwrap();
+        fs::write(&stale, "stale").unwrap();
+        fs::write(&retained, "retained").unwrap();
+        workspace.generated_outputs = BTreeSet::from([stale.clone(), retained.clone()]);
+
+        workspace.reconcile_outputs(BTreeSet::from([retained.clone()])).unwrap();
+
+        assert!(!stale.exists());
+        assert!(retained.exists());
+        assert_eq!(workspace.generated_outputs, BTreeSet::from([retained]));
     }
 }
