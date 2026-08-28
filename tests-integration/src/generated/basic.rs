@@ -4,7 +4,7 @@ use analyzer::position;
 use building::QueryEngine;
 use checking::core::pretty;
 use checking::{PrettyQueries, core};
-use diagnostics::{DiagnosticsContext, ToDiagnostics, format_rich_with_path};
+use diagnostics::{collect_diagnostics, format_rich_with_path};
 use files::FileId;
 use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
@@ -356,35 +356,26 @@ pub fn report_checked(engine: &QueryEngine, id: FileId, path: &str) -> String {
         writeln!(out, "{name} = [{}]", roles_str.join(", ")).unwrap();
     }
 
-    write_checked_diagnostics(&mut out, engine, id, path, &indexed, &checked);
+    write_checked_diagnostics(&mut out, engine, id, path);
 
     out
 }
 
 pub fn report_foreign(engine: &QueryEngine, id: FileId, path: &str) -> String {
-    let validation = engine.foreign_validation(id).unwrap();
-    if validation.errors.is_empty() {
+    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
+    let collected = collected.pop().unwrap();
+    if collected.foreign_diagnostics().is_empty() {
         return String::new();
-    }
-
-    let content = engine.content(id).unwrap();
-    let (parsed, _) = engine.parsed(id).unwrap();
-    let root = parsed.syntax_node();
-    let stabilized = engine.stabilized(id).unwrap();
-    let indexed = engine.indexed(id).unwrap();
-    let lowered = engine.lowered(id).unwrap();
-    let checked = engine.checked(id).unwrap();
-    let context =
-        DiagnosticsContext::new(engine, &content, &root, &stabilized, &indexed, &lowered, &checked);
-
-    let mut diagnostics = Vec::new();
-    for error in validation.errors.iter() {
-        diagnostics.extend(error.to_diagnostics(&context));
     }
 
     let mut out = String::new();
     heading(&mut out, "Diagnostics");
-    out.push_str(&format_rich_with_path(&diagnostics, &content, path, false));
+    out.push_str(&format_rich_with_path(
+        collected.foreign_diagnostics(),
+        &collected.content,
+        path,
+        false,
+    ));
     out
 }
 
@@ -490,45 +481,17 @@ fn write_term_resolution(
     }
 }
 
-fn write_checked_diagnostics(
-    out: &mut String,
-    engine: &QueryEngine,
-    id: FileId,
-    path: &str,
-    indexed: &indexing::IndexedModule,
-    checked: &checking::CheckedModule,
-) {
-    let content = engine.content(id).unwrap();
-    let (parsed, _) = engine.parsed(id).unwrap();
-    let root = parsed.syntax_node();
-    let stabilized = engine.stabilized(id).unwrap();
-    let lowered = engine.lowered(id).unwrap();
-    let resolved = engine.resolved(id).unwrap();
-
-    let context =
-        DiagnosticsContext::new(engine, &content, &root, &stabilized, indexed, &lowered, checked);
-
-    let mut all_diagnostics = vec![];
-
-    for error in &indexed.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    for error in &lowered.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    for error in &resolved.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    for error in &checked.errors {
-        all_diagnostics.extend(error.to_diagnostics(&context));
-    }
-
-    if !all_diagnostics.is_empty() {
+fn write_checked_diagnostics(out: &mut String, engine: &QueryEngine, id: FileId, path: &str) {
+    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
+    let collected = collected.pop().unwrap();
+    if !collected.checking_diagnostics().is_empty() {
         writeln!(out, "\nDiagnostics").unwrap();
-        out.push_str(&format_rich_with_path(&all_diagnostics, &content, path, false));
+        out.push_str(&format_rich_with_path(
+            collected.checking_diagnostics(),
+            &collected.content,
+            path,
+            false,
+        ));
     }
 }
 

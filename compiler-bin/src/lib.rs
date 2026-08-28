@@ -45,7 +45,7 @@ pub fn run() {
                 output: options.build.output,
                 inputs: options.build.inputs,
                 json_errors: options.json_errors,
-                diagnostic_limit: options.build.diagnostic_limit,
+                quiet: options.build.quiet,
                 color: options.build.color,
             });
         }
@@ -59,7 +59,7 @@ pub fn run() {
             watch::start(watch::WatchConfig {
                 output: options.build.output,
                 inputs: options.build.inputs,
-                diagnostic_limit: options.build.diagnostic_limit,
+                quiet: options.build.quiet,
                 color: options.build.color,
             });
         }

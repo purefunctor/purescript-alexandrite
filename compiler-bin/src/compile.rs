@@ -7,7 +7,7 @@ use std::{fmt, fs, io, process};
 
 use building::{DiskObservation, QueryError, SourceUnitKey};
 use console::{Color, Style};
-use diagnostics::{DiagnosticsContext, Severity, ToDiagnostics};
+use diagnostics::Severity;
 use files::FileId;
 use indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
 use rayon::prelude::*;
@@ -26,14 +26,13 @@ pub struct CompileConfig {
     pub output: PathBuf,
     pub inputs: Vec<PathBuf>,
     pub json_errors: bool,
-    pub diagnostic_limit: Option<usize>,
+    pub quiet: bool,
     pub color: ColorChoice,
 }
 
 pub(crate) struct BuildConfig<'a> {
     pub output: &'a Path,
     pub current_directory: &'a Path,
-    pub diagnostic_limit: Option<usize>,
     pub color: bool,
     pub progress: bool,
 }
@@ -87,7 +86,7 @@ pub fn start(config: CompileConfig) {
 
 fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let started = Instant::now();
-    let preparation_progress = compilation_progress(1, "Preparing", true);
+    let preparation_progress = compilation_progress(1, "Preparing", !config.quiet);
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
@@ -107,15 +106,16 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let build_config = BuildConfig {
         output: &config.output,
         current_directory: &current_directory,
-        diagnostic_limit: config.diagnostic_limit,
         color: use_color(config.color),
-        progress: true,
+        progress: !config.quiet,
     };
     if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
 
-    report_completion(started.elapsed());
+    if !config.quiet {
+        report_completion(started.elapsed());
+    }
 
     Ok(())
 }
@@ -191,7 +191,7 @@ fn report_diagnostics(
     let checking_progress =
         phase_progress(&progress, source_ids.len(), "Elaborate", config.progress);
 
-    let diagnostics = source_ids.par_iter().map(|&file_id| {
+    let module_names = source_ids.par_iter().map(|&file_id| {
         let engine = compilation.snapshot();
         let content = engine.content(file_id)?;
         let (parsed, _) = engine.parsed(file_id)?;
@@ -199,88 +199,58 @@ fn report_diagnostics(
         if let Some(module_name) = &module_name {
             set_progress_module(&analysing_progress, module_name);
         }
-        let root = parsed.syntax_node();
-
-        let stabilized = engine.stabilized(file_id)?;
-        let indexed = engine.indexed(file_id)?;
-        let resolved = engine.resolved(file_id)?;
-        let lowered = engine.lowered(file_id)?;
+        engine.stabilized(file_id)?;
+        engine.indexed(file_id)?;
+        engine.resolved(file_id)?;
+        engine.lowered(file_id)?;
         analysing_progress.inc(1);
-        if let Some(module_name) = &module_name {
+        Ok::<_, CompileError>(module_name)
+    });
+    let module_names = module_names.collect::<Result<Vec<_>, _>>()?;
+    finish_progress(&analysing_progress);
+
+    let elaborated = source_ids.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
+        let engine = compilation.snapshot();
+        if let Some(module_name) = module_name {
             set_progress_module(&checking_progress, module_name);
         }
-        let checked = engine.checked(file_id)?;
-        let foreign = engine.foreign_validation(file_id)?;
+        engine.checked(file_id)?;
+        engine.foreign_validation(file_id)?;
         checking_progress.inc(1);
-
-        let context = DiagnosticsContext::new(
-            &engine,
-            &content,
-            &root,
-            &stabilized,
-            &indexed,
-            &lowered,
-            &checked,
-        );
-
-        let mut all = vec![];
-        for error in &lowered.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in &resolved.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in &checked.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in foreign.errors.iter() {
-            all.extend(error.to_diagnostics(&context));
-        }
-
-        let has_errors = all.iter().any(|diagnostic| diagnostic.severity == Severity::Error);
-        let display_path = if all.is_empty() {
-            None
-        } else {
-            let source_path =
-                compilation.source_path(file_id).expect("input source has no lifecycle path");
-            Some(display_source_path(&source_path, config.current_directory))
-        };
-        Ok::<_, CompileError>((has_errors, all, content, display_path))
+        Ok::<_, CompileError>(())
     });
-    let diagnostics = diagnostics.collect::<Result<Vec<_>, _>>()?;
-    finish_progress(&analysing_progress);
+    elaborated.collect::<Result<Vec<_>, _>>()?;
     finish_progress(&checking_progress);
 
-    let mut has_errors = false;
-    let mut remaining = config.diagnostic_limit.unwrap_or(usize::MAX);
-    let mut omitted = 0;
-    let mut rendered_any = false;
-    for (file_has_errors, all, content, display_path) in diagnostics {
-        has_errors |= file_has_errors;
-        let rendered_count = remaining.min(all.len());
-        omitted += all.len() - rendered_count;
-        remaining -= rendered_count;
+    let engine = compilation.snapshot();
+    let diagnostics = diagnostics::collect_diagnostics(&engine, source_ids)?;
+    let has_errors = diagnostics
+        .iter()
+        .flat_map(diagnostics::DiagnosticCollection::diagnostics)
+        .any(|diagnostic| diagnostic.severity == Severity::Error);
+    let has_diagnostics = diagnostics.iter().any(|collected| !collected.diagnostics().is_empty());
 
-        if rendered_count > 0 {
-            if !rendered_any && config.progress && io::stderr().is_terminal() {
-                eprint!("\n\n");
-            } else if !rendered_any && !config.progress {
-                eprintln!();
-            }
-            rendered_any = true;
-            let display_path =
-                display_path.expect("non-empty diagnostics must have a display path");
-            let rendered = diagnostics::format_rich_with_path(
-                &all[..rendered_count],
-                &content,
-                &display_path,
-                config.color,
-            );
-            eprint!("{rendered}");
+    if has_diagnostics {
+        if config.progress && io::stderr().is_terminal() {
+            eprint!("\n\n");
+        } else if !config.progress {
+            eprintln!();
         }
     }
-    if omitted > 0 && config.diagnostic_limit != Some(0) {
-        eprintln!("note: {omitted} additional diagnostics omitted by --diagnostic-limit");
+    for collected in diagnostics {
+        if collected.diagnostics().is_empty() {
+            continue;
+        }
+        let source_path =
+            compilation.source_path(collected.file_id).expect("input source has no lifecycle path");
+        let display_path = display_source_path(&source_path, config.current_directory);
+        let rendered = diagnostics::format_rich_with_path(
+            collected.diagnostics(),
+            &collected.content,
+            &display_path,
+            config.color,
+        );
+        eprint!("{rendered}");
     }
     Ok(has_errors)
 }

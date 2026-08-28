@@ -691,6 +691,7 @@ dependencies = [
 name = "diagnostics"
 version = "0.1.0"
 dependencies = [
+ "building-types",
  "checking",
  "files",
  "foreign-javascript",

@@ -120,9 +120,9 @@ pub struct BuildOptions {
     #[arg(short, long, value_name("DIR"), default_value("output"), value_parser = absolute_path_parser())]
     pub output: PathBuf,
 
-    /// Maximum number of human-readable diagnostics to print.
-    #[arg(long, value_name("COUNT"))]
-    pub diagnostic_limit: Option<usize>,
+    /// Suppress build progress output.
+    #[arg(short, long)]
+    pub quiet: bool,
 
     /// When to use colors in human-readable diagnostics.
     #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
@@ -282,8 +282,7 @@ mod tests {
             "--codegen",
             "corefn,docs,js,sourcemaps",
             "--json-errors",
-            "--diagnostic-limit",
-            "20",
+            "--quiet",
             "--color",
             "always",
             "src/**/*.purs",
@@ -293,7 +292,7 @@ mod tests {
         assert_eq!(options.build.output, current_directory_path("output"));
         assert_eq!(options.codegen.as_deref(), Some("corefn,docs,js,sourcemaps"));
         assert!(options.json_errors);
-        assert_eq!(options.build.diagnostic_limit, Some(20));
+        assert!(options.build.quiet);
         assert_eq!(options.build.color, ColorChoice::Always);
         assert_eq!(
             options.build.inputs,
@@ -306,18 +305,10 @@ mod tests {
 
     #[test]
     fn watch_accepts_compile_arguments() {
-        let options = watch(&[
-            "--output",
-            "dist",
-            "--diagnostic-limit",
-            "10",
-            "--color",
-            "never",
-            "src/**/*.purs",
-        ]);
+        let options = watch(&["--output", "dist", "--quiet", "--color", "never", "src/**/*.purs"]);
 
         assert_eq!(options.build.output, current_directory_path("dist"));
-        assert_eq!(options.build.diagnostic_limit, Some(10));
+        assert!(options.build.quiet);
         assert_eq!(options.build.color, ColorChoice::Never);
         assert_eq!(options.build.inputs, vec![PathBuf::from("src/**/*.purs")]);
     }

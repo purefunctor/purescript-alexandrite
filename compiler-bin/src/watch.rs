@@ -23,7 +23,7 @@ const MODULE_DISPLAY_LIMIT: usize = 3;
 pub struct WatchConfig {
     pub output: PathBuf,
     pub inputs: Vec<PathBuf>,
-    pub diagnostic_limit: Option<usize>,
+    pub quiet: bool,
     pub color: ColorChoice,
 }
 
@@ -61,7 +61,9 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         watcher.watch(root, RecursiveMode::Recursive)?;
     }
     report_lifecycle_warnings(&initial_change.lifecycle);
-    report_changed_modules(&initial_change.modules, compile::use_color(config.color));
+    if !config.quiet {
+        report_changed_modules(&initial_change.modules, compile::use_color(config.color));
+    }
     rebuild(&mut workspace, &config)?;
 
     loop {
@@ -84,7 +86,9 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         let change = workspace.synchronize_events(events)?;
         report_lifecycle_warnings(&change.lifecycle);
         if !change.modules.is_empty() {
-            report_changed_modules(&change.modules, compile::use_color(config.color));
+            if !config.quiet {
+                report_changed_modules(&change.modules, compile::use_color(config.color));
+            }
             rebuild(&mut workspace, &config)?;
         }
     }
@@ -95,14 +99,15 @@ fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) -> Result<(), W
         if let Err(error) = workspace.reconcile_outputs(BTreeSet::new()) {
             eprintln!("Failed to remove stale output: {error}");
         }
-        println!("No input files found; waiting for changes.");
+        if !config.quiet {
+            println!("No input files found; waiting for changes.");
+        }
         return Ok(());
     }
 
     let build_config = BuildConfig {
         output: &config.output,
         current_directory: &workspace.current_directory,
-        diagnostic_limit: config.diagnostic_limit,
         color: compile::use_color(config.color),
         progress: false,
     };
