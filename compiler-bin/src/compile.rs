@@ -1,24 +1,21 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{fmt, fs, io, process};
 
-use building::{
-    DiskObservation, FileLifecycle, ForeignEvent, LifecycleEvent, QueryEngine, QueryError,
-    SourceEvent, SourceUnitKey,
-};
+use building::{DiskObservation, QueryError, SourceUnitKey};
 use console::{Color, Style};
-use diagnostics::{DiagnosticsContext, Severity, ToDiagnostics};
+use diagnostics::Severity;
 use files::FileId;
 use indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
-use prim_constants::MODULE_MAP;
 use rayon::prelude::*;
 use thiserror::Error;
 use url::Url;
 
 use crate::cli::ColorChoice;
+use crate::compilation::CompilationState;
 use crate::walk;
 
 const CARGO_PROGRESS_REGION_WIDTH: usize = 50;
@@ -29,12 +26,25 @@ pub struct CompileConfig {
     pub output: PathBuf,
     pub inputs: Vec<PathBuf>,
     pub json_errors: bool,
-    pub diagnostic_limit: Option<usize>,
+    pub quiet: bool,
     pub color: ColorChoice,
 }
 
+pub(crate) struct BuildConfig<'a> {
+    pub output: &'a Path,
+    pub current_directory: &'a Path,
+    pub color: bool,
+    pub progress: bool,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum BuildOutcome {
+    Succeeded(BTreeSet<PathBuf>),
+    Diagnostics,
+}
+
 #[derive(Debug, Error)]
-enum CompileError {
+pub(crate) enum CompileError {
     #[error("compilation failed")]
     Diagnostics,
     #[error("failed to convert path to a file URL: {0}")]
@@ -76,19 +86,16 @@ pub fn start(config: CompileConfig) {
 
 fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let started = Instant::now();
-    let preparation_progress = compilation_progress(1, "Preparing");
+    let preparation_progress = compilation_progress(1, "Preparing", !config.quiet);
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
-    let engine = QueryEngine::default();
-    let mut files = FileLifecycle::<(), ()>::default();
-    configure_prim(&engine, &mut files);
+    let mut compilation = CompilationState::new();
 
-    let mut source_ids = vec![];
     for path in walked.files {
-        let source_id = load_source(&engine, &mut files, &path)?;
-        source_ids.push(source_id);
+        load_source(&mut compilation, &path)?;
     }
+    let source_ids = compilation.input_source_ids();
     preparation_progress.inc(1);
     finish_progress(&preparation_progress);
 
@@ -96,61 +103,42 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let color = match config.color {
-        ColorChoice::Auto => {
-            let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
-            io::stderr().is_terminal() && !no_color
-        }
-        ColorChoice::Always => true,
-        ColorChoice::Never => false,
+    let build_config = BuildConfig {
+        output: &config.output,
+        current_directory: &current_directory,
+        color: use_color(config.color),
+        progress: !config.quiet,
     };
-    let has_errors = report_diagnostics(
-        &engine,
-        &files,
-        &source_ids,
-        &current_directory,
-        config.diagnostic_limit,
-        color,
-    )?;
-    if has_errors {
+    if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
 
-    let modules = generate_modules(&engine, &files, &source_ids)?;
-    write_modules(&files, &modules, &config.output)?;
-    report_completion(started.elapsed());
+    if !config.quiet {
+        report_completion(started.elapsed());
+    }
 
     Ok(())
 }
 
-fn configure_prim(engine: &QueryEngine, files: &mut FileLifecycle<(), ()>) {
-    for (name, content) in MODULE_MAP {
-        let source = format!("prim://localhost/{name}.purs");
-        let foreign = format!("prim://localhost/{name}.js");
-
-        let event = LifecycleEvent::Source {
-            unit: SourceUnitKey::new(source, foreign),
-            event: SourceEvent::DiskObserved {
-                disk: DiskObservation::Found(Arc::from(*content)),
-                metadata: (),
-            },
-        };
-
-        let change = files.apply(engine, event);
-        let id = change
-            .changed_sources()
-            .next()
-            .expect("invariant violated: Prim source lifecycle did not insert a source");
-
-        engine.set_module_file(name, id);
+pub(crate) fn build(
+    compilation: &CompilationState,
+    config: &BuildConfig<'_>,
+) -> Result<BuildOutcome, CompileError> {
+    let source_ids = compilation.input_source_ids();
+    let has_errors = report_diagnostics(compilation, &source_ids, config)?;
+    if has_errors {
+        return Ok(BuildOutcome::Diagnostics);
     }
+
+    let modules = generate_modules(compilation, &source_ids, config.progress)?;
+    let outputs = write_modules(compilation, &modules, config.output, config.progress)?;
+    Ok(BuildOutcome::Succeeded(outputs))
 }
 
-fn load_source(
-    engine: &QueryEngine,
-    files: &mut FileLifecycle<(), ()>,
+pub(crate) fn load_source(
+    compilation: &mut CompilationState,
     path: &Path,
-) -> Result<FileId, CompileError> {
+) -> Result<(), CompileError> {
     let source_url =
         Url::from_file_path(path).map_err(|()| CompileError::InvalidPath(path.to_path_buf()))?;
     let foreign_path = path.with_extension("js");
@@ -160,19 +148,7 @@ fn load_source(
     let unit = SourceUnitKey::new(source_url.as_str(), foreign_url.as_str());
 
     let content = fs::read_to_string(path)?;
-    let event = LifecycleEvent::Source {
-        unit: SourceUnitKey::clone(&unit),
-        event: SourceEvent::DiskObserved {
-            disk: DiskObservation::Found(content.into()),
-            metadata: (),
-        },
-    };
-
-    let change = files.apply(engine, event);
-    let source_id = change
-        .changed_sources()
-        .next()
-        .expect("invariant violated: source lifecycle did not insert an input source");
+    compilation.observe_source(SourceUnitKey::clone(&unit), DiskObservation::Found(content.into()));
 
     let disk = match fs::read_to_string(&foreign_path) {
         Ok(content) => DiskObservation::Found(content.into()),
@@ -180,9 +156,19 @@ fn load_source(
         Err(error) => return Err(error.into()),
     };
 
-    let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::DiskObserved { disk } };
-    files.apply(engine, event);
-    Ok(source_id)
+    compilation.observe_foreign(unit, disk);
+    Ok(())
+}
+
+pub(crate) fn use_color(choice: ColorChoice) -> bool {
+    match choice {
+        ColorChoice::Auto => {
+            let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
+            io::stderr().is_terminal() && !no_color
+        }
+        ColorChoice::Always => true,
+        ColorChoice::Never => false,
+    }
 }
 
 fn display_source_path(source_path: &str, current_directory: &Path) -> String {
@@ -194,122 +180,91 @@ fn display_source_path(source_path: &str, current_directory: &Path) -> String {
 }
 
 fn report_diagnostics(
-    engine: &QueryEngine,
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     source_ids: &[FileId],
-    current_directory: &Path,
-    diagnostic_limit: Option<usize>,
-    color: bool,
+    config: &BuildConfig<'_>,
 ) -> Result<bool, CompileError> {
     let progress = MultiProgress::new();
     progress.set_move_cursor(true);
-    let analysing_progress = phase_progress(&progress, source_ids.len(), "Analyse");
-    let checking_progress = phase_progress(&progress, source_ids.len(), "Elaborate");
+    let analysing_progress =
+        phase_progress(&progress, source_ids.len(), "Analyse", config.progress);
+    let checking_progress =
+        phase_progress(&progress, source_ids.len(), "Elaborate", config.progress);
 
-    let diagnostics = source_ids.par_iter().map(|&file_id| {
-        let engine = engine.snapshot();
+    let module_names = source_ids.par_iter().map(|&file_id| {
+        let engine = compilation.snapshot();
         let content = engine.content(file_id)?;
         let (parsed, _) = engine.parsed(file_id)?;
         let module_name = parsed.module_name(&content);
         if let Some(module_name) = &module_name {
             set_progress_module(&analysing_progress, module_name);
         }
-        let root = parsed.syntax_node();
-
-        let stabilized = engine.stabilized(file_id)?;
-        let indexed = engine.indexed(file_id)?;
-        let resolved = engine.resolved(file_id)?;
-        let lowered = engine.lowered(file_id)?;
+        engine.stabilized(file_id)?;
+        engine.indexed(file_id)?;
+        engine.resolved(file_id)?;
+        engine.lowered(file_id)?;
         analysing_progress.inc(1);
-        if let Some(module_name) = &module_name {
+        Ok::<_, CompileError>(module_name)
+    });
+    let module_names = module_names.collect::<Result<Vec<_>, _>>()?;
+    finish_progress(&analysing_progress);
+
+    let elaborated = source_ids.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
+        let engine = compilation.snapshot();
+        if let Some(module_name) = module_name {
             set_progress_module(&checking_progress, module_name);
         }
-        let checked = engine.checked(file_id)?;
-        let foreign = engine.foreign_validation(file_id)?;
+        engine.checked(file_id)?;
+        engine.foreign_validation(file_id)?;
         checking_progress.inc(1);
-
-        let context = DiagnosticsContext::new(
-            &engine,
-            &content,
-            &root,
-            &stabilized,
-            &indexed,
-            &lowered,
-            &checked,
-        );
-
-        let mut all = vec![];
-        for error in &lowered.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in &resolved.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in &checked.errors {
-            all.extend(error.to_diagnostics(&context));
-        }
-        for error in foreign.errors.iter() {
-            all.extend(error.to_diagnostics(&context));
-        }
-
-        let has_errors = all.iter().any(|diagnostic| diagnostic.severity == Severity::Error);
-        let display_path = if all.is_empty() {
-            None
-        } else {
-            let source_path =
-                files.source_path(file_id).expect("input source has no lifecycle path");
-            Some(display_source_path(&source_path, current_directory))
-        };
-        Ok::<_, CompileError>((has_errors, all, content, display_path))
+        Ok::<_, CompileError>(())
     });
-    let diagnostics = diagnostics.collect::<Result<Vec<_>, _>>()?;
-    finish_progress(&analysing_progress);
+    elaborated.collect::<Result<Vec<_>, _>>()?;
     finish_progress(&checking_progress);
 
-    let mut has_errors = false;
-    let mut remaining = diagnostic_limit.unwrap_or(usize::MAX);
-    let mut omitted = 0;
-    let mut rendered_any = false;
-    let separate_from_progress = io::stderr().is_terminal();
-    for (file_has_errors, all, content, display_path) in diagnostics {
-        has_errors |= file_has_errors;
-        let rendered_count = remaining.min(all.len());
-        omitted += all.len() - rendered_count;
-        remaining -= rendered_count;
+    let engine = compilation.snapshot();
+    let diagnostics = diagnostics::collect_diagnostics(&engine, source_ids)?;
+    let has_errors = diagnostics
+        .iter()
+        .flat_map(diagnostics::DiagnosticCollection::diagnostics)
+        .any(|diagnostic| diagnostic.severity == Severity::Error);
+    let has_diagnostics = diagnostics.iter().any(|collected| !collected.diagnostics().is_empty());
 
-        if rendered_count > 0 {
-            if !rendered_any && separate_from_progress {
-                eprint!("\n\n");
-            }
-            rendered_any = true;
-            let display_path =
-                display_path.expect("non-empty diagnostics must have a display path");
-            let rendered = diagnostics::format_rich_with_path(
-                &all[..rendered_count],
-                &content,
-                &display_path,
-                color,
-            );
-            eprint!("{rendered}");
+    if has_diagnostics {
+        if config.progress && io::stderr().is_terminal() {
+            eprint!("\n\n");
+        } else if !config.progress {
+            eprintln!();
         }
     }
-    if omitted > 0 && diagnostic_limit != Some(0) {
-        eprintln!("note: {omitted} additional diagnostics omitted by --diagnostic-limit");
+    for collected in diagnostics {
+        if collected.diagnostics().is_empty() {
+            continue;
+        }
+        let source_path =
+            compilation.source_path(collected.file_id).expect("input source has no lifecycle path");
+        let display_path = display_source_path(&source_path, config.current_directory);
+        let rendered = diagnostics::format_rich_with_path(
+            collected.diagnostics(),
+            &collected.content,
+            &display_path,
+            config.color,
+        );
+        eprint!("{rendered}");
     }
-
     Ok(has_errors)
 }
 
 fn generate_modules(
-    engine: &QueryEngine,
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     source_ids: &[FileId],
+    show_progress: bool,
 ) -> Result<Vec<Arc<javascript::Module>>, CompileError> {
     let mut pending = source_ids.to_vec();
     let mut visited = HashSet::new();
 
     let initial_total = source_ids.iter().copied().collect::<HashSet<_>>().len();
-    let progress = compilation_progress(initial_total, "Codegen");
+    let progress = compilation_progress(initial_total, "Codegen", show_progress);
     let mut first_frontier = true;
     let mut modules = vec![];
     while !pending.is_empty() {
@@ -323,14 +278,14 @@ fn generate_modules(
         }
 
         let generated = frontier.par_iter().map(|&file_id| {
-            let engine = engine.snapshot();
+            let engine = compilation.snapshot();
             let content = engine.content(file_id)?;
             let (parsed, _) = engine.parsed(file_id)?;
             if let Some(module_name) = parsed.module_name(&content) {
                 set_progress_module(&progress, &module_name);
             }
             let module = engine.javascript(file_id)?.map_err(|source| {
-                let path = files
+                let path = compilation
                     .source_path(file_id)
                     .expect("invariant violated: generated module has no lifecycle path");
                 CompileError::JavaScript { path, source }
@@ -351,52 +306,61 @@ fn generate_modules(
 }
 
 fn write_modules(
-    files: &FileLifecycle<(), ()>,
+    compilation: &CompilationState,
     modules: &[Arc<javascript::Module>],
     output: &Path,
-) -> Result<(), CompileError> {
+    show_progress: bool,
+) -> Result<BTreeSet<PathBuf>, CompileError> {
+    let mut outputs = BTreeSet::new();
     if modules.iter().any(|module| module.requires_runtime()) {
         let runtime = output.join(javascript::runtime_filename());
         fs::create_dir_all(output)?;
-        fs::write(runtime, javascript::runtime_source())?;
+        write_if_changed(&runtime, javascript::runtime_source().as_bytes())?;
+        outputs.insert(runtime);
     }
 
-    let progress = compilation_progress(modules.len(), "Output");
-    modules.par_iter().try_for_each(|module| -> Result<(), CompileError> {
+    let progress = compilation_progress(modules.len(), "Output", show_progress);
+    let module_outputs = modules.par_iter().map(|module| -> Result<Vec<PathBuf>, CompileError> {
         set_progress_module(&progress, module.name());
         let output_path = output.join(module.filename());
         let output_parent =
             output_path.parent().expect("invariant violated: module filename has no parent");
 
         fs::create_dir_all(output_parent)?;
-        fs::write(output_path, module.source())?;
+        write_if_changed(&output_path, module.source().as_bytes())?;
+        let mut outputs = vec![output_path];
 
         if !module.requires_foreign() {
             progress.inc(1);
-            return Ok(());
+            return Ok(outputs);
         }
 
-        let source_locator = files
-            .source_path(module.file_id())
-            .expect("invariant violated: generated module has no lifecycle path");
-        let source_url = Url::parse(&source_locator)
-            .map_err(|_| CompileError::InvalidPath(PathBuf::from(source_locator.as_ref())))?;
-        let source_path = source_url
-            .to_file_path()
-            .map_err(|()| CompileError::InvalidPath(PathBuf::from(source_locator.as_ref())))?;
-
-        let foreign_path = source_path.with_extension("js");
         let output_path = output.join(module.foreign_filename());
-        fs::copy(foreign_path, output_path)?;
+        let foreign = compilation
+            .source_foreign_content(module.file_id())
+            .expect("invariant violated: generated module requires missing foreign content");
+        write_if_changed(&output_path, foreign.as_bytes())?;
+        outputs.push(output_path);
         progress.inc(1);
-        Ok(())
-    })?;
+        Ok(outputs)
+    });
+    let module_outputs = module_outputs.collect::<Result<Vec<_>, _>>()?;
+    outputs.extend(module_outputs.into_iter().flatten());
     finish_progress(&progress);
-    Ok(())
+    Ok(outputs)
 }
 
-fn compilation_progress(total: usize, phase: &'static str) -> ProgressBar {
-    let progress = ProgressBar::new(total as u64);
+fn write_if_changed(path: &Path, content: &[u8]) -> io::Result<()> {
+    match fs::read(path) {
+        Ok(previous) if previous == content => Ok(()),
+        Ok(_) => fs::write(path, content),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::write(path, content),
+        Err(error) => Err(error),
+    }
+}
+
+fn compilation_progress(total: usize, phase: &'static str, show: bool) -> ProgressBar {
+    let progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
     configure_progress(&progress, phase);
     progress
 }
@@ -446,7 +410,15 @@ fn configure_progress(progress: &ProgressBar, phase: &'static str) {
     progress.enable_steady_tick(SHIMMER_FRAME_INTERVAL);
 }
 
-fn phase_progress(progress: &MultiProgress, total: usize, phase: &'static str) -> ProgressBar {
+fn phase_progress(
+    progress: &MultiProgress,
+    total: usize,
+    phase: &'static str,
+    show: bool,
+) -> ProgressBar {
+    if !show {
+        return ProgressBar::hidden();
+    }
     let phase_progress = progress.add(ProgressBar::new(total as u64));
     configure_progress(&phase_progress, phase);
     phase_progress

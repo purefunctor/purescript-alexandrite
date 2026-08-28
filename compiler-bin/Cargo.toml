@@ -38,8 +38,10 @@ indicatif = "0.18.6"
 indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 itertools = "0.15.0"
 javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
+jiff = "0.2.35"
 lowering = { version = "0.1.0", path = "../compiler-frontend/lowering" }
 lsp-types.workspace = true
+notify = "8.2.0"
 parking_lot = "0.12.5"
 path-absolutize = "4.0.1"
 prim-constants = { version = "0.1.0", path = "../compiler-core/prim-constants" }

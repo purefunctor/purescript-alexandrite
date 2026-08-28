@@ -2,11 +2,13 @@ use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
 pub mod cli;
+mod compilation;
 pub mod compile;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
 pub mod walk;
+mod watch;
 
 pub fn run() {
     let cli = cli::Cli::parse();
@@ -34,17 +36,31 @@ pub fn run() {
         }
         cli::Command::Compile(options) => {
             logging::start(logging::LoggingFilters {
-                query_log: options.logging.query_log,
-                checking_log: options.logging.checking_log,
+                query_log: options.build.logging.query_log,
+                checking_log: options.build.logging.checking_log,
                 lsp_log: LevelFilter::OFF,
                 docs_log: LevelFilter::OFF,
             });
             compile::start(compile::CompileConfig {
-                output: options.output,
-                inputs: options.inputs,
+                output: options.build.output,
+                inputs: options.build.inputs,
                 json_errors: options.json_errors,
-                diagnostic_limit: options.diagnostic_limit,
-                color: options.color,
+                quiet: options.build.quiet,
+                color: options.build.color,
+            });
+        }
+        cli::Command::Watch(options) => {
+            logging::start(logging::LoggingFilters {
+                query_log: options.build.logging.query_log,
+                checking_log: options.build.logging.checking_log,
+                lsp_log: LevelFilter::OFF,
+                docs_log: LevelFilter::OFF,
+            });
+            watch::start(watch::WatchConfig {
+                output: options.build.output,
+                inputs: options.build.inputs,
+                quiet: options.build.quiet,
+                color: options.build.color,
             });
         }
         cli::Command::Docs(options) => {
