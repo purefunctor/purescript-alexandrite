@@ -48,36 +48,6 @@ jobs:
       - name: Run integration tests
         run: cargo nextest run -p tests-integration
 
-  compatibility_build_cache:
-    name: Package compatibility build cache
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          path: base
-
-      - name: Install Rust toolchain
-        run: rustup update stable && rustup default stable
-
-      - name: Cache compatibility build artifacts
-        uses: Swatinem/rust-cache@v2.9.1
-        with:
-          add-job-id-key: "false"
-          cache-bin: "false"
-          cache-workspace-crates: "true"
-          key: ${{ github.sha }}
-          prefix-key: "v2-compatibility-build"
-          workspaces: |
-            base -> ../compatibility-target
-
-      - name: Build compatibility verifier
-        run: >-
-          cargo build --release --manifest-path base/Cargo.toml
-          --target-dir compatibility-target -p tests-compatibility
-
   compatibility:
     name: Package compatibility
     if: github.event_name == 'pull_request'
@@ -100,18 +70,6 @@ jobs:
       - name: Install Rust toolchain
         run: rustup update stable && rustup default stable
 
-      - name: Cache compatibility build artifacts
-        uses: Swatinem/rust-cache@v2.9.1
-        with:
-          add-job-id-key: "false"
-          cache-bin: "false"
-          cache-workspace-crates: "true"
-          cache-on-failure: "true"
-          key: ${{ github.event.pull_request.base.sha }}
-          prefix-key: "v2-compatibility-build"
-          workspaces: |
-            base -> ../compatibility-target
-
       - name: Restore compatibility packages
         id: compatibility-package-cache
         uses: actions/cache/restore@v5
@@ -128,11 +86,11 @@ jobs:
         run: |
           mkdir -p compatibility-binaries
           cargo build --release --manifest-path base/Cargo.toml \
-            --target-dir compatibility-target -p tests-compatibility
-          cp compatibility-target/release/tests-compatibility compatibility-binaries/base
+            --target-dir compatibility-target/base -p tests-compatibility
+          cp compatibility-target/base/release/tests-compatibility compatibility-binaries/base
           cargo build --release --manifest-path candidate/Cargo.toml \
-            --target-dir compatibility-target -p tests-compatibility
-          cp compatibility-target/release/tests-compatibility compatibility-binaries/candidate
+            --target-dir compatibility-target/candidate -p tests-compatibility
+          cp compatibility-target/candidate/release/tests-compatibility compatibility-binaries/candidate
 
       - name: Prepare core and Acme corpus
         working-directory: candidate
