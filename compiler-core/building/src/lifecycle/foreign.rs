@@ -13,10 +13,11 @@ where
         &mut self,
         engine: &QueryEngine,
         unit: SourceUnitKey,
+        kind: ForeignSourceKind,
         event: ForeignEvent<Version>,
     ) -> LifecycleChange {
         let mut source_unit = self.units.remove(&unit).unwrap_or_default();
-        let result = self.apply_foreign_event(engine, &unit, &mut source_unit, event);
+        let result = self.apply_foreign_event(engine, &unit, kind, &mut source_unit, event);
         self.store_unit(unit, source_unit);
         result
     }
@@ -25,14 +26,15 @@ where
         &mut self,
         engine: &QueryEngine,
         unit: &SourceUnitKey,
+        kind: ForeignSourceKind,
         source_unit: &mut SourceUnit<Version, Metadata>,
         event: ForeignEvent<Version>,
     ) -> LifecycleChange {
         let mut change = LifecycleChange::default();
-        let current = std::mem::take(&mut source_unit.foreign);
+        let current = std::mem::take(source_unit.foreign.get_mut(kind));
         let next = match (current, event) {
             (Member::Missing, ForeignEvent::Opened { text, version }) => {
-                let document = self.insert_foreign(engine, unit, source_unit, &text);
+                let document = self.insert_foreign(engine, unit, kind, source_unit, &text);
                 change.foreign_changed(source_unit.source_id());
                 Member::Present(ForeignDocument {
                     id: document.id,
@@ -41,7 +43,7 @@ where
             }
             (Member::Missing, ForeignEvent::DiskObserved { disk }) => match disk {
                 DiskObservation::Found(text) => {
-                    let document = self.insert_foreign(engine, unit, source_unit, &text);
+                    let document = self.insert_foreign(engine, unit, kind, source_unit, &text);
                     change.foreign_changed(source_unit.source_id());
                     Member::Present(document)
                 }
@@ -49,7 +51,7 @@ where
                 DiskObservation::Failed(failure) => {
                     change.warnings.push(LifecycleWarning::ReloadFailed {
                         unit: SourceUnitKey::clone(unit),
-                        document: DocumentKind::Foreign,
+                        document: DocumentKind::Foreign(kind),
                         failure,
                     });
                     Member::Missing
@@ -58,14 +60,14 @@ where
             (Member::Missing, ForeignEvent::Changed { .. }) => {
                 change.warnings.push(LifecycleWarning::ChangedNonOpen {
                     unit: SourceUnitKey::clone(unit),
-                    document: DocumentKind::Foreign,
+                    document: DocumentKind::Foreign(kind),
                 });
                 Member::Missing
             }
             (Member::Missing, ForeignEvent::Closed { .. }) => {
                 change.warnings.push(LifecycleWarning::ClosedNonOpen {
                     unit: SourceUnitKey::clone(unit),
-                    document: DocumentKind::Foreign,
+                    document: DocumentKind::Foreign(kind),
                 });
                 Member::Missing
             }
@@ -87,13 +89,13 @@ where
                     EffectiveContent::Open { .. } => {
                         change.warnings.push(LifecycleWarning::StaleChange {
                             unit: SourceUnitKey::clone(unit),
-                            document: DocumentKind::Foreign,
+                            document: DocumentKind::Foreign(kind),
                         });
                     }
                     EffectiveContent::Disk { .. } | EffectiveContent::Retained { .. } => {
                         change.warnings.push(LifecycleWarning::ChangedNonOpen {
                             unit: SourceUnitKey::clone(unit),
-                            document: DocumentKind::Foreign,
+                            document: DocumentKind::Foreign(kind),
                         });
                     }
                 }
@@ -103,26 +105,42 @@ where
                 if !matches!(document.content, EffectiveContent::Open { .. }) {
                     change.warnings.push(LifecycleWarning::ClosedNonOpen {
                         unit: SourceUnitKey::clone(unit),
-                        document: DocumentKind::Foreign,
+                        document: DocumentKind::Foreign(kind),
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_foreign(engine, unit, source_unit, document, disk, &mut change)
+                    self.reconcile_foreign(
+                        engine,
+                        unit,
+                        kind,
+                        source_unit,
+                        document,
+                        disk,
+                        &mut change,
+                    )
                 }
             }
             (Member::Present(document), ForeignEvent::DiskObserved { disk }) => {
                 if matches!(document.content, EffectiveContent::Open { .. }) {
                     change.warnings.push(LifecycleWarning::DiskObservedWhileOpen {
                         unit: SourceUnitKey::clone(unit),
-                        document: DocumentKind::Foreign,
+                        document: DocumentKind::Foreign(kind),
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_foreign(engine, unit, source_unit, document, disk, &mut change)
+                    self.reconcile_foreign(
+                        engine,
+                        unit,
+                        kind,
+                        source_unit,
+                        document,
+                        disk,
+                        &mut change,
+                    )
                 }
             }
         };
-        source_unit.foreign = next;
+        *source_unit.foreign.get_mut(kind) = next;
         change
     }
 
@@ -130,6 +148,7 @@ where
         &mut self,
         engine: &QueryEngine,
         unit: &SourceUnitKey,
+        kind: ForeignSourceKind,
         source_unit: &SourceUnit<Version, Metadata>,
         mut document: ForeignDocument<Version>,
         disk: DiskObservation,
@@ -143,7 +162,7 @@ where
                 Member::Present(document)
             }
             DiskObservation::NotFound => {
-                self.remove_foreign(engine, unit, document.id);
+                self.remove_foreign(engine, unit, kind, document.id);
                 change.foreign_changed(source_unit.source_id());
                 Member::Missing
             }
@@ -154,7 +173,7 @@ where
                 change.foreign_changed(source_unit.source_id());
                 change.warnings.push(LifecycleWarning::ReloadFailed {
                     unit: SourceUnitKey::clone(unit),
-                    document: DocumentKind::Foreign,
+                    document: DocumentKind::Foreign(kind),
                     failure,
                 });
                 Member::Present(document)
@@ -166,14 +185,12 @@ where
         &mut self,
         engine: &QueryEngine,
         unit: &SourceUnitKey,
+        kind: ForeignSourceKind,
         source_unit: &SourceUnit<Version, Metadata>,
         text: &Arc<str>,
     ) -> ForeignDocument<Version> {
-        let id = self.foreign_files.insert(
-            ForeignSourceKind::JavaScript,
-            Arc::clone(&unit.foreign),
-            Arc::clone(text),
-        );
+        let id =
+            self.foreign_files.insert(kind, Arc::from(unit.foreign_for(kind)), Arc::clone(text));
         engine.set_foreign_content(id, Arc::clone(text));
         if let Some(source_id) = source_unit.source_id() {
             engine.set_foreign_file(source_id, id);
@@ -192,9 +209,15 @@ where
         engine.set_foreign_content(id, Arc::clone(text));
     }
 
-    fn remove_foreign(&mut self, engine: &QueryEngine, unit: &SourceUnitKey, id: ForeignFileId) {
+    fn remove_foreign(
+        &mut self,
+        engine: &QueryEngine,
+        unit: &SourceUnitKey,
+        kind: ForeignSourceKind,
+        id: ForeignFileId,
+    ) {
         engine.remove_foreign_file(id);
-        let removed_id = self.foreign_files.remove(unit.foreign());
+        let removed_id = self.foreign_files.remove(unit.foreign_for(kind));
         debug_assert_eq!(removed_id, Some(id));
     }
 }

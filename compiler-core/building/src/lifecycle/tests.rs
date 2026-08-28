@@ -6,6 +6,7 @@ use super::{
     SourceUnitKey,
 };
 use crate::QueryEngine;
+use files::ForeignSourceKind;
 
 fn unit() -> SourceUnitKey {
     SourceUnitKey::new("file:///src/Main.purs", "file:///src/Main.js")
@@ -35,13 +36,19 @@ fn source_disk(content: &str) -> LifecycleEvent<i32, bool> {
 fn foreign_opened(version: i32, content: &str) -> LifecycleEvent<i32, bool> {
     LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Opened { text: text(content), version },
     }
 }
 
 fn foreign_disk(content: &str) -> LifecycleEvent<i32, bool> {
+    foreign_disk_for(ForeignSourceKind::JavaScript, content)
+}
+
+fn foreign_disk_for(kind: ForeignSourceKind, content: &str) -> LifecycleEvent<i32, bool> {
     LifecycleEvent::Foreign {
         unit: unit(),
+        kind,
         event: ForeignEvent::DiskObserved { disk: DiskObservation::Found(text(content)) },
     }
 }
@@ -132,6 +139,37 @@ fn foreign_only_unit_associates_when_source_appears() {
 }
 
 #[test]
+fn source_associates_both_javascript_and_jsx_candidates() {
+    let engine = QueryEngine::default();
+    let mut files = FileLifecycle::default();
+    files.apply(
+        &engine,
+        foreign_disk_for(ForeignSourceKind::JavaScript, "export const life = 41;\n"),
+    );
+    files.apply(
+        &engine,
+        foreign_disk_for(ForeignSourceKind::Jsx, "export const life = <Life />;\n"),
+    );
+    files.apply(&engine, source_disk("module Main where\n"));
+
+    let source_id = files.source_id(unit().source()).unwrap();
+    let candidates = engine.foreign_files(source_id);
+    assert!(candidates.get(ForeignSourceKind::JavaScript).is_some());
+    assert!(candidates.get(ForeignSourceKind::Jsx).is_some());
+
+    let event = LifecycleEvent::Foreign {
+        unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
+        event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
+    };
+    files.apply(&engine, event);
+    assert_eq!(
+        engine.foreign_file(source_id).map(|foreign| foreign.kind()),
+        Some(ForeignSourceKind::Jsx)
+    );
+}
+
+#[test]
 fn open_foreign_ignores_disk_deletion_until_close() {
     let engine = QueryEngine::default();
     let mut files = FileLifecycle::default();
@@ -141,14 +179,16 @@ fn open_foreign_ignores_disk_deletion_until_close() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
     };
     files.apply(&engine, event);
     assert_eq!(files.foreign_id(unit().foreign()), Some(foreign_id));
-    assert!(files.is_open(&DocumentKey::Foreign(unit())));
+    assert!(files.is_open(&DocumentKey::Foreign(unit(), ForeignSourceKind::JavaScript)));
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Closed { disk: DiskObservation::NotFound },
     };
     files.apply(&engine, event);
@@ -172,12 +212,13 @@ fn invalid_events_are_ignored_with_typed_warnings() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Closed { disk: DiskObservation::NotFound },
     };
     let change = files.apply(&engine, event);
     assert!(matches!(
         change.warnings(),
-        [LifecycleWarning::ClosedNonOpen { document: DocumentKind::Foreign, .. }]
+        [LifecycleWarning::ClosedNonOpen { document: DocumentKind::Foreign(_), .. }]
     ));
 
     let failure = ReloadFailure::new(std::io::ErrorKind::PermissionDenied, "permission denied");
@@ -295,6 +336,7 @@ fn sibling_identity_and_association_follow_delete_and_recreate() {
     files.apply(&engine, source_disk("module Main where\n"));
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved {
             disk: DiskObservation::Found(text("export const life = 42;\n")),
         },
@@ -318,6 +360,7 @@ fn sibling_identity_and_association_follow_delete_and_recreate() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
     };
     files.apply(&engine, event);
@@ -326,6 +369,7 @@ fn sibling_identity_and_association_follow_delete_and_recreate() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved {
             disk: DiskObservation::Found(text("export const life = 43;\n")),
         },
@@ -346,6 +390,7 @@ fn foreign_changes_reject_stale_versions_and_recover_retained_content() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Changed { text: text("export const life = 1;\n"), version: 1 },
     };
     let change = files.apply(&engine, event);
@@ -354,6 +399,7 @@ fn foreign_changes_reject_stale_versions_and_recover_retained_content() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Changed { text: text("export const life = 43;\n"), version: 3 },
     };
     files.apply(&engine, event);
@@ -362,6 +408,7 @@ fn foreign_changes_reject_stale_versions_and_recover_retained_content() {
     let failure = ReloadFailure::new(std::io::ErrorKind::Interrupted, "interrupted");
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::Closed {
             disk: DiskObservation::Failed(ReloadFailure::clone(&failure)),
         },
@@ -372,6 +419,7 @@ fn foreign_changes_reject_stale_versions_and_recover_retained_content() {
 
     let event = LifecycleEvent::Foreign {
         unit: unit(),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved {
             disk: DiskObservation::Found(text("export const life = 44;\n")),
         },
@@ -429,6 +477,7 @@ fn one_source_locator_cannot_belong_to_two_sibling_pairs() {
 
     let event = LifecycleEvent::Foreign {
         unit: SourceUnitKey::clone(&original),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
     };
     files.apply(&engine, event);
@@ -457,6 +506,7 @@ fn one_foreign_locator_cannot_belong_to_two_sibling_pairs() {
 
     let event = LifecycleEvent::Foreign {
         unit: SourceUnitKey::clone(&conflicting),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved {
             disk: DiskObservation::Found(text("export const conflict = 1;\n")),
         },
@@ -479,12 +529,14 @@ fn one_foreign_locator_cannot_belong_to_two_sibling_pairs() {
     files.apply(&engine, event);
     let event = LifecycleEvent::Foreign {
         unit: SourceUnitKey::clone(&original),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
     };
     files.apply(&engine, event);
 
     let event = LifecycleEvent::Foreign {
         unit: SourceUnitKey::clone(&conflicting),
+        kind: ForeignSourceKind::JavaScript,
         event: ForeignEvent::DiskObserved {
             disk: DiskObservation::Found(text("export const conflict = 1;\n")),
         },

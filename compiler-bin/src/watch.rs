@@ -6,6 +6,7 @@ use std::{fs, io, process};
 
 use building::{DiskObservation, LifecycleChange, QueryError, ReloadFailure, SourceUnitKey};
 use console::Style;
+use files::ForeignSourceKind;
 use itertools::Itertools;
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -332,7 +333,11 @@ fn observe_source_unit(
     let source = observe_disk(source_path);
     let mut lifecycle = compilation.observe_source(SourceUnitKey::clone(&unit), source);
     let foreign = observe_disk(&source_path.with_extension("js"));
-    lifecycle.combine(compilation.observe_foreign(SourceUnitKey::clone(&unit), foreign));
+    lifecycle.combine(compilation.observe_foreign(
+        SourceUnitKey::clone(&unit),
+        ForeignSourceKind::JavaScript,
+        foreign,
+    ));
 
     let current_source = compilation.source_content(unit.source())?;
     let current_foreign = compilation.foreign_content(unit.foreign());
@@ -351,7 +356,11 @@ fn observe_foreign(
     let unit = source_unit(source_path)?;
     let previous_foreign = compilation.foreign_content(unit.foreign());
     let foreign = observe_disk(&source_path.with_extension("js"));
-    let lifecycle = compilation.observe_foreign(SourceUnitKey::clone(&unit), foreign);
+    let lifecycle = compilation.observe_foreign(
+        SourceUnitKey::clone(&unit),
+        ForeignSourceKind::JavaScript,
+        foreign,
+    );
     let current_foreign = compilation.foreign_content(unit.foreign());
     let mut modules = BTreeSet::new();
     if previous_foreign != current_foreign {

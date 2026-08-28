@@ -4,7 +4,7 @@ use building::{
     DiskObservation, FileLifecycle, ForeignEvent, LifecycleChange, LifecycleEvent, QueryEngine,
     QueryError, SourceEvent, SourceUnitKey,
 };
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 use prim_constants::MODULE_MAP;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -60,9 +60,11 @@ impl CompilationState {
     pub fn observe_foreign(
         &mut self,
         unit: SourceUnitKey,
+        kind: ForeignSourceKind,
         disk: DiskObservation,
     ) -> LifecycleChange {
-        let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::DiskObserved { disk } };
+        let event =
+            LifecycleEvent::Foreign { unit, kind, event: ForeignEvent::DiskObserved { disk } };
         self.files.apply(&self.engine, event)
     }
 
@@ -162,7 +164,7 @@ mod tests {
         let source_id = compilation.input_source_ids()[0];
 
         let content = DiskObservation::Found(Arc::from("export const value = 1;\n"));
-        let change = compilation.observe_foreign(unit, content);
+        let change = compilation.observe_foreign(unit, ForeignSourceKind::JavaScript, content);
 
         assert_eq!(change.changed_sources().collect::<Vec<_>>(), vec![source_id]);
         assert!(compilation.snapshot().foreign_file(source_id).is_some());

@@ -7,7 +7,7 @@ use std::{fs, io, process};
 
 use building::{DiskObservation, QueryError, SourceUnitKey};
 use diagnostics::Severity;
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 use indicatif::MultiProgress;
 use rayon::prelude::*;
 use thiserror::Error;
@@ -159,7 +159,7 @@ pub(crate) fn load_source(
         Err(error) => return Err(error.into()),
     };
 
-    compilation.observe_foreign(unit, disk);
+    compilation.observe_foreign(unit, ForeignSourceKind::JavaScript, disk);
     Ok(())
 }
 
