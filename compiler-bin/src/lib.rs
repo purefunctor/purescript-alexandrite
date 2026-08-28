@@ -7,6 +7,7 @@ pub mod compile;
 pub mod docs;
 pub mod logging;
 pub mod lsp;
+mod progress;
 pub mod walk;
 mod watch;
 

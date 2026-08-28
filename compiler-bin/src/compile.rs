@@ -2,25 +2,20 @@ use std::collections::{BTreeSet, HashSet};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use std::{fmt, fs, io, process};
+use std::time::Instant;
+use std::{fs, io, process};
 
 use building::{DiskObservation, QueryError, SourceUnitKey};
-use console::{Color, Style};
 use diagnostics::Severity;
 use files::FileId;
-use indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
+use indicatif::MultiProgress;
 use rayon::prelude::*;
 use thiserror::Error;
 use url::Url;
 
 use crate::cli::ColorChoice;
 use crate::compilation::CompilationState;
-use crate::walk;
-
-const CARGO_PROGRESS_REGION_WIDTH: usize = 50;
-const CARGO_PROGRESS_FIXED_OVERHEAD: usize = 17;
-const SHIMMER_FRAME_INTERVAL: Duration = Duration::from_millis(80);
+use crate::{progress, walk};
 
 pub struct CompileConfig {
     pub output: PathBuf,
@@ -86,7 +81,7 @@ pub fn start(config: CompileConfig) {
 
 fn compile(config: CompileConfig) -> Result<(), CompileError> {
     let started = Instant::now();
-    let preparation_progress = compilation_progress(1, "Preparing", !config.quiet);
+    let preparation_progress = progress::bar(1, "Preparing", !config.quiet);
     let current_directory = std::env::current_dir()?;
     let walked = walk::walk(&current_directory, &config.inputs)?;
 
@@ -97,7 +92,7 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     }
     let source_ids = compilation.input_source_ids();
     preparation_progress.inc(1);
-    finish_progress(&preparation_progress);
+    progress::finish(&preparation_progress);
 
     if source_ids.is_empty() {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
@@ -114,7 +109,7 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
     }
 
     if !config.quiet {
-        report_completion(started.elapsed());
+        progress::report_completion(started.elapsed());
     }
 
     Ok(())
@@ -187,9 +182,9 @@ fn report_diagnostics(
     let progress = MultiProgress::new();
     progress.set_move_cursor(true);
     let analysing_progress =
-        phase_progress(&progress, source_ids.len(), "Analyse", config.progress);
+        progress::phase(&progress, source_ids.len(), "Analyse", config.progress);
     let checking_progress =
-        phase_progress(&progress, source_ids.len(), "Elaborate", config.progress);
+        progress::phase(&progress, source_ids.len(), "Elaborate", config.progress);
 
     let module_names = source_ids.par_iter().map(|&file_id| {
         let engine = compilation.snapshot();
@@ -197,7 +192,7 @@ fn report_diagnostics(
         let (parsed, _) = engine.parsed(file_id)?;
         let module_name = parsed.module_name(&content);
         if let Some(module_name) = &module_name {
-            set_progress_module(&analysing_progress, module_name);
+            progress::set_message(&analysing_progress, module_name);
         }
         engine.stabilized(file_id)?;
         engine.indexed(file_id)?;
@@ -207,12 +202,12 @@ fn report_diagnostics(
         Ok::<_, CompileError>(module_name)
     });
     let module_names = module_names.collect::<Result<Vec<_>, _>>()?;
-    finish_progress(&analysing_progress);
+    progress::finish(&analysing_progress);
 
     let elaborated = source_ids.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
         let engine = compilation.snapshot();
         if let Some(module_name) = module_name {
-            set_progress_module(&checking_progress, module_name);
+            progress::set_message(&checking_progress, module_name);
         }
         engine.checked(file_id)?;
         engine.foreign_validation(file_id)?;
@@ -220,7 +215,7 @@ fn report_diagnostics(
         Ok::<_, CompileError>(())
     });
     elaborated.collect::<Result<Vec<_>, _>>()?;
-    finish_progress(&checking_progress);
+    progress::finish(&checking_progress);
 
     let engine = compilation.snapshot();
     let diagnostics = diagnostics::collect_diagnostics(&engine, source_ids)?;
@@ -264,7 +259,7 @@ fn generate_modules(
     let mut visited = HashSet::new();
 
     let initial_total = source_ids.iter().copied().collect::<HashSet<_>>().len();
-    let progress = compilation_progress(initial_total, "Codegen", show_progress);
+    let progress = progress::bar(initial_total, "Codegen", show_progress);
     let mut first_frontier = true;
     let mut modules = vec![];
     while !pending.is_empty() {
@@ -282,7 +277,7 @@ fn generate_modules(
             let content = engine.content(file_id)?;
             let (parsed, _) = engine.parsed(file_id)?;
             if let Some(module_name) = parsed.module_name(&content) {
-                set_progress_module(&progress, &module_name);
+                progress::set_message(&progress, &module_name);
             }
             let module = engine.javascript(file_id)?.map_err(|source| {
                 let path = compilation
@@ -300,7 +295,7 @@ fn generate_modules(
             modules.push(module);
         }
     }
-    finish_progress(&progress);
+    progress::finish(&progress);
 
     Ok(modules)
 }
@@ -319,9 +314,9 @@ fn write_modules(
         outputs.insert(runtime);
     }
 
-    let progress = compilation_progress(modules.len(), "Output", show_progress);
+    let progress = progress::bar(modules.len(), "Output", show_progress);
     let module_outputs = modules.par_iter().map(|module| -> Result<Vec<PathBuf>, CompileError> {
-        set_progress_module(&progress, module.name());
+        progress::set_message(&progress, module.name());
         let output_path = output.join(module.filename());
         let output_parent =
             output_path.parent().expect("invariant violated: module filename has no parent");
@@ -346,7 +341,7 @@ fn write_modules(
     });
     let module_outputs = module_outputs.collect::<Result<Vec<_>, _>>()?;
     outputs.extend(module_outputs.into_iter().flatten());
-    finish_progress(&progress);
+    progress::finish(&progress);
     Ok(outputs)
 }
 
@@ -357,90 +352,4 @@ fn write_if_changed(path: &Path, content: &[u8]) -> io::Result<()> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => fs::write(path, content),
         Err(error) => Err(error),
     }
-}
-
-fn compilation_progress(total: usize, phase: &'static str, show: bool) -> ProgressBar {
-    let progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
-    configure_progress(&progress, phase);
-    progress
-}
-
-fn configure_progress(progress: &ProgressBar, phase: &'static str) {
-    let started = Instant::now();
-    let characters = phase.chars().collect::<Vec<_>>();
-    let cycle = characters.len() + 4;
-    let total = progress.length().unwrap_or_default();
-    let count_width = total.to_string().len().max(4);
-    let statistics_width = count_width * 2 + 2;
-    let bar_width = CARGO_PROGRESS_REGION_WIDTH
-        .saturating_sub(CARGO_PROGRESS_FIXED_OVERHEAD + statistics_width)
-        .max(1);
-    let phase_text = move |state: &ProgressState, writer: &mut dyn fmt::Write| {
-        if state.is_finished() {
-            let style = Style::new().fg(Color::TrueColor(255, 255, 255));
-            write!(writer, "{}", style.apply_to(phase))
-                .expect("writing to a formatter cannot fail");
-            return;
-        }
-
-        let frame =
-            (started.elapsed().as_millis() / SHIMMER_FRAME_INTERVAL.as_millis()) as usize % cycle;
-        let highlight = frame as isize - 2;
-        for (index, character) in characters.iter().enumerate() {
-            let distance = (index as isize - highlight).unsigned_abs();
-            let intensity = match distance {
-                0 => 255,
-                1 => 210,
-                2 => 155,
-                3 => 115,
-                _ => 90,
-            };
-            let style = Style::new().fg(Color::TrueColor(intensity, intensity, intensity));
-            write!(writer, "{}", style.apply_to(character))
-                .expect("writing to a formatter cannot fail");
-        }
-    };
-    let template =
-        format!("{{phase:>12}} [{{bar:{bar_width}.cyan/blue}}] {{pos:>4}}/{{len:4}} {{msg}}");
-    let style = ProgressStyle::with_template(&template)
-        .expect("progress bar template is valid")
-        .with_key("phase", phase_text)
-        .progress_chars("=> ");
-    progress.set_style(style);
-    progress.enable_steady_tick(SHIMMER_FRAME_INTERVAL);
-}
-
-fn phase_progress(
-    progress: &MultiProgress,
-    total: usize,
-    phase: &'static str,
-    show: bool,
-) -> ProgressBar {
-    if !show {
-        return ProgressBar::hidden();
-    }
-    let phase_progress = progress.add(ProgressBar::new(total as u64));
-    configure_progress(&phase_progress, phase);
-    phase_progress
-}
-
-fn set_progress_module(progress: &ProgressBar, module_name: &str) {
-    progress.set_message(module_name.to_string());
-}
-
-fn finish_progress(progress: &ProgressBar) {
-    progress.set_message("");
-    progress.finish();
-}
-
-fn report_completion(elapsed: Duration) {
-    if !io::stderr().is_terminal() {
-        return;
-    }
-
-    let label = format!("{:>12}", "Finished");
-    let style = Style::new().green().bold();
-    let jobs = rayon::current_num_threads();
-    let job_label = if jobs == 1 { "job" } else { "jobs" };
-    eprintln!("{} in {elapsed:.2?} via {jobs} {job_label}", style.apply_to(label));
 }
