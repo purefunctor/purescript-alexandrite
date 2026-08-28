@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use building::{
     DiskObservation, FileLifecycle, ForeignEvent, LifecycleChange, LifecycleEvent, QueryEngine,
-    SourceEvent, SourceUnitKey,
+    QueryError, SourceEvent, SourceUnitKey,
 };
 use files::FileId;
 use prim_constants::MODULE_MAP;
@@ -81,22 +81,30 @@ impl CompilationState {
         self.files.source_path(file_id)
     }
 
-    pub fn source_content(&self, locator: &str) -> Option<Arc<str>> {
-        let file_id = self.files.source_id(locator)?;
-        self.engine.content(file_id).ok()
+    pub fn source_content(&self, locator: &str) -> Result<Option<Arc<str>>, QueryError> {
+        let Some(file_id) = self.files.source_id(locator) else {
+            return Ok(None);
+        };
+        self.engine.content(file_id).map(Some)
     }
 
     pub fn foreign_content(&self, locator: &str) -> Option<Arc<str>> {
         let foreign_id = self.files.foreign_id(locator)?;
-        self.engine.foreign_content(foreign_id)
+        let content = self
+            .engine
+            .foreign_content(foreign_id)
+            .expect("invariant violated: lifecycle foreign file has no engine content");
+        Some(content)
     }
 
-    pub fn module_name(&self, locator: &str) -> Option<String> {
-        let file_id = self.files.source_id(locator)?;
+    pub fn module_name(&self, locator: &str) -> Result<Option<String>, QueryError> {
+        let Some(file_id) = self.files.source_id(locator) else {
+            return Ok(None);
+        };
         let engine = self.engine.snapshot();
-        let content = engine.content(file_id).ok()?;
-        let (parsed, _) = engine.parsed(file_id).ok()?;
-        parsed.module_name(&content).map(|name| name.to_string())
+        let content = engine.content(file_id)?;
+        let (parsed, _) = engine.parsed(file_id)?;
+        Ok(parsed.module_name(&content).map(|name| name.to_string()))
     }
 }
 
@@ -149,5 +157,24 @@ mod tests {
 
         assert_eq!(change.changed_sources().collect::<Vec<_>>(), vec![source_id]);
         assert!(compilation.snapshot().foreign_file(source_id).is_some());
+    }
+
+    #[test]
+    fn source_queries_preserve_missing_engine_content_errors() {
+        let mut compilation = CompilationState::new();
+        let unit = unit("Main");
+        let content = DiskObservation::Found(Arc::from("module Main where\n"));
+        compilation.observe_source(SourceUnitKey::clone(&unit), content);
+        let source_id = compilation.input_source_ids()[0];
+        compilation.engine.remove_file(source_id);
+
+        assert_eq!(
+            compilation.source_content(unit.source()),
+            Err(QueryError::MissingContent { file_id: source_id })
+        );
+        assert_eq!(
+            compilation.module_name(unit.source()),
+            Err(QueryError::MissingContent { file_id: source_id })
+        );
     }
 }

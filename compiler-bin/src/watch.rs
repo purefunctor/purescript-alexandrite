@@ -4,7 +4,7 @@ use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
 use std::{fs, io, process};
 
-use building::{DiskObservation, LifecycleChange, ReloadFailure, SourceUnitKey};
+use building::{DiskObservation, LifecycleChange, QueryError, ReloadFailure, SourceUnitKey};
 use console::Style;
 use itertools::Itertools;
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
@@ -38,6 +38,8 @@ enum WatchError {
     #[error(transparent)]
     Notify(#[from] notify::Error),
     #[error(transparent)]
+    Query(#[from] QueryError),
+    #[error(transparent)]
     Walk(#[from] walk::Error),
 }
 
@@ -60,7 +62,7 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
     }
     report_lifecycle_warnings(&initial_change.lifecycle);
     report_changed_modules(&initial_change.modules, compile::use_color(config.color));
-    rebuild(&mut workspace, &config);
+    rebuild(&mut workspace, &config)?;
 
     loop {
         let first = receiver.recv().map_err(|error| {
@@ -83,18 +85,18 @@ fn watch(config: WatchConfig) -> Result<(), WatchError> {
         report_lifecycle_warnings(&change.lifecycle);
         if !change.modules.is_empty() {
             report_changed_modules(&change.modules, compile::use_color(config.color));
-            rebuild(&mut workspace, &config);
+            rebuild(&mut workspace, &config)?;
         }
     }
 }
 
-fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) {
+fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) -> Result<(), WatchError> {
     if workspace.compilation.input_source_ids().is_empty() {
         if let Err(error) = workspace.reconcile_outputs(BTreeSet::new()) {
             eprintln!("Failed to remove stale output: {error}");
         }
         println!("No input files found; waiting for changes.");
-        return;
+        return Ok(());
     }
 
     let build_config = BuildConfig {
@@ -104,15 +106,15 @@ fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) {
         color: compile::use_color(config.color),
         progress: false,
     };
-    match compile::build(&workspace.compilation, &build_config) {
-        Ok(BuildOutcome::Succeeded(outputs)) => {
+    match compile::build(&workspace.compilation, &build_config)? {
+        BuildOutcome::Succeeded(outputs) => {
             if let Err(error) = workspace.reconcile_outputs(outputs) {
                 eprintln!("Compilation succeeded, but stale output could not be removed: {error}");
             }
         }
-        Ok(BuildOutcome::Diagnostics) => {}
-        Err(error) => eprintln!("\n\nCompilation failed: {error}\n"),
+        BuildOutcome::Diagnostics => {}
     }
+    Ok(())
 }
 
 fn report_lifecycle_warnings(change: &LifecycleChange) {
@@ -313,20 +315,20 @@ fn observe_source_unit(
     source_path: &Path,
 ) -> Result<WorkspaceChange, WatchError> {
     let unit = source_unit(source_path)?;
-    let previous_source = compilation.source_content(unit.source());
+    let previous_source = compilation.source_content(unit.source())?;
     let previous_foreign = compilation.foreign_content(unit.foreign());
-    let previous_name = compilation.module_name(unit.source());
+    let previous_name = compilation.module_name(unit.source())?;
 
     let source = observe_disk(source_path);
     let mut lifecycle = compilation.observe_source(SourceUnitKey::clone(&unit), source);
     let foreign = observe_disk(&source_path.with_extension("js"));
     lifecycle.combine(compilation.observe_foreign(SourceUnitKey::clone(&unit), foreign));
 
-    let current_source = compilation.source_content(unit.source());
+    let current_source = compilation.source_content(unit.source())?;
     let current_foreign = compilation.foreign_content(unit.foreign());
     let mut modules = BTreeSet::new();
     if previous_source != current_source || previous_foreign != current_foreign {
-        let name = compilation.module_name(unit.source()).or(previous_name);
+        let name = compilation.module_name(unit.source())?.or(previous_name);
         modules.insert(name.unwrap_or_else(|| fallback_module_name(source_path)));
     }
     Ok(WorkspaceChange { lifecycle, modules })
@@ -343,7 +345,7 @@ fn observe_foreign(
     let current_foreign = compilation.foreign_content(unit.foreign());
     let mut modules = BTreeSet::new();
     if previous_foreign != current_foreign {
-        let name = compilation.module_name(unit.source());
+        let name = compilation.module_name(unit.source())?;
         modules.insert(name.unwrap_or_else(|| fallback_module_name(source_path)));
     }
     Ok(WorkspaceChange { lifecycle, modules })
