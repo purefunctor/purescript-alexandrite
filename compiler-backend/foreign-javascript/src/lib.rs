@@ -3,7 +3,7 @@ use std::iter;
 use std::sync::Arc;
 
 use building_types::QueryResult;
-use files::{FileId, ForeignFileId};
+use files::{FileId, ForeignFileCandidates, ForeignFileId, ForeignSourceKind};
 use indexing::{IndexedModule, IndexedTermItemKind, TermItemId};
 use oxc_allocator::Allocator;
 use oxc_parser::Parser;
@@ -25,6 +25,7 @@ pub struct ForeignValidation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ForeignError {
     MissingModule { declaration: TermItemId, name: SmolStr },
+    AmbiguousModule { declaration: TermItemId },
     MissingImplementation { declaration: TermItemId, name: SmolStr },
     Parse { declaration: TermItemId, message: Arc<str> },
 }
@@ -35,9 +36,13 @@ pub trait ForeignQueries {
     fn foreign_validation(&self, id: FileId) -> QueryResult<Arc<ForeignValidation>>;
 }
 
-pub fn parse_module(content: &str) -> ForeignModule {
+pub fn parse_module(kind: ForeignSourceKind, content: &str) -> ForeignModule {
     let allocator = Allocator::default();
-    let parsed = Parser::new(&allocator, content, SourceType::mjs()).parse();
+    let source_type = match kind {
+        ForeignSourceKind::JavaScript => SourceType::mjs(),
+        ForeignSourceKind::Jsx => SourceType::jsx(),
+    };
+    let parsed = Parser::new(&allocator, content, source_type).parse();
 
     let errors = parsed.diagnostics.into_iter().map(|diagnostic| diagnostic.to_string().into());
     let errors: Arc<[_]> = errors.collect();
@@ -63,6 +68,7 @@ fn export_name(entry: &ExportEntry<'_>) -> Option<SmolStr> {
 
 pub fn validate_module(
     indexed: &IndexedModule,
+    candidates: ForeignFileCandidates,
     foreign: Option<&ForeignModule>,
 ) -> ForeignValidation {
     let declarations = indexed.items.iter_terms().filter_map(|(declaration, item)| {
@@ -75,6 +81,12 @@ pub fn validate_module(
     let declarations = declarations.collect::<Vec<_>>();
 
     let mut errors = Vec::new();
+    if candidates.count() > 1 {
+        if let Some((declaration, _)) = declarations.first() {
+            errors.push(ForeignError::AmbiguousModule { declaration: *declaration });
+        }
+        return ForeignValidation { errors: errors.into() };
+    }
     let Some(foreign) = foreign else {
         let missing_modules = declarations
             .into_iter()
@@ -106,4 +118,22 @@ pub fn validate_module(
     errors.extend(missing_implementations);
 
     ForeignValidation { errors: errors.into() }
+}
+
+#[cfg(test)]
+mod tests {
+    use files::ForeignSourceKind;
+
+    use super::parse_module;
+
+    #[test]
+    fn jsx_modules_are_parsed_with_jsx_syntax_enabled() {
+        let module = parse_module(
+            ForeignSourceKind::Jsx,
+            "export const component = <section>Hello</section>;",
+        );
+
+        assert!(module.errors.is_empty(), "{:#?}", module.errors);
+        assert!(module.exports.contains("component"));
+    }
 }

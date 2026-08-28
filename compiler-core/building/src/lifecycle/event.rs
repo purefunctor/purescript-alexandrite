@@ -2,15 +2,32 @@ use core::fmt;
 use std::io;
 use std::sync::Arc;
 
+use files::ForeignSourceKind;
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SourceUnitKey {
     pub(super) source: Arc<str>,
-    pub(super) foreign: Arc<str>,
+    pub(super) javascript: Arc<str>,
+    pub(super) jsx: Arc<str>,
 }
 
 impl SourceUnitKey {
-    pub fn new(source: impl Into<Arc<str>>, foreign: impl Into<Arc<str>>) -> SourceUnitKey {
-        SourceUnitKey { source: source.into(), foreign: foreign.into() }
+    pub fn new(source: impl Into<Arc<str>>, javascript: impl Into<Arc<str>>) -> SourceUnitKey {
+        let javascript = javascript.into();
+        let jsx = if let Some(stem) = javascript.strip_suffix(".js") {
+            format!("{stem}.jsx").into()
+        } else {
+            panic!("invariant violated: JavaScript foreign locator must end in .js")
+        };
+        SourceUnitKey { source: source.into(), javascript, jsx }
+    }
+
+    pub fn with_foreign_sources(
+        source: impl Into<Arc<str>>,
+        javascript: impl Into<Arc<str>>,
+        jsx: impl Into<Arc<str>>,
+    ) -> SourceUnitKey {
+        SourceUnitKey { source: source.into(), javascript: javascript.into(), jsx: jsx.into() }
     }
 
     pub fn source(&self) -> &str {
@@ -18,7 +35,14 @@ impl SourceUnitKey {
     }
 
     pub fn foreign(&self) -> &str {
-        &self.foreign
+        &self.javascript
+    }
+
+    pub fn foreign_for(&self, kind: ForeignSourceKind) -> &str {
+        match kind {
+            ForeignSourceKind::JavaScript => &self.javascript,
+            ForeignSourceKind::Jsx => &self.jsx,
+        }
     }
 }
 
@@ -58,7 +82,7 @@ pub enum DiskObservation {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LifecycleEvent<Version, Metadata> {
     Source { unit: SourceUnitKey, event: SourceEvent<Version, Metadata> },
-    Foreign { unit: SourceUnitKey, event: ForeignEvent<Version> },
+    Foreign { unit: SourceUnitKey, kind: ForeignSourceKind, event: ForeignEvent<Version> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -80,13 +104,13 @@ pub enum ForeignEvent<Version> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DocumentKey {
     Source(SourceUnitKey),
-    Foreign(SourceUnitKey),
+    Foreign(SourceUnitKey, ForeignSourceKind),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DocumentKind {
     Source,
-    Foreign,
+    Foreign(ForeignSourceKind),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

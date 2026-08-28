@@ -190,8 +190,11 @@ where
         if let Some(name) = parsed.module_name(&text) {
             engine.set_module_file(&name, id);
         }
-        if let Some(foreign_id) = source_unit.foreign_id() {
-            engine.set_foreign_file(id, foreign_id);
+        let foreign_files = source_unit.foreign_files();
+        for kind in files::ForeignSourceKind::ALL {
+            if let Some(foreign_id) = foreign_files.get(kind) {
+                engine.set_foreign_file(id, foreign_id);
+            }
         }
         SourceDocument { id, metadata, content: EffectiveContent::Disk { text } }
     }

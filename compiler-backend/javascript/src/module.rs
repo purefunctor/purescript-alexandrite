@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
@@ -8,7 +8,7 @@ pub struct Module {
     name: Arc<str>,
     source: Arc<str>,
     dependencies: Arc<[FileId]>,
-    requires_foreign: bool,
+    foreign_kind: Option<ForeignSourceKind>,
     requires_runtime: bool,
 }
 
@@ -18,7 +18,7 @@ impl Module {
         name: String,
         source: String,
         dependencies: Vec<FileId>,
-        requires_foreign: bool,
+        foreign_kind: Option<ForeignSourceKind>,
         requires_runtime: bool,
     ) -> Module {
         Module {
@@ -26,7 +26,7 @@ impl Module {
             name: name.into(),
             source: source.into(),
             dependencies: dependencies.into(),
-            requires_foreign,
+            foreign_kind,
             requires_runtime,
         }
     }
@@ -44,7 +44,10 @@ impl Module {
     }
 
     pub fn foreign_filename(&self) -> String {
-        foreign_module_filename(&self.name)
+        let kind = self
+            .foreign_kind
+            .expect("invariant violated: module without foreign source has no foreign filename");
+        foreign_module_filename(&self.name, kind)
     }
 
     pub fn source(&self) -> &str {
@@ -56,7 +59,11 @@ impl Module {
     }
 
     pub fn requires_foreign(&self) -> bool {
-        self.requires_foreign
+        self.foreign_kind.is_some()
+    }
+
+    pub fn foreign_kind(&self) -> Option<ForeignSourceKind> {
+        self.foreign_kind
     }
 
     pub fn requires_runtime(&self) -> bool {
@@ -76,6 +83,6 @@ pub fn module_filename(module_name: &str) -> String {
     format!("{module_name}/index.js")
 }
 
-pub fn foreign_module_filename(module_name: &str) -> String {
-    format!("{module_name}/foreign.js")
+pub fn foreign_module_filename(module_name: &str, kind: ForeignSourceKind) -> String {
+    format!("{module_name}/foreign.{}", kind.extension())
 }

@@ -70,7 +70,10 @@ impl JavaScriptModules {
                         "invariant violated: source URL is not a file: {source_url}"
                     ))
                 })?;
-                let foreign_path = source_path.with_extension("js");
+                let kind = module
+                    .foreign_kind()
+                    .expect("invariant violated: required foreign module has no source kind");
+                let foreign_path = source_path.with_extension(kind.extension());
                 if !foreign_path.exists() {
                     continue;
                 }

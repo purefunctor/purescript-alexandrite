@@ -7,7 +7,7 @@ use std::{fs, io, process};
 
 use building::{DiskObservation, QueryError, SourceUnitKey};
 use diagnostics::Severity;
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 use indicatif::MultiProgress;
 use rayon::prelude::*;
 use thiserror::Error;
@@ -153,13 +153,15 @@ pub(crate) fn load_source(
     let content = fs::read_to_string(path)?;
     compilation.observe_source(SourceUnitKey::clone(&unit), DiskObservation::Found(content.into()));
 
-    let disk = match fs::read_to_string(&foreign_path) {
-        Ok(content) => DiskObservation::Found(content.into()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
-        Err(error) => return Err(error.into()),
-    };
-
-    compilation.observe_foreign(unit, disk);
+    for kind in ForeignSourceKind::ALL {
+        let foreign_path = path.with_extension(kind.extension());
+        let disk = match fs::read_to_string(&foreign_path) {
+            Ok(content) => DiskObservation::Found(content.into()),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => DiskObservation::NotFound,
+            Err(error) => return Err(error.into()),
+        };
+        compilation.observe_foreign(SourceUnitKey::clone(&unit), kind, disk);
+    }
     Ok(())
 }
 

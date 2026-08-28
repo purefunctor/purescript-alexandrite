@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use files::{FileId, Files, ForeignFileId, ForeignFiles};
+use files::{FileId, Files, ForeignFileCandidates, ForeignFileId, ForeignFiles, ForeignSourceKind};
 use rustc_hash::FxHashMap;
 
 use crate::QueryEngine;
@@ -42,12 +42,40 @@ impl<Version, Metadata> Default for FileLifecycle<Version, Metadata> {
 #[derive(Debug)]
 struct SourceUnit<Version, Metadata> {
     source: Member<SourceDocument<Version, Metadata>>,
-    foreign: Member<ForeignDocument<Version>>,
+    foreign: ForeignMembers<Version>,
 }
 
 impl<Version, Metadata> Default for SourceUnit<Version, Metadata> {
     fn default() -> SourceUnit<Version, Metadata> {
-        SourceUnit { source: Member::Missing, foreign: Member::Missing }
+        SourceUnit { source: Member::Missing, foreign: ForeignMembers::default() }
+    }
+}
+
+#[derive(Debug)]
+struct ForeignMembers<Version> {
+    javascript: Member<ForeignDocument<Version>>,
+    jsx: Member<ForeignDocument<Version>>,
+}
+
+impl<Version> Default for ForeignMembers<Version> {
+    fn default() -> ForeignMembers<Version> {
+        ForeignMembers { javascript: Member::Missing, jsx: Member::Missing }
+    }
+}
+
+impl<Version> ForeignMembers<Version> {
+    fn get(&self, kind: ForeignSourceKind) -> &Member<ForeignDocument<Version>> {
+        match kind {
+            ForeignSourceKind::JavaScript => &self.javascript,
+            ForeignSourceKind::Jsx => &self.jsx,
+        }
+    }
+
+    fn get_mut(&mut self, kind: ForeignSourceKind) -> &mut Member<ForeignDocument<Version>> {
+        match kind {
+            ForeignSourceKind::JavaScript => &mut self.javascript,
+            ForeignSourceKind::Jsx => &mut self.jsx,
+        }
     }
 }
 
@@ -122,14 +150,16 @@ where
         }
         match event {
             LifecycleEvent::Source { unit, event } => self.apply_source(engine, unit, event),
-            LifecycleEvent::Foreign { unit, event } => self.apply_foreign(engine, unit, event),
+            LifecycleEvent::Foreign { unit, kind, event } => {
+                self.apply_foreign(engine, unit, kind, event)
+            }
         }
     }
 
     pub fn is_open(&self, document: &DocumentKey) -> bool {
         let (unit, kind) = match document {
             DocumentKey::Source(unit) => (unit, DocumentKind::Source),
-            DocumentKey::Foreign(unit) => (unit, DocumentKind::Foreign),
+            DocumentKey::Foreign(unit, kind) => (unit, DocumentKind::Foreign(*kind)),
         };
         let Some(source_unit) = self.units.get(unit) else {
             return false;
@@ -139,9 +169,14 @@ where
                 Member::Missing => false,
                 Member::Present(document) => document.content.authority() == ContentAuthority::Open,
             },
-            DocumentKind::Foreign => match &source_unit.foreign {
-                Member::Missing => false,
-                Member::Present(document) => document.content.authority() == ContentAuthority::Open,
+            DocumentKind::Foreign(_) => match document {
+                DocumentKey::Foreign(_, kind) => match source_unit.foreign.get(*kind) {
+                    Member::Missing => false,
+                    Member::Present(document) => {
+                        document.content.authority() == ContentAuthority::Open
+                    }
+                },
+                DocumentKey::Source(_) => unreachable!(),
             },
         }
     }
@@ -201,7 +236,8 @@ where
 
     pub fn foreign_authority(&self, unit: &SourceUnitKey) -> Option<ContentAuthority> {
         let source_unit = self.units.get(unit)?;
-        let Member::Present(foreign) = &source_unit.foreign else {
+        let Member::Present(foreign) = source_unit.foreign.get(ForeignSourceKind::JavaScript)
+        else {
             return None;
         };
         Some(foreign.content.authority())
@@ -209,7 +245,8 @@ where
 
     pub fn foreign_reload_failure(&self, unit: &SourceUnitKey) -> Option<&ReloadFailure> {
         let source_unit = self.units.get(unit)?;
-        let Member::Present(foreign) = &source_unit.foreign else {
+        let Member::Present(foreign) = source_unit.foreign.get(ForeignSourceKind::JavaScript)
+        else {
             return None;
         };
         foreign.content.reload_failure()
@@ -229,14 +266,17 @@ where
                 requested: SourceUnitKey::clone(unit),
             });
         }
-        if let Some(owner) = self.foreign_owners.get(unit.foreign())
-            && owner != unit
-        {
-            return Some(LifecycleWarning::LocatorAlreadyOwned {
-                locator: Arc::clone(&unit.foreign),
-                owner: SourceUnitKey::clone(owner),
-                requested: SourceUnitKey::clone(unit),
-            });
+        for kind in ForeignSourceKind::ALL {
+            let locator = unit.foreign_for(kind);
+            if let Some(owner) = self.foreign_owners.get(locator)
+                && owner != unit
+            {
+                return Some(LifecycleWarning::LocatorAlreadyOwned {
+                    locator: Arc::from(locator),
+                    owner: SourceUnitKey::clone(owner),
+                    requested: SourceUnitKey::clone(unit),
+                });
+            }
         }
         None
     }
@@ -244,25 +284,32 @@ where
     fn store_unit(&mut self, unit: SourceUnitKey, source_unit: SourceUnit<Version, Metadata>) {
         if source_unit.is_missing() {
             let source_owner = self.source_owners.remove(unit.source());
-            let foreign_owner = self.foreign_owners.remove(unit.foreign());
             debug_assert!(source_owner.is_none_or(|owner| owner == unit));
-            debug_assert!(foreign_owner.is_none_or(|owner| owner == unit));
+            for kind in ForeignSourceKind::ALL {
+                let foreign_owner = self.foreign_owners.remove(unit.foreign_for(kind));
+                debug_assert!(foreign_owner.is_none_or(|owner| owner == unit));
+            }
             return;
         }
 
         let previous_source_owner =
             self.source_owners.insert(Arc::clone(&unit.source), SourceUnitKey::clone(&unit));
-        let previous_foreign_owner =
-            self.foreign_owners.insert(Arc::clone(&unit.foreign), SourceUnitKey::clone(&unit));
         debug_assert!(previous_source_owner.is_none_or(|owner| owner == unit));
-        debug_assert!(previous_foreign_owner.is_none_or(|owner| owner == unit));
+        for kind in ForeignSourceKind::ALL {
+            let locator = Arc::from(unit.foreign_for(kind));
+            let previous_foreign_owner =
+                self.foreign_owners.insert(locator, SourceUnitKey::clone(&unit));
+            debug_assert!(previous_foreign_owner.is_none_or(|owner| owner == unit));
+        }
         self.units.insert(unit, source_unit);
     }
 }
 
 impl<Version, Metadata> SourceUnit<Version, Metadata> {
     fn is_missing(&self) -> bool {
-        matches!(self.source, Member::Missing) && matches!(self.foreign, Member::Missing)
+        matches!(self.source, Member::Missing)
+            && matches!(self.foreign.javascript, Member::Missing)
+            && matches!(self.foreign.jsx, Member::Missing)
     }
 
     fn source_id(&self) -> Option<FileId> {
@@ -272,10 +319,14 @@ impl<Version, Metadata> SourceUnit<Version, Metadata> {
         Some(source.id)
     }
 
-    fn foreign_id(&self) -> Option<ForeignFileId> {
-        let Member::Present(foreign) = &self.foreign else {
-            return None;
-        };
-        Some(foreign.id)
+    fn foreign_files(&self) -> ForeignFileCandidates {
+        let mut candidates = ForeignFileCandidates::default();
+        for kind in ForeignSourceKind::ALL {
+            let Member::Present(foreign) = self.foreign.get(kind) else {
+                continue;
+            };
+            candidates.set(kind, Some(foreign.id));
+        }
+        candidates
     }
 }

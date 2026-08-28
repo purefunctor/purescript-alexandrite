@@ -17,6 +17,56 @@ pub struct FileId {
     index: u32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ForeignSourceKind {
+    JavaScript,
+    Jsx,
+}
+
+impl ForeignSourceKind {
+    pub const ALL: [ForeignSourceKind; 2] = [ForeignSourceKind::JavaScript, ForeignSourceKind::Jsx];
+
+    pub const fn extension(self) -> &'static str {
+        match self {
+            ForeignSourceKind::JavaScript => "js",
+            ForeignSourceKind::Jsx => "jsx",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ForeignFileCandidates {
+    javascript: Option<ForeignFileId>,
+    jsx: Option<ForeignFileId>,
+}
+
+impl ForeignFileCandidates {
+    pub fn get(self, kind: ForeignSourceKind) -> Option<ForeignFileId> {
+        match kind {
+            ForeignSourceKind::JavaScript => self.javascript,
+            ForeignSourceKind::Jsx => self.jsx,
+        }
+    }
+
+    pub fn set(&mut self, kind: ForeignSourceKind, id: Option<ForeignFileId>) {
+        match kind {
+            ForeignSourceKind::JavaScript => self.javascript = id,
+            ForeignSourceKind::Jsx => self.jsx = id,
+        }
+    }
+
+    pub fn unique(self) -> Option<ForeignFileId> {
+        match (self.javascript, self.jsx) {
+            (Some(id), None) | (None, Some(id)) => Some(id),
+            (None, None) | (Some(_), Some(_)) => None,
+        }
+    }
+
+    pub fn count(self) -> usize {
+        usize::from(self.javascript.is_some()) + usize::from(self.jsx.is_some())
+    }
+}
+
 impl fmt::Debug for FileId {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "Idx::<File>({})", self.index)
@@ -49,6 +99,13 @@ pub struct ForeignFiles {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ForeignFileId {
     index: u32,
+    kind: ForeignSourceKind,
+}
+
+impl ForeignFileId {
+    pub const fn kind(self) -> ForeignSourceKind {
+        self.kind
+    }
 }
 
 #[derive(Debug)]
@@ -121,18 +178,20 @@ impl Files {
 impl ForeignFiles {
     pub fn insert(
         &mut self,
+        kind: ForeignSourceKind,
         path: impl Into<Arc<str>>,
         content: impl Into<Arc<str>>,
     ) -> ForeignFileId {
         let path = path.into();
         let content = content.into();
         if let Some(foreign_file_id) = self.paths.get(path.as_ref()).copied() {
+            assert_eq!(foreign_file_id.kind(), kind, "foreign source kind changed for locator");
             let file = self.file_mut(foreign_file_id);
             file.content = content;
             return foreign_file_id;
         }
 
-        let foreign_file_id = ForeignFileId { index: self.next_id };
+        let foreign_file_id = ForeignFileId { index: self.next_id, kind };
         self.next_id =
             self.next_id.checked_add(1).expect("invariant violated: too many foreign files");
         let file = ForeignFileData { path: Arc::clone(&path), content };
@@ -176,7 +235,7 @@ impl ForeignFiles {
 
 #[cfg(test)]
 mod tests {
-    use super::{Files, ForeignFiles};
+    use super::{Files, ForeignFiles, ForeignSourceKind};
 
     #[test]
     fn test_basic() {
@@ -224,21 +283,26 @@ mod tests {
 
         let path = "src/Main.js";
         let content = "export const life = 42;\n";
-        let id = files.insert(path, content);
+        let id = files.insert(ForeignSourceKind::JavaScript, path, content);
 
         assert_eq!(files.id(path), Some(id));
+        assert_eq!(id.kind(), ForeignSourceKind::JavaScript);
         assert_eq!(files.path(id).as_ref(), path);
         assert_eq!(files.content(id).as_ref(), content);
 
         let retained_path = "src/Retained.js";
-        let retained_id = files.insert(retained_path, "export const retained = 1;");
+        let retained_id = files.insert(
+            ForeignSourceKind::JavaScript,
+            retained_path,
+            "export const retained = 1;",
+        );
 
         assert_eq!(files.remove(path), Some(id));
         assert_eq!(files.id(path), None);
         assert!(!files.files.contains_key(&id));
         assert_eq!(files.path(retained_id).as_ref(), retained_path);
 
-        let replacement_id = files.insert(path, content);
+        let replacement_id = files.insert(ForeignSourceKind::JavaScript, path, content);
         assert_ne!(replacement_id, id);
         assert_eq!(files.remove(path), Some(replacement_id));
 
@@ -246,7 +310,7 @@ mod tests {
         let mut previous_id = replacement_id;
         for number in 0..32 {
             let path = format!("src/Temporary-{number}.js");
-            let temporary_id = files.insert(path.as_str(), content);
+            let temporary_id = files.insert(ForeignSourceKind::JavaScript, path.as_str(), content);
             assert!(temporary_id > previous_id);
             assert_eq!(files.remove(&path), Some(temporary_id));
             previous_id = temporary_id;

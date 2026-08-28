@@ -27,7 +27,7 @@ use building::lifecycle::{
     AnalysisInvalidation, DiskObservation, DocumentKey, DocumentKind, FileLifecycle, ForeignEvent,
     LifecycleChange, LifecycleEvent, ReloadFailure, SourceEvent, SourceUnitKey,
 };
-use files::FileId;
+use files::{FileId, ForeignSourceKind};
 use itertools::Itertools;
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
@@ -349,6 +349,10 @@ fn file_watcher_registration() -> RegistrationParams {
                 glob_pattern: GlobPattern::String("**/*.js".to_string()),
                 kind: None,
             },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/*.jsx".to_string()),
+                kind: None,
+            },
         ],
     };
     let register_options = serde_json::to_value(options)
@@ -611,8 +615,9 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
     };
     let (document, unit) = source_unit_from_document_uri(uri)?;
     let event = match document {
-        DocumentKind::Foreign => LifecycleEvent::Foreign {
+        DocumentKind::Foreign(kind) => LifecycleEvent::Foreign {
             unit,
+            kind,
             event: ForeignEvent::Changed {
                 text: Arc::from(content_change.text.as_str()),
                 version: p.text_document.version,
@@ -641,9 +646,10 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
     let (document, unit) = source_unit_from_document_uri(uri)?;
 
     let change = match document {
-        DocumentKind::Foreign => {
+        DocumentKind::Foreign(kind) => {
             let event = LifecycleEvent::Foreign {
                 unit,
+                kind,
                 event: ForeignEvent::Opened {
                     text: Arc::from(p.text_document.text.as_str()),
                     version: p.text_document.version,
@@ -680,8 +686,9 @@ fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), Lsp
     let (document, unit) = source_unit_from_document_uri(&uri)?;
     let disk = observe_disk(&uri);
     let change = match document {
-        DocumentKind::Foreign => {
-            let event = LifecycleEvent::Foreign { unit, event: ForeignEvent::Closed { disk } };
+        DocumentKind::Foreign(kind) => {
+            let event =
+                LifecycleEvent::Foreign { unit, kind, event: ForeignEvent::Closed { disk } };
             apply_lifecycle_event(state, event)
         }
         DocumentKind::Source => {
@@ -720,8 +727,9 @@ fn did_change_watched_files(
     let mut foreign_units = FxHashSet::default();
     for change in p.changes {
         match document_kind(&change.uri) {
-            Some(DocumentKind::Foreign) => {
-                foreign_units.insert(source_unit_from_foreign_uri(&change.uri)?);
+            Some(DocumentKind::Foreign(kind)) => {
+                let unit = source_unit_from_foreign_uri(&change.uri)?;
+                foreign_units.insert((unit, kind));
             }
             Some(DocumentKind::Source) => {
                 source_units.insert(source_unit_from_source_uri(&change.uri)?);
@@ -752,24 +760,26 @@ fn did_change_watched_files(
         }
     }
 
-    for unit in foreign_units {
+    for (unit, kind) in foreign_units {
         if observed_foreign.contains(&unit) {
             continue;
         }
-        let document = DocumentKey::Foreign(SourceUnitKey::clone(&unit));
+        let document = DocumentKey::Foreign(SourceUnitKey::clone(&unit), kind);
         if state.files.read().is_open(&document) {
             continue;
         }
         let tracked = {
             let files = state.files.read();
-            files.source_id(unit.source()).is_some() || files.foreign_id(unit.foreign()).is_some()
+            files.source_id(unit.source()).is_some()
+                || files.foreign_id(unit.foreign_for(kind)).is_some()
         };
         if !tracked {
             continue;
         }
-        let uri = Url::parse(unit.foreign())?;
+        let uri = Url::parse(unit.foreign_for(kind))?;
         let event = LifecycleEvent::Foreign {
             unit,
+            kind,
             event: ForeignEvent::DiskObserved { disk: observe_disk(&uri) },
         };
         lifecycle_change.combine(apply_lifecycle_event(state, event));
@@ -782,7 +792,9 @@ fn did_change_watched_files(
 
 fn document_kind(uri: &Url) -> Option<DocumentKind> {
     if uri.path().ends_with(".js") {
-        Some(DocumentKind::Foreign)
+        Some(DocumentKind::Foreign(ForeignSourceKind::JavaScript))
+    } else if uri.path().ends_with(".jsx") {
+        Some(DocumentKind::Foreign(ForeignSourceKind::Jsx))
     } else if uri.path().ends_with(".purs") {
         Some(DocumentKind::Source)
     } else {
@@ -795,7 +807,7 @@ fn source_unit_from_document_uri(uri: &Url) -> Result<(DocumentKind, SourceUnitK
         document_kind(uri).ok_or_else(|| LspError::UnsupportedDocumentUri(Url::clone(uri)))?;
     let unit = match document {
         DocumentKind::Source => source_unit_from_source_uri(uri)?,
-        DocumentKind::Foreign => source_unit_from_foreign_uri(uri)?,
+        DocumentKind::Foreign(_) => source_unit_from_foreign_uri(uri)?,
     };
     Ok((document, unit))
 }
@@ -820,13 +832,18 @@ fn file_uri_with_extension(uri: &Url, extension: &str) -> Result<Url, LspError> 
 }
 
 fn source_unit_from_source_uri(source_uri: &Url) -> Result<SourceUnitKey, LspError> {
-    let foreign_uri = file_uri_with_extension(source_uri, "js")?;
-    Ok(SourceUnitKey::new(source_uri.as_str(), foreign_uri.as_str()))
+    let javascript_uri = file_uri_with_extension(source_uri, "js")?;
+    let jsx_uri = file_uri_with_extension(source_uri, "jsx")?;
+    Ok(SourceUnitKey::with_foreign_sources(
+        source_uri.as_str(),
+        javascript_uri.as_str(),
+        jsx_uri.as_str(),
+    ))
 }
 
 fn source_unit_from_foreign_uri(foreign_uri: &Url) -> Result<SourceUnitKey, LspError> {
     let source_uri = file_uri_with_extension(foreign_uri, "purs")?;
-    Ok(SourceUnitKey::new(source_uri.as_str(), foreign_uri.as_str()))
+    source_unit_from_source_uri(&source_uri)
 }
 
 fn emit_associated_diagnostics(state: &mut State, uri: Url) -> Result<(), LspError> {
@@ -864,16 +881,21 @@ fn observe_sibling_foreign(
     state: &mut State,
     unit: &SourceUnitKey,
 ) -> Result<LifecycleChange, LspError> {
-    let document = DocumentKey::Foreign(SourceUnitKey::clone(unit));
-    if state.files.read().is_open(&document) {
-        return Ok(LifecycleChange::default());
+    let mut change = LifecycleChange::default();
+    for kind in ForeignSourceKind::ALL {
+        let document = DocumentKey::Foreign(SourceUnitKey::clone(unit), kind);
+        if state.files.read().is_open(&document) {
+            continue;
+        }
+        let uri = Url::parse(unit.foreign_for(kind))?;
+        let event = LifecycleEvent::Foreign {
+            unit: SourceUnitKey::clone(unit),
+            kind,
+            event: ForeignEvent::DiskObserved { disk: observe_disk(&uri) },
+        };
+        change.combine(apply_lifecycle_event(state, event));
     }
-    let uri = Url::parse(unit.foreign())?;
-    let event = LifecycleEvent::Foreign {
-        unit: SourceUnitKey::clone(unit),
-        event: ForeignEvent::DiskObserved { disk: observe_disk(&uri) },
-    };
-    Ok(apply_lifecycle_event(state, event))
+    Ok(change)
 }
 
 fn observe_disk(uri: &Url) -> DiskObservation {
