@@ -8,6 +8,7 @@ animation :: Alexandrite.StyleX.Keyframes
 styles :: { button :: Alexandrite.StyleX.Style, label :: Alexandrite.StyleX.Style }
 secondary :: { root :: Alexandrite.StyleX.Style }
 buttonProps :: Alexandrite.StyleX.Props
+buttonPropsArray :: Prim.Boolean -> Alexandrite.StyleX.Props
 buttonClassName :: Prim.String
 
 Types

@@ -67,11 +67,28 @@ pub(super) fn binary_expression(
     left: ExpressionId,
     right: ExpressionId,
 ) -> ExpressionId {
-    let operator = match operator {
-        FunctionalBinaryOperator::IntegerAdd => BinaryOperator::Add,
-        FunctionalBinaryOperator::IntegerSubtract => BinaryOperator::Subtract,
-        FunctionalBinaryOperator::IntegerMultiply => BinaryOperator::Multiply,
-    };
+    match operator {
+        FunctionalBinaryOperator::IntegerAdd => {
+            integer_binary_expression(tree, BinaryOperator::Add, left, right)
+        }
+        FunctionalBinaryOperator::IntegerSubtract => {
+            integer_binary_expression(tree, BinaryOperator::Subtract, left, right)
+        }
+        FunctionalBinaryOperator::IntegerMultiply => {
+            integer_binary_expression(tree, BinaryOperator::Multiply, left, right)
+        }
+        FunctionalBinaryOperator::StyleXConditional => {
+            tree.binary(BinaryOperator::LogicalAnd, left, right)
+        }
+    }
+}
+
+fn integer_binary_expression(
+    tree: &mut Tree,
+    operator: BinaryOperator,
+    left: ExpressionId,
+    right: ExpressionId,
+) -> ExpressionId {
     let value = tree.binary(operator, left, right);
     integer_coercion_expression(tree, value)
 }
