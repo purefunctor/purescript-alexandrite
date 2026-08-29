@@ -325,7 +325,7 @@ impl<Version, Metadata> SourceUnit<Version, Metadata> {
             let Member::Present(foreign) = self.foreign.get(kind) else {
                 continue;
             };
-            candidates.set(kind, Some(foreign.id));
+            candidates.insert(foreign.id);
         }
         candidates
     }
