@@ -28,6 +28,20 @@ integerMultiply left right = Semiring.mul left right
 integerNegate :: Int -> Int
 integerNegate value = Ring.negate value
 
+integerNegateLiteral :: Int
+integerNegateLiteral = Ring.negate 20
+
+inlineIntegerNegateLiteral :: Int
+inlineIntegerNegateLiteral =
+  let value = 20
+  in Ring.negate value
+
+numberNegate :: Number -> Number
+numberNegate value = Ring.negate value
+
+numberNegateLiteral :: Number
+numberNegateLiteral = Ring.negate 20.5
+
 integerAddOrder :: Boolean -> Int
 integerAddOrder _ =
   Semiring.add

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 262
+assertion_line: 278
 expression: diagnostics_report
 ---
 Terms
@@ -12,6 +12,10 @@ inlineIntegerAdd :: Prim.Int -> Prim.Int -> Prim.Int
 integerSubtract :: Prim.Int -> Prim.Int -> Prim.Int
 integerMultiply :: Prim.Int -> Prim.Int -> Prim.Int
 integerNegate :: Prim.Int -> Prim.Int
+integerNegateLiteral :: Prim.Int
+inlineIntegerNegateLiteral :: Prim.Int
+numberNegate :: Prim.Number -> Prim.Number
+numberNegateLiteral :: Prim.Number
 integerAddOrder :: Prim.Boolean -> Prim.Int
 partiallyAppliedAdd :: Prim.Int -> Prim.Int
 lookalikeAdd :: Prim.Int -> Prim.Int -> Prim.Int
