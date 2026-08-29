@@ -9,6 +9,7 @@ const expectedPrimitives = [
   "left - right | 0",
   "left * right | 0",
   "-value | 0",
+  "return -value;",
 ];
 for (const expected of expectedPrimitives) {
   if (!source.includes(expected)) {

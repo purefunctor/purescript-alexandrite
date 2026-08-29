@@ -220,6 +220,7 @@ impl StyleXIntrinsic {
 pub enum UnaryOperator {
     BooleanNot,
     IntegerNegate,
+    NumberNegate,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

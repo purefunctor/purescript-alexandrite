@@ -58,6 +58,7 @@ pub(super) fn unary_expression(
             let value = tree.unary(UnaryOperator::Negate, value);
             integer_coercion_expression(tree, value)
         }
+        FunctionalUnaryOperator::NumberNegate => tree.unary(UnaryOperator::Negate, value),
     }
 }
 

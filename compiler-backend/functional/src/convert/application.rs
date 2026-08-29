@@ -216,6 +216,19 @@ where
                 value: *value,
             }));
         }
+        if let Some([value]) = self.known_instance_member_arguments(
+            function,
+            arguments,
+            "Data.Ring",
+            "negate",
+            "Data.Ring",
+            "ringNumber",
+        )? {
+            return Ok(Some(ExpressionKind::Unary {
+                operator: UnaryOperator::NumberNegate,
+                value: *value,
+            }));
+        }
         if let Some([left, right]) = self.known_instance_member_arguments(
             function,
             arguments,
