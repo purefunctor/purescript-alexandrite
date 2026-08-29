@@ -1,16 +1,22 @@
 use std::fmt;
 use std::io::{self, IsTerminal};
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use console::{Color, Style};
 use indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
+use terminal_colorsaurus::{QueryOptions, ThemeMode};
 
 const CARGO_PROGRESS_REGION_WIDTH: usize = 50;
 const CARGO_PROGRESS_FIXED_OVERHEAD: usize = 17;
 const SHIMMER_FRAME_INTERVAL: Duration = Duration::from_millis(80);
+static TERMINAL_THEME_MODE: OnceLock<Option<ThemeMode>> = OnceLock::new();
 
 pub(crate) fn bar(total: usize, phase: &'static str, show: bool) -> ProgressBar {
-    let progress = if show { ProgressBar::new(total as u64) } else { ProgressBar::hidden() };
+    if !show {
+        return ProgressBar::hidden();
+    }
+    let progress = ProgressBar::new(total as u64);
     configure(&progress, phase);
     progress
 }
@@ -53,6 +59,8 @@ pub(crate) fn report_completion(elapsed: Duration) {
 fn configure(progress: &ProgressBar, phase: &'static str) {
     let started = Instant::now();
     let characters = phase.chars().collect::<Vec<_>>();
+    let theme_mode = *TERMINAL_THEME_MODE
+        .get_or_init(|| terminal_colorsaurus::theme_mode(QueryOptions::default()).ok());
     let cycle = characters.len() + 4;
     let total = progress.length().unwrap_or_default();
     let count_width = total.to_string().len().max(4);
@@ -62,7 +70,7 @@ fn configure(progress: &ProgressBar, phase: &'static str) {
         .max(1);
     let phase_text = move |state: &ProgressState, writer: &mut dyn fmt::Write| {
         if state.is_finished() {
-            let style = Style::new().fg(Color::TrueColor(255, 255, 255));
+            let style = phase_style(theme_mode, 255);
             write!(writer, "{}", style.apply_to(phase))
                 .expect("writing to a formatter cannot fail");
             return;
@@ -80,7 +88,7 @@ fn configure(progress: &ProgressBar, phase: &'static str) {
                 3 => 115,
                 _ => 90,
             };
-            let style = Style::new().fg(Color::TrueColor(intensity, intensity, intensity));
+            let style = phase_style(theme_mode, intensity);
             write!(writer, "{}", style.apply_to(character))
                 .expect("writing to a formatter cannot fail");
         }
@@ -93,4 +101,14 @@ fn configure(progress: &ProgressBar, phase: &'static str) {
         .progress_chars("=> ");
     progress.set_style(style);
     progress.enable_steady_tick(SHIMMER_FRAME_INTERVAL);
+}
+
+fn phase_style(theme_mode: Option<ThemeMode>, intensity: u8) -> Style {
+    let style = Style::new().for_stderr();
+    let intensity = match theme_mode {
+        Some(ThemeMode::Dark) => intensity,
+        Some(ThemeMode::Light) => 255 - intensity,
+        None => return style,
+    };
+    style.fg(Color::TrueColor(intensity, intensity, intensity))
 }
