@@ -55,6 +55,7 @@ smol_str = "0.3.6"
 spago = { version = "0.1.0", path = "../compiler-lsp/spago" }
 stabilizing = { version = "0.1.0", path = "../compiler-frontend/stabilizing" }
 tempfile = "3.27.0"
+terminal-colorsaurus = "1.0.3"
 thiserror = "2.0.20"
 tokio = { version = "1.53.1", features = ["full"] }
 tower = "0.5.3"
