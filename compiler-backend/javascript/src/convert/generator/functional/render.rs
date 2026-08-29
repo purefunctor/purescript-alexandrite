@@ -1541,6 +1541,15 @@ impl Generator<'_> {
                 let value = effect_expression(&mut renderer, effect)?;
                 Ok(RenderedExpression { value, pending_evaluation: false })
             }
+            ExpressionKind::Let { recursive: false, bindings, body } => {
+                let name = context.allocate("$result");
+                let mut renderer = self.renderer(tree, writer, context);
+                render_let(&mut renderer, false, bindings)?;
+                let value = self.expression_value(tree, writer, *body, context)?;
+                writer.constant(tree, &name, value, false);
+                let value = tree.identifier(name);
+                Ok(RenderedExpression { value, pending_evaluation: false })
+            }
             ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
