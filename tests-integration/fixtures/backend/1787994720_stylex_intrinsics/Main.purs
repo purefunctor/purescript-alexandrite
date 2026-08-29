@@ -1,0 +1,29 @@
+module Main where
+
+import Alexandrite.StyleX as StyleX
+
+animation :: StyleX.Keyframes
+animation = StyleX.keyframes
+  { from: { opacity: 0.0 }
+  , to: { opacity: 1.0 }
+  }
+
+styles = StyleX.create
+  { button:
+      { color: "red"
+      , padding: 8
+      , animationName: animation
+      , ":hover": { color: "blue" }
+      }
+  , label: { fontWeight: 600 }
+  }
+
+secondary = StyleX.create
+  { root: { backgroundColor: "navy" }
+  }
+
+buttonProps :: StyleX.Props
+buttonProps = StyleX.props styles.button
+
+buttonClassName :: String
+buttonClassName = buttonProps.className

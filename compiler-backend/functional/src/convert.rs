@@ -18,12 +18,12 @@ use smol_str::{SmolStr, format_smolstr};
 use thiserror::Error;
 
 use crate::error::{ModuleError, ModuleResult, UnsupportedState};
-use crate::optimize::inline_simple_bindings;
+use crate::optimize::{expression_children, inline_simple_bindings};
 use crate::tree::{
     Declaration, DeclarationKind, Expression, ExpressionId, ExpressionKind, Field, FieldIdentity,
     GeneratedGlobalId, Global, GlobalId, IndirectModuleExports, InstanceIdentity, LocalId, Module,
     ModuleDependency, ModuleSurface, Parameter, Pattern, PatternId, PatternKind, RecursiveGroupId,
-    Storage, SuperclassIdentity,
+    Storage, StyleXIntrinsic, SuperclassIdentity,
 };
 
 use self::declaration::{derive_declaration, instance_declaration, term_declaration};
@@ -177,6 +177,7 @@ fn convert(mut context: Context<'_, impl checking::ExternalQueries>) -> Conversi
         declarations.extend(declaration);
     }
     validate_runtime_exports(&context, &declarations, &surface)?;
+    context.validate_stylex_uses(&declarations)?;
     context.hoist_closed_evidence(&mut declarations)?;
 
     let recursive_globals = declarations
@@ -283,6 +284,7 @@ fn runtime_term_global(
     file_id: FileId,
     term_id: TermItemId,
 ) -> ConversionResult<Option<Global>> {
+    context.validate_runtime_reference(file_id, term_id)?;
     let indexed = context.indexed_module(file_id)?;
     match &indexed.items[term_id].kind {
         IndexedTermItemKind::Value { .. } | IndexedTermItemKind::Foreign { .. } => {
@@ -603,6 +605,48 @@ where
         Ok(Global { id: GlobalId::Term(file_id, term_id), item_name })
     }
 
+    fn stylex_intrinsic_identity(
+        &self,
+        file_id: FileId,
+        term_id: TermItemId,
+    ) -> QueryResult<Option<StyleXIntrinsic>> {
+        if self.queries.module_file("Alexandrite.StyleX") != Some(file_id) {
+            return Ok(None);
+        }
+        let indexed = self.indexed_module(file_id)?;
+        let intrinsic = match indexed.items[term_id].name.as_deref() {
+            Some("create") => Some(StyleXIntrinsic::Create),
+            Some("props") => Some(StyleXIntrinsic::Props),
+            Some("keyframes") => Some(StyleXIntrinsic::Keyframes),
+            _ => None,
+        };
+        Ok(intrinsic)
+    }
+
+    fn validate_stylex_uses(&self, declarations: &[Declaration]) -> ConversionResult<()> {
+        let pending = declarations.iter().filter_map(|declaration| match declaration.kind {
+            DeclarationKind::Value(expression) => Some(expression),
+            DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => None,
+        });
+        let mut pending = pending.collect_vec();
+        let mut visited = FxHashSet::default();
+        while let Some(expression) = pending.pop() {
+            if !visited.insert(expression) {
+                continue;
+            }
+            if let ExpressionKind::Global { global } = &self.storage[expression].kind
+                && let GlobalId::Term(file_id, term_id) = global.id
+                && let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)?
+            {
+                let state =
+                    UnsupportedState::InvalidStyleXUse { function: intrinsic.name().to_owned() };
+                return Err(self.unsupported(state));
+            }
+            pending.extend(expression_children(&self.storage[expression].kind));
+        }
+        Ok(())
+    }
+
     fn constructor_is_newtype(&self, file_id: FileId, term_id: TermItemId) -> QueryResult<bool> {
         let indexed = self.indexed_module(file_id)?;
         let Some(type_id) = indexed.constructor_type(term_id) else {
@@ -650,12 +694,38 @@ where
         file_id: FileId,
         indexed: Option<Arc<indexing::IndexedModule>>,
     ) -> QueryResult<()> {
-        if file_id == self.file_id || self.dependencies.contains_key(&file_id) {
+        if file_id == self.file_id
+            || self.module_is_virtual(file_id)
+            || self.dependencies.contains_key(&file_id)
+        {
             return Ok(());
         }
         let module_name = self.source_module_name(file_id)?;
         self.dependencies.insert(file_id, Dependency { module_name, indexed });
         Ok(())
+    }
+
+    fn module_is_virtual(&self, file_id: FileId) -> bool {
+        self.queries.module_file("Alexandrite.StyleX") == Some(file_id)
+    }
+
+    fn validate_runtime_reference(
+        &self,
+        file_id: FileId,
+        term_id: TermItemId,
+    ) -> ConversionResult<()> {
+        if !self.module_is_virtual(file_id) {
+            return Ok(());
+        }
+        let module_name = self.source_module_name(file_id)?.to_string();
+        let indexed = self.indexed_module(file_id)?;
+        let item_name = indexed.items[term_id]
+            .name
+            .clone()
+            .unwrap_or_else(|| self.term_fallback(term_id))
+            .to_string();
+        let state = UnsupportedState::VirtualModuleRuntimeReference { module_name, item_name };
+        Err(self.unsupported(state))
     }
 
     fn instance_name(&self, identity: InstanceIdentity) -> QueryResult<SmolStr> {

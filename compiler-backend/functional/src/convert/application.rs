@@ -8,7 +8,7 @@ use smol_str::format_smolstr;
 
 use crate::tree::{
     BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId,
-    InstanceIdentity, Literal, Parameter, PatternKind, RecordField, UnaryOperator,
+    InstanceIdentity, Literal, Parameter, PatternKind, RecordField, StyleXIntrinsic, UnaryOperator,
 };
 
 use super::{Context, ConversionResult};
@@ -106,6 +106,11 @@ where
             self.known_composition_application(known_function, &known_arguments, synthetic)?
         {
             return Ok(composition);
+        }
+        if let Some((intrinsic, argument)) =
+            self.stylex_intrinsic(known_function, &known_arguments)?
+        {
+            return Ok(self.expression(ExpressionKind::StyleX { intrinsic, argument }));
         }
         if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
             return Ok(self.expression(ExpressionKind::Effect { effect }));
@@ -485,6 +490,28 @@ where
         };
         let GlobalId::Term(file_id, _) = global.id else { return Ok(false) };
         Ok(global.item_name == item_name && self.source_module_name(file_id)? == module_name)
+    }
+
+    fn stylex_intrinsic(
+        &self,
+        expression: ExpressionId,
+        arguments: &[ExpressionId],
+    ) -> QueryResult<Option<(StyleXIntrinsic, ExpressionId)>> {
+        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
+            return Ok(None);
+        };
+        let GlobalId::Term(file_id, term_id) = global.id else { return Ok(None) };
+        let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)? else {
+            return Ok(None);
+        };
+        let application = match (intrinsic, arguments) {
+            (StyleXIntrinsic::Create, [_, argument]) => Some((intrinsic, *argument)),
+            (StyleXIntrinsic::Props, [argument]) | (StyleXIntrinsic::Keyframes, [argument]) => {
+                Some((intrinsic, *argument))
+            }
+            _ => None,
+        };
+        Ok(application)
     }
 
     fn known_numbered_term_arity(

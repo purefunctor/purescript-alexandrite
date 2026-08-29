@@ -186,6 +186,7 @@ pub enum ExpressionKind {
     UncurriedAbstraction { parameters: Arc<[PatternId]>, body: ExpressionId },
     Application { function: ExpressionId, arguments: Arc<[ExpressionId]>, synthetic: bool },
     UncurriedApplication { function: ExpressionId, arguments: Arc<[ExpressionId]>, synthetic: bool },
+    StyleX { intrinsic: StyleXIntrinsic, argument: ExpressionId },
     IfThenElse { condition: ExpressionId, then: ExpressionId, else_: ExpressionId },
     Case { scrutinees: Arc<[ExpressionId]>, alternatives: Arc<[CaseAlternative]> },
     Guarded { alternatives: Arc<[GuardedAlternative]> },
@@ -194,6 +195,23 @@ pub enum ExpressionKind {
     Effect { effect: EffectExpression },
     SynthesizedEvidence { evidence: SynthesizedEvidence },
     TrivialEvidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StyleXIntrinsic {
+    Create,
+    Props,
+    Keyframes,
+}
+
+impl StyleXIntrinsic {
+    pub fn name(self) -> &'static str {
+        match self {
+            StyleXIntrinsic::Create => "create",
+            StyleXIntrinsic::Props => "props",
+            StyleXIntrinsic::Keyframes => "keyframes",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

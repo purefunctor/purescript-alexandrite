@@ -97,6 +97,7 @@ impl<'a> Printer<'a, '_> {
             | ExpressionKind::Binary { .. }
             | ExpressionKind::Application { .. }
             | ExpressionKind::UncurriedApplication { .. }
+            | ExpressionKind::StyleX { .. }
             | ExpressionKind::Effect { .. }
             | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
@@ -221,6 +222,13 @@ impl<'a> Printer<'a, '_> {
                     .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
                 let arguments = self.delimited("(", arguments, ")");
                 self.arena.text("uncurried.call ").append(function).append(arguments)
+            }
+            ExpressionKind::StyleX { intrinsic, argument } => {
+                let argument = self.expression_at(*argument, ExpressionPrecedence::Atom);
+                self.arena
+                    .text(format!("stylex.{}", intrinsic.name()))
+                    .append(self.arena.space())
+                    .append(argument)
             }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression(*condition);

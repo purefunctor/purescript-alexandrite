@@ -245,6 +245,7 @@ fn function_profile(
         | ExpressionKind::Local { .. }
         | ExpressionKind::Application { .. }
         | ExpressionKind::UncurriedApplication { .. }
+        | ExpressionKind::StyleX { .. }
         | ExpressionKind::IfThenElse { .. }
         | ExpressionKind::Case { .. }
         | ExpressionKind::Guarded { .. }
@@ -340,6 +341,7 @@ fn collect_tail_edges(
         | ExpressionKind::UncurriedAbstraction { .. }
         | ExpressionKind::Application { .. }
         | ExpressionKind::UncurriedApplication { .. }
+        | ExpressionKind::StyleX { .. }
         | ExpressionKind::SynthesizedEvidence { .. }
         | ExpressionKind::TrivialEvidence => {}
     }
@@ -379,6 +381,7 @@ fn application(
         | ExpressionKind::Local { .. }
         | ExpressionKind::Abstraction { .. }
         | ExpressionKind::UncurriedAbstraction { .. }
+        | ExpressionKind::StyleX { .. }
         | ExpressionKind::IfThenElse { .. }
         | ExpressionKind::Case { .. }
         | ExpressionKind::Guarded { .. }

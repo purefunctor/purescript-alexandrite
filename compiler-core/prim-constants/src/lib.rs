@@ -22,4 +22,5 @@ define!(
     PRIM_ROW_LIST, "prim/Prim.RowList.purs", "Prim.RowList";
     PRIM_SYMBOL, "prim/Prim.Symbol.purs", "Prim.Symbol";
     PRIM_TYPE_ERROR, "prim/Prim.TypeError.purs", "Prim.TypeError";
+    ALEXANDRITE_STYLEX, "prim/Alexandrite.StyleX.purs", "Alexandrite.StyleX";
 );

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 73
+assertion_line: 351
 expression: report
 ---
 module DuplicateLocal
@@ -28,7 +28,7 @@ Local Classes:
 Class Members:
 
 Errors:
-  - ExistingTerm { existing: (Idx::<File>(9), Idx::<IndexedTermItem>(0)), duplicate: (Idx::<File>(9), Idx::<IndexedTermItem>(1)) }
-  - ExistingType { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0)), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(1)) }
-  - TermExportConflict { existing: (Idx::<File>(9), Idx::<IndexedTermItem>(0), Local), duplicate: (Idx::<File>(9), Idx::<IndexedTermItem>(1), Local) }
-  - TypeExportConflict { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0), Local), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(1), Local) }
+  - ExistingTerm { existing: (Idx::<File>(10), Idx::<IndexedTermItem>(0)), duplicate: (Idx::<File>(10), Idx::<IndexedTermItem>(1)) }
+  - ExistingType { existing: (Idx::<File>(10), Idx::<IndexedTypeItem>(0)), duplicate: (Idx::<File>(10), Idx::<IndexedTypeItem>(1)) }
+  - TermExportConflict { existing: (Idx::<File>(10), Idx::<IndexedTermItem>(0), Local), duplicate: (Idx::<File>(10), Idx::<IndexedTermItem>(1), Local) }
+  - TypeExportConflict { existing: (Idx::<File>(10), Idx::<IndexedTypeItem>(0), Local), duplicate: (Idx::<File>(10), Idx::<IndexedTypeItem>(1), Local) }

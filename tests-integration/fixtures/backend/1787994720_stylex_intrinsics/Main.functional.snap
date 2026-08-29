@@ -1,0 +1,17 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export animation = stylex.keyframes { from: { opacity: 0.0 }, to: { opacity: 1.0 } }
+
+@export styles = stylex.create {
+  button: { color: "red", padding: 8, animationName: animation, ":hover": { color: "blue" } },
+  label: { fontWeight: 600 }
+}
+
+@export secondary = stylex.create { root: { backgroundColor: "navy" } }
+
+@export buttonProps = stylex.props styles.button
+
+@export buttonClassName = buttonProps.className
