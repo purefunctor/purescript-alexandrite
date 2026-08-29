@@ -1,32 +1,28 @@
 import * as Lookalike from "../Lookalike/index.js";
 import * as $foreign from "./foreign.js";
 export function composeOrder($boolean) {
-  let $result;
   const composeOuter = observe("outer")((value) => value);
   const composeInner = observe("inner")((value$1) => value$1);
-  $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
+  const $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
   return $result(observe("argument")(42 | 0));
 }
 export function partiallyComposedOrder($boolean) {
-  let $result;
   const composeOuter = observe("outer")((value) => value);
   const composeInner = observe("inner")((value$1) => value$1);
-  $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
+  const $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
   const composedFunction = $result;
   return composedFunction(observe("argument")(42 | 0));
 }
 export function flippedComposeOrder($boolean) {
-  let $result;
   const composeInner = observe("inner")((value) => value);
   const composeOuter = observe("outer")((value$1) => value$1);
-  $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
+  const $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
   return $result(observe("argument")(42 | 0));
 }
 export function partiallyFlippedComposedOrder($boolean) {
-  let $result;
   const composeInner = observe("inner")((value) => value);
   const composeOuter = observe("outer")((value$1) => value$1);
-  $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
+  const $result = (composeArgument) => /* @__PURE__ */ composeOuter(/* @__PURE__ */ composeInner(composeArgument));
   const composedFunction = $result;
   return composedFunction(observe("argument")(42 | 0));
 }
