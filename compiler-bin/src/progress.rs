@@ -104,10 +104,11 @@ fn configure(progress: &ProgressBar, phase: &'static str) {
 }
 
 fn phase_style(theme_mode: Option<ThemeMode>, intensity: u8) -> Style {
+    let style = Style::new().for_stderr();
     let intensity = match theme_mode {
         Some(ThemeMode::Dark) => intensity,
         Some(ThemeMode::Light) => 255 - intensity,
-        None => return Style::new(),
+        None => return style,
     };
-    Style::new().fg(Color::TrueColor(intensity, intensity, intensity))
+    style.fg(Color::TrueColor(intensity, intensity, intensity))
 }
