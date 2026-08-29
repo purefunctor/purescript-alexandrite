@@ -150,6 +150,7 @@ impl<'a> Printer<'a, '_> {
                 let operator = match operator {
                     UnaryOperator::BooleanNot => "boolean.not",
                     UnaryOperator::IntegerNegate => "integer.negate",
+                    UnaryOperator::NumberNegate => "number.negate",
                 };
                 let value = self.expression_at(*value, ExpressionPrecedence::Atom);
                 self.arena.text(operator).append(" ").append(value)

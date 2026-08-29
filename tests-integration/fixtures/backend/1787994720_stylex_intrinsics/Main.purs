@@ -1,6 +1,7 @@
 module Main where
 
 import Alexandrite.StyleX as StyleX
+import Data.Ring as Ring
 
 animation :: StyleX.Keyframes
 animation = StyleX.keyframes
@@ -12,6 +13,8 @@ styles = StyleX.create
   { button:
       { color: "red"
       , padding: 8
+      , marginInline: Ring.negate 20
+      , opacity: Ring.negate 0.5
       , animationName: animation
       , ":hover": { color: "blue" }
       }

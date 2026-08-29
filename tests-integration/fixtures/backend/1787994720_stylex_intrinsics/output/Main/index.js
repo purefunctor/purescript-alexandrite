@@ -10,6 +10,8 @@ export const styles = $stylex.create({
   button: {
     color: "red",
     padding: 8 | 0,
+    marginInline: -20 | 0,
+    opacity: -.5,
     animationName: animation,
     ":hover": { color: "blue" }
   },

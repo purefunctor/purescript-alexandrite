@@ -2,10 +2,11 @@
 
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
+use smol_str::{SmolStr, format_smolstr};
 
 use crate::tree::{
-    Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId, Guard, LocalId,
-    RecordUpdate, Storage,
+    Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId, Guard, Literal, LocalId,
+    RecordUpdate, Storage, UnaryOperator,
 };
 
 pub fn inline_simple_bindings(
@@ -61,6 +62,10 @@ fn optimize_expression(
         optimize_expression(storage, child, recursive_globals, visited);
     }
 
+    if fold_literal_negation(storage, expression) {
+        return;
+    }
+
     let ExpressionKind::Let { recursive: false, bindings, body } = kind else {
         return;
     };
@@ -90,6 +95,47 @@ fn optimize_expression(
         ExpressionKind::Let { recursive: false, bindings: bindings.into(), body }
     };
     storage.replace_expression_kind(expression, replacement);
+    fold_literal_negation(storage, expression);
+}
+
+fn fold_literal_negation(storage: &mut Storage, expression: ExpressionId) -> bool {
+    let (operator, value) = match &storage[expression].kind {
+        ExpressionKind::Unary { operator, value } => (*operator, *value),
+        _ => return false,
+    };
+    let Some(literal) = folded_negation(storage, operator, value) else {
+        return false;
+    };
+    storage.replace_expression_kind(expression, ExpressionKind::Literal { literal });
+    true
+}
+
+fn folded_negation(
+    storage: &Storage,
+    operator: UnaryOperator,
+    value: ExpressionId,
+) -> Option<Literal> {
+    match (operator, &storage[value].kind) {
+        (
+            UnaryOperator::IntegerNegate,
+            ExpressionKind::Literal { literal: Literal::Integer(value) },
+        ) => Some(Literal::Integer(value.wrapping_neg())),
+        (
+            UnaryOperator::NumberNegate,
+            ExpressionKind::Literal { literal: Literal::Number(value) },
+        ) => Some(Literal::Number(negated_number(value))),
+        (
+            UnaryOperator::BooleanNot | UnaryOperator::IntegerNegate | UnaryOperator::NumberNegate,
+            _,
+        ) => None,
+    }
+}
+
+fn negated_number(value: &str) -> SmolStr {
+    match value.strip_prefix('-') {
+        Some(value) => SmolStr::new(value),
+        None => format_smolstr!("-{value}"),
+    }
 }
 
 fn binding_uses(

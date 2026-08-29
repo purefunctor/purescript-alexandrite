@@ -6,7 +6,15 @@ expression: report
 @export animation = stylex.keyframes { from: { opacity: 0.0 }, to: { opacity: 1.0 } }
 
 @export styles = stylex.create {
-  button: { color: "red", padding: 8, animationName: animation, ":hover": { color: "blue" } },
+  button:
+    {
+      color: "red",
+      padding: 8,
+      marginInline: -20,
+      opacity: -0.5,
+      animationName: animation,
+      ":hover": { color: "blue" }
+    },
   label: { fontWeight: 600 }
 }
 

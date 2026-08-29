@@ -1,18 +1,13 @@
 module Data.Ring where
 
 class Ring value where
-  sub :: value -> value -> value
   negate :: value -> value
 
-foreign import intSubtract :: Int -> Int -> Int
 foreign import intNegate :: Int -> Int
-foreign import numberSubtract :: Number -> Number -> Number
 foreign import numberNegate :: Number -> Number
 
 instance ringInt :: Ring Int where
-  sub = intSubtract
   negate = intNegate
 
 instance ringNumber :: Ring Number where
-  sub = numberSubtract
   negate = numberNegate
