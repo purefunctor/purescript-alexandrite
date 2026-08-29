@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 102
+assertion_line: 351
 expression: report
 ---
 module DuplicateClasses
@@ -28,5 +28,5 @@ Local Classes:
 Class Members:
 
 Errors:
-  - ExistingType { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0)), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(2)) }
-  - TypeExportConflict { existing: (Idx::<File>(9), Idx::<IndexedTypeItem>(0), Local), duplicate: (Idx::<File>(9), Idx::<IndexedTypeItem>(2), Local) }
+  - ExistingType { existing: (Idx::<File>(10), Idx::<IndexedTypeItem>(0)), duplicate: (Idx::<File>(10), Idx::<IndexedTypeItem>(2)) }
+  - TypeExportConflict { existing: (Idx::<File>(10), Idx::<IndexedTypeItem>(0), Local), duplicate: (Idx::<File>(10), Idx::<IndexedTypeItem>(2), Local) }

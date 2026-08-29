@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+animation :: Alexandrite.StyleX.Keyframes
+styles :: { button :: Alexandrite.StyleX.Style, label :: Alexandrite.StyleX.Style }
+secondary :: { root :: Alexandrite.StyleX.Style }
+buttonProps :: Alexandrite.StyleX.Props
+buttonClassName :: Prim.String
+
+Types

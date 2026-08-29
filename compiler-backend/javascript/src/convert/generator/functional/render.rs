@@ -45,6 +45,7 @@ pub(crate) struct Generator<'m> {
     global_names: FxHashMap<GlobalId, SmolStr>,
     external_module_namespaces: FxHashMap<FileId, SmolStr>,
     external_references: Vec<Global>,
+    stylex_namespace: Option<SmolStr>,
     foreign_import: Option<ForeignImport>,
     runtime_namespace: Option<SmolStr>,
     lazy_global_names: FxHashMap<GlobalId, SmolStr>,
@@ -271,6 +272,11 @@ impl<'m> Generator<'m> {
                 .or_insert_with(|| allocator.allocate(dependency.module_name.replace('.', "_")));
         }
 
+        let mut expressions = module.storage.expressions();
+        let has_stylex = expressions
+            .any(|(_, expression)| matches!(expression.kind, ExpressionKind::StyleX { .. }));
+        let stylex_namespace = has_stylex.then(|| allocator.allocate("$stylex"));
+
         let has_foreign = module
             .declarations
             .iter()
@@ -325,6 +331,7 @@ impl<'m> Generator<'m> {
             global_names,
             external_module_namespaces,
             external_references,
+            stylex_namespace,
             foreign_import,
             runtime_namespace,
             lazy_global_names,
@@ -390,6 +397,9 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
         let path = format!("../{}", module_filename(module_name));
         writer.import_namespace(namespace, &path);
     }
+    if let Some(namespace) = &generator.stylex_namespace {
+        writer.import_namespace(namespace, "@stylexjs/stylex");
+    }
     if let Some(foreign_import) = &generator.foreign_import {
         let path = format!("./foreign.{}", foreign_import.kind.extension());
         writer.import_namespace(&foreign_import.namespace, &path);
@@ -399,6 +409,7 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
         writer.import_namespace(namespace, &path);
     }
     if !generator.external_references.is_empty()
+        || generator.stylex_namespace.is_some()
         || generator.foreign_import.is_some()
         || generator.runtime_namespace.is_some()
     {
@@ -1536,6 +1547,17 @@ impl Generator<'_> {
                 };
                 Ok(RenderedExpression { value, pending_evaluation: true })
             }
+            ExpressionKind::StyleX { intrinsic, argument } => {
+                let argument = self.rendered_expression(tree, writer, *argument, context)?;
+                let namespace = self
+                    .stylex_namespace
+                    .as_ref()
+                    .expect("invariant violated: StyleX intrinsic has no module namespace");
+                let namespace = tree.identifier(namespace);
+                let function = tree.member(namespace, intrinsic.name());
+                let value = tree.call(function, vec![argument.value]);
+                Ok(RenderedExpression { value, pending_evaluation: true })
+            }
             ExpressionKind::Effect { effect } => {
                 let mut renderer = self.renderer(tree, writer, context);
                 let value = effect_expression(&mut renderer, effect)?;
@@ -1619,6 +1641,9 @@ impl Generator<'_> {
                         .iter()
                         .any(|argument| self.expression_rendering_is_eager(*argument, context))
             }
+            ExpressionKind::StyleX { argument, .. } => {
+                self.expression_rendering_is_eager(*argument, context)
+            }
             ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
@@ -1652,6 +1677,7 @@ impl Generator<'_> {
             | ExpressionKind::UncurriedAbstraction { .. }
             | ExpressionKind::Application { .. }
             | ExpressionKind::UncurriedApplication { .. }
+            | ExpressionKind::StyleX { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
@@ -1796,6 +1822,18 @@ impl Generator<'_> {
                     tree.call(function, arguments)
                 }
             }
+            ExpressionKind::StyleX { intrinsic, argument } => {
+                let Some(argument) = self.inline_expression(tree, *argument, context)? else {
+                    return Ok(None);
+                };
+                let namespace = self
+                    .stylex_namespace
+                    .as_ref()
+                    .expect("invariant violated: StyleX intrinsic has no module namespace");
+                let namespace = tree.identifier(namespace);
+                let function = tree.member(namespace, intrinsic.name());
+                tree.call(function, vec![argument])
+            }
             ExpressionKind::SynthesizedEvidence { evidence } => {
                 synthesized_evidence_expression(tree, evidence)
             }
@@ -1855,6 +1893,7 @@ impl Generator<'_> {
                 self.expression_can_inline(*function)
                     && arguments.iter().all(|argument| self.expression_can_inline(*argument))
             }
+            ExpressionKind::StyleX { argument, .. } => self.expression_can_inline(*argument),
             ExpressionKind::RecordUpdate { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
@@ -3104,6 +3143,9 @@ fn collect_expression_references(
                 collect_expression_references(module, *argument, seen, globals);
             }
         }
+        ExpressionKind::StyleX { argument, .. } => {
+            collect_expression_references(module, *argument, seen, globals);
+        }
         ExpressionKind::IfThenElse { condition, then, else_ } => {
             collect_expression_references(module, *condition, seen, globals);
             collect_expression_references(module, *then, seen, globals);
@@ -3315,6 +3357,9 @@ fn collect_expression_children(
             for argument in arguments.iter() {
                 collect_expression_globals(module, *argument, false, globals);
             }
+        }
+        ExpressionKind::StyleX { argument, .. } => {
+            collect_expression_globals(module, *argument, false, globals);
         }
         ExpressionKind::IfThenElse { condition, then, else_ } => {
             collect_expression_globals(module, *condition, false, globals);

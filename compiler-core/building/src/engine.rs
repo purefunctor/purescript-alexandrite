@@ -2138,18 +2138,18 @@ mod tests {
         let indexed_a = engine.indexed(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, stabilized(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Parsed(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
 
@@ -2159,18 +2159,18 @@ mod tests {
         let indexed_b = engine.indexed(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 20,
-            changed: 19,
+            built: 22,
+            changed: 21,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, stabilized(id) => Trace {
-            built: 20,
-            changed: 19,
+            built: 22,
+            changed: 21,
             dependencies: &[QueryKey::Parsed(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 20,
-            changed: 20,
+            built: 22,
+            changed: 22,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
 
@@ -2201,18 +2201,18 @@ mod tests {
         let resolved_a = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 19,
-            changed: 19,
+            built: 21,
+            changed: 21,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2225,18 +2225,18 @@ mod tests {
         let resolved_b = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 20,
-            changed: 20,
+            built: 22,
+            changed: 22,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 20,
-            changed: 19,
+            built: 22,
+            changed: 21,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 20,
-            changed: 19,
+            built: 22,
+            changed: 21,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2249,18 +2249,18 @@ mod tests {
         let resolved_c = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 23,
+            changed: 23,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 21,
-            changed: 19,
+            built: 23,
+            changed: 21,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 21,
-            changed: 19,
+            built: 23,
+            changed: 21,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2323,7 +2323,7 @@ mod tests {
         let guard = shard.read();
         assert_eq!(
             ShowTrace(guard.get(&parent).unwrap()),
-            Trace { built: 19, changed: 19, dependencies: &[QueryKey::Parsed(child)] }
+            Trace { built: 21, changed: 21, dependencies: &[QueryKey::Parsed(child)] }
         );
     }
 

@@ -1,0 +1,6 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+cannot convert checked module Idx::<File>(43): Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call
