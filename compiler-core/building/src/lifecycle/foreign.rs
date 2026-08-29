@@ -109,15 +109,7 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_foreign(
-                        engine,
-                        unit,
-                        kind,
-                        source_unit,
-                        document,
-                        disk,
-                        &mut change,
-                    )
+                    self.reconcile_foreign(engine, unit, source_unit, document, disk, &mut change)
                 }
             }
             (Member::Present(document), ForeignEvent::DiskObserved { disk }) => {
@@ -128,15 +120,7 @@ where
                     });
                     Member::Present(document)
                 } else {
-                    self.reconcile_foreign(
-                        engine,
-                        unit,
-                        kind,
-                        source_unit,
-                        document,
-                        disk,
-                        &mut change,
-                    )
+                    self.reconcile_foreign(engine, unit, source_unit, document, disk, &mut change)
                 }
             }
         };
@@ -148,12 +132,12 @@ where
         &mut self,
         engine: &QueryEngine,
         unit: &SourceUnitKey,
-        kind: ForeignSourceKind,
         source_unit: &SourceUnit<Version, Metadata>,
         mut document: ForeignDocument<Version>,
         disk: DiskObservation,
         change: &mut LifecycleChange,
     ) -> Member<ForeignDocument<Version>> {
+        let kind = document.id.kind();
         match disk {
             DiskObservation::Found(text) => {
                 self.set_foreign_content(engine, document.id, &text);
@@ -162,7 +146,7 @@ where
                 Member::Present(document)
             }
             DiskObservation::NotFound => {
-                self.remove_foreign(engine, unit, kind, document.id);
+                self.remove_foreign(engine, unit, document.id);
                 change.foreign_changed(source_unit.source_id());
                 Member::Missing
             }
@@ -203,21 +187,13 @@ where
         if previous_content == *text {
             return;
         }
-        let path = self.foreign_files.path(id);
-        let inserted_id = self.foreign_files.insert(id.kind(), path, Arc::clone(text));
-        debug_assert_eq!(inserted_id, id);
+        self.foreign_files.set_content(id, Arc::clone(text));
         engine.set_foreign_content(id, Arc::clone(text));
     }
 
-    fn remove_foreign(
-        &mut self,
-        engine: &QueryEngine,
-        unit: &SourceUnitKey,
-        kind: ForeignSourceKind,
-        id: ForeignFileId,
-    ) {
+    fn remove_foreign(&mut self, engine: &QueryEngine, unit: &SourceUnitKey, id: ForeignFileId) {
         engine.remove_foreign_file(id);
-        let removed_id = self.foreign_files.remove(unit.foreign_for(kind));
+        let removed_id = self.foreign_files.remove(unit.foreign_for(id.kind()));
         debug_assert_eq!(removed_id, Some(id));
     }
 }

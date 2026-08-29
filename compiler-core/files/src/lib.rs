@@ -48,11 +48,23 @@ impl ForeignFileCandidates {
         }
     }
 
-    pub fn set(&mut self, kind: ForeignSourceKind, id: Option<ForeignFileId>) {
-        match kind {
-            ForeignSourceKind::JavaScript => self.javascript = id,
-            ForeignSourceKind::Jsx => self.jsx = id,
+    pub fn insert(&mut self, id: ForeignFileId) {
+        match id.kind() {
+            ForeignSourceKind::JavaScript => self.javascript = Some(id),
+            ForeignSourceKind::Jsx => self.jsx = Some(id),
         }
+    }
+
+    pub fn remove(&mut self, id: ForeignFileId) -> bool {
+        let candidate = match id.kind() {
+            ForeignSourceKind::JavaScript => &mut self.javascript,
+            ForeignSourceKind::Jsx => &mut self.jsx,
+        };
+        if *candidate != Some(id) {
+            return false;
+        }
+        *candidate = None;
+        true
     }
 
     pub fn unique(self) -> Option<ForeignFileId> {
@@ -212,6 +224,11 @@ impl ForeignFiles {
     pub fn content(&self, foreign_file_id: ForeignFileId) -> Arc<str> {
         let file = self.file(foreign_file_id);
         Arc::clone(&file.content)
+    }
+
+    pub fn set_content(&mut self, foreign_file_id: ForeignFileId, content: impl Into<Arc<str>>) {
+        let file = self.file_mut(foreign_file_id);
+        file.content = content.into();
     }
 
     pub fn remove(&mut self, path: &str) -> Option<ForeignFileId> {

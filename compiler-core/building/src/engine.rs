@@ -890,7 +890,7 @@ impl QueryEngine {
 
     pub fn set_foreign_file(&self, source_id: FileId, foreign_id: ForeignFileId) {
         let mut candidates = self.foreign_files(source_id);
-        candidates.set(foreign_id.kind(), Some(foreign_id));
+        candidates.insert(foreign_id);
         self.set_input(source_id, |input| &input.foreign, candidates);
     }
 
@@ -902,8 +902,7 @@ impl QueryEngine {
         for shard in &self.input.foreign.inner {
             let mut associations = shard.write();
             for state in associations.values_mut() {
-                if state.value.get(foreign_id.kind()) == Some(foreign_id) {
-                    state.value.set(foreign_id.kind(), None);
+                if state.value.remove(foreign_id) {
                     state.changed = changed;
                 }
             }
