@@ -1,4 +1,7 @@
 import * as $stylex from "@stylexjs/stylex";
+export function buttonPropsArray(highlighted) {
+  return $stylex.props([styles.button, highlighted && secondary.root]);
+}
 export const animation = $stylex.keyframes({
   from: { opacity: 0 },
   to: { opacity: 1 }

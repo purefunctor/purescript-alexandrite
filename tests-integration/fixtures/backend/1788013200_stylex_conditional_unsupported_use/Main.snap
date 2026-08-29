@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+partialConditional :: Alexandrite.StyleX.Style -> Alexandrite.StyleX.Style
+
+Types

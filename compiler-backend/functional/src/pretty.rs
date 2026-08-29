@@ -159,6 +159,7 @@ impl<'a> Printer<'a, '_> {
                     BinaryOperator::IntegerAdd => "integer.add",
                     BinaryOperator::IntegerSubtract => "integer.subtract",
                     BinaryOperator::IntegerMultiply => "integer.multiply",
+                    BinaryOperator::StyleXConditional => "stylex.conditional",
                 };
                 let left = self.expression_at(*left, ExpressionPrecedence::Atom);
                 let right = self.expression_at(*right, ExpressionPrecedence::Atom);

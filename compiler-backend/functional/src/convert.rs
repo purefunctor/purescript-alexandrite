@@ -617,6 +617,7 @@ where
         let intrinsic = match indexed.items[term_id].name.as_deref() {
             Some("create") => Some(StyleXIntrinsic::Create),
             Some("props") => Some(StyleXIntrinsic::Props),
+            Some("conditional") => Some(StyleXIntrinsic::Conditional),
             Some("keyframes") => Some(StyleXIntrinsic::Keyframes),
             _ => None,
         };

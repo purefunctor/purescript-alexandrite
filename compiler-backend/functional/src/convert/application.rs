@@ -107,10 +107,8 @@ where
         {
             return Ok(composition);
         }
-        if let Some((intrinsic, argument)) =
-            self.stylex_intrinsic(known_function, &known_arguments)?
-        {
-            return Ok(self.expression(ExpressionKind::StyleX { intrinsic, argument }));
+        if let Some(kind) = self.stylex_intrinsic(known_function, &known_arguments)? {
+            return Ok(self.expression(kind));
         }
         if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
             return Ok(self.expression(ExpressionKind::Effect { effect }));
@@ -496,7 +494,7 @@ where
         &self,
         expression: ExpressionId,
         arguments: &[ExpressionId],
-    ) -> QueryResult<Option<(StyleXIntrinsic, ExpressionId)>> {
+    ) -> QueryResult<Option<ExpressionKind>> {
         let ExpressionKind::Global { global } = &self.storage[expression].kind else {
             return Ok(None);
         };
@@ -504,14 +502,20 @@ where
         let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)? else {
             return Ok(None);
         };
-        let application = match (intrinsic, arguments) {
-            (StyleXIntrinsic::Create, [_, argument]) => Some((intrinsic, *argument)),
-            (StyleXIntrinsic::Props, [argument]) | (StyleXIntrinsic::Keyframes, [argument]) => {
-                Some((intrinsic, *argument))
+        let kind = match (intrinsic, arguments) {
+            (StyleXIntrinsic::Create, [_, argument])
+            | (StyleXIntrinsic::Props, [_, argument])
+            | (StyleXIntrinsic::Keyframes, [argument]) => {
+                Some(ExpressionKind::StyleX { intrinsic, argument: *argument })
             }
+            (StyleXIntrinsic::Conditional, [condition, style]) => Some(ExpressionKind::Binary {
+                operator: BinaryOperator::StyleXConditional,
+                left: *condition,
+                right: *style,
+            }),
             _ => None,
         };
-        Ok(application)
+        Ok(kind)
     }
 
     fn known_numbered_term_arity(

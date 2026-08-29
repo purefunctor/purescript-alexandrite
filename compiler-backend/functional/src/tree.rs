@@ -201,6 +201,7 @@ pub enum ExpressionKind {
 pub enum StyleXIntrinsic {
     Create,
     Props,
+    Conditional,
     Keyframes,
 }
 
@@ -209,6 +210,7 @@ impl StyleXIntrinsic {
         match self {
             StyleXIntrinsic::Create => "create",
             StyleXIntrinsic::Props => "props",
+            StyleXIntrinsic::Conditional => "conditional",
             StyleXIntrinsic::Keyframes => "keyframes",
         }
     }
@@ -225,6 +227,7 @@ pub enum BinaryOperator {
     IntegerAdd,
     IntegerSubtract,
     IntegerMultiply,
+    StyleXConditional,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

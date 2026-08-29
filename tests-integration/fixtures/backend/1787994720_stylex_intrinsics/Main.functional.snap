@@ -14,4 +14,7 @@ expression: report
 
 @export buttonProps = stylex.props styles.button
 
+@export buttonPropsArray = \highlighted%0 ->
+  stylex.props [styles.button, stylex.conditional highlighted%0 secondary.root]
+
 @export buttonClassName = buttonProps.className
