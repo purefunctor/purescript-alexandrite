@@ -107,6 +107,19 @@ impl<'a> Tree<'a> {
         self.allocate(expression)
     }
 
+    pub(crate) fn string_utf16(&mut self, value: &[u16]) -> ExpressionId {
+        let (value, lone_surrogates) = oxc_string_value(value);
+        let value = self.text(&value);
+        let expression = Expression::new_string_literal_with_lone_surrogates(
+            SPAN,
+            value,
+            None,
+            lone_surrogates,
+            &self.builder,
+        );
+        self.allocate(expression)
+    }
+
     pub(crate) fn number(&mut self, value: impl AsRef<str>) -> ExpressionId {
         let raw = value.as_ref();
         let number = raw.parse().expect("invariant violated: JavaScript number is invalid");
@@ -325,6 +338,29 @@ impl<'a> Tree<'a> {
     }
 }
 
+fn oxc_string_value(value: &[u16]) -> (String, bool) {
+    let lone_surrogates = char::decode_utf16(value.iter().copied()).any(|item| item.is_err());
+    if !lone_surrogates {
+        let value = String::from_utf16(value).unwrap_or_else(|_| {
+            unreachable!("invariant violated: well-formed UTF-16 failed to decode")
+        });
+        return (value, false);
+    }
+
+    let mut encoded = String::new();
+    for item in char::decode_utf16(value.iter().copied()) {
+        match item {
+            Ok('\u{fffd}') => encoded.push_str("\u{fffd}fffd"),
+            Ok(character) => encoded.push(character),
+            Err(error) => {
+                encoded.push('\u{fffd}');
+                encoded.push_str(&format!("{:04x}", error.unpaired_surrogate()));
+            }
+        }
+    }
+    (encoded, true)
+}
+
 fn property_is_identifier(name: &str) -> bool {
     let mut characters = name.chars();
     let Some(initial) = characters.next() else {
@@ -334,4 +370,17 @@ fn property_is_identifier(name: &str) -> bool {
     let valid_subsequent = characters
         .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '$');
     valid_initial && valid_subsequent
+}
+
+#[cfg(test)]
+mod tests {
+    use super::oxc_string_value;
+
+    #[test]
+    fn oxc_string_value_preserves_utf16_code_units() {
+        let (value, lone_surrogates) = oxc_string_value(&[0xd800, 0xfffd, 0xdfff, 0xd800, 0xdc00]);
+
+        assert!(lone_surrogates);
+        assert_eq!(value, "\u{fffd}d800\u{fffd}fffd\u{fffd}dfff\u{10000}");
+    }
 }

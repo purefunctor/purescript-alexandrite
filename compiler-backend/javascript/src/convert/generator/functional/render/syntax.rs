@@ -17,7 +17,7 @@ pub(super) fn literal_expression(
     file_id: FileId,
 ) -> ModuleResult<ExpressionId> {
     match literal {
-        Literal::String(value) => Ok(tree.string(value.as_str())),
+        Literal::String(value) => Ok(tree.string_utf16(value.as_utf16())),
         Literal::Char(value) => Ok(tree.string(value.to_string())),
         Literal::Boolean(value) => Ok(tree.boolean(*value)),
         Literal::Integer(value) => Ok(integer_expression(tree, *value)),
@@ -146,7 +146,7 @@ pub(super) fn synthesized_evidence_expression(
 ) -> ExpressionId {
     match evidence {
         SynthesizedEvidence::IsSymbol(symbol) => {
-            let symbol = tree.string(symbol.as_str());
+            let symbol = tree.string_utf16(symbol.as_utf16());
             let reflect = tree.arrow(vec![SmolStr::new_static("$proxy")], symbol);
             tree.object(vec![ObjectProperty::Field {
                 name: "reflectSymbol".to_owned(),
@@ -156,7 +156,7 @@ pub(super) fn synthesized_evidence_expression(
         SynthesizedEvidence::Reflectable(evidence) => {
             let value = match evidence {
                 ReflectableEvidence::Integer(value) => integer_expression(tree, *value),
-                ReflectableEvidence::String(value) => tree.string(value.as_str()),
+                ReflectableEvidence::String(value) => tree.string_utf16(value.as_utf16()),
                 ReflectableEvidence::Boolean(value) => tree.boolean(*value),
                 ReflectableEvidence::Ordering(ordering) => {
                     let tag = match ordering {

@@ -530,7 +530,7 @@ where
             let Some(value) = value else {
                 return Ok(allocate_error_expression(state, context.prim.string));
             };
-            let kind = tree::ExpressionKind::String { kind: *kind, value: SmolStr::clone(value) };
+            let kind = tree::ExpressionKind::String { kind: *kind, value: value.clone() };
             Ok(allocate_expression(state, context.prim.string, kind))
         }
 

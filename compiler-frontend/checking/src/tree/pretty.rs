@@ -1343,7 +1343,7 @@ where
             }
             BinderKind::Wildcard => Ok(self.arena.text("_")),
             BinderKind::String { value } => {
-                let text = format!("{:?}", value.as_str());
+                let text = lowering::literal::encode_normal_string(value);
                 Ok(self.arena.text(text))
             }
             BinderKind::Char { value } => {
@@ -1463,6 +1463,9 @@ where
                     Ok(self.arena.text(text))
                 }
                 lowering::StringKind::RawString => {
+                    let value = value.to_utf8().unwrap_or_else(|_| {
+                        unreachable!("invariant violated: raw string contains a lone surrogate")
+                    });
                     let text = format!("\"\"\"{value}\"\"\"");
                     Ok(self.arena.text(text))
                 }

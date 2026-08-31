@@ -134,13 +134,7 @@ where
             builder.push('\'');
             builder.finish()
         }
-        PatternConstructor::String(s) => {
-            let mut builder = SmolStrBuilder::default();
-            builder.push('"');
-            builder.push_str(s);
-            builder.push('"');
-            builder.finish()
-        }
+        PatternConstructor::String(s) => lowering::literal::encode_normal_string(s).into(),
         PatternConstructor::Integer(i) => SmolStr::from(i.to_string()),
         PatternConstructor::Number(negative, n) => {
             let mut builder = SmolStrBuilder::default();

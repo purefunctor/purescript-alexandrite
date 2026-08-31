@@ -32,8 +32,11 @@ where
     Q: ExternalQueries,
 {
     let id = normalise::expand(state, context, id)?;
-    if let Type::String(_, smol_str_id) = context.lookup_type(id) {
-        Ok(Some(context.queries.lookup_smol_str(smol_str_id)))
+    if let Type::String(_, value) = context.lookup_type(id) {
+        let text = value
+            .to_utf8()
+            .unwrap_or_else(|_| lowering::literal::encode_normal_string_content(&value));
+        Ok(Some(SmolStr::from(text)))
     } else {
         Ok(None)
     }
@@ -43,13 +46,13 @@ fn extract_symbol_with_kind<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     id: TypeId,
-) -> QueryResult<Option<(StringKind, SmolStr)>>
+) -> QueryResult<Option<(StringKind, lowering::StringLiteral)>>
 where
     Q: ExternalQueries,
 {
     let id = normalise::expand(state, context, id)?;
-    if let Type::String(kind, smol_id) = context.lookup_type(id) {
-        Ok(Some((kind, context.queries.lookup_smol_str(smol_id))))
+    if let Type::String(kind, value) = context.lookup_type(id) {
+        Ok(Some((kind, value)))
     } else {
         Ok(None)
     }
@@ -64,13 +67,20 @@ fn is_valid_label(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_' || c == '\'')
 }
 
-fn render_label(kind: StringKind, text: &str) -> SmolStr {
-    if is_valid_label(text) {
-        SmolStr::new(text)
-    } else {
-        match kind {
-            StringKind::String => SmolStr::new(format!(r#""{text}""#)),
-            StringKind::RawString => SmolStr::new(format!(r#""""{text}""""#)),
+fn render_label(kind: StringKind, value: &lowering::StringLiteral) -> SmolStr {
+    if let Ok(text) = value.to_utf8()
+        && is_valid_label(&text)
+    {
+        return SmolStr::from(text);
+    }
+
+    match kind {
+        StringKind::String => lowering::literal::encode_normal_string(value).into(),
+        StringKind::RawString => {
+            let text = value.to_utf8().unwrap_or_else(|_| {
+                unreachable!("invariant violated: raw string contains a lone surrogate")
+            });
+            SmolStr::new(format!(r#""""{text}""""#))
         }
     }
 }
@@ -117,7 +127,7 @@ where
             return Err(RenderStuck::Blocked(u));
         }
         Ok(extract_symbol_with_kind(state, context, symbol)?
-            .map(|(kind, text)| render_label(kind, &text)))
+            .map(|(kind, value)| render_label(kind, &value)))
     } else if constructor == prim.beside {
         let &[left, right] = arguments.as_slice() else { return Ok(None) };
         let Some(left_rendered) = render_doc(state, context, left)? else {

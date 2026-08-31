@@ -158,7 +158,7 @@ pub struct SuperclassIdentity {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
-    String(SmolStr),
+    String(lowering::StringLiteral),
     Char(char),
     Boolean(bool),
     Integer(i32),
@@ -300,14 +300,14 @@ pub struct RecordPatternField {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SynthesizedEvidence {
-    IsSymbol(SmolStr),
+    IsSymbol(lowering::StringLiteral),
     Reflectable(ReflectableEvidence),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReflectableEvidence {
     Integer(i32),
-    String(SmolStr),
+    String(lowering::StringLiteral),
     Boolean(bool),
     Ordering(ReflectableOrdering),
 }

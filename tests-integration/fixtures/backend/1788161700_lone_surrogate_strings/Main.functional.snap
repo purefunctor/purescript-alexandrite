@@ -3,4 +3,17 @@ source: tests-integration/tests/functional.rs
 assertion_line: 14
 expression: report
 ---
-cannot convert checked module Idx::<File>(43): checked expression Idx::<Expression>(0) contains an error
+@export lead = "\x00d800"
+
+@export trail = "\x00dfff"
+
+@export escapedPair = "𐀀"
+
+@export scalar = "𐀀"
+
+@export matchesLead = \$string%0 ->
+  case $string%0 of
+    "\x00d800" ->
+      true
+    _ ->
+      false

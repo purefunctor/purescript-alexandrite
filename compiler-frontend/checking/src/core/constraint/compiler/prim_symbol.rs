@@ -8,7 +8,7 @@ use crate::core::constraint::matching::{self, MatchInstance};
 use crate::core::{Type, TypeId, normalise};
 use crate::state::CheckState;
 
-use super::{extract_symbol, intern_symbol, match_equality};
+use super::{extract_symbol, intern_symbol, intern_symbol_literal, match_equality};
 
 pub fn match_append<Q>(
     state: &mut CheckState,
@@ -28,11 +28,16 @@ where
 
     let matched = match (left_symbol, right_symbol, appended_symbol) {
         (Some(left_value), Some(right_value), _) => {
-            let result = intern_symbol(context, &format!("{left_value}{right_value}"));
+            let result = intern_symbol_literal(context, left_value.append(&right_value));
             match_equality(state, context, appended, result)?
         }
         (_, Some(right_value), Some(appended_value)) => {
-            let Some(left_value) = appended_value.strip_suffix(right_value.as_str()) else {
+            let (Ok(right_value), Ok(appended_value)) =
+                (right_value.to_utf8(), appended_value.to_utf8())
+            else {
+                return Ok(Some(MatchInstance::Apart));
+            };
+            let Some(left_value) = appended_value.strip_suffix(&right_value) else {
                 return Ok(Some(MatchInstance::Apart));
             };
 
@@ -40,7 +45,12 @@ where
             match_equality(state, context, left, result)?
         }
         (Some(left_value), _, Some(appended_value)) => {
-            let Some(right_value) = appended_value.strip_prefix(left_value.as_str()) else {
+            let (Ok(left_value), Ok(appended_value)) =
+                (left_value.to_utf8(), appended_value.to_utf8())
+            else {
+                return Ok(Some(MatchInstance::Apart));
+            };
+            let Some(right_value) = appended_value.strip_prefix(&left_value) else {
                 return Ok(Some(MatchInstance::Apart));
             };
 
@@ -99,21 +109,34 @@ where
 
     let matched = match (&head_symbol, &tail_symbol, &symbol_symbol) {
         (Some(head_value), Some(tail_value), _) => {
+            let Ok(head_value) = head_value.to_utf8() else {
+                return Ok(Some(MatchInstance::Apart));
+            };
+            if tail_value.to_utf8().is_err() {
+                return Ok(Some(MatchInstance::Apart));
+            }
             let mut chars = head_value.chars();
             let (Some(ch), None) = (chars.next(), chars.next()) else {
                 return Ok(Some(MatchInstance::Apart));
             };
 
-            let result = intern_symbol(context, &format!("{ch}{tail_value}"));
+            let head_value = lowering::StringLiteral::from(ch.to_string());
+            let result = intern_symbol_literal(context, head_value.append(tail_value));
             match_equality(state, context, symbol, result)?
         }
         (_, _, Some(symbol_value)) => {
+            let Ok(symbol_value) = symbol_value.to_utf8() else {
+                return Ok(Some(MatchInstance::Apart));
+            };
             let mut chars = symbol_value.chars();
             let Some(head_char) = chars.next() else {
                 return Ok(Some(MatchInstance::Apart));
             };
 
             if let Some(head_value) = head_symbol {
+                let Ok(head_value) = head_value.to_utf8() else {
+                    return Ok(Some(MatchInstance::Apart));
+                };
                 let mut head_chars = head_value.chars();
                 if head_chars.next() != Some(head_char) || head_chars.next().is_some() {
                     return Ok(Some(MatchInstance::Apart));

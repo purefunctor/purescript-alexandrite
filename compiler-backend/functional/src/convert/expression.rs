@@ -77,7 +77,7 @@ pub(super) fn convert_expression(
             }
             let global = context.term_global(file_id, term_id)?;
             if context.constructor_arity(file_id, term_id)? == 0 {
-                ExpressionKind::Literal { literal: Literal::String(global.item_name) }
+                ExpressionKind::Literal { literal: Literal::String(global.item_name.into()) }
             } else {
                 ExpressionKind::Constructor { global }
             }

@@ -142,7 +142,7 @@ pub enum Type {
     Kinded { expression: Box<Type>, kind: Box<Type> },
     Constructor { reference: TypeReference },
     Integer { value: i32 },
-    String { kind: StringLiteralKind, value: String },
+    String { kind: StringLiteralKind, value: StringLiteralValue },
     Row { fields: Vec<TypeRowField>, tail: Option<Box<Type>> },
     Rigid { name: String, kind: Box<Type> },
     Unification { id: u32 },
@@ -180,6 +180,14 @@ pub struct TypeRowField {
 pub enum StringLiteralKind {
     String,
     RawString,
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export_to = "docs-schema.ts")]
+#[serde(untagged)]
+pub enum StringLiteralValue {
+    Utf8(String),
+    Utf16(Vec<u16>),
 }
 
 impl From<lowering::StringKind> for StringLiteralKind {

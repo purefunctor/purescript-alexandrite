@@ -5,6 +5,6 @@ expression: report
 ---
 @export json = "[\"ann\"]"
 
-@export escaped = "tab:\t carriage-return:\r newline:\n quotes:\"' backslash:\\ unicode:☃ null:\0"
+@export escaped = "tab:\t carriage-return:\r newline:\n quotes:\"' backslash:\\ unicode:☃ null:\x000000"
 
 @export gap = "hello world"

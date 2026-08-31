@@ -246,10 +246,9 @@ where
         }
 
         lowering::TypeKind::String { kind, value } => {
-            let value = value.clone().unwrap_or(MISSING_NAME);
-            let id = context.queries.intern_smol_str(value);
+            let value = value.clone().unwrap_or_else(|| MISSING_NAME.as_str().into());
 
-            let t = context.queries.intern_type(Type::String(*kind, id));
+            let t = context.queries.intern_type(Type::String(*kind, value));
             let k = context.prim.symbol;
 
             Ok((t, k))

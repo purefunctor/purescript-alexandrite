@@ -36,7 +36,7 @@ pub enum PatternConstructor {
     Boolean(bool),
     Integer(i32),
     Number(bool, SmolStr),
-    String(SmolStr),
+    String(lowering::StringLiteral),
     Char(char),
 }
 
@@ -132,7 +132,7 @@ impl PatternConstructor {
             }
             PatternConstructor::String(ref s) => {
                 assert!(fields.is_empty(), "String constructor has arity 0");
-                PatternConstructor::String(SmolStr::clone(s))
+                PatternConstructor::String(s.clone())
             }
             PatternConstructor::Char(c) => {
                 assert!(fields.is_empty(), "Char constructor has arity 0");
@@ -867,7 +867,7 @@ enum ConstructorKey {
     Boolean(bool),
     Integer(i32),
     Number(bool, SmolStr),
-    String(SmolStr),
+    String(lowering::StringLiteral),
     Char(char),
 }
 
@@ -888,7 +888,7 @@ impl ConstructorKey {
                 ConstructorKey::Number(*negative, n)
             }
             PatternConstructor::String(s) => {
-                let s = SmolStr::clone(s);
+                let s = s.clone();
                 ConstructorKey::String(s)
             }
             PatternConstructor::Char(c) => ConstructorKey::Char(*c),

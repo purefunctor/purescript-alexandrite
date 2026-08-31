@@ -11,13 +11,3 @@ scalar :: Prim.String
 matchesLead :: Prim.String -> Prim.Boolean
 
 Types
-
-Diagnostics
-Warning! · [RedundantPattern] · Main.purs:15:1
-  •
-  │
-  • Pattern match has redundant patterns: _
-  │
-  │   matchesLead :: String -> Boolean
-  │   ╰───────────────────────────────
-  •

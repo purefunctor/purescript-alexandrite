@@ -9,27 +9,31 @@ use stabilizing::ExpectId;
 use syntax::ast::AstNode;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxToken, cst};
 
-use crate::literal::{decode_normal_string, decode_raw_string};
+use crate::literal::{StringLiteral, decode_normal_string, decode_raw_string};
 use crate::*;
 
 use super::{Context, ItemGraph, LetBindingContext, State};
 
 fn string_text(source: &str, token: SyntaxToken) -> Option<SmolStr> {
+    string_literal_text(source, token)?.to_utf8().ok().map(SmolStr::from)
+}
+
+fn string_literal_text(source: &str, token: SyntaxToken) -> Option<StringLiteral> {
     let text = token.text(source);
     if text.starts_with("\"\"\"") {
         if text.len() >= 6 && text.ends_with("\"\"\"") {
             decode_raw_string(text)
         } else {
-            Some(SmolStr::from(text))
+            Some(StringLiteral::from(text))
         }
     } else if text.starts_with('"') {
         if text.len() >= 2 && text.ends_with('"') {
             decode_normal_string(text)
         } else {
-            Some(SmolStr::from(text))
+            Some(StringLiteral::from(text))
         }
     } else {
-        Some(SmolStr::from(text))
+        Some(StringLiteral::from(text))
     }
 }
 
@@ -37,11 +41,11 @@ fn string_literal(
     source: &str,
     string: Option<SyntaxToken>,
     raw_string: Option<SyntaxToken>,
-) -> (StringKind, Option<SmolStr>) {
+) -> (StringKind, Option<StringLiteral>) {
     if let Some(value) = string {
-        (StringKind::String, string_text(source, value))
+        (StringKind::String, string_literal_text(source, value))
     } else if let Some(value) = raw_string {
-        (StringKind::RawString, string_text(source, value))
+        (StringKind::RawString, string_literal_text(source, value))
     } else {
         (StringKind::String, None)
     }

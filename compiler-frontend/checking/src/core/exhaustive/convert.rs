@@ -67,7 +67,7 @@ where
         lowering::BinderKind::Wildcard => Ok(state.allocate_wildcard(t)),
         lowering::BinderKind::String { value, .. } => {
             if let Some(value) = value {
-                let constructor = PatternConstructor::String(SmolStr::clone(value));
+                let constructor = PatternConstructor::String(value.clone());
                 Ok(state.allocate_constructor(constructor, t))
             } else {
                 Ok(state.allocate_wildcard(t))

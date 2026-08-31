@@ -14,6 +14,7 @@ use std::slice;
 use std::sync::Arc;
 
 pub use error::*;
+pub use literal::StringLiteral;
 pub use scope::*;
 pub use source::*;
 pub use tree::*;
