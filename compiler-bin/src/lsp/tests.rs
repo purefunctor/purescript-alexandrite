@@ -1,6 +1,7 @@
 use std::fs;
 use std::sync::Arc;
 
+use analyzer::position::PositionEncoding;
 use async_lsp::ResponseError;
 use async_lsp::router::Router;
 use building::lifecycle::{
@@ -8,12 +9,16 @@ use building::lifecycle::{
     SourceUnitKey,
 };
 use files::ForeignSourceKind;
-use lsp_types::{DidCloseTextDocumentParams, TextDocumentIdentifier, Url};
+use lsp_types::{
+    DidCloseTextDocumentParams, Position, Range, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, Url,
+};
 use tempfile::tempdir;
 
 use super::{
-    LspConfig, State, apply_lifecycle_event, did_close, document_kind, observe_disk,
-    source_unit_from_document_uri, source_unit_from_foreign_uri, source_unit_from_source_uri,
+    LspConfig, State, apply_content_changes, apply_lifecycle_event, did_close, document_kind,
+    observe_disk, source_unit_from_document_uri, source_unit_from_foreign_uri,
+    source_unit_from_source_uri,
 };
 
 fn test_config() -> Arc<LspConfig> {
@@ -220,4 +225,67 @@ fn disk_observation_distinguishes_content_and_absence() {
 
     fs::remove_file(source_path).unwrap();
     assert_eq!(observe_disk(&source_uri), DiskObservation::NotFound);
+}
+
+#[test]
+fn incremental_content_changes_apply_sequentially() {
+    let uri = Url::parse("file:///workspace/Main.purs").unwrap();
+    let changes = [
+        TextDocumentContentChangeEvent {
+            range: Some(Range::new(Position::new(1, 0), Position::new(1, 4))),
+            range_length: Some(4),
+            text: "answer".to_string(),
+        },
+        TextDocumentContentChangeEvent {
+            range: Some(Range::new(Position::new(1, 9), Position::new(1, 10))),
+            range_length: Some(1),
+            text: "42".to_string(),
+        },
+    ];
+
+    let content = apply_content_changes(
+        &uri,
+        "module Main where\nlife = 0\n",
+        &changes,
+        PositionEncoding::Utf16,
+    )
+    .unwrap();
+
+    assert_eq!(content.as_ref(), "module Main where\nanswer = 42\n");
+}
+
+#[test]
+fn incremental_content_changes_use_negotiated_position_encoding() {
+    let uri = Url::parse("file:///workspace/Main.purs").unwrap();
+    let changes = [TextDocumentContentChangeEvent {
+        range: Some(Range::new(Position::new(0, 3), Position::new(0, 4))),
+        range_length: Some(1),
+        text: "c".to_string(),
+    }];
+
+    let content = apply_content_changes(&uri, "a😀b", &changes, PositionEncoding::Utf16).unwrap();
+
+    assert_eq!(content.as_ref(), "a😀c");
+}
+
+#[test]
+fn full_content_change_resets_incremental_change_base() {
+    let uri = Url::parse("file:///workspace/Main.purs").unwrap();
+    let changes = [
+        TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "life = 1".to_string(),
+        },
+        TextDocumentContentChangeEvent {
+            range: Some(Range::new(Position::new(0, 7), Position::new(0, 8))),
+            range_length: Some(1),
+            text: "2".to_string(),
+        },
+    ];
+
+    let content =
+        apply_content_changes(&uri, "discarded", &changes, PositionEncoding::Utf16).unwrap();
+
+    assert_eq!(content.as_ref(), "life = 2");
 }

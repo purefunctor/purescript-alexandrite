@@ -23,6 +23,8 @@ pub enum LspError {
     InvalidFileUri(Url),
     #[error("Expected a PureScript or JavaScript document URI, received {0}")]
     UnsupportedDocumentUri(Url),
+    #[error("Invalid content change for document {0}")]
+    InvalidContentChange(Url),
     #[error("UrlParseError: {0}")]
     UrlParseError(#[from] url::ParseError),
     #[error("Invalid or missing workspace root")]

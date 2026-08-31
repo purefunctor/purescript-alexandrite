@@ -287,7 +287,7 @@ fn initialize(
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
-                        change: Some(TextDocumentSyncKind::FULL),
+                        change: Some(TextDocumentSyncKind::INCREMENTAL),
                         save: Some(TextDocumentSyncSaveOptions::Supported(true)),
                         ..TextDocumentSyncOptions::default()
                     },
@@ -608,27 +608,88 @@ fn semantic_tokens(
     result.on_non_fatal(None)
 }
 
+fn document_content(
+    state: &State,
+    document: DocumentKind,
+    uri: &Url,
+) -> Result<Arc<str>, LspError> {
+    let files = state.files.read();
+    match document {
+        DocumentKind::Source => {
+            let file_id = files
+                .source_id(uri.as_str())
+                .ok_or_else(|| LspError::InvalidContentChange(Url::clone(uri)))?;
+            state.engine.content(file_id).map_err(LspError::from)
+        }
+        DocumentKind::Foreign(_) => {
+            let file_id = files
+                .foreign_id(uri.as_str())
+                .ok_or_else(|| LspError::InvalidContentChange(Url::clone(uri)))?;
+            state
+                .engine
+                .foreign_content(file_id)
+                .ok_or_else(|| LspError::InvalidContentChange(Url::clone(uri)))
+        }
+    }
+}
+
+fn apply_content_changes(
+    uri: &Url,
+    content: &str,
+    content_changes: &[TextDocumentContentChangeEvent],
+    position_encoding: PositionEncoding,
+) -> Result<Arc<str>, LspError> {
+    let mut content = content.to_string();
+    for content_change in content_changes {
+        let Some(range) = content_change.range else {
+            content = content_change.text.clone();
+            continue;
+        };
+
+        let start =
+            analyzer::position::protocol_position_to_utf8(&content, range.start, position_encoding);
+        let start = start
+            .and_then(|position| analyzer::position::utf8_position_to_offset(&content, position));
+
+        let end =
+            analyzer::position::protocol_position_to_utf8(&content, range.end, position_encoding);
+        let end = end
+            .and_then(|position| analyzer::position::utf8_position_to_offset(&content, position));
+
+        let (Some(start), Some(end)) = (start, end) else {
+            return Err(LspError::InvalidContentChange(Url::clone(uri)));
+        };
+
+        let start = usize::from(start);
+        let end = usize::from(end);
+
+        if start > end {
+            return Err(LspError::InvalidContentChange(Url::clone(uri)));
+        }
+
+        content.replace_range(start..end, &content_change.text);
+    }
+    Ok(Arc::from(content))
+}
+
 fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), LspError> {
     let uri = &p.text_document.uri;
-    let Some(content_change) = p.content_changes.last() else {
+    if p.content_changes.is_empty() {
         return Ok(());
-    };
+    }
     let (document, unit) = source_unit_from_document_uri(uri)?;
+    let content = document_content(state, document, uri)?;
+    let content =
+        apply_content_changes(uri, &content, &p.content_changes, state.position_encoding)?;
     let event = match document {
         DocumentKind::Foreign(kind) => LifecycleEvent::Foreign {
             unit,
             kind,
-            event: ForeignEvent::Changed {
-                text: Arc::from(content_change.text.as_str()),
-                version: p.text_document.version,
-            },
+            event: ForeignEvent::Changed { text: content, version: p.text_document.version },
         },
         DocumentKind::Source => LifecycleEvent::Source {
             unit,
-            event: SourceEvent::Changed {
-                text: Arc::from(content_change.text.as_str()),
-                version: p.text_document.version,
-            },
+            event: SourceEvent::Changed { text: content, version: p.text_document.version },
         },
     };
     let change = apply_lifecycle_event(state, event);
