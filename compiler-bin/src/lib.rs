@@ -83,18 +83,8 @@ pub fn run() {
             });
         }
         cli::Command::Watch(options) => {
-            logging::start(logging::LoggingFilters {
-                query_log: options.build.logging.query_log,
-                checking_log: options.build.logging.checking_log,
-                lsp_log: LevelFilter::OFF,
-                docs_log: LevelFilter::OFF,
-            });
-            watch::start(watch::WatchConfig {
-                output: options.build.output,
-                inputs: options.inputs,
-                quiet: options.build.quiet,
-                color: options.build.color,
-            });
+            start_project_logging(&options.logging);
+            project::start(project::watch(project_build_config(options)));
         }
         cli::Command::Docs(options) => {
             logging::start(logging::LoggingFilters {

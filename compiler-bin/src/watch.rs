@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
-use std::{fs, io, process};
+use std::{fs, io};
 
 use building::{DiskObservation, LifecycleChange, QueryError, ReloadFailure, SourceUnitKey};
 use console::Style;
@@ -22,6 +22,7 @@ const DEBOUNCE_DURATION: Duration = Duration::from_millis(100);
 const MODULE_DISPLAY_LIMIT: usize = 3;
 
 pub struct WatchConfig {
+    pub current_directory: PathBuf,
     pub output: PathBuf,
     pub inputs: Vec<PathBuf>,
     pub quiet: bool,
@@ -29,7 +30,7 @@ pub struct WatchConfig {
 }
 
 #[derive(Debug, Error)]
-enum WatchError {
+pub enum WatchError {
     #[error("failed to convert path to a file URL: {0}")]
     InvalidPath(PathBuf),
     #[error(transparent)]
@@ -42,18 +43,12 @@ enum WatchError {
     Walk(#[from] walk::Error),
 }
 
-pub fn start(config: WatchConfig) {
-    if let Err(error) = watch(config) {
-        eprintln!("Watch exited: {error}");
-        tracing::error!(?error, "Watch exited");
-        process::exit(1);
-    }
-}
-
-fn watch(config: WatchConfig) -> Result<(), WatchError> {
-    let current_directory = std::env::current_dir()?;
-    let (mut workspace, initial_change) =
-        WatchWorkspace::new(current_directory, config.inputs.clone(), config.output.clone())?;
+pub fn watch(config: WatchConfig) -> Result<(), WatchError> {
+    let (mut workspace, initial_change) = WatchWorkspace::new(
+        config.current_directory.clone(),
+        config.inputs.clone(),
+        config.output.clone(),
+    )?;
     let (sender, receiver) = mpsc::channel();
     let mut watcher = RecommendedWatcher::new(sender, notify::Config::default())?;
     for root in &workspace.watch_roots {
@@ -547,6 +542,7 @@ mod tests {
         let (temporary, mut workspace) = workspace();
         let output = temporary.path().join("output");
         let config = WatchConfig {
+            current_directory: temporary.path().to_path_buf(),
             output: output.clone(),
             inputs: vec![PathBuf::from("src/**/*.purs")],
             quiet: true,
