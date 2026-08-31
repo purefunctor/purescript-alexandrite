@@ -42,7 +42,7 @@ macro_rules! write_import_items {
     }};
 }
 
-pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str) -> String {
+pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str, path: &str) -> String {
     let resolved = engine.resolved(id).unwrap();
 
     let mut out = String::default();
@@ -104,9 +104,16 @@ pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str) -> String {
         writeln!(out, "  - {class_name}.{member_name}{locality}").unwrap();
     }
 
-    heading(&mut out, "Errors:");
-    for error in &resolved.errors {
-        writeln!(out, "  - {error:?}").unwrap();
+    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
+    let collected = collected.pop().unwrap();
+    let diagnostics = collected
+        .checking_diagnostics()
+        .iter()
+        .filter(|diagnostic| diagnostic.source == "resolving");
+    let diagnostics: Vec<_> = diagnostics.cloned().collect();
+    if !diagnostics.is_empty() {
+        heading(&mut out, "Diagnostics");
+        out.push_str(&format_rich_with_path(&diagnostics, &collected.content, path, false));
     }
 
     out

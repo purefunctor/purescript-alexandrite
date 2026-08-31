@@ -339,12 +339,15 @@ pub fn lowering(path: &Path) -> FixtureResult {
 pub fn resolving(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
+    let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
+        invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
+    })?;
     let (engine, _) = crate::load_compiler(folder);
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
 
-    let report = crate::generated::basic::report_resolved(&engine, id, &file);
+    let report = crate::generated::basic::report_resolved(&engine, id, &file, display_path);
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(snapshot_path(folder));
     settings.set_prepend_module_to_snapshot(false);

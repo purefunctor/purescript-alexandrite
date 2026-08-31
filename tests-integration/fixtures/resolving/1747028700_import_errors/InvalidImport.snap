@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 84
+assertion_line: 354
 expression: report
 ---
 module InvalidImport
@@ -38,9 +38,48 @@ Local Classes:
 
 Class Members:
 
-Errors:
-  - InvalidImportStatement { id: AstId<syntax::cst::ImportStatement>(7) }
-  - InvalidImportStatement { id: AstId<syntax::cst::ImportStatement>(5) }
-  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(13) }
-  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(15) }
-  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(14) }
+Diagnostics
+Error! · [InvalidImportStatement] · InvalidImport.purs:4:1
+  •
+  │
+  • Cannot import module ''
+  │
+  │   import invalidSyntax
+  │   ╰─────
+  •
+
+Error! · [InvalidImportStatement] · InvalidImport.purs:3:1
+  •
+  │
+  • Cannot import module 'MissingLibrary'
+  │
+  │   import MissingLibrary
+  │   ╰────────────────────
+  •
+
+Error! · [InvalidImportItem] · InvalidImport.purs:5:18
+  •
+  │
+  • Cannot import item 'missing'
+  │
+  │   import LibraryA (missing, Missing, Css(Css), Html(..))
+  │                    ╰──────
+  •
+
+Error! · [InvalidImportItem] · InvalidImport.purs:5:36
+  •
+  │
+  • Cannot import item 'Css(Css)'
+  │
+  │   import LibraryA (missing, Missing, Css(Css), Html(..))
+  │                                      ╰───────
+  •
+
+Error! · [InvalidImportItem] · InvalidImport.purs:5:27
+  •
+  │
+  • Cannot import item 'Missing'
+  │
+  │   import LibraryA (missing, Missing, Css(Css), Html(..))
+  │                             ╰──────
+  •

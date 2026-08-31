@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 351
+assertion_line: 354
 expression: report
 ---
 module Main
@@ -43,6 +43,3 @@ Local Classes:
 Class Members:
   - Shared.sharedA (imported)
   - Shared.sharedB (imported)
-
-Errors:
-  - TypeExportConflict { existing: (Idx::<File>(13), Idx::<IndexedTypeItem>(0), Import(AstId<syntax::cst::ImportStatement>(14))), duplicate: (Idx::<File>(12), Idx::<IndexedTypeItem>(0), Import(AstId<syntax::cst::ImportStatement>(10))) }
