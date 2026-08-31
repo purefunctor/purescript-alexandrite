@@ -93,6 +93,40 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         source_paths.extend(package::source_files(&current_directory, package)?);
     }
 
+    compile_source_paths(
+        &current_directory,
+        &config.output,
+        source_paths,
+        config.quiet,
+        config.color,
+        started,
+        preparation_progress,
+    )
+}
+
+pub(crate) fn compile_inputs(
+    root: &Path,
+    output: &Path,
+    inputs: &[PathBuf],
+    quiet: bool,
+    color: ColorChoice,
+) -> Result<(), CompileError> {
+    let started = Instant::now();
+    let preparation_progress = progress::bar(1, "Preparing", !quiet);
+    let walked = walk::walk(root, inputs)?;
+    let source_paths = walked.files.into_iter().collect::<BTreeSet<_>>();
+    compile_source_paths(root, output, source_paths, quiet, color, started, preparation_progress)
+}
+
+fn compile_source_paths(
+    current_directory: &Path,
+    output: &Path,
+    source_paths: BTreeSet<PathBuf>,
+    quiet: bool,
+    color: ColorChoice,
+    started: Instant,
+    preparation_progress: indicatif::ProgressBar,
+) -> Result<(), CompileError> {
     let mut compilation = CompilationState::new();
 
     for path in source_paths {
@@ -106,17 +140,13 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let build_config = BuildConfig {
-        output: &config.output,
-        current_directory: &current_directory,
-        color: use_color(config.color),
-        progress: !config.quiet,
-    };
+    let build_config =
+        BuildConfig { output, current_directory, color: use_color(color), progress: !quiet };
     if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
 
-    if !config.quiet {
+    if !quiet {
         progress::report_completion(started.elapsed());
     }
 

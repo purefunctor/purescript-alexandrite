@@ -8,6 +8,7 @@ members = [
   "compiler-scripts",
   "docs/src/wasm",
   "tests-compatibility",
+  "tests-e2e",
   "tests-integration",
 ]
 default-members = [

@@ -48,6 +48,63 @@ jobs:
       - name: Run integration tests
         run: cargo nextest run -p tests-integration
 
+  end_to_end:
+    name: End-to-end tests (${{ matrix.os }})
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            spago_cache: ~/.cache/spago-nodejs
+          - os: macos-latest
+            spago_cache: ~/Library/Caches/spago-nodejs
+          - os: windows-latest
+            spago_cache: ~/AppData/Local/spago-nodejs/Cache
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          version: 12
+          runtime: node@22
+          cache: true
+          cache-dependency-path: tests-e2e/tools/pnpm-lock.yaml
+          install: false
+
+      - name: Install Rust toolchain
+        run: rustup update stable && rustup default stable
+
+      - name: Cache build artifacts
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          cache-bin: "false"
+          prefix-key: "v1-e2e-${{ matrix.os }}"
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2.85.4
+        with:
+          tool: cargo-nextest,just
+
+      - name: Cache Spago registry
+        uses: actions/cache@v5
+        with:
+          path: ${{ matrix.spago_cache }}
+          key: v1-spago-${{ runner.os }}-${{ hashFiles('tests-e2e/tools/pnpm-lock.yaml') }}
+
+      - name: Prepare end-to-end tools
+        run: just e2e-prepare
+
+      - name: Run end-to-end tests
+        run: just e2e
+
   compatibility:
     name: Package compatibility
     if: github.event_name == 'pull_request'

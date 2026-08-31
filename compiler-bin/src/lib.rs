@@ -9,8 +9,10 @@ pub mod logging;
 pub mod lsp;
 mod package;
 mod progress;
+mod project;
 pub mod walk;
 mod watch;
+mod workspace;
 
 pub fn run() {
     let cli = cli::Cli::parse();
@@ -35,6 +37,34 @@ pub fn run() {
                 diagnostics_on_save: options.diagnostics_on_save,
                 diagnostics_on_change: options.diagnostics_on_change,
             });
+        }
+        cli::Command::New(options) => project::start(project::new(options.name)),
+        cli::Command::Build(options) => {
+            start_project_logging(&options.logging);
+            project::start(project::build(project_build_config(options)));
+        }
+        cli::Command::Add(options) => {
+            project::start(project::add(project::AddProjectConfig {
+                package: options.package,
+                dependencies: options.dependencies,
+                test_dependencies: options.test,
+            }));
+        }
+        cli::Command::Run(options) => {
+            start_project_logging(&options.build.logging);
+            project::start(project::run(project::RunProjectConfig {
+                build: project_build_config(options.build),
+                main: options.main,
+                arguments: options.arguments,
+            }));
+        }
+        cli::Command::Test(options) => {
+            start_project_logging(&options.build.logging);
+            project::start(project::test(project::TestProjectConfig {
+                build: project_build_config(options.build),
+                main: options.main,
+                arguments: options.arguments,
+            }));
         }
         cli::Command::Compile(options) => {
             logging::start(logging::LoggingFilters {
@@ -87,5 +117,23 @@ pub fn run() {
                 }
             }
         }
+    }
+}
+
+fn start_project_logging(options: &cli::LoggingOptions) {
+    logging::start(logging::LoggingFilters {
+        query_log: options.query_log,
+        checking_log: options.checking_log,
+        lsp_log: LevelFilter::OFF,
+        docs_log: LevelFilter::OFF,
+    });
+}
+
+fn project_build_config(options: cli::ProjectBuildOptions) -> project::BuildProjectConfig {
+    project::BuildProjectConfig {
+        package: options.package,
+        output: options.output,
+        quiet: options.quiet,
+        color: options.color,
     }
 }

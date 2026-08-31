@@ -35,7 +35,7 @@ pub fn walk_filtered(
     let mut globs = GlobSetBuilder::new();
 
     for path in includes {
-        let path = root.join(path);
+        let path = dunce::simplified(root).join(path);
         if let Ok(path) = path.absolutize()
             && let Some(path) = path.to_str()
             && let Ok(glob) = Glob::new(path)
@@ -77,7 +77,7 @@ fn build_excludes(
     let mut globs = GlobSetBuilder::new();
 
     for path in excludes {
-        let path = root.join(path);
+        let path = dunce::simplified(root).join(path);
         if let Ok(path) = path.absolutize()
             && let Some(path) = path.to_str()
         {
@@ -199,5 +199,18 @@ mod tests {
 
         assert!(Glob::new(pattern).is_ok());
         assert_eq!(glob_literal_base(pattern), PathBuf::from("/workspace/src"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn walks_windows_style_globs() {
+        let root = temporary_directory();
+        touch(&root.join("src/Main.purs"));
+        let canonical_root = dunce::canonicalize(&root).unwrap();
+
+        let walk = walk(&canonical_root, [r"src\**\*.purs"]).unwrap();
+
+        assert_eq!(relative_files(&canonical_root, walk.files), vec!["src/Main.purs"]);
+        fs::remove_dir_all(root).unwrap();
     }
 }

@@ -24,6 +24,14 @@ coverage-html:
 @integration *args="":
   cargo nextest run -p tests-integration "$@" --status-level=fail --final-status-level=fail --failure-output=final
 
+[doc("Install end-to-end test tools")]
+@e2e-prepare:
+  pnpm --dir tests-e2e/tools install --frozen-lockfile
+
+[doc("Run end-to-end tests")]
+@e2e *args="":
+  cargo nextest run -p tests-e2e -j 1 "$@"
+
 [doc("Run integration tests with snapshot diffing: backend|checking|semantic|lowering|resolving|lsp")]
 @t *args="":
   cargo run -q -p compiler-scripts --release -- "$@"
