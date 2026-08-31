@@ -9,6 +9,7 @@ purescript-alexandrite = { path = "../compiler-bin" }
 
 [dev-dependencies]
 insta = "1.48.0"
+itertools = "0.15.0"
 tempfile = "3.27.0"
 
 [[bin]]

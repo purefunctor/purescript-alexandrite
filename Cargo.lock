@@ -3508,6 +3508,7 @@ name = "tests-e2e"
 version = "0.1.0"
 dependencies = [
  "insta",
+ "itertools 0.15.0",
  "purescript-alexandrite",
  "tempfile",
 ]

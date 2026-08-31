@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Output};
+use std::process::{Child, Command, Output, Stdio};
 
 pub struct TestWorkspace {
     temporary: tempfile::TempDir,
@@ -56,7 +56,11 @@ impl TestWorkspace {
     }
 
     pub fn spawn_in(&self, directory: &str, arguments: &[&str]) -> Child {
-        self.command_builder(directory, arguments).spawn().unwrap()
+        self.command_builder(directory, arguments)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
     }
 
     fn command_builder(&self, directory: &str, arguments: &[&str]) -> Command {
