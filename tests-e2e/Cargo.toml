@@ -1,0 +1,20 @@
+[package]
+name = "tests-e2e"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+purescript-alexandrite = { path = "../compiler-bin" }
+
+[dev-dependencies]
+insta = "1.48.0"
+tempfile = "3.27.0"
+
+[[bin]]
+name = "alexandrite-e2e"
+path = "src/bin/alexandrite-e2e.rs"
+
+[[bin]]
+name = "spago-e2e"
+path = "src/bin/spago-e2e.rs"
