@@ -51,8 +51,8 @@ pub enum Command {
     Test(TestOptions),
     /// Compile PureScript modules to JavaScript (experimental).
     Compile(CompileOptions),
-    /// Compile PureScript modules and rebuild when inputs change (experimental).
-    Watch(WatchOptions),
+    /// Build a Spago workspace or package and rebuild when inputs change.
+    Watch(ProjectBuildOptions),
     /// Documentation utilities.
     Docs(DocsOptions),
 }
@@ -126,16 +126,6 @@ pub struct CompileOptions {
     /// Full structured JSON diagnostics are not yet supported.
     #[arg(long)]
     pub json_errors: bool,
-}
-
-#[derive(Debug, Args)]
-pub struct WatchOptions {
-    #[command(flatten)]
-    pub build: BuildOptions,
-
-    /// PureScript source paths or glob patterns.
-    #[arg(value_name("INPUT"), required = true)]
-    pub inputs: Vec<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -341,7 +331,7 @@ mod tests {
         Cli::try_parse_from(argv).unwrap_err().kind()
     }
 
-    fn watch(args: &[&str]) -> WatchOptions {
+    fn watch(args: &[&str]) -> ProjectBuildOptions {
         let mut argv = vec!["alexandrite", "watch"];
         argv.extend(args);
         let cli = Cli::parse_from(argv);
@@ -408,13 +398,14 @@ mod tests {
     }
 
     #[test]
-    fn watch_accepts_compile_arguments() {
-        let options = watch(&["--output", "dist", "--quiet", "--color", "never", "src/**/*.purs"]);
+    fn watch_accepts_project_build_arguments() {
+        let options =
+            watch(&["--package", "application", "--output", "dist", "--quiet", "--color", "never"]);
 
-        assert_eq!(options.build.output, current_directory_path("dist"));
-        assert!(options.build.quiet);
-        assert_eq!(options.build.color, ColorChoice::Never);
-        assert_eq!(options.inputs, vec![PathBuf::from("src/**/*.purs")]);
+        assert_eq!(options.package.as_deref(), Some("application"));
+        assert_eq!(options.output, Some(current_directory_path("dist")));
+        assert!(options.quiet);
+        assert_eq!(options.color, ColorChoice::Never);
     }
 
     #[test]

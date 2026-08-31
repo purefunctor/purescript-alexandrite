@@ -7,6 +7,7 @@ use url::Url;
 
 use crate::cli::ColorChoice;
 use crate::compile::{self, CompileError};
+use crate::watch::{self, WatchError};
 use crate::workspace::{Workspace, WorkspaceError};
 use spago::{SpagoCommand, SpagoError};
 
@@ -21,6 +22,8 @@ pub enum ProjectError {
     Compile(#[from] CompileError),
     #[error(transparent)]
     Spago(#[from] SpagoError),
+    #[error(transparent)]
+    Watch(#[from] WatchError),
     #[error(transparent)]
     Workspace(#[from] WorkspaceError),
     #[error("invalid package name '{0}'; use lowercase letters, digits, and hyphens")]
@@ -156,6 +159,20 @@ pub fn build(config: BuildProjectConfig) -> Result<(), ProjectError> {
     compile_workspace(&workspace, &current_directory, &config)
 }
 
+pub fn watch(config: BuildProjectConfig) -> Result<(), ProjectError> {
+    let current_directory = env::current_dir().map_err(ProjectError::CurrentDirectory)?;
+    let workspace = Workspace::discover(&current_directory, config.package.as_deref())?;
+    let (inputs, output) = prepare_workspace_build(&workspace, &current_directory, &config)?;
+    watch::watch(watch::WatchConfig {
+        current_directory: workspace.root,
+        output,
+        inputs,
+        quiet: config.quiet,
+        color: config.color,
+    })?;
+    Ok(())
+}
+
 pub fn add(config: AddProjectConfig) -> Result<(), ProjectError> {
     let current_directory = env::current_dir().map_err(ProjectError::CurrentDirectory)?;
     let workspace = Workspace::discover(&current_directory, config.package.as_deref())?;
@@ -213,12 +230,21 @@ fn compile_workspace(
     current_directory: &Path,
     config: &BuildProjectConfig,
 ) -> Result<(), ProjectError> {
+    let (sources, output) = prepare_workspace_build(workspace, current_directory, config)?;
+    compile::compile_inputs(&workspace.root, &output, &sources, config.quiet, config.color)?;
+    Ok(())
+}
+
+fn prepare_workspace_build(
+    workspace: &Workspace,
+    current_directory: &Path,
+    config: &BuildProjectConfig,
+) -> Result<(Vec<PathBuf>, PathBuf), ProjectError> {
     let spago = SpagoCommand::new(current_directory)?;
     spago.fetch(workspace.selected.as_deref())?;
     let sources = spago.source_globs(workspace.selected.as_deref())?;
     let output = output(workspace, config);
-    compile::compile_inputs(&workspace.root, &output, &sources, config.quiet, config.color)?;
-    Ok(())
+    Ok((sources, output))
 }
 
 fn output(workspace: &Workspace, config: &BuildProjectConfig) -> PathBuf {

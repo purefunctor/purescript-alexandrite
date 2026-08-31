@@ -10,3 +10,5 @@ mod run;
 mod support;
 #[path = "package_manager/test.rs"]
 mod test;
+#[path = "package_manager/watch.rs"]
+mod watch;

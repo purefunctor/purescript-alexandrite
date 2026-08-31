@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Child, Command, Output};
 
 pub struct TestWorkspace {
     temporary: tempfile::TempDir,
@@ -48,18 +48,29 @@ impl TestWorkspace {
     }
 
     pub fn command_in(&self, directory: &str, arguments: &[&str]) -> Output {
-        let spago = spago_executable();
+        self.command_builder(directory, arguments).output().unwrap()
+    }
+
+    pub fn spawn(&self, arguments: &[&str]) -> Child {
+        self.spawn_in("", arguments)
+    }
+
+    pub fn spawn_in(&self, directory: &str, arguments: &[&str]) -> Child {
+        self.command_builder(directory, arguments).spawn().unwrap()
+    }
+
+    fn command_builder(&self, directory: &str, arguments: &[&str]) -> Command {
         let current_directory = self.path().join(directory);
         fs::create_dir_all(&current_directory).unwrap();
-        Command::new(env!("CARGO_BIN_EXE_alexandrite-e2e"))
+        let mut command = Command::new(env!("CARGO_BIN_EXE_alexandrite-e2e"));
+        command
             .args(arguments)
             .current_dir(current_directory)
             .env("ALEXANDRITE_SPAGO", env!("CARGO_BIN_EXE_spago-e2e"))
-            .env("ALEXANDRITE_E2E_SPAGO", spago)
+            .env("ALEXANDRITE_E2E_SPAGO", spago_executable())
             .env("ALEXANDRITE_E2E_SPAGO_LOG", self.path().join("spago-calls"))
-            .env("NO_COLOR", "1")
-            .output()
-            .unwrap()
+            .env("NO_COLOR", "1");
+        command
     }
 
     pub fn assert_spago_calls(&self, directory: &str, expected: &[&[&str]]) {
