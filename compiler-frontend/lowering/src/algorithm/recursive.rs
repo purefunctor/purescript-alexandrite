@@ -9,32 +9,49 @@ use stabilizing::ExpectId;
 use syntax::ast::AstNode;
 use syntax::{SyntaxKind, SyntaxNode, SyntaxToken, cst};
 
+use crate::literal::{StringLiteral, decode_normal_string, decode_raw_string};
 use crate::*;
 
 use super::{Context, ItemGraph, LetBindingContext, State};
 
-fn string_text(source: &str, token: SyntaxToken) -> SmolStr {
-    let text = token.text(source);
-    string_text_from_token_text(text)
+fn string_text(source: &str, token: SyntaxToken) -> Option<SmolStr> {
+    string_literal_text(source, token)?.to_utf8().ok().map(SmolStr::from)
 }
 
-fn string_text_from_token_text(original: &str) -> SmolStr {
-    let text = original
-        .strip_prefix("\"\"\"")
-        .and_then(|t| t.strip_suffix("\"\"\""))
-        .or_else(|| original.strip_prefix('"').and_then(|t| t.strip_suffix('"')));
-    SmolStr::from(text.unwrap_or(original))
+fn string_literal_text(source: &str, token: SyntaxToken) -> Option<StringLiteral> {
+    let text = token.text(source);
+    if text.starts_with("\"\"\"") {
+        if text.len() >= 6 && text.ends_with("\"\"\"") {
+            decode_raw_string(text)
+        } else {
+            Some(StringLiteral::from(text))
+        }
+    } else if text.starts_with('"') {
+        if text.len() >= 2 && text.ends_with('"') {
+            decode_normal_string(text)
+        } else {
+            Some(StringLiteral::from(text))
+        }
+    } else {
+        Some(StringLiteral::from(text))
+    }
 }
 
 fn string_literal(
+    state: &mut State,
     source: &str,
+    literal_source: StringLiteralSource,
     string: Option<SyntaxToken>,
     raw_string: Option<SyntaxToken>,
-) -> (StringKind, Option<SmolStr>) {
+) -> (StringKind, Option<StringLiteral>) {
     if let Some(value) = string {
-        (StringKind::String, Some(string_text(source, value)))
+        let value = string_literal_text(source, value);
+        if value.is_none() {
+            state.errors.push(LoweringError::InvalidStringEscape { source: literal_source });
+        }
+        (StringKind::String, value)
     } else if let Some(value) = raw_string {
-        (StringKind::RawString, Some(string_text(source, value)))
+        (StringKind::RawString, string_literal_text(source, value))
     } else {
         (StringKind::String, None)
     }
@@ -161,7 +178,10 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderWildcard(_) => BinderKind::Wildcard,
         cst::Binder::BinderString(cst) => {
-            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
+            let source =
+                StringLiteralSource::Binder(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) =
+                string_literal(state, context.source, source, cst.string(), cst.raw_string());
             BinderKind::String { kind, value }
         }
         cst::Binder::BinderChar(cst) => {
@@ -179,7 +199,7 @@ fn lower_binder_kind(
                 cst::RecordItem::RecordField(cst) => {
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(context.source, token))
+                        string_text(context.source, token)
                     });
                     let value = cst.binder().map(|cst| lower_binder(state, context, &cst));
                     BinderRecordItem::RecordField { name, value }
@@ -189,7 +209,7 @@ fn lower_binder_kind(
 
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(context.source, token))
+                        string_text(context.source, token)
                     });
 
                     if let Some(name) = &name {
@@ -509,7 +529,9 @@ fn lower_expression_kind(
         cst::Expression::ExpressionString(cst) => {
             let string = child_token(cst.syntax(), SyntaxKind::STRING);
             let raw_string = child_token(cst.syntax(), SyntaxKind::RAW_STRING);
-            let (kind, value) = string_literal(context.source, string, raw_string);
+            let source =
+                StringLiteralSource::Expression(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) = string_literal(state, context.source, source, string, raw_string);
             ExpressionKind::String { kind, value }
         }
         cst::Expression::ExpressionChar(cst) => {
@@ -538,7 +560,7 @@ fn lower_expression_kind(
                 cst::RecordItem::RecordField(cst) => {
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(context.source, token))
+                        string_text(context.source, token)
                     });
                     let value = cst.expression().map(|cst| lower_expression(state, context, &cst));
                     ExpressionRecordItem::RecordField { name, value }
@@ -548,7 +570,7 @@ fn lower_expression_kind(
 
                     let name = cst.name().and_then(|cst| {
                         let token = cst.text()?;
-                        Some(string_text(context.source, token))
+                        string_text(context.source, token)
                     });
                     let resolution = name.as_ref().and_then(|name| {
                         let qualifier: Option<&str> = None;
@@ -573,7 +595,7 @@ fn lower_expression_kind(
                 .map(|cst| {
                     let id = context.stabilized.lookup_cst(&cst).expect_id();
                     let token = cst.name()?.text()?;
-                    let name = string_text(context.source, token);
+                    let name = string_text(context.source, token)?;
                     Some(RecordAccessLabel { id, name })
                 })
                 .collect();
@@ -954,7 +976,7 @@ fn lower_record_updates(
             cst::RecordUpdate::RecordUpdateLeaf(cst) => {
                 let name = cst.name().and_then(|cst| {
                     let token = cst.text()?;
-                    Some(string_text(context.source, token))
+                    string_text(context.source, token)
                 });
                 let expression = cst.expression().map(|cst| lower_expression(state, context, &cst));
                 RecordUpdate::Leaf { name, expression }
@@ -962,7 +984,7 @@ fn lower_record_updates(
             cst::RecordUpdate::RecordUpdateBranch(cst) => {
                 let name = cst.name().and_then(|cst| {
                     let token = cst.text()?;
-                    Some(string_text(context.source, token))
+                    string_text(context.source, token)
                 });
                 let updates =
                     recover! { lower_record_updates(state, context, &cst.record_updates()?) };
@@ -1103,7 +1125,9 @@ fn lower_type_kind(
             TypeKind::OperatorChain { head, tail }
         }
         cst::Type::TypeString(cst) => {
-            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
+            let source = StringLiteralSource::Type(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) =
+                string_literal(state, context.source, source, cst.string(), cst.raw_string());
             TypeKind::String { kind, value }
         }
         cst::Type::TypeVariable(cst) => {
@@ -1252,7 +1276,7 @@ pub(crate) fn lower_type_variable_binding(
 fn lower_row_item(state: &mut State, context: &Context, cst: &cst::TypeRowItem) -> TypeRowItem {
     let name = cst.name().and_then(|cst| {
         let token = cst.text()?;
-        Some(string_text(context.source, token))
+        string_text(context.source, token)
     });
     let type_ = cst.type_().map(|t| lower_type(state, context, &t));
     TypeRowItem { name, type_ }

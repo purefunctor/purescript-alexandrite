@@ -11,6 +11,7 @@ use la_arena::{Arena, ArenaMap, Idx};
 use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
+use crate::literal::StringLiteral;
 use crate::source::*;
 use crate::{Scc, TermVariableResolution, TypeVariableResolution};
 
@@ -36,7 +37,7 @@ pub enum BinderKind {
     Variable { variable: Option<SmolStr> },
     Named { named: Option<SmolStr>, binder: Option<BinderId> },
     Wildcard,
-    String { kind: StringKind, value: Option<SmolStr> },
+    String { kind: StringKind, value: Option<StringLiteral> },
     Char { value: Option<char> },
     Boolean { boolean: bool },
     Array { array: Arc<[BinderId]> },
@@ -145,7 +146,7 @@ pub enum ExpressionKind {
     Hole,
     String {
         kind: StringKind,
-        value: Option<SmolStr>,
+        value: Option<StringLiteral>,
     },
     Char {
         value: Option<char>,
@@ -210,7 +211,7 @@ pub enum TypeKind {
     Kinded { type_: Option<TypeId>, kind: Option<TypeId> },
     Operator { resolution: Option<(FileId, TypeItemId)> },
     OperatorChain { head: Option<TypeId>, tail: Arc<[OperatorPair<TypeId>]> },
-    String { kind: StringKind, value: Option<SmolStr> },
+    String { kind: StringKind, value: Option<StringLiteral> },
     Variable { name: Option<SmolStr>, resolution: Option<TypeVariableResolution> },
     Wildcard,
     Record { items: Arc<[TypeRowItem]>, tail: Option<TypeId> },

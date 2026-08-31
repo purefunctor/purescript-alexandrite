@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export lead = "\x00d800"
+
+@export trail = "\x00dfff"
+
+@export escapedPair = "𐀀"
+
+@export scalar = "𐀀"
+
+@export matchesLead = \$string%0 ->
+  case $string%0 of
+    "\x00d800" ->
+      true
+    _ ->
+      false

@@ -8,9 +8,6 @@ pub mod prim_type_error;
 
 use std::sync::Arc;
 
-use building_types::QueryResult;
-use smol_str::SmolStr;
-
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::unification::{CanUnify, can_unify};
@@ -18,6 +15,7 @@ use crate::core::{RowField, RowType, SmolStrId, Type, TypeId, normalise};
 use crate::evidence::{ReflectableEvidence, ReflectableOrdering, SynthesizedEvidence};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
+use building_types::QueryResult;
 
 use super::CanonicalConstraintId;
 use super::matching::MatchInstance;
@@ -155,16 +153,12 @@ pub fn extract_symbol<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     id: TypeId,
-) -> QueryResult<Option<SmolStr>>
+) -> QueryResult<Option<lowering::StringLiteral>>
 where
     Q: ExternalQueries,
 {
     let id = recursively_normalise(state, context, id)?;
-    if let Type::String(_, id) = context.lookup_type(id) {
-        Ok(Some(context.queries.lookup_smol_str(id)))
-    } else {
-        Ok(None)
-    }
+    if let Type::String(_, value) = context.lookup_type(id) { Ok(Some(value)) } else { Ok(None) }
 }
 
 pub fn extract_row<Q>(
@@ -188,8 +182,14 @@ pub fn intern_symbol<Q>(context: &CheckContext<Q>, value: &str) -> TypeId
 where
     Q: ExternalQueries,
 {
-    let smol_str_id = context.queries.intern_smol_str(SmolStr::new(value));
-    context.queries.intern_type(Type::String(lowering::StringKind::String, smol_str_id))
+    intern_symbol_literal(context, value.into())
+}
+
+pub fn intern_symbol_literal<Q>(context: &CheckContext<Q>, value: lowering::StringLiteral) -> TypeId
+where
+    Q: ExternalQueries,
+{
+    context.queries.intern_type(Type::String(lowering::StringKind::String, value))
 }
 
 pub fn intern_integer<Q>(context: &CheckContext<Q>, value: i32) -> TypeId

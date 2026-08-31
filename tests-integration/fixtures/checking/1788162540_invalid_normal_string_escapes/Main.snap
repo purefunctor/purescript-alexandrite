@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 299
+expression: report
+---
+Terms
+invalidExpression :: Prim.String
+invalidBinder :: Prim.String -> Prim.Boolean
+
+Types
+InvalidType :: Prim.Symbol
+
+Synonyms
+type InvalidType = "<MissingName>"
+
+Diagnostics
+Error! · [InvalidStringEscape] · Main.purs:4:21
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   invalidExpression = "\q"
+  │                       ╰───
+  •
+
+Error! · [InvalidStringEscape] · Main.purs:7:15
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   invalidBinder "\q" = true
+  │                 ╰───
+  •
+
+Error! · [InvalidStringEscape] · Main.purs:10:20
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   type InvalidType = "\q"
+  │                      ╰───
+  •
+
+Warning! · [RedundantPattern] · Main.purs:6:1
+  •
+  │
+  • Pattern match has redundant patterns: _
+  │
+  │   invalidBinder :: String -> Boolean
+  │   ╰─────────────────────────────────
+  •

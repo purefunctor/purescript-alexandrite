@@ -112,8 +112,11 @@ impl<'a> TypeEncoder<'a> {
                 reference: self.resolve_type_reference(file_id, type_id)?,
             },
             checking::Type::Integer(value) => schema::Type::Integer { value },
-            checking::Type::String(kind, value_id) => {
-                let value = self.engine.lookup_smol_str(value_id).to_string();
+            checking::Type::String(kind, value) => {
+                let value = match value.to_utf8() {
+                    Ok(value) => schema::StringLiteralValue::Utf8(value),
+                    Err(_) => schema::StringLiteralValue::Utf16(value.as_utf16().to_vec()),
+                };
                 schema::Type::String { kind: kind.into(), value }
             }
             checking::Type::Row(row_id) => {

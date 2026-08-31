@@ -261,7 +261,7 @@ pub enum Type {
     /// A type-level integer literal, `42`.
     Integer(i32),
     /// A type-level string literal, `"life"`.
-    String(lowering::StringKind, SmolStrId),
+    String(lowering::StringKind, lowering::StringLiteral),
     /// A row type, see [`RowType`].
     Row(RowTypeId),
 

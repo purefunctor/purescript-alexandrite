@@ -7,8 +7,16 @@ use syntax::cst;
 #[derive(Debug, PartialEq, Eq)]
 pub enum LoweringError {
     NotInScope(NotInScope),
+    InvalidStringEscape { source: StringLiteralSource },
     RecursiveSynonym(RecursiveGroup),
     RecursiveKinds(RecursiveGroup),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum StringLiteralSource {
+    Expression(AstId<cst::ExpressionString>),
+    Binder(AstId<cst::BinderString>),
+    Type(AstId<cst::TypeString>),
 }
 
 #[derive(Debug, PartialEq, Eq)]

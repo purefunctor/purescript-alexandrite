@@ -367,7 +367,7 @@ where
             }
 
             let binder_kind = value.as_ref().map_or(tree::BinderKind::Error, |value| {
-                tree::BinderKind::String { value: SmolStr::clone(value) }
+                tree::BinderKind::String { value: value.clone() }
             });
             (inferred_type, binder_kind)
         }

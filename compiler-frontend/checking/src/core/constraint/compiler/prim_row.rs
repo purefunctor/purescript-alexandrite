@@ -224,7 +224,9 @@ where
         return Ok(None);
     };
 
-    let label_symbol = extract_symbol(state, context, label)?;
+    let label_symbol = extract_symbol(state, context, label)?
+        .and_then(|value| value.to_utf8().ok())
+        .map(SmolStr::from);
     let tail_row = extract_row(state, context, tail)?;
     let row_row = extract_row(state, context, row)?;
 
@@ -285,7 +287,10 @@ where
         return Ok(Some(MatchInstance::empty()));
     }
 
-    let Some(label_value) = extract_symbol(state, context, label)? else {
+    let Some(label_value) = extract_symbol(state, context, label)?
+        .and_then(|value| value.to_utf8().ok())
+        .map(SmolStr::from)
+    else {
         return Ok(Some(matching::blocking_constraint(state, context, &[label])?));
     };
 

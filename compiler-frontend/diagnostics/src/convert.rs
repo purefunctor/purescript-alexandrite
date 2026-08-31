@@ -145,6 +145,25 @@ impl ToDiagnostics for LoweringError {
                 vec![Diagnostic::error("NotInScope", message, span, "lowering")]
             }
 
+            LoweringError::InvalidStringEscape { source } => {
+                let ptr = match source {
+                    lowering::StringLiteralSource::Expression(id) => {
+                        context.stabilized.syntax_ptr(*id)
+                    }
+                    lowering::StringLiteralSource::Binder(id) => context.stabilized.syntax_ptr(*id),
+                    lowering::StringLiteralSource::Type(id) => context.stabilized.syntax_ptr(*id),
+                };
+                let Some(ptr) = ptr else { return vec![] };
+                let Some(span) = context.span_from_syntax_ptr(&ptr) else { return vec![] };
+
+                vec![Diagnostic::error(
+                    "InvalidStringEscape",
+                    "Invalid escape sequence in string literal",
+                    span,
+                    "lowering",
+                )]
+            }
+
             LoweringError::RecursiveSynonym(group) => convert_recursive_group(
                 context,
                 &group.group,

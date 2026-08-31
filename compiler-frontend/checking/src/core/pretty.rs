@@ -506,13 +506,17 @@ where
                 self.parens_if(negative, integer)
             }
 
-            Type::String(kind, string_id) => {
-                let string = self.lookup_smol_str(string_id);
-                match kind {
-                    StringKind::String => self.arena.text(format!("\"{string}\"")),
-                    StringKind::RawString => self.arena.text(format!("\"\"\"{string}\"\"\"")),
+            Type::String(kind, string) => match kind {
+                StringKind::String => {
+                    self.arena.text(lowering::literal::encode_normal_string(&string))
                 }
-            }
+                StringKind::RawString => {
+                    let string = string.to_utf8().unwrap_or_else(|_| {
+                        unreachable!("invariant violated: raw string contains a lone surrogate")
+                    });
+                    self.arena.text(format!("\"\"\"{string}\"\"\""))
+                }
+            },
 
             Type::Row(row_id) => {
                 let row = self.lookup_row_type(row_id);

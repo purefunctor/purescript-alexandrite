@@ -315,7 +315,7 @@ pub enum BinderKind {
     Variable,
     Named { name: SmolStr, binder: BinderId },
     Wildcard,
-    String { value: SmolStr },
+    String { value: lowering::StringLiteral },
     Char { value: char },
     Boolean { value: bool },
     Array { elements: Arc<[BinderId]> },
@@ -344,7 +344,7 @@ pub enum VariableResolution {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionKind {
     Error,
-    String { kind: lowering::StringKind, value: SmolStr },
+    String { kind: lowering::StringKind, value: lowering::StringLiteral },
     Char { value: char },
     Boolean { value: bool },
     Integer { value: i32 },

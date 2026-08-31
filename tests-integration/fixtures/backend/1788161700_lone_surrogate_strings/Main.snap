@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+lead :: Prim.String
+trail :: Prim.String
+escapedPair :: Prim.String
+scalar :: Prim.String
+matchesLead :: Prim.String -> Prim.Boolean
+
+Types

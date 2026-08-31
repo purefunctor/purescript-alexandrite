@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 331
+assertion_line: 334
 expression: report
 ---
 module Main
@@ -9,6 +9,6 @@ Expressions:
 
 "hello \
   \world"@2:9
-  -> string String "hello \\\n  \\world"
+  -> string String "hello world"
 
 Types:

@@ -4,6 +4,7 @@ mod recover;
 mod algorithm;
 
 pub mod error;
+pub mod literal;
 pub mod scope;
 pub mod source;
 pub mod tree;
@@ -13,6 +14,7 @@ use std::slice;
 use std::sync::Arc;
 
 pub use error::*;
+pub use literal::StringLiteral;
 pub use scope::*;
 pub use source::*;
 pub use tree::*;

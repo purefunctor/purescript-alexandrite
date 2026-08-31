@@ -60,7 +60,7 @@ where
             let arity = self.constructor_arity(file_id, term_id)?;
             if known_arguments.len() == arity {
                 let tag = self.expression(ExpressionKind::Literal {
-                    literal: Literal::String(global.item_name),
+                    literal: Literal::String(global.item_name.into()),
                 });
                 let mut fields = Vec::with_capacity(known_arguments.len() + 1);
                 let field = self.label_field("tag".into());

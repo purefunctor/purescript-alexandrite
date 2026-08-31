@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+json :: Prim.String
+escaped :: Prim.String
+gap :: Prim.String
+
+Types
