@@ -38,12 +38,18 @@ fn string_literal_text(source: &str, token: SyntaxToken) -> Option<StringLiteral
 }
 
 fn string_literal(
+    state: &mut State,
     source: &str,
+    literal_source: StringLiteralSource,
     string: Option<SyntaxToken>,
     raw_string: Option<SyntaxToken>,
 ) -> (StringKind, Option<StringLiteral>) {
     if let Some(value) = string {
-        (StringKind::String, string_literal_text(source, value))
+        let value = string_literal_text(source, value);
+        if value.is_none() {
+            state.errors.push(LoweringError::InvalidStringEscape { source: literal_source });
+        }
+        (StringKind::String, value)
     } else if let Some(value) = raw_string {
         (StringKind::RawString, string_literal_text(source, value))
     } else {
@@ -172,7 +178,10 @@ fn lower_binder_kind(
         }
         cst::Binder::BinderWildcard(_) => BinderKind::Wildcard,
         cst::Binder::BinderString(cst) => {
-            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
+            let source =
+                StringLiteralSource::Binder(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) =
+                string_literal(state, context.source, source, cst.string(), cst.raw_string());
             BinderKind::String { kind, value }
         }
         cst::Binder::BinderChar(cst) => {
@@ -520,7 +529,9 @@ fn lower_expression_kind(
         cst::Expression::ExpressionString(cst) => {
             let string = child_token(cst.syntax(), SyntaxKind::STRING);
             let raw_string = child_token(cst.syntax(), SyntaxKind::RAW_STRING);
-            let (kind, value) = string_literal(context.source, string, raw_string);
+            let source =
+                StringLiteralSource::Expression(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) = string_literal(state, context.source, source, string, raw_string);
             ExpressionKind::String { kind, value }
         }
         cst::Expression::ExpressionChar(cst) => {
@@ -1114,7 +1125,9 @@ fn lower_type_kind(
             TypeKind::OperatorChain { head, tail }
         }
         cst::Type::TypeString(cst) => {
-            let (kind, value) = string_literal(context.source, cst.string(), cst.raw_string());
+            let source = StringLiteralSource::Type(context.stabilized.lookup_cst(cst).expect_id());
+            let (kind, value) =
+                string_literal(state, context.source, source, cst.string(), cst.raw_string());
             TypeKind::String { kind, value }
         }
         cst::Type::TypeVariable(cst) => {
