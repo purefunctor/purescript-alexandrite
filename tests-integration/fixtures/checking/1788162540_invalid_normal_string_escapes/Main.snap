@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 299
+expression: report
+---
+Terms
+invalidExpression :: Prim.String
+invalidBinder :: Prim.String -> Prim.Boolean
+
+Types
+InvalidType :: Prim.Symbol
+
+Synonyms
+type InvalidType = "<MissingName>"
+
+Diagnostics
+Warning! · [RedundantPattern] · Main.purs:6:1
+  •
+  │
+  • Pattern match has redundant patterns: _
+  │
+  │   invalidBinder :: String -> Boolean
+  │   ╰─────────────────────────────────
+  •
