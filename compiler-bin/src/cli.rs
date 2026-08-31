@@ -39,6 +39,16 @@ impl Cli {
 pub enum Command {
     /// Run the language server.
     Lsp(LspOptions),
+    /// Create a Spago project in the current directory.
+    New(NewOptions),
+    /// Build a Spago workspace or package.
+    Build(ProjectBuildOptions),
+    /// Add dependencies to a Spago package.
+    Add(AddOptions),
+    /// Build and run a Spago package with Node.js.
+    Run(RunOptions),
+    /// Build and test one or more Spago packages with Node.js.
+    Test(TestOptions),
     /// Compile PureScript modules to JavaScript (experimental).
     Compile(CompileOptions),
     /// Compile PureScript modules and rebuild when inputs change (experimental).
@@ -144,6 +154,78 @@ pub struct BuildOptions {
     /// When to use colors in human-readable diagnostics.
     #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
     pub color: ColorChoice,
+}
+
+#[derive(Debug, Args)]
+pub struct NewOptions {
+    /// Package name. Defaults to the current directory name.
+    #[arg(long, value_name("NAME"))]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ProjectBuildOptions {
+    #[command(flatten)]
+    pub logging: LoggingOptions,
+
+    /// Workspace package to build.
+    #[arg(short, long, value_name("NAME"))]
+    pub package: Option<String>,
+
+    /// Output directory for compiled modules. Defaults to output in the workspace root.
+    #[arg(short, long, value_name("DIR"), value_parser = absolute_path_parser())]
+    pub output: Option<PathBuf>,
+
+    /// Suppress build progress output.
+    #[arg(short, long)]
+    pub quiet: bool,
+
+    /// When to use colors in human-readable diagnostics.
+    #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
+    pub color: ColorChoice,
+}
+
+#[derive(Debug, Args)]
+pub struct AddOptions {
+    /// Workspace package whose dependencies should change.
+    #[arg(short, long, value_name("NAME"))]
+    pub package: Option<String>,
+
+    /// Add packages as test dependencies.
+    #[arg(long)]
+    pub test: bool,
+
+    /// Packages to add.
+    #[arg(value_name("DEPENDENCY"), required = true)]
+    pub dependencies: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct RunOptions {
+    #[command(flatten)]
+    pub build: ProjectBuildOptions,
+
+    /// Module containing the program entry point.
+    #[arg(long, value_name("MODULE"))]
+    pub main: Option<String>,
+
+    /// Arguments passed to the program.
+    #[arg(last = true)]
+    pub arguments: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct TestOptions {
+    #[command(flatten)]
+    pub build: ProjectBuildOptions,
+
+    /// Module containing the test entry point.
+    #[arg(long, value_name("MODULE"))]
+    pub main: Option<String>,
+
+    /// Arguments passed to each test program.
+    #[arg(last = true)]
+    pub arguments: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

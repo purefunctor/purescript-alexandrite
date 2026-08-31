@@ -1,8 +1,10 @@
+mod command;
 pub mod lockfile;
 
 use std::path::Path;
 use std::{fs, io};
 
+pub use command::{SpagoCommand, SpagoError};
 pub use lockfile::{PackageReference, PackageSources, PackagesBySource};
 use thiserror::Error;
 
