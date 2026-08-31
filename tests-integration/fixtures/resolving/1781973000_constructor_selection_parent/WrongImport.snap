@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 84
+assertion_line: 354
 expression: report
 ---
 module WrongImport
@@ -30,5 +30,12 @@ Local Classes:
 
 Class Members:
 
-Errors:
-  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(8) }
+Diagnostics
+Error! · [InvalidImportItem] · WrongImport.purs:3:17
+  •
+  │
+  • Cannot import item 'A(B)'
+  │
+  │   import Library (A(B))
+  │                   ╰───
+  •

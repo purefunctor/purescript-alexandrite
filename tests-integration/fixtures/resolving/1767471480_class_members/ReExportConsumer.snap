@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 73
+assertion_line: 354
 expression: report
 ---
 module ReExportConsumer
@@ -33,5 +33,3 @@ Class Members:
   - Show.show (imported)
   - Eq.eq (imported)
   - Eq.notEq (imported)
-
-Errors:

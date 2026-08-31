@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 102
+assertion_line: 354
 expression: report
 ---
 module LibraryA
@@ -27,5 +27,3 @@ Local Classes:
 
 Class Members:
   - Shared.sharedA
-
-Errors:

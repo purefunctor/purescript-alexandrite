@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 73
+assertion_line: 354
 expression: report
 ---
 module LocalClass
@@ -32,5 +32,3 @@ Local Classes:
 Class Members:
   - Functor.map
   - Apply.apply
-
-Errors:

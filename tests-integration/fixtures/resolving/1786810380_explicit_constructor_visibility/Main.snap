@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 102
+assertion_line: 354
 expression: report
 ---
 module Main
@@ -30,5 +30,12 @@ Local Classes:
 
 Class Members:
 
-Errors:
-  - InvalidImportItem { id: AstId<syntax::cst::ImportItem>(8) }
+Diagnostics
+Error! · [InvalidImportItem] · Main.purs:3:17
+  •
+  │
+  • Cannot import item 'Hidden(Hidden)'
+  │
+  │   import Library (Hidden(Hidden))
+  │                   ╰─────────────
+  •
