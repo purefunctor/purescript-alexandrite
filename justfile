@@ -30,7 +30,7 @@ coverage-html:
 
 [doc("Run end-to-end tests")]
 @e2e *args="":
-  cargo nextest run -p tests-e2e "$@"
+  cargo nextest run -p tests-e2e -j 1 "$@"
 
 [doc("Run integration tests with snapshot diffing: backend|checking|semantic|lowering|resolving|lsp")]
 @t *args="":

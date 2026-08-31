@@ -2549,6 +2549,7 @@ dependencies = [
  "console",
  "diagnostics",
  "documentation",
+ "dunce",
  "files",
  "globset",
  "ignore",

@@ -33,8 +33,9 @@ impl TestWorkspace {
         let mut summary = String::new();
         for path in files {
             let relative = path.strip_prefix(self.path()).unwrap();
+            let relative = relative.to_string_lossy().replace('\\', "/");
             let content = fs::read_to_string(&path).unwrap();
-            summary.push_str(&format!("--- {}\n{content}", relative.display()));
+            summary.push_str(&format!("--- {relative}\n{content}"));
             if !content.ends_with('\n') {
                 summary.push('\n');
             }
@@ -68,12 +69,13 @@ impl TestWorkspace {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(error) => panic!("failed to read Spago call log: {error}"),
         };
-        let expected_directory = self.path().join(directory);
+        let expected_directory = fs::canonicalize(self.path().join(directory)).unwrap();
         let mut actual_arguments = Vec::new();
         for line in source.lines() {
             let mut fields = line.split('\t');
             let actual_directory = fields.next().unwrap();
-            assert_eq!(Path::new(actual_directory), expected_directory);
+            let actual_directory = fs::canonicalize(actual_directory).unwrap();
+            assert_eq!(actual_directory, expected_directory);
             actual_arguments.push(fields.collect::<Vec<_>>());
         }
         assert_eq!(actual_arguments, expected);
