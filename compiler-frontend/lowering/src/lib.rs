@@ -4,6 +4,7 @@ mod recover;
 mod algorithm;
 
 pub mod error;
+pub mod literal;
 pub mod scope;
 pub mod source;
 pub mod tree;

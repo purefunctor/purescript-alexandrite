@@ -1459,7 +1459,7 @@ where
             ExpressionKind::Error => Ok(self.arena.text("<error>")),
             ExpressionKind::String { kind, value } => match kind {
                 lowering::StringKind::String => {
-                    let text = format!("\"{value}\"");
+                    let text = lowering::literal::encode_normal_string(value);
                     Ok(self.arena.text(text))
                 }
                 lowering::StringKind::RawString => {

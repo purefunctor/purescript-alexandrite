@@ -509,7 +509,9 @@ where
             Type::String(kind, string_id) => {
                 let string = self.lookup_smol_str(string_id);
                 match kind {
-                    StringKind::String => self.arena.text(format!("\"{string}\"")),
+                    StringKind::String => {
+                        self.arena.text(lowering::literal::encode_normal_string(&string))
+                    }
                     StringKind::RawString => self.arena.text(format!("\"\"\"{string}\"\"\"")),
                 }
             }
