@@ -86,7 +86,7 @@ Preserve type variable names in instance members       # Missing category
 ## Development tools
 
 ### Checks
-* Use `cargo check -p <crate-name> --tests` to check a crate. Always specify `-p`.
+* Use `cargo check -p <crate-name> --tests` to check a crate. The `-p` option MUST be specified.
 * Use `cargo nextest run -p <crate-name>` for unit tests in compiler-core crates.
 * Use `cargo nextest run -p <crate-name> <test_name>` for focused unit tests.
 
@@ -111,47 +111,61 @@ Filtered fixture runs are useful while iterating, but they are not sufficient be
 
 In addition to the core principles, follow the project's existing conventions for variable names, argument ordering, module organisation, and formatting.
 
-The following styles are required:
-
-* Always bind an iterator expression to a local variable before folding it.
-* `.collect()` may terminate a fluent iterator chain when the initial expression remains on the
-  `let` line and every fluent call fits on one line. If adding `.collect()` breaks immediately after
-  `=` or any fluent call spans multiple lines, bind the iterator expression to a local variable
-  before collecting it.
-* Use the concrete type name instead of `Self` outside trait definitions and trait implementations.
-* Keep expression complexity to a minimum by using intermediate bindings, but avoid writing A-normal form.
-
 For example:
 
 ```rust
-// Keep collecting fluent when each call fits on one line.
+// Yes: Keep collecting fluent when each call fits on one line.
 let collection = source
     .map(|item| transform(item))
     .collect();
 
-// Bind before collecting when a fluent call spans multiple lines.
+// No: Do not break immediately after `=`.
+let collection =
+    source.map(|item| transform(item)).collect();
+
+// Yes: Bind before collecting when a fluent call spans multiple lines.
 let collection = source.map(|item| {
     // ...
 });
 
 let collection = collection.collect();
 
-// Bind before collecting rather than breaking immediately after `=`.
-let functional_dependencies = functional_dependencies.iter().map(fd::Fd::from_lowering);
-let functional_dependencies = functional_dependencies.collect();
+// No: Do not collect directly from a multi-line fluent call.
+let collection = source
+    .map(|item| {
+        // ...
+    })
+    .collect();
 
-// Name concrete types in inherent implementations.
+// Yes: Name concrete types in inherent implementations.
 impl Span {
     pub fn new(start: u32, end: u32) -> Span {
         Span { start, end }
     }
 }
 
-// Name meaningful intermediate results while keeping simple expressions inline.
+// No: Do not use `Self` outside trait definitions and trait implementations.
+impl Span {
+    pub fn new(start: u32, end: u32) -> Self {
+        Self { start, end }
+    }
+}
+
+// Yes: Name meaningful intermediate results while keeping simple expressions inline.
 let absolute_path = fs::canonicalize(&source.path)?;
 let uri = Url::from_file_path(&absolute_path)
     .map_err(|_| Error::FileUrl(absolute_path.clone()))?
     .to_string();
 let file_id = files.insert(uri, content.clone());
 engine.set_content(file_id, content);
+
+// No: Do not introduce an intermediate binding for every expression.
+let source_path = &source.path;
+let absolute_path_result = fs::canonicalize(source_path);
+let absolute_path = absolute_path_result?;
+let uri_result = Url::from_file_path(&absolute_path);
+let uri_result = uri_result.map_err(|_| Error::FileUrl(absolute_path.clone()));
+let uri = uri_result?.to_string();
+let content = content.clone();
+let file_id = files.insert(uri, content);
 ```
