@@ -40,8 +40,8 @@ pub fn run() {
         }
         cli::Command::New(options) => project::start(project::new(options.name)),
         cli::Command::Build(options) => {
-            start_project_logging(&options.logging);
-            project::start(project::build(project_build_config(options)));
+            start_project_logging(&options.build.logging);
+            project::start(project::build(project_build_config(options.build), options.resilience));
         }
         cli::Command::Add(options) => {
             project::start(project::add(project::AddProjectConfig {

@@ -30,6 +30,47 @@ value = 42
 }
 
 #[test]
+fn builds_resilient_output_despite_diagnostics() {
+    let workspace = TestWorkspace::empty();
+    workspace.write(
+        "spago.yaml",
+        r#"workspace: {}
+package:
+  name: application
+  dependencies: []
+"#,
+    );
+    workspace.write(
+        "src/Main.purs",
+        r#"module Main where
+
+usable = 42
+
+broken = missing
+"#,
+    );
+
+    let output = workspace.command(&["build", "--quiet", "--resilient"]);
+    assert!(
+        !output.status.success(),
+        "command unexpectedly succeeded\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("'missing' is not in scope"), "unexpected stderr:\n{stderr}");
+
+    let generated = workspace.read("output/Main/index.js");
+    assert!(generated.contains("Generated code reached a source error"));
+    assert!(generated.contains("export const broken"));
+    assert!(generated.contains("export const usable = 42 | 0;"));
+    workspace.assert_spago_calls(
+        "",
+        &[&["fetch", "-p", "application"], &["sources", "--json", "-p", "application"]],
+    );
+}
+
+#[test]
 fn builds_the_whole_workspace_from_a_root_package_subdirectory() {
     let workspace = TestWorkspace::empty();
     workspace.write(

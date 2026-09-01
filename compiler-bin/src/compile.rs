@@ -31,6 +31,13 @@ pub(crate) struct BuildConfig<'a> {
     pub current_directory: &'a Path,
     pub color: bool,
     pub progress: bool,
+    pub resilience: Resilience,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Resilience {
+    Strict,
+    Resilient,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -99,6 +106,7 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         source_paths,
         config.quiet,
         config.color,
+        Resilience::Strict,
         started,
         preparation_progress,
     )
@@ -110,12 +118,22 @@ pub(crate) fn compile_inputs(
     inputs: &[PathBuf],
     quiet: bool,
     color: ColorChoice,
+    resilience: Resilience,
 ) -> Result<(), CompileError> {
     let started = Instant::now();
     let preparation_progress = progress::bar(1, "Preparing", !quiet);
     let walked = walk::walk(root, inputs)?;
     let source_paths = walked.files.into_iter().collect::<BTreeSet<_>>();
-    compile_source_paths(root, output, source_paths, quiet, color, started, preparation_progress)
+    compile_source_paths(
+        root,
+        output,
+        source_paths,
+        quiet,
+        color,
+        resilience,
+        started,
+        preparation_progress,
+    )
 }
 
 fn compile_source_paths(
@@ -124,6 +142,7 @@ fn compile_source_paths(
     source_paths: BTreeSet<PathBuf>,
     quiet: bool,
     color: ColorChoice,
+    resilience: Resilience,
     started: Instant,
     preparation_progress: indicatif::ProgressBar,
 ) -> Result<(), CompileError> {
@@ -140,8 +159,13 @@ fn compile_source_paths(
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let build_config =
-        BuildConfig { output, current_directory, color: use_color(color), progress: !quiet };
+    let build_config = BuildConfig {
+        output,
+        current_directory,
+        color: use_color(color),
+        progress: !quiet,
+        resilience,
+    };
     if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
@@ -159,13 +183,13 @@ pub(crate) fn build(
 ) -> Result<BuildOutcome, CompileError> {
     let source_ids = compilation.input_source_ids();
     let has_errors = report_diagnostics(compilation, &source_ids, config)?;
-    if has_errors {
+    if has_errors && config.resilience == Resilience::Strict {
         return Ok(BuildOutcome::Diagnostics);
     }
 
     let modules = generate_modules(compilation, &source_ids, config.progress)?;
     let outputs = write_modules(compilation, &modules, config.output, config.progress)?;
-    Ok(BuildOutcome::Succeeded(outputs))
+    if has_errors { Ok(BuildOutcome::Diagnostics) } else { Ok(BuildOutcome::Succeeded(outputs)) }
 }
 
 pub(crate) fn load_source(
