@@ -28,10 +28,6 @@ secondary = StyleX.create
 buttonProps :: StyleX.Props
 buttonProps = StyleX.props styles.button
 
-styleProps ::
-  { button :: StyleX.Props
-  , label :: StyleX.Props
-  }
 styleProps = StyleX.recordProps styles
 
 buttonPropsArray :: Boolean -> StyleX.Props
