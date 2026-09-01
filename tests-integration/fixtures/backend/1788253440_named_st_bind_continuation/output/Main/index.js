@@ -6,9 +6,7 @@ export function namedContinuation($unit) {
 }
 export function namedBind($unit) {
   return () => {
-    let bindValue;
-    bindValue = "Unit";
-    return namedContinuation(bindValue)();
+    return namedContinuation("Unit")();
   };
 }
 export function runNamedBind($unit) {

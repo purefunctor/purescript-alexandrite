@@ -6,9 +6,7 @@ export function namedContinuation($unit) {
 }
 export function namedBind($unit) {
   return () => {
-    let bindValue;
-    bindValue = "Unit";
-    return namedContinuation(bindValue)();
+    return namedContinuation("Unit")();
   };
 }
 export function tailBind(value) {
@@ -21,8 +19,6 @@ export function tailBind(value) {
         };
       } else {
         return () => {
-          let $unit;
-          $unit = "Unit";
           const $tailArgument = decrementInt($currentArgument0);
           return [
             true,
