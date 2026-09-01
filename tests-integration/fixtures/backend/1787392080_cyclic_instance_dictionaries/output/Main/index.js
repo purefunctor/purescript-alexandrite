@@ -55,7 +55,7 @@ export const applyBox = $lazy_applyBox();
 export const applicativeBox = $lazy_applicativeBox();
 export const bindBox = $lazy_bindBox();
 export const monadBox = $lazy_monadBox();
-export const result = /* @__PURE__ */ (() => {
+export const result = (() => {
   const $scrutinee = /* @__PURE__ */ Data_Functor.map($lazy_functorBox())((value) => value)({
     tag: "Box",
     _1: 42 | 0

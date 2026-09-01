@@ -1,6 +1,6 @@
-export const second = /* @__PURE__ */ (() => {
+export const second = (() => {
   throw new Error("Top-level value initializer cycle");
 })();
-export const first = /* @__PURE__ */ (() => {
+export const first = (() => {
   throw new Error("Top-level value initializer cycle");
 })();
