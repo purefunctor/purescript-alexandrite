@@ -35,7 +35,7 @@ jobs:
           prefix-key: "v7-nextest-workspace-${{ matrix.os }}-${{ matrix.toolchain }}"
 
       - name: Install tools
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.87.1
         with:
           tool: cargo-nextest
 
@@ -89,7 +89,7 @@ jobs:
           prefix-key: "v1-e2e-${{ matrix.os }}"
 
       - name: Install tools
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.87.1
         with:
           tool: cargo-nextest,just
 
@@ -307,7 +307,7 @@ jobs:
           prefix-key: "v7-nextest-workspace-${{ matrix.toolchain }}"
 
       - name: Install tools
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.87.1
         with:
           tool: cargo-nextest,cargo-llvm-cov,just
 
@@ -335,7 +335,7 @@ jobs:
         run: rustup update nightly && rustup component add rustfmt --toolchain nightly
 
       - name: Install tools
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.87.1
         with:
           tool: just
 
