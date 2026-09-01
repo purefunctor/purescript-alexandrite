@@ -4,6 +4,7 @@ module Alexandrite.StyleX
   , Keyframes
   , create
   , props
+  , recordProps
   , conditional
   , keyframes
   ) where
@@ -27,6 +28,12 @@ class CompileStyleList input output | input -> output
 
 class PropsInput :: Type -> Constraint
 
+class CompileProps :: Row Type -> Row Type -> Constraint
+class CompileProps input output | input -> output
+
+class CompilePropsList :: RowList.RowList Type -> Row Type -> Constraint
+class CompilePropsList input output | input -> output
+
 instance
   ( RowList.RowToList input inputList
   , CompileStyleList inputList output
@@ -45,6 +52,20 @@ instance PropsInput Style
 
 instance PropsInput (Array Style)
 
+instance
+  ( RowList.RowToList input inputList
+  , CompilePropsList inputList output
+  ) =>
+  CompileProps input output
+
+instance CompilePropsList RowList.Nil ()
+
+instance
+  ( CompilePropsList tail outputTail
+  , Row.Cons label Props outputTail output
+  ) =>
+  CompilePropsList (RowList.Cons label Style tail) output
+
 foreign import create
   :: forall input output
    . CompileStyles input output
@@ -56,6 +77,12 @@ foreign import props
    . PropsInput input
   => input
   -> Props
+
+foreign import recordProps
+  :: forall input output
+   . CompileProps input output
+  => Record input
+  -> Record output
 
 foreign import conditional :: Boolean -> Style -> Style
 

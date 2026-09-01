@@ -19,4 +19,17 @@ export const styles = $stylex.create({
 });
 export const secondary = $stylex.create({ root: { backgroundColor: "navy" } });
 export const buttonProps = $stylex.props(styles.button);
+export const styleProps = {
+  button: $stylex.props(styles.button),
+  label: $stylex.props(styles.label)
+};
+export const appliedStyleProps = {
+  button: $stylex.props(styles.button),
+  label: $stylex.props(styles.label)
+};
+export const flippedStyleProps = {
+  button: $stylex.props(styles.button),
+  label: $stylex.props(styles.label)
+};
 export const buttonClassName = buttonProps.className;
+export const labelClassName = styleProps.label.className;

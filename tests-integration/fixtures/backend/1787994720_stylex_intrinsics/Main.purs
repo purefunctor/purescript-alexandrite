@@ -1,6 +1,7 @@
 module Main where
 
 import Alexandrite.StyleX as StyleX
+import Data.Function as Function
 import Data.Ring as Ring
 
 animation :: StyleX.Keyframes
@@ -28,6 +29,12 @@ secondary = StyleX.create
 buttonProps :: StyleX.Props
 buttonProps = StyleX.props styles.button
 
+styleProps = StyleX.recordProps styles
+
+appliedStyleProps = Function.apply StyleX.recordProps styles
+
+flippedStyleProps = Function.applyFlipped styles StyleX.recordProps
+
 buttonPropsArray :: Boolean -> StyleX.Props
 buttonPropsArray highlighted = StyleX.props
   [ styles.button
@@ -36,3 +43,6 @@ buttonPropsArray highlighted = StyleX.props
 
 buttonClassName :: String
 buttonClassName = buttonProps.className
+
+labelClassName :: String
+labelClassName = styleProps.label.className
