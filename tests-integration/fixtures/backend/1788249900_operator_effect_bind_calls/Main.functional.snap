@@ -9,9 +9,10 @@ expression: report
 
 @export namedContinuation = \$unit%0@(_) -> effect.pure 42
 
-@export namedBind = \$unit%1@(_) -> bind bindEffect1 (effect.pure "Unit") namedContinuation
+@export namedBind = \$unit%2@(_) ->
+  effect.bind (effect.pure "Unit") \bindValue%1 -> namedContinuation bindValue%1
 
-@export recursive[4] tailBind = \value%2 ->
-  if equalInt value%2 0
-    then effect.pure value%2
-    else effect.bind (effect.pure "Unit") \$unit%3 -> tailBind (decrementInt value%2)
+@export recursive[4] tailBind = \value%3 ->
+  if equalInt value%3 0
+    then effect.pure value%3
+    else effect.bind (effect.pure "Unit") \$unit%4 -> tailBind (decrementInt value%3)

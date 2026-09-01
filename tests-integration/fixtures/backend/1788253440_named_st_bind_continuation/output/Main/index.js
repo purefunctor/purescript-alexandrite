@@ -1,4 +1,3 @@
-import * as Control_Bind from "../Control.Bind/index.js";
 import * as Control_Monad_ST_Internal from "../Control.Monad.ST.Internal/index.js";
 export function namedContinuation($unit) {
   return () => {
@@ -6,11 +5,11 @@ export function namedContinuation($unit) {
   };
 }
 export function namedBind($unit) {
-  const $function = Control_Bind.bind(Control_Monad_ST_Internal.bindST);
-  const $effect = () => {
-    return "Unit";
+  return () => {
+    let bindValue;
+    bindValue = "Unit";
+    return namedContinuation(bindValue)();
   };
-  return /* @__PURE__ */ $function($effect)(namedContinuation);
 }
 export function runNamedBind($unit) {
   return Control_Monad_ST_Internal.run(namedBind("Unit"));

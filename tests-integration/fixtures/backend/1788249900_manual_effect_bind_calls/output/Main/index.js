@@ -1,5 +1,3 @@
-import * as Control_Bind from "../Control.Bind/index.js";
-import * as Effect from "../Effect/index.js";
 import * as $foreign from "./foreign.js";
 export function namedContinuation($unit) {
   return () => {
@@ -7,11 +5,11 @@ export function namedContinuation($unit) {
   };
 }
 export function namedBind($unit) {
-  const $function = Control_Bind.bind(Effect.bindEffect1);
-  const $effect = () => {
-    return "Unit";
+  return () => {
+    let bindValue;
+    bindValue = "Unit";
+    return namedContinuation(bindValue)();
   };
-  return /* @__PURE__ */ $function($effect)(namedContinuation);
 }
 export function tailBind(value) {
   const $tail_tailBind = ($state, $argument0) => {
