@@ -22,7 +22,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
 
 use super::super::names::NameAllocator;
-use crate::error::{ModuleError, ModuleResult, UnsupportedState};
+use crate::error::{ModuleDiagnostic, ModuleError, ModuleResult, UnsupportedState};
 use crate::module::{Module, module_filename, runtime_filename};
 use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree, UnaryOperator};
 use crate::writer::{BindingCallTarget, Writer};
@@ -354,7 +354,7 @@ impl<'m> Generator<'m> {
         let allocator = Allocator::default();
         let mut tree = Tree::new(&allocator);
         let mut writer = Writer::new(&allocator);
-        {
+        let initializer_cycle = {
             let mut renderer =
                 ModuleRenderer { generator: &self, tree: &mut tree, writer: &mut writer };
             render_imports(&mut renderer);
@@ -362,12 +362,18 @@ impl<'m> Generator<'m> {
             render_source_functions(&mut renderer)?;
             render_foreign_declarations(&mut renderer);
             render_lazy_initializers(&mut renderer)?;
-            render_value_declarations(&mut renderer)?;
+            let initializer_cycle = render_value_declarations(&mut renderer)?;
             render_exports(&mut renderer);
-        }
+            initializer_cycle
+        };
 
         let dependencies = self.module.dependencies.iter().map(|dependency| dependency.file_id);
         let dependencies = dependencies.collect_vec();
+        let diagnostics = if initializer_cycle.is_empty() {
+            vec![]
+        } else {
+            vec![ModuleDiagnostic::InitializerCycle { declarations: initializer_cycle }]
+        };
         let requires_runtime = self.runtime_namespace.is_some();
         let source = writer.finish();
         Ok(Module::new(
@@ -375,6 +381,7 @@ impl<'m> Generator<'m> {
             self.module.name.to_string(),
             source,
             dependencies,
+            diagnostics,
             self.foreign_import.as_ref().map(|foreign_import| foreign_import.kind),
             requires_runtime,
         ))
@@ -1027,10 +1034,13 @@ fn render_lazy_initializers(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> Mo
     Ok(())
 }
 
-fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> ModuleResult<()> {
+fn render_value_declarations(
+    renderer: &mut ModuleRenderer<'_, '_, '_, '_>,
+) -> ModuleResult<Vec<GlobalId>> {
     let generator = renderer.generator;
     let mut rendered = false;
     let mut previous_was_generated = false;
+    let mut initializer_cycle = vec![];
     for (declaration, cyclic) in sorted_value_declarations(generator) {
         let DeclarationKind::Value(expression) = declaration.kind else {
             unreachable!("invariant violated: sorted JavaScript declaration is not a value")
@@ -1048,6 +1058,7 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> M
         let exported = generator.declaration_is_inline_exported(declaration);
 
         if cyclic {
+            initializer_cycle.push(declaration.global.id);
             renderer.writer.constant_iife(name, exported, |writer| {
                 writer.throw_error(INITIALIZER_CYCLE_MESSAGE);
             });
@@ -1088,7 +1099,7 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> M
     if rendered {
         renderer.writer.blank();
     }
-    Ok(())
+    Ok(initializer_cycle)
 }
 
 impl Generator<'_> {

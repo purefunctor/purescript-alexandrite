@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 388
+expression: report
+---
+Diagnostics
+
+4:0..4:30 analyzer/functional [FunctionalCodegen] Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call

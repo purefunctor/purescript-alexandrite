@@ -60,12 +60,6 @@ pub(crate) enum CompileError {
     Query(#[from] QueryError),
     #[error(transparent)]
     Walk(#[from] walk::Error),
-    #[error("failed to generate JavaScript for {path}: {source}")]
-    JavaScript {
-        path: Arc<str>,
-        #[source]
-        source: javascript::ModuleError,
-    },
 }
 
 pub fn start(config: CompileConfig) {
@@ -343,18 +337,13 @@ fn generate_modules(
             if let Some(module_name) = parsed.module_name(&content) {
                 progress::set_message(&progress, &module_name);
             }
-            let module = engine.javascript(file_id)?.map_err(|source| {
-                let path = compilation
-                    .source_path(file_id)
-                    .expect("invariant violated: generated module has no lifecycle path");
-                CompileError::JavaScript { path, source }
-            })?;
+            let module = engine.javascript(file_id)?.ok();
             progress.inc(1);
             Ok::<_, CompileError>(module)
         });
         let generated = generated.collect::<Result<Vec<_>, _>>()?;
 
-        for module in generated {
+        for module in generated.into_iter().flatten() {
             pending.extend(module.dependencies().iter().copied());
             modules.push(module);
         }

@@ -47,7 +47,7 @@ pub enum UnsupportedState {
     #[error("generated global identity space is exhausted")]
     GeneratedGlobalIdentityOverflow,
     #[error("Alexandrite.StyleX.{function} must be used as a direct, saturated intrinsic call")]
-    InvalidStyleXUse { function: String },
+    InvalidStyleXUse { function: String, declaration: GlobalId },
     #[error("virtual module declaration {module_name}.{item_name} cannot be used at runtime")]
     VirtualModuleRuntimeReference { module_name: String, item_name: String },
 }

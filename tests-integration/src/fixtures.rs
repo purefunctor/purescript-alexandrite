@@ -263,11 +263,13 @@ pub fn backend(path: &Path) -> FixtureResult {
 
     let checking_report = crate::generated::basic::report_checked(&engine, id, display_path);
     let foreign_report = crate::generated::basic::report_foreign(&engine, id, display_path);
-    let diagnostics_report = format!("{checking_report}{foreign_report}");
+    let backend_report = crate::generated::basic::report_backend(&engine, id, display_path);
+    let diagnostics_report = format!("{checking_report}{foreign_report}{backend_report}");
     let generated = tempfile::tempdir()?;
     match javascript_modules(&engine, id)? {
         Ok(modules) => modules.write_to(&files, generated.path())?,
-        Err(error) => std::fs::write(generated.path().join("error.txt"), error.to_string())?,
+        Err(error) if backend_report.is_empty() => return Err(error.into()),
+        Err(_) => {}
     }
     verify_output(&fixture.join("output"), generated.path())?;
     run_javascript_verification(&fixture)?;

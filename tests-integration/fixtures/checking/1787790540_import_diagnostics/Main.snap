@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 296
+assertion_line: 301
 expression: report
 ---
 Terms
@@ -15,8 +15,8 @@ Warning! · [DuplicateImport] · Main.purs:5:5
   │
   │     , value
   │       ╰────
-  •
-  │ First imported here
+  │
+  • First imported here
   │
   │     ( value
   │       ╰────

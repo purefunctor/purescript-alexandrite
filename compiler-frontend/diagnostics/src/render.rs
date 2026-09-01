@@ -111,11 +111,12 @@ pub fn format_rich_with_path(
         );
 
         for related in &diagnostic.related {
-            output.push_str(&format!("{branch}\n"));
+            output.push_str(&format!("{stem}\n"));
             let wrapped = textwrap::wrap(&related.message, message_width);
-            for line in wrapped {
+            for (index, line) in wrapped.iter().enumerate() {
+                let gutter = if index == 0 { &branch } else { &stem };
                 let message = paint_quoted_text(&line, color);
-                output.push_str(&format!("{stem} {message}\n"));
+                output.push_str(&format!("{gutter} {message}\n"));
             }
             output.push_str(&format!("{stem}\n"));
             render_rich_source(

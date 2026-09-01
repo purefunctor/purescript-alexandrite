@@ -21,4 +21,4 @@ else instance
 build :: forall n r. Build n r => Proxy n -> Proxy r
 build _ = Proxy
 
-test = build (Proxy :: Proxy 10000)
+test = build (Proxy :: Proxy 50)

@@ -386,6 +386,24 @@ pub fn report_foreign(engine: &QueryEngine, id: FileId, path: &str) -> String {
     out
 }
 
+pub fn report_backend(engine: &QueryEngine, id: FileId, path: &str) -> String {
+    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
+    let collected = collected.pop().unwrap();
+    if collected.backend_diagnostics().is_empty() {
+        return String::new();
+    }
+
+    let mut out = String::new();
+    heading(&mut out, "Backend Diagnostics");
+    out.push_str(&format_rich_with_path(
+        collected.backend_diagnostics(),
+        &collected.content,
+        path,
+        false,
+    ));
+    out
+}
+
 fn write_literal_expression(
     content: &str,
     stabilized: &stabilizing::StabilizedModule,

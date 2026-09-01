@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 264
+assertion_line: 280
 expression: diagnostics_report
 ---
 Terms
@@ -8,3 +8,18 @@ first :: Prim.Int
 second :: Prim.Int
 
 Types
+
+Backend Diagnostics
+Error! · [JavaScriptInitializerCycle] · Main.purs:6:1
+  •
+  │
+  • This declaration is cyclic with other declarations
+  │
+  │   second :: Int
+  │   ╰────────────
+  │
+  • This declaration is a member of the same cycle
+  │
+  │   first :: Int
+  │   ╰───────────
+  •

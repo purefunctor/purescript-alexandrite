@@ -1,7 +1,14 @@
 use files::FileId;
+use functional::tree::GlobalId;
 use thiserror::Error;
 
 pub type ModuleResult<T> = Result<T, ModuleError>;
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum ModuleDiagnostic {
+    #[error("This declaration is cyclic with other declarations")]
+    InitializerCycle { declarations: Vec<GlobalId> },
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ModuleError {

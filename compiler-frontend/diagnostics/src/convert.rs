@@ -1,19 +1,99 @@
 use checking::error::{CheckingError, ErrorKind};
 use checking::holes::HoleBinding;
 use foreign_javascript::ForeignError;
+use functional::tree::{GlobalId, InstanceIdentity};
+use functional::{
+    ModuleError as FunctionalModuleError, UnsupportedState as FunctionalUnsupportedState,
+};
 use indexing::{IndexedTypeItemKind, IndexingError};
 use itertools::Itertools;
+use javascript::{
+    ModuleDiagnostic as JavaScriptModuleDiagnostic, ModuleError as JavaScriptModuleError,
+};
 use lowering::LoweringError;
 use resolving::ResolvingError;
 use syntax::ast::AstNode;
 use syntax::cst;
 
-use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity};
+use crate::{Diagnostic, DiagnosticsContext, ExternalQueries, Severity, Span};
 
 pub trait ToDiagnostics {
     fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
     where
         Q: ExternalQueries;
+}
+
+fn global_span<Q>(context: &DiagnosticsContext<'_, Q>, global: GlobalId) -> Option<Span>
+where
+    Q: ExternalQueries,
+{
+    let pointer = match global {
+        GlobalId::Term(_, id) => context.indexed.term_item_ptr(context.stabilized, id).next()?,
+        GlobalId::Instance(InstanceIdentity::Declared(_, id)) => {
+            context.stabilized.syntax_ptr(id)?
+        }
+        GlobalId::Instance(InstanceIdentity::Derived(_, id)) => {
+            context.stabilized.syntax_ptr(id)?
+        }
+        GlobalId::Generated(_, _) => return None,
+    };
+    context.span_from_syntax_ptr(&pointer)
+}
+
+impl ToDiagnostics for FunctionalModuleError {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
+        let FunctionalModuleError::Unsupported { state, .. } = self;
+        let span = match state {
+            FunctionalUnsupportedState::InvalidStyleXUse { declaration, .. } => {
+                global_span(context, *declaration)
+            }
+            _ => None,
+        };
+        vec![Diagnostic::error(
+            "FunctionalCodegen",
+            state.to_string(),
+            span.unwrap_or_else(|| context.module_span()),
+            "functional",
+        )]
+    }
+}
+
+impl ToDiagnostics for JavaScriptModuleError {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
+        match self {
+            JavaScriptModuleError::Functional(error) => error.to_diagnostics(context),
+            JavaScriptModuleError::Unsupported { state, .. } => vec![Diagnostic::error(
+                "JavaScriptCodegen",
+                state.to_string(),
+                context.module_span(),
+                "javascript",
+            )],
+        }
+    }
+}
+
+impl ToDiagnostics for JavaScriptModuleDiagnostic {
+    fn to_diagnostics<Q>(&self, context: &DiagnosticsContext<'_, Q>) -> Vec<Diagnostic>
+    where
+        Q: ExternalQueries,
+    {
+        let JavaScriptModuleDiagnostic::InitializerCycle { declarations } = self;
+        let mut spans = declarations.iter().filter_map(|&global| global_span(context, global));
+        let span = spans.next().unwrap_or_else(|| context.module_span());
+        let mut diagnostic =
+            Diagnostic::error("JavaScriptInitializerCycle", self.to_string(), span, "javascript");
+        for span in spans {
+            diagnostic =
+                diagnostic.with_related(span, "This declaration is a member of the same cycle");
+        }
+        vec![diagnostic]
+    }
 }
 
 impl ToDiagnostics for ForeignError {
