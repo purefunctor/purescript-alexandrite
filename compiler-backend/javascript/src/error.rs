@@ -15,8 +15,6 @@ pub enum ModuleError {
 pub enum UnsupportedState {
     #[error("number literal {value:?} is not a finite JavaScript number")]
     InvalidNumber { value: String },
-    #[error("top-level value initializers form a cycle")]
-    CyclicInitializers,
     #[error("local global {name:?} has no JavaScript declaration")]
     MissingGlobal { name: String },
     #[error("local value {name:?} has no JavaScript binding")]

@@ -42,6 +42,7 @@ use self::tail_call::{
 };
 
 const SOURCE_ERROR_MESSAGE: &str = "Generated code reached a source error";
+const INITIALIZER_CYCLE_MESSAGE: &str = "Top-level value initializer cycle";
 
 pub(crate) struct Generator<'m> {
     module: &'m FunctionalModule,
@@ -1030,7 +1031,7 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> M
     let generator = renderer.generator;
     let mut rendered = false;
     let mut previous_was_generated = false;
-    for declaration in sorted_value_declarations(generator)? {
+    for (declaration, cyclic) in sorted_value_declarations(generator) {
         let DeclarationKind::Value(expression) = declaration.kind else {
             unreachable!("invariant violated: sorted JavaScript declaration is not a value")
         };
@@ -1045,6 +1046,15 @@ fn render_value_declarations(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) -> M
 
         let name = generator.global_name(declaration.global.id);
         let exported = generator.declaration_is_inline_exported(declaration);
+
+        if cyclic {
+            renderer.writer.constant_iife(name, exported, |writer| {
+                writer.throw_error(INITIALIZER_CYCLE_MESSAGE);
+            });
+            rendered = true;
+            previous_was_generated = generated;
+            continue;
+        }
 
         if let Some(lazy_name) = generator.lazy_global_names.get(&declaration.global.id) {
             let lazy = renderer.tree.identifier(lazy_name);
@@ -3016,9 +3026,7 @@ impl Generator<'_> {
     }
 }
 
-fn sorted_value_declarations<'m>(
-    generator: &'m Generator<'_>,
-) -> ModuleResult<Vec<&'m Declaration>> {
+fn sorted_value_declarations<'m>(generator: &'m Generator<'_>) -> Vec<(&'m Declaration, bool)> {
     let values = generator
         .module
         .declarations
@@ -3056,11 +3064,9 @@ fn sorted_value_declarations<'m>(
         dependencies[position].dedup();
     }
 
-    if cyclic_initializers(&dependencies).contains(&true) {
-        return Err(generator.unsupported(UnsupportedState::CyclicInitializers));
-    }
+    let cyclic = cyclic_initializers(&dependencies);
     let ordered = initializer_postorder(&dependencies);
-    Ok(ordered.into_iter().map(|position| values[position]).collect_vec())
+    ordered.into_iter().map(|position| (values[position], cyclic[position])).collect_vec()
 }
 
 fn render_exports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
