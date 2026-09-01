@@ -201,6 +201,7 @@ pub enum ExpressionKind {
 pub enum StyleXIntrinsic {
     Create,
     Props,
+    RecordProps,
     Conditional,
     Keyframes,
 }
@@ -210,6 +211,7 @@ impl StyleXIntrinsic {
         match self {
             StyleXIntrinsic::Create => "create",
             StyleXIntrinsic::Props => "props",
+            StyleXIntrinsic::RecordProps => "recordProps",
             StyleXIntrinsic::Conditional => "conditional",
             StyleXIntrinsic::Keyframes => "keyframes",
         }

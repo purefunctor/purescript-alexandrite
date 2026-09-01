@@ -22,7 +22,11 @@ expression: report
 
 @export buttonProps = stylex.props styles.button
 
+@export styleProps = { button: stylex.props styles.button, label: stylex.props styles.label }
+
 @export buttonPropsArray = \highlighted%0 ->
   stylex.props [styles.button, stylex.conditional highlighted%0 secondary.root]
 
 @export buttonClassName = buttonProps.className
+
+@export labelClassName = styleProps.label.className

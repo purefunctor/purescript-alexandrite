@@ -7,7 +7,7 @@ use itertools::Itertools;
 use smol_str::format_smolstr;
 
 use crate::tree::{
-    BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId,
+    BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, Field, GlobalId,
     InstanceIdentity, Literal, Parameter, PatternKind, RecordField, StyleXIntrinsic, UnaryOperator,
 };
 
@@ -28,7 +28,16 @@ where
         function: ExpressionId,
         arguments: impl IntoIterator<Item = ExpressionId>,
     ) -> ConversionResult<ExpressionId> {
-        self.application_with_synthetic(function, arguments, false)
+        self.application_with_synthetic(function, arguments, false, None)
+    }
+
+    pub(super) fn typed_application(
+        &mut self,
+        function: ExpressionId,
+        arguments: impl IntoIterator<Item = ExpressionId>,
+        result_type: checking::TypeId,
+    ) -> ConversionResult<ExpressionId> {
+        self.application_with_synthetic(function, arguments, false, Some(result_type))
     }
 
     pub(super) fn synthetic_application(
@@ -36,7 +45,7 @@ where
         function: ExpressionId,
         arguments: impl IntoIterator<Item = ExpressionId>,
     ) -> ConversionResult<ExpressionId> {
-        self.application_with_synthetic(function, arguments, true)
+        self.application_with_synthetic(function, arguments, true, None)
     }
 
     fn application_with_synthetic(
@@ -44,6 +53,7 @@ where
         function: ExpressionId,
         arguments: impl IntoIterator<Item = ExpressionId>,
         synthetic: bool,
+        result_type: Option<checking::TypeId>,
     ) -> ConversionResult<ExpressionId> {
         let arguments = arguments.into_iter();
         let arguments = arguments.collect_vec();
@@ -95,7 +105,7 @@ where
         if self.known_term(known_function, "Data.Function", "apply")?
             && let [function, argument] = known_arguments.as_slice()
         {
-            return self.application_with_synthetic(*function, [*argument], synthetic);
+            return self.application_with_synthetic(*function, [*argument], synthetic, None);
         }
         if self.known_term(known_function, "Data.Function", "applyFlipped")?
             && let [argument, function] = known_arguments.as_slice()
@@ -107,8 +117,10 @@ where
         {
             return Ok(composition);
         }
-        if let Some(kind) = self.stylex_intrinsic(known_function, &known_arguments)? {
-            return Ok(self.expression(kind));
+        if let Some(expression) =
+            self.stylex_intrinsic(known_function, &known_arguments, result_type)?
+        {
+            return Ok(expression);
         }
         if let Some(effect) = self.known_effect_application(known_function, &known_arguments)? {
             return Ok(self.expression(ExpressionKind::Effect { effect }));
@@ -409,7 +421,7 @@ where
         synthetic: bool,
     ) -> ConversionResult<ExpressionId> {
         if self.expression_is_stable(argument) || self.expression_is_stable(function) {
-            return self.application_with_synthetic(function, [argument], synthetic);
+            return self.application_with_synthetic(function, [argument], synthetic, None);
         }
 
         let argument_parameter = self.fresh_parameter("applyArgument".into())?;
@@ -418,7 +430,8 @@ where
             self.expression(ExpressionKind::Local { parameter: argument_parameter.clone() });
         let function_local =
             self.expression(ExpressionKind::Local { parameter: function_parameter.clone() });
-        let body = self.application_with_synthetic(function_local, [argument_local], synthetic)?;
+        let body =
+            self.application_with_synthetic(function_local, [argument_local], synthetic, None)?;
         let bindings = [
             Binding { parameter: argument_parameter, expression: argument, source_order: 0 },
             Binding { parameter: function_parameter, expression: function, source_order: 1 },
@@ -462,8 +475,8 @@ where
             let argument = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
             (argument, Some(parameter))
         };
-        let body = self.application_with_synthetic(inner, [argument], synthetic)?;
-        let body = self.application_with_synthetic(outer, [body], synthetic)?;
+        let body = self.application_with_synthetic(inner, [argument], synthetic, None)?;
+        let body = self.application_with_synthetic(outer, [body], synthetic, None)?;
         let body = if let Some(parameter) = parameter {
             self.parameter_abstraction([parameter], body)
         } else {
@@ -504,10 +517,11 @@ where
     }
 
     fn stylex_intrinsic(
-        &self,
+        &mut self,
         expression: ExpressionId,
         arguments: &[ExpressionId],
-    ) -> QueryResult<Option<ExpressionKind>> {
+        result_type: Option<checking::TypeId>,
+    ) -> ConversionResult<Option<ExpressionId>> {
         let ExpressionKind::Global { global } = &self.storage[expression].kind else {
             return Ok(None);
         };
@@ -515,20 +529,80 @@ where
         let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)? else {
             return Ok(None);
         };
-        let kind = match (intrinsic, arguments) {
+        let expression = match (intrinsic, arguments) {
             (StyleXIntrinsic::Create, [_, argument])
             | (StyleXIntrinsic::Props, [_, argument])
             | (StyleXIntrinsic::Keyframes, [argument]) => {
-                Some(ExpressionKind::StyleX { intrinsic, argument: *argument })
+                Some(self.expression(ExpressionKind::StyleX { intrinsic, argument: *argument }))
             }
-            (StyleXIntrinsic::Conditional, [condition, style]) => Some(ExpressionKind::Binary {
-                operator: BinaryOperator::StyleXConditional,
-                left: *condition,
-                right: *style,
-            }),
+            (StyleXIntrinsic::RecordProps, [_, argument]) => {
+                let Some(result_type) = result_type else { return Ok(None) };
+                self.stylex_record_props(*argument, result_type)?
+            }
+            (StyleXIntrinsic::Conditional, [condition, style]) => {
+                Some(self.expression(ExpressionKind::Binary {
+                    operator: BinaryOperator::StyleXConditional,
+                    left: *condition,
+                    right: *style,
+                }))
+            }
             _ => None,
         };
-        Ok(kind)
+        Ok(expression)
+    }
+
+    fn stylex_record_props(
+        &mut self,
+        argument: ExpressionId,
+        result_type: checking::TypeId,
+    ) -> ConversionResult<Option<ExpressionId>> {
+        let checking::Type::Application(_, mut row_type) = self.queries.lookup_type(result_type)
+        else {
+            return Ok(None);
+        };
+
+        let mut labels = vec![];
+        loop {
+            let checking::Type::Row(row_id) = self.queries.lookup_type(row_type) else {
+                return Ok(None);
+            };
+            let row = self.queries.lookup_row_type(row_id);
+            labels.extend(row.fields.iter().map(|field| field.label.clone()));
+            let Some(tail) = row.tail else { break };
+            row_type = tail;
+        }
+
+        let stable = self.expression_is_stable(argument);
+        let (record, parameter) = if stable {
+            (argument, None)
+        } else {
+            let parameter = self.fresh_parameter("stylexStyles".into())?;
+            let record = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
+            (record, Some(parameter))
+        };
+
+        let fields = labels.into_iter().map(|label| {
+            let field = self.label_field(label);
+            let style =
+                self.expression(ExpressionKind::Project { record, field: Field::clone(&field) });
+            let expression = self.expression(ExpressionKind::StyleX {
+                intrinsic: StyleXIntrinsic::Props,
+                argument: style,
+            });
+            RecordField { field, expression }
+        });
+
+        let fields = fields.collect();
+        let body = self.expression(ExpressionKind::Record { fields });
+
+        let Some(parameter) = parameter else { return Ok(Some(body)) };
+        let binding = Binding { parameter, expression: argument, source_order: 0 };
+
+        Ok(Some(self.expression(ExpressionKind::Let {
+            recursive: false,
+            bindings: [binding].into(),
+            body,
+        })))
     }
 
     fn known_numbered_term_arity(

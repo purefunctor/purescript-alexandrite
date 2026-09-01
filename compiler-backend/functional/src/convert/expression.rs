@@ -101,7 +101,7 @@ pub(super) fn convert_expression(
             }
             let function = convert_expression(context, *function)?;
             let argument = convert_expression(context, *argument)?;
-            return context.application(function, [argument]);
+            return context.typed_application(function, [argument], expression.type_id);
         }
         checking_tree::ExpressionKind::EvidenceApplication { function, evidence, constraint } => {
             let evidence_expression = evidence_variable(context, *evidence, Some(*constraint))?;
