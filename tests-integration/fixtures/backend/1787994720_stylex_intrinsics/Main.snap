@@ -9,6 +9,8 @@ styles :: { button :: Alexandrite.StyleX.Style, label :: Alexandrite.StyleX.Styl
 secondary :: { root :: Alexandrite.StyleX.Style }
 buttonProps :: Alexandrite.StyleX.Props
 styleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
+appliedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
+flippedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
 buttonPropsArray :: Prim.Boolean -> Alexandrite.StyleX.Props
 buttonClassName :: Prim.String
 labelClassName :: Prim.String

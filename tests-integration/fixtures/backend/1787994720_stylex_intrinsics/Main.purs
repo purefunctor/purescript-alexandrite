@@ -1,6 +1,7 @@
 module Main where
 
 import Alexandrite.StyleX as StyleX
+import Data.Function as Function
 import Data.Ring as Ring
 
 animation :: StyleX.Keyframes
@@ -29,6 +30,10 @@ buttonProps :: StyleX.Props
 buttonProps = StyleX.props styles.button
 
 styleProps = StyleX.recordProps styles
+
+appliedStyleProps = Function.apply StyleX.recordProps styles
+
+flippedStyleProps = Function.applyFlipped styles StyleX.recordProps
 
 buttonPropsArray :: Boolean -> StyleX.Props
 buttonPropsArray highlighted = StyleX.props

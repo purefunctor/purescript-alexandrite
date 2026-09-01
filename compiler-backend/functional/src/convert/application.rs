@@ -105,12 +105,12 @@ where
         if self.known_term(known_function, "Data.Function", "apply")?
             && let [function, argument] = known_arguments.as_slice()
         {
-            return self.application_with_synthetic(*function, [*argument], synthetic, None);
+            return self.application_with_synthetic(*function, [*argument], synthetic, result_type);
         }
         if self.known_term(known_function, "Data.Function", "applyFlipped")?
             && let [argument, function] = known_arguments.as_slice()
         {
-            return self.flipped_application(*argument, *function, synthetic);
+            return self.flipped_application(*argument, *function, synthetic, result_type);
         }
         if let Some(composition) =
             self.known_composition_application(known_function, &known_arguments, synthetic)?
@@ -419,9 +419,10 @@ where
         argument: ExpressionId,
         function: ExpressionId,
         synthetic: bool,
+        result_type: Option<checking::TypeId>,
     ) -> ConversionResult<ExpressionId> {
         if self.expression_is_stable(argument) || self.expression_is_stable(function) {
-            return self.application_with_synthetic(function, [argument], synthetic, None);
+            return self.application_with_synthetic(function, [argument], synthetic, result_type);
         }
 
         let argument_parameter = self.fresh_parameter("applyArgument".into())?;
@@ -430,8 +431,12 @@ where
             self.expression(ExpressionKind::Local { parameter: argument_parameter.clone() });
         let function_local =
             self.expression(ExpressionKind::Local { parameter: function_parameter.clone() });
-        let body =
-            self.application_with_synthetic(function_local, [argument_local], synthetic, None)?;
+        let body = self.application_with_synthetic(
+            function_local,
+            [argument_local],
+            synthetic,
+            result_type,
+        )?;
         let bindings = [
             Binding { parameter: argument_parameter, expression: argument, source_order: 0 },
             Binding { parameter: function_parameter, expression: function, source_order: 1 },

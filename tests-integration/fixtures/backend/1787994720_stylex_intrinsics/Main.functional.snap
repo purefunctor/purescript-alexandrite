@@ -24,6 +24,10 @@ expression: report
 
 @export styleProps = { button: stylex.props styles.button, label: stylex.props styles.label }
 
+@export appliedStyleProps = { button: stylex.props styles.button, label: stylex.props styles.label }
+
+@export flippedStyleProps = { button: stylex.props styles.button, label: stylex.props styles.label }
+
 @export buttonPropsArray = \highlighted%0 ->
   stylex.props [styles.button, stylex.conditional highlighted%0 secondary.root]
 
