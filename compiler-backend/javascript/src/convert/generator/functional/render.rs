@@ -41,6 +41,8 @@ use self::tail_call::{
     local_profiles, tail_call_group,
 };
 
+const SOURCE_ERROR_MESSAGE: &str = "Generated code reached a source error";
+
 pub(crate) struct Generator<'m> {
     module: &'m FunctionalModule,
     global_names: FxHashMap<GlobalId, SmolStr>,
@@ -1103,6 +1105,10 @@ impl Generator<'_> {
         }
 
         match &self.module.storage[expression].kind {
+            ExpressionKind::Error => {
+                writer.throw_error(SOURCE_ERROR_MESSAGE);
+                Ok(())
+            }
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression_value(tree, writer, *condition, context)?;
                 writer.if_else_with_state(
@@ -1578,7 +1584,8 @@ impl Generator<'_> {
                 let value = tree.identifier(name);
                 Ok(RenderedExpression { value, pending_evaluation: false })
             }
-            ExpressionKind::IfThenElse { .. }
+            ExpressionKind::Error
+            | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
             | ExpressionKind::Let { .. }
@@ -1650,7 +1657,8 @@ impl Generator<'_> {
             ExpressionKind::StyleX { argument, .. } => {
                 self.expression_rendering_is_eager(*argument, context)
             }
-            ExpressionKind::IfThenElse { .. }
+            ExpressionKind::Error
+            | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
             | ExpressionKind::Let { .. }
@@ -1676,7 +1684,8 @@ impl Generator<'_> {
                     Some(LocalBinding::Direct(_) | LocalBinding::Inline(_))
                 )
             }
-            ExpressionKind::Array { .. }
+            ExpressionKind::Error
+            | ExpressionKind::Array { .. }
             | ExpressionKind::Record { .. }
             | ExpressionKind::RecordUpdate { .. }
             | ExpressionKind::Project { .. }
@@ -1847,7 +1856,8 @@ impl Generator<'_> {
                 synthesized_evidence_expression(tree, evidence)
             }
             ExpressionKind::TrivialEvidence => tree.object(vec![]),
-            ExpressionKind::RecordUpdate { .. }
+            ExpressionKind::Error
+            | ExpressionKind::RecordUpdate { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
@@ -1903,7 +1913,8 @@ impl Generator<'_> {
                     && arguments.iter().all(|argument| self.expression_can_inline(*argument))
             }
             ExpressionKind::StyleX { argument, .. } => self.expression_can_inline(*argument),
-            ExpressionKind::RecordUpdate { .. }
+            ExpressionKind::Error
+            | ExpressionKind::RecordUpdate { .. }
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
             | ExpressionKind::Guarded { .. }
@@ -3121,7 +3132,8 @@ fn collect_expression_references(
     globals: &mut Vec<Global>,
 ) {
     match &module.storage[expression].kind {
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Local { .. }
         | ExpressionKind::SynthesizedEvidence { .. }
         | ExpressionKind::TrivialEvidence => {}
@@ -3342,7 +3354,8 @@ fn collect_expression_children(
         return;
     }
     match &module.storage[expression].kind {
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Constructor { .. }
         | ExpressionKind::Global { .. }
         | ExpressionKind::Local { .. }

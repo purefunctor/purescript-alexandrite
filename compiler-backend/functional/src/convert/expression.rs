@@ -147,9 +147,7 @@ pub(super) fn convert_expression(
             let body = convert_expression(context, *expression)?;
             return let_bindings(context, bindings, body);
         }
-        checking_tree::ExpressionKind::Error => {
-            return Err(context.unsupported(UnsupportedState::ExpressionError(expression_id)));
-        }
+        checking_tree::ExpressionKind::Error => ExpressionKind::Error,
     };
     Ok(context.expression(kind))
 }

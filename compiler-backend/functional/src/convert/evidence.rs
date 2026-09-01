@@ -133,7 +133,7 @@ pub(super) fn evidence_variable(
             Err(context.unsupported(UnsupportedState::UnsolvedEvidence(variable)))
         }
         EvidenceState::Solved(evidence) => convert_evidence(context, evidence, constraint),
-        EvidenceState::Error => Err(context.unsupported(UnsupportedState::EvidenceError(variable))),
+        EvidenceState::Error => Ok(context.expression(ExpressionKind::Error)),
     };
     context.lowering_evidence.remove(&variable);
     result
