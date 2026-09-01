@@ -1,0 +1,9 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign makeContinuation
+
+@export computedBind = \$unit%0@(_) ->
+  bind bindEffect1 (effect.pure "Unit") (makeContinuation "Unit")

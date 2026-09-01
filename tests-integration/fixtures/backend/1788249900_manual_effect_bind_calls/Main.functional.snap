@@ -1,0 +1,17 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign equalInt
+
+@export foreign decrementInt
+
+@export namedContinuation = \$unit%0@(_) -> effect.pure 42
+
+@export namedBind = \$unit%1@(_) -> bind bindEffect1 (effect.pure "Unit") namedContinuation
+
+@export recursive[4] tailBind = \value%2 ->
+  if equalInt value%2 0
+    then effect.pure value%2
+    else effect.bind (effect.pure "Unit") \$unit%3 -> tailBind (decrementInt value%2)

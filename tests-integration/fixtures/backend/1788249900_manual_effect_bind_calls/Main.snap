@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+decrementInt :: Prim.Int -> Prim.Int
+namedContinuation :: Data.Unit.Unit -> Effect.Effect Prim.Int
+namedBind :: Data.Unit.Unit -> Effect.Effect Prim.Int
+tailBind :: Prim.Int -> Effect.Effect Prim.Int
+
+Types
