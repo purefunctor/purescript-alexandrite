@@ -94,7 +94,7 @@ jobs:
           tool: cargo-nextest,just
 
       - name: Cache Spago registry
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ matrix.spago_cache }}
           key: v1-spago-${{ runner.os }}-${{ hashFiles('tests-e2e/tools/pnpm-lock.yaml') }}
@@ -129,7 +129,7 @@ jobs:
 
       - name: Restore compatibility packages
         id: compatibility-package-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             compatibility-cache/downloads
@@ -236,7 +236,7 @@ jobs:
           always() &&
           steps.compatibility-package-cache.outputs.cache-hit != 'true' &&
           steps.compatibility-package-cache.outputs.cache-primary-key != ''
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             compatibility-cache/downloads
