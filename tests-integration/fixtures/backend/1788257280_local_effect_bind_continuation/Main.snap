@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+makeContinuation :: Data.Unit.Unit -> Data.Unit.Unit -> Effect.Effect Prim.Int
+localBind :: Data.Unit.Unit -> Effect.Effect Prim.Int
+
+Types

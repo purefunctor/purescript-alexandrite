@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+namedContinuation ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Data.Unit.Unit ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.Int
+namedBind ::
+  forall (region :: Control.Monad.ST.Internal.Region).
+    Data.Unit.Unit ->
+    Control.Monad.ST.Internal.ST (region :: Control.Monad.ST.Internal.Region) Prim.Int
+runNamedBind :: Data.Unit.Unit -> Prim.Int
+
+Types

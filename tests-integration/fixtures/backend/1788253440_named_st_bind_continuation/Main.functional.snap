@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export namedContinuation = \$unit%0@(_) -> effect.pure 42
+
+@export namedBind = \$unit%2@(_) ->
+  effect.bind (effect.pure "Unit") \bindValue%1 -> namedContinuation bindValue%1
+
+@export runNamedBind = \$unit%3@(_) -> run (namedBind "Unit")

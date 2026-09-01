@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+nestedBind :: Data.Unit.Unit -> Effect.Effect Prim.Int
+
+Types

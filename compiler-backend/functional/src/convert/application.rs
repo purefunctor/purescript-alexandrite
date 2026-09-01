@@ -287,10 +287,10 @@ where
     }
 
     fn known_effect_application(
-        &self,
+        &mut self,
         function: ExpressionId,
         arguments: &[ExpressionId],
-    ) -> QueryResult<Option<EffectExpression>> {
+    ) -> ConversionResult<Option<EffectExpression>> {
         if let Some([value]) = self.known_thunk_instance_member_arguments(
             function,
             arguments,
@@ -301,7 +301,7 @@ where
         }
         if let Some([action, continuation]) =
             self.known_thunk_instance_member_arguments(function, arguments, "Control.Bind", "bind")?
-            && let Some((parameter, body)) = self.effect_continuation(*continuation)
+            && let Some((parameter, body)) = self.effect_continuation(*continuation)?
         {
             return Ok(Some(EffectExpression::Bind { action: *action, parameter, body }));
         }
@@ -315,7 +315,7 @@ where
                 "discardUnit",
             )?
             && self.known_thunk_instance(*bind_dictionary, None)?
-            && let Some((parameter, body)) = self.effect_continuation(*continuation)
+            && let Some((parameter, body)) = self.effect_continuation(*continuation)?
         {
             return Ok(Some(EffectExpression::Bind { action: *action, parameter, body }));
         }
@@ -335,27 +335,46 @@ where
         Ok(None)
     }
 
-    fn effect_continuation(&self, continuation: ExpressionId) -> Option<(Parameter, ExpressionId)> {
-        let ExpressionKind::Abstraction { parameters, body } = &self.storage[continuation].kind
-        else {
-            return None;
-        };
-        let [pattern] = parameters.as_ref() else { return None };
-        let parameter = match &self.storage[*pattern].kind {
-            PatternKind::Variable(parameter) => parameter.clone(),
-            PatternKind::Named { parameter, pattern }
-                if matches!(self.storage[*pattern].kind, PatternKind::Wildcard) =>
-            {
-                parameter.clone()
+    fn effect_continuation(
+        &mut self,
+        continuation: ExpressionId,
+    ) -> ConversionResult<Option<(Parameter, ExpressionId)>> {
+        if let ExpressionKind::Abstraction { parameters, body } = &self.storage[continuation].kind
+            && let [pattern] = parameters.as_ref()
+        {
+            let parameter = match &self.storage[*pattern].kind {
+                PatternKind::Variable(parameter) => Some(Parameter::clone(parameter)),
+                PatternKind::Named { parameter, pattern }
+                    if matches!(self.storage[*pattern].kind, PatternKind::Wildcard) =>
+                {
+                    Some(Parameter::clone(parameter))
+                }
+                PatternKind::Named { .. }
+                | PatternKind::Wildcard
+                | PatternKind::Literal(_)
+                | PatternKind::Array(_)
+                | PatternKind::Record(_)
+                | PatternKind::Constructor { .. } => None,
+            };
+            if let Some(parameter) = parameter {
+                return Ok(Some((parameter, *body)));
             }
-            PatternKind::Named { .. }
-            | PatternKind::Wildcard
-            | PatternKind::Literal(_)
-            | PatternKind::Array(_)
-            | PatternKind::Record(_)
-            | PatternKind::Constructor { .. } => return None,
-        };
-        Some((parameter, *body))
+        }
+
+        if !matches!(
+            self.storage[continuation].kind,
+            ExpressionKind::Global { .. } | ExpressionKind::Local { .. }
+        ) {
+            return Ok(None);
+        }
+
+        let parameter = self.fresh_parameter("bindValue".into())?;
+        let local = ExpressionKind::Local { parameter: Parameter::clone(&parameter) };
+
+        let value = self.expression(local);
+        let body = self.application(continuation, [value])?;
+
+        Ok(Some((parameter, body)))
     }
 
     fn uncurry_abstraction(

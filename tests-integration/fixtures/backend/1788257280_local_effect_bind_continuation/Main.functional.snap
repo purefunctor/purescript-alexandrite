@@ -1,0 +1,11 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign makeContinuation
+
+@export localBind = \$unit%2@(_) ->
+  let
+    continuation%0 = makeContinuation "Unit"
+  in effect.bind (effect.pure "Unit") \bindValue%1 -> continuation%0 bindValue%1

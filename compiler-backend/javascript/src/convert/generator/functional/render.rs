@@ -9,6 +9,7 @@ mod tail_call;
 use std::sync::Arc;
 
 use files::{FileId, ForeignSourceKind};
+use functional::optimize::local_uses;
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
     ExpressionId as FunctionalExpressionId, ExpressionKind, Global, GlobalId, Guard,
@@ -62,6 +63,7 @@ struct ForeignImport {
 #[derive(Debug)]
 enum LocalBinding {
     Direct(SmolStr),
+    Inline(ExpressionId),
     Lazy(SmolStr),
 }
 
@@ -191,6 +193,10 @@ impl FunctionContext {
 
     fn bind_direct(&mut self, parameter: &Parameter, name: SmolStr) {
         self.locals.insert(parameter.id, LocalBinding::Direct(name));
+    }
+
+    fn bind_inline(&mut self, parameter: &Parameter, expression: ExpressionId) {
+        self.locals.insert(parameter.id, LocalBinding::Inline(expression));
     }
 
     fn bind_lazy(&mut self, parameter: &Parameter, name: SmolStr) {
@@ -564,7 +570,7 @@ impl Generator<'_> {
             TailCallIdentity::Global(global) => self.global_names[&global].clone(),
             TailCallIdentity::Local(local) => match context.locals.get(&local) {
                 Some(LocalBinding::Direct(name)) => name.clone(),
-                Some(LocalBinding::Lazy(_)) | None => {
+                Some(LocalBinding::Inline(_) | LocalBinding::Lazy(_)) | None => {
                     unreachable!("invariant violated: tail-call profile has no direct local name")
                 }
             },
@@ -1665,7 +1671,10 @@ impl Generator<'_> {
                     && !self.lazy_global_names.contains_key(&global.id)
             }
             ExpressionKind::Local { parameter } => {
-                matches!(context.locals.get(&parameter.id), Some(LocalBinding::Direct(_)))
+                matches!(
+                    context.locals.get(&parameter.id),
+                    Some(LocalBinding::Direct(_) | LocalBinding::Inline(_))
+                )
             }
             ExpressionKind::Array { .. }
             | ExpressionKind::Record { .. }
@@ -2867,8 +2876,15 @@ fn execute_effect(
             Ok(())
         }
         CapturedEffect::Bind { action, parameter, body } => {
-            let (_, parameter_name) = execute_effect_action(renderer, action, &parameter.name)?;
-            renderer.context.bind_direct(&parameter, parameter_name);
+            if let CapturedEffectAction::Effect(effect) = &action
+                && let CapturedEffect::Pure { value } = effect.as_ref()
+                && local_uses(&renderer.generator.module.storage, body, parameter.id) <= 1
+            {
+                renderer.context.bind_inline(&parameter, *value);
+            } else {
+                let (_, parameter_name) = execute_effect_action(renderer, action, &parameter.name)?;
+                renderer.context.bind_direct(&parameter, parameter_name);
+            }
             renderer.generator.render_expression(
                 renderer.tree,
                 renderer.writer,
@@ -2935,8 +2951,12 @@ fn execute_effect_action(
             renderer.writer.constant(renderer.tree, &name, value, false);
         }
         CapturedEffectAction::Effect(effect) => {
-            renderer.writer.mutable(&name);
-            execute_effect(renderer, *effect, Destination::Assign(&name))?;
+            if let CapturedEffect::Pure { value } = effect.as_ref() {
+                renderer.writer.constant(renderer.tree, &name, *value, false);
+            } else {
+                renderer.writer.mutable(&name);
+                execute_effect(renderer, *effect, Destination::Assign(&name))?;
+            }
         }
     }
     Ok((renderer.tree.identifier(&name), name))
@@ -2950,6 +2970,7 @@ fn local_expression(
 ) -> ModuleResult<ExpressionId> {
     match context.locals.get(&parameter.id) {
         Some(LocalBinding::Direct(name)) => Ok(tree.identifier(name)),
+        Some(LocalBinding::Inline(expression)) => Ok(*expression),
         Some(LocalBinding::Lazy(name)) => {
             let accessor = tree.identifier(name);
             Ok(tree.call(accessor, vec![]))

@@ -1,0 +1,7 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export sharedBind = \$unit%1@(_) ->
+  effect.bind (effect.pure 42) \value%0 -> effect.pure { left: value%0, right: value%0 }

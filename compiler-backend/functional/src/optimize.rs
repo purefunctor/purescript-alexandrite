@@ -151,7 +151,7 @@ fn binding_uses(
     binding_uses + local_uses(storage, body, parameter)
 }
 
-fn local_uses(storage: &Storage, expression: ExpressionId, parameter: LocalId) -> usize {
+pub fn local_uses(storage: &Storage, expression: ExpressionId, parameter: LocalId) -> usize {
     if matches!(
         &storage[expression].kind,
         ExpressionKind::Local { parameter: local } if local.id == parameter
