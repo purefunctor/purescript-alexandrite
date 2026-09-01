@@ -38,7 +38,7 @@ jobs:
           prefix-key: "v4-docs"
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.87.1
         with:
           tool: wasm-pack
 
