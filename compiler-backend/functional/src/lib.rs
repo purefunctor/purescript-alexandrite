@@ -4,6 +4,7 @@ pub mod convert;
 pub mod error;
 pub mod optimize;
 pub mod pretty;
+pub mod stylex;
 pub mod tree;
 
 pub use convert::convert_module;

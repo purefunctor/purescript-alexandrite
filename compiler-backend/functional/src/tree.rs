@@ -9,6 +9,8 @@ use la_arena::{Arena, Idx};
 use lowering::TypeId as SourceTypeId;
 use smol_str::SmolStr;
 
+use crate::stylex::StyleXIntrinsic;
+
 pub type ExpressionId = Idx<Expression>;
 pub type PatternId = Idx<Pattern>;
 
@@ -196,27 +198,6 @@ pub enum ExpressionKind {
     Effect { effect: EffectExpression },
     SynthesizedEvidence { evidence: SynthesizedEvidence },
     TrivialEvidence,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StyleXIntrinsic {
-    Create,
-    Props,
-    RecordProps,
-    Conditional,
-    Keyframes,
-}
-
-impl StyleXIntrinsic {
-    pub fn name(self) -> &'static str {
-        match self {
-            StyleXIntrinsic::Create => "create",
-            StyleXIntrinsic::Props => "props",
-            StyleXIntrinsic::RecordProps => "recordProps",
-            StyleXIntrinsic::Conditional => "conditional",
-            StyleXIntrinsic::Keyframes => "keyframes",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
