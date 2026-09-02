@@ -1,18 +1,24 @@
 use std::iter;
 use std::sync::Arc;
 
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::{SmolStr, format_smolstr};
 
 #[derive(Debug, Default)]
 pub(super) struct NameAllocator {
     reserved: Arc<FxHashSet<SmolStr>>,
     names: FxHashSet<SmolStr>,
+    /// The next suffix to probe for each normalized preferred name.
+    ///
+    /// Every smaller suffix is already reserved or allocated, and neither set
+    /// ever shrinks, so resuming from here yields the same names as rescanning
+    /// from `$1` without making repeated allocation quadratic.
+    next_suffixes: FxHashMap<SmolStr, u32>,
 }
 
 impl NameAllocator {
     pub(super) fn with_reserved(reserved: Arc<FxHashSet<SmolStr>>) -> NameAllocator {
-        NameAllocator { reserved, names: FxHashSet::default() }
+        NameAllocator { reserved, names: FxHashSet::default(), next_suffixes: FxHashMap::default() }
     }
 
     pub(super) fn allocate(&mut self, preferred: impl AsRef<str>) -> SmolStr {
@@ -20,13 +26,24 @@ impl NameAllocator {
         if identifier_is_reserved(&normalized) {
             normalized.insert(0, '$');
         }
-        let mut candidate = SmolStr::new(&normalized);
-        let mut suffix = 1;
-        while self.reserved.contains(&candidate) || !self.names.insert(candidate.clone()) {
-            candidate = format_smolstr!("{normalized}${suffix}");
-            suffix += 1;
+        let normalized = SmolStr::from(normalized);
+        if self.claim(&normalized) {
+            return normalized;
         }
+        let mut suffix = self.next_suffixes.get(&normalized).copied().unwrap_or(1);
+        let candidate = loop {
+            let candidate = format_smolstr!("{normalized}${suffix}");
+            suffix += 1;
+            if self.claim(&candidate) {
+                break candidate;
+            }
+        };
+        self.next_suffixes.insert(normalized, suffix);
         candidate
+    }
+
+    fn claim(&mut self, candidate: &SmolStr) -> bool {
+        !self.reserved.contains(candidate) && self.names.insert(candidate.clone())
     }
 
     pub(super) fn allocated_names(&self) -> impl Iterator<Item = &SmolStr> {
@@ -112,4 +129,73 @@ fn identifier_is_reserved(identifier: &str) -> bool {
             | "with"
             | "yield"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use rustc_hash::FxHashSet;
+    use smol_str::{SmolStr, format_smolstr};
+
+    use super::NameAllocator;
+
+    fn reserved(names: &[&str]) -> Arc<FxHashSet<SmolStr>> {
+        Arc::new(names.iter().map(|name| SmolStr::new(name)).collect())
+    }
+
+    #[test]
+    fn repeated_allocation_numbers_suffixes_in_order() {
+        let mut allocator = NameAllocator::default();
+        assert_eq!(allocator.allocate("evidence"), "evidence");
+        for suffix in 1..10_000 {
+            assert_eq!(allocator.allocate("evidence"), format_smolstr!("evidence${suffix}"));
+        }
+        assert_eq!(allocator.next_suffixes[&SmolStr::new("evidence")], 10_000);
+    }
+
+    #[test]
+    fn repeated_allocation_skips_reserved_and_preallocated_suffixes() {
+        let mut allocator =
+            NameAllocator::with_reserved(reserved(&["value", "value$1", "value$3"]));
+        assert_eq!(allocator.allocate("value$5"), "value$5");
+        assert_eq!(allocator.allocate("value"), "value$2");
+        assert_eq!(allocator.allocate("value"), "value$4");
+        assert_eq!(allocator.allocate("value"), "value$6");
+        assert_eq!(allocator.allocate("value$7"), "value$7");
+        assert_eq!(allocator.allocate("value"), "value$8");
+        assert_eq!(allocator.allocate("value$7"), "value$7$1");
+    }
+
+    #[test]
+    fn remembered_suffix_does_not_skip_names_allocated_through_other_paths() {
+        let mut allocator = NameAllocator::default();
+        assert_eq!(allocator.allocate("value"), "value");
+        assert_eq!(allocator.allocate("value"), "value$1");
+        assert_eq!(allocator.allocate("value$2"), "value$2");
+        assert_eq!(allocator.allocate("value"), "value$3");
+        assert_eq!(allocator.allocate("value$2"), "value$2$1");
+        assert_eq!(allocator.allocate("value$2$1"), "value$2$1$1");
+    }
+
+    #[test]
+    fn reserved_words_are_prefixed_before_suffixing() {
+        let mut allocator = NameAllocator::default();
+        assert_eq!(allocator.allocate("class"), "$class");
+        assert_eq!(allocator.allocate("class"), "$class$1");
+        assert_eq!(allocator.allocate("$class"), "$class$2");
+        assert_eq!(allocator.allocate("class"), "$class$3");
+    }
+
+    #[test]
+    fn normalized_names_share_one_suffix_sequence() {
+        let mut allocator = NameAllocator::default();
+        assert_eq!(allocator.allocate("foo-bar"), "foo_bar");
+        assert_eq!(allocator.allocate("foo.bar"), "foo_bar$1");
+        assert_eq!(allocator.allocate("foo_bar"), "foo_bar$2");
+        assert_eq!(allocator.allocate("1"), "value_1");
+        assert_eq!(allocator.allocate("value_1"), "value_1$1");
+        assert_eq!(allocator.allocate(""), "value");
+        assert_eq!(allocator.allocate(""), "value$1");
+    }
 }
