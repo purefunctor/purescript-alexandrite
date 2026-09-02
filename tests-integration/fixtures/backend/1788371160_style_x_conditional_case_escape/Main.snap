@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+escaped :: Alexandrite.StyleX.ConditionalCase Prim.String
+
+Types
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:5:1
+  •
+  │
+  • Alexandrite.StyleX.ancestor must be used directly in a conditionalValue case array
+  │
+  │   escaped = When.ancestor ":hover" "red"
+  │   ╰─────────────────────────────────────
+  •

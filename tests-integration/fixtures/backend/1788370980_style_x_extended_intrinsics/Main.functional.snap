@@ -1,0 +1,60 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constants = stylex.defineConsts { compact: "@media (max-width: 40rem)", columns: 12 }
+
+@export variables = stylex.defineVars {
+  accent: stylex.types.color "royalblue",
+  angle: stylex.types.angle "45deg",
+  image: stylex.types.image "linear-gradient(red, blue)",
+  integer: stylex.types.integer 1,
+  length: stylex.types.length "8px",
+  lengthPercentage: stylex.types.lengthPercentage "10%",
+  number: stylex.types.number 0.5,
+  percentage: stylex.types.percentage "50%",
+  resolution: stylex.types.resolution "2dppx",
+  time: stylex.types.time "200ms",
+  transformFunction: stylex.types.transformFunction "scale(1)",
+  transformList: stylex.types.transformList "scale(1) rotate(2deg)",
+  url: stylex.types.url "url(image.png)"
+}
+
+@export theme = stylex.createTheme variables {
+  accent: stylex.types.color "white",
+  length: stylex.types.length "12px"
+}
+
+@export rowMarker = stylex.defineMarker
+
+@export styles = stylex.create {
+  root:
+    {
+      color:
+        stylex.conditionalValue "blue" [stylex.when.ancestor(":hover", "red"),
+          stylex.when.ancestor(":focus", rowMarker, "green"),
+          stylex.when.descendant(":hover", "purple"),
+          stylex.when.descendant(":focus", rowMarker, "pink"),
+          stylex.when.siblingBefore(":hover", "orange"),
+          stylex.when.siblingBefore(":focus", rowMarker, "yellow"),
+          stylex.when.siblingAfter(":hover", "gray"),
+          stylex.when.siblingAfter(":focus", rowMarker, "black"),
+          stylex.when.anySibling(":hover", "navy"),
+          stylex.when.anySibling(":focus", rowMarker, "teal")],
+      position: stylex.firstThatWorks "sticky" "fixed"
+    }
+}
+
+@export attributes = stylex.attrs styles.root
+
+@export markerProps = stylex.props rowMarker
+
+@export defaultMarkerProps = stylex.props (stylex.defaultMarker)
+
+@export transitionClass = stylex.viewTransitionClass {
+  new: { opacity: 1.0 },
+  old: { opacity: 0.0 }
+}
+
+@export fallback = stylex.positionTry { positionArea: "block-start", margin: 8 }

@@ -47,7 +47,8 @@ impl ToDiagnostics for FunctionalModuleError {
     {
         let FunctionalModuleError::Unsupported { state, .. } = self;
         let span = match state {
-            FunctionalUnsupportedState::InvalidStyleXUse { declaration, .. } => {
+            FunctionalUnsupportedState::InvalidStyleXUse { declaration, .. }
+            | FunctionalUnsupportedState::InvalidStyleXContext { declaration, .. } => {
                 global_span(context, *declaration)
             }
             _ => None,

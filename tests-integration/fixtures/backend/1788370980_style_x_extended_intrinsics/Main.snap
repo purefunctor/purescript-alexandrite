@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+constants :: { columns :: Prim.Int, compact :: Prim.String }
+variables ::
+  { accent ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
+  , angle ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Angle Prim.String)
+  , image ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Image Prim.String)
+  , integer ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Int)
+  , length ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+  , lengthPercentage ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.LengthPercentage Prim.String)
+  , number ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.Number)
+  , percentage ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Percentage Prim.String)
+  , resolution ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Resolution Prim.String)
+  , time ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Time Prim.String)
+  , transformFunction ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformFunction Prim.String)
+  , transformList ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformList Prim.String)
+  , url ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Url Prim.String)
+  }
+theme :: Alexandrite.StyleX.Style
+rowMarker :: Alexandrite.StyleX.Marker
+styles :: { root :: Alexandrite.StyleX.Style }
+attributes :: Alexandrite.StyleX.Attrs
+markerProps :: Alexandrite.StyleX.Props
+defaultMarkerProps :: Alexandrite.StyleX.Props
+transitionClass :: Prim.String
+fallback :: Prim.String
+
+Types

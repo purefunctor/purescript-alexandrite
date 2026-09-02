@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+theme :: Alexandrite.StyleX.Style
+styles :: { root :: Alexandrite.StyleX.Style }
+
+Types

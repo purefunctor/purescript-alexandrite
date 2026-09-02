@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+marker :: Alexandrite.StyleX.Marker
+visible :: Prim.Int
+
+Types
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:5:1
+  •
+  │
+  • Alexandrite.StyleX.defineMarker must initialize an exported top-level value
+  │
+  │   marker = StyleX.defineMarker
+  │   ╰───────────────────────────
+  •

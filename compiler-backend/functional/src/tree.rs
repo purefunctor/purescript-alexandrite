@@ -9,7 +9,7 @@ use la_arena::{Arena, Idx};
 use lowering::TypeId as SourceTypeId;
 use smol_str::SmolStr;
 
-use crate::stylex::StyleXIntrinsic;
+use crate::stylex::StyleXExpression;
 
 pub type ExpressionId = Idx<Expression>;
 pub type PatternId = Idx<Pattern>;
@@ -189,7 +189,7 @@ pub enum ExpressionKind {
     UncurriedAbstraction { parameters: Arc<[PatternId]>, body: ExpressionId },
     Application { function: ExpressionId, arguments: Arc<[ExpressionId]>, synthetic: bool },
     UncurriedApplication { function: ExpressionId, arguments: Arc<[ExpressionId]>, synthetic: bool },
-    StyleX { intrinsic: StyleXIntrinsic, argument: ExpressionId },
+    StyleX(StyleXExpression),
     IfThenElse { condition: ExpressionId, then: ExpressionId, else_: ExpressionId },
     Case { scrutinees: Arc<[ExpressionId]>, alternatives: Arc<[CaseAlternative]> },
     Guarded { alternatives: Arc<[GuardedAlternative]> },
@@ -212,7 +212,6 @@ pub enum BinaryOperator {
     IntegerAdd,
     IntegerSubtract,
     IntegerMultiply,
-    StyleXConditional,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

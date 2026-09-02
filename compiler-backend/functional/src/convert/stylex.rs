@@ -1,20 +1,32 @@
-//! Recognition and lowering for the virtual StyleX module.
+//! Recognition and lowering for the virtual StyleX modules.
 
 use building_types::QueryResult;
 use files::FileId;
 use indexing::TermItemId;
-use itertools::Itertools;
-use rustc_hash::FxHashSet;
 
 use crate::error::UnsupportedState;
 use crate::optimize::expression_children;
-use crate::stylex::StyleXIntrinsic;
+use crate::stylex::{
+    StyleXCallTarget, StyleXConditionalCase, StyleXExpression, StyleXIntrinsic, StyleXRootCall,
+    StyleXRootIntrinsic, StyleXTypeCall, StyleXWhenRelation,
+};
 use crate::tree::{
-    BinaryOperator, Binding, Declaration, DeclarationKind, ExpressionId, ExpressionKind, Field,
-    GlobalId, RecordField,
+    Binding, Declaration, DeclarationKind, ExpressionId, ExpressionKind, Field, GlobalId,
+    RecordField,
 };
 
 use super::{Context, ConversionResult};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StyleXStaticContext {
+    None,
+    Create,
+    Keyframes,
+    DefineVars,
+    CreateTheme,
+    ViewTransitionClass,
+    PositionTry,
+}
 
 impl<'c, Q> Context<'c, Q>
 where
@@ -34,25 +46,127 @@ where
             return Ok(None);
         };
         let expression = match (intrinsic, arguments) {
-            (StyleXIntrinsic::Create, [_, argument])
-            | (StyleXIntrinsic::Props, [_, argument])
-            | (StyleXIntrinsic::Keyframes, [argument]) => {
-                Some(self.expression(ExpressionKind::StyleX { intrinsic, argument: *argument }))
+            (
+                StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(
+                    call @ (StyleXRootCall::Create
+                    | StyleXRootCall::Props
+                    | StyleXRootCall::Attrs
+                    | StyleXRootCall::DefineVars),
+                )),
+                [_, argument],
+            ) => Some(self.stylex_call(StyleXCallTarget::Root(call), [*argument])),
+            (
+                StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(
+                    call @ (StyleXRootCall::Keyframes
+                    | StyleXRootCall::DefineConsts
+                    | StyleXRootCall::ViewTransitionClass
+                    | StyleXRootCall::PositionTry),
+                )),
+                [argument],
+            ) => Some(self.stylex_call(StyleXCallTarget::Root(call), [*argument])),
+            (
+                StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(StyleXRootCall::CreateTheme)),
+                [_, variables, overrides],
+            ) => Some(self.stylex_call(
+                StyleXCallTarget::Root(StyleXRootCall::CreateTheme),
+                [*variables, *overrides],
+            )),
+            (
+                StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(StyleXRootCall::FirstThatWorks)),
+                [argument],
+            ) => {
+                let ExpressionKind::Array { elements } = &self.storage[*argument].kind else {
+                    return Ok(None);
+                };
+                if elements.is_empty() {
+                    return Ok(None);
+                }
+                let elements = elements.to_vec();
+                Some(
+                    self.stylex_call(
+                        StyleXCallTarget::Root(StyleXRootCall::FirstThatWorks),
+                        elements,
+                    ),
+                )
             }
-            (StyleXIntrinsic::RecordProps, [_, argument]) => {
+            (StyleXIntrinsic::Root(StyleXRootIntrinsic::RecordProps), [_, argument]) => {
                 let Some(result_type) = result_type else { return Ok(None) };
                 self.stylex_record_props(*argument, result_type)?
             }
-            (StyleXIntrinsic::Conditional, [condition, style]) => {
-                Some(self.expression(ExpressionKind::Binary {
-                    operator: BinaryOperator::StyleXConditional,
-                    left: *condition,
-                    right: *style,
-                }))
+            (StyleXIntrinsic::Root(StyleXRootIntrinsic::Conditional), [condition, style]) => {
+                Some(self.expression(ExpressionKind::StyleX(StyleXExpression::Conditional {
+                    condition: *condition,
+                    style: *style,
+                })))
+            }
+            (StyleXIntrinsic::Root(StyleXRootIntrinsic::ConditionalValue), [default, cases]) => {
+                let ExpressionKind::Array { elements } = &self.storage[*cases].kind else {
+                    return Ok(None);
+                };
+                let mut converted = Vec::with_capacity(elements.len());
+                for element in elements.iter() {
+                    let ExpressionKind::StyleX(StyleXExpression::ConditionalCase(case)) =
+                        &self.storage[*element].kind
+                    else {
+                        return Ok(None);
+                    };
+                    converted.push(case.clone());
+                }
+                Some(self.expression(ExpressionKind::StyleX(StyleXExpression::ConditionalValue {
+                    default: *default,
+                    cases: converted.into(),
+                })))
+            }
+            (StyleXIntrinsic::When { relation, marker: false }, [selector, value]) => {
+                Some(self.stylex_conditional_case(relation, *selector, None, *value))
+            }
+            (StyleXIntrinsic::When { relation, marker: true }, [selector, marker, value]) => {
+                Some(self.stylex_conditional_case(relation, *selector, Some(*marker), *value))
+            }
+            (StyleXIntrinsic::Types(call), [argument]) => {
+                Some(self.stylex_call(StyleXCallTarget::Types(call), [*argument]))
             }
             _ => None,
         };
         Ok(expression)
+    }
+
+    pub(super) fn stylex_value_intrinsic(
+        &mut self,
+        file_id: FileId,
+        term_id: TermItemId,
+    ) -> ConversionResult<Option<ExpressionId>> {
+        let Some(StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(call))) =
+            self.stylex_intrinsic_identity(file_id, term_id)?
+        else {
+            return Ok(None);
+        };
+        match call {
+            StyleXRootCall::DefineMarker | StyleXRootCall::DefaultMarker => {
+                Ok(Some(self.stylex_call(StyleXCallTarget::Root(call), [])))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn stylex_call(
+        &mut self,
+        target: StyleXCallTarget,
+        arguments: impl IntoIterator<Item = ExpressionId>,
+    ) -> ExpressionId {
+        let arguments = arguments.into_iter().collect();
+        self.expression(ExpressionKind::StyleX(StyleXExpression::Call { target, arguments }))
+    }
+
+    fn stylex_conditional_case(
+        &mut self,
+        relation: StyleXWhenRelation,
+        selector: ExpressionId,
+        marker: Option<ExpressionId>,
+        value: ExpressionId,
+    ) -> ExpressionId {
+        let case = StyleXConditionalCase { relation, selector, marker, value };
+        self.expression(ExpressionKind::StyleX(StyleXExpression::ConditionalCase(case)))
     }
 
     fn stylex_record_props(
@@ -89,10 +203,8 @@ where
             let field = self.label_field(label);
             let style =
                 self.expression(ExpressionKind::Project { record, field: Field::clone(&field) });
-            let expression = self.expression(ExpressionKind::StyleX {
-                intrinsic: StyleXIntrinsic::Props,
-                argument: style,
-            });
+            let expression =
+                self.stylex_call(StyleXCallTarget::Root(StyleXRootCall::Props), [style]);
             RecordField { field, expression }
         });
 
@@ -114,16 +226,15 @@ where
         file_id: FileId,
         term_id: TermItemId,
     ) -> QueryResult<Option<StyleXIntrinsic>> {
-        if self.queries.module_file("Alexandrite.StyleX") != Some(file_id) {
-            return Ok(None);
-        }
+        let module_name = self.source_module_name(file_id)?;
         let indexed = self.indexed_module(file_id)?;
-        let intrinsic = match indexed.items[term_id].name.as_deref() {
-            Some("create") => Some(StyleXIntrinsic::Create),
-            Some("props") => Some(StyleXIntrinsic::Props),
-            Some("recordProps") => Some(StyleXIntrinsic::RecordProps),
-            Some("conditional") => Some(StyleXIntrinsic::Conditional),
-            Some("keyframes") => Some(StyleXIntrinsic::Keyframes),
+        let Some(name) = indexed.items[term_id].name.as_deref() else {
+            return Ok(None);
+        };
+        let intrinsic = match module_name.as_str() {
+            "Alexandrite.StyleX" => stylex_root_intrinsic(name).map(StyleXIntrinsic::Root),
+            "Alexandrite.StyleX.When" => stylex_when_intrinsic(name),
+            "Alexandrite.StyleX.Types" => stylex_type_intrinsic(name).map(StyleXIntrinsic::Types),
             _ => None,
         };
         Ok(intrinsic)
@@ -133,34 +244,168 @@ where
         &self,
         declarations: &[Declaration],
     ) -> ConversionResult<()> {
-        let pending = declarations.iter().filter_map(|declaration| match declaration.kind {
-            DeclarationKind::Value(expression) => Some((expression, declaration.global.id)),
-            DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => None,
-        });
-        let mut pending = pending.collect_vec();
-        let mut visited = FxHashSet::default();
-        while let Some((expression, declaration)) = pending.pop() {
-            if !visited.insert(expression) {
-                continue;
-            }
-            if let ExpressionKind::Global { global } = &self.storage[expression].kind
-                && let GlobalId::Term(file_id, term_id) = global.id
-                && let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)?
-            {
-                let state = UnsupportedState::InvalidStyleXUse {
-                    function: intrinsic.name().to_owned(),
-                    declaration,
-                };
-                return Err(self.unsupported(state));
-            }
-            let children = expression_children(&self.storage[expression].kind);
-            pending.extend(children.into_iter().map(|expression| (expression, declaration)));
+        for declaration in declarations {
+            let DeclarationKind::Value(expression) = declaration.kind else { continue };
+            self.validate_stylex_expression(
+                expression,
+                expression,
+                declaration,
+                StyleXStaticContext::None,
+            )?;
         }
         Ok(())
     }
 
+    fn validate_stylex_expression(
+        &self,
+        expression: ExpressionId,
+        root: ExpressionId,
+        declaration: &Declaration,
+        context: StyleXStaticContext,
+    ) -> ConversionResult<()> {
+        match &self.storage[expression].kind {
+            ExpressionKind::Global { global }
+                if let GlobalId::Term(file_id, term_id) = global.id
+                    && let Some(intrinsic) =
+                        self.stylex_intrinsic_identity(file_id, term_id)? =>
+            {
+                let state = UnsupportedState::InvalidStyleXUse {
+                    function: intrinsic.name().to_owned(),
+                    declaration: declaration.global.id,
+                };
+                return Err(self.unsupported(state));
+            }
+            ExpressionKind::StyleX(stylex) => {
+                let child_context = match stylex {
+                    StyleXExpression::Call { target: StyleXCallTarget::Root(call), .. } => self
+                        .validate_stylex_root_call(*call, expression, root, declaration, context)?,
+                    StyleXExpression::Call { target: StyleXCallTarget::Types(call), .. } => {
+                        if !matches!(
+                            context,
+                            StyleXStaticContext::DefineVars | StyleXStaticContext::CreateTheme
+                        ) {
+                            return Err(self.invalid_stylex_context(
+                                call.name(),
+                                "must be used inside defineVars or createTheme",
+                                declaration.global.id,
+                            ));
+                        }
+                        context
+                    }
+                    StyleXExpression::ConditionalCase(case) => {
+                        return Err(self.invalid_stylex_context(
+                            case.relation.name(),
+                            "must be used directly in a conditionalValue case array",
+                            declaration.global.id,
+                        ));
+                    }
+                    StyleXExpression::ConditionalValue { .. } => {
+                        if context != StyleXStaticContext::Create {
+                            return Err(self.invalid_stylex_context(
+                                "conditionalValue",
+                                "must be used inside create",
+                                declaration.global.id,
+                            ));
+                        }
+                        context
+                    }
+                    StyleXExpression::Conditional { .. } => context,
+                };
+                for child in stylex.children() {
+                    self.validate_stylex_expression(child, root, declaration, child_context)?;
+                }
+                return Ok(());
+            }
+            _ => {}
+        }
+        for child in expression_children(&self.storage[expression].kind) {
+            self.validate_stylex_expression(child, root, declaration, context)?;
+        }
+        Ok(())
+    }
+
+    fn validate_stylex_root_call(
+        &self,
+        call: StyleXRootCall,
+        expression: ExpressionId,
+        root: ExpressionId,
+        declaration: &Declaration,
+        context: StyleXStaticContext,
+    ) -> ConversionResult<StyleXStaticContext> {
+        let direct_initializer = expression == root && declaration.recursive_group.is_none();
+        let required_context = match call {
+            StyleXRootCall::Create => StyleXStaticContext::Create,
+            StyleXRootCall::Keyframes => StyleXStaticContext::Keyframes,
+            StyleXRootCall::DefineVars => StyleXStaticContext::DefineVars,
+            StyleXRootCall::CreateTheme => StyleXStaticContext::CreateTheme,
+            StyleXRootCall::ViewTransitionClass => StyleXStaticContext::ViewTransitionClass,
+            StyleXRootCall::PositionTry => StyleXStaticContext::PositionTry,
+            _ => context,
+        };
+        let requires_direct_initializer = matches!(
+            call,
+            StyleXRootCall::DefineConsts
+                | StyleXRootCall::DefineVars
+                | StyleXRootCall::CreateTheme
+                | StyleXRootCall::DefineMarker
+                | StyleXRootCall::ViewTransitionClass
+                | StyleXRootCall::PositionTry
+        );
+        if requires_direct_initializer && !direct_initializer {
+            return Err(self.invalid_stylex_context(
+                call.name(),
+                "must directly initialize a non-recursive top-level value",
+                declaration.global.id,
+            ));
+        }
+        if matches!(
+            call,
+            StyleXRootCall::DefineConsts
+                | StyleXRootCall::DefineVars
+                | StyleXRootCall::DefineMarker
+        ) && !declaration.exported
+        {
+            return Err(self.invalid_stylex_context(
+                call.name(),
+                "must initialize an exported top-level value",
+                declaration.global.id,
+            ));
+        }
+        if call == StyleXRootCall::FirstThatWorks
+            && !matches!(
+                context,
+                StyleXStaticContext::Create
+                    | StyleXStaticContext::Keyframes
+                    | StyleXStaticContext::PositionTry
+                    | StyleXStaticContext::ViewTransitionClass
+            )
+        {
+            return Err(self.invalid_stylex_context(
+                call.name(),
+                "must be used inside create, keyframes, positionTry, or viewTransitionClass",
+                declaration.global.id,
+            ));
+        }
+        Ok(required_context)
+    }
+
+    fn invalid_stylex_context(
+        &self,
+        function: &str,
+        requirement: &str,
+        declaration: GlobalId,
+    ) -> super::ConversionError {
+        self.unsupported(UnsupportedState::InvalidStyleXContext {
+            function: function.to_owned(),
+            requirement: requirement.to_owned(),
+            declaration,
+        })
+    }
+
     pub(super) fn module_is_virtual(&self, file_id: FileId) -> bool {
-        self.queries.module_file("Alexandrite.StyleX") == Some(file_id)
+        ["Alexandrite.StyleX", "Alexandrite.StyleX.When", "Alexandrite.StyleX.Types"]
+            .into_iter()
+            .any(|module_name| self.queries.module_file(module_name) == Some(file_id))
     }
 
     pub(super) fn validate_runtime_reference(
@@ -180,5 +425,63 @@ where
             .to_string();
         let state = UnsupportedState::VirtualModuleRuntimeReference { module_name, item_name };
         Err(self.unsupported(state))
+    }
+}
+
+fn stylex_root_intrinsic(name: &str) -> Option<StyleXRootIntrinsic> {
+    let call = match name {
+        "create" => StyleXRootCall::Create,
+        "props" => StyleXRootCall::Props,
+        "attrs" => StyleXRootCall::Attrs,
+        "keyframes" => StyleXRootCall::Keyframes,
+        "defineConsts" => StyleXRootCall::DefineConsts,
+        "defineVars" => StyleXRootCall::DefineVars,
+        "createTheme" => StyleXRootCall::CreateTheme,
+        "defineMarker" => StyleXRootCall::DefineMarker,
+        "defaultMarker" => StyleXRootCall::DefaultMarker,
+        "viewTransitionClass" => StyleXRootCall::ViewTransitionClass,
+        "positionTry" => StyleXRootCall::PositionTry,
+        "firstThatWorks" => StyleXRootCall::FirstThatWorks,
+        "recordProps" => return Some(StyleXRootIntrinsic::RecordProps),
+        "conditional" => return Some(StyleXRootIntrinsic::Conditional),
+        "conditionalValue" => return Some(StyleXRootIntrinsic::ConditionalValue),
+        _ => return None,
+    };
+    Some(StyleXRootIntrinsic::Call(call))
+}
+
+fn stylex_when_intrinsic(name: &str) -> Option<StyleXIntrinsic> {
+    let (relation, marker) = match name {
+        "ancestor" => (StyleXWhenRelation::Ancestor, false),
+        "ancestorMarker" => (StyleXWhenRelation::Ancestor, true),
+        "descendant" => (StyleXWhenRelation::Descendant, false),
+        "descendantMarker" => (StyleXWhenRelation::Descendant, true),
+        "siblingBefore" => (StyleXWhenRelation::SiblingBefore, false),
+        "siblingBeforeMarker" => (StyleXWhenRelation::SiblingBefore, true),
+        "siblingAfter" => (StyleXWhenRelation::SiblingAfter, false),
+        "siblingAfterMarker" => (StyleXWhenRelation::SiblingAfter, true),
+        "anySibling" => (StyleXWhenRelation::AnySibling, false),
+        "anySiblingMarker" => (StyleXWhenRelation::AnySibling, true),
+        _ => return None,
+    };
+    Some(StyleXIntrinsic::When { relation, marker })
+}
+
+fn stylex_type_intrinsic(name: &str) -> Option<StyleXTypeCall> {
+    match name {
+        "angle" => Some(StyleXTypeCall::Angle),
+        "color" => Some(StyleXTypeCall::Color),
+        "url" => Some(StyleXTypeCall::Url),
+        "image" => Some(StyleXTypeCall::Image),
+        "integer" => Some(StyleXTypeCall::Integer),
+        "lengthPercentage" => Some(StyleXTypeCall::LengthPercentage),
+        "length" => Some(StyleXTypeCall::Length),
+        "percentage" => Some(StyleXTypeCall::Percentage),
+        "number" => Some(StyleXTypeCall::Number),
+        "resolution" => Some(StyleXTypeCall::Resolution),
+        "time" => Some(StyleXTypeCall::Time),
+        "transformFunction" => Some(StyleXTypeCall::TransformFunction),
+        "transformList" => Some(StyleXTypeCall::TransformList),
+        _ => None,
     }
 }

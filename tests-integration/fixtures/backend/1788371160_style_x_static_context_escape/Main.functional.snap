@@ -1,0 +1,6 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+cannot convert checked module Idx::<File>(45): Alexandrite.StyleX.color must be used inside defineVars or createTheme

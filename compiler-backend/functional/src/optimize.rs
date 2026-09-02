@@ -231,7 +231,7 @@ fn is_simple_expression(
         | ExpressionKind::Error
         | ExpressionKind::Application { .. }
         | ExpressionKind::UncurriedApplication { .. }
-        | ExpressionKind::StyleX { .. }
+        | ExpressionKind::StyleX(_)
         | ExpressionKind::IfThenElse { .. }
         | ExpressionKind::Case { .. }
         | ExpressionKind::Guarded { .. }
@@ -241,7 +241,7 @@ fn is_simple_expression(
     }
 }
 
-pub(crate) fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
+pub fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
     match kind {
         ExpressionKind::Error
         | ExpressionKind::Literal { .. }
@@ -270,7 +270,7 @@ pub(crate) fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
             children.extend(arguments.iter().copied());
             children
         }
-        ExpressionKind::StyleX { argument, .. } => vec![*argument],
+        ExpressionKind::StyleX(stylex) => stylex.children(),
         ExpressionKind::IfThenElse { condition, then, else_ } => {
             vec![*condition, *then, *else_]
         }

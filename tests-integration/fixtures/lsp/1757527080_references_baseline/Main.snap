@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 383
+assertion_line: 388
 expression: report
 ---
 References at Position { line: 2, character: 7 }
@@ -10,8 +10,8 @@ import Lib
 --     %
 ```
 
-file:///tests-integration/fixtures/lsp/1757527080_references_baseline/External.purs @ 2:0..2:10
 file:///tests-integration/fixtures/lsp/1757527080_references_baseline/Main.purs @ 2:0..2:10
+file:///tests-integration/fixtures/lsp/1757527080_references_baseline/External.purs @ 2:0..2:10
 
 
 References at Position { line: 5, character: 7 }

@@ -1,0 +1,76 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 301
+expression: report
+---
+Terms
+variables ::
+  { accent ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
+  , spacing ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+  }
+valid :: Alexandrite.StyleX.Style
+wrongType :: Alexandrite.StyleX.Style
+unknown :: Alexandrite.StyleX.Style
+
+Types
+
+Diagnostics
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'Color' with 'Length'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'TypedValue Color' with 'TypedValue Length'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'TypedValue Color String' with 'TypedValue Length String'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'Variable (TypedValue Color String)' with 'Variable (TypedValue Length String)'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify '( accent :: Variable (TypedValue Color String), spacing :: Variable (TypedValue
+  │ Length String) )' with '( accent :: Variable (TypedValue Length String) | ?44 )'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify '( accent :: Variable (TypedValue Color String), spacing :: Variable (TypedValue
+  │ Length String) )' with '( missing :: Variable (TypedValue Color String) | ?58 )'
+  │
+  │   unknown = StyleX.createTheme variables
+  │   ╰─────────────────────────────────────
+  •
