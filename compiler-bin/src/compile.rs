@@ -243,6 +243,8 @@ fn report_diagnostics(
         progress::phase(&progress, source_ids.len(), "Analyse", config.progress);
     let checking_progress =
         progress::phase(&progress, source_ids.len(), "Elaborate", config.progress);
+    let generating_progress =
+        progress::phase(&progress, source_ids.len(), "Generate", config.progress);
 
     let module_names = source_ids.par_iter().map(|&file_id| {
         let engine = compilation.snapshot();
@@ -274,6 +276,18 @@ fn report_diagnostics(
     });
     elaborated.collect::<Result<Vec<_>, _>>()?;
     progress::finish(&checking_progress);
+
+    let generated = source_ids.par_iter().zip(&module_names).map(|(&file_id, module_name)| {
+        let engine = compilation.snapshot();
+        if let Some(module_name) = module_name {
+            progress::set_message(&generating_progress, module_name);
+        }
+        let _ = engine.javascript(file_id)?;
+        generating_progress.inc(1);
+        Ok::<_, CompileError>(())
+    });
+    generated.collect::<Result<Vec<_>, _>>()?;
+    progress::finish(&generating_progress);
 
     let engine = compilation.snapshot();
     let diagnostics = diagnostics::collect_diagnostics(&engine, source_ids)?;
