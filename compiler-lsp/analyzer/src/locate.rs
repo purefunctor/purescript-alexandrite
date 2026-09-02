@@ -276,23 +276,37 @@ pub fn locate(
     id: FileId,
     position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {
-    let (located, _) = locate_with_token(engine, id, position)?;
+    let content = engine.content(id)?;
+    let line_index = LineIndex::new(&content);
+    locate_with_line_index(engine, id, &content, &line_index, position)
+}
+
+pub(crate) fn locate_with_line_index(
+    engine: &impl AnalyzerQueries,
+    id: FileId,
+    content: &str,
+    line_index: &LineIndex,
+    position: Utf8Position,
+) -> Result<Located, AnalyzerError> {
+    let (located, _) = locate_with_token_and_line_index(engine, id, content, line_index, position)?;
     Ok(located)
 }
 
-pub(crate) fn locate_with_token(
+pub(crate) fn locate_with_token_and_line_index(
     engine: &impl AnalyzerQueries,
     id: FileId,
+    content: &str,
+    line_index: &LineIndex,
     position: Utf8Position,
 ) -> Result<(Located, Option<SyntaxToken>), AnalyzerError> {
-    let content = engine.content(id)?;
-
     let (parsed, _) = engine.parsed(id)?;
     let stabilized = engine.stabilized(id)?;
     let indexed = engine.indexed(id)?;
     let lowered = engine.lowered(id)?;
 
-    let Some(offset) = position::utf8_position_to_offset(&content, position) else {
+    let Some(offset) =
+        position::utf8_position_to_offset_with_line_index(content, line_index, position)
+    else {
         return Ok((Located::Nothing, None));
     };
 

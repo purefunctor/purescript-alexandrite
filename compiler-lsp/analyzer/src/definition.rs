@@ -3,6 +3,7 @@ use std::iter;
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
+use line_index::LineIndex;
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, ImplicitTypeVariable,
     LetBindingNameGroupId, TermVariableResolution, TypeId, TypeKind, TypeVariableResolution,
@@ -26,11 +27,22 @@ pub fn implementation(
     };
 
     let content = context.queries().content(current_file)?;
-    let position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+    let line_index = LineIndex::new(&content);
+    let position = position::protocol_position_to_utf8_with_line_index(
+        &content,
+        &line_index,
+        position,
+        context.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.queries(), current_file, position)?;
+    let located = locate::locate_with_line_index(
+        context.queries(),
+        current_file,
+        &content,
+        &line_index,
+        position,
+    )?;
 
     match located {
         locate::Located::ModuleName(module_name) => {

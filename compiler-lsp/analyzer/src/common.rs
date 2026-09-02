@@ -1,6 +1,7 @@
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{DeriveItemId, InstanceItemId, TermItemId, TypeItemId};
+use line_index::LineIndex;
 use lsp_types::*;
 use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr};
@@ -16,6 +17,18 @@ pub fn file_term_location(
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
     let content = engine.content(file_id)?;
+    let line_index = LineIndex::new(&content);
+    file_term_location_with_line_index(context, uri, file_id, &line_index, term_id)
+}
+
+pub(crate) fn file_term_location_with_line_index(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    file_id: FileId,
+    line_index: &LineIndex,
+    term_id: TermItemId,
+) -> Result<Location, AnalyzerError> {
+    let engine = context.queries();
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -24,9 +37,13 @@ pub fn file_term_location(
     let root = parsed.syntax_node();
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
-    let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range_with_line_index(line_index, root, pointers)?;
+    let range = position::utf8_range_to_protocol_with_line_index(
+        line_index,
+        range,
+        context.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
@@ -38,6 +55,18 @@ pub fn file_type_location(
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
     let content = engine.content(file_id)?;
+    let line_index = LineIndex::new(&content);
+    file_type_location_with_line_index(context, uri, file_id, &line_index, type_id)
+}
+
+pub(crate) fn file_type_location_with_line_index(
+    context: &AnalyzerContext<impl crate::AnalyzerHost>,
+    uri: Url,
+    file_id: FileId,
+    line_index: &LineIndex,
+    type_id: TypeItemId,
+) -> Result<Location, AnalyzerError> {
+    let engine = context.queries();
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -46,9 +75,13 @@ pub fn file_type_location(
     let root = parsed.syntax_node();
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
-    let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range_with_line_index(line_index, root, pointers)?;
+    let range = position::utf8_range_to_protocol_with_line_index(
+        line_index,
+        range,
+        context.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
@@ -101,8 +134,17 @@ pub fn pointers_range(
     root: SyntaxNode,
     pointers: impl Iterator<Item = SyntaxNodePtr>,
 ) -> Result<Utf8Range, AnalyzerError> {
+    let line_index = LineIndex::new(content);
+    pointers_range_with_line_index(&line_index, root, pointers)
+}
+
+pub(crate) fn pointers_range_with_line_index(
+    line_index: &LineIndex,
+    root: SyntaxNode,
+    pointers: impl Iterator<Item = SyntaxNodePtr>,
+) -> Result<Utf8Range, AnalyzerError> {
     pointers
-        .filter_map(|ptr| locate::syntax_range(content, &root, &ptr))
+        .filter_map(|ptr| locate::syntax_range_with_line_index(line_index, &root, &ptr))
         .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
         .ok_or(AnalyzerError::NonFatal)
 }

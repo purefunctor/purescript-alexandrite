@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use building_types::QueryProxy;
 use indexing::{IndexedTermItemKind, IndexedTypeItemKind};
+use line_index::LineIndex;
 use lsp_types::*;
 use radix_trie::Trie;
 
@@ -45,6 +46,8 @@ pub fn document(
 
     let resolved = engine.resolved(current_file)?;
     let indexed = engine.indexed(current_file)?;
+    let content = engine.content(current_file)?;
+    let line_index = LineIndex::new(&content);
 
     let mut symbols = vec![];
 
@@ -54,7 +57,13 @@ pub fn document(
         }
         let kind = term_symbol_kind(&indexed.items[term_id].kind);
         let uri = Url::clone(&uri);
-        let location = common::file_term_location(context, uri, current_file, term_id)?;
+        let location = common::file_term_location_with_line_index(
+            context,
+            uri,
+            current_file,
+            &line_index,
+            term_id,
+        )?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -72,7 +81,13 @@ pub fn document(
         }
         let kind = type_symbol_kind(&indexed.items[type_id].kind);
         let uri = Url::clone(&uri);
-        let location = common::file_type_location(context, uri, current_file, type_id)?;
+        let location = common::file_type_location_with_line_index(
+            context,
+            uri,
+            current_file,
+            &line_index,
+            type_id,
+        )?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -90,7 +105,13 @@ pub fn document(
         }
         let kind = SymbolKind::INTERFACE;
         let uri = Url::clone(&uri);
-        let location = common::file_type_location(context, uri, current_file, type_id)?;
+        let location = common::file_type_location_with_line_index(
+            context,
+            uri,
+            current_file,
+            &line_index,
+            type_id,
+        )?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
