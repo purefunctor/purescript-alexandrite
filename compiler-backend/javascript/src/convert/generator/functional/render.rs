@@ -27,7 +27,7 @@ use crate::module::{Module, module_filename, runtime_filename};
 use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree, UnaryOperator};
 use crate::writer::{BindingCallTarget, Writer};
 
-use self::analysis::{VisitState, visit_initializer};
+use self::analysis::{cyclic_initializers, initializer_postorder};
 use self::inline::{is_abstraction, pattern_parameter};
 use self::structure::{
     collect_module_references, cyclic_instance_initializers, has_local_lazy_initializers,
@@ -3045,12 +3045,10 @@ fn sorted_value_declarations<'m>(
         dependencies[position].dedup();
     }
 
-    let mut states = vec![VisitState::Unvisited; values.len()];
-    let mut ordered = Vec::new();
-    for position in 0..values.len() {
-        visit_initializer(position, &dependencies, &mut states, &mut ordered)
-            .map_err(|state| generator.unsupported(state))?;
+    if cyclic_initializers(&dependencies).contains(&true) {
+        return Err(generator.unsupported(UnsupportedState::CyclicInitializers));
     }
+    let ordered = initializer_postorder(&dependencies);
     Ok(ordered.into_iter().map(|position| values[position]).collect_vec())
 }
 
@@ -3448,23 +3446,4 @@ fn collect_update_globals(
             }
         }
     }
-}
-
-fn reaches_initializer(
-    current: usize,
-    target: usize,
-    dependencies: &[Vec<usize>],
-    visited: &mut FxHashSet<usize>,
-) -> bool {
-    for dependency in &dependencies[current] {
-        if *dependency == target {
-            return true;
-        }
-        if visited.insert(*dependency)
-            && reaches_initializer(*dependency, target, dependencies, visited)
-        {
-            return true;
-        }
-    }
-    false
 }
