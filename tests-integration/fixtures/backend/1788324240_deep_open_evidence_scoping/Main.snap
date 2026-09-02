@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+base :: forall @value. Main.Base value => Prim.Int
+chain :: forall @value (@number :: Prim.Int). Main.Chain value (number :: Prim.Int) => Prim.Int
+chainValue ::
+  forall value (number :: Prim.Int).
+    Main.Chain value (number :: Prim.Int) =>
+    Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Int (number :: Prim.Int) -> Prim.Int
+useTwice :: forall value. Main.Base value => Main.Proxy @Prim.Type value -> Prim.Array Prim.Int
+result :: Prim.Array Prim.Int
+
+Types
+Proxy :: forall k. k -> Prim.Type
+Base :: Prim.Type -> Prim.Constraint
+Chain :: Prim.Type -> Prim.Int -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Base value
+  base :: forall @value. Main.Base value => Prim.Int
+class forall (value :: Prim.Type) (number :: Prim.Int). Main.Chain value (number :: Prim.Int)
+  chain :: forall @value (@number :: Prim.Int). Main.Chain value (number :: Prim.Int) => Prim.Int
+
+Instances
+instance Main.Base Prim.Int
+instance forall value. Main.Base value => Main.Chain value 0
+instance forall (previous :: Prim.Int) (current :: Prim.Int) value.
+  Prim.Int.Add (previous :: Prim.Int) 1 (current :: Prim.Int) =>
+  Main.Chain value (previous :: Prim.Int) =>
+  Main.Chain value (current :: Prim.Int)
+
+Roles
+Proxy = [Phantom]

@@ -1,0 +1,249 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export instance seed = {  }
+
+@export left = \dictionary%0 -> dictionary%0.left
+
+@export instance leftZero = \seedDict%1 -> { left: observe "left" }
+
+@export instance leftNext = \addPreviousCurrentDict%2 leftPreviousDict%3 -> { left: 0 }
+
+@export right = \dictionary%4 -> dictionary%4.right
+
+@export instance rightZero = \seedDict%5 -> { right: observe "right" }
+
+@export instance rightNext = \addPreviousCurrentDict%6 rightPreviousDict%7 -> { right: 0 }
+
+@export combined = \dictionary%8 -> dictionary%8.combined
+
+@export instance combinedInstance = \leftDict%9 rightDict%10 -> { combined: 0 }
+
+@export foreign observe
+
+@export result = combined
+  (let
+    leftNextDict%11 = leftNext
+      <trivial evidence>
+      (leftNext
+        <trivial evidence>
+        (leftNext
+          <trivial evidence>
+          (leftNext
+            <trivial evidence>
+            (leftNext
+              <trivial evidence>
+              (leftNext
+                <trivial evidence>
+                (leftNext
+                  <trivial evidence>
+                  (leftNext
+                    <trivial evidence>
+                    (leftNext
+                      <trivial evidence>
+                      (leftNext
+                        <trivial evidence>
+                        (leftNext
+                          <trivial evidence>
+                          (leftNext
+                            <trivial evidence>
+                            (leftNext
+                              <trivial evidence>
+                              (leftNext
+                                <trivial evidence>
+                                (leftNext
+                                  <trivial evidence>
+                                  (leftNext
+                                    <trivial evidence>
+                                    (leftNext
+                                      <trivial evidence>
+                                      (leftNext
+                                        <trivial evidence>
+                                        (leftNext
+                                          <trivial evidence>
+                                          (leftNext
+                                            <trivial evidence>
+                                            (leftNext
+                                              <trivial evidence>
+                                              (leftNext
+                                                <trivial evidence>
+                                                (leftNext
+                                                  <trivial evidence>
+                                                  (leftNext
+                                                    <trivial evidence>
+                                                    (leftNext
+                                                      <trivial evidence>
+                                                      (leftNext
+                                                        <trivial evidence>
+                                                        (leftNext
+                                                          <trivial evidence>
+                                                          (leftNext
+                                                            <trivial evidence>
+                                                            (leftNext
+                                                              <trivial evidence>
+                                                              (leftNext
+                                                                <trivial evidence>
+                                                                (leftZero
+                                                                  seed))))))))))))))))))))))))))))))
+    leftNextDict%12 = leftNext
+      <trivial evidence>
+      (leftNext
+        <trivial evidence>
+        (leftNext
+          <trivial evidence>
+          (leftNext
+            <trivial evidence>
+            (leftNext
+              <trivial evidence>
+              (leftNext
+                <trivial evidence>
+                (leftNext
+                  <trivial evidence>
+                  (leftNext
+                    <trivial evidence>
+                    (leftNext
+                      <trivial evidence>
+                      (leftNext
+                        <trivial evidence>
+                        (leftNext
+                          <trivial evidence>
+                          (leftNext
+                            <trivial evidence>
+                            (leftNext
+                              <trivial evidence>
+                              (leftNext
+                                <trivial evidence>
+                                (leftNext
+                                  <trivial evidence>
+                                  (leftNext
+                                    <trivial evidence>
+                                    (leftNext
+                                      <trivial evidence>
+                                      (leftNext
+                                        <trivial evidence>
+                                        (leftNext
+                                          <trivial evidence>
+                                          (leftNext
+                                            <trivial evidence>
+                                            (leftNext
+                                              <trivial evidence>
+                                              (leftNext
+                                                <trivial evidence>
+                                                (leftNext
+                                                  <trivial evidence>
+                                                  (leftNext
+                                                    <trivial evidence>
+                                                    (leftNext
+                                                      <trivial evidence>
+                                                      (leftNext
+                                                        <trivial evidence>
+                                                        (leftNext
+                                                          <trivial evidence>
+                                                          (leftNext
+                                                            <trivial evidence>
+                                                            (leftNext
+                                                              <trivial evidence>
+                                                              (leftNext
+                                                                <trivial evidence>
+                                                                (leftNext
+                                                                  <trivial evidence>
+                                                                  (leftNext
+                                                                    <trivial evidence>
+                                                                    leftNextDict%11)))))))))))))))))))))))))))))))
+    rightNextDict%13 = rightNext
+      <trivial evidence>
+      (rightNext
+        <trivial evidence>
+        (rightNext
+          <trivial evidence>
+          (rightNext
+            <trivial evidence>
+            (rightNext
+              <trivial evidence>
+              (rightNext
+                <trivial evidence>
+                (rightNext
+                  <trivial evidence>
+                  (rightNext
+                    <trivial evidence>
+                    (rightNext
+                      <trivial evidence>
+                      (rightNext
+                        <trivial evidence>
+                        (rightNext
+                          <trivial evidence>
+                          (rightNext
+                            <trivial evidence>
+                            (rightNext
+                              <trivial evidence>
+                              (rightNext
+                                <trivial evidence>
+                                (rightNext
+                                  <trivial evidence>
+                                  (rightNext
+                                    <trivial evidence>
+                                    (rightNext
+                                      <trivial evidence>
+                                      (rightNext
+                                        <trivial evidence>
+                                        (rightNext
+                                          <trivial evidence>
+                                          (rightNext
+                                            <trivial evidence>
+                                            (rightNext
+                                              <trivial evidence>
+                                              (rightNext
+                                                <trivial evidence>
+                                                (rightNext
+                                                  <trivial evidence>
+                                                  (rightNext
+                                                    <trivial evidence>
+                                                    (rightNext
+                                                      <trivial evidence>
+                                                      (rightNext
+                                                        <trivial evidence>
+                                                        (rightNext
+                                                          <trivial evidence>
+                                                          (rightNext
+                                                            <trivial evidence>
+                                                            (rightNext
+                                                              <trivial evidence>
+                                                              (rightNext
+                                                                <trivial evidence>
+                                                                (rightZero
+                                                                  seed))))))))))))))))))))))))))))))
+  in combinedInstance
+    (leftNext
+      <trivial evidence>
+      (leftNext
+        <trivial evidence>
+        (leftNext
+          <trivial evidence>
+          (leftNext
+            <trivial evidence>
+            (leftNext
+              <trivial evidence>
+              (leftNext
+                <trivial evidence>
+                (leftNext <trivial evidence> (leftNext <trivial evidence> leftNextDict%12))))))))
+    (rightNext
+      <trivial evidence>
+      (rightNext
+        <trivial evidence>
+        (rightNext
+          <trivial evidence>
+          (rightNext
+            <trivial evidence>
+            (rightNext
+              <trivial evidence>
+              (rightNext
+                <trivial evidence>
+                (rightNext
+                  <trivial evidence>
+                  (rightNext
+                    <trivial evidence>
+                    (rightNext
+                      <trivial evidence>
+                      (rightNext <trivial evidence> rightNextDict%13)))))))))))

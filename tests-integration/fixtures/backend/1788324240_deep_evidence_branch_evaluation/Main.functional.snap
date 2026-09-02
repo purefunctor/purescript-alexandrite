@@ -1,0 +1,458 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Proxy/0
+
+@export built = \dictionary%0 -> dictionary%0.built
+
+@export instance buildZero = { built: 0 }
+
+@export instance buildNext = \addPreviousCurrentDict%1 buildPreviousDict%2 -> { built: crash 0 }
+
+@export foreign crash
+
+@export buildValue = \buildNumberDict%3 -> \$proxy%4@(_) -> built buildNumberDict%3
+
+@export evaluateIf = \condition%5 ->
+  if condition%5
+    then buildValue
+      (let
+        buildNextDict%6 = buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      buildZero))))))))))))))))))))))))))))))
+        buildNextDict%7 = buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      (buildNext
+                                                                        <trivial evidence>
+                                                                        buildNextDict%6)))))))))))))))))))))))))))))))
+      in buildNext
+        <trivial evidence>
+        (buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext <trivial evidence> (buildNext <trivial evidence> buildNextDict%7)))))))
+      "Proxy"
+    else 0
+
+@export evaluateCase = \condition%8 ->
+  case condition%8 of
+    true ->
+      buildValue
+        (let
+          buildNextDict%9 = buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      (buildNext
+                                                                        <trivial evidence>
+                                                                        buildZero))))))))))))))))))))))))))))))
+          buildNextDict%10 = buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      (buildNext
+                                                                        <trivial evidence>
+                                                                        (buildNext
+                                                                          <trivial evidence>
+                                                                          buildNextDict%9)))))))))))))))))))))))))))))))
+        in buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext <trivial evidence> buildNextDict%10)))))))
+        "Proxy"
+    false ->
+      0
+
+@export evaluateGuard = \condition%11 ->
+  | condition%11 ->
+    buildValue
+      (let
+        buildNextDict%12 = buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      buildZero))))))))))))))))))))))))))))))
+        buildNextDict%13 = buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext
+                  <trivial evidence>
+                  (buildNext
+                    <trivial evidence>
+                    (buildNext
+                      <trivial evidence>
+                      (buildNext
+                        <trivial evidence>
+                        (buildNext
+                          <trivial evidence>
+                          (buildNext
+                            <trivial evidence>
+                            (buildNext
+                              <trivial evidence>
+                              (buildNext
+                                <trivial evidence>
+                                (buildNext
+                                  <trivial evidence>
+                                  (buildNext
+                                    <trivial evidence>
+                                    (buildNext
+                                      <trivial evidence>
+                                      (buildNext
+                                        <trivial evidence>
+                                        (buildNext
+                                          <trivial evidence>
+                                          (buildNext
+                                            <trivial evidence>
+                                            (buildNext
+                                              <trivial evidence>
+                                              (buildNext
+                                                <trivial evidence>
+                                                (buildNext
+                                                  <trivial evidence>
+                                                  (buildNext
+                                                    <trivial evidence>
+                                                    (buildNext
+                                                      <trivial evidence>
+                                                      (buildNext
+                                                        <trivial evidence>
+                                                        (buildNext
+                                                          <trivial evidence>
+                                                          (buildNext
+                                                            <trivial evidence>
+                                                            (buildNext
+                                                              <trivial evidence>
+                                                              (buildNext
+                                                                <trivial evidence>
+                                                                (buildNext
+                                                                  <trivial evidence>
+                                                                  (buildNext
+                                                                    <trivial evidence>
+                                                                    (buildNext
+                                                                      <trivial evidence>
+                                                                      (buildNext
+                                                                        <trivial evidence>
+                                                                        buildNextDict%12)))))))))))))))))))))))))))))))
+      in buildNext
+        <trivial evidence>
+        (buildNext
+          <trivial evidence>
+          (buildNext
+            <trivial evidence>
+            (buildNext
+              <trivial evidence>
+              (buildNext
+                <trivial evidence>
+                (buildNext <trivial evidence> (buildNext <trivial evidence> buildNextDict%13)))))))
+      "Proxy"
+  | true -> 0

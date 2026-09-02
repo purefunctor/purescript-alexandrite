@@ -1,0 +1,118 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+Proxy :: forall t0 (@a :: t0). Main.Proxy @t0 (a :: t0)
+chain :: forall @number. Main.Chain number => Prim.Int
+pair :: forall @number. Main.Pair number => Main.Proxy @Prim.Type number -> Prim.Int
+observe :: Prim.Int -> Prim.Int
+result :: Prim.Int
+
+Types
+Proxy :: forall t0. t0 -> Prim.Type
+Zero :: Prim.Type
+Succ :: forall t0. t0 -> Prim.Type
+N0 :: Prim.Type
+N1 :: Prim.Type
+N2 :: Prim.Type
+N3 :: Prim.Type
+N4 :: Prim.Type
+N5 :: Prim.Type
+N6 :: Prim.Type
+N7 :: Prim.Type
+N8 :: Prim.Type
+N9 :: Prim.Type
+N10 :: Prim.Type
+N11 :: Prim.Type
+N12 :: Prim.Type
+N13 :: Prim.Type
+N14 :: Prim.Type
+N15 :: Prim.Type
+N16 :: Prim.Type
+N17 :: Prim.Type
+N18 :: Prim.Type
+N19 :: Prim.Type
+N20 :: Prim.Type
+N21 :: Prim.Type
+N22 :: Prim.Type
+N23 :: Prim.Type
+N24 :: Prim.Type
+N25 :: Prim.Type
+N26 :: Prim.Type
+N27 :: Prim.Type
+N28 :: Prim.Type
+N29 :: Prim.Type
+N30 :: Prim.Type
+N31 :: Prim.Type
+N32 :: Prim.Type
+N33 :: Prim.Type
+N34 :: Prim.Type
+N35 :: Prim.Type
+N36 :: Prim.Type
+N37 :: Prim.Type
+N38 :: Prim.Type
+N39 :: Prim.Type
+N40 :: Prim.Type
+Chain :: Prim.Type -> Prim.Constraint
+Pair :: Prim.Type -> Prim.Constraint
+
+Synonyms
+type N0 = Main.Zero
+type N1 = Main.Succ @Prim.Type Main.N0
+type N2 = Main.Succ @Prim.Type Main.N1
+type N3 = Main.Succ @Prim.Type Main.N2
+type N4 = Main.Succ @Prim.Type Main.N3
+type N5 = Main.Succ @Prim.Type Main.N4
+type N6 = Main.Succ @Prim.Type Main.N5
+type N7 = Main.Succ @Prim.Type Main.N6
+type N8 = Main.Succ @Prim.Type Main.N7
+type N9 = Main.Succ @Prim.Type Main.N8
+type N10 = Main.Succ @Prim.Type Main.N9
+type N11 = Main.Succ @Prim.Type Main.N10
+type N12 = Main.Succ @Prim.Type Main.N11
+type N13 = Main.Succ @Prim.Type Main.N12
+type N14 = Main.Succ @Prim.Type Main.N13
+type N15 = Main.Succ @Prim.Type Main.N14
+type N16 = Main.Succ @Prim.Type Main.N15
+type N17 = Main.Succ @Prim.Type Main.N16
+type N18 = Main.Succ @Prim.Type Main.N17
+type N19 = Main.Succ @Prim.Type Main.N18
+type N20 = Main.Succ @Prim.Type Main.N19
+type N21 = Main.Succ @Prim.Type Main.N20
+type N22 = Main.Succ @Prim.Type Main.N21
+type N23 = Main.Succ @Prim.Type Main.N22
+type N24 = Main.Succ @Prim.Type Main.N23
+type N25 = Main.Succ @Prim.Type Main.N24
+type N26 = Main.Succ @Prim.Type Main.N25
+type N27 = Main.Succ @Prim.Type Main.N26
+type N28 = Main.Succ @Prim.Type Main.N27
+type N29 = Main.Succ @Prim.Type Main.N28
+type N30 = Main.Succ @Prim.Type Main.N29
+type N31 = Main.Succ @Prim.Type Main.N30
+type N32 = Main.Succ @Prim.Type Main.N31
+type N33 = Main.Succ @Prim.Type Main.N32
+type N34 = Main.Succ @Prim.Type Main.N33
+type N35 = Main.Succ @Prim.Type Main.N34
+type N36 = Main.Succ @Prim.Type Main.N35
+type N37 = Main.Succ @Prim.Type Main.N36
+type N38 = Main.Succ @Prim.Type Main.N37
+type N39 = Main.Succ @Prim.Type Main.N38
+type N40 = Main.Succ @Prim.Type Main.N39
+
+Classes
+class forall (number :: Prim.Type). Main.Chain number
+  chain :: forall @number. Main.Chain number => Prim.Int
+class forall (number :: Prim.Type). Main.Pair number
+  pair :: forall @number. Main.Pair number => Main.Proxy @Prim.Type number -> Prim.Int
+
+Instances
+instance Main.Chain Main.Zero
+instance forall previous. Main.Chain previous => Main.Chain (Main.Succ @Prim.Type previous)
+instance forall number. Main.Chain number => Main.Chain number => Main.Pair number
+
+Roles
+Proxy = [Phantom]
+Zero = []
+Succ = [Phantom]
