@@ -48,6 +48,8 @@ expression: report
 
 @export attributes = stylex.attrs styles.root
 
+@export recordAttributes = { root: stylex.attrs styles.root }
+
 @export markerProps = stylex.props rowMarker
 
 @export defaultMarkerProps = stylex.props (stylex.defaultMarker)

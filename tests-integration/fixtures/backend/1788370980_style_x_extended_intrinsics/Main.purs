@@ -54,6 +54,9 @@ styles = StyleX.create
 attributes :: StyleX.Attrs
 attributes = StyleX.attrs styles.root
 
+recordAttributes :: { root :: StyleX.Attrs }
+recordAttributes = StyleX.recordAttrs styles
+
 markerProps :: StyleX.Props
 markerProps = StyleX.props rowMarker
 

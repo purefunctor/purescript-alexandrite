@@ -190,6 +190,7 @@ impl StyleXIntrinsic {
 pub(crate) enum StyleXRootIntrinsic {
     Call(StyleXRootCall),
     RecordProps,
+    RecordAttrs,
     Conditional,
     ConditionalValue,
 }
@@ -199,6 +200,7 @@ impl StyleXRootIntrinsic {
         match self {
             StyleXRootIntrinsic::Call(call) => call.name(),
             StyleXRootIntrinsic::RecordProps => "recordProps",
+            StyleXRootIntrinsic::RecordAttrs => "recordAttrs",
             StyleXRootIntrinsic::Conditional => "conditional",
             StyleXRootIntrinsic::ConditionalValue => "conditionalValue",
         }

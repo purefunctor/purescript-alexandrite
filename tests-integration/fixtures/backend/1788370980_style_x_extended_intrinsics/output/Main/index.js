@@ -40,6 +40,7 @@ export const styles = $stylex.create({ root: {
   position: $stylex.firstThatWorks("sticky", "fixed")
 } });
 export const attributes = $stylex.attrs(styles.root);
+export const recordAttributes = { root: $stylex.attrs(styles.root) };
 export const markerProps = $stylex.props(rowMarker);
 export const defaultMarkerProps = $stylex.props($stylex.defaultMarker());
 export const transitionClass = $stylex.viewTransitionClass({

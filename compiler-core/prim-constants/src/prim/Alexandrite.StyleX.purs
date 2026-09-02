@@ -12,6 +12,7 @@ module Alexandrite.StyleX
   , props
   , attrs
   , recordProps
+  , recordAttrs
   , conditional
   , conditionalValue
   , keyframes
@@ -68,6 +69,12 @@ class CompileProps input output | input -> output
 class CompilePropsList :: RowList.RowList Type -> Row Type -> Constraint
 class CompilePropsList input output | input -> output
 
+class CompileAttrs :: Row Type -> Row Type -> Constraint
+class CompileAttrs input output | input -> output
+
+class CompileAttrsList :: RowList.RowList Type -> Row Type -> Constraint
+class CompileAttrsList input output | input -> output
+
 class CompileVars :: Row Type -> Row Type -> Constraint
 class CompileVars input output | input -> output
 
@@ -111,6 +118,20 @@ instance
   , Row.Cons label Props outputTail output
   ) =>
   CompilePropsList (RowList.Cons label Style tail) output
+
+instance
+  ( RowList.RowToList input inputList
+  , CompileAttrsList inputList output
+  ) =>
+  CompileAttrs input output
+
+instance CompileAttrsList RowList.Nil ()
+
+instance
+  ( CompileAttrsList tail outputTail
+  , Row.Cons label Attrs outputTail output
+  ) =>
+  CompileAttrsList (RowList.Cons label Style tail) output
 
 instance
   ( RowList.RowToList input inputList
@@ -161,6 +182,12 @@ foreign import attrs
 foreign import recordProps
   :: forall input output
    . CompileProps input output
+  => Record input
+  -> Record output
+
+foreign import recordAttrs
+  :: forall input output
+   . CompileAttrs input output
   => Record input
   -> Record output
 

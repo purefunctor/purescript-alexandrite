@@ -50,6 +50,7 @@ theme :: Alexandrite.StyleX.Style
 rowMarker :: Alexandrite.StyleX.Marker
 styles :: { root :: Alexandrite.StyleX.Style }
 attributes :: Alexandrite.StyleX.Attrs
+recordAttributes :: { root :: Alexandrite.StyleX.Attrs }
 markerProps :: Alexandrite.StyleX.Props
 defaultMarkerProps :: Alexandrite.StyleX.Props
 transitionClass :: Prim.String

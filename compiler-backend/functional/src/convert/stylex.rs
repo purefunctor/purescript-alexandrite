@@ -91,7 +91,11 @@ where
             }
             (StyleXIntrinsic::Root(StyleXRootIntrinsic::RecordProps), [_, argument]) => {
                 let Some(result_type) = result_type else { return Ok(None) };
-                self.stylex_record_props(*argument, result_type)?
+                self.stylex_record_map(*argument, result_type, StyleXRootCall::Props)?
+            }
+            (StyleXIntrinsic::Root(StyleXRootIntrinsic::RecordAttrs), [_, argument]) => {
+                let Some(result_type) = result_type else { return Ok(None) };
+                self.stylex_record_map(*argument, result_type, StyleXRootCall::Attrs)?
             }
             (StyleXIntrinsic::Root(StyleXRootIntrinsic::Conditional), [condition, style]) => {
                 Some(self.expression(ExpressionKind::StyleX(StyleXExpression::Conditional {
@@ -169,10 +173,11 @@ where
         self.expression(ExpressionKind::StyleX(StyleXExpression::ConditionalCase(case)))
     }
 
-    fn stylex_record_props(
+    fn stylex_record_map(
         &mut self,
         argument: ExpressionId,
         result_type: checking::TypeId,
+        call: StyleXRootCall,
     ) -> ConversionResult<Option<ExpressionId>> {
         let checking::Type::Application(_, mut row_type) = self.queries.lookup_type(result_type)
         else {
@@ -203,8 +208,7 @@ where
             let field = self.label_field(label);
             let style =
                 self.expression(ExpressionKind::Project { record, field: Field::clone(&field) });
-            let expression =
-                self.stylex_call(StyleXCallTarget::Root(StyleXRootCall::Props), [style]);
+            let expression = self.stylex_call(StyleXCallTarget::Root(call), [style]);
             RecordField { field, expression }
         });
 
@@ -443,6 +447,7 @@ fn stylex_root_intrinsic(name: &str) -> Option<StyleXRootIntrinsic> {
         "positionTry" => StyleXRootCall::PositionTry,
         "firstThatWorks" => StyleXRootCall::FirstThatWorks,
         "recordProps" => return Some(StyleXRootIntrinsic::RecordProps),
+        "recordAttrs" => return Some(StyleXRootIntrinsic::RecordAttrs),
         "conditional" => return Some(StyleXRootIntrinsic::Conditional),
         "conditionalValue" => return Some(StyleXRootIntrinsic::ConditionalValue),
         _ => return None,
