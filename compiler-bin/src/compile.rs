@@ -181,7 +181,7 @@ pub(crate) fn build(
         return Ok(BuildOutcome::Diagnostics);
     }
 
-    let modules = generate_modules(compilation, &source_ids, config.progress)?;
+    let modules = collect_modules(compilation, &source_ids)?;
     let outputs = write_modules(compilation, &modules, config.output, config.progress)?;
     if has_errors { Ok(BuildOutcome::Diagnostics) } else { Ok(BuildOutcome::Succeeded(outputs)) }
 }
@@ -322,37 +322,21 @@ fn report_diagnostics(
     Ok(has_errors)
 }
 
-fn generate_modules(
+fn collect_modules(
     compilation: &CompilationState,
     source_ids: &[FileId],
-    show_progress: bool,
 ) -> Result<Vec<Arc<javascript::Module>>, CompileError> {
     let mut pending = source_ids.to_vec();
     let mut visited = HashSet::new();
 
-    let initial_total = source_ids.iter().copied().collect::<HashSet<_>>().len();
-    let progress = progress::bar(initial_total, "Codegen", show_progress);
-    let mut first_frontier = true;
     let mut modules = vec![];
     while !pending.is_empty() {
         let frontier = pending.drain(..).filter(|file_id| visited.insert(*file_id));
         let frontier = frontier.collect::<Vec<_>>();
-        if first_frontier {
-            first_frontier = false;
-        } else {
-            let frontier_len = frontier.len() as u64;
-            progress.inc_length(frontier_len);
-        }
 
         let generated = frontier.par_iter().map(|&file_id| {
             let engine = compilation.snapshot();
-            let content = engine.content(file_id)?;
-            let (parsed, _) = engine.parsed(file_id)?;
-            if let Some(module_name) = parsed.module_name(&content) {
-                progress::set_message(&progress, &module_name);
-            }
             let module = engine.javascript(file_id)?.ok();
-            progress.inc(1);
             Ok::<_, CompileError>(module)
         });
         let generated = generated.collect::<Result<Vec<_>, _>>()?;
@@ -362,7 +346,6 @@ fn generate_modules(
             modules.push(module);
         }
     }
-    progress::finish(&progress);
 
     Ok(modules)
 }
@@ -381,7 +364,7 @@ fn write_modules(
         outputs.insert(runtime);
     }
 
-    let progress = progress::bar(modules.len(), "Output", show_progress);
+    let progress = progress::bar(modules.len(), "Write", show_progress);
     let module_outputs = modules.par_iter().map(|module| -> Result<Vec<PathBuf>, CompileError> {
         progress::set_message(&progress, module.name());
         let output_path = output.join(module.filename());
