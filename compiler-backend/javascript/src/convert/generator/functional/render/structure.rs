@@ -4,9 +4,9 @@ use functional::tree::{DeclarationKind, ExpressionKind, Global, GlobalId, Module
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use super::analysis::cyclic_initializers;
 use super::{
     collect_expression_globals, collect_expression_references, global_file, is_abstraction,
-    reaches_initializer,
 };
 
 pub(super) fn collect_module_references(module: &Module) -> Vec<Global> {
@@ -50,18 +50,12 @@ pub(super) fn cyclic_instance_initializers(module: &Module) -> FxHashSet<GlobalI
         initializer_dependencies[position].dedup();
     }
 
-    let mut cyclic_initializers = FxHashSet::default();
-    for (position, (global_id, _)) in initializers.iter().enumerate() {
-        let mut visited_initializers = FxHashSet::default();
-        if reaches_initializer(
-            position,
-            position,
-            &initializer_dependencies,
-            &mut visited_initializers,
-        ) {
-            cyclic_initializers.insert(*global_id);
-        }
-    }
+    let cyclic_positions = cyclic_initializers(&initializer_dependencies);
+    let cyclic_initializers = initializers
+        .iter()
+        .zip(cyclic_positions)
+        .filter_map(|((global_id, _), cyclic)| cyclic.then_some(*global_id))
+        .collect::<FxHashSet<_>>();
 
     let mut global_ids = cyclic_initializers.iter();
     let all_initializers_are_instances =
