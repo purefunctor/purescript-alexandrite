@@ -16,3 +16,9 @@ wrongType = StyleX.createTheme variables
 
 unknown = StyleX.createTheme variables
   { missing: Types.color "red" }
+
+invalidInteger = StyleX.defineVars { value: Types.integer true }
+
+invalidNumber = StyleX.defineVars { value: Types.number "1" }
+
+invalidColor = StyleX.defineVars { value: Types.color 42 }

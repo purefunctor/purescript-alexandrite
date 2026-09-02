@@ -31,6 +31,9 @@ expression: report
 @export buttonPropsArray = \highlighted%0 ->
   stylex.props [styles.button, stylex.conditional highlighted%0 secondary.root]
 
+@export selectedProps = \included%1 alternate%2 ->
+  stylex.props (stylex.conditional included%1 (if alternate%2 then styles.button else styles.label))
+
 @export buttonClassName = buttonProps.className
 
 @export labelClassName = styleProps.label.className

@@ -31,8 +31,15 @@ for (const moduleName of modules) {
     ],
   });
 
-  if (result.code.includes("$stylex.")) {
-    throw new Error(`${moduleName} retains uncompiled StyleX calls`);
+  const staticCalls = [
+    "create",
+    "createTheme",
+    "defineConsts",
+    "defineMarker",
+    "defineVars",
+  ];
+  if (staticCalls.some((call) => result.code.includes(`$stylex.${call}(`))) {
+    throw new Error(`${moduleName} retains uncompiled static StyleX calls`);
   }
   styles.push(...result.metadata.stylex.map(([, style]) => style.ltr));
 }

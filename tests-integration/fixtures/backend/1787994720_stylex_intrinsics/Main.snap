@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 278
+assertion_line: 280
 expression: diagnostics_report
 ---
 Terms
@@ -12,6 +12,7 @@ styleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim
 appliedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
 flippedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
 buttonPropsArray :: Prim.Boolean -> Alexandrite.StyleX.Props
+selectedProps :: Prim.Boolean -> Prim.Boolean -> Alexandrite.StyleX.Props
 buttonClassName :: Prim.String
 labelClassName :: Prim.String
 

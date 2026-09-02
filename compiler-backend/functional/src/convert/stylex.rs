@@ -127,7 +127,7 @@ where
             (StyleXIntrinsic::When { relation, marker: true }, [selector, marker, value]) => {
                 Some(self.stylex_conditional_case(relation, *selector, Some(*marker), *value))
             }
-            (StyleXIntrinsic::Types(call), [argument]) => {
+            (StyleXIntrinsic::Types(call), [_, argument]) => {
                 Some(self.stylex_call(StyleXCallTarget::Types(call), [*argument]))
             }
             _ => None,

@@ -9,7 +9,7 @@ use crate::error::ModuleResult;
 use crate::tree::{BinaryOperator, ExpressionId, ObjectProperty, Tree};
 use crate::writer::Writer;
 
-use super::{FunctionContext, Generator, RenderedExpression};
+use super::{Destination, FunctionContext, Generator, RenderedExpression};
 
 pub(super) fn collect_stylex_references(module: &Module) -> Vec<Global> {
     let mut expressions = Vec::new();
@@ -71,8 +71,22 @@ impl Generator<'_> {
             }
             StyleXExpression::Conditional { condition, style } => {
                 let condition = self.rendered_expression(tree, writer, *condition, context)?;
-                let style = self.rendered_expression(tree, writer, *style, context)?;
-                tree.binary(BinaryOperator::LogicalAnd, condition.value, style.value)
+                let style = if let Some(style) =
+                    self.try_inline_expression(tree, *style, context)?
+                {
+                    style
+                } else {
+                    let name = context.allocate("$stylexConditional");
+                    let outer_tail_calls = context.tail_calls.take();
+                    let result = writer.constant_arrow(&name, vec![], |writer| {
+                        self.render_expression(tree, writer, *style, Destination::Return, context)
+                    });
+                    context.tail_calls = outer_tail_calls;
+                    result?;
+                    let function = tree.identifier(name);
+                    tree.call(function, vec![])
+                };
+                tree.binary(BinaryOperator::LogicalAnd, condition.value, style)
             }
             StyleXExpression::ConditionalCase(_) => {
                 unreachable!("invariant violated: escaped StyleX conditional case")

@@ -202,8 +202,7 @@ impl<'a> Writer<'a> {
 
     pub(crate) fn import_named(&mut self, bindings: &[(&str, &str)], path: &str) {
         let specifiers = bindings.iter().map(|(imported, local)| {
-            let imported =
-                ModuleExportName::new_identifier_name(SPAN, self.text(imported), &self.builder);
+            let imported = self.module_export_name(imported, false);
             ImportDeclarationSpecifier::new_import_specifier(
                 SPAN,
                 imported,

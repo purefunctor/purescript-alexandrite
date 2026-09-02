@@ -16,9 +16,12 @@ package:
     );
     workspace.write(
         "src/Tokens.purs",
-        r#"module Tokens (rowMarker, variables) where
+        r#"module Tokens (await, rowMarker, variables) where
 
 import Alexandrite.StyleX as StyleX
+
+await :: StyleX.Style
+await = StyleX.defaultMarker
 
 variables = StyleX.defineVars { accent: "blue" }
 
@@ -32,7 +35,7 @@ rowMarker = StyleX.defineMarker
 
 import Alexandrite.StyleX as StyleX
 import Alexandrite.StyleX.When as When
-import Tokens (rowMarker, variables)
+import Tokens (await, rowMarker, variables)
 
 theme = StyleX.createTheme variables { accent: "white" }
 
@@ -42,6 +45,8 @@ styles = StyleX.create
           [ When.ancestorMarker ":hover" rowMarker "red" ]
       }
   }
+
+awaitProps = StyleX.props await
 "#,
     );
 
@@ -50,7 +55,7 @@ styles = StyleX.create
     let generated = workspace.read("output/Main/index.js");
     assert!(
         generated
-            .contains("import { rowMarker as Tokens_rowMarker, variables as Tokens_variables }"),
+            .contains("import { \"await\" as Tokens_await, rowMarker as Tokens_rowMarker, variables as Tokens_variables }"),
         "unexpected generated JavaScript:\n{generated}"
     );
 
