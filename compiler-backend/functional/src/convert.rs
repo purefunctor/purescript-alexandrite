@@ -8,7 +8,7 @@ mod expression;
 use std::sync::Arc;
 
 use building_types::{QueryError, QueryResult};
-use checking::evidence::{EvidenceBinderId, EvidenceVarId, InstanceCandidateOrigin};
+use checking::evidence::{EvidenceBinderId, InstanceCandidateOrigin};
 use checking::tree as checking_tree;
 use files::FileId;
 use indexing::{IndexedTermItemKind, IndexedTypeItemKind, OrderedTermItemId, TermItemId};
@@ -86,7 +86,6 @@ struct Context<'c, Q> {
     parameters: FxHashMap<BindingSource, Parameter>,
     next_local: u32,
     next_generated_global: u32,
-    lowering_evidence: FxHashSet<EvidenceVarId>,
     evidence_keys: EvidenceKeys,
     evidence_scopes: Vec<EvidenceScope>,
     evidence_hoisting: EvidenceHoisting,
@@ -148,7 +147,6 @@ where
             parameters: FxHashMap::default(),
             next_local: 0,
             next_generated_global: 0,
-            lowering_evidence: FxHashSet::default(),
             evidence_keys: EvidenceKeys::default(),
             evidence_scopes: Vec::new(),
             evidence_hoisting: EvidenceHoisting::default(),

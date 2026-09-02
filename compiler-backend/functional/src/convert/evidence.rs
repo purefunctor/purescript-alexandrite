@@ -292,77 +292,168 @@ struct EvidenceBinding {
     binding: Binding,
 }
 
+enum EvidenceConversionStep {
+    Variable {
+        variable: EvidenceVarId,
+        constraint: Option<checking::TypeId>,
+    },
+    Evidence {
+        evidence: EvidenceId,
+        constraint: Option<checking::TypeId>,
+    },
+    FinishVariable(EvidenceVarId),
+    FinishInstance {
+        evidence: EvidenceKey,
+        function: ExpressionId,
+        name: SmolStr,
+        arguments: usize,
+        constraint: Option<checking::TypeId>,
+    },
+    FinishSuperclass {
+        evidence: EvidenceKey,
+        superclass: checking::evidence::SuperclassId,
+        constraint: Option<checking::TypeId>,
+    },
+}
+
 pub(super) fn evidence_variable(
     context: &mut Context<'_, impl checking::ExternalQueries>,
     variable: EvidenceVarId,
     constraint: Option<checking::TypeId>,
 ) -> ConversionResult<ExpressionId> {
-    if !context.lowering_evidence.insert(variable) {
-        return Err(context.unsupported(UnsupportedState::CyclicEvidence(variable)));
-    }
-    let result = match context.checked.evidence[variable].state {
-        EvidenceState::Unsolved => {
-            Err(context.unsupported(UnsupportedState::UnsolvedEvidence(variable)))
-        }
-        EvidenceState::Solved(evidence) => convert_evidence(context, evidence, constraint),
-        EvidenceState::Error => Ok(context.expression(ExpressionKind::Error)),
-    };
-    context.lowering_evidence.remove(&variable);
-    result
-}
+    let mut steps = vec![EvidenceConversionStep::Variable { variable, constraint }];
+    let mut expressions = vec![];
+    let mut lowering = FxHashSet::default();
 
-fn convert_evidence(
-    context: &mut Context<'_, impl checking::ExternalQueries>,
-    evidence_id: EvidenceId,
-    constraint: Option<checking::TypeId>,
-) -> ConversionResult<ExpressionId> {
-    let checked = Arc::clone(&context.checked);
-    match &checked.evidence[evidence_id] {
-        Evidence::Variable(variable) => evidence_variable(context, *variable, constraint),
-        Evidence::Given(binder) => {
-            let parameter = context.evidence_parameter(*binder)?;
-            Ok(context.expression(ExpressionKind::Local { parameter }))
-        }
-        Evidence::Instance { origin, subgoals } => {
-            let evidence = context.evidence_key(evidence_id);
-            if let Some(expression) = context.shared_evidence(evidence)? {
-                return Ok(expression);
+    while let Some(step) = steps.pop() {
+        match step {
+            EvidenceConversionStep::Variable { variable, constraint } => {
+                if !lowering.insert(variable) {
+                    return Err(context.unsupported(UnsupportedState::CyclicEvidence(variable)));
+                }
+                match context.checked.evidence[variable].state {
+                    EvidenceState::Unsolved => {
+                        return Err(
+                            context.unsupported(UnsupportedState::UnsolvedEvidence(variable))
+                        );
+                    }
+                    EvidenceState::Solved(evidence) => {
+                        steps.push(EvidenceConversionStep::FinishVariable(variable));
+                        steps.push(EvidenceConversionStep::Evidence { evidence, constraint });
+                    }
+                    EvidenceState::Error => {
+                        lowering.remove(&variable);
+                        expressions.push(context.expression(ExpressionKind::Error));
+                    }
+                }
             }
-            let global = context.instance_global(*origin)?;
-            let name = format_smolstr!("{}Dict", global.item_name);
-            let function = context.expression(ExpressionKind::Global { global });
-            let arguments =
-                subgoals.iter().map(|&subgoal| evidence_variable(context, subgoal, None));
-            let arguments = arguments.collect::<ConversionResult<Vec<_>>>()?;
-            let construction = context.synthetic_application(function, arguments)?;
-            if subgoals.is_empty() {
-                Ok(construction)
-            } else {
-                context.record_evidence(evidence, construction, name, constraint)
+            EvidenceConversionStep::Evidence { evidence, constraint } => {
+                let checked = Arc::clone(&context.checked);
+                match &checked.evidence[evidence] {
+                    Evidence::Variable(variable) => {
+                        steps.push(EvidenceConversionStep::Variable {
+                            variable: *variable,
+                            constraint,
+                        });
+                    }
+                    Evidence::Given(binder) => {
+                        let parameter = context.evidence_parameter(*binder)?;
+                        expressions.push(context.expression(ExpressionKind::Local { parameter }));
+                    }
+                    Evidence::Instance { origin, subgoals } => {
+                        let evidence = context.evidence_key(evidence);
+                        if let Some(expression) = context.shared_evidence(evidence)? {
+                            expressions.push(expression);
+                            continue;
+                        }
+                        let global = context.instance_global(*origin)?;
+                        let name = format_smolstr!("{}Dict", global.item_name);
+                        let function = context.expression(ExpressionKind::Global { global });
+                        steps.push(EvidenceConversionStep::FinishInstance {
+                            evidence,
+                            function,
+                            name,
+                            arguments: subgoals.len(),
+                            constraint,
+                        });
+                        steps.extend(subgoals.iter().rev().map(|variable| {
+                            EvidenceConversionStep::Variable {
+                                variable: *variable,
+                                constraint: None,
+                            }
+                        }));
+                    }
+                    Evidence::Superclass { parent, superclass } => {
+                        let evidence = context.evidence_key(evidence);
+                        if let Some(expression) = context.shared_evidence(evidence)? {
+                            expressions.push(expression);
+                            continue;
+                        }
+                        steps.push(EvidenceConversionStep::FinishSuperclass {
+                            evidence,
+                            superclass: *superclass,
+                            constraint,
+                        });
+                        steps.push(EvidenceConversionStep::Evidence {
+                            evidence: *parent,
+                            constraint: None,
+                        });
+                    }
+                    Evidence::Trivial => {
+                        expressions.push(context.expression(ExpressionKind::TrivialEvidence));
+                    }
+                    Evidence::Synthesized(evidence) => {
+                        let evidence = synthesized_evidence(context, evidence);
+                        expressions.push(
+                            context.expression(ExpressionKind::SynthesizedEvidence { evidence }),
+                        );
+                    }
+                }
             }
-        }
-        Evidence::Superclass { parent, superclass } => {
-            let evidence = context.evidence_key(evidence_id);
-            if let Some(expression) = context.shared_evidence(evidence)? {
-                return Ok(expression);
+            EvidenceConversionStep::FinishVariable(variable) => {
+                lowering.remove(&variable);
             }
-            let record = convert_evidence(context, *parent, None)?;
-            let field = context.superclass_field(*superclass)?;
-            let name = format_smolstr!("{}Dict", field.name);
-            let accessor = context.expression(ExpressionKind::Project { record, field });
-            let construction = context.expression(ExpressionKind::Application {
-                function: accessor,
-                arguments: Arc::from([]),
-                synthetic: true,
-            });
-            context.record_evidence(evidence, construction, name, constraint)
-        }
-        Evidence::Trivial => Ok(context.expression(ExpressionKind::TrivialEvidence)),
-        Evidence::Synthesized(evidence) => {
-            let evidence = synthesized_evidence(context, evidence);
-            Ok(context.expression(ExpressionKind::SynthesizedEvidence { evidence }))
+            EvidenceConversionStep::FinishInstance {
+                evidence,
+                function,
+                name,
+                arguments,
+                constraint,
+            } => {
+                let first = expressions.len() - arguments;
+                let arguments = expressions.drain(first..).collect::<Vec<_>>();
+                let has_arguments = !arguments.is_empty();
+                let construction = context.synthetic_application(function, arguments)?;
+                let expression = if has_arguments {
+                    context.record_evidence(evidence, construction, name, constraint)?
+                } else {
+                    construction
+                };
+                expressions.push(expression);
+            }
+            EvidenceConversionStep::FinishSuperclass { evidence, superclass, constraint } => {
+                let record = expressions
+                    .pop()
+                    .expect("invariant violated: superclass evidence has no parent expression");
+                let field = context.superclass_field(superclass)?;
+                let name = format_smolstr!("{}Dict", field.name);
+                let accessor = context.expression(ExpressionKind::Project { record, field });
+                let construction = context.expression(ExpressionKind::Application {
+                    function: accessor,
+                    arguments: Arc::from([]),
+                    synthetic: true,
+                });
+                let expression =
+                    context.record_evidence(evidence, construction, name, constraint)?;
+                expressions.push(expression);
+            }
         }
     }
+
+    let expression =
+        expressions.pop().expect("invariant violated: evidence conversion produced no expression");
+    debug_assert!(expressions.is_empty());
+    Ok(expression)
 }
 
 fn synthesized_evidence(
