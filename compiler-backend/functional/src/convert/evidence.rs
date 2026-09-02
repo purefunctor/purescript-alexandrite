@@ -195,7 +195,8 @@ impl EvidenceKeys {
         }
 
         let (closed, dependency_order, inline_height) = match &kind {
-            EvidenceKeyKind::Given(_) | EvidenceKeyKind::Opaque(_) => (false, 0, 0),
+            EvidenceKeyKind::Given(_) => (false, 0, 0),
+            EvidenceKeyKind::Opaque(_) => (true, 0, 0),
             EvidenceKeyKind::InvalidEvidence(_) | EvidenceKeyKind::InvalidVariable(_) => {
                 (false, 0, 0)
             }
@@ -1100,7 +1101,7 @@ fn uppercase_initial(name: &str) -> String {
 mod tests {
     use std::num::NonZeroU32;
 
-    use checking::evidence::Evidences;
+    use checking::evidence::{Evidences, ReflectableEvidence, SynthesizedEvidence};
 
     use super::*;
 
@@ -1157,5 +1158,27 @@ mod tests {
 
         assert_eq!(keys.dependency_order(root), DEPTH);
         assert_eq!(keys.evidence.len(), DEPTH + 1);
+    }
+
+    #[test]
+    fn opaque_evidence_keys_are_closed_and_identity_tied() {
+        let mut evidences = Evidences::default();
+        let trivial = evidences.allocate(Evidence::Trivial);
+        let synthesized = Evidence::Synthesized(SynthesizedEvidence::Reflectable(
+            ReflectableEvidence::Integer(42),
+        ));
+        let first_synthesized_id = evidences.allocate(Evidence::clone(&synthesized));
+        let second_synthesized_id = evidences.allocate(synthesized);
+
+        let mut keys = EvidenceKeys::default();
+        let trivial = keys.key(&evidences, trivial);
+        let first_synthesized = keys.key(&evidences, first_synthesized_id);
+        let repeated_synthesized = keys.key(&evidences, first_synthesized_id);
+        let second_synthesized = keys.key(&evidences, second_synthesized_id);
+
+        assert!(keys.is_closed(trivial));
+        assert!(keys.is_closed(first_synthesized));
+        assert!(first_synthesized == repeated_synthesized);
+        assert!(first_synthesized != second_synthesized);
     }
 }
