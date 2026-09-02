@@ -70,9 +70,7 @@ fn configure(progress: &ProgressBar, phase: &'static str) {
         .max(1);
     let phase_text = move |state: &ProgressState, writer: &mut dyn fmt::Write| {
         if state.is_finished() {
-            let style = phase_style(theme_mode, 255);
-            write!(writer, "{}", style.apply_to(phase))
-                .expect("writing to a formatter cannot fail");
+            writer.write_str(phase).expect("writing to a formatter cannot fail");
             return;
         }
 
