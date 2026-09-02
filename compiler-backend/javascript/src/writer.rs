@@ -28,6 +28,7 @@ pub(crate) struct Writer<'a> {
     builder: AstBuilder<'a>,
     statements: Vec<Statement<'a>>,
     comments: Rc<RefCell<Comments>>,
+    has_eager_throw: bool,
 }
 
 #[derive(Default)]
@@ -43,6 +44,7 @@ impl<'a> Writer<'a> {
             builder: AstBuilder::new(allocator),
             statements: Vec::new(),
             comments: Rc::new(RefCell::new(Comments::default())),
+            has_eager_throw: false,
         }
     }
 
@@ -52,6 +54,7 @@ impl<'a> Writer<'a> {
             builder: AstBuilder::new(self.allocator),
             statements: Vec::new(),
             comments: Rc::clone(&self.comments),
+            has_eager_throw: false,
         }
     }
 
@@ -396,6 +399,7 @@ impl<'a> Writer<'a> {
     ) -> R {
         let mut body = self.child();
         let result = render(&mut body);
+        let has_eager_throw = body.has_eager_throw;
         let arrow = self.arrow_expression(&[], body.statements);
         let call = Expression::new_call_expression_with_pure(
             SPAN,
@@ -403,12 +407,13 @@ impl<'a> Writer<'a> {
             None,
             [],
             false,
-            true,
+            !has_eager_throw,
             &self.builder,
         );
         let statement =
             self.variable_statement(VariableDeclarationKind::Const, name, Some(call), exported);
         self.statements.push(statement);
+        self.has_eager_throw |= has_eager_throw;
         result
     }
 
@@ -461,6 +466,7 @@ impl<'a> Writer<'a> {
         render_then(tree, &mut then_writer)?;
         let mut else_writer = self.child();
         render_else(tree, &mut else_writer)?;
+        self.has_eager_throw |= then_writer.has_eager_throw || else_writer.has_eager_throw;
         let consequent = self.block_statement(then_writer.statements);
         let alternate = self.block_statement(else_writer.statements);
         self.statements.push(Statement::new_if_statement(
@@ -485,6 +491,7 @@ impl<'a> Writer<'a> {
         render_then(tree, &mut then_writer, state)?;
         let mut else_writer = self.child();
         render_else(tree, &mut else_writer, state)?;
+        self.has_eager_throw |= then_writer.has_eager_throw || else_writer.has_eager_throw;
         let consequent = self.block_statement(then_writer.statements);
         let alternate = self.block_statement(else_writer.statements);
         self.statements.push(Statement::new_if_statement(
@@ -505,6 +512,7 @@ impl<'a> Writer<'a> {
     ) -> R {
         let mut body = self.child();
         let result = render(tree, &mut body);
+        self.has_eager_throw |= body.has_eager_throw;
         let consequent = self.block_statement(body.statements);
         self.statements.push(Statement::new_if_statement(
             SPAN,
@@ -519,6 +527,7 @@ impl<'a> Writer<'a> {
     pub(crate) fn block<R>(&mut self, render: impl FnOnce(&mut Writer<'a>) -> R) -> R {
         let mut body = self.child();
         let result = render(&mut body);
+        self.has_eager_throw |= body.has_eager_throw;
         let statement = self.block_statement(body.statements);
         self.statements.push(statement);
         result
@@ -531,6 +540,7 @@ impl<'a> Writer<'a> {
     ) -> R {
         let mut body = self.child();
         let result = render(&mut body);
+        self.has_eager_throw |= body.has_eager_throw;
         let body = self.block_statement(body.statements);
         let label = LabelIdentifier::new(SPAN, self.text(label), &self.builder);
         self.statements.push(Statement::new_labeled_statement(SPAN, label, body, &self.builder));
@@ -545,6 +555,7 @@ impl<'a> Writer<'a> {
     ) -> R {
         let mut body = self.child();
         let result = render(tree, &mut body);
+        self.has_eager_throw |= body.has_eager_throw;
         let body = self.block_statement(body.statements);
         let condition = tree.expression_in(condition, self.allocator);
         self.statements.push(Statement::new_while_statement(SPAN, condition, body, &self.builder));
@@ -559,16 +570,19 @@ impl<'a> Writer<'a> {
         mut render: impl FnMut(usize, &mut Tree<'_>, &mut Writer<'a>) -> Result<(), E>,
     ) -> Result<(), E> {
         let mut switch_cases = Vec::with_capacity(cases.len());
+        let mut has_eager_throw = false;
         for (position, (test, comment)) in cases.iter().enumerate() {
             let span = self.line_comment(comment);
             let mut body = self.child();
             render(position, tree, &mut body)?;
+            has_eager_throw |= body.has_eager_throw;
             let test = tree.expression_in(*test, self.allocator);
             let body = self.block_statement(body.statements);
             let consequent = ArenaVec::from_array_in([body], &self.allocator);
             let switch_case = SwitchCase::new(span, Some(test), consequent, &self.builder);
             switch_cases.push(switch_case);
         }
+        self.has_eager_throw |= has_eager_throw;
         let discriminant = tree.expression_in(discriminant, self.allocator);
         let switch_cases = ArenaVec::from_iter_in(switch_cases, &self.allocator);
         self.statements.push(Statement::new_switch_statement(
@@ -581,6 +595,7 @@ impl<'a> Writer<'a> {
     }
 
     pub(crate) fn throw_error(&mut self, message: &str) {
+        self.has_eager_throw = true;
         let callee = Expression::new_identifier(SPAN, self.text("Error"), &self.builder);
         let message = Expression::new_string_literal(SPAN, self.text(message), None, &self.builder);
         let arguments = ArenaVec::from_array_in([Argument::from(message)], &self.allocator);

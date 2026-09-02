@@ -12,6 +12,7 @@ pub struct DiagnosticCollection {
     diagnostics: Vec<Diagnostic>,
     source_start: usize,
     foreign_start: usize,
+    backend_start: usize,
 }
 
 impl DiagnosticCollection {
@@ -24,7 +25,11 @@ impl DiagnosticCollection {
     }
 
     pub fn foreign_diagnostics(&self) -> &[Diagnostic] {
-        &self.diagnostics[self.foreign_start..]
+        &self.diagnostics[self.foreign_start..self.backend_start]
+    }
+
+    pub fn backend_diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics[self.backend_start..]
     }
 }
 
@@ -33,14 +38,20 @@ pub fn collect_diagnostics<Q>(
     source_files: &[FileId],
 ) -> QueryResult<Vec<DiagnosticCollection>>
 where
-    Q: ExternalQueries + ForeignQueries,
+    Q: ExternalQueries + ForeignQueries + javascript::ModuleQueries,
 {
-    let collections =
-        source_files.iter().map(|&file_id| collect_file_diagnostics(queries, file_id));
+    let collections = source_files.iter().map(|&file_id| {
+        let javascript = queries.javascript(file_id)?;
+        collect_file_diagnostics(queries, file_id, javascript)
+    });
     collections.collect()
 }
 
-fn collect_file_diagnostics<Q>(queries: &Q, file_id: FileId) -> QueryResult<DiagnosticCollection>
+fn collect_file_diagnostics<Q>(
+    queries: &Q,
+    file_id: FileId,
+    javascript: javascript::ModuleResult<Arc<javascript::Module>>,
+) -> QueryResult<DiagnosticCollection>
 where
     Q: ExternalQueries + ForeignQueries,
 {
@@ -85,5 +96,22 @@ where
         diagnostics.extend(error.to_diagnostics(&context));
     }
 
-    Ok(DiagnosticCollection { file_id, content, diagnostics, source_start, foreign_start })
+    let backend_start = diagnostics.len();
+    match javascript {
+        Ok(module) => {
+            for diagnostic in module.diagnostics() {
+                diagnostics.extend(diagnostic.to_diagnostics(&context));
+            }
+        }
+        Err(error) => diagnostics.extend(error.to_diagnostics(&context)),
+    }
+
+    Ok(DiagnosticCollection {
+        file_id,
+        content,
+        diagnostics,
+        source_start,
+        foreign_start,
+        backend_start,
+    })
 }

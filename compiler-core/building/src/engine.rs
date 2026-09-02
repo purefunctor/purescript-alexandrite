@@ -1308,6 +1308,15 @@ impl javascript::ExternalQueries for QueryEngine {
     }
 }
 
+impl javascript::ModuleQueries for QueryEngine {
+    fn javascript(
+        &self,
+        file_id: FileId,
+    ) -> QueryResult<javascript::ModuleResult<Arc<javascript::Module>>> {
+        QueryEngine::javascript(self, file_id)
+    }
+}
+
 impl checking::PrettyQueries for QueryEngine {
     fn lookup_type(&self, id: checking::TypeId) -> checking::Type {
         self.interned.checking.lookup_type(id)
@@ -1973,7 +1982,10 @@ mod tests {
         let mut files = Files::default();
         prim::configure(&mut engine, &mut files);
 
-        let main = files.insert("Main.purs", "module Main where\n\nlife = unknown");
+        let main = files.insert(
+            "Main.purs",
+            "module Main where\n\nimport Alexandrite.StyleX (Props, Style, props)\n\npartialProps :: Style -> Props\npartialProps = props",
+        );
         engine.set_content(main, files.content(main));
         engine.set_module_file("Main", main);
 

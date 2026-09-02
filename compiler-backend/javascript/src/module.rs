@@ -2,12 +2,15 @@ use std::sync::Arc;
 
 use files::{FileId, ForeignSourceKind};
 
+use crate::ModuleDiagnostic;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     file_id: FileId,
     name: Arc<str>,
     source: Arc<str>,
     dependencies: Arc<[FileId]>,
+    diagnostics: Arc<[ModuleDiagnostic]>,
     foreign_kind: Option<ForeignSourceKind>,
     requires_runtime: bool,
 }
@@ -18,6 +21,7 @@ impl Module {
         name: String,
         source: String,
         dependencies: Vec<FileId>,
+        diagnostics: Vec<ModuleDiagnostic>,
         foreign_kind: Option<ForeignSourceKind>,
         requires_runtime: bool,
     ) -> Module {
@@ -26,6 +30,7 @@ impl Module {
             name: name.into(),
             source: source.into(),
             dependencies: dependencies.into(),
+            diagnostics: diagnostics.into(),
             foreign_kind,
             requires_runtime,
         }
@@ -56,6 +61,10 @@ impl Module {
 
     pub fn dependencies(&self) -> &[FileId] {
         &self.dependencies
+    }
+
+    pub fn diagnostics(&self) -> &[ModuleDiagnostic] {
+        &self.diagnostics
     }
 
     pub fn requires_foreign(&self) -> bool {

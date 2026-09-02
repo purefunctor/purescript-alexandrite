@@ -1,1 +1,0 @@
-cannot convert functional module Idx::<File>(43) to JavaScript: top-level value initializers form a cycle

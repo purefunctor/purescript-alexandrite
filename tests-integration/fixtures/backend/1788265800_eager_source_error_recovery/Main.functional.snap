@@ -1,0 +1,8 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export foreign observe
+
+@export broken = [observe 1, <error>]

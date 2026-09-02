@@ -15,7 +15,9 @@ pub fn implementation<Host>(
 ) -> Result<CollectedDiagnostics, AnalyzerError>
 where
     Host: AnalyzerHost,
-    Host::Queries: diagnostics::ExternalQueries + foreign_javascript::ForeignQueries,
+    Host::Queries: diagnostics::ExternalQueries
+        + foreign_javascript::ForeignQueries
+        + javascript::ModuleQueries,
 {
     let queries = context.queries();
     let mut collected = diagnostics::collect_diagnostics(queries, &[file_id])?;

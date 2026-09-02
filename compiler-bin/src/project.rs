@@ -6,7 +6,7 @@ use thiserror::Error;
 use url::Url;
 
 use crate::cli::ColorChoice;
-use crate::compile::{self, CompileError};
+use crate::compile::{self, CompileError, Resilience};
 use crate::watch::{self, WatchError};
 use crate::workspace::{Workspace, WorkspaceError};
 use spago::{SpagoCommand, SpagoError};
@@ -153,10 +153,10 @@ workspace: {{}}
     Ok(())
 }
 
-pub fn build(config: BuildProjectConfig) -> Result<(), ProjectError> {
+pub fn build(config: BuildProjectConfig, resilience: Resilience) -> Result<(), ProjectError> {
     let current_directory = env::current_dir().map_err(ProjectError::CurrentDirectory)?;
     let workspace = Workspace::discover(&current_directory, config.package.as_deref())?;
-    compile_workspace(&workspace, &current_directory, &config)
+    compile_workspace(&workspace, &current_directory, &config, resilience)
 }
 
 pub fn watch(config: BuildProjectConfig) -> Result<(), ProjectError> {
@@ -185,7 +185,7 @@ pub fn run(config: RunProjectConfig) -> Result<(), ProjectError> {
     let current_directory = env::current_dir().map_err(ProjectError::CurrentDirectory)?;
     let workspace = Workspace::discover(&current_directory, config.build.package.as_deref())?;
     let package = workspace.require_selected()?;
-    compile_workspace(&workspace, &current_directory, &config.build)?;
+    compile_workspace(&workspace, &current_directory, &config.build, Resilience::Strict)?;
 
     let execution = package.manifest.run.as_ref().cloned().unwrap_or_default();
     let main = config.main.or(execution.main).unwrap_or_else(|| "Main".to_owned());
@@ -205,7 +205,7 @@ pub fn test(config: TestProjectConfig) -> Result<(), ProjectError> {
     } else if !workspace.packages.values().any(|package| package.has_tests) {
         return Err(ProjectError::NoTests);
     }
-    compile_workspace(&workspace, &current_directory, &config.build)?;
+    compile_workspace(&workspace, &current_directory, &config.build, Resilience::Strict)?;
     let output = output(&workspace, &config.build);
 
     let packages = workspace.packages.values().filter(|package| {
@@ -229,9 +229,17 @@ fn compile_workspace(
     workspace: &Workspace,
     current_directory: &Path,
     config: &BuildProjectConfig,
+    resilience: Resilience,
 ) -> Result<(), ProjectError> {
     let (sources, output) = prepare_workspace_build(workspace, current_directory, config)?;
-    compile::compile_inputs(&workspace.root, &output, &sources, config.quiet, config.color)?;
+    compile::compile_inputs(
+        &workspace.root,
+        &output,
+        &sources,
+        config.quiet,
+        config.color,
+        resilience,
+    )?;
     Ok(())
 }
 

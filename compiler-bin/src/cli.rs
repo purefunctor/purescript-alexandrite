@@ -2,10 +2,12 @@ use std::borrow::Cow;
 use std::io;
 use std::path::PathBuf;
 
-use clap::builder::{PathBufValueParser, TypedValueParser};
+use clap::builder::{BoolishValueParser, PathBufValueParser, TypedValueParser};
 use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 use path_absolutize::Absolutize;
 use tracing::level_filters::LevelFilter;
+
+use crate::compile::Resilience;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -15,6 +17,11 @@ fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
 
 fn absolute_path_parser() -> impl TypedValueParser<Value = PathBuf> {
     PathBufValueParser::new().try_map(absolute_path)
+}
+
+fn resilience_parser() -> impl TypedValueParser<Value = Resilience> {
+    BoolishValueParser::new()
+        .map(|resilient| if resilient { Resilience::Resilient } else { Resilience::Strict })
 }
 
 #[derive(Debug, Parser)]
@@ -42,7 +49,7 @@ pub enum Command {
     /// Create a Spago project in the current directory.
     New(NewOptions),
     /// Build a Spago workspace or package.
-    Build(ProjectBuildOptions),
+    Build(ProjectBuildCommandOptions),
     /// Add dependencies to a Spago package.
     Add(AddOptions),
     /// Build and run a Spago package with Node.js.
@@ -173,6 +180,20 @@ pub struct ProjectBuildOptions {
     /// When to use colors in human-readable diagnostics.
     #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
     pub color: ColorChoice,
+}
+
+#[derive(Debug, Args)]
+pub struct ProjectBuildCommandOptions {
+    #[command(flatten)]
+    pub build: ProjectBuildOptions,
+
+    /// Write JavaScript output even when compilation reports errors.
+    #[arg(
+        long = "resilient",
+        action = ArgAction::SetTrue,
+        value_parser = resilience_parser()
+    )]
+    pub resilience: Resilience,
 }
 
 #[derive(Debug, Args)]
@@ -331,6 +352,16 @@ mod tests {
         Cli::try_parse_from(argv).unwrap_err().kind()
     }
 
+    fn build(args: &[&str]) -> ProjectBuildCommandOptions {
+        let mut argv = vec!["alexandrite", "build"];
+        argv.extend(args);
+        let cli = Cli::parse_from(argv);
+        match cli.command {
+            Some(Command::Build(options)) => options,
+            _ => unreachable!("parsed command was not `build`"),
+        }
+    }
+
     fn watch(args: &[&str]) -> ProjectBuildOptions {
         let mut argv = vec!["alexandrite", "watch"];
         argv.extend(args);
@@ -406,6 +437,14 @@ mod tests {
         assert_eq!(options.output, Some(current_directory_path("dist")));
         assert!(options.quiet);
         assert_eq!(options.color, ColorChoice::Never);
+    }
+
+    #[test]
+    fn build_accepts_resilient_output() {
+        let options = build(&["--resilient"]);
+
+        assert_eq!(options.resilience, Resilience::Resilient);
+        assert_eq!(build(&[]).resilience, Resilience::Strict);
     }
 
     #[test]

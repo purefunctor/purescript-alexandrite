@@ -233,7 +233,8 @@ fn function_profile(
             uncurried: true,
             effect_step: false,
         }),
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Array { .. }
         | ExpressionKind::Record { .. }
         | ExpressionKind::RecordUpdate { .. }
@@ -327,7 +328,8 @@ fn collect_tail_edges(
             | EffectExpression::Map { .. }
             | EffectExpression::Apply { .. } => {}
         },
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Array { .. }
         | ExpressionKind::Record { .. }
         | ExpressionKind::RecordUpdate { .. }
@@ -369,7 +371,8 @@ fn application(
             let identity = function_identity(module, *function)?;
             Some((identity, arguments.to_vec(), true))
         }
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Array { .. }
         | ExpressionKind::Record { .. }
         | ExpressionKind::RecordUpdate { .. }

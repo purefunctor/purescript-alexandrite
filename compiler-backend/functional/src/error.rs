@@ -16,8 +16,6 @@ pub enum ModuleError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum UnsupportedState {
-    #[error("checked expression {0:?} contains an error")]
-    ExpressionError(checked_tree::ExpressionId),
     #[error("checked binder {0:?} contains an error")]
     BinderError(checked_tree::BinderId),
     #[error("record update contains an error")]
@@ -26,8 +24,6 @@ pub enum UnsupportedState {
     PatternBindingError(lowering::LetBindingId),
     #[error("evidence variable {0:?} is unsolved")]
     UnsolvedEvidence(EvidenceVarId),
-    #[error("evidence variable {0:?} contains an error")]
-    EvidenceError(EvidenceVarId),
     #[error("evidence variable {0:?} is cyclic")]
     CyclicEvidence(EvidenceVarId),
     #[error("checked term declaration {0:?} is missing")]
@@ -51,7 +47,7 @@ pub enum UnsupportedState {
     #[error("generated global identity space is exhausted")]
     GeneratedGlobalIdentityOverflow,
     #[error("Alexandrite.StyleX.{function} must be used as a direct, saturated intrinsic call")]
-    InvalidStyleXUse { function: String },
+    InvalidStyleXUse { function: String, declaration: GlobalId },
     #[error("virtual module declaration {module_name}.{item_name} cannot be used at runtime")]
     VirtualModuleRuntimeReference { module_name: String, item_name: String },
 }

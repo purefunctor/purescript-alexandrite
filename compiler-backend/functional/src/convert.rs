@@ -627,12 +627,12 @@ where
 
     fn validate_stylex_uses(&self, declarations: &[Declaration]) -> ConversionResult<()> {
         let pending = declarations.iter().filter_map(|declaration| match declaration.kind {
-            DeclarationKind::Value(expression) => Some(expression),
+            DeclarationKind::Value(expression) => Some((expression, declaration.global.id)),
             DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => None,
         });
         let mut pending = pending.collect_vec();
         let mut visited = FxHashSet::default();
-        while let Some(expression) = pending.pop() {
+        while let Some((expression, declaration)) = pending.pop() {
             if !visited.insert(expression) {
                 continue;
             }
@@ -640,11 +640,14 @@ where
                 && let GlobalId::Term(file_id, term_id) = global.id
                 && let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)?
             {
-                let state =
-                    UnsupportedState::InvalidStyleXUse { function: intrinsic.name().to_owned() };
+                let state = UnsupportedState::InvalidStyleXUse {
+                    function: intrinsic.name().to_owned(),
+                    declaration,
+                };
                 return Err(self.unsupported(state));
             }
-            pending.extend(expression_children(&self.storage[expression].kind));
+            let children = expression_children(&self.storage[expression].kind);
+            pending.extend(children.into_iter().map(|expression| (expression, declaration)));
         }
         Ok(())
     }

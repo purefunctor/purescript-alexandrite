@@ -13,8 +13,9 @@ use lsp_types::{
     CodeActionContext, CodeActionKind, CodeActionOrCommand, CodeActionResponse,
     CodeActionTriggerKind, CompletionItemKind, CompletionList, CompletionResponse, DocumentChanges,
     DocumentHighlight, DocumentSymbolResponse, GotoDefinitionResponse, HoverContents,
-    LanguageString, Location, MarkedString, OneOf, Position, PrepareRenameResponse, Range,
-    SemanticTokens, SymbolInformation, TextEdit, Url, WorkspaceEdit, WorkspaceSymbolResponse,
+    LanguageString, Location, MarkedString, NumberOrString, OneOf, Position, PrepareRenameResponse,
+    Range, SemanticTokens, SymbolInformation, TextEdit, Url, WorkspaceEdit,
+    WorkspaceSymbolResponse,
 };
 use render::{TabledCompletionItem, TabledDetailedCompletionItem};
 use similar::TextDiff;
@@ -98,10 +99,12 @@ fn cursor_marker_line(line: &str) -> bool {
 
 enum Request {
     Cursor(Position, CursorKind),
+    Diagnostics,
     SemanticTokens,
     WorkspaceSymbols(String),
 }
 
+const DIAGNOSTICS_DIRECTIVE: &str = "-- diagnostics";
 const SEMANTIC_TOKENS_DIRECTIVE: &str = "-- semantic tokens";
 const WORKSPACE_SYMBOLS_DIRECTIVE: &str = "-- #";
 
@@ -158,8 +161,16 @@ fn extract_semantic_tokens_requests(content: &str) -> Vec<(usize, Request)> {
         .collect()
 }
 
+fn extract_diagnostics_requests(content: &str) -> Vec<(usize, Request)> {
+    content
+        .match_indices(DIAGNOSTICS_DIRECTIVE)
+        .map(|(index, _)| (index, Request::Diagnostics))
+        .collect()
+}
+
 fn extract_requests(content: &str) -> Vec<Request> {
     let mut requests = extract_cursors(content);
+    requests.extend(extract_diagnostics_requests(content));
     requests.extend(extract_semantic_tokens_requests(content));
     requests.extend(extract_workspace_symbol_queries(content));
     requests.sort_by_key(|(index, _)| *index);
@@ -220,6 +231,10 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
                 writeln!(result, "WorkspaceSymbols query {query:?}\n").unwrap();
                 dispatch_workspace_symbols(&mut result, engine, files, &mut symbols_cache, query);
             }
+            Request::Diagnostics => {
+                writeln!(result, "Diagnostics\n").unwrap();
+                dispatch_diagnostics(&mut result, engine, files, id);
+            }
             Request::SemanticTokens => {
                 writeln!(result, "SemanticTokens\n").unwrap();
                 dispatch_semantic_tokens(&mut result, engine, files, uri, &content);
@@ -228,6 +243,37 @@ pub fn report(engine: &QueryEngine, files: &Files, id: FileId) -> String {
     }
 
     redact_paths(result)
+}
+
+fn dispatch_diagnostics(result: &mut String, engine: &QueryEngine, files: &Files, file_id: FileId) {
+    let encoding = PositionEncoding::Utf16;
+    let host = IntegrationAnalyzerHost { queries: engine, files };
+    let capabilities = AnalyzerCapabilities::default();
+    let context = analyzer::AnalyzerContext::new(&host, encoding, capabilities);
+    let Ok(collected) = analyzer::diagnostics::implementation(&context, file_id) else {
+        writeln!(result, "<error>").unwrap();
+        return;
+    };
+    if collected.diagnostics.is_empty() {
+        writeln!(result, "<empty>").unwrap();
+        return;
+    }
+
+    for diagnostic in collected.diagnostics {
+        let code = match diagnostic.code {
+            Some(NumberOrString::Number(code)) => code.to_string(),
+            Some(NumberOrString::String(code)) => code,
+            None => "<no code>".to_owned(),
+        };
+        let source = diagnostic.source.as_deref().unwrap_or("<no source>");
+        writeln!(
+            result,
+            "{} {source} [{code}] {}",
+            render_range(diagnostic.range),
+            diagnostic.message,
+        )
+        .unwrap();
+    }
 }
 
 fn dispatch_semantic_tokens(

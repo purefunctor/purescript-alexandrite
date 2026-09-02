@@ -1,9 +1,19 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 278
+assertion_line: 280
 expression: diagnostics_report
 ---
 Terms
 partialProps :: Alexandrite.StyleX.Style -> Alexandrite.StyleX.Props
 
 Types
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:5:1
+  •
+  │
+  • Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call
+  │
+  │   partialProps :: Style -> Props
+  │   ╰─────────────────────────────
+  •

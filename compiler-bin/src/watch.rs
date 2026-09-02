@@ -15,7 +15,7 @@ use url::Url;
 
 use crate::cli::ColorChoice;
 use crate::compilation::CompilationState;
-use crate::compile::{self, BuildConfig, BuildOutcome, CompileError};
+use crate::compile::{self, BuildConfig, BuildOutcome, CompileError, Resilience};
 use crate::walk;
 
 const DEBOUNCE_DURATION: Duration = Duration::from_millis(100);
@@ -111,6 +111,7 @@ fn rebuild(workspace: &mut WatchWorkspace, config: &WatchConfig) -> Result<(), C
         current_directory: &workspace.current_directory,
         color: compile::use_color(config.color),
         progress: false,
+        resilience: Resilience::Strict,
     };
     match compile::build(&workspace.compilation, &build_config)? {
         BuildOutcome::Succeeded(outputs) => {

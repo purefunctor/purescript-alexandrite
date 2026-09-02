@@ -9,8 +9,10 @@ mod module;
 mod tree;
 mod writer;
 
+use std::sync::Arc;
+
 pub use convert::convert_module;
-pub use error::{ModuleError, ModuleResult, UnsupportedState};
+pub use error::{ModuleDiagnostic, ModuleError, ModuleResult, UnsupportedState};
 pub use module::{
     Module, foreign_module_filename, module_filename, runtime_filename, runtime_source,
 };
@@ -20,4 +22,8 @@ use files::{FileId, ForeignFileId};
 
 pub trait ExternalQueries: functional::ExternalQueries {
     fn foreign_file(&self, file_id: FileId) -> QueryResult<Option<ForeignFileId>>;
+}
+
+pub trait ModuleQueries: ExternalQueries {
+    fn javascript(&self, file_id: FileId) -> QueryResult<ModuleResult<Arc<Module>>>;
 }

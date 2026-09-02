@@ -228,6 +228,7 @@ fn is_simple_expression(
                 && is_simple_expression(storage, *right, recursive_globals)
         }
         ExpressionKind::RecordUpdate { .. }
+        | ExpressionKind::Error
         | ExpressionKind::Application { .. }
         | ExpressionKind::UncurriedApplication { .. }
         | ExpressionKind::StyleX { .. }
@@ -242,7 +243,8 @@ fn is_simple_expression(
 
 pub(crate) fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
     match kind {
-        ExpressionKind::Literal { .. }
+        ExpressionKind::Error
+        | ExpressionKind::Literal { .. }
         | ExpressionKind::Constructor { .. }
         | ExpressionKind::Global { .. }
         | ExpressionKind::Local { .. }
