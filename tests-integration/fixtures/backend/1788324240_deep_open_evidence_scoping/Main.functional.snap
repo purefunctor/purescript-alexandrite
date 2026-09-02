@@ -1,0 +1,316 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Proxy/0
+
+@export base = \dictionary%0 -> dictionary%0.base
+
+@export instance baseInt = { base: 42 }
+
+@export chain = \dictionary%1 -> dictionary%1.chain
+
+@export instance chainZero = \baseValueDict%2 -> { chain: base baseValueDict%2 }
+
+@export instance chainNext = \addPreviousCurrentDict%3 chainValuePreviousDict%4 -> { chain: 0 }
+
+@export chainValue = \chainValueNumberDict%5 ->
+  \$proxy%6@(_) $proxy%7@(_) -> chain chainValueNumberDict%5
+
+@export useTwice = \baseValueDict%8 ->
+  \proxy%11 ->
+    let
+      chainZeroDict%12 = chainZero baseValueDict%8
+    in [chainValue
+        (let
+          chainNextDict%9 = chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext
+                      <trivial evidence>
+                      (chainNext
+                        <trivial evidence>
+                        (chainNext
+                          <trivial evidence>
+                          (chainNext
+                            <trivial evidence>
+                            (chainNext
+                              <trivial evidence>
+                              (chainNext
+                                <trivial evidence>
+                                (chainNext
+                                  <trivial evidence>
+                                  (chainNext
+                                    <trivial evidence>
+                                    (chainNext
+                                      <trivial evidence>
+                                      (chainNext
+                                        <trivial evidence>
+                                        (chainNext
+                                          <trivial evidence>
+                                          (chainNext
+                                            <trivial evidence>
+                                            (chainNext
+                                              <trivial evidence>
+                                              (chainNext
+                                                <trivial evidence>
+                                                (chainNext
+                                                  <trivial evidence>
+                                                  (chainNext
+                                                    <trivial evidence>
+                                                    (chainNext
+                                                      <trivial evidence>
+                                                      (chainNext
+                                                        <trivial evidence>
+                                                        (chainNext
+                                                          <trivial evidence>
+                                                          (chainNext
+                                                            <trivial evidence>
+                                                            (chainNext
+                                                              <trivial evidence>
+                                                              (chainNext
+                                                                <trivial evidence>
+                                                                (chainNext
+                                                                  <trivial evidence>
+                                                                  (chainNext
+                                                                    <trivial evidence>
+                                                                    (chainNext
+                                                                      <trivial evidence>
+                                                                      (chainNext
+                                                                        <trivial evidence>
+                                                                        chainZeroDict%12))))))))))))))))))))))))))))))
+          chainNextDict%10 = chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext
+                      <trivial evidence>
+                      (chainNext
+                        <trivial evidence>
+                        (chainNext
+                          <trivial evidence>
+                          (chainNext
+                            <trivial evidence>
+                            (chainNext
+                              <trivial evidence>
+                              (chainNext
+                                <trivial evidence>
+                                (chainNext
+                                  <trivial evidence>
+                                  (chainNext
+                                    <trivial evidence>
+                                    (chainNext
+                                      <trivial evidence>
+                                      (chainNext
+                                        <trivial evidence>
+                                        (chainNext
+                                          <trivial evidence>
+                                          (chainNext
+                                            <trivial evidence>
+                                            (chainNext
+                                              <trivial evidence>
+                                              (chainNext
+                                                <trivial evidence>
+                                                (chainNext
+                                                  <trivial evidence>
+                                                  (chainNext
+                                                    <trivial evidence>
+                                                    (chainNext
+                                                      <trivial evidence>
+                                                      (chainNext
+                                                        <trivial evidence>
+                                                        (chainNext
+                                                          <trivial evidence>
+                                                          (chainNext
+                                                            <trivial evidence>
+                                                            (chainNext
+                                                              <trivial evidence>
+                                                              (chainNext
+                                                                <trivial evidence>
+                                                                (chainNext
+                                                                  <trivial evidence>
+                                                                  (chainNext
+                                                                    <trivial evidence>
+                                                                    (chainNext
+                                                                      <trivial evidence>
+                                                                      (chainNext
+                                                                        <trivial evidence>
+                                                                        (chainNext
+                                                                          <trivial evidence>
+                                                                          chainNextDict%9)))))))))))))))))))))))))))))))
+        in chainNext
+          <trivial evidence>
+          (chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext <trivial evidence> chainNextDict%10)))))))
+        proxy%11
+        "Proxy",
+      chainValue
+        (let
+          chainNextDict%13 = chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext
+                      <trivial evidence>
+                      (chainNext
+                        <trivial evidence>
+                        (chainNext
+                          <trivial evidence>
+                          (chainNext
+                            <trivial evidence>
+                            (chainNext
+                              <trivial evidence>
+                              (chainNext
+                                <trivial evidence>
+                                (chainNext
+                                  <trivial evidence>
+                                  (chainNext
+                                    <trivial evidence>
+                                    (chainNext
+                                      <trivial evidence>
+                                      (chainNext
+                                        <trivial evidence>
+                                        (chainNext
+                                          <trivial evidence>
+                                          (chainNext
+                                            <trivial evidence>
+                                            (chainNext
+                                              <trivial evidence>
+                                              (chainNext
+                                                <trivial evidence>
+                                                (chainNext
+                                                  <trivial evidence>
+                                                  (chainNext
+                                                    <trivial evidence>
+                                                    (chainNext
+                                                      <trivial evidence>
+                                                      (chainNext
+                                                        <trivial evidence>
+                                                        (chainNext
+                                                          <trivial evidence>
+                                                          (chainNext
+                                                            <trivial evidence>
+                                                            (chainNext
+                                                              <trivial evidence>
+                                                              (chainNext
+                                                                <trivial evidence>
+                                                                (chainNext
+                                                                  <trivial evidence>
+                                                                  (chainNext
+                                                                    <trivial evidence>
+                                                                    (chainNext
+                                                                      <trivial evidence>
+                                                                      (chainNext
+                                                                        <trivial evidence>
+                                                                        chainZeroDict%12))))))))))))))))))))))))))))))
+          chainNextDict%14 = chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext
+                      <trivial evidence>
+                      (chainNext
+                        <trivial evidence>
+                        (chainNext
+                          <trivial evidence>
+                          (chainNext
+                            <trivial evidence>
+                            (chainNext
+                              <trivial evidence>
+                              (chainNext
+                                <trivial evidence>
+                                (chainNext
+                                  <trivial evidence>
+                                  (chainNext
+                                    <trivial evidence>
+                                    (chainNext
+                                      <trivial evidence>
+                                      (chainNext
+                                        <trivial evidence>
+                                        (chainNext
+                                          <trivial evidence>
+                                          (chainNext
+                                            <trivial evidence>
+                                            (chainNext
+                                              <trivial evidence>
+                                              (chainNext
+                                                <trivial evidence>
+                                                (chainNext
+                                                  <trivial evidence>
+                                                  (chainNext
+                                                    <trivial evidence>
+                                                    (chainNext
+                                                      <trivial evidence>
+                                                      (chainNext
+                                                        <trivial evidence>
+                                                        (chainNext
+                                                          <trivial evidence>
+                                                          (chainNext
+                                                            <trivial evidence>
+                                                            (chainNext
+                                                              <trivial evidence>
+                                                              (chainNext
+                                                                <trivial evidence>
+                                                                (chainNext
+                                                                  <trivial evidence>
+                                                                  (chainNext
+                                                                    <trivial evidence>
+                                                                    (chainNext
+                                                                      <trivial evidence>
+                                                                      (chainNext
+                                                                        <trivial evidence>
+                                                                        (chainNext
+                                                                          <trivial evidence>
+                                                                          chainNextDict%13)))))))))))))))))))))))))))))))
+        in chainNext
+          <trivial evidence>
+          (chainNext
+            <trivial evidence>
+            (chainNext
+              <trivial evidence>
+              (chainNext
+                <trivial evidence>
+                (chainNext
+                  <trivial evidence>
+                  (chainNext
+                    <trivial evidence>
+                    (chainNext <trivial evidence> chainNextDict%14)))))))
+        proxy%11
+        "Proxy"]
+
+@export result = useTwice baseInt "Proxy"

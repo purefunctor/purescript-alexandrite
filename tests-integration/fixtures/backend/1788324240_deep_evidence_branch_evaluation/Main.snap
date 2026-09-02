@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+built :: forall (@number :: Prim.Int). Main.Build (number :: Prim.Int) => Prim.Int
+crash :: Prim.Int -> Prim.Int
+buildValue ::
+  forall (number :: Prim.Int).
+    Main.Build (number :: Prim.Int) => Main.Proxy @Prim.Int (number :: Prim.Int) -> Prim.Int
+evaluateIf :: Prim.Boolean -> Prim.Int
+evaluateCase :: Prim.Boolean -> Prim.Int
+evaluateGuard :: Prim.Boolean -> Prim.Int
+
+Types
+Proxy :: forall k. k -> Prim.Type
+Build :: Prim.Int -> Prim.Constraint
+
+Classes
+class forall (number :: Prim.Int). Main.Build (number :: Prim.Int)
+  built :: forall (@number :: Prim.Int). Main.Build (number :: Prim.Int) => Prim.Int
+
+Instances
+instance Main.Build 0
+instance forall (previous :: Prim.Int) (current :: Prim.Int).
+  Prim.Int.Add (previous :: Prim.Int) 1 (current :: Prim.Int) =>
+  Main.Build (previous :: Prim.Int) =>
+  Main.Build (current :: Prim.Int)
+
+Roles
+Proxy = [Phantom]

@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+left :: forall t0 (@number :: t0). Main.Left @t0 (number :: t0) => Prim.Int
+right :: forall t0 (@number :: t0). Main.Right @t0 (number :: t0) => Prim.Int
+combined :: Main.Combined => Prim.Int
+observe :: Prim.String -> Prim.Int
+result :: Prim.Int
+
+Types
+Seed :: Prim.Constraint
+Left :: forall t0. t0 -> Prim.Constraint
+Right :: forall t0. t0 -> Prim.Constraint
+Combined :: Prim.Constraint
+
+Classes
+class Main.Seed
+class forall (t0 :: Prim.Type) (number :: t0). Main.Left @t0 (number :: t0)
+  left :: forall t0 (@number :: t0). Main.Left @t0 (number :: t0) => Prim.Int
+class forall (t0 :: Prim.Type) (number :: t0). Main.Right @t0 (number :: t0)
+  right :: forall t0 (@number :: t0). Main.Right @t0 (number :: t0) => Prim.Int
+class Main.Combined
+  combined :: Main.Combined => Prim.Int
+
+Instances
+instance Main.Seed
+instance Main.Seed => Main.Left @Prim.Int 0
+instance forall (previous :: Prim.Int) (current :: Prim.Int).
+  Prim.Int.Add (previous :: Prim.Int) 1 (current :: Prim.Int) =>
+  Main.Left @Prim.Int (previous :: Prim.Int) =>
+  Main.Left @Prim.Int (current :: Prim.Int)
+instance Main.Seed => Main.Right @Prim.Int 0
+instance forall (previous :: Prim.Int) (current :: Prim.Int).
+  Prim.Int.Add (previous :: Prim.Int) 1 (current :: Prim.Int) =>
+  Main.Right @Prim.Int (previous :: Prim.Int) =>
+  Main.Right @Prim.Int (current :: Prim.Int)
+instance Main.Left @Prim.Int 70 => Main.Right @Prim.Int 40 => Main.Combined

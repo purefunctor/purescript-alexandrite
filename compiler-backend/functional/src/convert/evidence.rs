@@ -19,6 +19,7 @@ use crate::tree::{
 use super::{BindingSource, Context, ConversionResult, lowercase_initial};
 
 const MAX_EVIDENCE_NAME_FRAGMENTS: usize = 4;
+const MAX_INLINE_EVIDENCE_DEPTH: usize = 32;
 
 #[derive(Default)]
 pub(super) struct EvidenceScope {
@@ -62,7 +63,7 @@ struct EvidenceKeyData {
     kind: EvidenceKeyKind,
     closed: bool,
     dependency_order: usize,
-    valid: bool,
+    inline_height: usize,
 }
 
 #[derive(Default)]
@@ -193,10 +194,10 @@ impl EvidenceKeys {
             return key;
         }
 
-        let (closed, dependency_order, valid) = match &kind {
-            EvidenceKeyKind::Given(_) | EvidenceKeyKind::Opaque(_) => (false, 0, true),
+        let (closed, dependency_order, inline_height) = match &kind {
+            EvidenceKeyKind::Given(_) | EvidenceKeyKind::Opaque(_) => (false, 0, 0),
             EvidenceKeyKind::InvalidEvidence(_) | EvidenceKeyKind::InvalidVariable(_) => {
-                (false, 0, false)
+                (false, 0, 0)
             }
             EvidenceKeyKind::Instance { subgoals, .. } => {
                 let closed = subgoals.iter().all(|key| self.data(*key).closed);
@@ -206,12 +207,21 @@ impl EvidenceKeys {
                     .max()
                     .unwrap_or(0)
                     .saturating_add(1);
-                let valid = subgoals.iter().all(|key| self.data(*key).valid);
-                (closed, dependency_order, valid)
+                let inline_height = subgoals
+                    .iter()
+                    .map(|key| self.data(*key).inline_height)
+                    .max()
+                    .unwrap_or(0)
+                    .saturating_add(1)
+                    % MAX_INLINE_EVIDENCE_DEPTH;
+                (closed, dependency_order, inline_height)
             }
             EvidenceKeyKind::Superclass { parent, .. } => {
                 let parent = self.data(*parent);
-                (parent.closed, parent.dependency_order.saturating_add(1), parent.valid)
+                let dependency_order = parent.dependency_order.saturating_add(1);
+                let inline_height =
+                    parent.inline_height.saturating_add(1) % MAX_INLINE_EVIDENCE_DEPTH;
+                (parent.closed, dependency_order, inline_height)
             }
         };
         let key = EvidenceKey(self.keys.len() as u32);
@@ -219,7 +229,7 @@ impl EvidenceKeys {
             kind: EvidenceKeyKind::clone(&kind),
             closed,
             dependency_order,
-            valid,
+            inline_height,
         });
         self.interned.insert(kind, key);
         key
@@ -239,6 +249,15 @@ impl EvidenceKeys {
 
     fn dependency_order(&self, key: EvidenceKey) -> usize {
         self.data(key).dependency_order
+    }
+
+    fn is_self_contained(&self, key: EvidenceKey) -> bool {
+        self.dependency_order(key) < MAX_INLINE_EVIDENCE_DEPTH
+    }
+
+    fn is_cut_point(&self, key: EvidenceKey) -> bool {
+        let data = self.data(key);
+        data.dependency_order != 0 && data.inline_height == 0
     }
 }
 
@@ -292,6 +311,24 @@ struct EvidenceBinding {
     binding: Binding,
 }
 
+#[derive(Default)]
+struct EvidenceOccurrence {
+    constructions: FxHashMap<EvidenceKey, OccurrenceConstruction>,
+    bindings: Vec<OccurrenceBinding>,
+    next_order: usize,
+}
+
+#[derive(Clone)]
+enum OccurrenceConstruction {
+    Inline { expression: ExpressionId, name: SmolStr, order: usize },
+    Shared(Parameter),
+}
+
+struct OccurrenceBinding {
+    order: usize,
+    binding: Binding,
+}
+
 enum EvidenceConversionStep {
     Variable {
         variable: EvidenceVarId,
@@ -324,6 +361,7 @@ pub(super) fn evidence_variable(
     let mut steps = vec![EvidenceConversionStep::Variable { variable, constraint }];
     let mut expressions = vec![];
     let mut lowering = FxHashSet::default();
+    let mut occurrence = EvidenceOccurrence::default();
 
     while let Some(step) = steps.pop() {
         match step {
@@ -362,7 +400,9 @@ pub(super) fn evidence_variable(
                     }
                     Evidence::Instance { origin, subgoals } => {
                         let evidence = context.evidence_key(evidence);
-                        if let Some(expression) = context.shared_evidence(evidence)? {
+                        if let Some(expression) =
+                            context.shared_evidence(&mut occurrence, evidence)?
+                        {
                             expressions.push(expression);
                             continue;
                         }
@@ -385,7 +425,9 @@ pub(super) fn evidence_variable(
                     }
                     Evidence::Superclass { parent, superclass } => {
                         let evidence = context.evidence_key(evidence);
-                        if let Some(expression) = context.shared_evidence(evidence)? {
+                        if let Some(expression) =
+                            context.shared_evidence(&mut occurrence, evidence)?
+                        {
                             expressions.push(expression);
                             continue;
                         }
@@ -425,7 +467,13 @@ pub(super) fn evidence_variable(
                 let has_arguments = !arguments.is_empty();
                 let construction = context.synthetic_application(function, arguments)?;
                 let expression = if has_arguments {
-                    context.record_evidence(evidence, construction, name, constraint)?
+                    context.record_evidence(
+                        &mut occurrence,
+                        evidence,
+                        construction,
+                        name,
+                        constraint,
+                    )?
                 } else {
                     construction
                 };
@@ -443,8 +491,13 @@ pub(super) fn evidence_variable(
                     arguments: Arc::from([]),
                     synthetic: true,
                 });
-                let expression =
-                    context.record_evidence(evidence, construction, name, constraint)?;
+                let expression = context.record_evidence(
+                    &mut occurrence,
+                    evidence,
+                    construction,
+                    name,
+                    constraint,
+                )?;
                 expressions.push(expression);
             }
         }
@@ -453,7 +506,20 @@ pub(super) fn evidence_variable(
     let expression =
         expressions.pop().expect("invariant violated: evidence conversion produced no expression");
     debug_assert!(expressions.is_empty());
-    Ok(expression)
+    Ok(bind_evidence_occurrence(context, occurrence, expression))
+}
+
+fn bind_evidence_occurrence(
+    context: &mut Context<'_, impl checking::ExternalQueries>,
+    mut occurrence: EvidenceOccurrence,
+    body: ExpressionId,
+) -> ExpressionId {
+    if occurrence.bindings.is_empty() {
+        return body;
+    }
+    occurrence.bindings.sort_by_key(|binding| binding.order);
+    let bindings = occurrence.bindings.into_iter().map(|binding| binding.binding);
+    context.expression(ExpressionKind::Let { recursive: false, bindings: bindings.collect(), body })
 }
 
 fn synthesized_evidence(
@@ -623,7 +689,9 @@ where
             return Ok(selection);
         };
         let evidence = self.evidence_key(evidence_id);
-        if !self.evidence_keys.is_closed(evidence) {
+        if !self.evidence_keys.is_closed(evidence)
+            || !self.evidence_keys.is_self_contained(evidence)
+        {
             return Ok(selection);
         }
 
@@ -637,39 +705,73 @@ where
         Ok(selection)
     }
 
-    fn shared_evidence(&mut self, evidence: EvidenceKey) -> ConversionResult<Option<ExpressionId>> {
-        if self.evidence_keys.is_closed(evidence) {
-            return Ok(None);
-        }
-        let Some(scope) = self.evidence_scopes.last() else { return Ok(None) };
-        let Some(construction) = scope.constructions.get(&evidence).cloned() else {
-            return Ok(None);
-        };
-        let parameter = match construction {
-            EvidenceConstruction::Shared(parameter) => parameter,
-            EvidenceConstruction::Inline { expression, name } => {
-                // The first occurrence stays inline until repetition justifies a binding. Replacing
-                // its arena node with a local updates that occurrence without a separate tree pass.
-                let parameter = self.fresh_parameter(name)?;
-                let local = ExpressionKind::Local { parameter: parameter.clone() };
-                let construction = self.storage.replace_expression_kind(expression, local);
-                let construction = self.expression(construction);
-                let scope = self
-                    .evidence_scopes
-                    .last_mut()
-                    .expect("invariant violated: evidence scope disappeared during conversion");
-                scope
-                    .constructions
-                    .insert(evidence, EvidenceConstruction::Shared(parameter.clone()));
-                scope.bindings.push(EvidenceBinding {
-                    evidence,
-                    binding: Binding {
-                        parameter: parameter.clone(),
-                        expression: construction,
-                        source_order: 0,
-                    },
-                });
-                parameter
+    fn shared_evidence(
+        &mut self,
+        occurrence: &mut EvidenceOccurrence,
+        evidence: EvidenceKey,
+    ) -> ConversionResult<Option<ExpressionId>> {
+        let parameter = if self.evidence_keys.is_self_contained(evidence) {
+            if self.evidence_keys.is_closed(evidence) {
+                return Ok(None);
+            }
+            let Some(scope) = self.evidence_scopes.last() else { return Ok(None) };
+            let Some(construction) = scope.constructions.get(&evidence).cloned() else {
+                return Ok(None);
+            };
+            match construction {
+                EvidenceConstruction::Shared(parameter) => parameter,
+                EvidenceConstruction::Inline { expression, name } => {
+                    // The first occurrence stays inline until repetition justifies a binding.
+                    // Replacing its arena node with a local updates that occurrence without a
+                    // separate tree pass.
+                    let parameter = self.fresh_parameter(name)?;
+                    let local = ExpressionKind::Local { parameter: Parameter::clone(&parameter) };
+                    let construction = self.storage.replace_expression_kind(expression, local);
+                    let construction = self.expression(construction);
+                    let scope = self
+                        .evidence_scopes
+                        .last_mut()
+                        .expect("invariant violated: evidence scope disappeared during conversion");
+                    scope.constructions.insert(
+                        evidence,
+                        EvidenceConstruction::Shared(Parameter::clone(&parameter)),
+                    );
+                    scope.bindings.push(EvidenceBinding {
+                        evidence,
+                        binding: Binding {
+                            parameter: Parameter::clone(&parameter),
+                            expression: construction,
+                            source_order: 0,
+                        },
+                    });
+                    parameter
+                }
+            }
+        } else {
+            let Some(construction) = occurrence.constructions.get(&evidence).cloned() else {
+                return Ok(None);
+            };
+            match construction {
+                OccurrenceConstruction::Shared(parameter) => parameter,
+                OccurrenceConstruction::Inline { expression, name, order } => {
+                    let parameter = self.fresh_parameter(name)?;
+                    let local = ExpressionKind::Local { parameter: Parameter::clone(&parameter) };
+                    let construction = self.storage.replace_expression_kind(expression, local);
+                    let construction = self.expression(construction);
+                    occurrence.constructions.insert(
+                        evidence,
+                        OccurrenceConstruction::Shared(Parameter::clone(&parameter)),
+                    );
+                    occurrence.bindings.push(OccurrenceBinding {
+                        order,
+                        binding: Binding {
+                            parameter: Parameter::clone(&parameter),
+                            expression: construction,
+                            source_order: order,
+                        },
+                    });
+                    parameter
+                }
             }
         };
         Ok(Some(self.expression(ExpressionKind::Local { parameter })))
@@ -677,23 +779,51 @@ where
 
     fn record_evidence(
         &mut self,
+        occurrence: &mut EvidenceOccurrence,
         evidence: EvidenceKey,
         construction: ExpressionId,
         name: SmolStr,
         constraint: Option<checking::TypeId>,
     ) -> ConversionResult<ExpressionId> {
-        if self.evidence_keys.is_closed(evidence) {
-            let name = constraint
-                .map(|constraint| self.evidence_parameter_name(constraint))
-                .transpose()?;
-            let key = ClosedEvidenceKey::Dictionary(evidence);
-            self.evidence_hoisting.record(key, construction, name);
+        if self.evidence_keys.is_self_contained(evidence) {
+            if self.evidence_keys.is_closed(evidence) {
+                let name = constraint
+                    .map(|constraint| self.evidence_parameter_name(constraint))
+                    .transpose()?;
+                let key = ClosedEvidenceKey::Dictionary(evidence);
+                self.evidence_hoisting.record(key, construction, name);
+                return Ok(construction);
+            }
+            let Some(scope) = self.evidence_scopes.last_mut() else { return Ok(construction) };
+            scope
+                .constructions
+                .insert(evidence, EvidenceConstruction::Inline { expression: construction, name });
             return Ok(construction);
         }
-        let Some(scope) = self.evidence_scopes.last_mut() else { return Ok(construction) };
-        scope
-            .constructions
-            .insert(evidence, EvidenceConstruction::Inline { expression: construction, name });
+
+        let order = occurrence.next_order;
+        occurrence.next_order += 1;
+        if self.evidence_keys.is_cut_point(evidence) {
+            let parameter = self.fresh_parameter(name)?;
+            occurrence
+                .constructions
+                .insert(evidence, OccurrenceConstruction::Shared(Parameter::clone(&parameter)));
+            occurrence.bindings.push(OccurrenceBinding {
+                order,
+                binding: Binding {
+                    parameter: Parameter::clone(&parameter),
+                    expression: construction,
+                    source_order: order,
+                },
+            });
+            // Dictionary applications are intentionally not simple expressions, so the functional
+            // optimizer preserves this binding and the bounded-depth contract for later backends.
+            return Ok(self.expression(ExpressionKind::Local { parameter }));
+        }
+        occurrence.constructions.insert(
+            evidence,
+            OccurrenceConstruction::Inline { expression: construction, name, order },
+        );
         Ok(construction)
     }
 
@@ -973,6 +1103,30 @@ mod tests {
     use checking::evidence::Evidences;
 
     use super::*;
+
+    #[test]
+    fn cut_points_account_for_branching_evidence() {
+        let origin = InstanceCandidateOrigin::Instance(
+            files::FileId::new(0),
+            indexing::InstanceId::new(NonZeroU32::MIN),
+        );
+        let mut keys = EvidenceKeys::default();
+
+        let mut deep = keys.intern(EvidenceKeyKind::Opaque(EvidenceId(0)));
+        for _ in 0..MAX_INLINE_EVIDENCE_DEPTH {
+            deep = keys.intern(EvidenceKeyKind::Instance { origin, subgoals: vec![deep] });
+        }
+
+        let mut sibling = keys.intern(EvidenceKeyKind::Opaque(EvidenceId(1)));
+        for _ in 1..MAX_INLINE_EVIDENCE_DEPTH {
+            sibling = keys.intern(EvidenceKeyKind::Instance { origin, subgoals: vec![sibling] });
+        }
+
+        let root = keys.intern(EvidenceKeyKind::Instance { origin, subgoals: vec![deep, sibling] });
+
+        assert_eq!(keys.dependency_order(root), MAX_INLINE_EVIDENCE_DEPTH + 1);
+        assert!(keys.is_cut_point(root));
+    }
 
     #[test]
     fn invalid_evidence_preserves_structural_depth() {
