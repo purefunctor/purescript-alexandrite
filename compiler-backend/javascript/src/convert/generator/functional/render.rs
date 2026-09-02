@@ -445,7 +445,7 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
     for file_id in named_files {
         let dependency = generator.module_dependency(file_id);
         let path = format!("../{}", module_filename(&dependency.module_name));
-        let mut bindings = generator
+        let bindings = generator
             .external_named_imports
             .iter()
             .filter(|(global, _)| global_file(**global) == file_id)
@@ -458,8 +458,8 @@ fn render_imports(renderer: &mut ModuleRenderer<'_, '_, '_, '_>) {
                     .item_name
                     .as_str();
                 (imported, local.as_str())
-            })
-            .collect_vec();
+            });
+        let mut bindings = bindings.collect_vec();
         bindings.sort_unstable();
         writer.import_named(&bindings, &path);
     }

@@ -2,7 +2,9 @@
 
 use functional::optimize::expression_children;
 use functional::stylex::{StyleXCallTarget, StyleXConditionalCase, StyleXExpression};
-use functional::tree::{DeclarationKind, ExpressionKind, Global, GlobalId, Module};
+use functional::tree::{
+    DeclarationKind, ExpressionKind, Global, GlobalId, InstanceIdentity, Module,
+};
 use rustc_hash::FxHashSet;
 
 use crate::error::ModuleResult;
@@ -32,7 +34,7 @@ pub(super) fn collect_stylex_references(module: &Module) -> Vec<Global> {
             && global_file(global.id) != module.file_id
             && globals.insert(global.id)
         {
-            references.push(global.clone());
+            references.push(Global::clone(global));
         }
         expressions.extend(
             expression_children(kind).into_iter().map(|expression| (expression, static_context)),
@@ -45,8 +47,7 @@ fn global_file(id: GlobalId) -> files::FileId {
     match id {
         GlobalId::Term(file_id, _) | GlobalId::Generated(file_id, _) => file_id,
         GlobalId::Instance(
-            functional::tree::InstanceIdentity::Declared(file_id, _)
-            | functional::tree::InstanceIdentity::Derived(file_id, _),
+            InstanceIdentity::Declared(file_id, _) | InstanceIdentity::Derived(file_id, _),
         ) => file_id,
     }
 }

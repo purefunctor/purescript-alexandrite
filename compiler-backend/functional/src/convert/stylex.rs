@@ -3,6 +3,7 @@
 use building_types::QueryResult;
 use files::FileId;
 use indexing::TermItemId;
+use smol_str::SmolStr;
 
 use crate::error::UnsupportedState;
 use crate::optimize::expression_children;
@@ -12,7 +13,7 @@ use crate::stylex::{
 };
 use crate::tree::{
     Binding, Declaration, DeclarationKind, ExpressionId, ExpressionKind, Field, GlobalId,
-    RecordField,
+    Parameter, RecordField,
 };
 
 use super::{Context, ConversionResult};
@@ -75,6 +76,7 @@ where
                 StyleXIntrinsic::Root(StyleXRootIntrinsic::Call(StyleXRootCall::FirstThatWorks)),
                 [argument],
             ) => {
+                let target = StyleXCallTarget::Root(StyleXRootCall::FirstThatWorks);
                 let ExpressionKind::Array { elements } = &self.storage[*argument].kind else {
                     return Ok(None);
                 };
@@ -82,12 +84,7 @@ where
                     return Ok(None);
                 }
                 let elements = elements.to_vec();
-                Some(
-                    self.stylex_call(
-                        StyleXCallTarget::Root(StyleXRootCall::FirstThatWorks),
-                        elements,
-                    ),
-                )
+                Some(self.stylex_call(target, elements))
             }
             (StyleXIntrinsic::Root(StyleXRootIntrinsic::RecordProps), [_, argument]) => {
                 let Some(result_type) = result_type else { return Ok(None) };
@@ -114,7 +111,7 @@ where
                     else {
                         return Ok(None);
                     };
-                    converted.push(case.clone());
+                    converted.push(StyleXConditionalCase::clone(case));
                 }
                 Some(self.expression(ExpressionKind::StyleX(StyleXExpression::ConditionalValue {
                     default: *default,
@@ -145,11 +142,10 @@ where
         else {
             return Ok(None);
         };
-        match call {
-            StyleXRootCall::DefineMarker | StyleXRootCall::DefaultMarker => {
-                Ok(Some(self.stylex_call(StyleXCallTarget::Root(call), [])))
-            }
-            _ => Ok(None),
+        if let StyleXRootCall::DefineMarker | StyleXRootCall::DefaultMarker = call {
+            Ok(Some(self.stylex_call(StyleXCallTarget::Root(call), [])))
+        } else {
+            Ok(None)
         }
     }
 
@@ -190,7 +186,7 @@ where
                 return Ok(None);
             };
             let row = self.queries.lookup_row_type(row_id);
-            labels.extend(row.fields.iter().map(|field| field.label.clone()));
+            labels.extend(row.fields.iter().map(|field| SmolStr::clone(&field.label)));
             let Some(tail) = row.tail else { break };
             row_type = tail;
         }
@@ -200,7 +196,8 @@ where
             (argument, None)
         } else {
             let parameter = self.fresh_parameter("stylexStyles".into())?;
-            let record = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
+            let record =
+                self.expression(ExpressionKind::Local { parameter: Parameter::clone(&parameter) });
             (record, Some(parameter))
         };
 
@@ -422,11 +419,11 @@ where
         }
         let module_name = self.source_module_name(file_id)?.to_string();
         let indexed = self.indexed_module(file_id)?;
-        let item_name = indexed.items[term_id]
-            .name
-            .clone()
-            .unwrap_or_else(|| self.term_fallback(term_id))
-            .to_string();
+        let item_name = match &indexed.items[term_id].name {
+            Some(name) => SmolStr::clone(name),
+            None => self.term_fallback(term_id),
+        };
+        let item_name = item_name.to_string();
         let state = UnsupportedState::VirtualModuleRuntimeReference { module_name, item_name };
         Err(self.unsupported(state))
     }
