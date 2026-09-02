@@ -5,6 +5,7 @@ mod declaration;
 mod evidence;
 mod expression;
 
+use std::cell::RefCell;
 use std::sync::Arc;
 
 use building_types::{QueryError, QueryResult};
@@ -89,6 +90,7 @@ struct Context<'c, Q> {
     evidence_keys: EvidenceKeys,
     evidence_scopes: Vec<EvidenceScope>,
     evidence_hoisting: EvidenceHoisting,
+    instance_names: RefCell<FxHashMap<InstanceIdentity, SmolStr>>,
 
     storage: Storage,
 }
@@ -150,6 +152,7 @@ where
             evidence_keys: EvidenceKeys::default(),
             evidence_scopes: Vec::new(),
             evidence_hoisting: EvidenceHoisting::default(),
+            instance_names: RefCell::new(FxHashMap::default()),
 
             storage: Storage::default(),
         })
@@ -734,6 +737,9 @@ where
     }
 
     fn instance_name(&self, identity: InstanceIdentity) -> QueryResult<SmolStr> {
+        if let Some(name) = self.instance_names.borrow().get(&identity) {
+            return Ok(SmolStr::clone(name));
+        }
         let origin = match identity {
             InstanceIdentity::Declared(file_id, id) => {
                 InstanceCandidateOrigin::Instance(file_id, id)
@@ -741,7 +747,9 @@ where
             InstanceIdentity::Derived(file_id, id) => InstanceCandidateOrigin::Derive(file_id, id),
         };
         let pretty = checking::tree::pretty::Pretty::new(self.queries, &self.checked);
-        pretty.render_instance_name(self.file_id, origin)
+        let name = pretty.render_instance_name(self.file_id, origin)?;
+        self.instance_names.borrow_mut().insert(identity, SmolStr::clone(&name));
+        Ok(name)
     }
 
     fn record_pun_source(
