@@ -56,6 +56,15 @@ pub fn protocol_position_to_utf8(
     encoding: PositionEncoding,
 ) -> Option<Utf8Position> {
     let line_index = LineIndex::new(content);
+    protocol_position_to_utf8_with_line_index(content, &line_index, position, encoding)
+}
+
+pub(crate) fn protocol_position_to_utf8_with_line_index(
+    content: &str,
+    line_index: &LineIndex,
+    position: lsp_types::Position,
+    encoding: PositionEncoding,
+) -> Option<Utf8Position> {
     let line_col = match encoding.wide() {
         None => LineCol { line: position.line, col: position.character },
         Some(encoding) => line_index
@@ -63,8 +72,8 @@ pub fn protocol_position_to_utf8(
     };
 
     let position = Utf8Position { line: line_col.line, column: line_col.col };
-    let offset = utf8_position_to_offset(content, position)?;
-    offset_to_utf8_position(content, offset)
+    let offset = utf8_position_to_offset_with_line_index(content, line_index, position)?;
+    offset_to_utf8_position_with_line_index(line_index, offset)
 }
 
 pub fn utf8_position_to_protocol(
@@ -73,6 +82,14 @@ pub fn utf8_position_to_protocol(
     encoding: PositionEncoding,
 ) -> Option<lsp_types::Position> {
     let line_index = LineIndex::new(content);
+    utf8_position_to_protocol_with_line_index(&line_index, position, encoding)
+}
+
+pub(crate) fn utf8_position_to_protocol_with_line_index(
+    line_index: &LineIndex,
+    position: Utf8Position,
+    encoding: PositionEncoding,
+) -> Option<lsp_types::Position> {
     let line_col = LineCol { line: position.line, col: position.column };
 
     let offset = line_index.offset(line_col)?;
@@ -94,14 +111,30 @@ pub fn utf8_range_to_protocol(
     range: Utf8Range,
     encoding: PositionEncoding,
 ) -> Option<lsp_types::Range> {
-    let start = utf8_position_to_protocol(content, range.start, encoding)?;
-    let end = utf8_position_to_protocol(content, range.end, encoding)?;
+    let line_index = LineIndex::new(content);
+    utf8_range_to_protocol_with_line_index(&line_index, range, encoding)
+}
+
+pub(crate) fn utf8_range_to_protocol_with_line_index(
+    line_index: &LineIndex,
+    range: Utf8Range,
+    encoding: PositionEncoding,
+) -> Option<lsp_types::Range> {
+    let start = utf8_position_to_protocol_with_line_index(line_index, range.start, encoding)?;
+    let end = utf8_position_to_protocol_with_line_index(line_index, range.end, encoding)?;
     Some(lsp_types::Range { start, end })
 }
 
 pub fn utf8_position_to_offset(content: &str, position: Utf8Position) -> Option<TextSize> {
     let line_index = LineIndex::new(content);
+    utf8_position_to_offset_with_line_index(content, &line_index, position)
+}
 
+pub(crate) fn utf8_position_to_offset_with_line_index(
+    content: &str,
+    line_index: &LineIndex,
+    position: Utf8Position,
+) -> Option<TextSize> {
     let line_range = line_index.line(position.line)?;
     let line_content = content[line_range].trim_end_matches(['\n', '\r']);
 
@@ -122,13 +155,28 @@ pub fn utf8_position_to_offset(content: &str, position: Utf8Position) -> Option<
 
 pub fn offset_to_utf8_position(content: &str, offset: TextSize) -> Option<Utf8Position> {
     let line_index = LineIndex::new(content);
+    offset_to_utf8_position_with_line_index(&line_index, offset)
+}
+
+pub(crate) fn offset_to_utf8_position_with_line_index(
+    line_index: &LineIndex,
+    offset: TextSize,
+) -> Option<Utf8Position> {
     let LineCol { line, col } = line_index.try_line_col(offset)?;
     Some(Utf8Position { line, column: col })
 }
 
 pub fn text_range_to_utf8_range(content: &str, range: TextRange) -> Option<Utf8Range> {
-    let start = offset_to_utf8_position(content, range.start())?;
-    let end = offset_to_utf8_position(content, range.end())?;
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range_with_line_index(&line_index, range)
+}
+
+pub(crate) fn text_range_to_utf8_range_with_line_index(
+    line_index: &LineIndex,
+    range: TextRange,
+) -> Option<Utf8Range> {
+    let start = offset_to_utf8_position_with_line_index(line_index, range.start())?;
+    let end = offset_to_utf8_position_with_line_index(line_index, range.end())?;
     Some(Utf8Range { start, end })
 }
 
@@ -321,12 +369,15 @@ pub fn infix_operator_range(
 
 #[cfg(test)]
 mod tests {
+    use line_index::LineIndex;
     use lsp_types::{Position, PositionEncodingKind};
     use syntax::{TextRange, TextSize};
 
     use super::{
-        PositionEncoding, Utf8Position, offset_to_utf8_position, protocol_position_to_utf8,
+        PositionEncoding, Utf8Position, Utf8Range, offset_to_utf8_position,
+        protocol_position_to_utf8, protocol_position_to_utf8_with_line_index,
         text_range_to_protocol, utf8_position_to_offset, utf8_position_to_protocol,
+        utf8_range_to_protocol, utf8_range_to_protocol_with_line_index,
     };
 
     #[test]
@@ -412,5 +463,92 @@ mod tests {
         let position =
             protocol_position_to_utf8(content, position, PositionEncoding::Utf16).unwrap();
         assert_eq!(position, Utf8Position { line: 0, column: 3 });
+    }
+
+    #[test]
+    fn shared_line_index_preserves_range_conversions() {
+        let content = "é😀x\r\nplain\r\n";
+        let line_index = LineIndex::new(content);
+        let ranges = [
+            Utf8Range {
+                start: Utf8Position { line: 0, column: 2 },
+                end: Utf8Position { line: 0, column: 6 },
+            },
+            Utf8Range {
+                start: Utf8Position { line: 1, column: 0 },
+                end: Utf8Position { line: 1, column: 5 },
+            },
+        ];
+
+        for encoding in [PositionEncoding::Utf8, PositionEncoding::Utf16] {
+            for range in ranges {
+                assert_eq!(
+                    utf8_range_to_protocol_with_line_index(&line_index, range, encoding),
+                    utf8_range_to_protocol(content, range, encoding),
+                );
+            }
+        }
+
+        assert_eq!(
+            utf8_range_to_protocol_with_line_index(&line_index, ranges[0], PositionEncoding::Utf8),
+            Some(lsp_types::Range::new(Position::new(0, 2), Position::new(0, 6))),
+        );
+        assert_eq!(
+            utf8_range_to_protocol_with_line_index(&line_index, ranges[0], PositionEncoding::Utf16),
+            Some(lsp_types::Range::new(Position::new(0, 1), Position::new(0, 3))),
+        );
+        assert_eq!(
+            utf8_range_to_protocol_with_line_index(&line_index, ranges[1], PositionEncoding::Utf16),
+            Some(lsp_types::Range::new(Position::new(1, 0), Position::new(1, 5))),
+        );
+    }
+
+    #[test]
+    fn shared_line_index_preserves_invalid_protocol_positions() {
+        let content = "é😀x\r\nplain\r\n";
+        let line_index = LineIndex::new(content);
+        let positions = [Position::new(9, 0), Position::new(0, 1), Position::new(0, 99)];
+
+        for encoding in [PositionEncoding::Utf8, PositionEncoding::Utf16] {
+            for position in positions {
+                assert_eq!(
+                    protocol_position_to_utf8_with_line_index(
+                        content,
+                        &line_index,
+                        position,
+                        encoding,
+                    ),
+                    protocol_position_to_utf8(content, position, encoding),
+                );
+            }
+        }
+
+        assert_eq!(
+            protocol_position_to_utf8_with_line_index(
+                content,
+                &line_index,
+                Position::new(9, 0),
+                PositionEncoding::Utf8,
+            ),
+            None,
+        );
+        assert_eq!(
+            protocol_position_to_utf8_with_line_index(
+                content,
+                &line_index,
+                Position::new(0, 1),
+                PositionEncoding::Utf8,
+            ),
+            None,
+        );
+        assert_eq!(
+            protocol_position_to_utf8_with_line_index(
+                content,
+                &line_index,
+                Position::new(0, 2),
+                PositionEncoding::Utf16,
+            ),
+            None,
+        );
     }
 }

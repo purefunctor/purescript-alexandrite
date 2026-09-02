@@ -6,6 +6,7 @@ use indexing::{
     ImplicitItems, ImportId, ImportItemId, IndexedTermItemKind, IndexedTypeItemKind, TermItemId,
     TypeItemId, TypeSelection,
 };
+use line_index::LineIndex;
 use lowering::{BinderId, LetBindingNameGroupId, RecordPunId, TypeVariableBindingId};
 use lsp_types::*;
 use stabilizing::AstId;
@@ -292,16 +293,32 @@ where
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
+        let mut ranges_by_file: HashMap<FileId, Vec<Range>> = HashMap::default();
         for location in locations {
             let file_id =
                 self.context.file_id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
             if !self.context.is_editable(file_id) {
                 continue;
             }
+            ranges_by_file.entry(file_id).or_default().push(location.range);
+        }
 
-            let (range, new_text) =
-                self.reference_name_edit(file_id, location.range, name_kind, new_name)?;
-            self.push_protocol_edit(file_id, range, &new_text)?;
+        for (file_id, ranges) in ranges_by_file {
+            let content = self.context.queries().content(file_id)?;
+            let line_index = LineIndex::new(&content);
+            for range in ranges {
+                let (range, new_text) = self.reference_name_edit(
+                    file_id,
+                    &content,
+                    &line_index,
+                    range,
+                    name_kind,
+                    new_name,
+                )?;
+                let new_text =
+                    self.new_name_text_with_line_index(&content, &line_index, range, &new_text)?;
+                self.edits.push((file_id, TextEdit { range, new_text }));
+            }
         }
 
         Ok(())
@@ -310,19 +327,22 @@ where
     fn reference_name_edit(
         &self,
         file_id: FileId,
+        content: &str,
+        line_index: &LineIndex,
         range: Range,
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(Range, String), AnalyzerError> {
-        let content = self.context.queries().content(file_id)?;
-        let position = position::protocol_position_to_utf8(
-            &content,
+        let position = position::protocol_position_to_utf8_with_line_index(
+            content,
+            line_index,
             range.start,
             self.context.position_encoding(),
         )
         .ok_or(AnalyzerError::NonFatal)?;
         let offset =
-            position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+            position::utf8_position_to_offset_with_line_index(content, line_index, position)
+                .ok_or(AnalyzerError::NonFatal)?;
 
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
@@ -346,9 +366,9 @@ where
             && let Some(pun) = Self::record_pun(&token, name_kind)
         {
             let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
-            let old_name = name.syntax().text(&content);
-            let range = position::text_range_to_protocol(
-                &content,
+            let old_name = name.syntax().text(content);
+            let range = position::text_range_to_protocol_with_line_index(
+                line_index,
                 name.syntax().text_range(),
                 self.context.position_encoding(),
             )
@@ -357,11 +377,11 @@ where
             return Ok((range, format!("{old_name}: {new_name}")));
         }
 
-        if let Some(field) = Self::collapsible_record_field(&token, &content, name_kind, new_name) {
+        if let Some(field) = Self::collapsible_record_field(&token, content, name_kind, new_name) {
             let text_range =
                 record_field_replacement_range(&field).ok_or(AnalyzerError::NonFatal)?;
-            let range = position::text_range_to_protocol(
-                &content,
+            let range = position::text_range_to_protocol_with_line_index(
+                line_index,
                 text_range,
                 self.context.position_encoding(),
             )
@@ -373,8 +393,8 @@ where
         let token = Self::qualified_name_token(&token, name_kind)
             .or_else(|| Self::type_variable_token(&token, name_kind))
             .ok_or(AnalyzerError::NonFatal)?;
-        let range = position::text_range_to_protocol(
-            &content,
+        let range = position::text_range_to_protocol_with_line_index(
+            line_index,
             token.text_range(),
             self.context.position_encoding(),
         )
@@ -1008,19 +1028,36 @@ where
         new_name: &str,
     ) -> Result<String, AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
-        let start = position::protocol_position_to_utf8(
-            &content,
+        let line_index = LineIndex::new(&content);
+        self.new_name_text_with_line_index(&content, &line_index, range, new_name)
+    }
+
+    fn new_name_text_with_line_index(
+        &self,
+        content: &str,
+        line_index: &LineIndex,
+        range: Range,
+        new_name: &str,
+    ) -> Result<String, AnalyzerError> {
+        let start = position::protocol_position_to_utf8_with_line_index(
+            content,
+            line_index,
             range.start,
             self.context.position_encoding(),
         )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .and_then(|position| {
+            position::utf8_position_to_offset_with_line_index(content, line_index, position)
+        })
         .ok_or(AnalyzerError::NonFatal)?;
-        let end = position::protocol_position_to_utf8(
-            &content,
+        let end = position::protocol_position_to_utf8_with_line_index(
+            content,
+            line_index,
             range.end,
             self.context.position_encoding(),
         )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
+        .and_then(|position| {
+            position::utf8_position_to_offset_with_line_index(content, line_index, position)
+        })
         .ok_or(AnalyzerError::NonFatal)?;
 
         let range = TextRange::new(start, end);

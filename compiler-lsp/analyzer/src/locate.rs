@@ -7,6 +7,7 @@ use indexing::{
     DeriveItemId, ImportItemId, IndexedModule, IndexedTermItemKind, IndexedTypeItemKind,
     InstanceItemId, TermItemId, TypeItemId,
 };
+use line_index::LineIndex;
 use lowering::{
     BinderId, ExpressionId, LetBindingNameGroupId, LoweredModule, RecordAccessLabelId, RecordPunId,
     TermItemKind, TermOperatorId, TypeId, TypeItemKind, TypeOperatorId, TypeVariableBindingId,
@@ -20,8 +21,19 @@ use crate::position::{Utf8Position, Utf8Range};
 use crate::{AnalyzerError, AnalyzerQueries, position};
 
 pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
+    let line_index = LineIndex::new(content);
+    syntax_range_with_line_index(&line_index, root, ptr)
+}
+
+pub(crate) fn syntax_range_with_line_index(
+    line_index: &LineIndex,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
     let range = AnnotationSyntaxRange::from_ptr(root, ptr);
-    range.syntax.and_then(|range| position::text_range_to_utf8_range(content, range))
+    range
+        .syntax
+        .and_then(|range| position::text_range_to_utf8_range_with_line_index(line_index, range))
 }
 
 pub fn id_range<T>(
@@ -46,6 +58,18 @@ pub fn instance_head_ranges(
     lowered: &LoweredModule,
     target: (FileId, TypeItemId),
 ) -> Vec<Utf8Range> {
+    let line_index = LineIndex::new(content);
+    instance_head_ranges_with_line_index(&line_index, parsed, stabilized, indexed, lowered, target)
+}
+
+pub(crate) fn instance_head_ranges_with_line_index(
+    line_index: &LineIndex,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    target: (FileId, TypeItemId),
+) -> Vec<Utf8Range> {
     let root = parsed.syntax_node();
     let ranges = indexed.items.instance_sources().iter().filter_map(|item_id| match item_id {
         indexing::InstanceSourceItemId::Instance(id) => {
@@ -54,7 +78,7 @@ pub fn instance_head_ranges(
             if lowered.resolution != Some(target) {
                 return None;
             }
-            instance_head_range(content, &root, stabilized, item.id)
+            instance_head_range(line_index, &root, stabilized, item.id)
         }
         indexing::InstanceSourceItemId::Derive(id) => {
             let item = &indexed.items[*id];
@@ -62,7 +86,7 @@ pub fn instance_head_ranges(
             if lowered.resolution != Some(target) {
                 return None;
             }
-            instance_head_range(content, &root, stabilized, item.id)
+            instance_head_range(line_index, &root, stabilized, item.id)
         }
     });
     ranges.collect()
@@ -70,6 +94,25 @@ pub fn instance_head_ranges(
 
 pub fn term_infix_reference_ranges(
     content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    target: (FileId, TermItemId),
+) -> Vec<Utf8Range> {
+    let line_index = LineIndex::new(content);
+    term_infix_reference_ranges_with_line_index(
+        &line_index,
+        parsed,
+        stabilized,
+        indexed,
+        lowered,
+        target,
+    )
+}
+
+pub(crate) fn term_infix_reference_ranges_with_line_index(
+    line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
@@ -86,13 +129,32 @@ pub fn term_infix_reference_ranges(
         if resolution.as_ref() != Some(&target) {
             return None;
         }
-        infix_reference_range(content, &root, stabilized, *id)
+        infix_reference_range(line_index, &root, stabilized, *id)
     });
     ranges.collect()
 }
 
 pub fn type_infix_reference_ranges(
     content: &str,
+    parsed: &parsing::ParsedModule,
+    stabilized: &StabilizedModule,
+    indexed: &IndexedModule,
+    lowered: &LoweredModule,
+    target: (FileId, TypeItemId),
+) -> Vec<Utf8Range> {
+    let line_index = LineIndex::new(content);
+    type_infix_reference_ranges_with_line_index(
+        &line_index,
+        parsed,
+        stabilized,
+        indexed,
+        lowered,
+        target,
+    )
+}
+
+pub(crate) fn type_infix_reference_ranges_with_line_index(
+    line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
@@ -109,13 +171,13 @@ pub fn type_infix_reference_ranges(
         if resolution.as_ref() != Some(&target) {
             return None;
         }
-        infix_reference_range(content, &root, stabilized, *id)
+        infix_reference_range(line_index, &root, stabilized, *id)
     });
     ranges.collect()
 }
 
 fn infix_reference_range(
-    content: &str,
+    line_index: &LineIndex,
     root: &SyntaxNode,
     stabilized: &StabilizedModule,
     id: AstId<cst::InfixDeclaration>,
@@ -124,11 +186,11 @@ fn infix_reference_range(
     let declaration = ptr.try_to_node(root).and_then(cst::InfixDeclaration::cast)?;
     let qualified = declaration.qualified()?;
     let range = position::qualified_name_text_range(&qualified)?;
-    position::text_range_to_utf8_range(content, range)
+    position::text_range_to_utf8_range_with_line_index(line_index, range)
 }
 
 fn instance_head_range<T>(
-    content: &str,
+    line_index: &LineIndex,
     root: &SyntaxNode,
     stabilized: &StabilizedModule,
     id: AstId<T>,
@@ -142,7 +204,7 @@ where
         .and_then(|instance| instance.instance_head())
         .or_else(|| cst::DeriveDeclaration::cast(node)?.instance_head())?;
     let token = head.qualified()?.upper()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    position::text_range_to_utf8_range_with_line_index(line_index, token.text_range())
 }
 
 pub fn value_equation_ranges(

@@ -1,6 +1,7 @@
 use building_types::QueryProxy;
 use files::FileId;
 use indexing::{ImportId, ImportItemId, ImportKind, TermItemId, TypeItemId};
+use line_index::LineIndex;
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermVariableResolution, TypeId, TypeKind, TypeVariableBindingId, TypeVariableResolution,
@@ -8,7 +9,7 @@ use lowering::{
 use lsp_types::*;
 use parsing::ParsedModule;
 use resolving::ResolvedImport;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::ToSmolStr;
 use stabilizing::{AstId, StabilizedModule};
 use syntax::ast::{AstNode, AstPtr};
@@ -112,24 +113,39 @@ fn references_module_name(
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
     let candidates = probe_imports_for(context, module_id)?;
+    let mut candidates_by_file: FxHashMap<FileId, Vec<(usize, ImportId)>> = FxHashMap::default();
+    for (position, (file_id, import_id)) in candidates.into_iter().enumerate() {
+        candidates_by_file.entry(file_id).or_default().push((position, import_id));
+    }
 
     let mut locations = vec![];
-    for (candidate_id, import_id) in candidates {
+    for (candidate_id, import_ids) in candidates_by_file {
         let uri = common::file_uri(context, candidate_id)?;
 
         let content = engine.content(candidate_id)?;
+        let line_index = LineIndex::new(&content);
         let (parsed, _) = engine.parsed(candidate_id)?;
         let root = parsed.syntax_node();
 
         let stabilized = engine.stabilized(candidate_id)?;
-        let ptr = stabilized.syntax_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
-        let range = locate::syntax_range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
-        let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+        for (position, import_id) in import_ids {
+            let ptr = stabilized.syntax_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
+            let range = locate::syntax_range_with_line_index(&line_index, &root, &ptr)
+                .and_then(|range| {
+                    position::utf8_range_to_protocol_with_line_index(
+                        &line_index,
+                        range,
+                        context.position_encoding(),
+                    )
+                })
+                .ok_or(AnalyzerError::NonFatal)?;
 
-        locations.push(Location { uri, range });
+            locations.push((position, Location { uri: uri.clone(), range }));
+        }
     }
 
+    locations.sort_by_key(|(position, _)| *position);
+    let locations = locations.into_iter().map(|(_, location)| location).collect();
     Ok(Some(locations))
 }
 
@@ -228,6 +244,7 @@ fn references_binder(
     let uri = common::file_uri(context, current_file)?;
 
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
 
     let stabilized = context.queries().stabilized(current_file)?;
@@ -249,7 +266,7 @@ fn references_binder(
                     && *candidate_id == binder_id
                 {
                     let uri = Url::clone(&uri);
-                    let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                    let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                         .ok_or(AnalyzerError::NonFatal)?;
                     locations.push(Location { uri, range });
                 }
@@ -260,7 +277,7 @@ fn references_binder(
                     && resolution_id == binder_id
                 {
                     let uri = Url::clone(&uri);
-                    let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+                    let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                         .ok_or(AnalyzerError::NonFatal)?;
                     locations.push(Location { uri, range });
                 }
@@ -339,6 +356,7 @@ fn references_type_variable(
 ) -> Result<Option<Vec<Location>>, AnalyzerError> {
     let uri = common::file_uri(context, current_file)?;
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -356,7 +374,7 @@ fn references_type_variable(
             continue;
         }
 
-        let range = id_range(context, &content, &parsed, &stabilized, type_id)
+        let range = id_range(context, &line_index, &parsed, &stabilized, type_id)
             .ok_or(AnalyzerError::NonFatal)?;
         locations.push(Location { uri: uri.clone(), range });
     }
@@ -366,7 +384,7 @@ fn references_type_variable(
 
 fn id_range<T>(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
-    content: &str,
+    line_index: &LineIndex,
     parsed: &ParsedModule,
     stabilized: &StabilizedModule,
     item_id: AstId<T>,
@@ -376,8 +394,8 @@ where
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
-    let range = locate::syntax_range(content, &root, &ptr)?;
-    position::utf8_range_to_protocol(content, range, context.position_encoding())
+    let range = locate::syntax_range_with_line_index(line_index, &root, &ptr)?;
+    position::utf8_range_to_protocol_with_line_index(line_index, range, context.position_encoding())
 }
 
 fn references_file_term(
@@ -394,6 +412,7 @@ fn references_file_term(
         let uri = common::file_uri(context, candidate_id)?;
 
         let content = engine.content(candidate_id)?;
+        let line_index = LineIndex::new(&content);
         let (parsed, _) = engine.parsed(candidate_id)?;
         let stabilized = engine.stabilized(candidate_id)?;
         let indexed = engine.indexed(candidate_id)?;
@@ -403,21 +422,21 @@ fn references_file_term(
             if let ExpressionKind::Constructor { resolution: Some((f_id, t_id)) } = expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, expr_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::OperatorName { resolution: Some((f_id, t_id)) } =
                 expr_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, expr_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             } else if let ExpressionKind::Variable { resolution: Some(resolution) } = expr_kind
                 && let TermVariableResolution::Reference(f_id, t_id) = resolution
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, expr_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, expr_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -427,7 +446,7 @@ fn references_file_term(
             if let TermVariableResolution::Reference(f_id, t_id) = resolution
                 && (f_id, t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, pun_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, pun_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -437,7 +456,7 @@ fn references_file_term(
             if let BinderKind::Constructor { resolution: Some((f_id, t_id)), .. } = binder_kind
                 && (*f_id, *t_id) == (file_id, term_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, binder_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, binder_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -445,14 +464,14 @@ fn references_file_term(
 
         for (operator_id, f_id, t_id) in lowered.tree.iter_term_operator() {
             if (f_id, t_id) == (file_id, term_id) {
-                let range = id_range(context, &content, &parsed, &stabilized, operator_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, operator_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
 
-        let ranges = locate::term_infix_reference_ranges(
-            &content,
+        let ranges = locate::term_infix_reference_ranges_with_line_index(
+            &line_index,
             &parsed,
             &stabilized,
             &indexed,
@@ -460,9 +479,12 @@ fn references_file_term(
             (file_id, term_id),
         );
         for range in ranges {
-            let range =
-                position::utf8_range_to_protocol(&content, range, context.position_encoding())
-                    .ok_or(AnalyzerError::NonFatal)?;
+            let range = position::utf8_range_to_protocol_with_line_index(
+                &line_index,
+                range,
+                context.position_encoding(),
+            )
+            .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
     }
@@ -484,6 +506,7 @@ fn references_file_type(
         let uri = common::file_uri(context, candidate_id)?;
 
         let content = engine.content(candidate_id)?;
+        let line_index = LineIndex::new(&content);
         let (parsed, _) = engine.parsed(candidate_id)?;
 
         let stabilized = engine.stabilized(candidate_id)?;
@@ -494,14 +517,14 @@ fn references_file_type(
             if let TypeKind::Constructor { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, ty_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, ty_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
             if let TypeKind::Operator { resolution: Some((f_id, t_id)) } = ty_kind
                 && (*f_id, *t_id) == (file_id, type_id)
             {
-                let range = id_range(context, &content, &parsed, &stabilized, ty_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, ty_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
@@ -509,14 +532,14 @@ fn references_file_type(
 
         for (operator_id, f_id, t_id) in lowered.tree.iter_type_operator() {
             if (f_id, t_id) == (file_id, type_id) {
-                let range = id_range(context, &content, &parsed, &stabilized, operator_id)
+                let range = id_range(context, &line_index, &parsed, &stabilized, operator_id)
                     .ok_or(AnalyzerError::NonFatal)?;
                 locations.push(Location { uri: uri.clone(), range });
             }
         }
 
-        let ranges = locate::type_infix_reference_ranges(
-            &content,
+        let ranges = locate::type_infix_reference_ranges_with_line_index(
+            &line_index,
             &parsed,
             &stabilized,
             &indexed,
@@ -524,14 +547,17 @@ fn references_file_type(
             (file_id, type_id),
         );
         for range in ranges {
-            let range =
-                position::utf8_range_to_protocol(&content, range, context.position_encoding())
-                    .ok_or(AnalyzerError::NonFatal)?;
+            let range = position::utf8_range_to_protocol_with_line_index(
+                &line_index,
+                range,
+                context.position_encoding(),
+            )
+            .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
 
-        let ranges = locate::instance_head_ranges(
-            &content,
+        let ranges = locate::instance_head_ranges_with_line_index(
+            &line_index,
             &parsed,
             &stabilized,
             &indexed,
@@ -539,9 +565,12 @@ fn references_file_type(
             (file_id, type_id),
         );
         for range in ranges {
-            let range =
-                position::utf8_range_to_protocol(&content, range, context.position_encoding())
-                    .ok_or(AnalyzerError::NonFatal)?;
+            let range = position::utf8_range_to_protocol_with_line_index(
+                &line_index,
+                range,
+                context.position_encoding(),
+            )
+            .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
     }
@@ -638,6 +667,7 @@ fn references_let(
     let uri = common::file_uri(context, current_file)?;
 
     let content = engine.content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;
@@ -653,7 +683,7 @@ fn references_let(
             && *candidate_id == let_id
         {
             let uri = Url::clone(&uri);
-            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+            let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                 .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri, range });
         }
@@ -664,7 +694,7 @@ fn references_let(
             && resolution_id == let_id
         {
             let uri = Url::clone(&uri);
-            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+            let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                 .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri, range });
         }
@@ -682,6 +712,7 @@ fn references_binder_pun(
     let uri = common::file_uri(context, current_file)?;
 
     let content = engine.content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;
@@ -696,7 +727,7 @@ fn references_binder_pun(
             && *candidate_id == pun_id
         {
             let uri = Url::clone(&uri);
-            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+            let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                 .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri, range });
         }
@@ -707,7 +738,7 @@ fn references_binder_pun(
             && resolution_id == pun_id
         {
             let uri = Url::clone(&uri);
-            let range = id_range(context, &content, &parsed, &stabilized, expression_id)
+            let range = id_range(context, &line_index, &parsed, &stabilized, expression_id)
                 .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri, range });
         }

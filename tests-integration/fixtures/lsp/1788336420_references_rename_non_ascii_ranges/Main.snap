@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 388
+expression: report
+---
+References at Position { line: 4, character: 30 }
+
+```
+first = let emoji = "😀" in original
+--                            %/
+```
+
+file:///tests-integration/fixtures/lsp/1788336420_references_rename_non_ascii_ranges/Main.purs @ 9:8..9:16
+file:///tests-integration/fixtures/lsp/1788336420_references_rename_non_ascii_ranges/Main.purs @ 7:29..7:37
+file:///tests-integration/fixtures/lsp/1788336420_references_rename_non_ascii_ranges/Main.purs @ 4:28..4:36
+
+
+Rename at Position { line: 4, character: 31 }
+
+```
+first = let emoji = "😀" in original
+--                            %/
+```
+
+```diff
+--- Lib.purs
++++ Lib.purs
+@@ -1,3 +1,3 @@
+ module Lib where
+
+-original = 42
++renamed = 42
+```
+
+```diff
+--- Main.purs
++++ Main.purs
+@@ -1,10 +1,10 @@
+ module Main where
+
+-import Lib (original)
++import Lib (renamed)
+
+-first = let emoji = "😀" in original
++first = let emoji = "😀" in renamed
+ --                            %/
+
+-second = let accent = "é" in original
++second = let accent = "é" in renamed
+
+-third = original
++third = renamed
+```
