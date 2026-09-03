@@ -63,7 +63,12 @@ impl RigidRenaming {
 /// removing the need for capture-avoiding substitutions. This property
 /// is extremely useful for for instantiation.
 pub struct SubstituteName<'a> {
-    bindings: &'a NameToType,
+    bindings: NameBindings<'a>,
+}
+
+enum NameBindings<'a> {
+    One(Name, TypeId),
+    Many(&'a NameToType),
 }
 
 impl SubstituteName<'_> {
@@ -77,8 +82,8 @@ impl SubstituteName<'_> {
     where
         Q: ExternalQueries,
     {
-        let bindings = NameToType::from_iter([(name, replacement)]);
-        fold_type(state, context, in_type, &mut SubstituteName { bindings: &bindings })
+        let bindings = NameBindings::One(name, replacement);
+        fold_type(state, context, in_type, &mut SubstituteName { bindings })
     }
 
     pub fn many<Q>(
@@ -90,6 +95,7 @@ impl SubstituteName<'_> {
     where
         Q: ExternalQueries,
     {
+        let bindings = NameBindings::Many(bindings);
         fold_type(state, context, in_type, &mut SubstituteName { bindings })
     }
 }
@@ -105,13 +111,18 @@ impl TypeFold for SubstituteName<'_> {
     where
         Q: ExternalQueries,
     {
-        if let Type::Rigid(name, _, _) = t
-            && let Some(id) = self.bindings.get(name)
-        {
-            Ok(FoldAction::Replace(*id))
-        } else {
-            Ok(FoldAction::Continue)
+        if let Type::Rigid(name, _, _) = t {
+            let replacement = match self.bindings {
+                NameBindings::One(original, replacement) if original == *name => Some(replacement),
+                NameBindings::One(_, _) => None,
+                NameBindings::Many(bindings) => bindings.get(name).copied(),
+            };
+            if let Some(replacement) = replacement {
+                return Ok(FoldAction::Replace(replacement));
+            }
         }
+
+        Ok(FoldAction::Continue)
     }
 }
 
