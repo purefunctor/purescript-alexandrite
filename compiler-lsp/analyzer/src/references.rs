@@ -28,11 +28,16 @@ pub fn implementation(
     };
 
     let content = context.queries().content(current_file)?;
-    let position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+    let line_index = LineIndex::new(&content);
+    let position = position::protocol_position_to_utf8(
+        &content,
+        &line_index,
+        position,
+        context.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.queries(), current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, &content, &line_index, position)?;
 
     match located {
         locate::Located::ModuleName(module_name) => {
@@ -130,9 +135,9 @@ fn references_module_name(
         let stabilized = engine.stabilized(candidate_id)?;
         for (position, import_id) in import_ids {
             let ptr = stabilized.syntax_ptr(import_id).ok_or(AnalyzerError::NonFatal)?;
-            let range = locate::syntax_range_with_line_index(&line_index, &root, &ptr)
+            let range = locate::syntax_range(&line_index, &root, &ptr)
                 .and_then(|range| {
-                    position::utf8_range_to_protocol_with_line_index(
+                    position::utf8_range_to_protocol(
                         &line_index,
                         range,
                         context.position_encoding(),
@@ -394,8 +399,8 @@ where
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
-    let range = locate::syntax_range_with_line_index(line_index, &root, &ptr)?;
-    position::utf8_range_to_protocol_with_line_index(line_index, range, context.position_encoding())
+    let range = locate::syntax_range(line_index, &root, &ptr)?;
+    position::utf8_range_to_protocol(line_index, range, context.position_encoding())
 }
 
 fn references_file_term(
@@ -470,7 +475,7 @@ fn references_file_term(
             }
         }
 
-        let ranges = locate::term_infix_reference_ranges_with_line_index(
+        let ranges = locate::term_infix_reference_ranges(
             &line_index,
             &parsed,
             &stabilized,
@@ -479,12 +484,9 @@ fn references_file_term(
             (file_id, term_id),
         );
         for range in ranges {
-            let range = position::utf8_range_to_protocol_with_line_index(
-                &line_index,
-                range,
-                context.position_encoding(),
-            )
-            .ok_or(AnalyzerError::NonFatal)?;
+            let range =
+                position::utf8_range_to_protocol(&line_index, range, context.position_encoding())
+                    .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
     }
@@ -538,7 +540,7 @@ fn references_file_type(
             }
         }
 
-        let ranges = locate::type_infix_reference_ranges_with_line_index(
+        let ranges = locate::type_infix_reference_ranges(
             &line_index,
             &parsed,
             &stabilized,
@@ -547,16 +549,13 @@ fn references_file_type(
             (file_id, type_id),
         );
         for range in ranges {
-            let range = position::utf8_range_to_protocol_with_line_index(
-                &line_index,
-                range,
-                context.position_encoding(),
-            )
-            .ok_or(AnalyzerError::NonFatal)?;
+            let range =
+                position::utf8_range_to_protocol(&line_index, range, context.position_encoding())
+                    .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
 
-        let ranges = locate::instance_head_ranges_with_line_index(
+        let ranges = locate::instance_head_ranges(
             &line_index,
             &parsed,
             &stabilized,
@@ -565,12 +564,9 @@ fn references_file_type(
             (file_id, type_id),
         );
         for range in ranges {
-            let range = position::utf8_range_to_protocol_with_line_index(
-                &line_index,
-                range,
-                context.position_encoding(),
-            )
-            .ok_or(AnalyzerError::NonFatal)?;
+            let range =
+                position::utf8_range_to_protocol(&line_index, range, context.position_encoding())
+                    .ok_or(AnalyzerError::NonFatal)?;
             locations.push(Location { uri: uri.clone(), range });
         }
     }

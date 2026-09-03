@@ -110,7 +110,7 @@ fn push_token_ranges(
         let token_text = line.trim_end_matches(['\r', '\n']);
         let segment_end = segment_start + syntax::TextSize::new(token_text.len() as u32);
         if segment_start < segment_end
-            && let Some(range) = position::text_range_to_protocol_with_line_index(
+            && let Some(range) = position::text_range_to_protocol(
                 line_index,
                 TextRange::new(segment_start, segment_end),
                 encoding,

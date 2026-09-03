@@ -646,15 +646,26 @@ fn apply_content_changes(
             continue;
         };
 
-        let start =
-            analyzer::position::protocol_position_to_utf8(&content, range.start, position_encoding);
-        let start = start
-            .and_then(|position| analyzer::position::utf8_position_to_offset(&content, position));
+        let line_index = line_index::LineIndex::new(&content);
+        let start = analyzer::position::protocol_position_to_utf8(
+            &content,
+            &line_index,
+            range.start,
+            position_encoding,
+        );
+        let start = start.and_then(|position| {
+            analyzer::position::utf8_position_to_offset(&content, &line_index, position)
+        });
 
-        let end =
-            analyzer::position::protocol_position_to_utf8(&content, range.end, position_encoding);
-        let end = end
-            .and_then(|position| analyzer::position::utf8_position_to_offset(&content, position));
+        let end = analyzer::position::protocol_position_to_utf8(
+            &content,
+            &line_index,
+            range.end,
+            position_encoding,
+        );
+        let end = end.and_then(|position| {
+            analyzer::position::utf8_position_to_offset(&content, &line_index, position)
+        });
 
         let (Some(start), Some(end)) = (start, end) else {
             return Err(LspError::InvalidContentChange(Url::clone(uri)));

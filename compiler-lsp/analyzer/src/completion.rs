@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use building_types::QueryProxy;
 use filter::{FuzzyMatch, NoFilter, StartsWith};
+use line_index::LineIndex;
 use lsp_types::*;
 use prelude::{CompletionContext, CompletionSource, CursorSemantics, CursorText, Filter};
 use radix_trie::Trie;
@@ -52,12 +53,13 @@ pub fn implementation(
     let encoding = language.position_encoding();
     let prim_id = engine.prim_id();
     let content = engine.content(current_file)?;
-    let position = position::protocol_position_to_utf8(&content, position, encoding)
+    let line_index = LineIndex::new(&content);
+    let position = position::protocol_position_to_utf8(&content, &line_index, position, encoding)
         .ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
-    let offset =
-        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let offset = position::utf8_position_to_offset(&content, &line_index, position)
+        .ok_or(AnalyzerError::NonFatal)?;
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
@@ -74,8 +76,8 @@ pub fn implementation(
         }
     };
 
-    let semantics = CursorSemantics::new(&content, position);
-    let (text, range) = CursorText::new(&content, &token, encoding);
+    let semantics = CursorSemantics::new(&content, &line_index, position);
+    let (text, range) = CursorText::new(&content, &line_index, &token, encoding);
 
     let stabilized = engine.stabilized(current_file)?;
     let resolved = engine.resolved(current_file)?;
@@ -85,6 +87,7 @@ pub fn implementation(
         language,
         current_file,
         content: &content,
+        line_index: &line_index,
         stabilized: &stabilized,
         parsed: &parsed,
         resolved: &resolved,

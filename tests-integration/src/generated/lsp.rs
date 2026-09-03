@@ -296,21 +296,31 @@ fn dispatch_semantic_tokens(
 
     let mut line = 0;
     let mut start = 0;
+    let line_index = LineIndex::new(content);
     for token in data {
         line += token.delta_line;
         start = if token.delta_line == 0 { start + token.delta_start } else { token.delta_start };
 
         let start_position = Position::new(line, start);
         let end_position = Position::new(line, start + token.length);
-        let token_text =
-            analyzer::position::protocol_position_to_utf8(content, start_position, encoding)
-                .zip(analyzer::position::protocol_position_to_utf8(content, end_position, encoding))
-                .and_then(|(start, end)| {
-                    let start = analyzer::position::utf8_position_to_offset(content, start)?;
-                    let end = analyzer::position::utf8_position_to_offset(content, end)?;
-                    content.get(usize::from(start)..usize::from(end))
-                })
-                .unwrap_or("<invalid range>");
+        let token_text = analyzer::position::protocol_position_to_utf8(
+            content,
+            &line_index,
+            start_position,
+            encoding,
+        )
+        .zip(analyzer::position::protocol_position_to_utf8(
+            content,
+            &line_index,
+            end_position,
+            encoding,
+        ))
+        .and_then(|(start, end)| {
+            let start = analyzer::position::utf8_position_to_offset(content, &line_index, start)?;
+            let end = analyzer::position::utf8_position_to_offset(content, &line_index, end)?;
+            content.get(usize::from(start)..usize::from(end))
+        })
+        .unwrap_or("<invalid range>");
 
         let token_type = &analyzer::semantic_tokens::TOKEN_TYPES[token.token_type as usize];
         let modifiers = analyzer::semantic_tokens::TOKEN_MODIFIERS
@@ -458,14 +468,28 @@ fn render_rename_edit(edit: WorkspaceEdit, files: &Files, encoding: PositionEnco
 }
 
 fn apply_text_edits(content: &str, edits: Vec<TextEdit>, encoding: PositionEncoding) -> String {
+    let line_index = LineIndex::new(content);
     let edits = edits.into_iter().map(|edit| {
-        let start =
-            analyzer::position::protocol_position_to_utf8(content, edit.range.start, encoding)
-                .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
-                .expect("rename edit starts at a valid source position");
-        let end = analyzer::position::protocol_position_to_utf8(content, edit.range.end, encoding)
-            .and_then(|position| analyzer::position::utf8_position_to_offset(content, position))
-            .expect("rename edit ends at a valid source position");
+        let start = analyzer::position::protocol_position_to_utf8(
+            content,
+            &line_index,
+            edit.range.start,
+            encoding,
+        )
+        .and_then(|position| {
+            analyzer::position::utf8_position_to_offset(content, &line_index, position)
+        })
+        .expect("rename edit starts at a valid source position");
+        let end = analyzer::position::protocol_position_to_utf8(
+            content,
+            &line_index,
+            edit.range.end,
+            encoding,
+        )
+        .and_then(|position| {
+            analyzer::position::utf8_position_to_offset(content, &line_index, position)
+        })
+        .expect("rename edit ends at a valid source position");
 
         (usize::from(start), usize::from(end), edit.new_text)
     });
@@ -553,6 +577,7 @@ fn dispatch_cursor(
         CursorKind::Hover => {
             let file_id = host.file_id(uri.as_str()).expect("hover URI references a loaded file");
             let content = engine.content(file_id).unwrap();
+            let line_index = LineIndex::new(&content);
             if let Ok(Some(response)) = analyzer::hover::implementation(&context, uri, position) {
                 let convert = |marked: MarkedString| -> String {
                     match marked {
@@ -564,16 +589,31 @@ fn dispatch_cursor(
                 };
 
                 let range = response.range.and_then(|range| {
-                    analyzer::position::protocol_position_to_utf8(&content, range.start, encoding)
-                        .zip(analyzer::position::protocol_position_to_utf8(
-                            &content, range.end, encoding,
-                        ))
-                        .and_then(|(start, end)| {
-                            let start =
-                                analyzer::position::utf8_position_to_offset(&content, start)?;
-                            let end = analyzer::position::utf8_position_to_offset(&content, end)?;
-                            content.get(usize::from(start)..usize::from(end))
-                        })
+                    analyzer::position::protocol_position_to_utf8(
+                        &content,
+                        &line_index,
+                        range.start,
+                        encoding,
+                    )
+                    .zip(analyzer::position::protocol_position_to_utf8(
+                        &content,
+                        &line_index,
+                        range.end,
+                        encoding,
+                    ))
+                    .and_then(|(start, end)| {
+                        let start = analyzer::position::utf8_position_to_offset(
+                            &content,
+                            &line_index,
+                            start,
+                        )?;
+                        let end = analyzer::position::utf8_position_to_offset(
+                            &content,
+                            &line_index,
+                            end,
+                        )?;
+                        content.get(usize::from(start)..usize::from(end))
+                    })
                 });
                 if let Some(range) = range {
                     writeln!(result, "Range: {range:?}\n").unwrap();
@@ -756,8 +796,10 @@ fn rename_target_name(
 ) -> Option<String> {
     let file_id = files.id(uri.as_str())?;
     let content = engine.content(file_id).ok()?;
-    let position = analyzer::position::protocol_position_to_utf8(&content, position, encoding)?;
-    let offset = analyzer::position::utf8_position_to_offset(&content, position)?;
+    let line_index = LineIndex::new(&content);
+    let position =
+        analyzer::position::protocol_position_to_utf8(&content, &line_index, position, encoding)?;
+    let offset = analyzer::position::utf8_position_to_offset(&content, &line_index, position)?;
     let (parsed, _) = engine.parsed(file_id).ok()?;
     let root = parsed.syntax_node();
     let token = match root.token_at_offset(offset) {

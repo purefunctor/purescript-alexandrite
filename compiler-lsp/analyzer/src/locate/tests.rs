@@ -1,6 +1,12 @@
+use line_index::LineIndex;
 use syntax::TextSize;
 
-use crate::position::{Utf8Position, utf8_position_to_offset};
+use crate::position::Utf8Position;
+
+fn utf8_position_to_offset(content: &str, position: Utf8Position) -> Option<TextSize> {
+    let line_index = LineIndex::new(content);
+    crate::position::utf8_position_to_offset(content, &line_index, position)
+}
 
 #[test]
 fn zero_on_blank_line() {
@@ -66,9 +72,10 @@ fn last_on_crlf_line_clamp() {
 }
 
 mod text_range_to_range {
+    use line_index::LineIndex;
     use syntax::{TextRange, TextSize};
 
-    use crate::position::{text_range_to_utf8_range, utf8_position_to_offset};
+    use crate::position;
 
     /// Extracts a slice from `content` using `_` anchors to mark
     /// the start and end. The content is returned with the anchors
@@ -95,11 +102,14 @@ mod text_range_to_range {
 
     fn format_test_case(input: &str) -> String {
         let (content, range) = extract_range(input);
+        let line_index = LineIndex::new(&content);
 
-        let utf8_range = text_range_to_utf8_range(&content, range).unwrap();
+        let utf8_range = position::text_range_to_utf8_range(&line_index, range).unwrap();
         let text_range = {
-            let start = utf8_position_to_offset(&content, utf8_range.start).unwrap();
-            let end = utf8_position_to_offset(&content, utf8_range.end).unwrap();
+            let start =
+                position::utf8_position_to_offset(&content, &line_index, utf8_range.start).unwrap();
+            let end =
+                position::utf8_position_to_offset(&content, &line_index, utf8_range.end).unwrap();
             TextRange::new(start, end)
         };
 

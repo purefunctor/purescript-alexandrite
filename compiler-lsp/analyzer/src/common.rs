@@ -13,18 +13,6 @@ pub fn file_term_location(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
-    term_id: TermItemId,
-) -> Result<Location, AnalyzerError> {
-    let engine = context.queries();
-    let content = engine.content(file_id)?;
-    let line_index = LineIndex::new(&content);
-    file_term_location_with_line_index(context, uri, file_id, &line_index, term_id)
-}
-
-pub(crate) fn file_term_location_with_line_index(
-    context: &AnalyzerContext<impl crate::AnalyzerHost>,
-    uri: Url,
-    file_id: FileId,
     line_index: &LineIndex,
     term_id: TermItemId,
 ) -> Result<Location, AnalyzerError> {
@@ -37,29 +25,13 @@ pub(crate) fn file_term_location_with_line_index(
     let root = parsed.syntax_node();
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
-    let range = pointers_range_with_line_index(line_index, root, pointers)?;
-    let range = position::utf8_range_to_protocol_with_line_index(
-        line_index,
-        range,
-        context.position_encoding(),
-    )
-    .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range(line_index, root, pointers)?;
+    let range = position::utf8_range_to_protocol(line_index, range, context.position_encoding())
+        .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
 pub fn file_type_location(
-    context: &AnalyzerContext<impl crate::AnalyzerHost>,
-    uri: Url,
-    file_id: FileId,
-    type_id: TypeItemId,
-) -> Result<Location, AnalyzerError> {
-    let engine = context.queries();
-    let content = engine.content(file_id)?;
-    let line_index = LineIndex::new(&content);
-    file_type_location_with_line_index(context, uri, file_id, &line_index, type_id)
-}
-
-pub(crate) fn file_type_location_with_line_index(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
@@ -75,13 +47,9 @@ pub(crate) fn file_type_location_with_line_index(
     let root = parsed.syntax_node();
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
-    let range = pointers_range_with_line_index(line_index, root, pointers)?;
-    let range = position::utf8_range_to_protocol_with_line_index(
-        line_index,
-        range,
-        context.position_encoding(),
-    )
-    .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range(line_index, root, pointers)?;
+    let range = position::utf8_range_to_protocol(line_index, range, context.position_encoding())
+        .ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
@@ -113,11 +81,16 @@ fn file_source_location<T: AstNode>(
     source_id: stabilizing::AstId<T>,
 ) -> Result<Location, AnalyzerError> {
     let content = context.queries().content(file_id)?;
+    let line_index = LineIndex::new(&content);
     let stabilized = context.queries().stabilized(file_id)?;
-    let range =
-        locate::id_range(&content, &context.queries().parsed(file_id)?.0, &stabilized, source_id)
-            .ok_or(AnalyzerError::NonFatal)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
+    let range = locate::id_range(
+        &line_index,
+        &context.queries().parsed(file_id)?.0,
+        &stabilized,
+        source_id,
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
+    let range = position::utf8_range_to_protocol(&line_index, range, context.position_encoding())
         .ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
@@ -130,21 +103,12 @@ pub fn file_uri(
 }
 
 pub fn pointers_range(
-    content: &str,
-    root: SyntaxNode,
-    pointers: impl Iterator<Item = SyntaxNodePtr>,
-) -> Result<Utf8Range, AnalyzerError> {
-    let line_index = LineIndex::new(content);
-    pointers_range_with_line_index(&line_index, root, pointers)
-}
-
-pub(crate) fn pointers_range_with_line_index(
     line_index: &LineIndex,
     root: SyntaxNode,
     pointers: impl Iterator<Item = SyntaxNodePtr>,
 ) -> Result<Utf8Range, AnalyzerError> {
     pointers
-        .filter_map(|ptr| locate::syntax_range_with_line_index(line_index, &root, &ptr))
+        .filter_map(|ptr| locate::syntax_range(line_index, &root, &ptr))
         .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
         .ok_or(AnalyzerError::NonFatal)
 }

@@ -17,10 +17,10 @@ use syntax::ast::AstNode;
 use syntax::cst;
 
 macro_rules! pos {
-    ($content:expr, $stabilized:expr, $id:expr) => {{
+    ($line_index:expr, $stabilized:expr, $id:expr) => {{
         let cst = $stabilized.ast_ptr($id).unwrap();
         let range = cst.syntax_node_ptr().text_range();
-        let p = position::offset_to_utf8_position($content, range.start()).unwrap();
+        let p = position::offset_to_utf8_position($line_index, range.start()).unwrap();
         format!("{}:{}", p.line, p.column)
     }};
 }
@@ -129,6 +129,7 @@ pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str, path: &str)
 
 pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     let content = engine.content(id).unwrap();
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = engine.parsed(id).unwrap();
 
     let stabilized = engine.stabilized(id).unwrap();
@@ -152,6 +153,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
             ExpressionKind::Variable { resolution, .. } => {
                 write_term_resolution(
                     &content,
+                    &line_index,
                     &stabilized,
                     &module,
                     tree,
@@ -165,6 +167,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                     if let lowering::ExpressionRecordItem::RecordPun { resolution, .. } = field {
                         write_term_resolution(
                             &content,
+                            &line_index,
                             &stabilized,
                             &module,
                             tree,
@@ -180,6 +183,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
             | ExpressionKind::Integer { .. }
             | ExpressionKind::Number { .. } => write_literal_expression(
                 &content,
+                &line_index,
                 &stabilized,
                 &module,
                 &mut out,
@@ -196,7 +200,15 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     if number_binders.peek().is_some() {
         writeln!(out, "\nNumber Binders:\n").unwrap();
         for (binder_id, kind) in number_binders {
-            write_number_binder(&content, &stabilized, &module, &mut out, binder_id, kind);
+            write_number_binder(
+                &content,
+                &line_index,
+                &stabilized,
+                &module,
+                &mut out,
+                binder_id,
+                kind,
+            );
         }
     }
 
@@ -211,10 +223,10 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
         let node = cst.syntax_node_ptr().to_node(module.syntax());
         let text = node.text(&content).to_string();
 
-        writeln!(out, "{}@{}", text.trim(), pos!(&content, &stabilized, type_id)).unwrap();
+        writeln!(out, "{}@{}", text.trim(), pos!(&line_index, &stabilized, type_id)).unwrap();
         match resolution {
             Some(TypeVariableResolution::Forall(id)) => {
-                writeln!(out, "  -> forall@{}", pos!(&content, &stabilized, *id)).unwrap();
+                writeln!(out, "  -> forall@{}", pos!(&line_index, &stabilized, *id)).unwrap();
             }
             Some(TypeVariableResolution::Implicit(ImplicitTypeVariable { binding, node, id })) => {
                 let GraphNode::Implicit { bindings, .. } = &graph[*node] else {
@@ -228,7 +240,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
                 } else {
                     writeln!(out, "  -> constraint variable {name:?}").unwrap();
                     for &tid in type_ids {
-                        writeln!(out, "    {}", pos!(&content, &stabilized, tid)).unwrap();
+                        writeln!(out, "    {}", pos!(&line_index, &stabilized, tid)).unwrap();
                     }
                 }
             }
@@ -418,6 +430,7 @@ pub fn report_backend(engine: &QueryEngine, id: FileId, path: &str) -> String {
 
 fn write_literal_expression(
     content: &str,
+    line_index: &LineIndex,
     stabilized: &stabilizing::StabilizedModule,
     module: &cst::Module,
     out: &mut String,
@@ -427,7 +440,8 @@ fn write_literal_expression(
     let cst = stabilized.ast_ptr(expression_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
     let text = node.text(content).to_string();
-    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
+    let position =
+        position::offset_to_utf8_position(line_index, node.text_range().start()).unwrap();
 
     writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
 
@@ -454,6 +468,7 @@ fn write_literal_expression(
 
 fn write_number_binder(
     content: &str,
+    line_index: &LineIndex,
     stabilized: &stabilizing::StabilizedModule,
     module: &cst::Module,
     out: &mut String,
@@ -463,7 +478,8 @@ fn write_number_binder(
     let cst = stabilized.ast_ptr(binder_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
     let text = node.text(content).to_string();
-    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
+    let position =
+        position::offset_to_utf8_position(line_index, node.text_range().start()).unwrap();
 
     writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
 
@@ -479,6 +495,7 @@ fn write_number_binder(
 
 fn write_term_resolution(
     content: &str,
+    line_index: &LineIndex,
     stabilized: &stabilizing::StabilizedModule,
     module: &cst::Module,
     tree: &lowering::LoweredTree,
@@ -489,25 +506,26 @@ fn write_term_resolution(
     let cst = stabilized.ast_ptr(expression_id).unwrap();
     let node = cst.syntax_node_ptr().to_node(module.syntax());
     let text = node.text(content).to_string();
-    let position = position::offset_to_utf8_position(content, node.text_range().start()).unwrap();
+    let position =
+        position::offset_to_utf8_position(line_index, node.text_range().start()).unwrap();
 
     writeln!(out, "{}@{}:{}", text.trim(), position.line, position.column).unwrap();
 
     match resolution {
         Some(TermVariableResolution::Binder(id)) => {
-            writeln!(out, "  -> binder@{}", pos!(content, stabilized, *id)).unwrap();
+            writeln!(out, "  -> binder@{}", pos!(line_index, stabilized, *id)).unwrap();
         }
         Some(TermVariableResolution::Let(let_binding_id)) => {
             let let_binding = tree.get_let_binding_group(*let_binding_id);
             if let Some(sig) = let_binding.signature {
-                writeln!(out, "  -> signature@{}", pos!(content, stabilized, sig)).unwrap();
+                writeln!(out, "  -> signature@{}", pos!(line_index, stabilized, sig)).unwrap();
             }
             for eq in let_binding.equations.iter() {
-                writeln!(out, "  -> equation@{}", pos!(content, stabilized, *eq)).unwrap();
+                writeln!(out, "  -> equation@{}", pos!(line_index, stabilized, *eq)).unwrap();
             }
         }
         Some(TermVariableResolution::RecordPun(id)) => {
-            writeln!(out, "  -> record pun@{}", pos!(content, stabilized, *id)).unwrap();
+            writeln!(out, "  -> record pun@{}", pos!(line_index, stabilized, *id)).unwrap();
         }
         Some(TermVariableResolution::Reference(..)) => {
             writeln!(out, "  -> top-level").unwrap();

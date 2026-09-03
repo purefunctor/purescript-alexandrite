@@ -20,24 +20,17 @@ use crate::extract::AnnotationSyntaxRange;
 use crate::position::{Utf8Position, Utf8Range};
 use crate::{AnalyzerError, AnalyzerQueries, position};
 
-pub fn syntax_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
-    let line_index = LineIndex::new(content);
-    syntax_range_with_line_index(&line_index, root, ptr)
-}
-
-pub(crate) fn syntax_range_with_line_index(
+pub fn syntax_range(
     line_index: &LineIndex,
     root: &SyntaxNode,
     ptr: &SyntaxNodePtr,
 ) -> Option<Utf8Range> {
     let range = AnnotationSyntaxRange::from_ptr(root, ptr);
-    range
-        .syntax
-        .and_then(|range| position::text_range_to_utf8_range_with_line_index(line_index, range))
+    range.syntax.and_then(|range| position::text_range_to_utf8_range(line_index, range))
 }
 
 pub fn id_range<T>(
-    content: &str,
+    line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
     item_id: AstId<T>,
@@ -47,22 +40,10 @@ where
 {
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
-    syntax_range(content, &root, &ptr)
+    syntax_range(line_index, &root, &ptr)
 }
 
 pub fn instance_head_ranges(
-    content: &str,
-    parsed: &parsing::ParsedModule,
-    stabilized: &StabilizedModule,
-    indexed: &IndexedModule,
-    lowered: &LoweredModule,
-    target: (FileId, TypeItemId),
-) -> Vec<Utf8Range> {
-    let line_index = LineIndex::new(content);
-    instance_head_ranges_with_line_index(&line_index, parsed, stabilized, indexed, lowered, target)
-}
-
-pub(crate) fn instance_head_ranges_with_line_index(
     line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
@@ -93,25 +74,6 @@ pub(crate) fn instance_head_ranges_with_line_index(
 }
 
 pub fn term_infix_reference_ranges(
-    content: &str,
-    parsed: &parsing::ParsedModule,
-    stabilized: &StabilizedModule,
-    indexed: &IndexedModule,
-    lowered: &LoweredModule,
-    target: (FileId, TermItemId),
-) -> Vec<Utf8Range> {
-    let line_index = LineIndex::new(content);
-    term_infix_reference_ranges_with_line_index(
-        &line_index,
-        parsed,
-        stabilized,
-        indexed,
-        lowered,
-        target,
-    )
-}
-
-pub(crate) fn term_infix_reference_ranges_with_line_index(
     line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
@@ -135,25 +97,6 @@ pub(crate) fn term_infix_reference_ranges_with_line_index(
 }
 
 pub fn type_infix_reference_ranges(
-    content: &str,
-    parsed: &parsing::ParsedModule,
-    stabilized: &StabilizedModule,
-    indexed: &IndexedModule,
-    lowered: &LoweredModule,
-    target: (FileId, TypeItemId),
-) -> Vec<Utf8Range> {
-    let line_index = LineIndex::new(content);
-    type_infix_reference_ranges_with_line_index(
-        &line_index,
-        parsed,
-        stabilized,
-        indexed,
-        lowered,
-        target,
-    )
-}
-
-pub(crate) fn type_infix_reference_ranges_with_line_index(
     line_index: &LineIndex,
     parsed: &parsing::ParsedModule,
     stabilized: &StabilizedModule,
@@ -186,7 +129,7 @@ fn infix_reference_range(
     let declaration = ptr.try_to_node(root).and_then(cst::InfixDeclaration::cast)?;
     let qualified = declaration.qualified()?;
     let range = position::qualified_name_text_range(&qualified)?;
-    position::text_range_to_utf8_range_with_line_index(line_index, range)
+    position::text_range_to_utf8_range(line_index, range)
 }
 
 fn instance_head_range<T>(
@@ -204,11 +147,11 @@ where
         .and_then(|instance| instance.instance_head())
         .or_else(|| cst::DeriveDeclaration::cast(node)?.instance_head())?;
     let token = head.qualified()?.upper()?;
-    position::text_range_to_utf8_range_with_line_index(line_index, token.text_range())
+    position::text_range_to_utf8_range(line_index, token.text_range())
 }
 
 pub fn value_equation_ranges(
-    content: &str,
+    line_index: &LineIndex,
     root: &SyntaxNode,
     stabilized: &StabilizedModule,
     indexed: &IndexedModule,
@@ -226,7 +169,7 @@ pub fn value_equation_ranges(
         && let Some(ptr) = stabilized.ast_ptr(*sig_id)
         && let Some(node) = ptr.try_to_node(root)
         && let Some(tok) = node.name_token()
-        && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+        && let Some(range) = position::text_range_to_utf8_range(line_index, tok.text_range())
     {
         ranges.push(range);
     }
@@ -235,7 +178,7 @@ pub fn value_equation_ranges(
         if let Some(ptr) = stabilized.ast_ptr(*eq_id)
             && let Some(node) = ptr.try_to_node(root)
             && let Some(tok) = node.name_token()
-            && let Some(range) = position::text_range_to_utf8_range(content, tok.text_range())
+            && let Some(range) = position::text_range_to_utf8_range(line_index, tok.text_range())
         {
             ranges.push(range);
         }
@@ -274,25 +217,15 @@ pub enum Located {
 pub fn locate(
     engine: &impl AnalyzerQueries,
     id: FileId,
-    position: Utf8Position,
-) -> Result<Located, AnalyzerError> {
-    let content = engine.content(id)?;
-    let line_index = LineIndex::new(&content);
-    locate_with_line_index(engine, id, &content, &line_index, position)
-}
-
-pub(crate) fn locate_with_line_index(
-    engine: &impl AnalyzerQueries,
-    id: FileId,
     content: &str,
     line_index: &LineIndex,
     position: Utf8Position,
 ) -> Result<Located, AnalyzerError> {
-    let (located, _) = locate_with_token_and_line_index(engine, id, content, line_index, position)?;
+    let (located, _) = locate_with_token(engine, id, content, line_index, position)?;
     Ok(located)
 }
 
-pub(crate) fn locate_with_token_and_line_index(
+pub(crate) fn locate_with_token(
     engine: &impl AnalyzerQueries,
     id: FileId,
     content: &str,
@@ -304,9 +237,7 @@ pub(crate) fn locate_with_token_and_line_index(
     let indexed = engine.indexed(id)?;
     let lowered = engine.lowered(id)?;
 
-    let Some(offset) =
-        position::utf8_position_to_offset_with_line_index(content, line_index, position)
-    else {
+    let Some(offset) = position::utf8_position_to_offset(content, line_index, position) else {
         return Ok((Located::Nothing, None));
     };
 

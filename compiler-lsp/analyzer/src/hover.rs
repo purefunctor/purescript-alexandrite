@@ -32,7 +32,7 @@ pub fn implementation(
     let engine = context.queries();
     let content = engine.content(current_file)?;
     let line_index = LineIndex::new(&content);
-    let position = position::protocol_position_to_utf8_with_line_index(
+    let position = position::protocol_position_to_utf8(
         &content,
         &line_index,
         position,
@@ -40,21 +40,12 @@ pub fn implementation(
     )
     .ok_or(AnalyzerError::NonFatal)?;
 
-    let offset = position::utf8_position_to_offset_with_line_index(&content, &line_index, position)
+    let offset = position::utf8_position_to_offset(&content, &line_index, position)
         .ok_or(AnalyzerError::NonFatal)?;
-    let (located, token) = locate::locate_with_token_and_line_index(
-        engine,
-        current_file,
-        &content,
-        &line_index,
-        position,
-    )?;
+    let (located, token) =
+        locate::locate_with_token(engine, current_file, &content, &line_index, position)?;
     let range = hover_name_range(token, offset).and_then(|range| {
-        position::text_range_to_protocol_with_line_index(
-            &line_index,
-            range,
-            context.position_encoding(),
-        )
+        position::text_range_to_protocol(&line_index, range, context.position_encoding())
     });
 
     let hover = match located {

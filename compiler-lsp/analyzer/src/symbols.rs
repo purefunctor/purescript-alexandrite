@@ -57,13 +57,8 @@ pub fn document(
         }
         let kind = term_symbol_kind(&indexed.items[term_id].kind);
         let uri = Url::clone(&uri);
-        let location = common::file_term_location_with_line_index(
-            context,
-            uri,
-            current_file,
-            &line_index,
-            term_id,
-        )?;
+        let location =
+            common::file_term_location(context, uri, current_file, &line_index, term_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -81,13 +76,8 @@ pub fn document(
         }
         let kind = type_symbol_kind(&indexed.items[type_id].kind);
         let uri = Url::clone(&uri);
-        let location = common::file_type_location_with_line_index(
-            context,
-            uri,
-            current_file,
-            &line_index,
-            type_id,
-        )?;
+        let location =
+            common::file_type_location(context, uri, current_file, &line_index, type_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -105,13 +95,8 @@ pub fn document(
         }
         let kind = SymbolKind::INTERFACE;
         let uri = Url::clone(&uri);
-        let location = common::file_type_location_with_line_index(
-            context,
-            uri,
-            current_file,
-            &line_index,
-            type_id,
-        )?;
+        let location =
+            common::file_type_location(context, uri, current_file, &line_index, type_id)?;
         symbols.push(SymbolInformation {
             name: name.to_string(),
             kind,
@@ -179,6 +164,8 @@ fn build_symbol_list(
     for file_id in context.active_files() {
         let resolved = context.queries().resolved(file_id)?;
         let indexed = context.queries().indexed(file_id)?;
+        let content = context.queries().content(file_id)?;
+        let mut line_index = None;
         let uri = common::file_uri(context, file_id)?;
 
         for (name, _, term_id) in resolved.locals.iter_terms() {
@@ -187,7 +174,8 @@ fn build_symbol_list(
             }
             let kind = term_symbol_kind(&indexed.items[term_id].kind);
             let uri = Url::clone(&uri);
-            let location = common::file_term_location(context, uri, file_id, term_id)?;
+            let line_index = line_index.get_or_insert_with(|| LineIndex::new(&content));
+            let location = common::file_term_location(context, uri, file_id, line_index, term_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind,
@@ -205,7 +193,8 @@ fn build_symbol_list(
             }
             let kind = type_symbol_kind(&indexed.items[type_id].kind);
             let uri = Url::clone(&uri);
-            let location = common::file_type_location(context, uri, file_id, type_id)?;
+            let line_index = line_index.get_or_insert_with(|| LineIndex::new(&content));
+            let location = common::file_type_location(context, uri, file_id, line_index, type_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind,
@@ -222,7 +211,8 @@ fn build_symbol_list(
                 continue;
             }
             let uri = Url::clone(&uri);
-            let location = common::file_type_location(context, uri, file_id, type_id)?;
+            let line_index = line_index.get_or_insert_with(|| LineIndex::new(&content));
+            let location = common::file_type_location(context, uri, file_id, line_index, type_id)?;
             symbols.push(SymbolInformation {
                 name: name.to_string(),
                 kind: SymbolKind::INTERFACE,

@@ -5,6 +5,7 @@ use files::FileId;
 use indexing::{
     ImportItemId, ImportKind, IndexedTermItemKind, IndexedTypeItemKind, TermItemId, TypeItemId,
 };
+use line_index::LineIndex;
 use lowering::{
     BinderId, BinderKind, ExpressionId, ExpressionKind, LetBindingNameGroupId, RecordPunId,
     TermOperatorId, TermVariableResolution, TypeId, TypeKind, TypeOperatorId,
@@ -31,11 +32,16 @@ pub fn implementation(
     };
 
     let content = context.queries().content(current_file)?;
-    let position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+    let line_index = LineIndex::new(&content);
+    let position = position::protocol_position_to_utf8(
+        &content,
+        &line_index,
+        position,
+        context.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.queries(), current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, &content, &line_index, position)?;
     match located {
         locate::Located::ImportItem(import_id) => {
             highlight_import(context, current_file, import_id)
@@ -231,6 +237,7 @@ fn highlight_binder(
     binder_id: BinderId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -248,7 +255,7 @@ fn highlight_binder(
 
     highlights.extend(
         binder_name_range(&content, &root, &ptr)
-            .or_else(|| locate::syntax_range(&content, &root, &ptr))
+            .or_else(|| locate::syntax_range(&line_index, &root, &ptr))
             .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
     );
 
@@ -377,6 +384,7 @@ fn highlight_file_term(
     term_id: TermItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;
@@ -426,7 +434,7 @@ fn highlight_file_term(
     }
 
     let ranges = locate::term_infix_reference_ranges(
-        &content,
+        &line_index,
         &parsed,
         &stabilized,
         &indexed,
@@ -484,6 +492,7 @@ fn highlight_file_type(
     type_id: TypeItemId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
     let stabilized = context.queries().stabilized(current_file)?;
@@ -515,7 +524,7 @@ fn highlight_file_type(
     }
 
     let ranges = locate::type_infix_reference_ranges(
-        &content,
+        &line_index,
         &parsed,
         &stabilized,
         &indexed,
@@ -527,7 +536,7 @@ fn highlight_file_type(
     }
 
     let ranges = locate::instance_head_ranges(
-        &content,
+        &line_index,
         &parsed,
         &stabilized,
         &indexed,
@@ -593,6 +602,7 @@ fn highlight_let(
     let_binding_id: LetBindingNameGroupId,
 ) -> Result<Option<Vec<DocumentHighlight>>, AnalyzerError> {
     let content = context.queries().content(current_file)?;
+    let line_index = LineIndex::new(&content);
     let (parsed, _) = context.queries().parsed(current_file)?;
     let stabilized = context.queries().stabilized(current_file)?;
     let lowered = context.queries().lowered(current_file)?;
@@ -606,7 +616,7 @@ fn highlight_let(
         let ptr = stabilized.syntax_ptr(signature).ok_or(AnalyzerError::NonFatal)?;
         highlights.extend(
             let_signature_name_range(&content, &root, &ptr)
-                .or_else(|| locate::syntax_range(&content, &root, &ptr))
+                .or_else(|| locate::syntax_range(&line_index, &root, &ptr))
                 .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
         );
     }
@@ -615,7 +625,7 @@ fn highlight_let(
         let ptr = stabilized.syntax_ptr(equation).ok_or(AnalyzerError::NonFatal)?;
         highlights.extend(
             let_equation_name_range(&content, &root, &ptr)
-                .or_else(|| locate::syntax_range(&content, &root, &ptr))
+                .or_else(|| locate::syntax_range(&line_index, &root, &ptr))
                 .and_then(|range| document_highlight(&content, context.position_encoding(), range)),
         );
     }
@@ -811,16 +821,17 @@ fn type_item_highlights(
 }
 
 fn binder_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
+    let line_index = LineIndex::new(content);
     let node = ptr.try_to_node(root)?;
 
     if let Some(binder) = cst::BinderVariable::cast(node.clone()) {
         let token = binder.name_token()?;
-        return position::text_range_to_utf8_range(content, token.text_range());
+        return position::text_range_to_utf8_range(&line_index, token.text_range());
     }
 
     if let Some(binder) = cst::BinderNamed::cast(node) {
         let token = binder.name_token()?;
-        return position::text_range_to_utf8_range(content, token.text_range());
+        return position::text_range_to_utf8_range(&line_index, token.text_range());
     }
 
     None
@@ -831,10 +842,11 @@ fn let_signature_name_range(
     root: &SyntaxNode,
     ptr: &SyntaxNodePtr,
 ) -> Option<Utf8Range> {
+    let line_index = LineIndex::new(content);
     let node = ptr.try_to_node(root)?;
     let signature = cst::LetBindingSignature::cast(node)?;
     let token = signature.name_token()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    position::text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 fn let_equation_name_range(
@@ -842,10 +854,11 @@ fn let_equation_name_range(
     root: &SyntaxNode,
     ptr: &SyntaxNodePtr,
 ) -> Option<Utf8Range> {
+    let line_index = LineIndex::new(content);
     let node = ptr.try_to_node(root)?;
     let equation = cst::LetBindingEquation::cast(node)?;
     let token = equation.name_token()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    position::text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 fn push_name_highlight<T>(
@@ -911,12 +924,13 @@ fn highlight_id_range<T>(
 where
     T: DocumentHighlightRange,
 {
+    let line_index = LineIndex::new(content);
     let root = parsed.syntax_node();
     let ptr = stabilized.syntax_ptr(item_id)?;
     let node = ptr.try_to_node(&root)?;
     let target = T::cast(node)?;
     let range = target.annotation_syntax_range().syntax?;
-    position::text_range_to_utf8_range(content, range)
+    position::text_range_to_utf8_range(&line_index, range)
 }
 
 fn document_highlight(
@@ -924,7 +938,8 @@ fn document_highlight(
     encoding: PositionEncoding,
     range: Utf8Range,
 ) -> Option<DocumentHighlight> {
-    let range = position::utf8_range_to_protocol(content, range, encoding)?;
+    let line_index = LineIndex::new(content);
+    let range = position::utf8_range_to_protocol(&line_index, range, encoding)?;
     Some(DocumentHighlight { range, kind: None })
 }
 

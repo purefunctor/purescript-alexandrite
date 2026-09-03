@@ -1,5 +1,6 @@
 use building_types::QueryProxy;
 use files::FileId;
+use line_index::LineIndex;
 use lowering::{GraphNodeId, LoweredModule};
 use lsp_types::*;
 use parsing::ParsedModule;
@@ -18,6 +19,7 @@ pub struct CompletionContext<'c, 'a, Host> {
     pub language: &'c AnalyzerContext<'c, Host>,
     pub current_file: FileId,
     pub content: &'a str,
+    pub line_index: &'a LineIndex,
     pub stabilized: &'a StabilizedModule,
     pub parsed: &'a ParsedModule,
     pub resolved: &'a ResolvedModule,
@@ -43,13 +45,13 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             |cst| Some((cst.syntax().text_range(), false)),
         )?;
 
-        let mut position = position::offset_to_utf8_position(self.content, range.end())?;
+        let mut position = position::offset_to_utf8_position(self.line_index, range.end())?;
 
         position.line += 1;
         position.column = 0;
 
         let position = position::utf8_position_to_protocol(
-            self.content,
+            self.line_index,
             position,
             self.language.position_encoding(),
         )?;
@@ -202,7 +204,7 @@ pub enum CursorSemantics {
 const COMPLETION_MARKER: &str = "Z'PureScript'Z";
 
 impl CursorSemantics {
-    pub fn new(content: &str, position: Utf8Position) -> CursorSemantics {
+    pub fn new(content: &str, line_index: &LineIndex, position: Utf8Position) -> CursorSemantics {
         // We insert a placeholder identifier at the current position of the
         // text cursor. This is done as an effort to produce as valid of a
         // parse tree as possible before we perform further analysis.
@@ -218,7 +220,7 @@ impl CursorSemantics {
         //
         // component = Halogen.Z'PureScript'Z
 
-        let Some(offset) = position::utf8_position_to_offset(content, position) else {
+        let Some(offset) = position::utf8_position_to_offset(content, line_index, position) else {
             return CursorSemantics::General;
         };
 
@@ -283,18 +285,20 @@ pub enum CursorText {
 impl CursorText {
     pub fn new(
         content: &str,
+        line_index: &LineIndex,
         token: &SyntaxToken,
         encoding: PositionEncoding,
     ) -> (CursorText, Option<Range>) {
-        CursorText::of_qualified(content, token, encoding)
-            .or_else(|| CursorText::of_qualifier(content, token, encoding))
-            .or_else(|| CursorText::of_import_class(content, token, encoding))
-            .or_else(|| CursorText::of_module_name(content, token, encoding))
+        CursorText::of_qualified(content, line_index, token, encoding)
+            .or_else(|| CursorText::of_qualifier(content, line_index, token, encoding))
+            .or_else(|| CursorText::of_import_class(content, line_index, token, encoding))
+            .or_else(|| CursorText::of_module_name(content, line_index, token, encoding))
             .unwrap_or((CursorText::None, None))
     }
 
     fn of_import_class(
         content: &str,
+        line_index: &LineIndex,
         token: &SyntaxToken,
         encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
@@ -303,7 +307,7 @@ impl CursorText {
             let token = import_class.name_token()?;
             let name = token.text(content).into();
             let range = token.text_range();
-            let range = position::text_range_to_protocol(content, range, encoding)?;
+            let range = position::text_range_to_protocol(line_index, range, encoding)?;
 
             Some((CursorText::Name(name), Some(range)))
         })
@@ -311,6 +315,7 @@ impl CursorText {
 
     fn of_qualified(
         content: &str,
+        line_index: &LineIndex,
         token: &SyntaxToken,
         encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
@@ -351,8 +356,8 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range =
-                range.and_then(|range| position::text_range_to_protocol(content, range, encoding));
+            let range = range
+                .and_then(|range| position::text_range_to_protocol(line_index, range, encoding));
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),
@@ -366,6 +371,7 @@ impl CursorText {
 
     fn of_qualifier(
         content: &str,
+        line_index: &LineIndex,
         token: &SyntaxToken,
         encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
@@ -377,7 +383,7 @@ impl CursorText {
             let prefix = SmolStr::new(prefix);
 
             let range = token.text_range();
-            let range = position::text_range_to_protocol(content, range, encoding)?;
+            let range = position::text_range_to_protocol(line_index, range, encoding)?;
 
             let range = Some(range);
             let text = CursorText::Prefix(prefix);
@@ -388,6 +394,7 @@ impl CursorText {
 
     fn of_module_name(
         content: &str,
+        line_index: &LineIndex,
         token: &SyntaxToken,
         encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
@@ -410,7 +417,7 @@ impl CursorText {
             };
 
             let range =
-                range.map(|range| position::text_range_to_protocol(content, range, encoding))?;
+                range.map(|range| position::text_range_to_protocol(line_index, range, encoding))?;
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),

@@ -82,9 +82,9 @@ where
 
         let import_range = {
             let ptr = ptr.syntax_node_ptr();
-            locate::syntax_range(context.content, &root, &ptr).and_then(|range| {
+            locate::syntax_range(context.line_index, &root, &ptr).and_then(|range| {
                 position::utf8_range_to_protocol(
-                    context.content,
+                    context.line_index,
                     range,
                     context.language.position_encoding(),
                 )

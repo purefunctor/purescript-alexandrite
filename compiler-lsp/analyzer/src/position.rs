@@ -52,15 +52,6 @@ pub struct Utf8Range {
 
 pub fn protocol_position_to_utf8(
     content: &str,
-    position: lsp_types::Position,
-    encoding: PositionEncoding,
-) -> Option<Utf8Position> {
-    let line_index = LineIndex::new(content);
-    protocol_position_to_utf8_with_line_index(content, &line_index, position, encoding)
-}
-
-pub(crate) fn protocol_position_to_utf8_with_line_index(
-    content: &str,
     line_index: &LineIndex,
     position: lsp_types::Position,
     encoding: PositionEncoding,
@@ -72,20 +63,11 @@ pub(crate) fn protocol_position_to_utf8_with_line_index(
     };
 
     let position = Utf8Position { line: line_col.line, column: line_col.col };
-    let offset = utf8_position_to_offset_with_line_index(content, line_index, position)?;
-    offset_to_utf8_position_with_line_index(line_index, offset)
+    let offset = utf8_position_to_offset(content, line_index, position)?;
+    offset_to_utf8_position(line_index, offset)
 }
 
 pub fn utf8_position_to_protocol(
-    content: &str,
-    position: Utf8Position,
-    encoding: PositionEncoding,
-) -> Option<lsp_types::Position> {
-    let line_index = LineIndex::new(content);
-    utf8_position_to_protocol_with_line_index(&line_index, position, encoding)
-}
-
-pub(crate) fn utf8_position_to_protocol_with_line_index(
     line_index: &LineIndex,
     position: Utf8Position,
     encoding: PositionEncoding,
@@ -107,30 +89,16 @@ pub(crate) fn utf8_position_to_protocol_with_line_index(
 }
 
 pub fn utf8_range_to_protocol(
-    content: &str,
-    range: Utf8Range,
-    encoding: PositionEncoding,
-) -> Option<lsp_types::Range> {
-    let line_index = LineIndex::new(content);
-    utf8_range_to_protocol_with_line_index(&line_index, range, encoding)
-}
-
-pub(crate) fn utf8_range_to_protocol_with_line_index(
     line_index: &LineIndex,
     range: Utf8Range,
     encoding: PositionEncoding,
 ) -> Option<lsp_types::Range> {
-    let start = utf8_position_to_protocol_with_line_index(line_index, range.start, encoding)?;
-    let end = utf8_position_to_protocol_with_line_index(line_index, range.end, encoding)?;
+    let start = utf8_position_to_protocol(line_index, range.start, encoding)?;
+    let end = utf8_position_to_protocol(line_index, range.end, encoding)?;
     Some(lsp_types::Range { start, end })
 }
 
-pub fn utf8_position_to_offset(content: &str, position: Utf8Position) -> Option<TextSize> {
-    let line_index = LineIndex::new(content);
-    utf8_position_to_offset_with_line_index(content, &line_index, position)
-}
-
-pub(crate) fn utf8_position_to_offset_with_line_index(
+pub fn utf8_position_to_offset(
     content: &str,
     line_index: &LineIndex,
     position: Utf8Position,
@@ -153,43 +121,18 @@ pub(crate) fn utf8_position_to_offset_with_line_index(
     Some(offset)
 }
 
-pub fn offset_to_utf8_position(content: &str, offset: TextSize) -> Option<Utf8Position> {
-    let line_index = LineIndex::new(content);
-    offset_to_utf8_position_with_line_index(&line_index, offset)
-}
-
-pub(crate) fn offset_to_utf8_position_with_line_index(
-    line_index: &LineIndex,
-    offset: TextSize,
-) -> Option<Utf8Position> {
+pub fn offset_to_utf8_position(line_index: &LineIndex, offset: TextSize) -> Option<Utf8Position> {
     let LineCol { line, col } = line_index.try_line_col(offset)?;
     Some(Utf8Position { line, column: col })
 }
 
-pub fn text_range_to_utf8_range(content: &str, range: TextRange) -> Option<Utf8Range> {
-    let line_index = LineIndex::new(content);
-    text_range_to_utf8_range_with_line_index(&line_index, range)
-}
-
-pub(crate) fn text_range_to_utf8_range_with_line_index(
-    line_index: &LineIndex,
-    range: TextRange,
-) -> Option<Utf8Range> {
-    let start = offset_to_utf8_position_with_line_index(line_index, range.start())?;
-    let end = offset_to_utf8_position_with_line_index(line_index, range.end())?;
+pub fn text_range_to_utf8_range(line_index: &LineIndex, range: TextRange) -> Option<Utf8Range> {
+    let start = offset_to_utf8_position(line_index, range.start())?;
+    let end = offset_to_utf8_position(line_index, range.end())?;
     Some(Utf8Range { start, end })
 }
 
 pub fn text_range_to_protocol(
-    content: &str,
-    range: TextRange,
-    encoding: PositionEncoding,
-) -> Option<lsp_types::Range> {
-    let line_index = LineIndex::new(content);
-    text_range_to_protocol_with_line_index(&line_index, range, encoding)
-}
-
-pub(crate) fn text_range_to_protocol_with_line_index(
     line_index: &LineIndex,
     range: TextRange,
     encoding: PositionEncoding,
@@ -220,7 +163,8 @@ pub fn import_item_name_range(content: &str, import_item: cst::ImportItem) -> Op
         cst::ImportItem::ImportTypeOperator(cst) => cst.name_token()?.text_range(),
     };
 
-    text_range_to_utf8_range(content, range)
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, range)
 }
 
 pub fn export_item_name_range(content: &str, export_item: cst::ExportItem) -> Option<Utf8Range> {
@@ -234,7 +178,8 @@ pub fn export_item_name_range(content: &str, export_item: cst::ExportItem) -> Op
     };
 
     let range = token.text_range();
-    text_range_to_utf8_range(content, range)
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, range)
 }
 
 pub fn declaration_name_range(
@@ -279,7 +224,8 @@ pub fn declaration_name_range(
         ),
     };
 
-    text_range_to_utf8_range(content, range)
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, range)
 }
 
 pub fn data_constructor_name_range(
@@ -290,7 +236,8 @@ pub fn data_constructor_name_range(
     let node = ptr.try_to_node(root)?;
     let constructor = cst::DataConstructor::cast(node)?;
     let token = constructor.name_token()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 pub fn class_member_name_range(
@@ -301,7 +248,8 @@ pub fn class_member_name_range(
     let node = ptr.try_to_node(root)?;
     let member = cst::ClassMemberStatement::cast(node)?;
     let token = member.name_token()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 pub fn instance_declaration_name_range(
@@ -312,7 +260,8 @@ pub fn instance_declaration_name_range(
     let node = ptr.try_to_node(root)?;
     let instance = cst::InstanceDeclaration::cast(node)?;
     let token = instance.instance_name()?.name_token()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 pub fn record_pun_name_range(
@@ -323,7 +272,8 @@ pub fn record_pun_name_range(
     let node = ptr.try_to_node(root)?;
     let pun = cst::RecordPun::cast(node)?;
     let token = pun.name()?.text()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 pub fn type_variable_binding_name_range(
@@ -334,7 +284,8 @@ pub fn type_variable_binding_name_range(
     let node = ptr.try_to_node(root)?;
     let binding = cst::TypeVariableBinding::cast(node)?;
     let token = binding.name()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 pub fn qualified_name_text_range(qualified: &cst::QualifiedName) -> Option<TextRange> {
@@ -364,7 +315,8 @@ pub fn infix_operator_range(
     let node = ptr.try_to_node(root)?;
     let declaration = cst::InfixDeclaration::cast(node)?;
     let token = declaration.operator_token()?;
-    text_range_to_utf8_range(content, token.text_range())
+    let line_index = LineIndex::new(content);
+    text_range_to_utf8_range(&line_index, token.text_range())
 }
 
 #[cfg(test)]
@@ -375,98 +327,174 @@ mod tests {
 
     use super::{
         PositionEncoding, Utf8Position, Utf8Range, offset_to_utf8_position,
-        protocol_position_to_utf8, protocol_position_to_utf8_with_line_index,
-        text_range_to_protocol, utf8_position_to_offset, utf8_position_to_protocol,
-        utf8_range_to_protocol, utf8_range_to_protocol_with_line_index,
+        protocol_position_to_utf8, text_range_to_protocol, utf8_position_to_offset,
+        utf8_position_to_protocol, utf8_range_to_protocol,
     };
 
     #[test]
     fn utf16_protocol_position_maps_to_utf8_column() {
         let content = "a😀b";
+        let line_index = LineIndex::new(content);
         let position = Position::new(0, 3);
 
         let position =
-            protocol_position_to_utf8(content, position, PositionEncoding::Utf16).unwrap();
-        assert_eq!(position, Utf8Position { line: 0, column: 5 });
-
-        let offset = utf8_position_to_offset(content, position);
-        assert_eq!(offset, Some(TextSize::new(5)));
+            protocol_position_to_utf8(content, &line_index, position, PositionEncoding::Utf16)
+                .unwrap();
+        let offset = utf8_position_to_offset(content, &line_index, position);
+        insta::assert_debug_snapshot!((position, offset), @"
+        (
+            Utf8Position {
+                line: 0,
+                column: 5,
+            },
+            Some(
+                5,
+            ),
+        )
+        ");
     }
 
     #[test]
     fn utf32_protocol_position_maps_to_utf8_column() {
         let content = "a😀b";
+        let line_index = LineIndex::new(content);
         let position = Position::new(0, 2);
 
         let position =
-            protocol_position_to_utf8(content, position, PositionEncoding::Utf32).unwrap();
-        assert_eq!(position, Utf8Position { line: 0, column: 5 });
+            protocol_position_to_utf8(content, &line_index, position, PositionEncoding::Utf32)
+                .unwrap();
+        insta::assert_debug_snapshot!(position, @"
+        Utf8Position {
+            line: 0,
+            column: 5,
+        }
+        ");
     }
 
     #[test]
     fn utf8_position_maps_to_utf16_protocol_position() {
         let content = "a😀b";
-        let position = offset_to_utf8_position(content, TextSize::new(5)).unwrap();
+        let line_index = LineIndex::new(content);
+        let position = offset_to_utf8_position(&line_index, TextSize::new(5)).unwrap();
 
         let position =
-            utf8_position_to_protocol(content, position, PositionEncoding::Utf16).unwrap();
-        assert_eq!(position, Position::new(0, 3));
+            utf8_position_to_protocol(&line_index, position, PositionEncoding::Utf16).unwrap();
+        insta::assert_debug_snapshot!(position, @"
+        Position {
+            line: 0,
+            character: 3,
+        }
+        ");
     }
 
     #[test]
     fn utf8_protocol_positions_use_utf8_columns() {
         let content = "a😀b";
+        let line_index = LineIndex::new(content);
         let position = Position::new(0, 5);
 
         let position =
-            protocol_position_to_utf8(content, position, PositionEncoding::Utf8).unwrap();
-        assert_eq!(position, Utf8Position { line: 0, column: 5 });
-
-        let position =
-            utf8_position_to_protocol(content, position, PositionEncoding::Utf8).unwrap();
-        assert_eq!(position, Position::new(0, 5));
+            protocol_position_to_utf8(content, &line_index, position, PositionEncoding::Utf8)
+                .unwrap();
+        let protocol_position =
+            utf8_position_to_protocol(&line_index, position, PositionEncoding::Utf8).unwrap();
+        insta::assert_debug_snapshot!((position, protocol_position), @"
+        (
+            Utf8Position {
+                line: 0,
+                column: 5,
+            },
+            Position {
+                line: 0,
+                character: 5,
+            },
+        )
+        ");
     }
 
     #[test]
     fn text_ranges_use_negotiated_position_encoding() {
         let content = "a😀b";
+        let line_index = LineIndex::new(content);
         let range = TextRange::new(TextSize::new(1), TextSize::new(5));
 
-        let utf8 = text_range_to_protocol(content, range, PositionEncoding::Utf8).unwrap();
-        assert_eq!(utf8, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 5)));
-
-        let utf16 = text_range_to_protocol(content, range, PositionEncoding::Utf16).unwrap();
-        assert_eq!(utf16, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 3)));
-
-        let utf32 = text_range_to_protocol(content, range, PositionEncoding::Utf32).unwrap();
-        assert_eq!(utf32, lsp_types::Range::new(Position::new(0, 1), Position::new(0, 2)));
+        let utf8 = text_range_to_protocol(&line_index, range, PositionEncoding::Utf8).unwrap();
+        let utf16 = text_range_to_protocol(&line_index, range, PositionEncoding::Utf16).unwrap();
+        let utf32 = text_range_to_protocol(&line_index, range, PositionEncoding::Utf32).unwrap();
+        insta::assert_debug_snapshot!((utf8, utf16, utf32), @"
+        (
+            Range {
+                start: Position {
+                    line: 0,
+                    character: 1,
+                },
+                end: Position {
+                    line: 0,
+                    character: 5,
+                },
+            },
+            Range {
+                start: Position {
+                    line: 0,
+                    character: 1,
+                },
+                end: Position {
+                    line: 0,
+                    character: 3,
+                },
+            },
+            Range {
+                start: Position {
+                    line: 0,
+                    character: 1,
+                },
+                end: Position {
+                    line: 0,
+                    character: 2,
+                },
+            },
+        )
+        ");
     }
 
     #[test]
     fn position_encoding_converts_to_lsp_encoding_kind() {
-        assert_eq!(PositionEncodingKind::from(PositionEncoding::Utf8), PositionEncodingKind::UTF8);
-        assert_eq!(
-            PositionEncodingKind::from(PositionEncoding::Utf16),
-            PositionEncodingKind::UTF16
-        );
-        assert_eq!(
-            PositionEncodingKind::from(PositionEncoding::Utf32),
-            PositionEncodingKind::UTF32
-        );
+        let encodings = [PositionEncoding::Utf8, PositionEncoding::Utf16, PositionEncoding::Utf32]
+            .map(PositionEncodingKind::from);
+        insta::assert_debug_snapshot!(encodings, @r#"
+        [
+            PositionEncodingKind(
+                "utf-8",
+            ),
+            PositionEncodingKind(
+                "utf-16",
+            ),
+            PositionEncodingKind(
+                "utf-32",
+            ),
+        ]
+        "#);
     }
 
     #[test]
     fn protocol_position_past_line_end_clamps_to_same_line() {
         let content = "abc\ndef";
+        let line_index = LineIndex::new(content);
         let position = Position::new(0, 99);
 
         let position =
-            protocol_position_to_utf8(content, position, PositionEncoding::Utf16).unwrap();
-        assert_eq!(position, Utf8Position { line: 0, column: 3 });
+            protocol_position_to_utf8(content, &line_index, position, PositionEncoding::Utf16)
+                .unwrap();
+        insta::assert_debug_snapshot!(position, @"
+        Utf8Position {
+            line: 0,
+            column: 3,
+        }
+        ");
     }
 
     #[test]
-    fn shared_line_index_preserves_range_conversions() {
+    fn range_conversions_use_shared_line_index() {
         let content = "é😀x\r\nplain\r\n";
         let line_index = LineIndex::new(content);
         let ranges = [
@@ -480,75 +508,84 @@ mod tests {
             },
         ];
 
-        for encoding in [PositionEncoding::Utf8, PositionEncoding::Utf16] {
-            for range in ranges {
-                assert_eq!(
-                    utf8_range_to_protocol_with_line_index(&line_index, range, encoding),
-                    utf8_range_to_protocol(content, range, encoding),
-                );
-            }
-        }
-
-        assert_eq!(
-            utf8_range_to_protocol_with_line_index(&line_index, ranges[0], PositionEncoding::Utf8),
-            Some(lsp_types::Range::new(Position::new(0, 2), Position::new(0, 6))),
+        let converted = (
+            utf8_range_to_protocol(&line_index, ranges[0], PositionEncoding::Utf8),
+            utf8_range_to_protocol(&line_index, ranges[0], PositionEncoding::Utf16),
+            utf8_range_to_protocol(&line_index, ranges[1], PositionEncoding::Utf16),
         );
-        assert_eq!(
-            utf8_range_to_protocol_with_line_index(&line_index, ranges[0], PositionEncoding::Utf16),
-            Some(lsp_types::Range::new(Position::new(0, 1), Position::new(0, 3))),
-        );
-        assert_eq!(
-            utf8_range_to_protocol_with_line_index(&line_index, ranges[1], PositionEncoding::Utf16),
-            Some(lsp_types::Range::new(Position::new(1, 0), Position::new(1, 5))),
-        );
+        insta::assert_debug_snapshot!(converted, @"
+        (
+            Some(
+                Range {
+                    start: Position {
+                        line: 0,
+                        character: 2,
+                    },
+                    end: Position {
+                        line: 0,
+                        character: 6,
+                    },
+                },
+            ),
+            Some(
+                Range {
+                    start: Position {
+                        line: 0,
+                        character: 1,
+                    },
+                    end: Position {
+                        line: 0,
+                        character: 3,
+                    },
+                },
+            ),
+            Some(
+                Range {
+                    start: Position {
+                        line: 1,
+                        character: 0,
+                    },
+                    end: Position {
+                        line: 1,
+                        character: 5,
+                    },
+                },
+            ),
+        )
+        ");
     }
 
     #[test]
-    fn shared_line_index_preserves_invalid_protocol_positions() {
+    fn invalid_protocol_positions_return_none() {
         let content = "é😀x\r\nplain\r\n";
         let line_index = LineIndex::new(content);
-        let positions = [Position::new(9, 0), Position::new(0, 1), Position::new(0, 99)];
 
-        for encoding in [PositionEncoding::Utf8, PositionEncoding::Utf16] {
-            for position in positions {
-                assert_eq!(
-                    protocol_position_to_utf8_with_line_index(
-                        content,
-                        &line_index,
-                        position,
-                        encoding,
-                    ),
-                    protocol_position_to_utf8(content, position, encoding),
-                );
-            }
-        }
-
-        assert_eq!(
-            protocol_position_to_utf8_with_line_index(
+        let converted = (
+            protocol_position_to_utf8(
                 content,
                 &line_index,
                 Position::new(9, 0),
                 PositionEncoding::Utf8,
             ),
-            None,
-        );
-        assert_eq!(
-            protocol_position_to_utf8_with_line_index(
+            protocol_position_to_utf8(
                 content,
                 &line_index,
                 Position::new(0, 1),
                 PositionEncoding::Utf8,
             ),
-            None,
-        );
-        assert_eq!(
-            protocol_position_to_utf8_with_line_index(
+            protocol_position_to_utf8(
                 content,
                 &line_index,
                 Position::new(0, 2),
                 PositionEncoding::Utf16,
             ),
-            None,
         );
+        insta::assert_debug_snapshot!(converted, @"
+        (
+            None,
+            None,
+            None,
+        )
+        ");
     }
 }

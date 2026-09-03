@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use building_types::QueryProxy;
 use files::FileId;
+use line_index::LineIndex;
 use lowering::{ExpressionId, TypeId};
 use lsp_types::*;
 
@@ -21,13 +22,26 @@ pub fn implementation(
     };
 
     let content = language.queries().content(file)?;
-    let position =
-        position::protocol_position_to_utf8(&content, range.start, language.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+    let line_index = LineIndex::new(&content);
+    let position = position::protocol_position_to_utf8(
+        &content,
+        &line_index,
+        range.start,
+        language.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(language.queries(), file, position)?;
+    let located = locate::locate(language.queries(), file, &content, &line_index, position)?;
     let kinds = RequestedCodeActionKinds { only: action_context.only.as_deref() };
-    let request = CodeActionRequest { language, uri: &uri, file, kinds, located };
+    let request = CodeActionRequest {
+        language,
+        uri: &uri,
+        file,
+        content: &content,
+        line_index: &line_index,
+        kinds,
+        located,
+    };
 
     let mut actions = vec![];
     holes::collect(&request, &mut actions)?;
@@ -40,6 +54,8 @@ pub struct CodeActionRequest<'request, 'language, Host> {
     pub language: &'request AnalyzerContext<'language, Host>,
     pub uri: &'request Url,
     pub file: FileId,
+    pub content: &'request str,
+    pub line_index: &'request LineIndex,
     pub kinds: RequestedCodeActionKinds<'request>,
     pub located: locate::Located,
 }
@@ -77,28 +93,34 @@ pub fn expression_range(
     request: &CodeActionRequest<impl crate::AnalyzerHost>,
     expression_id: ExpressionId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.queries().content(request.file)?;
     let (parsed, _) = request.language.queries().parsed(request.file)?;
     let stabilized = request.language.queries().stabilized(request.file)?;
 
-    let range = locate::id_range(&content, &parsed, &stabilized, expression_id)
+    let range = locate::id_range(request.line_index, &parsed, &stabilized, expression_id)
         .ok_or(AnalyzerError::NonFatal)?;
 
-    position::utf8_range_to_protocol(&content, range, request.language.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)
+    position::utf8_range_to_protocol(
+        request.line_index,
+        range,
+        request.language.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)
 }
 
 pub fn type_range(
     request: &CodeActionRequest<impl crate::AnalyzerHost>,
     type_id: TypeId,
 ) -> Result<Range, AnalyzerError> {
-    let content = request.language.queries().content(request.file)?;
     let (parsed, _) = request.language.queries().parsed(request.file)?;
     let stabilized = request.language.queries().stabilized(request.file)?;
 
-    let range =
-        locate::id_range(&content, &parsed, &stabilized, type_id).ok_or(AnalyzerError::NonFatal)?;
+    let range = locate::id_range(request.line_index, &parsed, &stabilized, type_id)
+        .ok_or(AnalyzerError::NonFatal)?;
 
-    position::utf8_range_to_protocol(&content, range, request.language.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)
+    position::utf8_range_to_protocol(
+        request.line_index,
+        range,
+        request.language.position_encoding(),
+    )
+    .ok_or(AnalyzerError::NonFatal)
 }
