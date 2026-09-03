@@ -24,6 +24,7 @@ pub(crate) struct Tree<'a> {
 
 pub(crate) enum ObjectProperty {
     Field { name: String, value: ExpressionId },
+    Computed { key: ExpressionId, value: ExpressionId },
     Spread(ExpressionId),
 }
 
@@ -176,6 +177,16 @@ impl<'a> Tree<'a> {
                     &self.builder,
                 )
             }
+            ObjectProperty::Computed { key, value } => ObjectPropertyKind::new_object_property(
+                SPAN,
+                oxc_ast::ast::PropertyKind::Init,
+                PropertyKey::from(self.expression(key)),
+                self.expression(value),
+                false,
+                false,
+                true,
+                &self.builder,
+            ),
             ObjectProperty::Spread(value) => {
                 ObjectPropertyKind::new_spread_property(SPAN, self.expression(value), &self.builder)
             }

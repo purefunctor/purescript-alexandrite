@@ -200,6 +200,31 @@ impl<'a> Writer<'a> {
         self.statements.push(statement);
     }
 
+    pub(crate) fn import_named(&mut self, bindings: &[(&str, &str)], path: &str) {
+        let specifiers = bindings.iter().map(|(imported, local)| {
+            let imported = self.module_export_name(imported, false);
+            ImportDeclarationSpecifier::new_import_specifier(
+                SPAN,
+                imported,
+                self.binding(local),
+                ImportOrExportKind::Value,
+                &self.builder,
+            )
+        });
+        let specifiers = ArenaVec::from_iter_in(specifiers, &self.allocator);
+        let source = StringLiteral::new(SPAN, self.text(path), None, &self.builder);
+        let statement = Statement::new_import_declaration(
+            SPAN,
+            Some(specifiers),
+            source,
+            None,
+            None,
+            ImportOrExportKind::Value,
+            &self.builder,
+        );
+        self.statements.push(statement);
+    }
+
     pub(crate) fn constant(
         &mut self,
         tree: &Tree<'_>,

@@ -1426,7 +1426,10 @@ mod tests {
                 DerivedState::Computed { trace, dependencies, .. } => {
                     trace.built == other.built
                         && trace.changed == other.changed
-                        && dependencies.as_ref() == other.dependencies
+                        && dependencies.len() == other.dependencies.len()
+                        && dependencies
+                            .iter()
+                            .all(|dependency| other.dependencies.contains(dependency))
                 }
             }
         }
@@ -2149,18 +2152,18 @@ mod tests {
         let indexed_a = engine.indexed(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, stabilized(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Parsed(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
 
@@ -2170,18 +2173,18 @@ mod tests {
         let indexed_b = engine.indexed(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 22,
-            changed: 21,
+            built: 26,
+            changed: 25,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, stabilized(id) => Trace {
-            built: 22,
-            changed: 21,
+            built: 26,
+            changed: 25,
             dependencies: &[QueryKey::Parsed(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 22,
-            changed: 22,
+            built: 26,
+            changed: 26,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
 
@@ -2212,18 +2215,18 @@ mod tests {
         let resolved_a = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 21,
-            changed: 21,
+            built: 25,
+            changed: 25,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2236,18 +2239,18 @@ mod tests {
         let resolved_b = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 22,
-            changed: 22,
+            built: 26,
+            changed: 26,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 22,
-            changed: 21,
+            built: 26,
+            changed: 25,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 22,
-            changed: 21,
+            built: 26,
+            changed: 25,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2260,18 +2263,18 @@ mod tests {
         let resolved_c = engine.resolved(id).unwrap();
 
         assert_trace!(engine, parsed(id) => Trace {
-            built: 23,
-            changed: 23,
+            built: 27,
+            changed: 27,
             dependencies: &[QueryKey::Content(id)]
         });
         assert_trace!(engine, indexed(id) => Trace {
-            built: 23,
-            changed: 21,
+            built: 27,
+            changed: 25,
             dependencies: &[QueryKey::Content(id), QueryKey::Parsed(id), QueryKey::Stabilized(id)]
         });
         assert_trace!(engine, resolved(id) => Trace {
-            built: 23,
-            changed: 21,
+            built: 27,
+            changed: 25,
             dependencies: &[QueryKey::Indexed(id)]
         });
 
@@ -2334,7 +2337,7 @@ mod tests {
         let guard = shard.read();
         assert_eq!(
             ShowTrace(guard.get(&parent).unwrap()),
-            Trace { built: 21, changed: 21, dependencies: &[QueryKey::Parsed(child)] }
+            Trace { built: 25, changed: 25, dependencies: &[QueryKey::Parsed(child)] }
         );
     }
 

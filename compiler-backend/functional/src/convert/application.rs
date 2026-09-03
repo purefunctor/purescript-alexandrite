@@ -7,8 +7,8 @@ use itertools::Itertools;
 use smol_str::format_smolstr;
 
 use crate::tree::{
-    BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, Field, GlobalId,
-    InstanceIdentity, Literal, Parameter, PatternKind, RecordField, StyleXIntrinsic, UnaryOperator,
+    BinaryOperator, Binding, EffectExpression, ExpressionId, ExpressionKind, GlobalId,
+    InstanceIdentity, Literal, Parameter, PatternKind, RecordField, UnaryOperator,
 };
 
 use super::{Context, ConversionResult};
@@ -517,7 +517,7 @@ where
         }
     }
 
-    fn expression_is_stable(&self, expression: ExpressionId) -> bool {
+    pub(super) fn expression_is_stable(&self, expression: ExpressionId) -> bool {
         matches!(
             self.storage[expression].kind,
             ExpressionKind::Literal { .. }
@@ -538,95 +538,6 @@ where
         };
         let GlobalId::Term(file_id, _) = global.id else { return Ok(false) };
         Ok(global.item_name == item_name && self.source_module_name(file_id)? == module_name)
-    }
-
-    fn stylex_intrinsic(
-        &mut self,
-        expression: ExpressionId,
-        arguments: &[ExpressionId],
-        result_type: Option<checking::TypeId>,
-    ) -> ConversionResult<Option<ExpressionId>> {
-        let ExpressionKind::Global { global } = &self.storage[expression].kind else {
-            return Ok(None);
-        };
-        let GlobalId::Term(file_id, term_id) = global.id else { return Ok(None) };
-        let Some(intrinsic) = self.stylex_intrinsic_identity(file_id, term_id)? else {
-            return Ok(None);
-        };
-        let expression = match (intrinsic, arguments) {
-            (StyleXIntrinsic::Create, [_, argument])
-            | (StyleXIntrinsic::Props, [_, argument])
-            | (StyleXIntrinsic::Keyframes, [argument]) => {
-                Some(self.expression(ExpressionKind::StyleX { intrinsic, argument: *argument }))
-            }
-            (StyleXIntrinsic::RecordProps, [_, argument]) => {
-                let Some(result_type) = result_type else { return Ok(None) };
-                self.stylex_record_props(*argument, result_type)?
-            }
-            (StyleXIntrinsic::Conditional, [condition, style]) => {
-                Some(self.expression(ExpressionKind::Binary {
-                    operator: BinaryOperator::StyleXConditional,
-                    left: *condition,
-                    right: *style,
-                }))
-            }
-            _ => None,
-        };
-        Ok(expression)
-    }
-
-    fn stylex_record_props(
-        &mut self,
-        argument: ExpressionId,
-        result_type: checking::TypeId,
-    ) -> ConversionResult<Option<ExpressionId>> {
-        let checking::Type::Application(_, mut row_type) = self.queries.lookup_type(result_type)
-        else {
-            return Ok(None);
-        };
-
-        let mut labels = vec![];
-        loop {
-            let checking::Type::Row(row_id) = self.queries.lookup_type(row_type) else {
-                return Ok(None);
-            };
-            let row = self.queries.lookup_row_type(row_id);
-            labels.extend(row.fields.iter().map(|field| field.label.clone()));
-            let Some(tail) = row.tail else { break };
-            row_type = tail;
-        }
-
-        let stable = self.expression_is_stable(argument);
-        let (record, parameter) = if stable {
-            (argument, None)
-        } else {
-            let parameter = self.fresh_parameter("stylexStyles".into())?;
-            let record = self.expression(ExpressionKind::Local { parameter: parameter.clone() });
-            (record, Some(parameter))
-        };
-
-        let fields = labels.into_iter().map(|label| {
-            let field = self.label_field(label);
-            let style =
-                self.expression(ExpressionKind::Project { record, field: Field::clone(&field) });
-            let expression = self.expression(ExpressionKind::StyleX {
-                intrinsic: StyleXIntrinsic::Props,
-                argument: style,
-            });
-            RecordField { field, expression }
-        });
-
-        let fields = fields.collect();
-        let body = self.expression(ExpressionKind::Record { fields });
-
-        let Some(parameter) = parameter else { return Ok(Some(body)) };
-        let binding = Binding { parameter, expression: argument, source_order: 0 };
-
-        Ok(Some(self.expression(ExpressionKind::Let {
-            recursive: false,
-            bindings: [binding].into(),
-            body,
-        })))
     }
 
     fn known_numbered_term_arity(

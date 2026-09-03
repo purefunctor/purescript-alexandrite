@@ -41,6 +41,13 @@ buttonPropsArray highlighted = StyleX.props
   , StyleX.conditional highlighted secondary.root
   ]
 
+selectedProps :: Boolean -> Boolean -> StyleX.Props
+selectedProps included alternate = StyleX.props
+  ( StyleX.conditional included
+      if alternate then styles.button
+      else styles.label
+  )
+
 buttonClassName :: String
 buttonClassName = buttonProps.className
 

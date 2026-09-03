@@ -2,6 +2,18 @@ import * as $stylex from "@stylexjs/stylex";
 export function buttonPropsArray(highlighted) {
   return $stylex.props([styles.button, highlighted && secondary.root]);
 }
+export function selectedProps(included) {
+  return (alternate) => {
+    const $stylexConditional = () => {
+      if (alternate) {
+        return styles.button;
+      } else {
+        return styles.label;
+      }
+    };
+    return $stylex.props(included && $stylexConditional());
+  };
+}
 export const animation = $stylex.keyframes({
   from: { opacity: 0 },
   to: { opacity: 1 }

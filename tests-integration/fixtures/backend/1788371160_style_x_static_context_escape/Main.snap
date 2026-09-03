@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+escaped :: Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String
+
+Types
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:5:1
+  •
+  │
+  • Alexandrite.StyleX.color must be used inside defineVars or createTheme
+  │
+  │   escaped = Types.color "red"
+  │   ╰──────────────────────────
+  •

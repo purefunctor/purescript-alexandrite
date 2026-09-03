@@ -23,4 +23,6 @@ define!(
     PRIM_SYMBOL, "prim/Prim.Symbol.purs", "Prim.Symbol";
     PRIM_TYPE_ERROR, "prim/Prim.TypeError.purs", "Prim.TypeError";
     ALEXANDRITE_STYLEX, "prim/Alexandrite.StyleX.purs", "Alexandrite.StyleX";
+    ALEXANDRITE_STYLEX_WHEN, "prim/Alexandrite.StyleX.When.purs", "Alexandrite.StyleX.When";
+    ALEXANDRITE_STYLEX_TYPES, "prim/Alexandrite.StyleX.Types.purs", "Alexandrite.StyleX.Types";
 );

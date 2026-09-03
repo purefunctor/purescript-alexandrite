@@ -3,4 +3,4 @@ source: tests-integration/tests/functional.rs
 assertion_line: 14
 expression: report
 ---
-cannot convert checked module Idx::<File>(43): Alexandrite.StyleX.conditional must be used as a direct, saturated intrinsic call
+cannot convert checked module Idx::<File>(45): Alexandrite.StyleX.conditional must be used as a direct, saturated intrinsic call

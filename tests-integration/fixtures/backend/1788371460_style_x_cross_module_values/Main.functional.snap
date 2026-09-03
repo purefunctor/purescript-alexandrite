@@ -1,0 +1,10 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export theme = stylex.createTheme variables { accent: "white" }
+
+@export styles = stylex.create {
+  root: { color: stylex.conditionalValue "blue" [stylex.when.ancestor(":hover", rowMarker, "red")] }
+}

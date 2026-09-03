@@ -6,6 +6,8 @@ mod build;
 mod new;
 #[path = "package_manager/run.rs"]
 mod run;
+#[path = "package_manager/stylex.rs"]
+mod stylex;
 #[path = "package_manager/support.rs"]
 mod support;
 #[path = "package_manager/test.rs"]

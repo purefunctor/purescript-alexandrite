@@ -78,9 +78,6 @@ pub(super) fn binary_expression(
         FunctionalBinaryOperator::IntegerMultiply => {
             integer_binary_expression(tree, BinaryOperator::Multiply, left, right)
         }
-        FunctionalBinaryOperator::StyleXConditional => {
-            tree.binary(BinaryOperator::LogicalAnd, left, right)
-        }
     }
 }
 

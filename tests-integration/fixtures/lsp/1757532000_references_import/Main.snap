@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 134
+assertion_line: 388
 expression: report
 ---
 References at Position { line: 2, character: 12 }
@@ -21,8 +21,8 @@ import Lib (Maybe(..), plus, (+), type (:), class Eq)
 --          %           %     %         %         %
 ```
 
-file:///tests-integration/fixtures/lsp/1757532000_references_import/Main.purs @ 18:8..18:12
 file:///tests-integration/fixtures/lsp/1757532000_references_import/Lib.purs @ 6:8..6:12
+file:///tests-integration/fixtures/lsp/1757532000_references_import/Main.purs @ 18:8..18:12
 
 
 References at Position { line: 2, character: 30 }

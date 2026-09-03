@@ -2,6 +2,7 @@
 
 use pretty::{Arena, DocAllocator, DocBuilder};
 
+use crate::stylex::{StyleXCallTarget, StyleXConditionalCase, StyleXExpression};
 use crate::tree::{
     BinaryOperator, Declaration, DeclarationKind, EffectExpression, ExpressionId, ExpressionKind,
     Field, GlobalId, Guard, IndirectModuleExports, Literal, Module, Parameter, PatternId,
@@ -98,7 +99,7 @@ impl<'a> Printer<'a, '_> {
             | ExpressionKind::Binary { .. }
             | ExpressionKind::Application { .. }
             | ExpressionKind::UncurriedApplication { .. }
-            | ExpressionKind::StyleX { .. }
+            | ExpressionKind::StyleX(_)
             | ExpressionKind::Effect { .. }
             | ExpressionKind::SynthesizedEvidence { .. } => ExpressionPrecedence::Application,
             ExpressionKind::RecordUpdate { .. } => ExpressionPrecedence::RecordUpdate,
@@ -162,7 +163,6 @@ impl<'a> Printer<'a, '_> {
                     BinaryOperator::IntegerAdd => "integer.add",
                     BinaryOperator::IntegerSubtract => "integer.subtract",
                     BinaryOperator::IntegerMultiply => "integer.multiply",
-                    BinaryOperator::StyleXConditional => "stylex.conditional",
                 };
                 let left = self.expression_at(*left, ExpressionPrecedence::Atom);
                 let right = self.expression_at(*right, ExpressionPrecedence::Atom);
@@ -227,13 +227,7 @@ impl<'a> Printer<'a, '_> {
                 let arguments = self.delimited("(", arguments, ")");
                 self.arena.text("uncurried.call ").append(function).append(arguments)
             }
-            ExpressionKind::StyleX { intrinsic, argument } => {
-                let argument = self.expression_at(*argument, ExpressionPrecedence::Atom);
-                self.arena
-                    .text(format!("stylex.{}", intrinsic.name()))
-                    .append(self.arena.space())
-                    .append(argument)
-            }
+            ExpressionKind::StyleX(stylex) => self.stylex_expression(stylex),
             ExpressionKind::IfThenElse { condition, then, else_ } => {
                 let condition = self.expression(*condition);
                 let then = self.expression(*then);
@@ -301,6 +295,53 @@ impl<'a> Printer<'a, '_> {
             ExpressionKind::SynthesizedEvidence { evidence } => self.synthesized_evidence(evidence),
             ExpressionKind::TrivialEvidence => self.arena.text("<trivial evidence>"),
         }
+    }
+
+    fn stylex_expression(&self, stylex: &StyleXExpression) -> Doc<'a> {
+        match stylex {
+            StyleXExpression::Call { target, arguments } => {
+                let namespace = match target {
+                    StyleXCallTarget::Root(_) => "stylex.",
+                    StyleXCallTarget::Types(_) => "stylex.types.",
+                };
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.expression_at(*argument, ExpressionPrecedence::Atom));
+                let function = self.arena.text(format!("{namespace}{}", target.name()));
+                self.arena
+                    .intersperse(std::iter::once(function).chain(arguments), self.arena.space())
+            }
+            StyleXExpression::Conditional { condition, style } => {
+                let condition = self.expression_at(*condition, ExpressionPrecedence::Atom);
+                let style = self.expression_at(*style, ExpressionPrecedence::Atom);
+                self.arena
+                    .text("stylex.conditional ")
+                    .append(condition)
+                    .append(self.arena.space())
+                    .append(style)
+            }
+            StyleXExpression::ConditionalCase(case) => self.stylex_conditional_case(case),
+            StyleXExpression::ConditionalValue { default, cases } => {
+                let default = self.expression_at(*default, ExpressionPrecedence::Atom);
+                let cases = cases.iter().map(|case| self.stylex_conditional_case(case));
+                self.arena
+                    .text("stylex.conditionalValue ")
+                    .append(default)
+                    .append(self.arena.space())
+                    .append(self.delimited("[", cases, "]"))
+            }
+        }
+    }
+
+    fn stylex_conditional_case(&self, case: &StyleXConditionalCase) -> Doc<'a> {
+        let selector = self.expression_at(case.selector, ExpressionPrecedence::Atom);
+        let marker =
+            case.marker.map(|marker| self.expression_at(marker, ExpressionPrecedence::Atom));
+        let value = self.expression_at(case.value, ExpressionPrecedence::Atom);
+        let arguments = std::iter::once(selector).chain(marker).chain(std::iter::once(value));
+        self.arena
+            .text(format!("stylex.when.{}", case.relation.name()))
+            .append(self.delimited("(", arguments, ")"))
     }
 
     fn pattern(&self, pattern_id: PatternId) -> Doc<'a> {

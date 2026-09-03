@@ -1,0 +1,118 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 301
+expression: report
+---
+Terms
+variables ::
+  { accent ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
+  , spacing ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+  }
+valid :: Alexandrite.StyleX.Style
+wrongType :: Alexandrite.StyleX.Style
+unknown :: Alexandrite.StyleX.Style
+invalidInteger ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Boolean)
+  }
+invalidNumber ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.String)
+  }
+invalidColor ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.Int)
+  }
+
+Types
+
+Diagnostics
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'Color' with 'Length'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'TypedValue Color' with 'TypedValue Length'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'TypedValue Color String' with 'TypedValue Length String'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify 'Variable (TypedValue Color String)' with 'Variable (TypedValue Length String)'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:14:1
+  •
+  │
+  • Cannot unify '( accent :: Variable (TypedValue Color String), spacing :: Variable (TypedValue
+  │ Length String) )' with '( accent :: Variable (TypedValue Length String) | ?44 )'
+  │
+  │   wrongType = StyleX.createTheme variables
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify '( accent :: Variable (TypedValue Color String), spacing :: Variable (TypedValue
+  │ Length String) )' with '( missing :: Variable (TypedValue Color String) | ?58 )'
+  │
+  │   unknown = StyleX.createTheme variables
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: NumberValue Boolean
+  │
+  │   invalidInteger = StyleX.defineVars { value: Types.integer true }
+  │   ╰───────────────────────────────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:22:1
+  •
+  │
+  • No instance found for: NumberValue String
+  │
+  │   invalidNumber = StyleX.defineVars { value: Types.number "1" }
+  │   ╰────────────────────────────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:24:1
+  •
+  │
+  • No instance found for: StringValue Int
+  │
+  │   invalidColor = StyleX.defineVars { value: Types.color 42 }
+  │   ╰─────────────────────────────────────────────────────────
+  •
