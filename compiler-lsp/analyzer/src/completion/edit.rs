@@ -12,7 +12,7 @@ use smol_str::{SmolStrBuilder, ToSmolStr};
 use syntax::ast::AstNode;
 
 use crate::completion::CompletionContext;
-use crate::{locate, position};
+use crate::locate;
 
 fn import_item<F, G>(
     context: &CompletionContext<impl crate::AnalyzerHost>,
@@ -73,7 +73,7 @@ where
             .children()
             .map(|cst| {
                 let cst = cst.syntax();
-                cst.text(context.content).to_smolstr()
+                cst.text(context.positions.content()).to_smolstr()
             })
             .chain(iter::once(import_item_name))
             .join(",");
@@ -82,13 +82,8 @@ where
 
         let import_range = {
             let ptr = ptr.syntax_node_ptr();
-            locate::syntax_range(context.line_index, &root, &ptr).and_then(|range| {
-                position::utf8_range_to_protocol(
-                    context.line_index,
-                    range,
-                    context.language.position_encoding(),
-                )
-            })
+            locate::syntax_range(context.positions, &root, &ptr)
+                .and_then(|range| context.positions.utf8_range_to_protocol(range))
         };
 
         (Some(import_text), import_range)

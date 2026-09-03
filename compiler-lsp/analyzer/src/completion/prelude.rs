@@ -1,6 +1,5 @@
 use building_types::QueryProxy;
 use files::FileId;
-use line_index::LineIndex;
 use lowering::{GraphNodeId, LoweredModule};
 use lsp_types::*;
 use parsing::ParsedModule;
@@ -12,14 +11,13 @@ use syntax::{
     SyntaxKind, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize, TokenAtOffset, cst,
 };
 
-use crate::position::{PositionEncoding, Utf8Position};
-use crate::{AnalyzerContext, AnalyzerError, position};
+use crate::position::{PositionConverter, Utf8Position};
+use crate::{AnalyzerContext, AnalyzerError};
 
 pub struct CompletionContext<'c, 'a, Host> {
     pub language: &'c AnalyzerContext<'c, Host>,
     pub current_file: FileId,
-    pub content: &'a str,
-    pub line_index: &'a LineIndex,
+    pub positions: &'a PositionConverter<'a>,
     pub stabilized: &'a StabilizedModule,
     pub parsed: &'a ParsedModule,
     pub resolved: &'a ResolvedModule,
@@ -45,16 +43,12 @@ impl<Host: crate::AnalyzerHost> CompletionContext<'_, '_, Host> {
             |cst| Some((cst.syntax().text_range(), false)),
         )?;
 
-        let mut position = position::offset_to_utf8_position(self.line_index, range.end())?;
+        let mut position = self.positions.offset_to_utf8_position(range.end())?;
 
         position.line += 1;
         position.column = 0;
 
-        let position = position::utf8_position_to_protocol(
-            self.line_index,
-            position,
-            self.language.position_encoding(),
-        )?;
+        let position = self.positions.utf8_position_to_protocol(position)?;
 
         if follows_header {
             new_text.insert(0, '\n');
@@ -204,7 +198,7 @@ pub enum CursorSemantics {
 const COMPLETION_MARKER: &str = "Z'PureScript'Z";
 
 impl CursorSemantics {
-    pub fn new(content: &str, line_index: &LineIndex, position: Utf8Position) -> CursorSemantics {
+    pub fn new(positions: &PositionConverter<'_>, position: Utf8Position) -> CursorSemantics {
         // We insert a placeholder identifier at the current position of the
         // text cursor. This is done as an effort to produce as valid of a
         // parse tree as possible before we perform further analysis.
@@ -220,10 +214,11 @@ impl CursorSemantics {
         //
         // component = Halogen.Z'PureScript'Z
 
-        let Some(offset) = position::utf8_position_to_offset(content, line_index, position) else {
+        let Some(offset) = positions.utf8_position_to_offset(position) else {
             return CursorSemantics::General;
         };
 
+        let content = positions.content();
         let (left, right) = content.split_at(offset.into());
         let source = format!("{left}{COMPLETION_MARKER}{right}");
 
@@ -284,41 +279,36 @@ pub enum CursorText {
 
 impl CursorText {
     pub fn new(
-        content: &str,
-        line_index: &LineIndex,
+        positions: &PositionConverter<'_>,
         token: &SyntaxToken,
-        encoding: PositionEncoding,
     ) -> (CursorText, Option<Range>) {
-        CursorText::of_qualified(content, line_index, token, encoding)
-            .or_else(|| CursorText::of_qualifier(content, line_index, token, encoding))
-            .or_else(|| CursorText::of_import_class(content, line_index, token, encoding))
-            .or_else(|| CursorText::of_module_name(content, line_index, token, encoding))
+        CursorText::of_qualified(positions, token)
+            .or_else(|| CursorText::of_qualifier(positions, token))
+            .or_else(|| CursorText::of_import_class(positions, token))
+            .or_else(|| CursorText::of_module_name(positions, token))
             .unwrap_or((CursorText::None, None))
     }
 
     fn of_import_class(
-        content: &str,
-        line_index: &LineIndex,
+        positions: &PositionConverter<'_>,
         token: &SyntaxToken,
-        encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let import_class = cst::ImportClass::cast(node)?;
             let token = import_class.name_token()?;
-            let name = token.text(content).into();
+            let name = token.text(positions.content()).into();
             let range = token.text_range();
-            let range = position::text_range_to_protocol(line_index, range, encoding)?;
+            let range = positions.text_range_to_protocol(range)?;
 
             Some((CursorText::Name(name), Some(range)))
         })
     }
 
     fn of_qualified(
-        content: &str,
-        line_index: &LineIndex,
+        positions: &PositionConverter<'_>,
         token: &SyntaxToken,
-        encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
+        let content = positions.content();
         token.parent_ancestors().find_map(|node| {
             let qualified = cst::QualifiedName::cast(node)?;
 
@@ -356,8 +346,7 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range = range
-                .and_then(|range| position::text_range_to_protocol(line_index, range, encoding));
+            let range = range.and_then(|range| positions.text_range_to_protocol(range));
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),
@@ -370,20 +359,18 @@ impl CursorText {
     }
 
     fn of_qualifier(
-        content: &str,
-        line_index: &LineIndex,
+        positions: &PositionConverter<'_>,
         token: &SyntaxToken,
-        encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
         token.parent_ancestors().find_map(|node| {
             let qualifier = cst::Qualifier::cast(node)?;
             let token = qualifier.text()?;
 
-            let prefix = token.text(content);
+            let prefix = token.text(positions.content());
             let prefix = SmolStr::new(prefix);
 
             let range = token.text_range();
-            let range = position::text_range_to_protocol(line_index, range, encoding)?;
+            let range = positions.text_range_to_protocol(range)?;
 
             let range = Some(range);
             let text = CursorText::Prefix(prefix);
@@ -393,11 +380,10 @@ impl CursorText {
     }
 
     fn of_module_name(
-        content: &str,
-        line_index: &LineIndex,
+        positions: &PositionConverter<'_>,
         token: &SyntaxToken,
-        encoding: PositionEncoding,
     ) -> Option<(CursorText, Option<Range>)> {
+        let content = positions.content();
         token.parent_ancestors().find_map(|node| {
             let module_name = cst::ModuleName::cast(node)?;
 
@@ -416,8 +402,7 @@ impl CursorText {
                 (None, None) => None,
             };
 
-            let range =
-                range.map(|range| position::text_range_to_protocol(line_index, range, encoding))?;
+            let range = range.map(|range| positions.text_range_to_protocol(range))?;
             let text = match (prefix, name) {
                 (None, None) => CursorText::None,
                 (Some(p), None) => CursorText::Prefix(p),

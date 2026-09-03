@@ -1,9 +1,9 @@
 use building_types::QueryProxy;
-use line_index::LineIndex;
 use lsp_types::{SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokens};
 use syntax::{SyntaxKind, SyntaxToken, TextRange, WalkEvent};
 
-use crate::{AnalyzerContext, AnalyzerError, position};
+use crate::position::PositionConverter;
+use crate::{AnalyzerContext, AnalyzerError};
 
 pub const TOKEN_TYPES: &[SemanticTokenType] = &[
     SemanticTokenType::NAMESPACE,
@@ -69,7 +69,7 @@ pub fn implementation(
     let content = context.queries().content(current_file)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
-    let line_index = LineIndex::new(&content);
+    let positions = PositionConverter::new(&content, context.position_encoding());
     let mut data = vec![];
     let mut previous = lsp_types::Position::new(0, 0);
 
@@ -78,15 +78,7 @@ pub fn implementation(
         let Some(token) = element.into_token() else { continue };
         let Some(classification) = classify(&token) else { continue };
 
-        push_token_ranges(
-            &mut data,
-            &mut previous,
-            &line_index,
-            &content,
-            token.text_range(),
-            classification,
-            context.position_encoding(),
-        );
+        push_token_ranges(&mut data, &mut previous, &positions, token.text_range(), classification);
     }
 
     Ok(Some(SemanticTokens { result_id: None, data }))
@@ -95,26 +87,21 @@ pub fn implementation(
 fn push_token_ranges(
     tokens: &mut Vec<SemanticToken>,
     previous: &mut lsp_types::Position,
-    line_index: &LineIndex,
-    content: &str,
+    positions: &PositionConverter<'_>,
     range: TextRange,
     classification: TokenClassification,
-    encoding: crate::position::PositionEncoding,
 ) {
     let start: usize = range.start().into();
     let end: usize = range.end().into();
-    let text = &content[start..end];
+    let text = &positions.content()[start..end];
 
     let mut segment_start = range.start();
     for line in text.split_inclusive('\n') {
         let token_text = line.trim_end_matches(['\r', '\n']);
         let segment_end = segment_start + syntax::TextSize::new(token_text.len() as u32);
         if segment_start < segment_end
-            && let Some(range) = position::text_range_to_protocol(
-                line_index,
-                TextRange::new(segment_start, segment_end),
-                encoding,
-            )
+            && let Some(range) =
+                positions.text_range_to_protocol(TextRange::new(segment_start, segment_end))
         {
             let delta_line = range.start.line - previous.line;
             let delta_start = if delta_line == 0 {

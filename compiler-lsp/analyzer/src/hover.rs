@@ -5,7 +5,6 @@ use checking::tree::pretty::Pretty as TreePretty;
 use files::FileId;
 use indexing::{ImportItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
-use line_index::LineIndex;
 use lowering::{
     BinderKind, ExpressionKind, TermVariableResolution, TypeKind, TypeVariableResolution,
 };
@@ -15,6 +14,7 @@ use syntax::ast::{AstNode, AstPtr};
 use syntax::{SyntaxToken, TextRange, TextSize, cst};
 
 use crate::extract::AnnotationSyntaxRange;
+use crate::position::PositionConverter;
 use crate::{AnalyzerContext, AnalyzerError, AnalyzerQueries, extract, locate, position};
 
 const PRETTY_CONFIG: PrettyConfig = PrettyConfig::new().width(80);
@@ -31,22 +31,13 @@ pub fn implementation(
 
     let engine = context.queries();
     let content = engine.content(current_file)?;
-    let line_index = LineIndex::new(&content);
-    let position = position::protocol_position_to_utf8(
-        &content,
-        &line_index,
-        position,
-        context.position_encoding(),
-    )
-    .ok_or(AnalyzerError::NonFatal)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
+    let position = positions.protocol_position_to_utf8(position).ok_or(AnalyzerError::NonFatal)?;
 
-    let offset = position::utf8_position_to_offset(&content, &line_index, position)
-        .ok_or(AnalyzerError::NonFatal)?;
-    let (located, token) =
-        locate::locate_with_token(engine, current_file, &content, &line_index, position)?;
-    let range = hover_name_range(token, offset).and_then(|range| {
-        position::text_range_to_protocol(&line_index, range, context.position_encoding())
-    });
+    let offset = positions.utf8_position_to_offset(position).ok_or(AnalyzerError::NonFatal)?;
+    let (located, token) = locate::locate_with_token(engine, current_file, &positions, position)?;
+    let range =
+        hover_name_range(token, offset).and_then(|range| positions.text_range_to_protocol(range));
 
     let hover = match located {
         locate::Located::ModuleName(module_name) => {

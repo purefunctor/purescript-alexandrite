@@ -52,7 +52,7 @@ impl CompletionSource for ImportClasses {
         };
         let Some(statement) = statement else { return Ok(()) };
         let Some(module_name) = statement.module_name() else { return Ok(()) };
-        let module_name = module_name.syntax().text(context.content).to_string();
+        let module_name = module_name.syntax().text(context.positions.content()).to_string();
         let Some(import_file) = context.language.queries().module_file(&module_name) else {
             return Ok(());
         };
