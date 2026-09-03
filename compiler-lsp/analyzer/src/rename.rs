@@ -504,14 +504,16 @@ fn target_at_position(
     };
 
     let content = context.queries().content(current_file)?;
+    let positions = position::PositionConverter::new(&content, context.position_encoding());
     let utf8_position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+        positions.protocol_position_to_utf8(position).ok_or(AnalyzerError::NonFatal)?;
 
-    let target = if let Some(target) = qualifier_target(context, current_file, utf8_position)? {
+    let target = if let Some(target) =
+        qualifier_target(context, current_file, &positions, utf8_position)?
+    {
         target
     } else {
-        let located = locate::locate(context.queries(), current_file, utf8_position)?;
+        let located = locate::locate(context.queries(), current_file, &positions, utf8_position)?;
         rename_target(context, current_file, located)?
     };
 
@@ -525,8 +527,8 @@ fn rename_range(
     old_name: &str,
 ) -> Result<Range, AnalyzerError> {
     let content = context.queries().content(current_file)?;
-    let offset =
-        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let positions = position::PositionConverter::new(&content, context.position_encoding());
+    let offset = positions.utf8_position_to_offset(position).ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
 
@@ -553,18 +555,17 @@ fn rename_range(
     };
 
     let range = range.ok_or(AnalyzerError::NonFatal)?;
-    position::text_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)
+    positions.text_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)
 }
 
 fn qualifier_target(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
     current_file: FileId,
+    positions: &position::PositionConverter<'_>,
     position: position::Utf8Position,
 ) -> Result<Option<RenameTarget>, AnalyzerError> {
-    let content = context.queries().content(current_file)?;
-    let offset =
-        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let offset = positions.utf8_position_to_offset(position).ok_or(AnalyzerError::NonFatal)?;
+    let content = positions.content();
     let (parsed, _) = context.queries().parsed(current_file)?;
     let root = parsed.syntax_node();
 
@@ -581,7 +582,7 @@ fn qualifier_target(
             return None;
         }
 
-        let text = qualifier.text()?.text(&content);
+        let text = qualifier.text()?.text(content);
         Some(text.trim_end_matches('.').to_string())
     });
 
@@ -596,7 +597,7 @@ fn qualifier_target(
             return None;
         }
 
-        Some(module_name.syntax().text(&content).to_string())
+        Some(module_name.syntax().text(content).to_string())
     });
 
     let Some(name) = qualifier_name.or(alias_name) else {

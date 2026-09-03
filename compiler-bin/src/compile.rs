@@ -311,9 +311,11 @@ fn report_diagnostics(
         let source_path =
             compilation.source_path(collected.file_id).expect("input source has no lifecycle path");
         let display_path = display_source_path(&source_path, config.current_directory);
+        let line_index = line_index::LineIndex::new(&collected.content);
         let rendered = diagnostics::format_rich_with_path(
             collected.diagnostics(),
             &collected.content,
+            &line_index,
             &display_path,
             config.color,
         );

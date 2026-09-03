@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::fs;
+use std::sync::OnceLock;
 
 use building::{QueryEngine, QueryError, prim};
 use diagnostics::{
     Diagnostic, DiagnosticsContext, Severity, Span, ToDiagnostics, format_rich_with_path,
 };
 use files::{FileId, Files, ForeignFiles, ForeignSourceKind};
+use line_index::LineIndex;
 use rayon::prelude::*;
 use url::Url;
 
@@ -22,12 +24,19 @@ pub struct CompileReport {
     pub verifier_errors: Vec<VerifierIssue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct FileMetadata {
     package: String,
     version: String,
     relative_path: String,
     content: String,
+    line_index: OnceLock<LineIndex>,
+}
+
+impl FileMetadata {
+    fn line_index(&self) -> &LineIndex {
+        self.line_index.get_or_init(|| LineIndex::new(&self.content))
+    }
 }
 
 pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, VerifierError> {
@@ -57,6 +66,7 @@ pub fn compile_sources(source_files: &[SourceFile]) -> Result<CompileReport, Ver
                 version: source.version.clone(),
                 relative_path: source.relative_path.to_string_lossy().replace('\\', "/"),
                 content,
+                line_index: OnceLock::new(),
             },
         );
     }
@@ -389,6 +399,7 @@ fn compiler_diagnostic(
     let human = format_rich_with_path(
         std::slice::from_ref(&diagnostic),
         &metadata.content,
+        metadata.line_index(),
         &metadata.relative_path,
         false,
     );
@@ -404,8 +415,16 @@ fn compiler_diagnostic(
         span: SpanReport {
             start: diagnostic.span.start,
             end: diagnostic.span.end,
-            start_position: Some(source_position(&metadata.content, diagnostic.span.start)),
-            end_position: Some(source_position(&metadata.content, diagnostic.span.end)),
+            start_position: Some(source_position(
+                &metadata.content,
+                metadata.line_index(),
+                diagnostic.span.start,
+            )),
+            end_position: Some(source_position(
+                &metadata.content,
+                metadata.line_index(),
+                diagnostic.span.end,
+            )),
         },
         human,
     }
@@ -426,29 +445,41 @@ fn push_query_error(
     ));
 }
 
-fn source_position(content: &str, offset: u32) -> SourcePosition {
-    let offset = offset as usize;
-    let prefix = content.get(..offset).expect("diagnostic span is a source text boundary");
-    let preceding_lines = prefix.bytes().filter(|byte| *byte == b'\n');
-    let line = preceding_lines.count() as u32 + 1;
-    let current_line = prefix.rsplit_once('\n').map_or(prefix, |(_, current_line)| current_line);
-    let characters = current_line.chars();
-    let column = characters.count() as u32 + 1;
-    SourcePosition { line, column }
+fn source_position(content: &str, line_index: &LineIndex, offset: u32) -> SourcePosition {
+    let line_col =
+        line_index.try_line_col(offset.into()).expect("diagnostic span is within the source text");
+    let line_range = line_index.line(line_col.line).expect("diagnostic line exists");
+    let line_content = &content[line_range];
+    let line_prefix = line_content
+        .get(..line_col.col as usize)
+        .expect("diagnostic span is a source text boundary");
+    SourcePosition { line: line_col.line + 1, column: line_prefix.chars().count() as u32 + 1 }
 }
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
+    use line_index::LineIndex;
     use tempfile::tempdir;
 
     use super::super::report::{
-        CompilationStage, DiagnosticSeverity, IssueLocation, VerifierIssueKind,
+        CompilationStage, DiagnosticSeverity, IssueLocation, SourcePosition, VerifierIssueKind,
     };
     use super::super::sources::SourceFile;
 
-    use super::compile_sources;
+    use super::{compile_sources, source_position};
+
+    #[test]
+    fn source_positions_count_unicode_scalars_across_crlf_lines() {
+        let content = "猫\r\n😀x\n";
+        let line_index = LineIndex::new(content);
+
+        assert_eq!(source_position(content, &line_index, 0), SourcePosition { line: 1, column: 1 });
+        assert_eq!(source_position(content, &line_index, 3), SourcePosition { line: 1, column: 2 });
+        assert_eq!(source_position(content, &line_index, 5), SourcePosition { line: 2, column: 1 });
+        assert_eq!(source_position(content, &line_index, 9), SourcePosition { line: 2, column: 2 });
+    }
 
     #[test]
     fn smoke_compiles_two_modules() {

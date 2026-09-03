@@ -41,6 +41,7 @@ indexing = { version = "0.1.0", path = "../compiler-frontend/indexing" }
 itertools = "0.15.0"
 javascript = { version = "0.1.0", path = "../compiler-backend/javascript" }
 jiff = "0.2.35"
+line-index = "0.1.2"
 lowering = { version = "0.1.0", path = "../compiler-frontend/lowering" }
 lsp-types.workspace = true
 notify = "8.2.0"

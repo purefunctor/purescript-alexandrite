@@ -5,17 +5,17 @@ use lsp_types::*;
 use syntax::ast::AstNode;
 use syntax::{SyntaxNode, SyntaxNodePtr};
 
-use crate::position::Utf8Range;
-use crate::{AnalyzerContext, AnalyzerError, locate, position};
+use crate::position::{PositionConverter, Utf8Range};
+use crate::{AnalyzerContext, AnalyzerError, locate};
 
 pub fn file_term_location(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
+    positions: &PositionConverter<'_>,
     term_id: TermItemId,
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -24,9 +24,8 @@ pub fn file_term_location(
     let root = parsed.syntax_node();
     let pointers = indexed.term_item_ptr(&stabilized, term_id);
 
-    let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range(positions, root, pointers)?;
+    let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
@@ -34,10 +33,10 @@ pub fn file_type_location(
     context: &AnalyzerContext<impl crate::AnalyzerHost>,
     uri: Url,
     file_id: FileId,
+    positions: &PositionConverter<'_>,
     type_id: TypeItemId,
 ) -> Result<Location, AnalyzerError> {
     let engine = context.queries();
-    let content = engine.content(file_id)?;
     let (parsed, _) = engine.parsed(file_id)?;
 
     let stabilized = engine.stabilized(file_id)?;
@@ -46,9 +45,8 @@ pub fn file_type_location(
     let root = parsed.syntax_node();
     let pointers = indexed.type_item_ptr(&stabilized, type_id);
 
-    let range = pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = pointers_range(positions, root, pointers)?;
+    let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Location { uri, range })
 }
@@ -80,12 +78,12 @@ fn file_source_location<T: AstNode>(
     source_id: stabilizing::AstId<T>,
 ) -> Result<Location, AnalyzerError> {
     let content = context.queries().content(file_id)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
     let stabilized = context.queries().stabilized(file_id)?;
     let range =
-        locate::id_range(&content, &context.queries().parsed(file_id)?.0, &stabilized, source_id)
+        locate::id_range(&positions, &context.queries().parsed(file_id)?.0, &stabilized, source_id)
             .ok_or(AnalyzerError::NonFatal)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
     Ok(Location { uri, range })
 }
 
@@ -97,12 +95,12 @@ pub fn file_uri(
 }
 
 pub fn pointers_range(
-    content: &str,
+    positions: &PositionConverter<'_>,
     root: SyntaxNode,
     pointers: impl Iterator<Item = SyntaxNodePtr>,
 ) -> Result<Utf8Range, AnalyzerError> {
     pointers
-        .filter_map(|ptr| locate::syntax_range(content, &root, &ptr))
+        .filter_map(|ptr| locate::syntax_range(positions, &root, &ptr))
         .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
         .ok_or(AnalyzerError::NonFatal)
 }

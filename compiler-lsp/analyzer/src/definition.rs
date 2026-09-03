@@ -12,7 +12,7 @@ use smol_str::ToSmolStr;
 use syntax::ast::{AstNode, AstPtr};
 use syntax::cst;
 
-use crate::position::Utf8Range;
+use crate::position::{PositionConverter, Utf8Range};
 use crate::{AnalyzerContext, AnalyzerError, common, locate, position};
 
 pub fn implementation(
@@ -26,11 +26,10 @@ pub fn implementation(
     };
 
     let content = context.queries().content(current_file)?;
-    let position =
-        position::protocol_position_to_utf8(&content, position, context.position_encoding())
-            .ok_or(AnalyzerError::NonFatal)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
+    let position = positions.protocol_position_to_utf8(position).ok_or(AnalyzerError::NonFatal)?;
 
-    let located = locate::locate(context.queries(), current_file, position)?;
+    let located = locate::locate(context.queries(), current_file, &positions, position)?;
 
     match located {
         locate::Located::ModuleName(module_name) => {
@@ -107,6 +106,7 @@ fn definition_module_name(
     let module_id = engine.module_file(&module_name).ok_or(AnalyzerError::NonFatal)?;
 
     let content = engine.content(module_id)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
 
     let (parsed, _) = engine.parsed(module_id)?;
     let root = parsed.syntax_node();
@@ -114,8 +114,7 @@ fn definition_module_name(
     let range = root.text_range();
 
     let uri = common::file_uri(context, module_id)?;
-    let range = position::text_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = positions.text_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
 }
@@ -231,6 +230,7 @@ fn definition_expression(
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
     let content = engine.content(current_file)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
     let (parsed, _) = engine.parsed(current_file)?;
 
     let stabilized = engine.stabilized(current_file)?;
@@ -249,14 +249,10 @@ fn definition_expression(
                 TermVariableResolution::Binder(id) => {
                     let root = parsed.syntax_node();
                     let ptr = stabilized.syntax_ptr(*id).ok_or(AnalyzerError::NonFatal)?;
-                    let range = locate::syntax_range(&content, &root, &ptr)
+                    let range = locate::syntax_range(&positions, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(
-                        &content,
-                        range,
-                        context.position_encoding(),
-                    )
-                    .ok_or(AnalyzerError::NonFatal)?;
+                    let range =
+                        positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TermVariableResolution::Let(binding_id) => {
@@ -268,39 +264,31 @@ fn definition_expression(
                         .signature
                         .and_then(|id| {
                             let ptr = stabilized.syntax_ptr(id)?;
-                            locate::syntax_range(&content, &root, &ptr)
+                            locate::syntax_range(&positions, &root, &ptr)
                         })
                         .into_iter();
 
                     let equations = binding.equations.iter().filter_map(|&id| {
                         let ptr = stabilized.syntax_ptr(id)?;
-                        locate::syntax_range(&content, &root, &ptr)
+                        locate::syntax_range(&positions, &root, &ptr)
                     });
 
                     let range = signature
                         .chain(equations)
                         .reduce(|start, end| Utf8Range { start: start.start, end: end.end })
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(
-                        &content,
-                        range,
-                        context.position_encoding(),
-                    )
-                    .ok_or(AnalyzerError::NonFatal)?;
+                    let range =
+                        positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
 
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TermVariableResolution::RecordPun(id) => {
                     let root = parsed.syntax_node();
                     let ptr = stabilized.syntax_ptr(*id).ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::record_pun_name_range(&content, &root, &ptr)
+                    let range = position::record_pun_name_range(&positions, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(
-                        &content,
-                        range,
-                        context.position_encoding(),
-                    )
-                    .ok_or(AnalyzerError::NonFatal)?;
+                    let range =
+                        positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TermVariableResolution::Reference(f_id, t_id) => {
@@ -324,6 +312,7 @@ fn definition_type(
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
     let content = engine.content(current_file)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
     let (parsed, _) = engine.parsed(current_file)?;
     let stabilized = engine.stabilized(current_file)?;
     let lowered = engine.lowered(current_file)?;
@@ -347,14 +336,10 @@ fn definition_type(
                         .ast_ptr(*binding)
                         .ok_or(AnalyzerError::NonFatal)?
                         .syntax_node_ptr();
-                    let range = locate::syntax_range(&content, &root, &ptr)
+                    let range = locate::syntax_range(&positions, &root, &ptr)
                         .ok_or(AnalyzerError::NonFatal)?;
-                    let range = position::utf8_range_to_protocol(
-                        &content,
-                        range,
-                        context.position_encoding(),
-                    )
-                    .ok_or(AnalyzerError::NonFatal)?;
+                    let range =
+                        positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
                     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
                 }
                 TypeVariableResolution::Implicit(ImplicitTypeVariable { .. }) => Ok(None),
@@ -370,7 +355,9 @@ fn definition_file_term(
     term_id: TermItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let uri = common::file_uri(context, file_id)?;
-    let location = common::file_term_location(context, uri, file_id, term_id)?;
+    let content = context.queries().content(file_id)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
+    let location = common::file_term_location(context, uri, file_id, &positions, term_id)?;
     Ok(Some(GotoDefinitionResponse::Scalar(location)))
 }
 
@@ -380,7 +367,9 @@ fn definition_file_type(
     type_id: TypeItemId,
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let uri = common::file_uri(context, file_id)?;
-    let location = common::file_type_location(context, uri, file_id, type_id)?;
+    let content = context.queries().content(file_id)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
+    let location = common::file_type_location(context, uri, file_id, &positions, type_id)?;
     Ok(Some(GotoDefinitionResponse::Scalar(location)))
 }
 
@@ -391,6 +380,7 @@ fn definition_let_binding(
 ) -> Result<Option<GotoDefinitionResponse>, AnalyzerError> {
     let engine = context.queries();
     let content = engine.content(file_id)?;
+    let positions = PositionConverter::new(&content, context.position_encoding());
     let (parsed, _) = engine.parsed(file_id)?;
     let stabilized = engine.stabilized(file_id)?;
     let lowered = engine.lowered(file_id)?;
@@ -404,9 +394,8 @@ fn definition_let_binding(
     let equations = group.equations.iter().filter_map(|&equation| stabilized.syntax_ptr(equation));
 
     let pointers = iter::chain(signature, equations);
-    let range = common::pointers_range(&content, root, pointers)?;
-    let range = position::utf8_range_to_protocol(&content, range, context.position_encoding())
-        .ok_or(AnalyzerError::NonFatal)?;
+    let range = common::pointers_range(&positions, root, pointers)?;
+    let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
 
     Ok(Some(GotoDefinitionResponse::Scalar(Location { uri, range })))
 }

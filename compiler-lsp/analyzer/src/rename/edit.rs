@@ -222,39 +222,43 @@ where
     }
 }
 
-fn binder_name_range(content: &str, root: &SyntaxNode, ptr: &SyntaxNodePtr) -> Option<Utf8Range> {
+fn binder_name_range(
+    positions: &position::PositionConverter<'_>,
+    root: &SyntaxNode,
+    ptr: &SyntaxNodePtr,
+) -> Option<Utf8Range> {
     let node = ptr.try_to_node(root)?;
 
     if let Some(binder) = cst::BinderVariable::cast(node.clone()) {
         let token = binder.name_token()?;
-        return position::text_range_to_utf8_range(content, token.text_range());
+        return positions.text_range_to_utf8_range(token.text_range());
     }
 
     let binder = cst::BinderNamed::cast(node)?;
     let token = binder.name_token()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    positions.text_range_to_utf8_range(token.text_range())
 }
 
 fn let_binding_signature_name_range(
-    content: &str,
+    positions: &position::PositionConverter<'_>,
     root: &SyntaxNode,
     ptr: &SyntaxNodePtr,
 ) -> Option<Utf8Range> {
     let node = ptr.try_to_node(root)?;
     let signature = cst::LetBindingSignature::cast(node)?;
     let token = signature.name_token()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    positions.text_range_to_utf8_range(token.text_range())
 }
 
 fn let_binding_equation_name_range(
-    content: &str,
+    positions: &position::PositionConverter<'_>,
     root: &SyntaxNode,
     ptr: &SyntaxNodePtr,
 ) -> Option<Utf8Range> {
     let node = ptr.try_to_node(root)?;
     let equation = cst::LetBindingEquation::cast(node)?;
     let token = equation.name_token()?;
-    position::text_range_to_utf8_range(content, token.text_range())
+    positions.text_range_to_utf8_range(token.text_range())
 }
 
 fn record_field_has_name(content: &str, field: &cst::RecordField, name: &str) -> bool {
@@ -292,16 +296,26 @@ where
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
+        let mut ranges_by_file: HashMap<FileId, Vec<Range>> = HashMap::default();
         for location in locations {
             let file_id =
                 self.context.file_id(location.uri.as_str()).ok_or(AnalyzerError::NonFatal)?;
             if !self.context.is_editable(file_id) {
                 continue;
             }
+            ranges_by_file.entry(file_id).or_default().push(location.range);
+        }
 
-            let (range, new_text) =
-                self.reference_name_edit(file_id, location.range, name_kind, new_name)?;
-            self.push_protocol_edit(file_id, range, &new_text)?;
+        for (file_id, ranges) in ranges_by_file {
+            let content = self.context.queries().content(file_id)?;
+            let positions =
+                position::PositionConverter::new(&content, self.context.position_encoding());
+            for range in ranges {
+                let (range, new_text) =
+                    self.reference_name_edit(file_id, &positions, range, name_kind, new_name)?;
+                let new_text = self.new_name_text(&positions, range, &new_text)?;
+                self.edits.push((file_id, TextEdit { range, new_text }));
+            }
         }
 
         Ok(())
@@ -310,19 +324,15 @@ where
     fn reference_name_edit(
         &self,
         file_id: FileId,
+        positions: &position::PositionConverter<'_>,
         range: Range,
         name_kind: NameKind,
         new_name: &str,
     ) -> Result<(Range, String), AnalyzerError> {
-        let content = self.context.queries().content(file_id)?;
-        let position = position::protocol_position_to_utf8(
-            &content,
-            range.start,
-            self.context.position_encoding(),
-        )
-        .ok_or(AnalyzerError::NonFatal)?;
-        let offset =
-            position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+        let position =
+            positions.protocol_position_to_utf8(range.start).ok_or(AnalyzerError::NonFatal)?;
+        let offset = positions.utf8_position_to_offset(position).ok_or(AnalyzerError::NonFatal)?;
+        let content = positions.content();
 
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
@@ -346,26 +356,19 @@ where
             && let Some(pun) = Self::record_pun(&token, name_kind)
         {
             let name = pun.name().ok_or(AnalyzerError::NonFatal)?;
-            let old_name = name.syntax().text(&content);
-            let range = position::text_range_to_protocol(
-                &content,
-                name.syntax().text_range(),
-                self.context.position_encoding(),
-            )
-            .ok_or(AnalyzerError::NonFatal)?;
+            let old_name = name.syntax().text(content);
+            let range = positions
+                .text_range_to_protocol(name.syntax().text_range())
+                .ok_or(AnalyzerError::NonFatal)?;
 
             return Ok((range, format!("{old_name}: {new_name}")));
         }
 
-        if let Some(field) = Self::collapsible_record_field(&token, &content, name_kind, new_name) {
+        if let Some(field) = Self::collapsible_record_field(&token, content, name_kind, new_name) {
             let text_range =
                 record_field_replacement_range(&field).ok_or(AnalyzerError::NonFatal)?;
-            let range = position::text_range_to_protocol(
-                &content,
-                text_range,
-                self.context.position_encoding(),
-            )
-            .ok_or(AnalyzerError::NonFatal)?;
+            let range =
+                positions.text_range_to_protocol(text_range).ok_or(AnalyzerError::NonFatal)?;
 
             return Ok((range, new_name.to_string()));
         }
@@ -373,12 +376,8 @@ where
         let token = Self::qualified_name_token(&token, name_kind)
             .or_else(|| Self::type_variable_token(&token, name_kind))
             .ok_or(AnalyzerError::NonFatal)?;
-        let range = position::text_range_to_protocol(
-            &content,
-            token.text_range(),
-            self.context.position_encoding(),
-        )
-        .ok_or(AnalyzerError::NonFatal)?;
+        let range =
+            positions.text_range_to_protocol(token.text_range()).ok_or(AnalyzerError::NonFatal)?;
 
         Ok((range, new_name.to_string()))
     }
@@ -835,6 +834,8 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -842,7 +843,7 @@ where
         let ptr = stabilized.ast_ptr(import_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
         let range =
-            position::import_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+            position::import_item_name_range(&positions, item).ok_or(AnalyzerError::NonFatal)?;
 
         self.push_utf8_edit(file_id, range, new_name)
     }
@@ -854,6 +855,8 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
@@ -861,7 +864,7 @@ where
         let ptr = stabilized.ast_ptr(export_item_id).ok_or(AnalyzerError::NonFatal)?;
         let item = ptr.try_to_node(&root).ok_or(AnalyzerError::NonFatal)?;
         let range =
-            position::export_item_name_range(&content, item).ok_or(AnalyzerError::NonFatal)?;
+            position::export_item_name_range(&positions, item).ok_or(AnalyzerError::NonFatal)?;
 
         self.push_utf8_edit(file_id, range, new_name)
     }
@@ -916,13 +919,16 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
         let cst::TypeItems::TypeItemsList(items) = type_items else {
             return Ok(());
         };
 
         for token in items.name_tokens() {
             if token.text(&content) == old_name {
-                let range = position::text_range_to_utf8_range(&content, token.text_range())
+                let range = positions
+                    .text_range_to_utf8_range(token.text_range())
                     .ok_or(AnalyzerError::NonFatal)?;
 
                 self.push_utf8_edit(file_id, range, new_name)?;
@@ -944,8 +950,9 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
-        let range =
-            position::text_range_to_utf8_range(&content, range).ok_or(AnalyzerError::NonFatal)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
+        let range = positions.text_range_to_utf8_range(range).ok_or(AnalyzerError::NonFatal)?;
 
         self.push_utf8_edit(file_id, range, new_name)
     }
@@ -957,9 +964,9 @@ where
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
         let content = self.context.queries().content(file_id)?;
-        let range =
-            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
-                .ok_or(AnalyzerError::NonFatal)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
+        let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
         self.push_protocol_edit(file_id, range, new_name)
     }
 
@@ -967,7 +974,11 @@ where
         &mut self,
         file_id: FileId,
         id: Option<AstId<T>>,
-        range: fn(&str, &SyntaxNode, &SyntaxNodePtr) -> Option<Utf8Range>,
+        range: fn(
+            &position::PositionConverter<'_>,
+            &SyntaxNode,
+            &SyntaxNodePtr,
+        ) -> Option<Utf8Range>,
         new_name: &str,
     ) -> Result<(), AnalyzerError>
     where
@@ -978,15 +989,15 @@ where
         };
 
         let content = self.context.queries().content(file_id)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
         let (parsed, _) = self.context.queries().parsed(file_id)?;
         let root = parsed.syntax_node();
         let stabilized = self.context.queries().stabilized(file_id)?;
 
         let ptr = stabilized.syntax_ptr(id).ok_or(AnalyzerError::NonFatal)?;
-        let range = range(&content, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
-        let range =
-            position::utf8_range_to_protocol(&content, range, self.context.position_encoding())
-                .ok_or(AnalyzerError::NonFatal)?;
+        let range = range(&positions, &root, &ptr).ok_or(AnalyzerError::NonFatal)?;
+        let range = positions.utf8_range_to_protocol(range).ok_or(AnalyzerError::NonFatal)?;
         self.push_protocol_edit(file_id, range, new_name)
     }
 
@@ -996,35 +1007,31 @@ where
         range: Range,
         new_name: &str,
     ) -> Result<(), AnalyzerError> {
-        let new_name = self.new_name_text(file_id, range, new_name)?;
+        let content = self.context.queries().content(file_id)?;
+        let positions =
+            position::PositionConverter::new(&content, self.context.position_encoding());
+        let new_name = self.new_name_text(&positions, range, new_name)?;
         self.edits.push((file_id, TextEdit { range, new_text: new_name }));
         Ok(())
     }
 
     fn new_name_text(
         &self,
-        file_id: FileId,
+        positions: &position::PositionConverter<'_>,
         range: Range,
         new_name: &str,
     ) -> Result<String, AnalyzerError> {
-        let content = self.context.queries().content(file_id)?;
-        let start = position::protocol_position_to_utf8(
-            &content,
-            range.start,
-            self.context.position_encoding(),
-        )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
-        .ok_or(AnalyzerError::NonFatal)?;
-        let end = position::protocol_position_to_utf8(
-            &content,
-            range.end,
-            self.context.position_encoding(),
-        )
-        .and_then(|position| position::utf8_position_to_offset(&content, position))
-        .ok_or(AnalyzerError::NonFatal)?;
+        let start = positions
+            .protocol_position_to_utf8(range.start)
+            .and_then(|position| positions.utf8_position_to_offset(position))
+            .ok_or(AnalyzerError::NonFatal)?;
+        let end = positions
+            .protocol_position_to_utf8(range.end)
+            .and_then(|position| positions.utf8_position_to_offset(position))
+            .ok_or(AnalyzerError::NonFatal)?;
 
         let range = TextRange::new(start, end);
-        let text = &content[range];
+        let text = &positions.content()[range];
 
         if text.starts_with('(') && text.ends_with(')') {
             Ok(format!("({new_name})"))

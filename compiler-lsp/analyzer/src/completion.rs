@@ -23,7 +23,8 @@ use sources::{
 };
 use syntax::{SyntaxKind, TokenAtOffset};
 
-use crate::{AnalyzerContext, AnalyzerError, position};
+use crate::position::PositionConverter;
+use crate::{AnalyzerContext, AnalyzerError};
 
 #[derive(Clone, Default)]
 pub struct SuggestionsCacheEntry {
@@ -52,12 +53,11 @@ pub fn implementation(
     let encoding = language.position_encoding();
     let prim_id = engine.prim_id();
     let content = engine.content(current_file)?;
-    let position = position::protocol_position_to_utf8(&content, position, encoding)
-        .ok_or(AnalyzerError::NonFatal)?;
+    let positions = PositionConverter::new(&content, encoding);
+    let position = positions.protocol_position_to_utf8(position).ok_or(AnalyzerError::NonFatal)?;
     let (parsed, _) = engine.parsed(current_file)?;
 
-    let offset =
-        position::utf8_position_to_offset(&content, position).ok_or(AnalyzerError::NonFatal)?;
+    let offset = positions.utf8_position_to_offset(position).ok_or(AnalyzerError::NonFatal)?;
 
     let node = parsed.syntax_node();
     let token = node.token_at_offset(offset);
@@ -74,8 +74,8 @@ pub fn implementation(
         }
     };
 
-    let semantics = CursorSemantics::new(&content, position);
-    let (text, range) = CursorText::new(&content, &token, encoding);
+    let semantics = CursorSemantics::new(&positions, position);
+    let (text, range) = CursorText::new(&positions, &token);
 
     let stabilized = engine.stabilized(current_file)?;
     let resolved = engine.resolved(current_file)?;
@@ -84,7 +84,7 @@ pub fn implementation(
     let context = CompletionContext {
         language,
         current_file,
-        content: &content,
+        positions: &positions,
         stabilized: &stabilized,
         parsed: &parsed,
         resolved: &resolved,

@@ -69,10 +69,10 @@ fn span_location(
 pub fn format_rich_with_path(
     diagnostics: &[Diagnostic],
     content: &str,
+    line_index: &LineIndex,
     path: &str,
     color: bool,
 ) -> String {
-    let line_index = LineIndex::new(content);
     let mut output = String::new();
 
     for diagnostic in diagnostics {
@@ -83,7 +83,7 @@ pub fn format_rich_with_path(
         let severity = painted(severity_text, severity_color(diagnostic.severity), color);
         let separator = painted(RICH_SEPARATOR, ANSI_DIM, color);
         let code = painted(diagnostic.code.to_string(), ANSI_BOLD_YELLOW, color);
-        let location = span_location(&line_index, content, diagnostic.span).map_or_else(
+        let location = span_location(line_index, content, diagnostic.span).map_or_else(
             || path.to_string(),
             |((line, column), _)| format!("{path}:{}:{}", line + 1, column + 1),
         );
@@ -103,7 +103,7 @@ pub fn format_rich_with_path(
         output.push_str(&format!("{stem}\n"));
         render_rich_source(
             &mut output,
-            &line_index,
+            line_index,
             content,
             diagnostic.span,
             diagnostic.severity,
@@ -121,7 +121,7 @@ pub fn format_rich_with_path(
             output.push_str(&format!("{stem}\n"));
             render_rich_source(
                 &mut output,
-                &line_index,
+                line_index,
                 content,
                 related.span,
                 diagnostic.severity,
@@ -281,17 +281,6 @@ fn offset_to_lsp_position(
 }
 
 pub fn to_lsp_diagnostic(
-    diagnostic: &Diagnostic,
-    content: &str,
-    uri: &lsp_types::Url,
-    encoding: &lsp_types::PositionEncodingKind,
-) -> Option<lsp_types::Diagnostic> {
-    let line_index = LineIndex::new(content);
-
-    to_lsp_diagnostic_with_line_index(diagnostic, &line_index, uri, encoding)
-}
-
-pub fn to_lsp_diagnostic_with_line_index(
     diagnostic: &Diagnostic,
     line_index: &LineIndex,
     uri: &lsp_types::Url,
