@@ -26,12 +26,7 @@ where
     let position_encoding = context.position_encoding().into();
     let line_index = LineIndex::new(&collected.content);
     let diagnostics = collected.diagnostics().iter().filter_map(|diagnostic| {
-        diagnostics::to_lsp_diagnostic_with_line_index(
-            diagnostic,
-            &line_index,
-            &uri,
-            &position_encoding,
-        )
+        diagnostics::to_lsp_diagnostic(diagnostic, &line_index, &uri, &position_encoding)
     });
 
     let diagnostics = diagnostics.collect();

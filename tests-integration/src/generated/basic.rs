@@ -8,6 +8,7 @@ use diagnostics::{collect_diagnostics, format_rich_with_path};
 use files::FileId;
 use indexing::{ImportKind, IndexedTermItem, IndexedTypeItem, IndexedTypeItemKind, TypeItemId};
 use itertools::Itertools;
+use line_index::LineIndex;
 use lowering::{
     BinderKind, ExpressionKind, GraphNode, ImplicitTypeVariable, TermVariableResolution, TypeKind,
     TypeVariableResolution,
@@ -113,7 +114,14 @@ pub fn report_resolved(engine: &QueryEngine, id: FileId, name: &str, path: &str)
     let diagnostics: Vec<_> = diagnostics.cloned().collect();
     if !diagnostics.is_empty() {
         heading(&mut out, "Diagnostics");
-        out.push_str(&format_rich_with_path(&diagnostics, &collected.content, path, false));
+        let line_index = LineIndex::new(&collected.content);
+        out.push_str(&format_rich_with_path(
+            &diagnostics,
+            &collected.content,
+            &line_index,
+            path,
+            false,
+        ));
     }
 
     out
@@ -377,9 +385,11 @@ pub fn report_foreign(engine: &QueryEngine, id: FileId, path: &str) -> String {
 
     let mut out = String::new();
     heading(&mut out, "Diagnostics");
+    let line_index = LineIndex::new(&collected.content);
     out.push_str(&format_rich_with_path(
         collected.foreign_diagnostics(),
         &collected.content,
+        &line_index,
         path,
         false,
     ));
@@ -395,9 +405,11 @@ pub fn report_backend(engine: &QueryEngine, id: FileId, path: &str) -> String {
 
     let mut out = String::new();
     heading(&mut out, "Backend Diagnostics");
+    let line_index = LineIndex::new(&collected.content);
     out.push_str(&format_rich_with_path(
         collected.backend_diagnostics(),
         &collected.content,
+        &line_index,
         path,
         false,
     ));
@@ -511,9 +523,11 @@ fn write_checked_diagnostics(out: &mut String, engine: &QueryEngine, id: FileId,
     let collected = collected.pop().unwrap();
     if !collected.checking_diagnostics().is_empty() {
         writeln!(out, "\nDiagnostics").unwrap();
+        let line_index = LineIndex::new(&collected.content);
         out.push_str(&format_rich_with_path(
             collected.checking_diagnostics(),
             &collected.content,
+            &line_index,
             path,
             false,
         ));
