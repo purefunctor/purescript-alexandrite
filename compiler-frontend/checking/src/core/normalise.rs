@@ -136,14 +136,22 @@ pub fn expand<Q>(
 where
     Q: ExternalQueries,
 {
+    // Keeping the reduction head normalised avoids repeating the same
+    // unification pruning while discovering synonym application spines.
+    id = normalise(state, context, id)?;
+
     safe_loop! {
         let expanded = expand_synonym(state, context, id)?;
-        let expanded = expand_row_tail(state, context, expanded)?;
-        let normalised = normalise(state, context, expanded)?;
-        if normalised == id {
+        if expanded != id {
+            id = normalise(state, context, expanded)?;
+            continue;
+        }
+
+        let expanded = expand_row_tail(state, context, id)?;
+        if expanded == id {
             return Ok(id);
         }
-        id = normalised;
+        id = normalise(state, context, expanded)?;
     }
 }
 
@@ -187,8 +195,7 @@ where
             }
         };
 
-        let expanded_tail = expand(state, context, original_tail)?;
-        let normalised_tail = normalise(state, context, expanded_tail)?;
+        let normalised_tail = expand(state, context, original_tail)?;
 
         if original_tail == normalised_tail {
             if flattened_once {
@@ -241,17 +248,15 @@ where
     // Most application heads are not synonyms. Inspect the head before
     // allocating storage for arguments, preserving normalisation along the spine.
     safe_loop! {
-        current = normalise(state, context, current)?;
         match context.lookup_type(current) {
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 argument_count += 1;
-                current = function;
+                current = normalise(state, context, function)?;
             }
             _ => break,
         }
     }
 
-    current = normalise(state, context, current)?;
     let (file_id, type_id) = match context.lookup_type(current) {
         Type::Constructor(file_id, type_id) => (file_id, type_id),
         _ => return Ok(id),
@@ -265,15 +270,14 @@ where
     let mut arguments = Vec::with_capacity(argument_count);
     current = id;
     safe_loop! {
-        current = normalise(state, context, current)?;
         match context.lookup_type(current) {
             Type::Application(function, argument) => {
                 arguments.push(ApplicationArgument::Type(argument));
-                current = function;
+                current = normalise(state, context, function)?;
             }
             Type::KindApplication(function, argument) => {
                 arguments.push(ApplicationArgument::Kind(argument));
-                current = function;
+                current = normalise(state, context, function)?;
             }
             _ => break,
         }
