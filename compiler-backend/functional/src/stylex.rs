@@ -13,19 +13,29 @@ pub enum StyleXExpression {
 }
 
 impl StyleXExpression {
-    pub fn children(&self) -> Vec<ExpressionId> {
+    pub fn try_for_each_child<Error>(
+        &self,
+        mut visit: impl FnMut(ExpressionId) -> Result<(), Error>,
+    ) -> Result<(), Error> {
         match self {
-            StyleXExpression::Call { arguments, .. } => arguments.to_vec(),
-            StyleXExpression::Conditional { condition, style } => vec![*condition, *style],
-            StyleXExpression::ConditionalCase(case) => case.children(),
-            StyleXExpression::ConditionalValue { default, cases } => {
-                let mut children = vec![*default];
-                for case in cases.iter() {
-                    children.extend(case.children());
+            StyleXExpression::Call { arguments, .. } => {
+                for &argument in arguments.iter() {
+                    visit(argument)?;
                 }
-                children
+            }
+            StyleXExpression::Conditional { condition, style } => {
+                visit(*condition)?;
+                visit(*style)?;
+            }
+            StyleXExpression::ConditionalCase(case) => case.try_for_each_child(&mut visit)?,
+            StyleXExpression::ConditionalValue { default, cases } => {
+                visit(*default)?;
+                for case in cases.iter() {
+                    case.try_for_each_child(&mut visit)?;
+                }
             }
         }
+        Ok(())
     }
 }
 
@@ -38,11 +48,15 @@ pub struct StyleXConditionalCase {
 }
 
 impl StyleXConditionalCase {
-    fn children(&self) -> Vec<ExpressionId> {
-        let mut children = vec![self.selector];
-        children.extend(self.marker);
-        children.push(self.value);
-        children
+    fn try_for_each_child<Error>(
+        &self,
+        visit: &mut impl FnMut(ExpressionId) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        visit(self.selector)?;
+        if let Some(marker) = self.marker {
+            visit(marker)?;
+        }
+        visit(self.value)
     }
 }
 

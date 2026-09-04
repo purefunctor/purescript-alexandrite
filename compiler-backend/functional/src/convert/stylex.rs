@@ -6,7 +6,7 @@ use indexing::TermItemId;
 use smol_str::SmolStr;
 
 use crate::error::UnsupportedState;
-use crate::optimize::expression_children;
+use crate::optimize::try_for_each_expression_child;
 use crate::stylex::{
     StyleXCallTarget, StyleXConditionalCase, StyleXExpression, StyleXIntrinsic, StyleXRootCall,
     StyleXRootIntrinsic, StyleXTypeCall, StyleXWhenRelation,
@@ -312,17 +312,15 @@ where
                     }
                     StyleXExpression::Conditional { .. } => context,
                 };
-                for child in stylex.children() {
-                    self.validate_stylex_expression(child, root, declaration, child_context)?;
-                }
-                return Ok(());
+                return stylex.try_for_each_child(|child| {
+                    self.validate_stylex_expression(child, root, declaration, child_context)
+                });
             }
             _ => {}
         }
-        for child in expression_children(&self.storage[expression].kind) {
-            self.validate_stylex_expression(child, root, declaration, context)?;
-        }
-        Ok(())
+        try_for_each_expression_child(&self.storage[expression].kind, |child| {
+            self.validate_stylex_expression(child, root, declaration, context)
+        })
     }
 
     fn validate_stylex_root_call(

@@ -1,6 +1,7 @@
 //! Simplification of functional trees before backend-specific code generation.
 
-use itertools::Itertools;
+use std::convert::Infallible;
+
 use rustc_hash::FxHashSet;
 use smol_str::{SmolStr, format_smolstr};
 
@@ -28,7 +29,7 @@ pub(crate) fn reachable_expressions(
         if !reachable.insert(expression) {
             continue;
         }
-        pending.extend(expression_children(&storage[expression].kind));
+        for_each_expression_child(&storage[expression].kind, |child| pending.push(child));
     }
     reachable
 }
@@ -58,9 +59,9 @@ fn optimize_expression(
     }
 
     let kind = storage[expression].kind.clone();
-    for child in expression_children(&kind) {
+    for_each_expression_child(&kind, |child| {
         optimize_expression(storage, child, recursive_globals, visited);
-    }
+    });
 
     if fold_literal_negation(storage, expression) {
         return;
@@ -158,10 +159,11 @@ pub fn local_uses(storage: &Storage, expression: ExpressionId, parameter: LocalI
     ) {
         return 1;
     }
-    expression_children(&storage[expression].kind)
-        .into_iter()
-        .map(|child| local_uses(storage, child, parameter))
-        .sum()
+    let mut uses = 0;
+    for_each_expression_child(&storage[expression].kind, |child| {
+        uses += local_uses(storage, child, parameter);
+    });
+    uses
 }
 
 fn substitute_local(
@@ -179,9 +181,9 @@ fn substitute_local(
         return;
     }
     let kind = storage[expression].kind.clone();
-    for child in expression_children(&kind) {
+    for_each_expression_child(&kind, |child| {
         substitute_local(storage, child, parameter, replacement);
-    }
+    });
 }
 
 fn is_trivial_expression(
@@ -241,7 +243,18 @@ fn is_simple_expression(
     }
 }
 
-pub fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
+pub fn for_each_expression_child(kind: &ExpressionKind, mut visit: impl FnMut(ExpressionId)) {
+    let result: Result<(), Infallible> = try_for_each_expression_child(kind, |child| {
+        visit(child);
+        Ok(())
+    });
+    let Ok(()) = result;
+}
+
+pub fn try_for_each_expression_child<Error>(
+    kind: &ExpressionKind,
+    mut visit: impl FnMut(ExpressionId) -> Result<(), Error>,
+) -> Result<(), Error> {
     match kind {
         ExpressionKind::Error
         | ExpressionKind::Literal { .. }
@@ -249,38 +262,52 @@ pub fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
         | ExpressionKind::Global { .. }
         | ExpressionKind::Local { .. }
         | ExpressionKind::SynthesizedEvidence { .. }
-        | ExpressionKind::TrivialEvidence => Vec::new(),
-        ExpressionKind::Array { elements } => elements.to_vec(),
-        ExpressionKind::Record { fields } => fields.iter().map(|field| field.expression).collect(),
+        | ExpressionKind::TrivialEvidence => {}
+        ExpressionKind::Array { elements } => {
+            for &element in elements.iter() {
+                visit(element)?;
+            }
+        }
+        ExpressionKind::Record { fields } => {
+            for field in fields.iter() {
+                visit(field.expression)?;
+            }
+        }
         ExpressionKind::RecordUpdate { record, updates } => {
-            let mut children = vec![*record];
-            update_children(updates, &mut children);
-            children
+            visit(*record)?;
+            try_for_each_update_child(updates, &mut visit)?;
         }
         ExpressionKind::Project { record, .. } | ExpressionKind::Unary { value: record, .. } => {
-            vec![*record]
+            visit(*record)?;
         }
-        ExpressionKind::Binary { left, right, .. } => vec![*left, *right],
+        ExpressionKind::Binary { left, right, .. } => {
+            visit(*left)?;
+            visit(*right)?;
+        }
         ExpressionKind::Abstraction { body, .. }
-        | ExpressionKind::UncurriedAbstraction { body, .. } => vec![*body],
+        | ExpressionKind::UncurriedAbstraction { body, .. } => visit(*body)?,
         ExpressionKind::Application { function, arguments, .. }
         | ExpressionKind::UncurriedApplication { function, arguments, .. } => {
-            let mut children = Vec::with_capacity(arguments.len() + 1);
-            children.push(*function);
-            children.extend(arguments.iter().copied());
-            children
+            visit(*function)?;
+            for &argument in arguments.iter() {
+                visit(argument)?;
+            }
         }
-        ExpressionKind::StyleX(stylex) => stylex.children(),
+        ExpressionKind::StyleX(stylex) => stylex.try_for_each_child(&mut visit)?,
         ExpressionKind::IfThenElse { condition, then, else_ } => {
-            vec![*condition, *then, *else_]
+            visit(*condition)?;
+            visit(*then)?;
+            visit(*else_)?;
         }
         ExpressionKind::Case { scrutinees, alternatives } => {
-            let mut children = scrutinees.to_vec();
-            children.extend(alternatives.iter().map(|alternative| alternative.expression));
-            children
+            for &scrutinee in scrutinees.iter() {
+                visit(scrutinee)?;
+            }
+            for alternative in alternatives.iter() {
+                visit(alternative.expression)?;
+            }
         }
         ExpressionKind::Guarded { alternatives } => {
-            let mut children = Vec::new();
             for alternative in alternatives.iter() {
                 for guard in alternative.guards.iter() {
                     let expression = match guard {
@@ -288,35 +315,127 @@ pub fn expression_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
                             *expression
                         }
                     };
-                    children.push(expression);
+                    visit(expression)?;
                 }
-                children.push(alternative.expression);
+                visit(alternative.expression)?;
             }
-            children
         }
         ExpressionKind::Let { bindings, body, .. } => {
-            let binding_expressions = bindings.iter().map(|binding| binding.expression);
-            let mut children = binding_expressions.collect_vec();
-            children.push(*body);
-            children
+            for binding in bindings.iter() {
+                visit(binding.expression)?;
+            }
+            visit(*body)?;
         }
-        ExpressionKind::LetPattern { value, body, .. } => vec![*value, *body],
+        ExpressionKind::LetPattern { value, body, .. } => {
+            visit(*value)?;
+            visit(*body)?;
+        }
         ExpressionKind::Effect { effect } => match effect {
-            EffectExpression::Pure(value) => vec![*value],
-            EffectExpression::Bind { action, body, .. } => vec![*action, *body],
-            EffectExpression::Map { function, action } => vec![*function, *action],
+            EffectExpression::Pure(value) => visit(*value)?,
+            EffectExpression::Bind { action, body, .. } => {
+                visit(*action)?;
+                visit(*body)?;
+            }
+            EffectExpression::Map { function, action } => {
+                visit(*function)?;
+                visit(*action)?;
+            }
             EffectExpression::Apply { function_action, argument_action } => {
-                vec![*function_action, *argument_action]
+                visit(*function_action)?;
+                visit(*argument_action)?;
             }
         },
     }
+    Ok(())
 }
 
-fn update_children(updates: &[RecordUpdate], children: &mut Vec<ExpressionId>) {
+fn try_for_each_update_child<Error>(
+    updates: &[RecordUpdate],
+    visit: &mut impl FnMut(ExpressionId) -> Result<(), Error>,
+) -> Result<(), Error> {
     for update in updates {
         match update {
-            RecordUpdate::Leaf { expression, .. } => children.push(*expression),
-            RecordUpdate::Branch { updates, .. } => update_children(updates, children),
+            RecordUpdate::Leaf { expression, .. } => visit(*expression)?,
+            RecordUpdate::Branch { updates, .. } => try_for_each_update_child(updates, visit)?,
         }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stylex::{StyleXConditionalCase, StyleXExpression, StyleXWhenRelation};
+    use crate::tree::{Field, FieldIdentity};
+
+    fn expression(index: u32) -> ExpressionId {
+        ExpressionId::from_raw(index.into())
+    }
+
+    fn visited_children(kind: &ExpressionKind) -> Vec<ExpressionId> {
+        let mut children = Vec::new();
+        for_each_expression_child(kind, |child| children.push(child));
+        children
+    }
+
+    #[test]
+    fn nested_record_updates_visit_in_order_and_stop_at_first_error() {
+        let field = Field { identity: FieldIdentity::Label("field".into()), name: "field".into() };
+        let kind = ExpressionKind::RecordUpdate {
+            record: expression(0),
+            updates: [
+                RecordUpdate::Leaf { field: field.clone(), expression: expression(1) },
+                RecordUpdate::Branch {
+                    field: field.clone(),
+                    updates: [
+                        RecordUpdate::Leaf { field: field.clone(), expression: expression(2) },
+                        RecordUpdate::Leaf { field: field.clone(), expression: expression(3) },
+                    ]
+                    .into(),
+                },
+                RecordUpdate::Leaf { field, expression: expression(4) },
+            ]
+            .into(),
+        };
+        assert_eq!(visited_children(&kind), (0..5).map(expression).collect::<Vec<_>>());
+
+        let mut visited = Vec::new();
+        let result = try_for_each_expression_child(&kind, |child| {
+            visited.push(child);
+            if child == expression(2) { Err(child) } else { Ok(()) }
+        });
+        assert_eq!(result, Err(expression(2)));
+        assert_eq!(visited, (0..3).map(expression).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn stylex_conditional_cases_visit_optional_markers_in_order() {
+        let kind = ExpressionKind::StyleX(StyleXExpression::ConditionalValue {
+            default: expression(0),
+            cases: [
+                StyleXConditionalCase {
+                    relation: StyleXWhenRelation::Ancestor,
+                    selector: expression(1),
+                    marker: None,
+                    value: expression(2),
+                },
+                StyleXConditionalCase {
+                    relation: StyleXWhenRelation::Descendant,
+                    selector: expression(3),
+                    marker: Some(expression(4)),
+                    value: expression(5),
+                },
+            ]
+            .into(),
+        });
+        assert_eq!(visited_children(&kind), (0..6).map(expression).collect::<Vec<_>>());
+
+        let mut visited = Vec::new();
+        let result = try_for_each_expression_child(&kind, |child| {
+            visited.push(child);
+            if child == expression(4) { Err(child) } else { Ok(()) }
+        });
+        assert_eq!(result, Err(expression(4)));
+        assert_eq!(visited, (0..5).map(expression).collect::<Vec<_>>());
     }
 }
