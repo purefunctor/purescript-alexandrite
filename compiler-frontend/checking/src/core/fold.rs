@@ -47,23 +47,23 @@ where
 {
     let mut id = normalise::normalise(state, context, id)?;
 
-    safe_loop! {
+    let t = safe_loop! {
         let t = context.lookup_type(id);
         match folder.transform(state, context, id, &t)? {
             FoldAction::Replace(id) => return Ok(id),
             FoldAction::ReplaceThen(then_id) => {
                 let then_id = normalise::normalise(state, context, then_id)?;
                 if then_id == id {
-                    break;
+                    break context.lookup_type(id);
                 }
                 id = then_id;
                 continue;
             }
             FoldAction::Continue => {
-                break;
-            },
+                break t;
+            }
         }
-    }
+    };
 
     macro_rules! fold_pair {
         ($first:ident, $second:ident, $intern:ident) => {{
@@ -77,7 +77,6 @@ where
         }};
     }
 
-    let t = context.lookup_type(id);
     let result = match t {
         Type::Application(function, argument) => {
             fold_pair!(function, argument, intern_application)
