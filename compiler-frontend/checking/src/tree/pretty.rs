@@ -1,5 +1,6 @@
 //! Implements the pretty printer for the checked semantic tree.
 
+use std::cell::RefCell;
 use std::sync::Arc;
 
 use building_types::QueryResult;
@@ -112,6 +113,17 @@ pub struct Pretty<'a, Q: ?Sized> {
     config: PrettyConfig,
 }
 
+#[derive(Default)]
+pub struct InstanceNames {
+    names: FxHashMap<InstanceCandidateOrigin, SmolStr>,
+    modules: FxHashMap<FileId, ModuleInstanceNames>,
+}
+
+struct ModuleInstanceNames {
+    names: PrettyNames,
+    next_source: usize,
+}
+
 impl<'a, Q> Pretty<'a, Q>
 where
     Q: PrettyQueries<Checked = Arc<CheckedModule>> + ?Sized,
@@ -155,6 +167,18 @@ where
         file_id: FileId,
         origin: InstanceCandidateOrigin,
     ) -> QueryResult<SmolStr> {
+        self.render_instance_name_with_cache(file_id, origin, &mut InstanceNames::default())
+    }
+
+    pub fn render_instance_name_with_cache(
+        &self,
+        file_id: FileId,
+        origin: InstanceCandidateOrigin,
+        names: &mut InstanceNames,
+    ) -> QueryResult<SmolStr> {
+        if let Some(name) = names.names.get(&origin) {
+            return Ok(SmolStr::clone(name));
+        }
         let indexed = self.queries.indexed(file_id)?;
         let lowered = self.queries.lowered(file_id)?;
         let arena = Arena::new();
@@ -167,7 +191,7 @@ where
             self.checked,
             self.config,
         );
-        printer.instance_dictionary_name(origin)
+        printer.instance_dictionary_name_with_cache(origin, names)
     }
 }
 
@@ -184,6 +208,7 @@ where
     type_pretty: TypePretty<'context, Q>,
     signature_type_pretty: TypePretty<'context, Q>,
     fully_qualified_names: bool,
+    instance_names: RefCell<InstanceNames>,
 }
 
 impl<'arena, 'context, 'module, Q> Printer<'arena, 'context, 'module, Q>
@@ -217,6 +242,7 @@ where
             type_pretty,
             signature_type_pretty,
             fully_qualified_names: config.fully_qualified_names,
+            instance_names: RefCell::new(InstanceNames::default()),
         }
     }
 
@@ -817,8 +843,9 @@ where
             return Ok(SmolStr::new("dictionary"));
         };
 
-        let first = first.to_lowercase().collect::<String>();
-        let mut base = format!("{first}{}", characters.as_str());
+        let mut base = String::with_capacity(class_name.len());
+        base.extend(first.to_lowercase());
+        base.push_str(characters.as_str());
 
         let mut current = type_id;
         let mut arguments = vec![];
@@ -1801,6 +1828,17 @@ where
     }
 
     fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {
+        self.instance_dictionary_name_with_cache(origin, &mut self.instance_names.borrow_mut())
+    }
+
+    fn instance_dictionary_name_with_cache(
+        &self,
+        origin: InstanceCandidateOrigin,
+        instance_names: &mut InstanceNames,
+    ) -> QueryResult<SmolStr> {
+        if let Some(name) = instance_names.names.get(&origin) {
+            return Ok(SmolStr::clone(name));
+        }
         let file_id = match origin {
             InstanceCandidateOrigin::Instance(file_id, _)
             | InstanceCandidateOrigin::Derive(file_id, _) => file_id,
@@ -1826,6 +1864,7 @@ where
             InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
         };
         if let Some(name) = item_name {
+            instance_names.names.insert(origin, SmolStr::clone(name));
             return Ok(SmolStr::clone(name));
         }
 
@@ -1833,42 +1872,54 @@ where
             if file_id == self.file_id { None } else { Some(self.queries.checked(file_id)?) };
         let checked = checked.as_deref().unwrap_or(self.checked);
 
-        let mut names = PrettyNames::new();
-        for (_, item) in indexed.items.iter_terms() {
-            if let Some(name) = &item.name {
-                names.allocate_display_name(SmolStr::clone(name));
-            }
-        }
-
-        for &candidate_id in indexed.items.instance_sources() {
-            let name = match candidate_id {
-                InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
-                InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
-            };
-            if let Some(name) = name {
-                names.allocate_display_name(SmolStr::clone(name));
-            }
-        }
-
-        for &candidate_id in indexed.items.instance_sources() {
-            let (candidate_name, declaration_id) = match candidate_id {
-                InstanceSourceItemId::Instance(id) => {
-                    (&indexed.items[id].name, checked.tree.lookup_instance(id))
+        let module_names = instance_names.modules.entry(file_id).or_insert_with(|| {
+            let mut names = PrettyNames::new();
+            for (_, item) in indexed.items.iter_terms() {
+                if let Some(name) = &item.name {
+                    names.allocate_display_name(SmolStr::clone(name));
                 }
-                InstanceSourceItemId::Derive(id) => {
-                    (&indexed.items[id].name, checked.tree.lookup_derive(id))
-                }
-            };
-            if candidate_name.is_some() {
-                continue;
             }
-            let Some(declaration_id) = declaration_id else { continue };
-            let declaration = &checked.tree[declaration_id];
-            let TermDeclarationKind::Instance(instance) = &declaration.kind else {
-                continue;
+
+            for &candidate_id in indexed.items.instance_sources() {
+                let name = match candidate_id {
+                    InstanceSourceItemId::Instance(id) => &indexed.items[id].name,
+                    InstanceSourceItemId::Derive(id) => &indexed.items[id].name,
+                };
+                if let Some(name) = name {
+                    names.allocate_display_name(SmolStr::clone(name));
+                }
+            }
+            ModuleInstanceNames { names, next_source: 0 }
+        });
+
+        let remaining_sources = indexed.items.instance_sources()[module_names.next_source..].iter();
+        for &candidate_id in remaining_sources {
+            let (candidate_name, declaration_id, candidate_origin) = match candidate_id {
+                InstanceSourceItemId::Instance(id) => (
+                    &indexed.items[id].name,
+                    checked.tree.lookup_instance(id),
+                    InstanceCandidateOrigin::Instance(file_id, indexed.items[id].id),
+                ),
+                InstanceSourceItemId::Derive(id) => (
+                    &indexed.items[id].name,
+                    checked.tree.lookup_derive(id),
+                    InstanceCandidateOrigin::Derive(file_id, indexed.items[id].id),
+                ),
             };
-            let base = self.dictionary_base_name(declaration.type_id, instance)?;
-            let name = names.allocate_display_name(base);
+            let declaration = declaration_id.map(|id| &checked.tree[id]);
+            let name = if let Some(name) = candidate_name {
+                Some(SmolStr::clone(name))
+            } else if let Some(declaration) = declaration
+                && let TermDeclarationKind::Instance(instance) = &declaration.kind
+            {
+                let base = self.dictionary_base_name(declaration.type_id, instance)?;
+                Some(module_names.names.allocate_display_name(base))
+            } else {
+                None
+            };
+            module_names.next_source += 1;
+            let Some(name) = name else { continue };
+            instance_names.names.insert(candidate_origin, SmolStr::clone(&name));
             if candidate_id == item_id {
                 return Ok(name);
             }
@@ -1991,13 +2042,13 @@ where
         &self,
         file_id: FileId,
         type_id: indexing::TypeItemId,
-    ) -> QueryResult<Option<String>> {
+    ) -> QueryResult<Option<SmolStr>> {
         if file_id == self.file_id {
-            return Ok(self.indexed.items[type_id].name.as_ref().map(ToString::to_string));
+            return Ok(self.indexed.items[type_id].name.clone());
         }
 
         let indexed = self.queries.indexed(file_id)?;
-        Ok(indexed.items[type_id].name.as_ref().map(ToString::to_string))
+        Ok(indexed.items[type_id].name.clone())
     }
 }
 

@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 280
+expression: diagnostics_report
+---
+Terms
+pick ::
+  forall (@symbol :: Prim.Symbol).
+    Main.Pick (symbol :: Prim.Symbol) => Library.Proxy (symbol :: Prim.Symbol) -> Prim.Int
+result ::
+  { first :: Prim.Int
+  , local :: Prim.Int
+  , named :: Prim.Int
+  , repeated :: Prim.Int
+  , second :: Prim.Int
+  , third :: Prim.Int
+  }
+
+Types
+Pick :: Prim.Symbol -> Prim.Constraint
+
+Classes
+class forall (symbol :: Prim.Symbol). Main.Pick (symbol :: Prim.Symbol)
+  pick ::
+  forall (@symbol :: Prim.Symbol).
+    Main.Pick (symbol :: Prim.Symbol) => Library.Proxy (symbol :: Prim.Symbol) -> Prim.Int
+
+Instances
+instance Main.Pick "first"
