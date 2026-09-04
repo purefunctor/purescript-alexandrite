@@ -155,49 +155,37 @@ where
     };
 
     let mut current_id = id;
-    let mut row_fields = vec![];
-
-    // This flag tracks that we've flattened at least one row tail.
-    // If we have, we will build a row from the collected fields;
-    // otherwise, we need to return the original row type.
-    let mut flattened_once = false;
+    let mut row_fields: Option<Vec<_>> = None;
 
     let row_tail = safe_loop! {
         let Type::Row(row_id) = context.lookup_type(current_id) else {
-            if flattened_once {
-                break Some(current_id);
-            } else {
-                return Ok(id);
-            }
+            break Some(current_id);
         };
 
         let row = context.lookup_row_type(row_id);
-        row_fields.extend(row.fields.iter().cloned());
-
-        let Some(original_tail) = row.tail else {
-            if flattened_once {
-                break None;
-            } else {
-                return Ok(id);
-            }
+        let normalised_tail = if let Some(tail) = row.tail {
+            let expanded_tail = expand(state, context, tail)?;
+            Some(normalise(state, context, expanded_tail)?)
+        } else {
+            None
         };
 
-        let expanded_tail = expand(state, context, original_tail)?;
-        let normalised_tail = normalise(state, context, expanded_tail)?;
-
-        if original_tail == normalised_tail {
-            if flattened_once {
-                break Some(original_tail);
-            } else {
-                return Ok(id);
-            }
+        if row_fields.is_none() && normalised_tail == row.tail {
+            return Ok(id);
         }
 
-         current_id = normalised_tail;
-         flattened_once = true;
+        row_fields.get_or_insert_with(Vec::new).extend(row.fields.iter().cloned());
+        if normalised_tail == row.tail {
+            break normalised_tail;
+        }
+
+        let Some(tail) = normalised_tail else {
+            break None;
+        };
+        current_id = tail;
     };
 
-    Ok(context.intern_row(row_fields, row_tail))
+    Ok(context.intern_row(row_fields.unwrap_or_default(), row_tail))
 }
 
 /// Expands synonym constructor applications with respect to oversaturation.

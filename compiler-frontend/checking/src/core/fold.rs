@@ -1,9 +1,11 @@
 //! Implements type folding for the core representation.
 
+use std::borrow::Cow;
+
 use building_types::QueryResult;
 
 use crate::context::CheckContext;
-use crate::core::{ForallBinder, RowField, RowTypeId, Type, TypeId, normalise};
+use crate::core::{ForallBinder, RowField, RowType, Type, TypeId, normalise};
 use crate::state::CheckState;
 use crate::{ExternalQueries, safe_loop};
 
@@ -107,15 +109,19 @@ where
         Type::Integer(_) | Type::String(_, _) => id,
         Type::Row(row_id) => {
             let original_row = context.lookup_row_type(row_id);
-            let (mut fields, tail) = flatten_row(state, context, row_id)?;
-            for field in fields.iter_mut() {
-                field.id = fold_type(state, context, field.id, folder)?;
+            let (mut fields, tail) = flatten_row(state, context, &original_row)?;
+            for index in 0..fields.len() {
+                let original_id = fields[index].id;
+                let folded_id = fold_type(state, context, original_id, folder)?;
+                if folded_id != original_id {
+                    fields.to_mut()[index].id = folded_id;
+                }
             }
             let tail = tail.map(|tail| fold_type(state, context, tail, folder)).transpose()?;
-            if fields.as_slice() == original_row.fields.as_ref() && tail == original_row.tail {
+            if fields.as_ref() == original_row.fields.as_ref() && tail == original_row.tail {
                 id
             } else {
-                context.intern_row(fields, tail)
+                context.intern_row(fields.into_owned(), tail)
             }
         }
         Type::Rigid(name, depth, kind) => {
@@ -145,19 +151,19 @@ where
 ///
 /// This function flattens a given [`RowType`] by traversing the [`RowType::tail`]
 /// and collecting fields, building the ideal canonical representation for a row type.
-fn flatten_row<Q>(
+fn flatten_row<'a, Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
-    row_id: RowTypeId,
-) -> QueryResult<(Vec<RowField>, Option<TypeId>)>
+    original_row: &'a RowType,
+) -> QueryResult<(Cow<'a, [RowField]>, Option<TypeId>)>
 where
     Q: ExternalQueries,
 {
-    let mut row = context.lookup_row_type(row_id);
-    let mut fields = row.fields.to_vec();
+    let mut row_tail = original_row.tail;
+    let mut fields = Cow::Borrowed(original_row.fields.as_ref());
 
     safe_loop! {
-        let Some(tail) = row.tail else {
+        let Some(tail) = row_tail else {
             break;
         };
 
@@ -166,9 +172,12 @@ where
             break;
         };
 
-        row = context.lookup_row_type(row_id);
-        fields.extend(row.fields.iter().cloned());
+        let row = context.lookup_row_type(row_id);
+        if !row.fields.is_empty() {
+            fields.to_mut().extend(row.fields.iter().cloned());
+        }
+        row_tail = row.tail;
     }
 
-    Ok((fields, row.tail))
+    Ok((fields, row_tail))
 }
