@@ -19,7 +19,7 @@ use sugar::{Bracketed, Sectioned};
 
 use crate::core::{
     CheckedSynonym, Depth, ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, Type,
-    TypeId,
+    TypeFlags, TypeId,
 };
 use crate::{CheckedModule, ExternalQueries};
 
@@ -311,6 +311,10 @@ where
     /// Looks up the [`Type`] for the given [`TypeId`].
     pub fn lookup_type(&self, id: TypeId) -> Type {
         self.queries.lookup_type(id)
+    }
+
+    pub fn lookup_type_flags(&self, id: TypeId) -> TypeFlags {
+        self.queries.lookup_type_flags(id)
     }
 
     /// Looks up the [`ForallBinder`] for the given [`ForallBinderId`].

@@ -1,10 +1,10 @@
 use smol_str::SmolStr;
 
-use crate::core::{ForallBinder, ForallBinderId, RowType, RowTypeId, Type, TypeId};
+use crate::core::{ForallBinder, ForallBinderId, RowType, RowTypeId, Type, TypeFlags, TypeId};
 
 #[derive(Default)]
 pub struct CoreInterners {
-    types: interner::parallel::Interner<Type>,
+    types: interner::parallel::Interner<Type, TypeFlags>,
     forall_binders: interner::parallel::Interner<ForallBinder>,
     row_types: interner::parallel::Interner<RowType>,
     smol_strs: interner::parallel::Interner<SmolStr>,
@@ -12,11 +12,29 @@ pub struct CoreInterners {
 
 impl CoreInterners {
     pub fn intern_type(&self, t: Type) -> TypeId {
-        self.types.intern(t)
+        let flags = self.type_flags(&t);
+        self.types.intern_with_metadata(t, flags)
     }
 
     pub fn lookup_type(&self, id: TypeId) -> Type {
         self.types[id].clone()
+    }
+
+    pub fn lookup_type_flags(&self, id: TypeId) -> TypeFlags {
+        self.types.metadata(id)
+    }
+
+    fn type_flags(&self, t: &Type) -> TypeFlags {
+        let may_normalise = match *t {
+            Type::Unification(_) => true,
+            Type::Row(row_id) => {
+                let row = &self.row_types[row_id];
+                row.tail.is_some_and(|tail| matches!(self.types[tail], Type::Row(_)))
+            }
+            _ => false,
+        };
+
+        TypeFlags::new(may_normalise)
     }
 
     pub fn intern_forall_binder(&self, b: ForallBinder) -> ForallBinderId {
@@ -41,5 +59,44 @@ impl CoreInterners {
 
     pub fn lookup_smol_str(&self, id: crate::core::SmolStrId) -> SmolStr {
         self.smol_strs[id].clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use smol_str::SmolStr;
+
+    use super::CoreInterners;
+    use crate::core::{RowField, RowType, Type};
+
+    #[test]
+    fn normalisation_flags_describe_head_reductions() {
+        let interners = CoreInterners::default();
+
+        let integer = interners.intern_type(Type::Integer(0));
+        let unification = interners.intern_type(Type::Unification(0));
+        let application = interners.intern_type(Type::Application(integer, unification));
+
+        assert!(!interners.lookup_type_flags(integer).may_normalise());
+        assert!(interners.lookup_type_flags(unification).may_normalise());
+        assert!(!interners.lookup_type_flags(application).may_normalise());
+        let closed_row = RowType::from_closed(Arc::from([RowField {
+            label: SmolStr::new("inner"),
+            id: integer,
+        }]));
+        let closed_row = interners.intern_row_type(closed_row);
+        let closed_row = interners.intern_type(Type::Row(closed_row));
+
+        let nested_row = RowType::from_open(
+            Arc::from([RowField { label: SmolStr::new("outer"), id: integer }]),
+            closed_row,
+        );
+        let nested_row = interners.intern_row_type(nested_row);
+        let nested_row = interners.intern_type(Type::Row(nested_row));
+
+        assert!(!interners.lookup_type_flags(closed_row).may_normalise());
+        assert!(interners.lookup_type_flags(nested_row).may_normalise());
     }
 }
