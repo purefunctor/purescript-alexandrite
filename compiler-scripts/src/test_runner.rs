@@ -13,12 +13,7 @@ use console::style;
 
 use crate::test_runner::ui::NextActionsArgs;
 
-pub struct TestOutcome {
-    pub tests_passed: bool,
-    pub pending_count: usize,
-}
-
-pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<TestOutcome> {
+pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<bool> {
     let tests_passed = nextest::run_nextest(category, args)?;
     let pending_result = pending::process_pending_snapshots(category, args)?;
     ui::print_next_actions(NextActionsArgs {
@@ -31,24 +26,19 @@ pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<Te
         showed_diffs: args.diff,
     });
 
-    Ok(TestOutcome { tests_passed, pending_count: pending_result.count })
-}
-
-pub struct SnapshotOutcome {
-    pub success: bool,
-    pub count: usize,
+    Ok(tests_passed)
 }
 
 pub fn accept_category(
     category: TestCategory,
     filters: &[String],
     confirm: bool,
-) -> anyhow::Result<SnapshotOutcome> {
+) -> anyhow::Result<bool> {
     let snapshots = pending::collect_pending_snapshots(category, filters)?;
 
     if snapshots.is_empty() {
         println!("{}", style("No pending snapshots found.").dim());
-        return Ok(SnapshotOutcome { success: true, count: 0 });
+        return Ok(true);
     }
 
     if !confirm && filters.is_empty() {
@@ -62,32 +52,29 @@ pub fn accept_category(
             "To accept all, run: {}",
             style(format!("just t {} --accept --confirm", category.as_str())).cyan()
         );
-        return Ok(SnapshotOutcome { success: false, count: 0 });
+        return Ok(false);
     }
 
     let result = pending::accept_snapshots(&snapshots);
     println!();
     println!("{}", style(format!("Accepted {} snapshot(s)", result.accepted)).green());
 
-    Ok(SnapshotOutcome { success: result.failed == 0, count: result.accepted })
+    Ok(result.failed == 0)
 }
 
-pub fn reject_category(
-    category: TestCategory,
-    filters: &[String],
-) -> anyhow::Result<SnapshotOutcome> {
+pub fn reject_category(category: TestCategory, filters: &[String]) -> anyhow::Result<bool> {
     let snapshots = pending::collect_pending_snapshots(category, filters)?;
 
     if snapshots.is_empty() {
         println!("{}", style("No pending snapshots found.").dim());
-        return Ok(SnapshotOutcome { success: true, count: 0 });
+        return Ok(true);
     }
 
     let result = pending::reject_snapshots(&snapshots);
     println!();
     println!("{}", style(format!("Rejected {} snapshot(s)", result.rejected)).red());
 
-    Ok(SnapshotOutcome { success: result.failed == 0, count: result.rejected })
+    Ok(result.failed == 0)
 }
 
 pub use fixture::DeleteFixtureOutcome;

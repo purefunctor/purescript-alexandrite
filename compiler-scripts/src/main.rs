@@ -83,42 +83,19 @@ fn main() {
         std::process::exit(2);
     }
 
-    if cli.args.accept {
-        let outcome = match accept_category(cli.category, &cli.args.filters, cli.args.confirm) {
-            Ok(outcome) => outcome,
-            Err(error) => {
-                eprintln!("{:#}", error);
-                std::process::exit(1);
-            }
-        };
-        if !outcome.success {
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    if cli.args.reject {
-        let outcome = match reject_category(cli.category, &cli.args.filters) {
-            Ok(outcome) => outcome,
-            Err(error) => {
-                eprintln!("{:#}", error);
-                std::process::exit(1);
-            }
-        };
-        if !outcome.success {
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    let outcome = match run_category(cli.category, &cli.args) {
-        Ok(outcome) => outcome,
+    let result = if cli.args.accept {
+        accept_category(cli.category, &cli.args.filters, cli.args.confirm)
+    } else if cli.args.reject {
+        reject_category(cli.category, &cli.args.filters)
+    } else {
+        run_category(cli.category, &cli.args)
+    };
+    match result {
+        Ok(true) => {}
+        Ok(false) => std::process::exit(1),
         Err(error) => {
             eprintln!("{:#}", error);
             std::process::exit(1);
         }
-    };
-    if !outcome.tests_passed {
-        std::process::exit(1);
     }
 }
