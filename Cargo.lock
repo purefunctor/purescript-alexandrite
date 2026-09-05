@@ -394,6 +394,7 @@ dependencies = [
  "pretty",
  "resolving",
  "rustc-hash",
+ "smallvec",
  "smol_str",
  "stabilizing",
  "sugar",

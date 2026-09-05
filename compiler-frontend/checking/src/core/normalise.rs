@@ -2,6 +2,7 @@
 
 use building_types::QueryResult;
 use itertools::Itertools;
+use smallvec::SmallVec;
 
 use crate::context::CheckContext;
 use crate::core::substitute::{NameToType, SubstituteName};
@@ -15,7 +16,7 @@ where
 {
     state: &'a mut CheckState,
     context: &'a CheckContext<'q, Q>,
-    compression: Vec<u32>,
+    compression: SmallVec<[u32; 4]>,
 }
 
 impl<'a, 'q, Q> ReductionContext<'a, 'q, Q>
@@ -23,7 +24,7 @@ where
     Q: ExternalQueries,
 {
     fn new(state: &'a mut CheckState, context: &'a CheckContext<'q, Q>) -> Self {
-        ReductionContext { state, context, compression: vec![] }
+        ReductionContext { state, context, compression: SmallVec::new() }
     }
 
     fn reduce_once(&mut self, id: TypeId) -> Option<TypeId> {
