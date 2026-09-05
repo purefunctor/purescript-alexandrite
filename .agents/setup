@@ -1,26 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+step() {
+  local label="$1" started=$SECONDS
+  shift
+  printf '\n==> %s\n' "$label"
+  "$@"
+  printf '%s completed in %ss\n' "$label" "$((SECONDS - started))"
+}
+
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+
 if ! command -v rustup >/dev/null 2>&1; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 fi
 
-export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+# Keep snapshot toolchains and Cargo caches; upgrade deliberately with rustup update.
+for toolchain in stable nightly; do
+  if ! rustup run "$toolchain" rustc --version >/dev/null 2>&1; then
+    step "Installing $toolchain Rust" rustup toolchain install "$toolchain" --profile minimal
+  fi
 
-rustup toolchain install stable --profile minimal --component clippy,rustfmt
-rustup target add --toolchain stable wasm32-unknown-unknown
-rustup toolchain install nightly --profile minimal --component rustfmt
-rustup default stable
+  components=(rustfmt)
+  if [[ "$toolchain" == stable ]]; then
+    components+=(clippy)
+  fi
+  installed_components=$(rustup component list --toolchain "$toolchain" --installed)
+  for component in "${components[@]}"; do
+    if ! grep -Eq "^${component}(-|$)" <<< "$installed_components"; then
+      step "Installing $toolchain $component" rustup component add --toolchain "$toolchain" "$component"
+    fi
+  done
+done
 
-if ! command -v cargo-binstall >/dev/null 2>&1; then
-  curl --proto '=https' --tlsv1.2 -LsSf \
-    https://raw.githubusercontent.com/cargo-bins/cargo-binstall/aaa84a43aec4955a42c5ffc65d258961e39f276e/install-from-binstall-release.sh \
-    | BINSTALL_VERSION=1.19.1 bash
+installed_targets=$(rustup target list --toolchain stable --installed)
+if ! grep -Fxq wasm32-unknown-unknown <<< "$installed_targets"; then
+  step 'Installing WASM target' rustup target add --toolchain stable wasm32-unknown-unknown
 fi
 
-cargo binstall --no-confirm \
-  just \
-  cargo-nextest \
-  cargo-insta \
-  cargo-edit \
-  cargo-bundle-licenses
+if [[ "$(rustup default 2>/dev/null || true)" != stable-* ]]; then
+  step 'Selecting stable Rust' rustup default stable
+fi
+
+missing_tools=()
+for package in just cargo-nextest cargo-insta cargo-edit cargo-bundle-licenses; do
+  executable="$package"
+  if [[ "$package" == cargo-edit ]]; then
+    executable=cargo-set-version
+  fi
+  if ! command -v "$executable" >/dev/null 2>&1; then
+    missing_tools+=("$package")
+  fi
+done
+
+if ((${#missing_tools[@]})); then
+  if ! command -v cargo-binstall >/dev/null 2>&1; then
+    curl --proto '=https' --tlsv1.2 -LsSf \
+      https://raw.githubusercontent.com/cargo-bins/cargo-binstall/aaa84a43aec4955a42c5ffc65d258961e39f276e/install-from-binstall-release.sh \
+      | BINSTALL_VERSION=1.19.1 bash
+  fi
+  step 'Installing missing development tools' cargo binstall --no-confirm "${missing_tools[@]}"
+fi
+
+printf '\nSetup complete in %ss.\n' "$SECONDS"
