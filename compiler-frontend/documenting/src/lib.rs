@@ -1,4 +1,3 @@
-mod algorithm;
 mod annotation;
 
 use std::sync::Arc;
@@ -10,20 +9,10 @@ use indexing::{DeriveItemId, InstanceItemId, TermItemId, TypeItemId};
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DocumentedModule {
     pub documentation: String,
-    pub terms: FxHashMap<TermItemId, DocumentedTerm>,
-    pub types: FxHashMap<TypeItemId, DocumentedType>,
-    pub instances: FxHashMap<InstanceItemId, DocumentedTerm>,
-    pub derives: FxHashMap<DeriveItemId, DocumentedTerm>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DocumentedTerm {
-    pub documentation: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DocumentedType {
-    pub documentation: String,
+    pub terms: FxHashMap<TermItemId, String>,
+    pub types: FxHashMap<TypeItemId, String>,
+    pub instances: FxHashMap<InstanceItemId, String>,
+    pub derives: FxHashMap<DeriveItemId, String>,
 }
 
 pub fn document_module(
@@ -32,7 +21,34 @@ pub fn document_module(
     stabilized: &stabilizing::StabilizedModule,
     indexed: &indexing::IndexedModule,
 ) -> Arc<DocumentedModule> {
-    let algorithm::State { documentation, terms, types, instances, derives } =
-        algorithm::document_module(source, parsed, stabilized, indexed);
+    let root = parsed.syntax_node();
+
+    let annotations = annotation::AnnotationIndex::new(source, &root);
+    let documentation = annotation::module_documentation(source, parsed);
+
+    let terms = indexed.items.iter_terms().map(|(id, item)| {
+        let documentation = annotation::term_documentation(stabilized, &annotations, item);
+        (id, documentation)
+    });
+    let terms = terms.collect();
+
+    let types = indexed.items.iter_types().map(|(id, item)| {
+        let documentation = annotation::type_documentation(stabilized, &annotations, item);
+        (id, documentation)
+    });
+    let types = types.collect();
+
+    let instances = indexed.items.iter_instances().map(|(id, item)| {
+        let documentation = annotation::instance_documentation(stabilized, &annotations, item.id);
+        (id, documentation)
+    });
+    let instances = instances.collect();
+
+    let derives = indexed.items.iter_derives().map(|(id, item)| {
+        let documentation = annotation::derive_documentation(stabilized, &annotations, item.id);
+        (id, documentation)
+    });
+    let derives = derives.collect();
+
     Arc::new(DocumentedModule { documentation, terms, types, instances, derives })
 }

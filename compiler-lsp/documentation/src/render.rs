@@ -253,7 +253,7 @@ impl<'a> ModuleEncoder<'a> {
 
         let name = term_item.name.as_ref().map(|name| name.to_string());
         let documentation =
-            term_documentation.and_then(|term| optional_string(&term.documentation));
+            term_documentation.and_then(|documentation| optional_string(documentation));
         let signature = term_signature(term_id, &self.checked)
             .map(|signature| self.type_encoder.encode_signature(signature))
             .transpose()?;
@@ -281,7 +281,7 @@ impl<'a> ModuleEncoder<'a> {
             }
         };
         let name = name.as_ref().map(ToString::to_string);
-        let documentation = documentation.and_then(|item| optional_string(&item.documentation));
+        let documentation = documentation.and_then(|documentation| optional_string(documentation));
         let signature =
             signature.map(|signature| self.type_encoder.encode_signature(signature)).transpose()?;
         Ok(schema::TermItem { name, documentation, signature, kind })
@@ -333,7 +333,8 @@ impl<'a> ModuleEncoder<'a> {
         let type_documentation = self.documented.types.get(&type_id);
 
         let name = type_item.name.as_ref().map(|name| name.to_string());
-        let documentation = type_documentation.and_then(|t| optional_string(&t.documentation));
+        let documentation =
+            type_documentation.and_then(|documentation| optional_string(documentation));
         let signature = self.checked.lookup_type_item_kind(type_id);
         let signature = signature.map(|signature| self.encode_signature(signature)).transpose()?;
         let instance_ids = instances.into_iter().collect::<Vec<_>>();
