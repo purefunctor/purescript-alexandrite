@@ -81,12 +81,6 @@ where
         return Ok(());
     };
 
-    let Some(OverlappingDeclaredCandidates { matches, wanted }) =
-        collect_overlapping_declared_candidates(state, context, origin, instance)?
-    else {
-        return Ok(());
-    };
-
     let Some(current_position) = context
         .indexed
         .items
@@ -97,15 +91,21 @@ where
         return Ok(());
     };
 
-    let overlap = matches.iter().any(|candidate| {
-        should_report_overlap(context, candidate.origin, origin, current_position)
-    });
+    let Some(OverlappingDeclaredCandidates { matches, wanted }) =
+        collect_overlapping_declared_candidates(
+            state,
+            context,
+            origin,
+            current_position,
+            instance,
+        )?
+    else {
+        return Ok(());
+    };
 
-    if overlap {
-        let constraint = state.canonicals.type_id(context, wanted);
-        let instances = matches.iter().map(|candidate| candidate.instance.signature).collect();
-        state.insert_error(ErrorKind::OverlappingInstances { constraint, instances });
-    }
+    let constraint = state.canonicals.type_id(context, wanted);
+    let instances = matches.iter().map(|candidate| candidate.instance.signature).collect();
+    state.insert_error(ErrorKind::OverlappingInstances { constraint, instances });
 
     Ok(())
 }
@@ -143,6 +143,7 @@ fn collect_overlapping_declared_candidates<Q>(
     state: &mut CheckState,
     context: &CheckContext<Q>,
     origin: InstanceCandidateOrigin,
+    origin_position: usize,
     instance: CheckedInstance,
 ) -> QueryResult<Option<OverlappingDeclaredCandidates>>
 where
@@ -177,6 +178,28 @@ where
         }
     }
 
+    let reportable_overlap = search.chains.iter().flatten().filter(|candidate| {
+        !is_chain_sibling(**candidate, current_chain, origin)
+            && should_report_overlap(context, candidate.origin, origin, origin_position)
+    });
+    let mut found = false;
+    for candidate in reportable_overlap {
+        if constraint::matching::declared_instances_overlap(
+            state,
+            context,
+            instance,
+            candidate.instance,
+        )? {
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        return Ok(None);
+    }
+
+    // Preserve the complete candidate list used by overlap diagnostics. This
+    // second pass only runs for an instance that will produce a diagnostic.
     let mut matches = vec![];
     'chain: for chain in search.chains() {
         for &candidate in chain {
