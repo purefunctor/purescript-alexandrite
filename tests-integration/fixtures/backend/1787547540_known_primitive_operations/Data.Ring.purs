@@ -1,18 +1,18 @@
 module Data.Ring where
 
-class Ring value where
-  sub :: value -> value -> value
-  negate :: value -> value
+import Data.Semiring (class Semiring, zero)
 
-foreign import intSubtract :: Int -> Int -> Int
-foreign import intNegate :: Int -> Int
-foreign import numberSubtract :: Number -> Number -> Number
-foreign import numberNegate :: Number -> Number
+class Semiring value <= Ring value where
+  sub :: value -> value -> value
+
+foreign import intSub :: Int -> Int -> Int
+foreign import numSub :: Number -> Number -> Number
 
 instance ringInt :: Ring Int where
-  sub = intSubtract
-  negate = intNegate
+  sub = intSub
 
 instance ringNumber :: Ring Number where
-  sub = numberSubtract
-  negate = numberNegate
+  sub = numSub
+
+negate :: forall value. Ring value => value -> value
+negate value = sub zero value

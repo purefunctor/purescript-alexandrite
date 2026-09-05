@@ -27,8 +27,16 @@ expression: report
 
 @export numberNegateLiteral = -20.5
 
-@export integerAddOrder = \$boolean%13@(_) -> integer.add (observe "left" 20) (observe "right" 22)
+@export numberNegateZero = 0.0
+
+@export genericNegate = \ringValueDict%13 -> \value%14 -> negate ringValueDict%13 value%14
+
+@export partiallyAppliedNegate = negate ringInt
+
+@export integerAddOrder = \$boolean%15@(_) -> integer.add (observe "left" 20) (observe "right" 22)
 
 @export partiallyAppliedAdd = add semiringInt 1
 
-@export lookalikeAdd = \left%14 right%15 -> add semiringInt left%14 right%15
+@export lookalikeAdd = \left%16 right%17 -> add semiringInt left%16 right%17
+
+@export lookalikeNegate = \value%18 -> negate value%18

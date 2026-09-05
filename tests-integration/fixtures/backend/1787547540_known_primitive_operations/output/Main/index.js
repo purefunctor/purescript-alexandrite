@@ -1,3 +1,4 @@
+import * as Data_Ring from "../Data.Ring/index.js";
 import * as Data_Semiring from "../Data.Semiring/index.js";
 import * as Lookalike from "../Lookalike/index.js";
 import * as $foreign from "./foreign.js";
@@ -28,7 +29,10 @@ export function integerNegate(value) {
   return -value | 0;
 }
 export function numberNegate(value) {
-  return -value;
+  return 0 - value;
+}
+export function genericNegate(ringValueDict) {
+  return (value) => /* @__PURE__ */ Data_Ring.negate(ringValueDict)(value);
 }
 export function integerAddOrder($boolean) {
   return observe("left")(20 | 0) + observe("right")(22 | 0) | 0;
@@ -38,9 +42,14 @@ export function lookalikeAdd(left) {
     return /* @__PURE__ */ Lookalike.add(Lookalike.semiringInt)(left)(right);
   };
 }
+export function lookalikeNegate(value) {
+  return Lookalike.negate(value);
+}
 export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
 export const integerNegateLiteral = -20 | 0;
 export const inlineIntegerNegateLiteral = -20 | 0;
 export const numberNegateLiteral = -20.5;
+export const numberNegateZero = 0;
+export const partiallyAppliedNegate = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringInt);
 export const partiallyAppliedAdd = /* @__PURE__ */ Data_Semiring.add(Data_Semiring.semiringInt)(1 | 0);
