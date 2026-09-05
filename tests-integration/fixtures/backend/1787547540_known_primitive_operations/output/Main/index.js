@@ -26,10 +26,10 @@ export function integerMultiply(left) {
   };
 }
 export function integerNegate(value) {
-  return /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringInt)(value);
+  return -value | 0;
 }
 export function numberNegate(value) {
-  return /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringNumber)(value);
+  return 0 - value;
 }
 export function genericNegate(ringValueDict) {
   return (value) => /* @__PURE__ */ Data_Ring.negate(ringValueDict)(value);
@@ -47,9 +47,9 @@ export function lookalikeNegate(value) {
 }
 export const observe = $foreign["observe"];
 export const readTrace = $foreign["readTrace"];
-export const integerNegateLiteral = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringInt)(20 | 0);
-export const inlineIntegerNegateLiteral = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringInt)(20 | 0);
-export const numberNegateLiteral = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringNumber)(20.5);
-export const numberNegateZero = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringNumber)(0);
+export const integerNegateLiteral = -20 | 0;
+export const inlineIntegerNegateLiteral = -20 | 0;
+export const numberNegateLiteral = -20.5;
+export const numberNegateZero = 0;
 export const partiallyAppliedNegate = /* @__PURE__ */ Data_Ring.negate(Data_Ring.ringInt);
 export const partiallyAppliedAdd = /* @__PURE__ */ Data_Semiring.add(Data_Semiring.semiringInt)(1 | 0);

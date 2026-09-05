@@ -17,17 +17,17 @@ expression: report
 
 @export integerMultiply = \left%8 right%9 -> integer.multiply left%8 right%9
 
-@export integerNegate = \value%10 -> negate ringInt value%10
+@export integerNegate = \value%10 -> integer.negate value%10
 
-@export integerNegateLiteral = negate ringInt 20
+@export integerNegateLiteral = -20
 
-@export inlineIntegerNegateLiteral = negate ringInt 20
+@export inlineIntegerNegateLiteral = -20
 
-@export numberNegate = \value%12 -> negate ringNumber value%12
+@export numberNegate = \value%12 -> number.negate value%12
 
-@export numberNegateLiteral = negate ringNumber 20.5
+@export numberNegateLiteral = -20.5
 
-@export numberNegateZero = negate ringNumber 0.0
+@export numberNegateZero = 0.0
 
 @export genericNegate = \ringValueDict%13 -> \value%14 -> negate ringValueDict%13 value%14
 
