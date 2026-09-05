@@ -843,7 +843,7 @@ where
         return Ok(false);
     };
     let instances = constraint::instances::collect_instance_chains(state, context, constraint)?;
-    for chain in instances.chains {
+    for chain in instances.chains() {
         for candidate in chain {
             let Some(candidate) =
                 toolkit::instance_info(state, context, candidate.instance.signature, class)?

@@ -7,7 +7,7 @@ use files::FileId;
 use indexing::{
     DeriveId, IndexedModule, InstanceChainId, InstanceId, InstanceSourceItemId, TypeItemId,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::context::CheckContext;
 use crate::core::constraint::{CanonicalConstraint, CanonicalConstraintId};
@@ -48,8 +48,25 @@ pub struct InstanceCandidate {
 /// constraint solver would need to wait for these unification variables to
 /// be truly solved before constraint solving is abandoned.
 pub struct InstanceChains {
-    pub chains: Vec<Vec<InstanceCandidate>>,
+    candidates: Vec<InstanceCandidate>,
     pub blocking: Vec<u32>,
+}
+
+impl InstanceChains {
+    fn new(mut candidates: Vec<InstanceCandidate>, blocking: Vec<u32>) -> InstanceChains {
+        candidates.sort_by_key(|candidate| {
+            (
+                candidate.chain,
+                candidate.position,
+                candidate.chain.is_none().then_some(candidate.instance.signature),
+            )
+        });
+        InstanceChains { candidates, blocking }
+    }
+
+    pub fn chains(&self) -> impl Iterator<Item = &[InstanceCandidate]> {
+        self.candidates.chunk_by(|left, right| left.chain.is_some() && left.chain == right.chain)
+    }
 }
 
 pub fn validate_declared_instance_overlap<Q>(
@@ -161,8 +178,8 @@ where
     }
 
     let mut matches = vec![];
-    'chain: for chain in search.chains {
-        for candidate in chain {
+    'chain: for chain in search.chains() {
+        for &candidate in chain {
             if is_chain_sibling(candidate, current_chain, origin) {
                 continue;
             }
@@ -227,31 +244,7 @@ where
         }
     }
 
-    type Grouped = FxHashMap<InstanceChainKey, Vec<InstanceCandidate>>;
-
-    let mut grouped = Grouped::default();
-    let mut chains = vec![];
-
-    for instance in instances {
-        if let Some(chain) = instance.chain {
-            grouped.entry(chain).or_default().push(instance);
-        } else {
-            chains.push(vec![instance]);
-        }
-    }
-
-    for (_, mut chain) in grouped {
-        chain.sort_by_key(|instance| instance.position);
-        chains.push(chain);
-    }
-
-    chains.sort_by_key(|chain| {
-        chain
-            .first()
-            .map(|instance| (instance.chain, instance.position, instance.instance.signature))
-    });
-
-    Ok(InstanceChains { chains, blocking })
+    Ok(InstanceChains::new(instances, blocking))
 }
 
 fn instance_candidate_chain<Q>(

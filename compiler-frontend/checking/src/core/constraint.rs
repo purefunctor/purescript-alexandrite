@@ -296,8 +296,8 @@ where
         }
 
         let search = instances::collect_instance_chains(state, context, constraint.key.wanted)?;
-        'chain: for chain in search.chains {
-            for candidate in chain {
+        'chain: for chain in search.chains() {
+            for &candidate in chain {
                 match matching::match_declared(state, context, constraint.key.wanted, candidate)? {
                     matching::MatchInstance::Match { unifications, constraints } => {
                         let constraints = fresh_scoped_constraints(state, &constraint, constraints);
