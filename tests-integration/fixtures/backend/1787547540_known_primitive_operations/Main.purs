@@ -42,6 +42,15 @@ numberNegate value = Ring.negate value
 numberNegateLiteral :: Number
 numberNegateLiteral = Ring.negate 20.5
 
+numberNegateZero :: Number
+numberNegateZero = Ring.negate 0.0
+
+genericNegate :: forall value. Ring.Ring value => value -> value
+genericNegate value = Ring.negate value
+
+partiallyAppliedNegate :: Int -> Int
+partiallyAppliedNegate = Ring.negate
+
 integerAddOrder :: Boolean -> Int
 integerAddOrder _ =
   Semiring.add
@@ -53,3 +62,6 @@ partiallyAppliedAdd = Semiring.add 1
 
 lookalikeAdd :: Int -> Int -> Int
 lookalikeAdd left right = Lookalike.add left right
+
+lookalikeNegate :: Int -> Int
+lookalikeNegate value = Lookalike.negate value

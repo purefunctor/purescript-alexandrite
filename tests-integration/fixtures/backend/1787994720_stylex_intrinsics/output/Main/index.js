@@ -1,3 +1,4 @@
+import { negate as Data_Ring_negate, ringInt as Data_Ring_ringInt, ringNumber as Data_Ring_ringNumber } from "../Data.Ring/index.js";
 import * as $stylex from "@stylexjs/stylex";
 export function buttonPropsArray(highlighted) {
   return $stylex.props([styles.button, highlighted && secondary.root]);
@@ -22,8 +23,8 @@ export const styles = $stylex.create({
   button: {
     color: "red",
     padding: 8 | 0,
-    marginInline: -20 | 0,
-    opacity: -.5,
+    marginInline: /* @__PURE__ */ Data_Ring_negate(Data_Ring_ringInt)(20 | 0),
+    opacity: /* @__PURE__ */ Data_Ring_negate(Data_Ring_ringNumber)(.5),
     animationName: animation,
     ":hover": { color: "blue" }
   },

@@ -10,8 +10,8 @@ expression: report
     {
       color: "red",
       padding: 8,
-      marginInline: -20,
-      opacity: -0.5,
+      marginInline: negate ringInt 20,
+      opacity: negate ringNumber 0.5,
       animationName: animation,
       ":hover": { color: "blue" }
     },
