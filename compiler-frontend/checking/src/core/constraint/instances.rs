@@ -178,7 +178,7 @@ where
         }
     }
 
-    let reportable_overlap = search.chains.iter().flatten().filter(|candidate| {
+    let reportable_overlap = search.chains().flatten().filter(|candidate| {
         !is_chain_sibling(**candidate, current_chain, origin)
             && should_report_overlap(context, candidate.origin, origin, origin_position)
     });
