@@ -1,6 +1,6 @@
 //! JavaScript rendering for semantic StyleX expressions.
 
-use functional::optimize::expression_children;
+use functional::optimize::for_each_expression_child;
 use functional::stylex::{StyleXCallTarget, StyleXConditionalCase, StyleXExpression};
 use functional::tree::{
     DeclarationKind, ExpressionKind, Global, GlobalId, InstanceIdentity, Module,
@@ -36,9 +36,9 @@ pub(super) fn collect_stylex_references(module: &Module) -> Vec<Global> {
         {
             references.push(Global::clone(global));
         }
-        expressions.extend(
-            expression_children(kind).into_iter().map(|expression| (expression, static_context)),
-        );
+        for_each_expression_child(kind, |expression| {
+            expressions.push((expression, static_context));
+        });
     }
     references
 }

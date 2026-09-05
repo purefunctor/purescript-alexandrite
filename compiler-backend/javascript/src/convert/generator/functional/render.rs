@@ -10,7 +10,7 @@ mod tail_call;
 use std::sync::Arc;
 
 use files::{FileId, ForeignSourceKind};
-use functional::optimize::local_uses;
+use functional::optimize::{for_each_expression_child, local_uses};
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
     ExpressionId as FunctionalExpressionId, ExpressionKind, Global, GlobalId, Guard,
@@ -1719,9 +1719,14 @@ impl Generator<'_> {
                         .any(|argument| self.expression_rendering_is_eager(*argument, context))
             }
             ExpressionKind::StyleX(stylex) => stylex
-                .children()
-                .into_iter()
-                .any(|child| self.expression_rendering_is_eager(child, context)),
+                .try_for_each_child(|child| {
+                    if self.expression_rendering_is_eager(child, context) {
+                        Err(())
+                    } else {
+                        Ok(())
+                    }
+                })
+                .is_err(),
             ExpressionKind::Error
             | ExpressionKind::IfThenElse { .. }
             | ExpressionKind::Case { .. }
@@ -1971,9 +1976,11 @@ impl Generator<'_> {
                 self.expression_can_inline(*function)
                     && arguments.iter().all(|argument| self.expression_can_inline(*argument))
             }
-            ExpressionKind::StyleX(stylex) => {
-                stylex.children().into_iter().all(|child| self.expression_can_inline(child))
-            }
+            ExpressionKind::StyleX(stylex) => stylex
+                .try_for_each_child(|child| {
+                    if self.expression_can_inline(child) { Ok(()) } else { Err(()) }
+                })
+                .is_ok(),
             ExpressionKind::Error
             | ExpressionKind::RecordUpdate { .. }
             | ExpressionKind::IfThenElse { .. }
@@ -3234,10 +3241,10 @@ fn collect_expression_references(
                 collect_expression_references(module, *argument, seen, globals);
             }
         }
-        ExpressionKind::StyleX(stylex) => {
-            for child in stylex.children() {
+        kind @ ExpressionKind::StyleX(_) => {
+            for_each_expression_child(kind, |child| {
                 collect_expression_references(module, child, seen, globals);
-            }
+            });
         }
         ExpressionKind::IfThenElse { condition, then, else_ } => {
             collect_expression_references(module, *condition, seen, globals);
@@ -3452,10 +3459,10 @@ fn collect_expression_children(
                 collect_expression_globals(module, *argument, false, globals);
             }
         }
-        ExpressionKind::StyleX(stylex) => {
-            for child in stylex.children() {
+        kind @ ExpressionKind::StyleX(_) => {
+            for_each_expression_child(kind, |child| {
                 collect_expression_globals(module, child, false, globals);
-            }
+            });
         }
         ExpressionKind::IfThenElse { condition, then, else_ } => {
             collect_expression_globals(module, *condition, false, globals);
