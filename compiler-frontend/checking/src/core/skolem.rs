@@ -68,6 +68,9 @@ where
         let scopes = leading_scopes(context, expression.type_id);
         expected_skolems.extend(scopes);
     }
+    if expected_skolems.is_empty() {
+        return;
+    }
 
     let (errors, _) = collect_errors(
         &state.checked,
@@ -98,6 +101,9 @@ where
         Some(declaration),
         Pass::Discover,
     );
+    if expected_skolems.is_empty() {
+        return Ok(());
+    }
     let (errors, _) = collect_errors(
         &state.checked,
         &state.judgments,
