@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export pick = \dictionary%0 -> dictionary%0.pick
+
+@export instance pick1 = { pick: \$proxy%1@(_) -> 10 }
+
+@export result = {
+  third: pickDictPick "Proxy",
+  first: pick pick2 "Proxy",
+  second: pick pick3 "Proxy",
+  named: pick pick4 "Proxy",
+  repeated: pickDictPick "Proxy",
+  local: pick pick1 "Proxy"
+}
+
+pickDictPick = pick pick5
