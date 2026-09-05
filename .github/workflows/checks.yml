@@ -33,6 +33,7 @@ jobs:
         with:
           cache-bin: "false"
           prefix-key: "v7-nextest-workspace-${{ matrix.os }}-${{ matrix.toolchain }}"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install tools
         uses: taiki-e/install-action@v2.87.1
@@ -87,6 +88,7 @@ jobs:
         with:
           cache-bin: "false"
           prefix-key: "v1-e2e-${{ matrix.os }}"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install tools
         uses: taiki-e/install-action@v2.87.1
@@ -281,6 +283,7 @@ jobs:
         with:
           cache-bin: "false"
           prefix-key: "v1-wasm"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check Wasm crates
         run: cargo check -p analyzer -p docs-lib --target wasm32-unknown-unknown
@@ -305,6 +308,7 @@ jobs:
         with:
           cache-bin: "false"
           prefix-key: "v7-nextest-workspace-${{ matrix.toolchain }}"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install tools
         uses: taiki-e/install-action@v2.87.1
