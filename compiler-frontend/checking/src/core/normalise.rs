@@ -231,19 +231,15 @@ where
     Q: ExternalQueries,
 {
     let mut current = id;
-    let mut arguments = vec![];
+    let mut argument_count = 0;
 
-    // Collect application spine arguments. In the example above, this
-    // collects `[Array, Int]` and `[Tuple, Int, String]` respectively.
+    // Most application heads are not synonyms. Inspect the head before
+    // allocating storage for arguments, preserving normalisation along the spine.
     safe_loop! {
         current = normalise(state, context, current)?;
         match context.lookup_type(current) {
-            Type::Application(function, argument) => {
-                arguments.push(ApplicationArgument::Type(argument));
-                current = function;
-            }
-            Type::KindApplication(function, argument) => {
-                arguments.push(ApplicationArgument::Kind(argument));
+            Type::Application(function, _) | Type::KindApplication(function, _) => {
+                argument_count += 1;
                 current = function;
             }
             _ => break,
@@ -260,6 +256,23 @@ where
     let Some(checked_synonym) = checked_synonym else {
         return Ok(id);
     };
+
+    let mut arguments = Vec::with_capacity(argument_count);
+    current = id;
+    safe_loop! {
+        current = normalise(state, context, current)?;
+        match context.lookup_type(current) {
+            Type::Application(function, argument) => {
+                arguments.push(ApplicationArgument::Type(argument));
+                current = function;
+            }
+            Type::KindApplication(function, argument) => {
+                arguments.push(ApplicationArgument::Kind(argument));
+                current = function;
+            }
+            _ => break,
+        }
+    }
 
     let mut bindings = NameToType::default();
     let mut kind = checked_synonym.kind;
