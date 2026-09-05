@@ -276,6 +276,23 @@ pub enum Type {
     Unknown(SmolStrId),
 }
 
+/// Immutable properties of an interned type's outermost node.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TypeFlags(u8);
+
+impl TypeFlags {
+    const MAY_NORMALISE: u8 = 1 << 0;
+
+    pub(crate) fn new(may_normalise: bool) -> TypeFlags {
+        TypeFlags(if may_normalise { TypeFlags::MAY_NORMALISE } else { 0 })
+    }
+
+    /// Whether head normalisation may change this type.
+    pub fn may_normalise(self) -> bool {
+        self.0 & TypeFlags::MAY_NORMALISE != 0
+    }
+}
+
 /// The role of a type parameter for safe coercions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Role {

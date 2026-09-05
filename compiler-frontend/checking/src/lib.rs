@@ -55,6 +55,8 @@ pub trait ExternalQueries:
 
     fn intern_type(&self, t: Type) -> TypeId;
 
+    fn lookup_type_flags(&self, id: TypeId) -> core::TypeFlags;
+
     fn intern_forall_binder(&self, b: ForallBinder) -> ForallBinderId;
 
     fn intern_row_type(&self, r: RowType) -> RowTypeId;

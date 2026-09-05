@@ -101,6 +101,10 @@ pub fn normalise<Q>(
 where
     Q: ExternalQueries,
 {
+    if !context.lookup_type_flags(id).may_normalise() {
+        return Ok(id);
+    }
+
     let mut reduction = ReductionContext::new(state, context);
 
     let id = safe_loop! {
