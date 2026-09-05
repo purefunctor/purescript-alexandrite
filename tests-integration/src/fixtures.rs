@@ -63,21 +63,19 @@ impl JavaScriptModules {
             let output_parent = output_path.parent().expect("module filename has no parent");
             std::fs::create_dir_all(output_parent)?;
             std::fs::write(output_path, module.source())?;
-            if module.requires_foreign() {
+            if let Some(kind) = module.foreign_kind() {
                 let source_url = Url::parse(&files.path(module.file_id()))?;
                 let source_path = source_url.to_file_path().map_err(|()| {
                     invalid_data(format!(
                         "invariant violated: source URL is not a file: {source_url}"
                     ))
                 })?;
-                let kind = module
-                    .foreign_kind()
-                    .expect("invariant violated: required foreign module has no source kind");
                 let foreign_path = source_path.with_extension(kind.extension());
                 if !foreign_path.exists() {
                     continue;
                 }
-                let output_path = output.join(module.foreign_filename());
+                let output_path =
+                    output.join(javascript::foreign_module_filename(module.name(), kind));
                 let output_parent = output_path.parent().expect("foreign filename has no parent");
                 std::fs::create_dir_all(output_parent)?;
                 std::fs::copy(&foreign_path, &output_path).map_err(|error| {

@@ -48,13 +48,6 @@ impl Module {
         module_filename(&self.name)
     }
 
-    pub fn foreign_filename(&self) -> String {
-        let kind = self
-            .foreign_kind
-            .expect("invariant violated: module without foreign source has no foreign filename");
-        foreign_module_filename(&self.name, kind)
-    }
-
     pub fn source(&self) -> &str {
         &self.source
     }
@@ -65,10 +58,6 @@ impl Module {
 
     pub fn diagnostics(&self) -> &[ModuleDiagnostic] {
         &self.diagnostics
-    }
-
-    pub fn requires_foreign(&self) -> bool {
-        self.foreign_kind.is_some()
     }
 
     pub fn foreign_kind(&self) -> Option<ForeignSourceKind> {

@@ -377,17 +377,15 @@ fn write_modules(
         write_if_changed(&output_path, module.source().as_bytes())?;
         let mut outputs = vec![output_path];
 
-        if !module.requires_foreign() {
-            progress.inc(1);
-            return Ok(outputs);
+        if let Some(kind) = module.foreign_kind() {
+            let output_path = output.join(javascript::foreign_module_filename(module.name(), kind));
+            let foreign = compilation
+                .source_foreign_content(module.file_id())
+                .expect("invariant violated: generated module requires missing foreign content");
+            write_if_changed(&output_path, foreign.as_bytes())?;
+            outputs.push(output_path);
         }
 
-        let output_path = output.join(module.foreign_filename());
-        let foreign = compilation
-            .source_foreign_content(module.file_id())
-            .expect("invariant violated: generated module requires missing foreign content");
-        write_if_changed(&output_path, foreign.as_bytes())?;
-        outputs.push(output_path);
         progress.inc(1);
         Ok(outputs)
     });
