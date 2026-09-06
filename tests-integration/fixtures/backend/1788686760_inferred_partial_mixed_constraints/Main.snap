@@ -34,14 +34,3 @@ Warning! · [MissingPatterns] · Main.purs:12:3
   │     let
   │     ╰──
   •
-
-
-Backend Diagnostics
-Error! · [FunctionalCodegen] · Main.purs:1:1
-  •
-  │
-  • instance prerequisite is not represented by given evidence
-  │
-  │   module Main where
-  │   ╰────────────────
-  •

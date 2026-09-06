@@ -904,12 +904,13 @@ where
                     residuals,
                     &mut errors,
                 )?;
-                let inferred_constraints = !constrained.evidences.is_empty();
-                let abstractions = std::iter::zip(constrained.constraints, constrained.evidences)
-                    .map(|(constraint, evidence)| tree::DeclarationAbstraction::Evidence {
-                        constraint,
-                        evidence,
-                    });
+                let inferred_constraints = !constrained.constraints.is_empty();
+                let abstractions = constrained.constraints.into_iter().map(|constraint| {
+                    tree::DeclarationAbstraction::Evidence {
+                        constraint: constraint.constraint,
+                        binder: constraint.binder,
+                    }
+                });
                 let abstractions = abstractions.collect();
                 (constrained.type_id, abstractions, equations, inferred_constraints)
             }

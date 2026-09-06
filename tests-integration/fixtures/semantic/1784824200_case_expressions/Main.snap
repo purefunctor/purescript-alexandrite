@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 68
+assertion_line: 317
 expression: report
 ---
 data Choice :: Prim.Type -> Prim.Type
@@ -32,6 +32,6 @@ multiple = \first -> \second ->
     _, _ -> 0
 
 partial :: forall t0. Prim.Partial => Main.Choice t0 -> t0
-partial = \{trivial} -> \choice ->
+partial = \{partialDict} -> \choice ->
   case choice of
     (One value) -> value

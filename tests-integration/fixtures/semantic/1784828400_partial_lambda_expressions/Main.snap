@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 68
+assertion_line: 317
 expression: report
 ---
 data Maybe :: Prim.Type -> Prim.Type
@@ -12,4 +12,4 @@ checked :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
 checked = \{partialDict} -> \(Just value) -> value
 
 inferred :: forall t0. Prim.Partial => Main.Maybe t0 -> t0
-inferred = \{trivial} -> \(Just value) -> value
+inferred = \{partialDict} -> \(Just value) -> value

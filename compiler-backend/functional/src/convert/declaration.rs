@@ -165,10 +165,7 @@ fn value_declaration(
     let body = equations(context, &value.equations)?;
     let mut evidence_parameters = Vec::new();
     for abstraction in value.abstractions.iter() {
-        if let checking_tree::DeclarationAbstraction::Evidence { evidence, .. } = abstraction {
-            let Evidence::Given(binder) = evidence else {
-                return Err(context.unsupported(UnsupportedState::InvalidInstancePrerequisite));
-            };
+        if let checking_tree::DeclarationAbstraction::Evidence { binder, .. } = abstraction {
             evidence_parameters.push(context.evidence_parameter(*binder)?);
         }
     }

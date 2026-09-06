@@ -9,7 +9,6 @@ use building_types::QueryResult;
 use crate::context::CheckContext;
 use crate::core::{TypeId, signature, toolkit, unification};
 use crate::error::ErrorKind;
-use crate::evidence::Evidence;
 use crate::source::binder;
 use crate::source::terms::guarded;
 use crate::state::CheckState;
@@ -156,11 +155,8 @@ pub fn bind_signature_abstractions(
             tree::DeclarationAbstraction::Type { binder, rigid }
         }
         signature::SkolemisedAbstraction::Constraint { constraint } => {
-            let evidence = state.push_given(constraint);
-            tree::DeclarationAbstraction::Evidence {
-                constraint,
-                evidence: Evidence::Given(evidence),
-            }
+            let binder = state.push_given(constraint);
+            tree::DeclarationAbstraction::Evidence { constraint, binder }
         }
     });
     abstractions.collect()

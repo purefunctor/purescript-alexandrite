@@ -68,7 +68,7 @@ pub struct ValueDeclaration {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeclarationAbstraction {
     Type { binder: ForallBinderId, rigid: TypeId },
-    Evidence { constraint: TypeId, evidence: Evidence },
+    Evidence { constraint: TypeId, binder: EvidenceBinderId },
 }
 
 #[derive(Debug, PartialEq, Eq)]

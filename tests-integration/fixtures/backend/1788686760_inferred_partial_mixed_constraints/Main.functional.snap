@@ -3,4 +3,20 @@ source: tests-integration/tests/functional.rs
 assertion_line: 14
 expression: report
 ---
-cannot convert checked module Idx::<File>(45): instance prerequisite is not represented by given evidence
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export select = \dictionary%0 -> dictionary%0.select
+
+@export instance selectInt = { select: \first%2 second%1 -> second%1 }
+
+@export mixed = \partialDict%7 selectDict%3 ->
+  \choice%6 fallback%5 ->
+    let
+      Just value%4 = choice%6
+    in select selectDict%3 value%4 fallback%5
+
+@export foreign unsafePartial
+
+@export discharged = unsafePartial (\partialDict%8 -> mixed partialDict%8 selectInt)
