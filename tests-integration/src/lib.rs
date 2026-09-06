@@ -110,7 +110,7 @@ pub fn load_fixture(folder: &Path) -> FixtureResult<LoadedFixture> {
         || folder.starts_with("fixtures/semantic/")
     {
         tests_support::prepared_sources(
-            manifest.join("registry-lock.json"),
+            manifest.join("packages.json"),
             manifest.join("../target/integration-packages"),
         )
         .map_err(|error| {

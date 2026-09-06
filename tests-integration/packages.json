@@ -1,0 +1,16 @@
+{
+  "package_set": "80.8.1",
+  "roots": [
+    "aff",
+    "bifunctors",
+    "contravariant",
+    "effect",
+    "foldable-traversable",
+    "newtype",
+    "partial",
+    "prelude",
+    "profunctor",
+    "safe-coerce",
+    "tailrec"
+  ]
+}

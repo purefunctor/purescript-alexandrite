@@ -17,7 +17,7 @@ pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<bo
     if matches!(category, TestCategory::Backend | TestCategory::Checking | TestCategory::Semantic) {
         let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
         tests_support::prepare(
-            repository.join("tests-integration/registry-lock.json"),
+            repository.join("tests-integration/packages.json"),
             repository.join("target/integration-packages"),
         )?;
     }

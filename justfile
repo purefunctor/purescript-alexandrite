@@ -24,7 +24,7 @@ coverage-html:
 
 [doc("Prepare locked registry sources for integration tests")]
 @integration-prepare:
-  cargo run -q -p tests-support -- prepare tests-integration/registry-lock.json target/integration-packages
+  cargo run -q -p tests-support -- prepare tests-integration/packages.json target/integration-packages
 
 @integration *args="": integration-prepare
   cargo nextest run -p tests-integration "$@" --status-level=fail --final-status-level=fail --failure-output=final

@@ -55,10 +55,10 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/integration-packages
-          key: integration-packages-v1-${{ runner.os }}-${{ hashFiles('tests-integration/registry-lock.json', 'tests-support/src/**') }}
+          key: integration-packages-v2-${{ runner.os }}-${{ hashFiles('tests-integration/packages.json', 'tests-support/src/**') }}
 
       - name: Prepare integration packages
-        run: cargo run -p tests-support -- prepare tests-integration/registry-lock.json target/integration-packages
+        run: cargo run -p tests-support -- prepare tests-integration/packages.json target/integration-packages
 
       - name: Test registry preparation
         run: cargo nextest run -p tests-support
@@ -341,7 +341,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/integration-packages
-          key: integration-packages-v1-${{ runner.os }}-${{ hashFiles('tests-integration/registry-lock.json', 'tests-support/src/**') }}
+          key: integration-packages-v2-${{ runner.os }}-${{ hashFiles('tests-integration/packages.json', 'tests-support/src/**') }}
 
       - name: Build and Test
         run: |

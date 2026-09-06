@@ -15,9 +15,31 @@ use tar::{Archive, EntryType};
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const COMPLETE_FILE: &str = ".complete";
 
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct PackageConfiguration {
+    package_set: String,
+    roots: Vec<String>,
+}
+
+fn read_configuration(path: &Path) -> Result<(PackageConfiguration, String)> {
+    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let mut configuration: PackageConfiguration = serde_json::from_slice(&bytes)
+        .with_context(|| format!("failed to parse {}", path.display()))?;
+    Version::parse(&configuration.package_set).context("invalid package set version")?;
+    ensure!(!configuration.roots.is_empty(), "package configuration has no roots");
+    for root in &configuration.roots {
+        validate_package_name(root)?;
+    }
+    configuration.roots.sort();
+    configuration.roots.dedup();
+    let key = digest_hex(&serde_json::to_vec(&configuration)?);
+    Ok((configuration, key))
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct RegistryLock {
+struct RegistryLock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub package_set: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -27,13 +49,13 @@ pub struct RegistryLock {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct LockedPackage {
+struct LockedPackage {
     pub name: String,
     pub version: String,
     pub sha256: String,
 }
 
-pub fn read_lock(path: impl AsRef<Path>) -> Result<RegistryLock> {
+fn read_lock(path: impl AsRef<Path>) -> Result<RegistryLock> {
     let path = path.as_ref();
     let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
     let lock: RegistryLock = serde_json::from_slice(&bytes)
@@ -42,7 +64,7 @@ pub fn read_lock(path: impl AsRef<Path>) -> Result<RegistryLock> {
     Ok(lock)
 }
 
-pub fn validate_lock(lock: &RegistryLock) -> Result<()> {
+fn validate_lock(lock: &RegistryLock) -> Result<()> {
     ensure!(!lock.packages.is_empty(), "registry lock has no packages");
     if let Some(package_set) = &lock.package_set {
         Version::parse(package_set).context("invalid package set version")?;
@@ -93,24 +115,16 @@ struct Published {
     hash: String,
 }
 
-/// Writes the exact transitive closure selected by a registry package set.
-pub fn write_lock(
-    package_set_version: &str,
-    lock_path: impl AsRef<Path>,
-    roots: Vec<String>,
-) -> Result<()> {
-    Version::parse(package_set_version).context("invalid package set version")?;
+fn resolve_packages(configuration: &PackageConfiguration) -> Result<RegistryLock> {
+    let package_set_version = &configuration.package_set;
     let client = Client::builder().timeout(REQUEST_TIMEOUT).build()?;
     let base = "https://raw.githubusercontent.com/purescript";
     let package_set_url = format!("{base}/registry/main/package-sets/{package_set_version}.json");
     let package_set_response = client.get(package_set_url).send()?.error_for_status()?.text()?;
     let package_set: PackageSet = serde_json::from_str(&package_set_response)?;
-    let lock = build_lock(package_set_version, roots, package_set, |path| {
+    build_lock(package_set_version, configuration.roots.clone(), package_set, |path| {
         Ok(client.get(format!("{base}/{path}")).send()?.error_for_status()?.text()?)
-    })?;
-    let mut bytes = serde_json::to_vec_pretty(&lock)?;
-    bytes.push(b'\n');
-    atomic_write(lock_path.as_ref(), &bytes)
+    })
 }
 
 fn build_lock<F>(
@@ -197,20 +211,26 @@ fn registry_index_path(name: &str) -> String {
     }
 }
 
-/// Prepares the exact registry sources in `cache_root/source-sets/<lock SHA256>`.
-pub fn prepare(lock_path: impl AsRef<Path>, cache_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
-    let lock_path = lock_path.as_ref();
+/// Resolves a pinned package set and prepares its sources. Resolution is cached locally.
+pub fn prepare(
+    configuration_path: impl AsRef<Path>,
+    cache_root: impl AsRef<Path>,
+) -> Result<Vec<PathBuf>> {
     let cache_root = cache_root.as_ref();
-    let lock_bytes =
-        fs::read(lock_path).with_context(|| format!("failed to read {}", lock_path.display()))?;
-    let lock: RegistryLock = serde_json::from_slice(&lock_bytes)
-        .with_context(|| format!("failed to parse {}", lock_path.display()))?;
-    validate_lock(&lock)?;
-    let key = digest_hex(&lock_bytes);
-
+    let (configuration, configuration_key) = read_configuration(configuration_path.as_ref())?;
     fs::create_dir_all(cache_root)?;
     let lock_file = File::create(cache_root.join(".prepare.lock"))?;
     lock_file.lock()?;
+    let resolution_path = cache_root.join("resolutions").join(format!("{configuration_key}.json"));
+    let lock = if resolution_path.exists() {
+        read_resolution(&configuration, &resolution_path)?
+    } else {
+        let lock = resolve_packages(&configuration)?;
+        fs::create_dir_all(cache_root.join("resolutions"))?;
+        atomic_write(&resolution_path, &serde_json::to_vec_pretty(&lock)?)?;
+        lock
+    };
+    let key = digest_hex(&serde_json::to_vec(&lock)?);
     let client = Client::builder().timeout(REQUEST_TIMEOUT).build()?;
     prepare_locked(&lock, &key, cache_root, |package| {
         let url = format!(
@@ -222,19 +242,28 @@ pub fn prepare(lock_path: impl AsRef<Path>, cache_root: impl AsRef<Path>) -> Res
     prepared_sources_for_lock(&lock, &key, cache_root)
 }
 
-/// Returns package roots only when the lock's immutable source set is complete.
+fn read_resolution(configuration: &PackageConfiguration, path: &Path) -> Result<RegistryLock> {
+    let lock = read_lock(path)?;
+    ensure!(
+        lock.package_set.as_ref() == Some(&configuration.package_set)
+            && lock.roots == configuration.roots,
+        "cached resolution does not match package configuration"
+    );
+    Ok(lock)
+}
+
+/// Returns package roots only when the configuration's source set is complete.
 /// This function performs no network access.
 pub fn prepared_sources(
-    lock_path: impl AsRef<Path>,
+    configuration_path: impl AsRef<Path>,
     cache_root: impl AsRef<Path>,
 ) -> Result<Vec<PathBuf>> {
-    let lock_path = lock_path.as_ref();
-    let bytes =
-        fs::read(lock_path).with_context(|| format!("failed to read {}", lock_path.display()))?;
-    let lock: RegistryLock = serde_json::from_slice(&bytes)
-        .with_context(|| format!("failed to parse {}", lock_path.display()))?;
-    validate_lock(&lock)?;
-    prepared_sources_for_lock(&lock, &digest_hex(&bytes), cache_root.as_ref())
+    let cache_root = cache_root.as_ref();
+    let (configuration, key) = read_configuration(configuration_path.as_ref())?;
+    let resolution_path = cache_root.join("resolutions").join(format!("{key}.json"));
+    let lock = read_resolution(&configuration, &resolution_path)?;
+    let key = digest_hex(&serde_json::to_vec(&lock)?);
+    prepared_sources_for_lock(&lock, &key, cache_root)
 }
 
 fn prepare_locked<F>(lock: &RegistryLock, key: &str, cache_root: &Path, mut fetch: F) -> Result<()>
@@ -609,12 +638,20 @@ mod tests {
     #[test]
     fn concurrent_preparations_publish_one_source_set() {
         let bytes = archive(EntryType::Regular, "package/src/Main.purs", b"module Main where");
-        let lock = fixture_lock(&bytes);
+        let mut lock = fixture_lock(&bytes);
+        lock.package_set = Some("1.0.0".into());
         let directory = tempdir().unwrap();
-        let lock_path = directory.path().join("registry-lock.json");
+        let configuration_path = directory.path().join("packages.json");
         let cache_root = directory.path().join("cache");
+        fs::write(&configuration_path, r#"{"package_set":"1.0.0","roots":["prelude"]}"#).unwrap();
+        let (_, key) = read_configuration(&configuration_path).unwrap();
         fs::create_dir_all(cache_root.join("downloads")).unwrap();
-        fs::write(&lock_path, serde_json::to_vec(&lock).unwrap()).unwrap();
+        fs::create_dir_all(cache_root.join("resolutions")).unwrap();
+        fs::write(
+            cache_root.join("resolutions").join(format!("{key}.json")),
+            serde_json::to_vec(&lock).unwrap(),
+        )
+        .unwrap();
         fs::write(
             cache_root.join("downloads").join(format!("{}.tar.gz", lock.packages[0].sha256)),
             bytes,
@@ -622,9 +659,47 @@ mod tests {
         .unwrap();
 
         std::thread::scope(|scope| {
-            let first = scope.spawn(|| prepare(&lock_path, &cache_root));
-            let second = scope.spawn(|| prepare(&lock_path, &cache_root));
+            let first = scope.spawn(|| prepare(&configuration_path, &cache_root));
+            let second = scope.spawn(|| prepare(&configuration_path, &cache_root));
             assert_eq!(first.join().unwrap().unwrap(), second.join().unwrap().unwrap());
         });
+        assert_eq!(prepared_sources(&configuration_path, &cache_root).unwrap().len(), 1);
+        fs::write(&configuration_path, r#"{"package_set":"2.0.0","roots":["prelude"]}"#).unwrap();
+        assert!(prepared_sources(&configuration_path, &cache_root).is_err());
+    }
+
+    #[test]
+    fn configuration_key_tracks_versions_and_roots_not_formatting() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("packages.json");
+        fs::write(&path, r#"{"package_set":"1.0.0","roots":["effect","prelude"]}"#).unwrap();
+        let (_, original) = read_configuration(&path).unwrap();
+        fs::write(&path, r#"{ "roots": ["prelude", "effect"], "package_set": "1.0.0" }"#).unwrap();
+        assert_eq!(read_configuration(&path).unwrap().1, original);
+        fs::write(&path, r#"{"package_set":"2.0.0","roots":["effect","prelude"]}"#).unwrap();
+        assert_ne!(read_configuration(&path).unwrap().1, original);
+        fs::write(&path, r#"{"package_set":"1.0.0","roots":["prelude"]}"#).unwrap();
+        assert_ne!(read_configuration(&path).unwrap().1, original);
+        fs::write(&path, r#"{"package_set":"latest","roots":["prelude"]}"#).unwrap();
+        assert!(read_configuration(&path).is_err());
+        fs::write(&path, r#"{"package_set":"1.0.0","roots":[]}"#).unwrap();
+        assert!(read_configuration(&path).is_err());
+    }
+
+    #[test]
+    fn rejects_resolution_for_different_configuration() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("resolution.json");
+        let mut lock = fixture_lock(b"bytes");
+        lock.package_set = Some("1.0.0".into());
+        fs::write(&path, serde_json::to_vec(&lock).unwrap()).unwrap();
+        let mut configuration =
+            PackageConfiguration { package_set: "1.0.0".into(), roots: vec!["prelude".into()] };
+        assert!(read_resolution(&configuration, &path).is_ok());
+        configuration.package_set = "2.0.0".into();
+        assert!(read_resolution(&configuration, &path).is_err());
+        configuration.package_set = "1.0.0".into();
+        configuration.roots = vec!["effect".into()];
+        assert!(read_resolution(&configuration, &path).is_err());
     }
 }

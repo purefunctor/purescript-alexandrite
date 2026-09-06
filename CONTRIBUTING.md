@@ -5,8 +5,8 @@ Thank you for taking interest in contributing to Alexandrite.
 ## Integration tests
 
 Run `just t backend`, `just t checking`, or `just t semantic` to test a category.
-These commands prepare the exact registry packages in
-[`tests-integration/registry-lock.json`](tests-integration/registry-lock.json)
+These commands prepare the registry package set pinned in
+[`tests-integration/packages.json`](tests-integration/packages.json)
 before starting the fixture runner. Node.js 22 is required for backend execution.
 Other categories do not load registry packages.
 
@@ -53,16 +53,20 @@ package's FFI.
 
 ### Updating dependencies
 
-Regenerate the lock explicitly, supplying the package-set version and all root
-packages (the current roots are recorded in the lock):
+Edit `package_set` in [`tests-integration/packages.json`](tests-integration/packages.json)
+to select a version from the [registry package sets](https://github.com/purescript/registry/tree/main/package-sets).
+The same file lists the root packages. Then run:
 
 ```sh
-cargo run -p tests-support -- lock <package-set-version> tests-integration/registry-lock.json <root-package>...
 just integration-prepare
 ```
 
-The lock command checks the transitive closure against package-set versions and
-dependency ranges and records registry SHA-256 hashes. Review every resulting
+Preparation automatically resolves the transitive closure using that package set,
+checks dependency ranges, and obtains archive SHA-256 hashes from the registry.
+The generated resolution lives only in `target/integration-packages/resolutions`;
+there is no lockfile to create or commit. Changing the configuration selects a new
+cache entry. A cold preparation needs registry access; warm preparation and fixture
+execution remain offline. Review every resulting
 fixture change: real package APIs, instances, and runtime representations may
 differ from earlier versions. Run all affected categories without filters before
 accepting the migration. Packages with FFI that imports additional assets need an

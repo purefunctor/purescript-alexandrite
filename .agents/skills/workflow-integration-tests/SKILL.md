@@ -44,7 +44,7 @@ Use backend fixtures for functional trees or generated JavaScript behavior. The 
 
 Backend errors belong in the diagnostic `Main.snap`; `Main.functional.snap` records successful trees only.
 
-Backend, checking, and semantic fixtures use the real packages pinned in `tests-integration/registry-lock.json`. `just t` prepares them before running fixtures; for direct nextest use, run `just integration-prepare` first. Use package modules instead of vendoring stand-ins. Deliberate malformed-module cases require a fixture-local `replacements.json` mapping each replaced registry module to a nonempty reason. Prim and fixture/fixture collisions cannot be replaced. See `CONTRIBUTING.md` for dependency updates and distribution boundaries.
+Backend, checking, and semantic fixtures use the package-set version and root packages in `tests-integration/packages.json`. Edit its `package_set` field to update dependencies; preparation resolves and caches the package list automatically, without a committed lockfile. `just t` prepares them before running fixtures; for direct nextest use, run `just integration-prepare` first. Use package modules instead of vendoring stand-ins. Deliberate malformed-module cases require a fixture-local `replacements.json` mapping each replaced registry module to a nonempty reason. Prim and fixture/fixture collisions cannot be replaced. See `CONTRIBUTING.md` for dependency updates and distribution boundaries.
 
 #### Checking fixtures
 
