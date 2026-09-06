@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -13,7 +13,7 @@ App :: forall k. (k -> Prim.Type) -> k -> Prim.Type
 
 Derived
 derive forall t0 (f :: t0 -> Prim.Type) (a :: t0).
-  Data.Newtype.Newtype @Prim.Type
+  Data.Newtype.Newtype
     (Main.App @t0 (f :: t0 -> Prim.Type) (a :: t0))
     ((f :: t0 -> Prim.Type) (a :: t0))
 derive forall (f :: Prim.Type -> Prim.Type) a.

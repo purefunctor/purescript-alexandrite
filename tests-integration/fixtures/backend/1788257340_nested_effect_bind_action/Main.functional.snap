@@ -4,5 +4,5 @@ assertion_line: 14
 expression: report
 ---
 @export nestedBind = \$unit%2@(_) ->
-  effect.bind (effect.bind (effect.pure "Unit") \$unit%0 -> effect.pure 42)
+  effect.bind (effect.bind (effect.pure unit) \$unit%0 -> effect.pure 42)
     \value%1 -> effect.pure value%1

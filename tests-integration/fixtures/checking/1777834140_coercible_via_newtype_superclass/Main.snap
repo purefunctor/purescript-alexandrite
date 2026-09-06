@@ -1,10 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 319
 expression: report
 ---
 Terms
-useUnwrap :: forall t. Data.Newtype.Newtype @Prim.Type t Lib.HiddenInt => t -> Lib.HiddenInt
-useCoerce :: forall t. Data.Newtype.Newtype @Prim.Type t Lib.HiddenInt => t -> Lib.HiddenInt
+useUnwrap :: forall t. Data.Newtype.Newtype t Lib.HiddenInt => t -> Lib.HiddenInt
+useCoerce :: forall t. Data.Newtype.Newtype t Lib.HiddenInt => t -> Lib.HiddenInt
 
 Types

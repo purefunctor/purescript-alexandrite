@@ -1,26 +1,29 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 286
+assertion_line: 319
 expression: report
 ---
 Terms
+Unshowable :: Main.Unshowable
 Identity :: forall @a. a -> Main.Identity a
 
 Types
+Unshowable :: Prim.Type
 Identity :: Prim.Type -> Prim.Type
 
 Derived
-derive Data.Show.Show (Main.Identity Prim.String)
+derive Data.Show.Show (Main.Identity Main.Unshowable)
 
 Roles
+Unshowable = []
 Identity = [Representational]
 
 Diagnostics
-Error! · [NoInstanceFound] · Main.purs:7:1
+Error! · [NoInstanceFound] · Main.purs:9:1
   •
   │
-  • No instance found for: Show String
+  • No instance found for: Show Unshowable
   │
-  │   derive newtype instance Show (Identity String)
-  │   ╰─────────────────────────────────────────────
+  │   derive newtype instance Show (Identity Unshowable)
+  │   ╰─────────────────────────────────────────────────
   •

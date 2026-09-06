@@ -255,7 +255,7 @@ pub fn backend(path: &Path) -> FixtureResult {
     let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
         invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
     })?;
-    let crate::LoadedFixture { engine, files, fixture_files } = crate::load_fixture(folder);
+    let crate::LoadedFixture { engine, files, fixture_files } = crate::load_fixture(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -306,7 +306,7 @@ pub fn checking(path: &Path) -> FixtureResult {
     let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
         invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
     })?;
-    let (engine, _) = crate::load_compiler(folder);
+    let (engine, _) = crate::load_compiler(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -324,7 +324,7 @@ pub fn checking(path: &Path) -> FixtureResult {
 pub fn semantic(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
-    let (engine, _) = crate::load_compiler(folder);
+    let (engine, _) = crate::load_compiler(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -342,7 +342,7 @@ pub fn semantic(path: &Path) -> FixtureResult {
 pub fn lowering(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
-    let (engine, _) = crate::load_compiler(folder);
+    let (engine, _) = crate::load_compiler(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -362,7 +362,7 @@ pub fn resolving(path: &Path) -> FixtureResult {
     let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
         invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
     })?;
-    let (engine, _) = crate::load_compiler(folder);
+    let (engine, _) = crate::load_compiler(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -379,7 +379,7 @@ pub fn resolving(path: &Path) -> FixtureResult {
 pub fn docs(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
-    let (engine, files) = crate::load_compiler(folder);
+    let (engine, files) = crate::load_compiler(folder)?;
     let snapshot_path = snapshot_path(folder);
 
     let report = crate::generated::docs::report(&engine, &files, &snapshot_path)?;
@@ -394,7 +394,7 @@ pub fn docs(path: &Path) -> FixtureResult {
 pub fn lsp(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
-    let (engine, files) = crate::load_compiler(folder);
+    let (engine, files) = crate::load_compiler(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };

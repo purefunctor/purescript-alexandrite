@@ -1,6 +1,7 @@
 module Main where
 
 import Data.Eq as Eq
+import Library (class Ordered)
 
 compareTwice :: forall a. Eq.Eq a => a -> a -> Boolean
 compareTwice left right =
@@ -70,7 +71,7 @@ compareNestedArraysWhole left right =
 
 compareSuperclassArraysTwice
   :: forall a
-   . Eq.Ordered a
+   . Ordered a
   => Array a
   -> Array a
   -> Boolean
@@ -79,7 +80,7 @@ compareSuperclassArraysTwice left right =
 
 compareSuperclassTwice
   :: forall a
-   . Eq.Ordered a
+   . Ordered a
   => a
   -> a
   -> Boolean

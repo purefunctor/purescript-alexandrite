@@ -2,7 +2,7 @@ module Main where
 
 import Control.Applicative (pure)
 import Control.Bind (bind, discard)
-import Data.Unit (Unit(..))
+import Data.Unit (Unit, unit)
 import Effect (Effect)
 
 foreign import constructEffect :: forall a. String -> a -> Effect a
@@ -23,7 +23,7 @@ chained seed = do
 
 discarded :: String -> Effect String
 discarded seed = do
-  constructEffect "discard-first" Unit
+  constructEffect "discard-first" unit
   let
     result = mark "discard-let" seed
   constructEffect "discard-second" result

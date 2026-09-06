@@ -1,3 +1,4 @@
+import * as Data_Unit from "../Data.Unit/index.js";
 import * as $foreign from "./foreign.js";
 export function namedContinuation($unit) {
   return () => {
@@ -5,8 +6,9 @@ export function namedContinuation($unit) {
   };
 }
 export function namedBind($unit) {
+  const $value = Data_Unit.unit;
   return () => {
-    return namedContinuation("Unit")();
+    return namedContinuation($value)();
   };
 }
 export function tailBind(value) {
@@ -18,6 +20,7 @@ export function tailBind(value) {
           return [false, $currentArgument0];
         };
       } else {
+        const $value = Data_Unit.unit;
         return () => {
           const $tailArgument = decrementInt($currentArgument0);
           return [

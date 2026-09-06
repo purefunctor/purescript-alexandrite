@@ -5,5 +5,4 @@ expression: report
 ---
 @export foreign makeContinuation
 
-@export computedBind = \$unit%0@(_) ->
-  bind bindEffect1 (effect.pure "Unit") (makeContinuation "Unit")
+@export computedBind = \$unit%0@(_) -> bind bindEffect (effect.pure unit) (makeContinuation unit)

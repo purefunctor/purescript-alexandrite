@@ -1,0 +1,3 @@
+{
+  "Data.Generic.Rep": "Omit representation types to test the missing generic representation diagnostic."
+}

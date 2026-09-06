@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -14,7 +14,7 @@ Endo :: forall k. (k -> k -> Prim.Type) -> k -> Prim.Type
 
 Instances
 instance forall t0 (c :: t0 -> t0 -> Prim.Type) (a :: t0).
-  Data.Newtype.Newtype @Prim.Type
+  Data.Newtype.Newtype
     (Main.Endo @t0 (c :: t0 -> t0 -> Prim.Type) (a :: t0))
     ((c :: t0 -> t0 -> Prim.Type) (a :: t0) (a :: t0))
 

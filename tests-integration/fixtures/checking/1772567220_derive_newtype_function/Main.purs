@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Category (class Category)
-import Data.Semigroupoid (class Semigroupoid)
+import Control.Semigroupoid (class Semigroupoid)
 
 newtype Builder a b = Builder (a -> b)
 

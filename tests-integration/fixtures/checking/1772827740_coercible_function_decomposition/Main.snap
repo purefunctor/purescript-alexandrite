@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -8,34 +8,30 @@ Age :: Prim.Int -> Main.Age
 coerceFn :: (Main.Age -> Prim.Int) -> Prim.Int -> Main.Age
 over ::
   forall t a s b.
-    Data.Newtype.Newtype @Prim.Type t a =>
-    Data.Newtype.Newtype @Prim.Type s b =>
-    (a -> t) -> (a -> b) -> t -> s
+    Data.Newtype.Newtype t a => Data.Newtype.Newtype s b => (a -> t) -> (a -> b) -> t -> s
 under ::
   forall t a s b.
-    Data.Newtype.Newtype @Prim.Type t a =>
-    Data.Newtype.Newtype @Prim.Type s b =>
-    (a -> t) -> (t -> s) -> a -> b
+    Data.Newtype.Newtype t a => Data.Newtype.Newtype s b => (a -> t) -> (t -> s) -> a -> b
 alaF ::
-  forall t0 (f :: Prim.Type -> Prim.Type) (g :: t0 -> Prim.Type) t a (s :: t0) (b :: t0).
+  forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) t a s b.
     Prim.Coerce.Coercible @Prim.Type
       ((f :: Prim.Type -> Prim.Type) t)
       ((f :: Prim.Type -> Prim.Type) a) =>
     Prim.Coerce.Coercible @Prim.Type
-      ((g :: t0 -> Prim.Type) (s :: t0))
-      ((g :: t0 -> Prim.Type) (b :: t0)) =>
-    Data.Newtype.Newtype @Prim.Type t a =>
-    Data.Newtype.Newtype @t0 (s :: t0) (b :: t0) =>
+      ((g :: Prim.Type -> Prim.Type) s)
+      ((g :: Prim.Type -> Prim.Type) b) =>
+    Data.Newtype.Newtype t a =>
+    Data.Newtype.Newtype s b =>
     (a -> t) ->
-    ((f :: Prim.Type -> Prim.Type) t -> (g :: t0 -> Prim.Type) (s :: t0)) ->
+    ((f :: Prim.Type -> Prim.Type) t -> (g :: Prim.Type -> Prim.Type) s) ->
     (f :: Prim.Type -> Prim.Type) a ->
-    (g :: t0 -> Prim.Type) (b :: t0)
+    (g :: Prim.Type -> Prim.Type) b
 
 Types
 Age :: Prim.Type
 
 Derived
-derive Data.Newtype.Newtype @Prim.Type Main.Age Prim.Int
+derive Data.Newtype.Newtype Main.Age Prim.Int
 
 Roles
 Age = []
