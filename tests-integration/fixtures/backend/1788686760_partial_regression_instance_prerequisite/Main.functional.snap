@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export select = \dictionary%0 -> dictionary%0.select
+
+@export instance selectInt = { select: \first%2 second%1 -> second%1 }
+
+@export constructor Wrapped/1
+
+@export instance selectWrapped = \selectADict%3 ->
+  {
+    select:
+      \$wrapped%6@(Wrapped first%4) $wrapped%7@(Wrapped second%5) ->
+        { tag: "Wrapped", _1: select selectADict%3 first%4 second%5 }
+  }
+
+@export ordinaryPrerequisite = select (selectWrapped selectInt) { tag: "Wrapped", _1: 10 }
+  { tag: "Wrapped", _1: 20 }

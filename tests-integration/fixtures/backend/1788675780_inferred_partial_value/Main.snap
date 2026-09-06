@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
+test :: Prim.Partial => Prim.Int
+unsafePartial :: forall a. (Prim.Partial => a) -> a
+consumed :: Prim.Partial => Prim.Int
+discharged :: Prim.Int
+
+Types
+Maybe :: Prim.Type -> Prim.Type
+
+Roles
+Maybe = [Representational]
+
+Diagnostics
+Warning! · [MissingPatterns] · Main.purs:6:3
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nothing
+  │
+  │     let
+  │     ╰──
+  •
+
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • instance prerequisite is not represented by given evidence
+  │
+  │   module Main where
+  │   ╰────────────────
+  •
