@@ -1,12 +1,13 @@
 pub mod fixtures;
 pub mod generated;
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use building::QueryEngine;
-use files::{Files, ForeignFiles, ForeignSourceKind};
+use files::{FileId, Files, ForeignFiles, ForeignSourceKind};
 use glob::glob;
 use prim_constants::MODULE_MAP;
 use tempfile::TempDir;
@@ -34,7 +35,7 @@ fn load_file(
     files: &mut Files,
     foreign_files: &mut ForeignFiles,
     path: &Path,
-) {
+) -> FileId {
     let url = Url::from_file_path(path).unwrap();
     let file = fs::read_to_string(path).unwrap();
     let file = file.replace("\r\n", "\n");
@@ -45,7 +46,7 @@ fn load_file(
 
     engine.set_content(id, content.clone());
     let Ok((parsed, _)) = engine.parsed(id) else {
-        return;
+        return id;
     };
 
     if let Some(name) = parsed.module_name(&content) {
@@ -64,6 +65,7 @@ fn load_file(
         engine.set_foreign_content(foreign_id, foreign_files.content(foreign_id));
         engine.set_foreign_file(id, foreign_id);
     }
+    id
 }
 
 fn load_folder(folder: &Path) -> impl Iterator<Item = PathBuf> {
@@ -74,6 +76,17 @@ fn load_folder(folder: &Path) -> impl Iterator<Item = PathBuf> {
 }
 
 pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
+    let loaded = load_fixture(folder);
+    (loaded.engine, loaded.files)
+}
+
+pub struct LoadedFixture {
+    pub engine: QueryEngine,
+    pub files: Files,
+    pub fixture_files: HashSet<FileId>,
+}
+
+pub fn load_fixture(folder: &Path) -> LoadedFixture {
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
     let mut foreign_files = ForeignFiles::default();
@@ -89,8 +102,8 @@ pub fn load_compiler(folder: &Path) -> (QueryEngine, Files) {
         });
     }
 
-    load_folder(folder).for_each(|path| {
-        load_file(&mut engine, &mut files, &mut foreign_files, &path);
-    });
-    (engine, files)
+    let fixture_files = load_folder(folder)
+        .map(|path| load_file(&mut engine, &mut files, &mut foreign_files, &path));
+    let fixture_files = fixture_files.collect();
+    LoadedFixture { engine, files, fixture_files }
 }

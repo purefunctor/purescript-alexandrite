@@ -142,11 +142,11 @@ fn output_files(root: &Path) -> io::Result<BTreeMap<PathBuf, String>> {
     Ok(files)
 }
 
-fn copy_output(source: &Path, destination: &Path) -> io::Result<()> {
+fn copy_output(source: &BTreeMap<PathBuf, String>, destination: &Path) -> io::Result<()> {
     if destination.exists() {
         std::fs::remove_dir_all(destination)?;
     }
-    for (path, contents) in output_files(source)? {
+    for (path, contents) in source {
         let destination = destination.join(path);
         let parent = destination
             .parent()
@@ -157,15 +157,14 @@ fn copy_output(source: &Path, destination: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn verify_output(expected: &Path, generated: &Path) -> FixtureResult {
+fn verify_output(expected: &Path, generated_files: &BTreeMap<PathBuf, String>) -> FixtureResult {
     if env::var_os(UPDATE_JAVASCRIPT_OUTPUT).is_some() {
-        copy_output(generated, expected)?;
+        copy_output(generated_files, expected)?;
         return Ok(());
     }
 
     let expected_files = output_files(expected)?;
-    let generated_files = output_files(generated)?;
-    if expected_files == generated_files {
+    if &expected_files == generated_files {
         return Ok(());
     }
 
@@ -202,17 +201,19 @@ fn verify_output(expected: &Path, generated: &Path) -> FixtureResult {
     Err(invalid_data(message).into())
 }
 
-fn run_javascript_verification(folder: &Path) -> FixtureResult {
+fn run_javascript_verification(folder: &Path, workspace: &Path) -> FixtureResult {
     let script = folder.join("verify.mjs");
     if !script.exists() {
         return Ok(());
     }
 
+    std::fs::copy(&script, workspace.join("verify.mjs"))?;
+    std::fs::write(workspace.join("package.json"), "{\"type\":\"module\"}\n")?;
     let mut stdout = tempfile::tempfile()?;
     let mut stderr = tempfile::tempfile()?;
     let mut child = Command::new("node")
         .arg("verify.mjs")
-        .current_dir(folder)
+        .current_dir(workspace)
         .stdout(Stdio::from(stdout.try_clone()?))
         .stderr(Stdio::from(stderr.try_clone()?))
         .spawn()?;
@@ -254,7 +255,7 @@ pub fn backend(path: &Path) -> FixtureResult {
     let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
         invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
     })?;
-    let (engine, files) = crate::load_compiler(folder);
+    let crate::LoadedFixture { engine, files, fixture_files } = crate::load_fixture(folder);
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
@@ -264,13 +265,32 @@ pub fn backend(path: &Path) -> FixtureResult {
     let backend_report = crate::generated::basic::report_backend(&engine, id, display_path);
     let diagnostics_report = format!("{checking_report}{foreign_report}{backend_report}");
     let generated = tempfile::tempdir()?;
+    let output = generated.path().join("output");
+    std::fs::create_dir(&output)?;
+    let mut expected_paths = BTreeSet::new();
     match javascript_modules(&engine, id)? {
-        Ok(modules) => modules.write_to(&files, generated.path())?,
+        Ok(modules) => {
+            modules.write_to(&files, &output)?;
+            for module in &modules.modules {
+                if !fixture_files.contains(&module.file_id()) {
+                    continue;
+                }
+                expected_paths.insert(PathBuf::from(module.filename()));
+                if let Some(kind) = module.foreign_kind() {
+                    expected_paths.insert(PathBuf::from(javascript::foreign_module_filename(
+                        module.name(),
+                        kind,
+                    )));
+                }
+            }
+        }
         Err(error) if backend_report.is_empty() => return Err(error.into()),
         Err(_) => {}
     }
-    verify_output(&fixture.join("output"), generated.path())?;
-    run_javascript_verification(&fixture)?;
+    run_javascript_verification(&fixture, generated.path())?;
+    let mut generated_files = output_files(&output)?;
+    generated_files.retain(|path, _| expected_paths.contains(path));
+    verify_output(&fixture.join("output"), &generated_files)?;
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(fixture);
