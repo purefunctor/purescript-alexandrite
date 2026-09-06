@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 278
+expression: diagnostics_report
+---
+Terms
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
+unwrap :: forall @a. Main.Unwrap a => Prim.Partial => a -> Prim.Int
+unsafePartial :: forall a. (Prim.Partial => a) -> a
+discharged :: Main.Maybe Prim.Int -> Prim.Int
+
+Types
+Maybe :: Prim.Type -> Prim.Type
+Unwrap :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Unwrap a
+  unwrap :: forall @a. Main.Unwrap a => Prim.Partial => a -> Prim.Int
+
+Instances
+instance Main.Unwrap (Main.Maybe Prim.Int)
+
+Roles
+Maybe = [Representational]

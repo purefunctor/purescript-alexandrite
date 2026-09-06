@@ -1,0 +1,19 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export test = \partialDict%1 ->
+  let
+    Just x%0 = { tag: "Just", _1: 1 }
+  in x%0
+
+@export foreign unsafePartial
+
+@export consumed = \partialDict%2 -> test partialDict%2
+
+@export discharged = unsafePartial (\partialDict%3 -> test partialDict%3)

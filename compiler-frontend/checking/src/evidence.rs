@@ -83,7 +83,8 @@ pub enum Evidence {
     Superclass { parent: EvidenceId, superclass: SuperclassId },
     /// Compiler-solved evidence with no materialised dictionary contents.
     ///
-    /// This proof does not remove its evidence application or abstraction.
+    /// This proof does not remove its evidence application. Evidence
+    /// abstractions introduce binders independently of the supplied proof.
     Trivial,
     /// Compiler-known evidence which must be materialised at runtime.
     Synthesized(SynthesizedEvidence),

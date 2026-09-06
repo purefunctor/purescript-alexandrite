@@ -1,0 +1,16 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export local = \partialDict%4 ->
+  \choice%1 ->
+    (\wrapped%3 ->
+      let
+        Just value%2 = wrapped%3
+      in value%2)
+      choice%1

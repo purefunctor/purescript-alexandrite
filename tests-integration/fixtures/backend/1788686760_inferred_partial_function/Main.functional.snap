@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export inferred = \partialDict%2 ->
+  \choice%1 ->
+    let
+      Just value%0 = choice%1
+    in value%0
+
+@export signed = \partialDict%3 -> \choice%4 -> inferred partialDict%3 choice%4
+
+@export foreign unsafePartial
+
+@export discharged = unsafePartial (\partialDict%5 -> inferred partialDict%5)

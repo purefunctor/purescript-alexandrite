@@ -1,0 +1,17 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export forwarded = \partialDict%2 ->
+  \first%1 second%3 ->
+    {
+      first: (\wrapped%4 -> unwrap partialDict%2 wrapped%4) first%1,
+      second: unwrap partialDict%2 second%3
+    }
+
+@export signed = \partialDict%5 -> forwarded partialDict%5
+
+@export foreign unsafePartial
+
+@export discharged = unsafePartial (\partialDict%6 -> forwarded partialDict%6)

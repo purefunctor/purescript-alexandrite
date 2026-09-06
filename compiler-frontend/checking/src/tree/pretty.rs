@@ -561,9 +561,7 @@ where
 
         let mut evidence_names = EvidenceNames::new();
         for abstraction in value.abstractions.iter() {
-            if let DeclarationAbstraction::Evidence { evidence: Evidence::Given(binder), .. } =
-                abstraction
-            {
+            if let DeclarationAbstraction::Evidence { binder, .. } = abstraction {
                 self.evidence_binder_name(&mut evidence_names, *binder)?;
             }
         }
@@ -635,17 +633,20 @@ where
                     };
 
                     let mut evidence_names = EvidenceNames::new();
-                    let instance_evidences =
-                        instance.evidences.iter().map(|evidence| &evidence.evidence);
-                    let member_evidences =
+                    let instance_binders = instance.evidences.iter().filter_map(|evidence| {
+                        if let Evidence::Given(binder) = &evidence.evidence {
+                            Some(binder)
+                        } else {
+                            None
+                        }
+                    });
+                    let member_binders =
                         member.abstractions.iter().filter_map(|abstraction| match abstraction {
-                            DeclarationAbstraction::Evidence { evidence, .. } => Some(evidence),
+                            DeclarationAbstraction::Evidence { binder, .. } => Some(binder),
                             DeclarationAbstraction::Type { .. } => None,
                         });
-                    for evidence in instance_evidences.chain(member_evidences) {
-                        if let Evidence::Given(binder) = evidence {
-                            self.evidence_binder_name(&mut evidence_names, *binder)?;
-                        }
+                    for binder in instance_binders.chain(member_binders) {
+                        self.evidence_binder_name(&mut evidence_names, *binder)?;
                     }
 
                     let (signature, member_rigid_names) =
@@ -955,10 +956,10 @@ where
             for abstraction in declaration_abstractions {
                 // Type abstractions are omitted because the declaration's
                 // rendered signature already communicates its binders.
-                let DeclarationAbstraction::Evidence { evidence, .. } = abstraction else {
+                let DeclarationAbstraction::Evidence { binder, .. } = abstraction else {
                     continue;
                 };
-                let binder = self.evidence_name(evidence_names, evidence)?;
+                let binder = self.evidence_binder_name(evidence_names, *binder)?;
                 abstractions.push(self.arena.text(format!("\\{{{binder}}} ->")));
             }
             for &binder in equation.binders.iter() {
@@ -1031,9 +1032,7 @@ where
         self.assign_rigid_names(type_pretty, &rigid_names);
 
         for abstraction in declaration.value.abstractions.iter() {
-            if let DeclarationAbstraction::Evidence { evidence: Evidence::Given(binder), .. } =
-                abstraction
-            {
+            if let DeclarationAbstraction::Evidence { binder, .. } = abstraction {
                 self.evidence_binder_name(evidence_names, *binder)?;
             }
         }
