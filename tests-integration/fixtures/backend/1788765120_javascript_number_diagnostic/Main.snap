@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 294
+expression: diagnostics_report
+---
+Terms
+test :: Prim.Number
+
+Types
+
+Backend Diagnostics
+Error! · [JavaScriptCodegen] · Main.purs:1:1
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ The number literal '1.0e999' cannot be represented as a finite JavaScript number.
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 298
+assertion_line: 294
 expression: diagnostics_report
 ---
 Terms
@@ -33,11 +33,18 @@ Error! · [RedefinedIdent] · Main.purs:6:1
 
 
 Backend Diagnostics
-Error! · [FunctionalCodegen] · Main.purs:1:1
+Error! · [FunctionalCodegen] · Main.purs:7:1
   •
   │
-  • runtime export name "classInt" refers to conflicting declarations
+  • Cannot generate JavaScript for module 'Main'.
   │
-  │   module Main where
-  │   ╰────────────────
+  │ More than one declaration exports the runtime name 'classInt'.
+  │
+  │   foreign import classInt :: Int
+  │   ╰─────────────────────────────
+  │
+  • The other declaration exports the same runtime name
+  │
+  │   instance classInt :: Class Int
+  │   ╰─────────────────────────────
   •

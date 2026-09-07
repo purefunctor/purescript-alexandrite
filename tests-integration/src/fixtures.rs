@@ -263,7 +263,7 @@ pub fn backend(path: &Path) -> FixtureResult {
     let checking_report = crate::generated::basic::report_checked(&engine, id, display_path);
     let foreign_report = crate::generated::basic::report_foreign(&engine, id, display_path);
     let backend_report = crate::generated::basic::report_backend(&engine, id, display_path);
-    let diagnostics_report = format!("{checking_report}{foreign_report}{backend_report}");
+    let mut diagnostics_report = format!("{checking_report}{foreign_report}{backend_report}");
     let generated = tempfile::tempdir()?;
     let output = generated.path().join("output");
     std::fs::create_dir(&output)?;
@@ -284,7 +284,28 @@ pub fn backend(path: &Path) -> FixtureResult {
                 }
             }
         }
-        Err(error) if backend_report.is_empty() => return Err(error.into()),
+        Err(error) if backend_report.is_empty() => {
+            let (javascript::ModuleError::Functional(functional::ModuleError::Unsupported {
+                file_id,
+                ..
+            })
+            | javascript::ModuleError::Unsupported { file_id, .. }) = error;
+            let source_url = Url::parse(&files.path(file_id))?;
+            let source_path = source_url
+                .to_file_path()
+                .map_err(|()| invalid_data(format!("source URL is not a file: {source_url}")))?;
+            let display_path = match source_path.strip_prefix(&fixture) {
+                Ok(relative) => relative,
+                Err(_) => Path::new(source_path.file_name().ok_or_else(|| {
+                    invalid_data(format!("source path has no file name: {}", source_path.display()))
+                })?),
+            };
+            diagnostics_report.push_str(&crate::generated::basic::report_backend(
+                &engine,
+                file_id,
+                &display_path.to_string_lossy(),
+            ));
+        }
         Err(_) => {}
     }
     run_javascript_verification(&fixture, generated.path())?;
@@ -395,9 +416,18 @@ pub fn lsp(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
     let (engine, files) = crate::load_compiler(folder)?;
-    let Some(id) = engine.module_file(&file) else {
-        return Err(missing_module(path, &file).into());
-    };
+    let source_path = snapshot_path(folder).join(path.file_name().ok_or_else(|| {
+        invalid_data(format!("fixture path has no file name: {}", path.display()))
+    })?);
+    let source_url = Url::from_file_path(&source_path).map_err(|()| {
+        invalid_data(format!(
+            "fixture path cannot be converted to a URL: {}",
+            source_path.display()
+        ))
+    })?;
+    let id = files.id(source_url.as_str()).ok_or_else(|| {
+        invalid_data(format!("fixture source was not loaded: {}", source_path.display()))
+    })?;
 
     let report = crate::generated::lsp::report(&engine, &files, id);
     let mut settings = insta::Settings::clone_current();

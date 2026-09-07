@@ -1,8 +1,12 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 388
+assertion_line: 386
 expression: report
 ---
 Diagnostics
 
-4:0..4:30 analyzer/functional [FunctionalCodegen] Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call
+4:0..4:30 analyzer/functional [FunctionalCodegen] Cannot generate JavaScript for module 'Main'.
+
+'Alexandrite.StyleX.props' must be called directly with all of its arguments.
+
+It cannot be passed around as a function or partially applied.

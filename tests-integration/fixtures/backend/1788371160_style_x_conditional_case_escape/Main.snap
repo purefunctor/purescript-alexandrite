@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 280
+assertion_line: 294
 expression: diagnostics_report
 ---
 Terms
@@ -12,7 +12,9 @@ Backend Diagnostics
 Error! · [FunctionalCodegen] · Main.purs:5:1
   •
   │
-  • Alexandrite.StyleX.ancestor must be used directly in a conditionalValue case array
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ 'Alexandrite.StyleX.ancestor' must be used directly in a conditionalValue case array.
   │
   │   escaped = When.ancestor ":hover" "red"
   │   ╰─────────────────────────────────────

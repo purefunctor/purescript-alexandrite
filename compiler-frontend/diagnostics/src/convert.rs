@@ -9,6 +9,7 @@ use indexing::{IndexedTypeItemKind, IndexingError, InstanceSourceItemId, Ordered
 use itertools::Itertools;
 use javascript::{
     ModuleDiagnostic as JavaScriptModuleDiagnostic, ModuleError as JavaScriptModuleError,
+    UnsupportedState as JavaScriptUnsupportedState,
 };
 use lowering::LoweringError;
 use resolving::ResolvingError;
@@ -45,21 +46,131 @@ impl ToDiagnostics for FunctionalModuleError {
     where
         Q: ExternalQueries,
     {
-        let FunctionalModuleError::Unsupported { state, .. } = self;
+        let FunctionalModuleError::Unsupported { file_id, state } = self;
+        let local_global_span = |global| {
+            let source_file = match global {
+                GlobalId::Term(file, _) | GlobalId::Generated(file, _) => file,
+                GlobalId::Instance(InstanceIdentity::Declared(file, _))
+                | GlobalId::Instance(InstanceIdentity::Derived(file, _)) => file,
+            };
+            (source_file == *file_id).then(|| global_span(context, global)).flatten()
+        };
+        let module = codegen_module_name(context);
         let span = match state {
+            FunctionalUnsupportedState::BinderError(id) => {
+                use checking::tree::BinderSource;
+                let pointer = match context.checked.tree[*id].source {
+                    BinderSource::Binder(id) => context.stabilized.syntax_ptr(id),
+                    BinderSource::DoStatement(id) => context.stabilized.syntax_ptr(id),
+                    BinderSource::Operator(id) => context.stabilized.syntax_ptr(id),
+                    BinderSource::Section(id) => context.stabilized.syntax_ptr(id),
+                    BinderSource::Generated { derive, .. } => context.stabilized.syntax_ptr(derive),
+                };
+                pointer.and_then(|pointer| context.span_from_syntax_ptr(&pointer))
+            }
+            FunctionalUnsupportedState::PatternBindingError(id) => context
+                .stabilized
+                .syntax_ptr(*id)
+                .and_then(|pointer| context.span_from_syntax_ptr(&pointer)),
+            FunctionalUnsupportedState::MissingRuntimeExportOperatorResolution { term_id: id } => {
+                global_span(context, GlobalId::Term(*file_id, *id))
+            }
+            FunctionalUnsupportedState::MissingLocalDeclaration(id) => {
+                context.lowered.tree.get_let_binding(*id).and_then(|_| {
+                    context
+                        .span_from_error_crumb(&checking::error::ErrorCrumb::CheckingLetName(*id))
+                })
+            }
+            FunctionalUnsupportedState::ConflictingRuntimeExport { duplicate, .. } => {
+                local_global_span(*duplicate)
+            }
             FunctionalUnsupportedState::InvalidStyleXUse { declaration, .. }
             | FunctionalUnsupportedState::InvalidStyleXContext { declaration, .. } => {
-                global_span(context, *declaration)
+                local_global_span(*declaration)
             }
             _ => None,
         };
-        vec![Diagnostic::error(
+        let term_name = |id| {
+            context
+                .indexed
+                .items
+                .iter_terms()
+                .find_map(|(candidate, item)| (candidate == id).then_some(item))
+                .and_then(|item| item.name.as_ref())
+        };
+        let reason = match state {
+            FunctionalUnsupportedState::MissingModuleName =>
+                "A module header with a module name is required.".to_owned(),
+            FunctionalUnsupportedState::BinderError(_) =>
+                "A pattern could not be translated from its checked representation.".to_owned(),
+            FunctionalUnsupportedState::RecordUpdateError =>
+                "A record update contains an error.".to_owned(),
+            FunctionalUnsupportedState::PatternBindingError(_) =>
+                "A pattern binding in a let expression contains an error.".to_owned(),
+            FunctionalUnsupportedState::UnsolvedEvidence(_) =>
+                "An unresolved type class constraint remains in the checked code.".to_owned(),
+            FunctionalUnsupportedState::CyclicEvidence(_) =>
+                "The compiler encountered a cycle while constructing type class dictionaries.\n\nThis is an unsupported internal compiler state.".to_owned(),
+            FunctionalUnsupportedState::MissingTermDeclaration(_) =>
+                "The checked representation of a top-level declaration is unavailable.".to_owned(),
+            FunctionalUnsupportedState::MissingInstanceDeclaration =>
+                "The checked representation of an instance declaration is unavailable.".to_owned(),
+            FunctionalUnsupportedState::MissingLocalDeclaration(id) => {
+                let declaration = context.lowered.tree.get_let_binding(*id)
+                    .and_then(|_| context.lowered.tree.get_let_binding_group(*id).name.as_ref())
+                    .map(|name| format!("local declaration '{name}'"))
+                    .unwrap_or_else(|| "a local declaration".to_owned());
+                format!("The checked representation of {declaration} is unavailable.")
+            }
+            FunctionalUnsupportedState::MissingEquation =>
+                "A checked value declaration has no defining equations.".to_owned(),
+            FunctionalUnsupportedState::ConflictingRuntimeExport { name, .. } =>
+                format!("More than one declaration exports the runtime name '{name}'."),
+            FunctionalUnsupportedState::MissingRuntimeExportOperatorResolution { term_id } => {
+                let operator = term_name(*term_id)
+                    .map(|name| format!("exported operator '{name}'"))
+                    .unwrap_or_else(|| "an exported operator".to_owned());
+                format!("The runtime implementation of {operator} could not be resolved.")
+            }
+            FunctionalUnsupportedState::InvalidInstancePrerequisite =>
+                "An instance prerequisite has an unsupported dictionary representation.\n\nThis is an unsupported internal compiler state.".to_owned(),
+            FunctionalUnsupportedState::LocalIdentityOverflow =>
+                "The compiler's limit on local bindings was exceeded.".to_owned(),
+            FunctionalUnsupportedState::GeneratedGlobalIdentityOverflow =>
+                "The compiler's limit on generated top-level declarations was exceeded.".to_owned(),
+            FunctionalUnsupportedState::InvalidStyleXUse { function, .. } =>
+                format!("'Alexandrite.StyleX.{function}' must be called directly with all of its arguments.\n\nIt cannot be passed around as a function or partially applied."),
+            FunctionalUnsupportedState::InvalidStyleXContext { function, requirement, .. } =>
+                format!("'Alexandrite.StyleX.{function}' {requirement}."),
+            FunctionalUnsupportedState::VirtualModuleRuntimeReference { module_name, item_name } =>
+                format!("'{module_name}.{item_name}' is a compile-time declaration and cannot be used at runtime."),
+        };
+        let mut diagnostic = Diagnostic::error(
             "FunctionalCodegen",
-            state.to_string(),
+            format!("Cannot generate JavaScript for {module}.\n\n{reason}"),
             span.unwrap_or_else(|| context.module_span()),
             "functional",
-        )]
+        );
+        if let FunctionalUnsupportedState::ConflictingRuntimeExport { existing, .. } = state
+            && let Some(span) = local_global_span(*existing)
+        {
+            diagnostic = diagnostic
+                .with_related(span, "The other declaration exports the same runtime name");
+        }
+        vec![diagnostic]
     }
+}
+
+fn codegen_module_name<Q>(context: &DiagnosticsContext<'_, Q>) -> String
+where
+    Q: ExternalQueries,
+{
+    cst::Module::cast(context.root.clone())
+        .and_then(|module| module.header())
+        .and_then(|header| header.name())
+        .filter(|name| !name.syntax().text(context.content).is_empty())
+        .map(|name| format!("module '{}'", name.syntax().text(context.content)))
+        .unwrap_or_else(|| "this module".to_owned())
 }
 
 impl ToDiagnostics for JavaScriptModuleError {
@@ -69,12 +180,24 @@ impl ToDiagnostics for JavaScriptModuleError {
     {
         match self {
             JavaScriptModuleError::Functional(error) => error.to_diagnostics(context),
-            JavaScriptModuleError::Unsupported { state, .. } => vec![Diagnostic::error(
-                "JavaScriptCodegen",
-                state.to_string(),
-                context.module_span(),
-                "javascript",
-            )],
+            JavaScriptModuleError::Unsupported { state, .. } => {
+                let reason = match state {
+                    JavaScriptUnsupportedState::InvalidNumber { value } => format!(
+                        "The number literal '{value}' cannot be represented as a finite JavaScript number."
+                    ),
+                    JavaScriptUnsupportedState::MissingGlobal { .. } =>
+                        "The compiler could not find a JavaScript declaration for a referenced value.\n\nThis is an unsupported internal compiler state.".to_owned(),
+                    JavaScriptUnsupportedState::MissingLocal { .. } =>
+                        "The compiler could not find a JavaScript binding for a referenced local value.\n\nThis is an unsupported internal compiler state.".to_owned(),
+                };
+                let module = codegen_module_name(context);
+                vec![Diagnostic::error(
+                    "JavaScriptCodegen",
+                    format!("Cannot generate JavaScript for {module}.\n\n{reason}"),
+                    context.module_span(),
+                    "javascript",
+                )]
+            }
         }
     }
 }

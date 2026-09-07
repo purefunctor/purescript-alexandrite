@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 294
+expression: diagnostics_report
+---
+Terms
+test :: Prim.Int -> Prim.Int
+
+Types
+
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:4:6
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ A pattern could not be translated from its checked representation.
+  │
+  │   test Missing = 1
+  │        ╰──────
+  •
