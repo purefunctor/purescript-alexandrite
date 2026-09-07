@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+identity :: forall a. a -> a
+identity = \a -> a
+
+test :: ?[invalid visible type application]
+test = <error>

@@ -42,10 +42,6 @@ name = "compiler"
 harness = false
 
 [[test]]
-name = "checking"
-harness = false
-
-[[test]]
 name = "lowering"
 harness = false
 

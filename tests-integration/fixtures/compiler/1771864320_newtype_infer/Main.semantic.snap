@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Tagged :: forall k0. k0 -> Prim.Type -> Prim.Type
+newtype Tagged @t @a
+  | Tagged :: a -> Main.Tagged t a

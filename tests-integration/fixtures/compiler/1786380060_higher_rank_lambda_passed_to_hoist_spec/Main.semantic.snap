@@ -1,0 +1,57 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data First :: Prim.Type -> Prim.Type
+data First @a
+  | First :: Main.First a
+
+data Second :: Prim.Type -> Prim.Type
+data Second @a
+  | Second :: Main.Second a
+
+data Third :: Prim.Type -> Prim.Type
+data Third @a
+  | Third :: Main.Third a
+
+data SpecT :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
+data SpecT @effect @monad
+  | SpecT :: Main.SpecT effect monad
+
+identity :: forall a. a -> a
+identity = \x -> x
+
+apply :: forall a b. a -> (a -> b) -> b
+apply = \x -> \function -> function x
+
+describe :: forall effect monad. Prim.String -> Main.SpecT effect monad -> Main.SpecT effect monad
+describe = \_ -> \specification -> specification
+
+it :: forall effect monad. Prim.String -> effect Main.Unit -> Main.SpecT effect monad
+it = \_ -> \_ -> SpecT
+
+hoistSpec :: forall first second monad monad'.
+  Main.NaturalTransformation @Prim.Type monad monad' ->
+  (Main.Unit -> Main.NaturalTransformation @Prim.Type first second) ->
+  Main.SpecT first monad ->
+  Main.SpecT second monad'
+hoistSpec = \_ -> \_ -> \_ -> SpecT
+
+catchFirst :: Main.NaturalTransformation @Prim.Type Main.First Main.Second
+catchFirst = \_ -> Second
+
+catchSecond :: Main.NaturalTransformation @Prim.Type Main.Second Main.Third
+catchSecond = \_ -> Third
+
+runExample :: Main.First Main.Unit
+runExample = First
+
+spec :: Main.SpecT Main.Third Main.First
+spec =
+  apply (describe "outer" (it "inner" runExample))
+    (hoistSpec identity \_ -> \value -> apply (apply value catchFirst) catchSecond)

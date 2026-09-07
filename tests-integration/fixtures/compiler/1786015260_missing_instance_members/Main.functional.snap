@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export render = \dictionary%0 -> dictionary%0.render
+
+@export renderWithIndent = \dictionary%1 -> dictionary%1.renderWithIndent
+
+@export instance renderInt = {  }
+
+@export instance renderBoolean = \failTextDict%2 -> {  }
+
+@export instance renderString = \failTextDict%3 -> { render: \value%4 -> value%4 }

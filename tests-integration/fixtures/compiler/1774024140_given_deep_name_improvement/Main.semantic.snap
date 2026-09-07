@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface IsInt :: forall k0. k0 -> Prim.Constraint
+interface IsInt value where
+
+needsAdd :: forall x. Prim.Int.Add 1 x 3 => Type.Proxy.Proxy @Prim.Int x
+needsAdd = \{addDict} -> Proxy
+
+dictionary isIntTypeInt :: Main.IsInt @Prim.Type Prim.Int
+
+needsInt :: forall t0 value. Main.IsInt @t0 value => Type.Proxy.Proxy @t0 value
+needsInt = \{isIntDict} -> Proxy
+
+nonHeadGivenImprovement :: forall n.
+  Prim.Row.Union @Prim.Type
+    ( a :: Type.Proxy.Proxy @Prim.Int n )
+    ()
+    ( a :: Type.Proxy.Proxy @Prim.Int 2 ) =>
+  Type.Proxy.Proxy @Prim.Int n
+nonHeadGivenImprovement = \{unionDict} -> needsAdd {trivial}
+
+functionGivenImprovement :: forall value.
+  Prim.Row.Union @Prim.Type ( a :: value -> Prim.String ) () ( a :: Prim.Int -> Prim.String ) =>
+  Type.Proxy.Proxy @Prim.Type value
+functionGivenImprovement = \{unionDict} -> needsInt {isIntTypeInt}
+
+forceSolve :: { functionGivenImprovement :: Type.Proxy.Proxy @Prim.Type Prim.Int
+, nonHeadGivenImprovement :: Type.Proxy.Proxy @Prim.Int 2
+}
+forceSolve =
+  { nonHeadGivenImprovement: nonHeadGivenImprovement {trivial}, functionGivenImprovement: functionGivenImprovement {trivial} }

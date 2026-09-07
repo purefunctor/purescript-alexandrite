@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+map ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Functor (f :: Prim.Type -> Prim.Type) =>
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
+Wrap ::
+  forall k @e (@w :: k -> Prim.Type) (@a :: k).
+    (w :: k -> Prim.Type) (a :: k) -> Main.Wrap @k e (w :: k -> Prim.Type) (a :: k)
+
+Types
+Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Wrap :: forall k. Prim.Type -> (k -> Prim.Type) -> k -> Prim.Type
+
+Classes
+class forall (f :: Prim.Type -> Prim.Type). Main.Functor (f :: Prim.Type -> Prim.Type)
+  map ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Functor (f :: Prim.Type -> Prim.Type) =>
+    (forall a b. (a -> b) -> (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) b)
+
+Instances
+instance forall (w :: Prim.Type -> Prim.Type) e.
+  Main.Functor (w :: Prim.Type -> Prim.Type) =>
+  Main.Functor (Main.Wrap @Prim.Type e (w :: Prim.Type -> Prim.Type))
+
+Roles
+Wrap = [Phantom, Representational, Nominal]

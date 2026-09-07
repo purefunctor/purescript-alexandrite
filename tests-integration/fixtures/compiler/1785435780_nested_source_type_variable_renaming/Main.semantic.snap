@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall kind. kind -> Prim.Type
+data Proxy @value
+  | Proxy :: Main.Proxy value
+
+interface Grouped :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Grouped left right where
+  grouped :: forall value.
+  Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type right -> Main.Proxy @Prim.Type value
+
+dictionary grouped1 :: forall t0 function left right. Main.Grouped (function left) (function right)
+  where
+  grouped :: forall left1.
+  Main.Proxy @Prim.Type left1 ->
+  Main.Proxy @Prim.Type (function right) ->
+  Main.Proxy @Prim.Type left1
+  grouped = \(value :: Main.Proxy @Prim.Type left1) ->
+    \(_ :: Main.Proxy @Prim.Type (function right)) ->
+    let
+      local :: forall left2.
+  Main.Proxy @Prim.Type left2 ->
+  Main.Proxy @Prim.Type (function right) ->
+  Main.Proxy @Prim.Type left2
+      local = \(localValue :: Main.Proxy @Prim.Type left2) ->
+        \(_ :: Main.Proxy @Prim.Type (function right)) -> localValue
+    in
+      local value Proxy

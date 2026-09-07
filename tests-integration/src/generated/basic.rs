@@ -242,25 +242,7 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
     out
 }
 
-pub fn report_checked(engine: &QueryEngine, id: FileId, path: &str) -> String {
-    let mut out = report_checked_types(engine, id);
-    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
-    let collected = collected.pop().unwrap();
-    if !collected.checking_diagnostics().is_empty() {
-        writeln!(out, "\nDiagnostics").unwrap();
-        let line_index = LineIndex::new(&collected.content);
-        out.push_str(&format_rich_with_path(
-            collected.checking_diagnostics(),
-            &collected.content,
-            &line_index,
-            path,
-            false,
-        ));
-    }
-    out
-}
-
-pub fn report_checked_types(engine: &QueryEngine, id: FileId) -> String {
+pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
     let indexed = engine.indexed(id).unwrap();
     let checked = engine.checked(id).unwrap();
     let config = pretty::PrettyConfig::new().fully_qualified_names();

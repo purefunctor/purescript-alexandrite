@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+foreign import pure :: forall a. a -> Main.Effect a
+
+foreign import map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+
+foreign import apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+
+test :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
+test = apply (map (\x y -> Tuple x y) (pure 1)) (pure 2)
+
+test' :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
+test' = apply (map (\x y -> Tuple x y) (pure 1)) (pure 2)

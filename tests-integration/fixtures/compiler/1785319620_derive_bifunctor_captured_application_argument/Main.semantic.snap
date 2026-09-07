@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+data Triple @x @a @b
+  | Triple :: x -> a -> b -> Main.Triple x a b
+
+data Captured :: Prim.Type -> Prim.Type -> Prim.Type
+data Captured @a @b
+  | Captured :: Main.Triple a Prim.Int b -> Main.Captured a b
+
+data Outer :: Prim.Type -> Prim.Type -> Prim.Type
+data Outer @a @b
+  | Outer :: a -> b -> Main.Outer a b
+
+data NestedCaptured :: Prim.Type -> Prim.Type -> Prim.Type
+data NestedCaptured @a @b
+  | NestedCaptured :: Main.Outer (Main.Triple a Prim.Int Prim.Boolean) b -> Main.NestedCaptured a b

@@ -1,0 +1,44 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall k (@value :: k). Main.Proxy @k (value :: k)
+identity :: forall @value. value -> value
+grouped ::
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value.
+      Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type right -> Main.Proxy @Prim.Type value)
+ranked ::
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value. Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type value) ->
+    Main.Proxy @Prim.Type right
+
+Types
+Proxy :: forall k. k -> Prim.Type
+Grouped :: Prim.Type -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (left :: Prim.Type) (right :: Prim.Type). Main.Grouped left right
+  grouped ::
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value.
+      Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Type right -> Main.Proxy @Prim.Type value)
+  ranked ::
+  forall @left @right.
+    Main.Grouped left right =>
+    (forall value1. Main.Proxy @Prim.Type value1 -> Main.Proxy @Prim.Type value1) ->
+    Main.Proxy @Prim.Type right
+
+Instances
+instance forall t0 (function :: t0 -> Prim.Type) (left :: t0) (right :: t0).
+  Main.Grouped
+    ((function :: t0 -> Prim.Type) (left :: t0))
+    ((function :: t0 -> Prim.Type) (right :: t0))
+
+Roles
+Proxy = [Phantom]

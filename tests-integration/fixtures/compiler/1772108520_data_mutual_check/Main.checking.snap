@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+F :: forall k (@a :: k). Main.G @k (a :: k) -> Main.F @k (a :: k)
+G :: forall k (@a :: k). Main.F @k (a :: k) -> Main.G @k (a :: k)
+
+Types
+F :: forall k. k -> Prim.Type
+G :: forall k. k -> Prim.Type
+
+Roles
+F = [Representational]
+G = [Representational]

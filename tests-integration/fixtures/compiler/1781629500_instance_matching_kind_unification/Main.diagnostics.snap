@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:15:1
+  •
+  │
+  • Cannot unify 'Type' with 'Int'
+  │
+  │   x = choose (Proxy @Int) (Proxy @Int)
+  │   ╰───────────────────────────────────
+  •

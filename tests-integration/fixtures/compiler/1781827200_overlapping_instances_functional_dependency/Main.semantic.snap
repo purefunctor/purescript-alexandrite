@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert a b where
+  convert :: a -> b
+
+dictionary convertSI :: Main.Convert Prim.String Prim.Int where
+  convert :: Prim.String -> Prim.Int
+  convert = \_ -> 0
+
+dictionary convertSB :: Main.Convert Prim.String Prim.Boolean where
+  convert :: Prim.String -> Prim.Boolean
+  convert = \_ -> true

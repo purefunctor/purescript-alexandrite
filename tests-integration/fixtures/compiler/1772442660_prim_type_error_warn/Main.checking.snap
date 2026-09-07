@@ -1,0 +1,68 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+warnBasic ::
+  forall a. Prim.TypeError.Warn (Prim.TypeError.Text "This function is deprecated") => a -> a
+useWarnBasic :: Prim.Int
+warnBeside ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside (Prim.TypeError.Text "Left ") (Prim.TypeError.Text "Right")) =>
+    a -> a
+useWarnBeside :: Prim.Int
+warnAbove ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Above (Prim.TypeError.Text "Line 1") (Prim.TypeError.Text "Line 2")) =>
+    a -> a
+useWarnAbove :: Prim.Int
+warnQuote ::
+  forall t0 (a :: t0).
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside
+        (Prim.TypeError.Text "Got type: ")
+        (Prim.TypeError.Quote @t0 (a :: t0))) =>
+    Main.Proxy @t0 (a :: t0) -> Main.Proxy @t0 (a :: t0)
+useWarnQuote :: Main.Proxy @Prim.Type Prim.Int
+warnQuoteLabel ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside
+        (Prim.TypeError.Text "Label: ")
+        (Prim.TypeError.QuoteLabel "myField")) =>
+    a -> a
+useWarnQuoteLabel :: Prim.Int
+warnQuoteLabelSpaces ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside
+        (Prim.TypeError.Text "Label: ")
+        (Prim.TypeError.QuoteLabel "h e l l o")) =>
+    a -> a
+useWarnQuoteLabelSpaces :: Prim.Int
+warnQuoteLabelQuote ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside
+        (Prim.TypeError.Text "Label: ")
+        (Prim.TypeError.QuoteLabel "hel\"lo")) =>
+    a -> a
+useWarnQuoteLabelQuote :: Prim.Int
+warnQuoteLabelRaw ::
+  forall a.
+    Prim.TypeError.Warn
+      (Prim.TypeError.Beside
+        (Prim.TypeError.Text "Label: ")
+        (Prim.TypeError.QuoteLabel """raw\nstring""")) =>
+    a -> a
+useWarnQuoteLabelRaw :: Prim.Int
+
+Types
+Proxy :: forall k. k -> Prim.Type
+
+Roles
+Proxy = [Phantom]

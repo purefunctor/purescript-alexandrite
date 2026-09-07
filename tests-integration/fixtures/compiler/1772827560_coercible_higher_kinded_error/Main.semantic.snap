@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+data List :: Prim.Type -> Prim.Type
+data List @a
+  | Nil :: Main.List a
+  | Cons :: a -> Main.List a -> Main.List a
+
+coerceContainerDifferent :: Main.Container Main.Maybe -> Main.Container Main.List
+coerceContainerDifferent = coerce {trivial}

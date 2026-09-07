@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export constructor K1/0
+
+@export constructor Unit/0
+
+@export c = \dictionary%0 -> dictionary%0.c
+
+@export instance cK1Row = { c: \$proxy%1@(_) $proxy%2@(_) -> "Unit" }
+
+@export instance cRow = { c: \$proxy%3@(_) $proxy%4@(_) -> "Unit" }
+
+@export test = \key%5 -> c cRow key%5 "Proxy"

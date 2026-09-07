@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface T :: forall k. k -> Prim.Type
+interface T a where
+
+dictionary tRowTypeRow :: Main.T @(Prim.Row Prim.Type) ( a :: Prim.Int )
+
+dictionary tTypeRecordRow :: Main.T @Prim.Type { a :: Prim.Int }
+
+dictionary tTypeProxyRowTypeRow ::
+  Main.T @Prim.Type (Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int ))
+
+dictionary tTypeProxyTypeRecordRow :: Main.T @Prim.Type (Main.Proxy @Prim.Type { a :: Prim.Int })

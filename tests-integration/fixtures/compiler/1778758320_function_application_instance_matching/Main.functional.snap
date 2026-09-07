@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export disj = \dictionary%0 -> dictionary%0.disj
+
+@export instance heytingAlgebraBoolean = { disj: \left%1 $boolean%2@(_) -> left%1 }
+
+@export instance heytingAlgebraFunction = \heytingAlgebraBDict%3 ->
+  { disj: \left%4 right%6 value%5 -> disj heytingAlgebraBDict%3 (left%4 value%5) (right%6 value%5) }
+
+@export test = disj (heytingAlgebraFunction heytingAlgebraBoolean)

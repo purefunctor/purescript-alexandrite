@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Shared :: Main.Local
+LocalOnly :: Main.Local
+localValue :: Main.Local
+shadowedValue :: Main.Local
+local :: Main.Local
+remote :: Lib.Remote
+binderShadow :: Main.Local -> Lib.Remote
+
+Types
+Local :: Prim.Type
+
+Roles
+Local = []

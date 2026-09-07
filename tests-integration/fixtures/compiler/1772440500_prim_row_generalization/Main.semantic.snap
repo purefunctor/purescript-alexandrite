@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import unsafeCoerce :: forall a b. a -> b
+
+merge :: forall r1 r2 r3 r4.
+  Prim.Row.Union @Prim.Type r1 r2 r3 =>
+  Prim.Row.Nub @Prim.Type r3 r4 =>
+  {| r1 } -> {| r2 } -> {| r4 }
+merge = \{unionDict} -> \{nubDict} -> \_ -> \_ -> unsafeCoerce { }
+
+a :: forall t0 t1. Prim.Row.Nub @Prim.Type ( a :: Prim.Int | t0 ) t1 => {| t0 } -> {| t1 }
+a = \{nubDict} -> merge {trivial} {nubDict} { a: 123 }
+
+b :: { a :: Prim.Int, b :: Prim.Int }
+b = a {trivial} { b: 123 }
+
+fromUnion :: forall r1 r2 r3. Prim.Row.Union @Prim.Type r1 r2 r3 => {| r3 } -> Prim.Int
+fromUnion = \{unionDict} -> \_ -> unsafeCoerce 0
+
+test :: forall t0 t1 t2. Prim.Row.Union @Prim.Type t0 t1 t2 => {| t2 } -> Prim.Int
+test = \{unionDict} -> fromUnion {unionDict}
+
+chainedUnion :: forall r1 r2 r3 r4 r5.
+  Prim.Row.Union @Prim.Type r1 r2 r3 => Prim.Row.Union @Prim.Type r3 r4 r5 => {| r1 } -> {| r5 }
+chainedUnion = \{unionDict} -> \{unionDict1} -> \_ -> unsafeCoerce { }
+
+testChained :: forall t0 t1 t2. Prim.Row.Union @Prim.Type t0 t1 t2 => { x :: Prim.Int | t2 }
+testChained = \{unionDict} -> chainedUnion {trivial} {trivial} { x: 1 }
+
+multiMerge :: forall r1 r2 r3 r4 r5 r6.
+  Prim.Row.Union @Prim.Type r1 r2 r3 =>
+  Prim.Row.Nub @Prim.Type r3 r4 =>
+  Prim.Row.Union @Prim.Type r4 r5 r6 =>
+  {| r1 } -> {| r5 } -> {| r6 }
+multiMerge = \{unionDict} -> \{nubDict} -> \{unionDict1} -> \_ -> \_ -> unsafeCoerce { }
+
+testMulti1 :: forall t0 t1 t2 t3.
+  Prim.Row.Union @Prim.Type t0 t1 t2 =>
+  Prim.Row.Nub @Prim.Type ( a :: Prim.Int | t3 ) t0 =>
+  {| t1 } -> {| t2 }
+testMulti1 = \{unionDict} -> \{nubDict} -> multiMerge {trivial} {nubDict} {unionDict} { a: 1 }
+
+testMulti2 :: forall t0 t1 t2.
+  Prim.Row.Nub @Prim.Type ( a :: Prim.Int | t0 ) t1 =>
+  Prim.Row.Union @Prim.Type t1 ( b :: Prim.Int ) t2 =>
+  {| t2 }
+testMulti2 = \{nubDict} -> \{unionDict} ->
+  multiMerge {trivial} {nubDict} {unionDict} { a: 1 } { b: 2 }

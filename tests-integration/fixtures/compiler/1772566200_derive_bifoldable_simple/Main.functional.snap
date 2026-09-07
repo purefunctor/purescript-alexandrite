@@ -1,0 +1,76 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export instance bifoldableEither = {
+  bifoldr:
+    \firstFunction%0 secondFunction%1 accumulator%2 value%3 ->
+      case value%3 of
+        Left field0%4 ->
+          firstFunction%0 field0%4 accumulator%2
+        Right field0%5 ->
+          secondFunction%1 field0%5 accumulator%2,
+  bifoldl:
+    \firstFunction%6 secondFunction%7 accumulator%8 value%9 ->
+      case value%9 of
+        Left field0%10 ->
+          firstFunction%6 accumulator%8 field0%10
+        Right field0%11 ->
+          secondFunction%7 accumulator%8 field0%11,
+  bifoldMap:
+    \monoidMDict%17 ->
+      \firstFunction%12 secondFunction%13 value%14 ->
+        case value%14 of
+          Left field0%15 ->
+            firstFunction%12 field0%15
+          Right field0%16 ->
+            secondFunction%13 field0%16
+}
+
+@export constructor Pair/2
+
+@export instance bifoldablePair = {
+  bifoldr:
+    \firstFunction%18 secondFunction%19 accumulator%20 value%21 ->
+      case value%21 of
+        Pair field0%22 field1%23 ->
+          firstFunction%18 field0%22 (secondFunction%19 field1%23 accumulator%20),
+  bifoldl:
+    \firstFunction%24 secondFunction%25 accumulator%26 value%27 ->
+      case value%27 of
+        Pair field0%28 field1%29 ->
+          secondFunction%25 (firstFunction%24 accumulator%26 field0%28) field1%29,
+  bifoldMap:
+    \monoidMDict%35 ->
+      \firstFunction%30 secondFunction%31 value%32 ->
+        case value%32 of
+          Pair field0%33 field1%34 ->
+            append (monoidMDict%35."Semigroup0"()) (firstFunction%30 field0%33)
+              (secondFunction%31 field1%34)
+}
+
+@export constructor Const2/1
+
+@export instance bifoldableConst2TypeType = {
+  bifoldr:
+    \firstFunction%36 secondFunction%37 accumulator%38 value%39 ->
+      case value%39 of
+        Const2 field0%40 ->
+          accumulator%38,
+  bifoldl:
+    \firstFunction%41 secondFunction%42 accumulator%43 value%44 ->
+      case value%44 of
+        Const2 field0%45 ->
+          accumulator%43,
+  bifoldMap:
+    \monoidMDict%50 ->
+      \firstFunction%46 secondFunction%47 value%48 ->
+        case value%48 of
+          Const2 field0%49 ->
+            mempty monoidMDict%50
+}

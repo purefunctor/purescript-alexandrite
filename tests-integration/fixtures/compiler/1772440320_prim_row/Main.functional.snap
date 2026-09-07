@@ -1,0 +1,61 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export deriveUnion = \unionRowRowUDict%0 -> "Proxy"
+
+@export deriveUnionLeft = \unionLRowRowDict%1 -> "Proxy"
+
+@export deriveUnionRight = \unionRowRRowDict%2 -> "Proxy"
+
+@export unionEmptyLeft = \unionRowRowUDict%3 -> "Proxy"
+
+@export unionEmptyRight = \unionRowRowUDict%4 -> "Proxy"
+
+@export unionBothEmpty = \unionRowRowUDict%5 -> "Proxy"
+
+@export unionMultiple = \unionRowRowUDict%6 -> "Proxy"
+
+@export deriveCons = \consStringRowRowDict%7 -> "Proxy"
+
+@export deriveTail = \consStringTailRowDict%8 -> "Proxy"
+
+@export deriveType = \consTRowRowDict%9 -> "Proxy"
+
+@export nestedCons = \consIntRowRowDict%10 -> "Proxy"
+
+@export lacksSimple = \lacksRowDict%12 -> \x%11 -> x%11
+
+@export lacksEmpty = \lacksRowDict%14 -> \x%13 -> x%13
+
+@export nubNoDuplicates = \nubRowNubbedDict%15 -> "Proxy"
+
+@export nubEmpty = \nubRowNubbedDict%16 -> "Proxy"
+
+@export solveUnion = {
+  deriveUnion: deriveUnion <trivial evidence>,
+  deriveUnionLeft: deriveUnionLeft <trivial evidence>,
+  deriveUnionRight: deriveUnionRight <trivial evidence>,
+  unionEmptyLeft: unionEmptyLeft <trivial evidence>,
+  unionEmptyRight: unionEmptyRight <trivial evidence>,
+  unionBothEmpty: unionBothEmpty <trivial evidence>,
+  unionMultiple: unionMultiple <trivial evidence>
+}
+
+@export solveCons = {
+  deriveCons: deriveCons <trivial evidence>,
+  deriveTail: deriveTail <trivial evidence>,
+  deriveType: deriveType <trivial evidence>,
+  nestedCons: nestedCons <trivial evidence>
+}
+
+@export solveLacks = {
+  lacksSimple: lacksSimple <trivial evidence> "Proxy",
+  lacksEmpty: lacksEmpty <trivial evidence> "Proxy"
+}
+
+@export solveNub = {
+  nubNoDuplicates: nubNoDuplicates <trivial evidence>,
+  nubEmpty: nubEmpty <trivial evidence>
+}

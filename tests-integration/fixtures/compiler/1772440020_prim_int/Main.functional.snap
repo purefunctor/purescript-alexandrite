@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export deriveSum = \addSumDict%0 -> "Proxy"
+
+@export deriveRight = \addRightDict%1 -> "Proxy"
+
+@export deriveLeft = \addLeftDict%2 -> "Proxy"
+
+@export stuckAdd = \addLeftSumDict%4 -> \$proxy%3@(_) -> "Proxy"
+
+@export deriveMul = \mulProductDict%5 -> "Proxy"
+
+@export compareLT = \compareOrdDict%6 -> "Proxy"
+
+@export compareEQ = \compareOrdDict%7 -> "Proxy"
+
+@export compareGT = \compareOrdDict%8 -> "Proxy"
+
+@export deriveString = \toStringSDict%9 -> "Proxy"
+
+@export forceSolve = {
+  deriveSum: deriveSum <trivial evidence>,
+  deriveRight: deriveRight <trivial evidence>,
+  deriveLeft: deriveLeft <trivial evidence>,
+  deriveMul: deriveMul <trivial evidence>,
+  compareLT: compareLT <trivial evidence>,
+  compareEQ: compareEQ <trivial evidence>,
+  compareGT: compareGT <trivial evidence>,
+  deriveString: deriveString <trivial evidence>,
+  keepStuck: stuckAdd <trivial evidence> "Proxy"
+}

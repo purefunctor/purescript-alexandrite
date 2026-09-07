@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = \x%0 ->
+  case x%0 of
+    n%1 ->
+      | n%1 -> 0
+      | true -> n%1

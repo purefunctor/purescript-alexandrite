@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance eqMaybe = \eqADict%0 ->
+  {
+    eq:
+      \left%1 right%2 ->
+        case left%1, right%2 of
+          Nothing, Nothing ->
+            true
+          Just left0%3, Just right0%4 ->
+            if eq eqADict%0 left0%3 right0%4 then true else false
+          _, _ ->
+            false
+  }

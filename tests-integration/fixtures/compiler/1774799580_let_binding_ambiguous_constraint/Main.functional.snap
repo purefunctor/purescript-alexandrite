@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign delay
+
+@export test = let
+  implementation%1 = effect.bind (delay 42) \$unit%4 -> delay 42
+in implementation%1

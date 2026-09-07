@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+consume :: forall @a. Main.Given a => a -> a
+testGiven :: forall a. Main.Given a => a -> a
+
+Types
+Given :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Given a
+  consume :: forall @a. Main.Given a => a -> a

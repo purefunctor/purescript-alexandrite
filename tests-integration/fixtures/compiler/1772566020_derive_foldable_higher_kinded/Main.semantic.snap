@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Wrap :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data Wrap @f @a
+  | Wrap :: f a -> Main.Wrap f a
+
+data WrapNoFoldable :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data WrapNoFoldable @f @a
+  | WrapNoFoldable :: f a -> Main.WrapNoFoldable f a
+
+dictionary foldableWrapType ::
+  forall f.
+  { foldableDict :: Data.Foldable.Foldable f } =>
+  Data.Foldable.Foldable (Main.Wrap @Prim.Type f)
+  where
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.Wrap @Prim.Type f a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (Wrap field0) -> foldr {foldableDict} (\element accumulator -> function element accumulator)
+        accumulator
+        field0
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.Wrap @Prim.Type f a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (Wrap field0) -> foldl {foldableDict} (\accumulator element -> function accumulator element)
+        accumulator
+        field0
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.Wrap @Prim.Type f a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (Wrap field0) -> foldMap {foldableDict} {monoidDict} (\element -> function element) field0

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+
+Derived
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Library.ImportedStructural a)
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Library.ImportedStructural a)
+derive Data.Eq.Eq1 Library.ImportedLifted
+derive Data.Ord.Ord1 Library.ImportedLifted
+derive Data.Eq.Eq1 Library.ImportedOpaque
+derive Data.Ord.Ord1 Library.ImportedOpaque

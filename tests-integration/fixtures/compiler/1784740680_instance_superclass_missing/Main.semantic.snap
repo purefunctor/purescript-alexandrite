@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Missing :: Prim.Type
+data Missing
+  | Missing :: Main.Missing
+
+interface Parent :: Prim.Type -> Prim.Constraint
+interface Parent value where
+
+interface Child :: Prim.Type -> Prim.Constraint
+interface Child value where
+  superclass parentDict :: Main.Parent value
+
+dictionary childMissing :: Main.Child Main.Missing where
+  superclass parentDict = error

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Product :: Prim.Type -> Prim.Type -> Prim.Type
+data Product @a @b
+  | Product :: a -> b -> Main.Product a b
+
+dictionary eqLocalOpaque :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.LocalOpaque a)
+  where
+  eq :: Main.LocalOpaque a -> Main.LocalOpaque a -> Prim.Boolean
+  eq = \_ -> \_ -> true
+
+dictionary eq1LocalAlias :: Data.Eq.Eq1 Main.LocalAlias where
+  eq1 :: forall a. Data.Eq.Eq a => Main.LocalAlias a -> Main.LocalAlias a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqLocalOpaque {eqDict}}

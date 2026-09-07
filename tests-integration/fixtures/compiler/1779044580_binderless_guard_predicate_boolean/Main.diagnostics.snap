@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:6:7
+  •
+  │
+  • Cannot unify 'Int' with 'Boolean'
+  │
+  │       | n -> 0
+  │         ╰
+  •

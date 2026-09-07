@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+testBoth :: Prim.Int -> Prim.String -> Main.Tuple Prim.Int Prim.String
+testBoth = Tuple
+
+testLeft :: forall t0. Prim.Int -> t0 -> Main.Tuple Prim.Int t0
+testLeft = Tuple
+
+testRight :: forall t0. t0 -> Prim.String -> Main.Tuple t0 Prim.String
+testRight = Tuple

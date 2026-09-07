@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Wrapped :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+data Wrapped @f @a
+  | Wrapped :: f (a -> Prim.Int) -> Main.Wrapped f a
+
+data Wrong :: forall k0 k1. (k0 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Wrong @f @a @b
+  | Wrong :: f a -> Main.Wrong f a b

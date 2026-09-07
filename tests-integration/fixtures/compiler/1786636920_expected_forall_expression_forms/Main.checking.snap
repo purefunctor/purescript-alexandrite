@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Token :: forall t0 (@scope :: t0). Main.Token @t0 (scope :: t0)
+Effect :: forall @value. value -> Main.Effect value
+identity :: forall value. value -> value
+modify :: forall t0 (scope :: t0). Main.Token @t0 (scope :: t0) -> Main.Token @t0 (scope :: t0)
+leak :: forall t0 result. (forall (scope :: t0). Main.Token @t0 (scope :: t0) -> result) -> result
+pure :: forall value. value -> Main.Effect value
+bind ::
+  forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+discard ::
+  forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+map :: forall value result. (value -> result) -> Main.Effect value -> Main.Effect result
+apply ::
+  forall value result. Main.Effect (value -> result) -> Main.Effect value -> Main.Effect result
+applyValue :: forall value result. value -> (value -> result) -> result
+# :: forall value result. value -> (value -> result) -> result
+escapedOperator :: forall t0. Main.Token @t0 (scope :: t0)
+escapedSection :: forall t0 t1. (Main.Token @t0 (scope :: t0) -> t1) -> t1
+escapedDo :: forall t0. Main.Effect (Main.Token @t0 (scope :: t0))
+escapedAdo :: forall t0. Main.Effect (Main.Token @t0 (scope :: t0))
+escapedRecord :: forall t0. { token :: Main.Token @t0 (scope :: t0) }
+escapedRecordUpdate ::
+  forall t0 (t1 :: Prim.Row Prim.Type) t2.
+    { token :: t0 | (t1 :: Prim.Row Prim.Type) } ->
+    { token :: Main.Token @t2 (scope :: t2) | (t1 :: Prim.Row Prim.Type) }
+escapedPatternGuard :: forall t0. t0 -> t0
+escapedCase :: forall t0 t1. t0 -> { token :: Main.Token @t1 (scope :: t1) }
+
+Types
+Token :: forall t0. t0 -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Token = [Phantom]
+Effect = [Representational]

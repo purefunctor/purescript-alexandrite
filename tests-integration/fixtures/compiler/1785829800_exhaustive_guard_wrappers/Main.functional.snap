@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export parenthesized = \x%0 ->
+  | true -> x%0
+
+@export typed = \x%1 ->
+  | true -> x%1

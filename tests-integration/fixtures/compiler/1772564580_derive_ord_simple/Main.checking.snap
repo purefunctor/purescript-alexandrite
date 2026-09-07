@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+MkBox :: Prim.Int -> Main.Box
+MkPair :: Prim.Int -> Prim.Boolean -> Main.Pair
+MkNoOrd :: Main.NoOrd
+MkContainsNoOrd :: Main.NoOrd -> Main.ContainsNoOrd
+
+Types
+Box :: Prim.Type
+Pair :: Prim.Type
+NoOrd :: Prim.Type
+ContainsNoOrd :: Prim.Type
+
+Derived
+derive Data.Eq.Eq Main.Box
+derive Data.Ord.Ord Main.Box
+derive Data.Eq.Eq Main.Pair
+derive Data.Ord.Ord Main.Pair
+derive Data.Eq.Eq Main.NoOrd
+derive Data.Eq.Eq Main.ContainsNoOrd
+derive Data.Ord.Ord Main.ContainsNoOrd
+
+Roles
+Box = []
+Pair = []
+NoOrd = []
+ContainsNoOrd = []

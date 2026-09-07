@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+data K1 :: Prim.Type
+data K1
+  | K1 :: Main.K1
+
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+interface C :: Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
+interface C key row where
+  c :: Main.Proxy @Prim.Type key -> Main.Proxy @(Prim.Row Prim.Type) row -> Main.Unit
+
+dictionary cK1Row :: Main.C Main.K1 ( a :: Prim.Int, b :: Prim.Boolean ) where
+  c :: Main.Proxy @Prim.Type Main.K1 ->
+Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.Boolean ) ->
+Main.Unit
+  c = \_ -> \_ -> Unit
+
+dictionary cRow :: forall key r. Main.C key ( a :: Prim.String, b :: Prim.Boolean | r ) where
+  c :: Main.Proxy @Prim.Type key ->
+Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String, b :: Prim.Boolean | r ) ->
+Main.Unit
+  c = \_ -> \_ -> Unit
+
+test :: forall key. Main.Proxy @Prim.Type key -> Main.Unit
+test = \key -> c {cRow} key Proxy

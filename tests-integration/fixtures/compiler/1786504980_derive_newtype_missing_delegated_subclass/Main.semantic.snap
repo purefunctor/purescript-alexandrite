@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Parent :: forall k0. k0 -> Prim.Constraint
+interface Parent value where
+
+interface Child :: forall k0. k0 -> Prim.Constraint
+interface Child value where
+  superclass parentDict :: Main.Parent @t0 value
+
+data Representation :: Prim.Type
+data Representation
+  | Representation :: Main.Representation
+
+newtype Wrapper :: Prim.Type
+newtype Wrapper
+  | Wrapper :: Main.Representation -> Main.Wrapper
+
+dictionary parentTypeRepresentation :: Main.Parent @Prim.Type Main.Representation
+
+dictionary parentTypeWrapper :: Main.Parent @Prim.Type Main.Wrapper

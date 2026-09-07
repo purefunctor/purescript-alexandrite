@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance firstTypeInt = {  }
+
+@export instance secondTypeBoolean = {  }
+
+@export foreign interleaved
+
+@export test = interleaved firstTypeInt secondTypeBoolean 1 true

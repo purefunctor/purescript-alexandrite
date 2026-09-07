@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+poly0 :: Main.ConstPoly
+poly1 :: Main.ConstPoly
+poly2 :: Main.ConstPoly
+poly3 :: Main.ConstPoly
+
+Types
+ConstPoly :: Prim.Type
+
+Synonyms
+type ConstPoly = forall a b. a -> b -> a

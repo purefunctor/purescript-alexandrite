@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:6:27
+  •
+  │
+  • Cannot unify 'Type' with 'Type -> Type'
+  │
+  │   derive instance Bifunctor (Triple Int String)
+  │                             ╰──────────────────
+  •
+
+Error! · [CannotDeriveForType] · Main.purs:6:1
+  •
+  │
+  • Cannot derive for type: Triple Int String
+  │
+  │   derive instance Bifunctor (Triple Int String)
+  │   ╰────────────────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

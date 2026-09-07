@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+const :: forall @a @b. a -> b -> a
+const = \a -> \_ -> a
+
+choose :: Prim.Int -> (forall @a @b. a -> b -> a)
+choose = \_ -> \a -> \_ -> a
+
+normal :: forall t0 t1. { parenthesised :: t0 -> t1 -> t0 }
+normal = { parenthesised: const }
+
+prenex :: { application :: forall @a @b. a -> b -> a, variable :: Prim.Int -> (forall @a @b. a -> b -> a) }
+prenex = { variable: choose, application: choose 0 }

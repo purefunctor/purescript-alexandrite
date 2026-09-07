@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+newtype Years :: Prim.Type
+newtype Years
+  | Years :: Main.Age -> Main.Years
+
+coerceTransitive :: Prim.Int -> Main.Years
+coerceTransitive = coerce {trivial}
+
+unwrapTransitive :: Main.Years -> Prim.Int
+unwrapTransitive = coerce {trivial}

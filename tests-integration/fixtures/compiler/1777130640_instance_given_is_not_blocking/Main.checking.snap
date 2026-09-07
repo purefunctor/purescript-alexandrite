@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeSet ::
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) a.
+    Prim.String -> a -> {| (r1 :: Prim.Row Prim.Type) } -> {| (r2 :: Prim.Row Prim.Type) }
+buildIt ::
+  forall (@row :: Prim.Row Prim.Type) (@subrow :: Prim.Row Prim.Type).
+    Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type) =>
+    {| (subrow :: Prim.Row Prim.Type) }
+test ::
+  forall (r :: Prim.Row Prim.Type) (s :: Prim.Row Prim.Type).
+    Main.BuildRecord (r :: Prim.Row Prim.Type) (s :: Prim.Row Prim.Type) =>
+    {| (s :: Prim.Row Prim.Type) }
+
+Types
+BuildRecord :: Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
+
+Classes
+class forall (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type). Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type)
+  buildIt ::
+  forall (@row :: Prim.Row Prim.Type) (@subrow :: Prim.Row Prim.Type).
+    Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type) =>
+    {| (subrow :: Prim.Row Prim.Type) }
+
+Instances
+instance forall (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type).
+  Main.BuildRecord (row :: Prim.Row Prim.Type) (subrow :: Prim.Row Prim.Type)

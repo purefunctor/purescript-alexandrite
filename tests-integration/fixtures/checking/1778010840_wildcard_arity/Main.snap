@@ -1,9 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 50
-expression: report
----
-Terms
-example :: forall t0 t1. Prim.Int -> t0 -> t1 -> Prim.Int
-
-Types

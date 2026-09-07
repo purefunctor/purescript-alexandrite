@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export test0 = "Proxy"
+
+@export test1 = "Proxy"
+
+@export test2 = "Proxy"

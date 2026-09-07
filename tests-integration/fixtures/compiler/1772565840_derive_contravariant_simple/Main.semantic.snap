@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Predicate :: Prim.Type -> Prim.Type
+data Predicate @a
+  | Predicate :: (a -> Prim.Boolean) -> Main.Predicate a
+
+data Comparison :: Prim.Type -> Prim.Type
+data Comparison @a
+  | Comparison :: (a -> a -> Prim.Boolean) -> Main.Comparison a
+
+data Op :: Prim.Type -> Prim.Type -> Prim.Type
+data Op @a @b
+  | Op :: (b -> a) -> Main.Op a b
+
+dictionary contravariantPredicate :: Data.Functor.Contravariant.Contravariant Main.Predicate where
+  cmap :: forall a b. (b -> a) -> Main.Predicate a -> Main.Predicate b
+  cmap = \function value ->
+    case value of
+      (Predicate field0) -> Predicate \argument -> field0 (function argument)
+
+dictionary contravariantComparison :: Data.Functor.Contravariant.Contravariant Main.Comparison where
+  cmap :: forall a b. (b -> a) -> Main.Comparison a -> Main.Comparison b
+  cmap = \function value ->
+    case value of
+      (Comparison field0) -> Comparison \argument ->
+        \argument1 -> field0 (function argument) (function argument1)
+
+dictionary contravariantOp :: forall a. Data.Functor.Contravariant.Contravariant (Main.Op a) where
+  cmap :: forall a1 b. (b -> a1) -> Main.Op a a1 -> Main.Op a b
+  cmap = \function value ->
+    case value of
+      (Op field0) -> Op \argument -> field0 (function argument)

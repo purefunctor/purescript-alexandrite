@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+rightmostDuplicate :: forall l.
+  Prim.Row.Union @Prim.Type l ( a :: Prim.String ) ( a :: Prim.Int, a :: Prim.String ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+rightmostDuplicate = \{unionDict} -> Proxy
+
+leftmostDuplicateMismatch :: forall l.
+  Prim.Row.Union @Prim.Type l ( a :: Prim.String ) ( a :: Prim.String, a :: Prim.Int ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+leftmostDuplicateMismatch = \{unionDict} -> Proxy
+
+openOutputBackwards :: forall l r.
+  Prim.Row.Union @Prim.Type l ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | r ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+openOutputBackwards = \{unionDict} -> Proxy
+
+forceSolve :: forall t0 t1.
+  Prim.Row.Union @Prim.Type t0 ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | t1 ) =>
+  { leftmostDuplicateMismatch :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String )
+  , openOutputBackwards :: Main.Proxy @(Prim.Row Prim.Type) t0
+  , rightmostDuplicate :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+  }
+forceSolve = \{unionDict} ->
+  { rightmostDuplicate: rightmostDuplicate {trivial}, leftmostDuplicateMismatch: leftmostDuplicateMismatch {trivial}, openOutputBackwards: openOutputBackwards {unionDict} }

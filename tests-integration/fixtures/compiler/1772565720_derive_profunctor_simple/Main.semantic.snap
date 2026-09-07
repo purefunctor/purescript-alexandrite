@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Fn :: Prim.Type -> Prim.Type -> Prim.Type
+data Fn @a @b
+  | Fn :: (a -> b) -> Main.Fn a b
+
+data ConstR :: forall k0. Prim.Type -> Prim.Type -> k0 -> Prim.Type
+data ConstR @r @a @b
+  | ConstR :: (a -> r) -> Main.ConstR r a b
+
+data Choice :: Prim.Type -> Prim.Type -> Prim.Type
+data Choice @a @b
+  | GoLeft :: (a -> Prim.Int) -> Main.Choice a b
+  | GoRight :: b -> Main.Choice a b
+
+dictionary profunctorFn :: Data.Profunctor.Profunctor Main.Fn where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Fn b c -> Main.Fn a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Fn field0) -> Fn \argument -> secondFunction (field0 (firstFunction argument))
+
+dictionary profunctorConstRType :: forall r. Data.Profunctor.Profunctor (Main.ConstR @Prim.Type r)
+  where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.ConstR @Prim.Type r b c -> Main.ConstR @Prim.Type r a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (ConstR field0) -> ConstR \argument -> field0 (firstFunction argument)
+
+dictionary profunctorChoice :: Data.Profunctor.Profunctor Main.Choice where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Choice b c -> Main.Choice a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (GoLeft field0) -> GoLeft \argument -> field0 (firstFunction argument)
+      (GoRight field0) -> GoRight (secondFunction field0)

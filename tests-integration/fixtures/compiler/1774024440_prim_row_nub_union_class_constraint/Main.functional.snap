@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export foreign consume
+
+@export merge = \unionR1R2R3Dict%2 nubR3R4Dict%3 ->
+  \$record%0@(_) $record%1@(_) -> unsafeCoerce {  }
+
+@export collect = \dictionary%4 -> dictionary%4.collect
+
+@export instance collectArrayString = { collect: \xs%5 -> xs%5 }
+
+@export combine = \collectItemsDict%12 unionRowPartialRowDict%9 nubRowDedupedDict%8 unionDedupedDeduped_RequiredDict%6 ->
+  \provided%10 $items%11@(_) ->
+    let
+      merged%7 = merge unionRowPartialRowDict%9 nubRowDedupedDict%8 { key: "value" } provided%10
+    in consume unionDedupedDeduped_RequiredDict%6 merged%7
+
+@export combine' = \collectItemsDict%13 ->
+  combine collectItemsDict%13 <trivial evidence> <trivial evidence> <trivial evidence> {  }
+
+@export repro = combine collectArrayString <trivial evidence> <trivial evidence> <trivial evidence>
+  {  }
+  []

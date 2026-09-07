@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export clone = \dictionary%0 -> dictionary%0.clone
+
+@export instance cloneRecordRecord = { clone: \x%1 -> x%1 }
+
+@export testClonePerson = cloneRecordRowRecordRowDictClone
+
+@export testCloneEmpty = cloneRecordRowRecordRowDictClone
+
+@export testCloneSingle = cloneRecordRowRecordRowDictClone
+
+@export nest = \dictionary%2 -> dictionary%2.nest
+
+@export instance nestRecordRecordRow = { nest: \x%3 -> { inner: x%3, outer: 0 } }
+
+@export testNest = nest nestRecordRecordRow
+
+cloneRecordRowRecordRowDictClone = clone cloneRecordRecord

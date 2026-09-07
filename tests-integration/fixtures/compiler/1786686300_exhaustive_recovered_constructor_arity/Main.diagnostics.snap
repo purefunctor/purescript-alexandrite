@@ -1,0 +1,94 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box' with 'Function ?4'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box t0' with 'Function ?4 (Box ?4)'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:5:1
+  •
+  │
+  • Cannot unify 'Box t0' with '?4 -> Box ?4'
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:5:1
+  •
+  │
+  • Pattern match has redundant patterns: Box
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:5:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Other
+  │
+  │   test (Box _) = 0
+  │   ╰───────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 'Function t1' with 'Box'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 'Function t1 (Box t1)' with 'Box ?8'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:1
+  •
+  │
+  • Cannot unify 't1 -> Box t1' with 'Box ?8'
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:8:1
+  •
+  │
+  • Pattern match has redundant patterns: Box _
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:8:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Other
+  │
+  │   test2 Box = 0
+  │   ╰────────────
+  •

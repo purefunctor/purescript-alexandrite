@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: forall k. k -> Prim.Type -> Prim.Type
+data Maybe @n @a
+  | Just :: a -> Main.Maybe n a
+  | Nothing :: Main.Maybe n a
+
+newtype MaybeAlias :: forall k. k -> Prim.Type -> Prim.Type
+newtype MaybeAlias @n @a
+  | MaybeAlias :: Main.Maybe @k n a -> Main.MaybeAlias n a
+
+coerceContainer :: Main.Container (Main.Maybe @Prim.Type) -> Main.Container (Main.MaybeAlias @Prim.Type)
+coerceContainer = coerce {trivial}
+
+coerceContainerReverse :: Main.Container (Main.MaybeAlias @Prim.Type) -> Main.Container (Main.Maybe @Prim.Type)
+coerceContainerReverse = coerce {trivial}

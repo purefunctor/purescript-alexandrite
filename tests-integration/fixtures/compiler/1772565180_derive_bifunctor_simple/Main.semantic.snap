@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+data Pair :: Prim.Type -> Prim.Type -> Prim.Type
+data Pair @a @b
+  | Pair :: a -> b -> Main.Pair a b
+
+data Const2 :: forall k0 k1. Prim.Type -> k0 -> k1 -> Prim.Type
+data Const2 @e @a @b
+  | Const2 :: e -> Main.Const2 e a b
+
+dictionary bifunctorEither :: Data.Bifunctor.Bifunctor Main.Either where
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Either a c -> Main.Either b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Left field0) -> Left (firstFunction field0)
+      (Right field0) -> Right (secondFunction field0)
+
+dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Pair field0 field1) -> Pair (firstFunction field0) (secondFunction field1)
+
+dictionary bifunctorConst2TypeType ::
+  forall e.
+  Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type e)
+  where
+  bimap :: forall a b c d.
+  (a -> b) ->
+  (c -> d) ->
+  Main.Const2 @Prim.Type @Prim.Type e a c ->
+  Main.Const2 @Prim.Type @Prim.Type e b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Const2 field0) -> Const2 field0

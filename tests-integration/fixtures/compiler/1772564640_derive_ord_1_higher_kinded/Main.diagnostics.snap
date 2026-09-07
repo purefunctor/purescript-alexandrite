@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:14:1
+  •
+  │
+  • No instance found for: Ord1 (f :: Type -> Type)
+  │
+  │   derive instance Ord a => Ord (WrapNoOrd1 f a)
+  │   ╰────────────────────────────────────────────
+  • while
+  │
+  │   Ord a is in scope
+  │   Eq a is in scope
+  •
+
+Error! · [NoInstanceFound] · Main.purs:14:1
+  •
+  │
+  • No instance found for: Eq1 (f :: Type -> Type)
+  │
+  │   derive instance Ord a => Ord (WrapNoOrd1 f a)
+  │   ╰────────────────────────────────────────────
+  • while
+  │
+  │   Ord a is in scope
+  │   Eq a is in scope
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

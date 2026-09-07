@@ -1,0 +1,85 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+Token :: forall t0 (@scope :: t0). Main.Token @t0 (scope :: t0)
+Effect :: forall @value. value -> Main.Effect value
+Proxy :: forall t0 (@value :: t0). Main.Proxy @t0 (value :: t0)
+Map :: forall t0 t1 (@key :: t0) (@value :: t1). Main.Map @t0 @t1 (key :: t0) (value :: t1)
+identity :: forall value. value -> value
+modify :: forall t0 (scope :: t0). Main.Token @t0 (scope :: t0) -> Main.Token @t0 (scope :: t0)
+consumeIdentity :: (forall value. value -> value) -> Main.Unit
+discardValue :: forall value. value -> Main.Unit
+leak :: forall t0 result. (forall (scope :: t0). Main.Token @t0 (scope :: t0) -> result) -> result
+mutate ::
+  forall t0 discarded.
+    (forall (scope :: t0). Main.Token @t0 (scope :: t0) -> Main.Effect discarded) -> Main.Unit
+mutateConstrained ::
+  forall t0.
+    (forall (scope :: t0).
+      Main.Witness @t0 (scope :: t0) => Main.Token @t0 (scope :: t0) -> Main.Effect Main.Unit) ->
+    Main.Unit
+poke :: forall t0 (scope :: t0). Main.Token @t0 (scope :: t0) -> Main.Effect Main.Unit
+pokeReturningToken ::
+  forall t0 (scope :: t0).
+    Main.Token @t0 (scope :: t0) -> Main.Effect (Main.Token @t0 (scope :: t0))
+pokeConstrained ::
+  forall t0 (scope :: t0).
+    Main.Witness @t0 (scope :: t0) => Main.Token @t0 (scope :: t0) -> Main.Effect Main.Unit
+pokeWithoutWitness ::
+  forall t0 t1 (scope :: t0) (result :: t1).
+    Main.EscapingEvidence @t0 @t1 (scope :: t0) (result :: t1) =>
+    Main.Token @t0 (scope :: t0) -> Main.Proxy @t1 (result :: t1)
+mutateMap ::
+  forall t0 t1 t2 (key :: t0) (value :: t1) discarded.
+    Main.Witness @t0 (key :: t0) =>
+    (forall (scope :: t2). Main.Token @t2 (scope :: t2) -> Main.Effect discarded) ->
+    Main.Map @t0 @t1 (key :: t0) (value :: t1) ->
+    Main.Map @t0 @t1 (key :: t0) (value :: t1)
+pokeMap ::
+  forall t0 key value (scope :: t0).
+    Main.Witness @Prim.Type key =>
+    key -> value -> Main.Token @t0 (scope :: t0) -> Main.Effect (Main.Token @t0 (scope :: t0))
+validRankTwoCallback :: (forall value. value -> value) -> Main.Unit
+validDirectPolymorphicExpression :: Main.Unit
+validDiscardedHigherRankResult :: Main.Unit
+validDiscardedScopedHigherRankResult :: Main.Unit
+validDiscardedConstrainedHigherRankResult :: Main.Unit
+validConstrainedTypeErasingCallback ::
+  forall key value.
+    Main.Witness @Prim.Type key =>
+    key ->
+    value ->
+    Main.Map @Prim.Type @Prim.Type key value ->
+    Main.Map @Prim.Type @Prim.Type key value
+escapedResult :: forall t0. Main.Token @t0 (scope :: t0)
+escapedBinder :: (value -> value) -> Main.Unit
+escapedNestedUse :: forall t0. Main.Token @t0 (scope :: t0)
+escapedDiscardedOuterArgument :: forall t0 t1. t0 -> Main.Token @t1 (scope :: t1)
+escapedDiscardedArgument :: Main.Unit
+escapedEvidenceOnly ::
+  forall t0 t1 (t2 :: t1).
+    Main.EscapingEvidence @t0 @t1 (scope :: t0) (t2 :: t1) => Main.Proxy @t1 (t2 :: t1)
+
+Types
+Unit :: Prim.Type
+Token :: forall t0. t0 -> Prim.Type
+Effect :: Prim.Type -> Prim.Type
+Proxy :: forall t0. t0 -> Prim.Type
+Map :: forall t0 t1. t0 -> t1 -> Prim.Type
+Witness :: forall t0. t0 -> Prim.Constraint
+EscapingEvidence :: forall t0 t1. t0 -> t1 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (scope :: t0). Main.Witness @t0 (scope :: t0)
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (scope :: t0) (result :: t1). Main.EscapingEvidence @t0 @t1 (scope :: t0) (result :: t1)
+
+Roles
+Unit = []
+Token = [Phantom]
+Effect = [Representational]
+Proxy = [Phantom]
+Map = [Phantom, Phantom]

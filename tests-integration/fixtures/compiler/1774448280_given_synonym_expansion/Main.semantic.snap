@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface TypeEquals :: forall k. k -> k -> Prim.Constraint
+interface TypeEquals a b where
+
+dictionary typeEquals :: forall k a. Main.TypeEquals @k a a
+
+foreign import unsafeCoerce :: forall a b. a -> b
+
+coerceRecord :: forall a b. Main.TypeEquals @(Prim.Row Prim.Type) a b => {| a } -> {| b }
+coerceRecord = \{typeEqualsDict} -> unsafeCoerce
+
+transform :: forall a.
+  Main.TypeEquals @(Prim.Row Prim.Type) a Main.Include =>
+  {| a } -> { x :: Prim.Int, y :: Prim.String, z :: Prim.Boolean }
+transform = \{typeEqualsDict} -> \v -> coerceRecord {typeEqualsDict} v
+
+test :: { x :: Prim.Int, y :: Prim.String, z :: Prim.Boolean }
+test = transform {typeEquals} { x: 42, y: "life", z: false }

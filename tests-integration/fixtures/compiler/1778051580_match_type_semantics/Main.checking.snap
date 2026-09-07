@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+isEq :: forall @a @b @o. Main.IsEq a b o => a -> b -> o
+Unit :: Main.Unit
+Output :: Main.Output
+testEqConcrete :: Main.Output
+testSkolemRight :: forall x. x -> Main.Output
+testSkolemLeft :: forall x. x -> Main.Output
+testSkolemIsEq :: forall x y. x -> y -> Main.Output
+typeEquals :: forall t0 (@a :: t0) (@b :: t0). Main.TypeEquals @t0 (a :: t0) (b :: t0) => Main.Unit
+testOpenRows :: Main.Unit
+rowSame :: forall k (@a :: k) (@b :: k). Main.RowSame @k (a :: k) (b :: k) => Main.Unit
+testOpenRowsNoFd :: Main.Unit
+
+Types
+IsEq :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+Unit :: Prim.Type
+Output :: Prim.Type
+TypeEquals :: forall k. k -> k -> Prim.Constraint
+RowSame :: forall k. k -> k -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type) (b :: Prim.Type) (o :: Prim.Type). Main.IsEq a b o
+  isEq :: forall @a @b @o. Main.IsEq a b o => a -> b -> o
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.RowSame @k (a :: k) (b :: k)
+  rowSame :: forall k (@a :: k) (@b :: k). Main.RowSame @k (a :: k) (b :: k) => Main.Unit
+
+Instances
+instance forall a. Main.IsEq a a Main.Output
+instance forall a b. Main.IsEq a b Main.Output
+instance forall k (a :: k). Main.TypeEquals @k (a :: k) (a :: k)
+instance forall k (a :: k). Main.RowSame @k (a :: k) (a :: k)
+
+Roles
+Unit = []
+Output = []

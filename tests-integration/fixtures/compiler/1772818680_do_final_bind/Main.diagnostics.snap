@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [InvalidFinalBind] · Main.purs:9:3
+  •
+  │
+  • Invalid final bind statement in do expression
+  │
+  │     x <- pure 1
+  │     ╰──────────
+  •
+
+Warning! · [InvalidFinalBind] · Main.purs:12:3
+  •
+  │
+  • Invalid final bind statement in do expression
+  │
+  │     x <- pure 1
+  │     ╰──────────
+  •

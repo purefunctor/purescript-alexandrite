@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:8:18
+  •
+  │
+  • Cannot unify 'Symbol' with 'Type'
+  │
+  │   type Bad = Int + "hello"
+  │                    ╰──────
+  •

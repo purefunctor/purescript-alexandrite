@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+Spec :: forall (@g :: Prim.Type -> Prim.Type). Main.Spec (g :: Prim.Type -> Prim.Type)
+it ::
+  forall t (g :: Prim.Type -> Prim.Type).
+    Main.Convert t (g :: Prim.Type -> Prim.Type) =>
+    Prim.String -> t -> Main.Spec (g :: Prim.Type -> Prim.Type)
+action :: forall (m :: Prim.Type -> Prim.Type). (m :: Prim.Type -> Prim.Type) Main.Unit
+test :: Main.Spec Effect.Aff.Aff
+test2 :: Main.Spec Effect.Aff.Aff
+test3 :: Main.Spec Effect.Aff.Aff
+
+Types
+Unit :: Prim.Type
+Spec :: (Prim.Type -> Prim.Type) -> Prim.Type
+Convert :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t :: Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Convert t (m :: Prim.Type -> Prim.Type)
+
+Instances
+instance forall a (m :: Prim.Type -> Prim.Type).
+  Main.Convert (a -> (m :: Prim.Type -> Prim.Type) Main.Unit) (m :: Prim.Type -> Prim.Type)
+instance forall (m :: Prim.Type -> Prim.Type).
+  Main.Convert ((m :: Prim.Type -> Prim.Type) Main.Unit) (m :: Prim.Type -> Prim.Type)
+
+Roles
+Unit = []
+Spec = [Phantom]

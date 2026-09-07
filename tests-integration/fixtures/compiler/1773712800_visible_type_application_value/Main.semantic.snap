@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+identity :: forall @a. a -> a
+identity = \a -> a
+
+const :: forall a @b. a -> b -> a
+const = \a -> \_ -> a
+
+testIdentity :: Prim.Int -> Prim.Int
+testIdentity = identity
+
+testConst :: forall t0. t0 -> Prim.String -> t0
+testConst = const

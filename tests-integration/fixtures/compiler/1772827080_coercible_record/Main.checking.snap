@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Age :: Prim.Int -> Main.Age
+coerceRecord :: { age :: Main.Age, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+coerceRecordReverse ::
+  { age :: Prim.Int, name :: Prim.String } -> { age :: Main.Age, name :: Prim.String }
+UserId :: Prim.Int -> Main.UserId
+coerceMultiple :: { age :: Main.Age, id :: Main.UserId } -> { age :: Prim.Int, id :: Prim.Int }
+
+Types
+Age :: Prim.Type
+UserId :: Prim.Type
+
+Roles
+Age = []
+UserId = []

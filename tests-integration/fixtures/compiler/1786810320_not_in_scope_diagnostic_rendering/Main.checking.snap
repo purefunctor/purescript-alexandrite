@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+missingVariable :: ?[missing expression]
+missingConstructor :: ?[missing expression]
+missingOperator :: forall t0. t0
+missingNegate :: ?[missing expression]
+missingDo :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingDiscard :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingAdo :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+missingPure :: forall (t0 :: Prim.Type -> Prim.Type). (t0 :: Prim.Type -> Prim.Type) Prim.Int
+missingType :: ?[missing constructor]
+
+Types
+MissingTypeOperator :: ?[invalid operator kind]
+
+Synonyms
+type MissingTypeOperator = ?[invalid operator chain]

@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+deriveSum :: forall sum. Prim.Int.Add 1 2 sum => Type.Proxy.Proxy @Prim.Int sum
+deriveSum = \{addDict} -> Proxy
+
+deriveRight :: forall right. Prim.Int.Add 1 right 3 => Type.Proxy.Proxy @Prim.Int right
+deriveRight = \{addDict} -> Proxy
+
+deriveLeft :: forall left. Prim.Int.Add left 2 3 => Type.Proxy.Proxy @Prim.Int left
+deriveLeft = \{addDict} -> Proxy
+
+stuckAdd :: forall left sum.
+  Prim.Int.Add left 1 sum => Type.Proxy.Proxy @Prim.Int left -> Type.Proxy.Proxy @Prim.Int sum
+stuckAdd = \{addDict} -> \_ -> Proxy
+
+deriveMul :: forall product. Prim.Int.Mul 3 4 product => Type.Proxy.Proxy @Prim.Int product
+deriveMul = \{mulDict} -> Proxy
+
+compareLT :: forall ord. Prim.Int.Compare 1 2 ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareLT = \{compareDict} -> Proxy
+
+compareEQ :: forall ord. Prim.Int.Compare 5 5 ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareEQ = \{compareDict} -> Proxy
+
+compareGT :: forall ord. Prim.Int.Compare 10 3 ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareGT = \{compareDict} -> Proxy
+
+deriveString :: forall s. Prim.Int.ToString 42 s => Type.Proxy.Proxy @Prim.Symbol s
+deriveString = \{toStringDict} -> Proxy
+
+forceSolve :: { compareEQ :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.EQ
+, compareGT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.GT
+, compareLT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+, deriveLeft :: Type.Proxy.Proxy @Prim.Int 1
+, deriveMul :: Type.Proxy.Proxy @Prim.Int 12
+, deriveRight :: Type.Proxy.Proxy @Prim.Int 2
+, deriveString :: Type.Proxy.Proxy @Prim.Symbol "42"
+, deriveSum :: Type.Proxy.Proxy @Prim.Int 3
+, keepStuck :: Type.Proxy.Proxy @Prim.Int 1
+}
+forceSolve =
+  { deriveSum: deriveSum {trivial}, deriveRight: deriveRight {trivial}, deriveLeft: deriveLeft {trivial}, deriveMul: deriveMul {trivial}, compareLT: compareLT {trivial}, compareEQ: compareEQ {trivial}, compareGT: compareGT {trivial}, deriveString: deriveString {trivial}, keepStuck: stuckAdd {trivial}
+    Proxy }

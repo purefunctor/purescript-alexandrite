@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export const = \a%0 $b%1@(_) -> a%0
+
+@export choose = \$int%3@(_) a%2 $b%4@(_) -> a%2
+
+@export normal = { parenthesised: const }
+
+@export prenex = { variable: choose, application: choose 0 }

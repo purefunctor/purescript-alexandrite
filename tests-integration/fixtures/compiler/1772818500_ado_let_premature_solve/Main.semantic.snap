@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Semiring :: Prim.Type -> Prim.Constraint
+interface Semiring a where
+  add :: a -> a -> a
+
+foreign import unit :: Main.Unit
+
+foreign import pure :: forall a. a -> Main.Effect a
+
+foreign import map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+
+foreign import apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+
+dictionary semiringInt :: Main.Semiring Prim.Int where
+  add :: Prim.Int -> Prim.Int -> Prim.Int
+  add = addImpl
+
+foreign import addImpl :: Prim.Int -> Prim.Int -> Prim.Int
+
+thing1 :: Main.Effect Prim.String
+thing1 = pure "hello"
+
+test :: Main.Effect Main.Unit
+test =
+  map
+    (\a ->
+      let
+        f :: Prim.String
+        f = add {error} a 123
+      in
+        unit)
+    thing1

@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Fn/1
+
+@export instance profunctorFn = {
+  dimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Fn field0%3 ->
+          { tag: "Fn", _1: \argument%4 -> secondFunction%1 (field0%3 (firstFunction%0 argument%4)) }
+}
+
+@export constructor ConstR/1
+
+@export instance profunctorConstRType = {
+  dimap:
+    \firstFunction%5 secondFunction%6 value%7 ->
+      case value%7 of
+        ConstR field0%8 ->
+          { tag: "ConstR", _1: \argument%9 -> field0%8 (firstFunction%5 argument%9) }
+}
+
+@export constructor GoLeft/1
+
+@export constructor GoRight/1
+
+@export instance profunctorChoice = {
+  dimap:
+    \firstFunction%10 secondFunction%11 value%12 ->
+      case value%12 of
+        GoLeft field0%13 ->
+          { tag: "GoLeft", _1: \argument%14 -> field0%13 (firstFunction%10 argument%14) }
+        GoRight field0%15 ->
+          { tag: "GoRight", _1: secondFunction%11 field0%15 }
+}

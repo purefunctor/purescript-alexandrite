@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CovariantOccurrence] · Main.purs:6:1
+  •
+  │
+  • Type variable occurs in covariant position: t0
+  │
+  │   derive instance Profunctor WrongFirst
+  │   ╰────────────────────────────────────
+  •
+
+Error! · [ContravariantOccurrence] · Main.purs:9:1
+  •
+  │
+  • Type variable occurs in contravariant position: t1
+  │
+  │   derive instance Profunctor WrongSecond
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [CovariantOccurrence] · Main.purs:9:1
+  •
+  │
+  • Type variable occurs in covariant position: t2
+  │
+  │   derive instance Profunctor WrongSecond
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

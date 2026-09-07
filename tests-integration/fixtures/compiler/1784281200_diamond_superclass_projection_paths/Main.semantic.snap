@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Bottom :: forall k0. k0 -> Prim.Constraint
+interface Bottom a where
+
+interface Left :: forall k0. k0 -> Prim.Constraint
+interface Left a where
+  superclass bottomDict :: Main.Bottom @t0 a
+
+interface Right :: forall k0. k0 -> Prim.Constraint
+interface Right a where
+  superclass bottomDict :: Main.Bottom @t0 a
+
+interface Top :: forall k0. k0 -> Prim.Constraint
+interface Top a where
+  superclass leftDict :: Main.Left @t0 a
+  superclass rightDict :: Main.Right @t0 a
+
+foreign import useBottom :: forall a. Main.Bottom @Prim.Type a => a -> Prim.Int
+
+foreign import useLeft :: forall a. Main.Left @Prim.Type a => a -> Prim.Int
+
+foreign import useRight :: forall a. Main.Right @Prim.Type a => a -> Prim.Int
+
+foreign import useTop :: forall a. Main.Top @Prim.Type a => a -> Prim.Int
+
+testDiamond :: forall t0. Main.Top @Prim.Type t0 => t0 -> Prim.Int
+testDiamond = \{topDict} -> \value ->
+  let
+    _ = useTop {topDict} value
+    _ = useLeft {topDict.leftDict} value
+    _ = useRight {topDict.rightDict} value
+  in
+    useBottom {topDict.leftDict.bottomDict} value
+
+testShared :: forall t0. Main.Left @Prim.Type t0 => Main.Right @Prim.Type t0 => t0 -> Prim.Int
+testShared = \{leftDict} -> \{rightDict} -> \value ->
+  let
+    _ = useLeft {leftDict} value
+    _ = useRight {rightDict} value
+  in
+    useBottom {leftDict.bottomDict} value

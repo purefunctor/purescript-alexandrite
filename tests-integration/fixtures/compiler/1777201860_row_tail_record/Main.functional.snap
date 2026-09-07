@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export tail = \$record%0@(_) -> 42
+
+@export nonTail = \$record%1@(_) -> 42
+
+@export asTail = [tail, nonTail]
+
+@export asNonTail = [tail, nonTail]

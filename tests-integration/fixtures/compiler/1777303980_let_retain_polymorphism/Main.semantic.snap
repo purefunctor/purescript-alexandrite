@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+interface Semigroup :: Prim.Type -> Prim.Constraint
+interface Semigroup a where
+  append :: a -> a -> a
+
+test :: forall a b. Main.Semigroup a => Main.Semigroup b => a -> a -> b -> b -> Main.Tuple a b
+test = \{semigroupDict} -> \{semigroupDict1} -> \a1 -> \a2 -> \b1 -> \b2 ->
+  Tuple (appendLocal {semigroupDict} a1 a2) (appendLocal {semigroupDict1} b1 b2)
+  where
+  appendLocal :: forall @a1. Main.Semigroup a1 => a1 -> a1 -> a1
+  appendLocal = append

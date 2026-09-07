@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign pure
+
+@export foreign map
+
+@export foreign apply
+
+@export test1 = <error>
+
+@export test2 = pure 123

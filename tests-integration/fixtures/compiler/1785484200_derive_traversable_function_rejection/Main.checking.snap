@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Reader :: forall @a. (Prim.Int -> a) -> Main.Reader a
+
+Types
+Reader :: Prim.Type -> Prim.Type
+
+Instances
+instance Data.Foldable.Foldable Main.Reader
+
+Derived
+derive Data.Functor.Functor Main.Reader
+derive Data.Traversable.Traversable Main.Reader
+
+Roles
+Reader = [Representational]

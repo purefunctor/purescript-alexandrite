@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+testNonExhaustive :: Prim.Array Prim.Int -> Prim.Int
+testRedundant :: Prim.Array Prim.Int -> Prim.Int
+testExhaustive :: Prim.Array Prim.Int -> Prim.Int
+
+Types

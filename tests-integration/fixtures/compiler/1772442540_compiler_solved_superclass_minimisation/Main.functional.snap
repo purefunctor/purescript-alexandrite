@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export useMerge = \mergeR1R2R3Dict%3 -> \$proxy%0@(_) $record%1@(_) $record%2@(_) -> unsafeCoerce 0
+
+@export useUnion = \unionR1R2R3Dict%7 -> \$proxy%4@(_) $record%5@(_) $record%6@(_) -> unsafeCoerce 0
+
+@export testMin = \mergeDict%8 ->
+  \p%9 r1%10 r2%11 ->
+    let
+      _ = useMerge mergeDict%8 p%9 r1%10 r2%11
+    in useUnion (mergeDict%8."Union0"()) p%9 r1%10 r2%11

@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export foreign pure
+
+@export foreign map
+
+@export foreign apply
+
+@export unit = "Unit"
+
+@export test = apply (map (\$int%0@(_) $unit%1@(_) -> unit) (pure 1)) (pure unit)
+
+@export test' = apply (map (\$int%2@(_) $unit%3@(_) -> unit) (pure 1)) (pure unit)

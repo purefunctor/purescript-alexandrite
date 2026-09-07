@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Tuple/2
+
+@export test1 = [42]
+
+@export test2 = { tag: "Tuple", _1: 42, _2: "hello" }
+
+@export forceSolve = { test1: test1, test2: test2 }

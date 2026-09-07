@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export generatedIdentity = \value%0 -> value%0
+
+@export generatedConst = \first%1 $argument1%2@(_) -> first%1
+
+@export generatedApply = \function%3 value%4 -> function%3 value%4
+
+@export sourceIdentity = \value%5 -> value%5
+
+@export sourceConst = \first%6 $second%7@(_) -> first%6
+
+@export sourceNumeric = \first%8 $t1%9@(_) -> first%8
+
+@export sourceShadowed = \value%10 $function%11@(_) -> value%10
+
+@export constructor Proxy/0

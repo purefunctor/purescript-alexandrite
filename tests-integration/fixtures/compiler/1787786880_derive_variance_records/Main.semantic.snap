@@ -1,0 +1,83 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data CovariantRecord :: Prim.Type -> Prim.Type
+data CovariantRecord @a
+  | CovariantRecord :: { value :: a } -> Main.CovariantRecord a
+
+data BivariantRecord :: Prim.Type -> Prim.Type -> Prim.Type
+data BivariantRecord @a @b
+  | BivariantRecord :: { first :: a, second :: b } -> Main.BivariantRecord a b
+
+data ContravariantRecord :: Prim.Type -> Prim.Type
+data ContravariantRecord @a
+  | ContravariantRecord :: { predicate :: a -> Prim.Boolean } -> Main.ContravariantRecord a
+
+data ProfunctorRecord :: Prim.Type -> Prim.Type -> Prim.Type
+data ProfunctorRecord @a @b
+  | ProfunctorRecord :: { run :: a -> b } -> Main.ProfunctorRecord a b
+
+dictionary functorCovariantRecord :: Data.Functor.Functor Main.CovariantRecord where
+  map :: forall a b. (a -> b) -> Main.CovariantRecord a -> Main.CovariantRecord b
+  map = \function value ->
+    case value of
+      (CovariantRecord field0) -> CovariantRecord field0 { value = function field0.value }
+
+dictionary foldableCovariantRecord :: Data.Foldable.Foldable Main.CovariantRecord where
+  foldr :: forall a b. (a -> b -> b) -> b -> Main.CovariantRecord a -> b
+  foldr = \function accumulator value ->
+    case value of
+      (CovariantRecord field0) -> function field0.value accumulator
+  foldl :: forall a b. (b -> a -> b) -> b -> Main.CovariantRecord a -> b
+  foldl = \function accumulator value ->
+    case value of
+      (CovariantRecord field0) -> function accumulator field0.value
+  foldMap :: forall a m. Data.Monoid.Monoid m => (a -> m) -> Main.CovariantRecord a -> m
+  foldMap = \{monoidDict} ->
+    \function value ->
+      case value of
+        (CovariantRecord field0) -> function field0.value
+
+dictionary traversableCovariantRecord :: Data.Traversable.Traversable Main.CovariantRecord where
+  superclass functorDict = functorCovariantRecord
+  superclass foldableDict = foldableCovariantRecord
+  traverse :: forall a b (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m =>
+  (a -> m b) -> Main.CovariantRecord a -> m (Main.CovariantRecord b)
+  traverse = \{applicativeDict} ->
+    \function value ->
+      case value of
+        (CovariantRecord field0) -> map {applicativeDict.applyDict.functorDict}
+          (\field0Result -> CovariantRecord field0Result)
+          (map {applicativeDict.applyDict.functorDict}
+            (\recordField0 -> field0 { value = recordField0 })
+            (function field0.value))
+  sequence :: forall a (m :: Prim.Type -> Prim.Type).
+  Control.Applicative.Applicative m => Main.CovariantRecord (m a) -> m (Main.CovariantRecord a)
+  sequence = \{applicativeDict} ->
+    \value -> traverse {traversableCovariantRecord} {applicativeDict} (\effect0 -> effect0) value
+
+dictionary bifunctorBivariantRecord :: Data.Bifunctor.Bifunctor Main.BivariantRecord where
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.BivariantRecord a c -> Main.BivariantRecord b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (BivariantRecord field0) -> BivariantRecord
+        field0 { first = firstFunction field0.first, second = secondFunction field0.second }
+
+dictionary contravariantContravariantRecord ::
+  Data.Functor.Contravariant.Contravariant Main.ContravariantRecord
+  where
+  cmap :: forall a b. (b -> a) -> Main.ContravariantRecord a -> Main.ContravariantRecord b
+  cmap = \function value ->
+    case value of
+      (ContravariantRecord field0) -> ContravariantRecord
+        field0 { predicate = \argument -> field0.predicate (function argument) }
+
+dictionary profunctorProfunctorRecord :: Data.Profunctor.Profunctor Main.ProfunctorRecord where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.ProfunctorRecord b c -> Main.ProfunctorRecord a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (ProfunctorRecord field0) -> ProfunctorRecord
+        field0 { run = \argument -> secondFunction (field0.run (firstFunction argument)) }

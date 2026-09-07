@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Value :: Prim.Type -> Prim.Constraint
+interface Value a where
+  value :: a
+
+dictionary valueInt :: Main.Value Prim.Int where
+  value :: Prim.Int
+  value = 42
+
+guardedFailure :: Prim.TypeError.Fail (Prim.TypeError.Text "failure was demanded") => Prim.Int
+guardedFailure = \{failDict} -> (\{failDict1} -> value {valueInt}) {failDict}
+
+useFailure :: Prim.Int
+useFailure = guardedFailure {error}
+
+guardedWarning :: Prim.TypeError.Warn (Prim.TypeError.Text "warning was demanded") => Prim.Int
+guardedWarning = \{warnDict} -> (\{warnDict1} -> value {valueInt}) {warnDict}
+
+useWarning :: Prim.Int
+useWarning = guardedWarning {trivial}

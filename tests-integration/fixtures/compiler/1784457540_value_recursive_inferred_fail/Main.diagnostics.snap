@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CustomFailure] · Main.purs:8:1
+  •
+  │
+  • failure was demanded
+  │
+  │   test = if true then test else guardedFailure
+  │   ╰───────────────────────────────────────────
+  •
+
+Error! · [JavaScriptInitializerCycle] · Main.purs:8:1
+  •
+  │
+  • This declaration is cyclic with other declarations
+  │
+  │   test = if true then test else guardedFailure
+  │   ╰───────────────────────────────────────────
+  •

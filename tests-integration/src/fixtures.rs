@@ -260,7 +260,7 @@ pub fn compiler(path: &Path) -> FixtureResult {
         return Err(missing_module(path, &file).into());
     };
 
-    let checking_report = crate::generated::basic::report_checked_types(&engine, id);
+    let checking_report = crate::generated::basic::report_checked(&engine, id);
     let semantic_report = crate::generated::semantic::report(&engine, id);
     let functional_report = match engine.functional(id)? {
         Ok(module) => functional::pretty::render(&module),
@@ -281,9 +281,7 @@ pub fn compiler(path: &Path) -> FixtureResult {
             writeln!(
                 diagnostics_report,
                 "Parse error · {display_path}:{}:{} · {}",
-                error.position.line,
-                error.position.column,
-                error.message,
+                error.position.line, error.position.column, error.message,
             )?;
         }
         let line_index = LineIndex::new(&collection.content);
@@ -344,27 +342,6 @@ pub fn compiler(path: &Path) -> FixtureResult {
     let mut generated_files = output_files(&output)?;
     generated_files.retain(|path, _| expected_paths.contains(path));
     verify_output(&fixture.join("output"), &generated_files)?;
-
-    Ok(())
-}
-
-pub fn checking(path: &Path) -> FixtureResult {
-    let folder = fixture_folder(path)?;
-    let file = module_name(path)?;
-    let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
-        invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
-    })?;
-    let (engine, _) = crate::load_compiler(folder)?;
-    let Some(id) = engine.module_file(&file) else {
-        return Err(missing_module(path, &file).into());
-    };
-
-    let report = crate::generated::basic::report_checked(&engine, id, display_path);
-
-    let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_path(snapshot_path(folder));
-    settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| insta::assert_snapshot!(file, report));
 
     Ok(())
 }

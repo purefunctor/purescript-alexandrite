@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export consume = \dictionary%0 -> dictionary%0.consume
+
+@export testGiven = \givenADict%1 ->
+  \a%2 ->
+    let
+      b%4 = consume givenADict%1 a%2
+    in let
+      c%3 = consume givenADict%1 a%2
+    in consume givenADict%1 a%2

@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+F ::
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.F @t0 (f :: t0 -> Prim.Type) (a :: t0)
+
+Types
+F :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+
+Roles
+F = [Representational, Nominal]

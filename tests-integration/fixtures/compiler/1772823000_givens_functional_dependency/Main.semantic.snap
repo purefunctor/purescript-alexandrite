@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert a b where
+  convert :: a -> b
+
+interface Relate :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+interface Relate a b c where
+  relate :: a -> b -> c
+
+useGiven :: forall x. Main.Convert Prim.Int x => x
+useGiven = \{convertDict} -> convert {convertDict} 42
+
+useRelate :: forall y. Main.Relate Prim.Int Prim.String y => y
+useRelate = \{relateDict} -> relate {relateDict} 1 "hello"

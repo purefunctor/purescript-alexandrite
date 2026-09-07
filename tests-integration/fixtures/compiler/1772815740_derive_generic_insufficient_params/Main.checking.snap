@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Box :: Prim.Int -> Main.Box
+
+Types
+Box :: Prim.Type
+
+Derived
+derive Data.Generic.Rep.Generic Main.Box
+
+Roles
+Box = []

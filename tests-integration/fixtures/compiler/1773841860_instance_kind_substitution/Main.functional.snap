@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export use = \dictionary%0 -> dictionary%0.use
+
+@export instance use1 = \rowToListRowXsDict%1 -> { use: "Proxy" }
+
+@export test = use (use1 <trivial evidence>)

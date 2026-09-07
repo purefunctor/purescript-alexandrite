@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export singleton = \dictionary%0 -> dictionary%0.singleton
+
+@export produce = \dictionary%1 -> dictionary%1.produce
+
+@export identity = \x%2 -> x%2
+
+@export test = \buildFDict%7 ->
+  \section62%3 section63%4 ->
+    case section62%3, section63%4 of
+      from%5, to%6 ->
+        | from%5 -> singleton buildFDict%7 true
+        | to%6 -> produce buildFDict%7 identity true
+        | true -> produce buildFDict%7 identity false

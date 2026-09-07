@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+const :: forall @a b. a -> b -> a
+const = \a -> \_ -> a
+
+forceSolve :: forall t0 t1 t2.
+  { const :: Prim.Int -> t0 -> Prim.Int
+  , left :: Prim.Int -> Main.Either Prim.Int t1
+  , right :: t2 -> Main.Either Prim.Int t2
+  }
+forceSolve = { const: const, left: Left, right: Right }

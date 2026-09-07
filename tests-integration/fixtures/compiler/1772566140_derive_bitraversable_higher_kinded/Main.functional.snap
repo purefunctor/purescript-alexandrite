@@ -1,0 +1,95 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor WrapBoth/2
+
+@export instance bifunctorWrapBothTypeType = \functorFDict%0 functorGDict%1 ->
+  {
+    bimap:
+      \firstFunction%2 secondFunction%3 value%4 ->
+        case value%4 of
+          WrapBoth field0%5 field1%6 ->
+            {
+              tag: "WrapBoth",
+              _1: map functorFDict%0 (\element%7 -> firstFunction%2 element%7) field0%5,
+              _2: map functorGDict%1 (\element%8 -> secondFunction%3 element%8) field1%6
+            }
+  }
+
+@export instance bifoldableWrapBothTypeType = \foldableFDict%9 foldableGDict%10 ->
+  {
+    bifoldr:
+      \firstFunction%11 secondFunction%12 accumulator%13 value%14 ->
+        case value%14 of
+          WrapBoth field0%15 field1%16 ->
+            foldr foldableFDict%9
+              (\element%17 accumulator%18 -> firstFunction%11 element%17 accumulator%18)
+              (foldr foldableGDict%10
+                (\element%19 accumulator%20 -> secondFunction%12 element%19 accumulator%20)
+                accumulator%13
+                field1%16)
+              field0%15,
+    bifoldl:
+      \firstFunction%21 secondFunction%22 accumulator%23 value%24 ->
+        case value%24 of
+          WrapBoth field0%25 field1%26 ->
+            foldl foldableGDict%10
+              (\accumulator%27 element%28 -> secondFunction%22 accumulator%27 element%28)
+              (foldl foldableFDict%9
+                (\accumulator%29 element%30 -> firstFunction%21 accumulator%29 element%30)
+                accumulator%23
+                field0%25)
+              field1%26,
+    bifoldMap:
+      \monoidMDict%36 ->
+        \firstFunction%31 secondFunction%32 value%33 ->
+          case value%33 of
+            WrapBoth field0%34 field1%35 ->
+              append (monoidMDict%36."Semigroup0"())
+                (foldMap foldableFDict%9 monoidMDict%36 (\element%37 -> firstFunction%31 element%37)
+                  field0%34)
+                (foldMap foldableGDict%10 monoidMDict%36
+                  (\element%38 -> secondFunction%32 element%38)
+                  field1%35)
+  }
+
+@export instance bitraversableWrapBothTypeType = \traversableFDict%39 traversableGDict%40 ->
+  {
+    "Bifunctor0":
+      \() ->
+        bifunctorWrapBothTypeType
+          (traversableFDict%39."Functor0"())
+          (traversableGDict%40."Functor0"()),
+    "Bifoldable1":
+      \() ->
+        bifoldableWrapBothTypeType
+          (traversableFDict%39."Foldable1"())
+          (traversableGDict%40."Foldable1"()),
+    bitraverse:
+      \applicativeFDict%46 ->
+        \firstFunction%41 secondFunction%42 value%43 ->
+          let
+            Apply0Dict%47 = applicativeFDict%46."Apply0"()
+          in case value%43 of
+            WrapBoth field0%44 field1%45 ->
+              apply Apply0Dict%47
+                (map (Apply0Dict%47."Functor0"())
+                  (\field0Result%48 field1Result%49 ->
+                    { tag: "WrapBoth", _1: field0Result%48, _2: field1Result%49 })
+                  (traverse traversableFDict%39 applicativeFDict%46
+                    (\element%50 -> firstFunction%41 element%50)
+                    field0%44))
+                (traverse traversableGDict%40 applicativeFDict%46
+                  (\element%51 -> secondFunction%42 element%51)
+                  field1%45),
+    bisequence:
+      \applicativeFDict%53 ->
+        \value%52 ->
+          bitraverse (bitraversableWrapBothTypeType traversableFDict%39 traversableGDict%40)
+            applicativeFDict%53
+            (\effect0%54 -> effect0%54)
+            (\effect1%55 -> effect1%55)
+            value%52
+  }

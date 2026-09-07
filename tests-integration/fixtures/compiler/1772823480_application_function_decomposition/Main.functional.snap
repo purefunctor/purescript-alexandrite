@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export foldMap = \dictionary%0 -> dictionary%0.foldMap
+
+@export foldMapWithIndex = \dictionary%1 -> dictionary%1.foldMapWithIndex
+
+@export foldlWithIndex = \dictionary%2 -> dictionary%2.foldlWithIndex
+
+@export foldrWithIndex = \dictionary%3 -> dictionary%3.foldrWithIndex
+
+@export constructor NonEmpty/2
+
+@export instance foldableNonEmpty = \foldableFDict%4 ->
+  { foldMap: \f%5 $nonEmpty%8@(NonEmpty a%6 fa%7) -> f%5 a%6 }
+
+@export instance foldableWithIndexMaybeNonEmpty = \foldableWithIndexIFDict%9 ->
+  {
+    "Foldable0": \() -> foldableNonEmpty (foldableWithIndexIFDict%9."Foldable0"()),
+    foldMapWithIndex: \f%10 $nonEmpty%13@(NonEmpty a%11 fa%12) -> f%10 "Nothing" a%11,
+    foldlWithIndex:
+      \f%14 b%16 $nonEmpty%19@(NonEmpty a%17 fa%18) ->
+        foldlWithIndex foldableWithIndexIFDict%9
+          (\composeArgument%15 -> f%14 { tag: "Just", _1: composeArgument%15 })
+          (f%14 "Nothing" b%16 a%17)
+          fa%18,
+    foldrWithIndex:
+      \f%20 b%23 $nonEmpty%25@(NonEmpty a%21 fa%24) ->
+        f%20 "Nothing" a%21
+          (foldrWithIndex foldableWithIndexIFDict%9
+            (\composeArgument%22 -> f%20 { tag: "Just", _1: composeArgument%22 })
+            b%23
+            fa%24)
+  }

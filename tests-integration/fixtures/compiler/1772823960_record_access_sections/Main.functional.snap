@@ -1,0 +1,42 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export map = \f%0 x%1 -> []
+
+@export apply = \f%2 x%3 -> f%2 x%3
+
+@export f = \g%4 -> g%4 { foo: 1 }
+
+@export test1 = \section74%5 -> section74%5.prop
+
+@export test2 = \section80%6 -> section80%6.a.b.c
+
+@export test3 = \section88%7 -> section88%7.poly
+
+@export test4 = map (\section97%8 -> section97%8.prop)
+
+@export test5 = f (\section106%9 -> section106%9.foo)
+
+@export test6 = \r%12 g%10 -> g%10 (\section118%11 -> section118%11.bar)
+
+@export test7 = \r%13 -> (\section128%14 -> section128%14.nonexistent) r%13
+
+@export test8 = \section137%15 -> section137%15 (\section140%16 -> section140%16.foo)
+
+@export test9 = map (\section150%17 -> section150%17 (\section153%18 -> section153%18.prop))
+
+@export test10 = apply (\section163%19 -> section163%19.a.b)
+
+@export test11 = \section171%20 -> { a: section171%20, b: \section174%21 -> section174%21.foo }
+
+@export test12 = \section180%22 -> [section180%22, \section182%23 -> section182%23.bar]
+
+@export test13 = \section189%24 ->
+  case section189%24 of
+    _ ->
+      \section197%25 -> section197%25.prop
+
+@export test14 = \section204%26 ->
+  if section204%26 then \section207%27 -> section207%27.a else \section211%28 -> section211%28.b

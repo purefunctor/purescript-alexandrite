@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Bad :: ?[cannot apply function type]
+
+Synonyms
+type Bad = Prim.Array Prim.Int Prim.String

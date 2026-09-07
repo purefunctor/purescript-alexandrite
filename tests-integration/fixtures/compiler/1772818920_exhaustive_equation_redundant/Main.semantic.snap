@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data YesNo :: Prim.Type
+data YesNo
+  | Yes :: Main.YesNo
+  | No :: Main.YesNo
+
+unit :: Main.Unit -> Prim.Int
+unit = \Unit -> 1
+unit = \_ -> 2
+unit = \Unit -> 3
+
+yes :: Main.YesNo -> Prim.Int
+yes = \Yes -> 1
+yes = \_ -> 2
+yes = \Yes -> 3
+
+no :: Main.YesNo -> Prim.Int
+no = \Yes -> 1
+no = \_ -> 2
+no = \No -> 3
+
+yesNo :: Main.YesNo -> Prim.Int
+yesNo = \Yes -> 1
+yesNo = \No -> 2
+yesNo = \_ -> 3

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export compose = \dictionary%0 -> dictionary%0.compose
+
+@export identity = \dictionary%1 -> dictionary%1.identity
+
+@export instance semigroupoidFn = { compose: \f%2 g%3 x%4 -> f%2 (g%3 x%4) }
+
+@export instance categoryFn = { "Semigroupoid0": \() -> semigroupoidFn, identity: \x%5 -> x%5 }
+
+@export test = \x%6 -> categoryFunctionDictIdentity categoryFunctionDictIdentity x%6
+
+categoryFunctionDictIdentity = identity categoryFn

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotGeneraliseRecursiveFunction] · Main.purs:6:1
+  •
+  │
+  • Unable to generalise the type of this recursive function.
+  │
+  │   test = if true then test else partialValue
+  │   ╰─────────────────────────────────────────
+  • while
+  │
+  │   The inferred type was: Partial => Int
+  │   Try adding a type signature.
+  •

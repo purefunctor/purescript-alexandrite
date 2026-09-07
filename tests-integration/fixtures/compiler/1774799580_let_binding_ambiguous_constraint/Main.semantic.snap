@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import delay :: Prim.Int -> Effect.Effect Data.Unit.Unit
+
+test :: Effect.Effect Data.Unit.Unit
+test = alias
+  where
+  alias :: Effect.Effect Data.Unit.Unit
+  alias = implementation
+  sleep :: Prim.Int -> Effect.Effect Data.Unit.Unit
+  sleep = delay
+  implementation :: Effect.Effect Data.Unit.Unit
+  implementation = discard {discardUnit} {bindEffect} (sleep timeout) \_ -> delay timeout
+    where
+    timeout :: Prim.Int
+    timeout = 42

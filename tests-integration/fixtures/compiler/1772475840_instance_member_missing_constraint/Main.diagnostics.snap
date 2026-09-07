@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:9:1
+  •
+  │
+  • No instance found for: Show a
+  │
+  │   instance Show (Box a) where
+  │   ╰──────────────────────────
+  •

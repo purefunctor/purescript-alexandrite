@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+add :: Prim.Int -> Prim.Int -> Prim.Int
+add = \x -> \y -> x
+
+sub :: Prim.Int -> Prim.Int -> Prim.Int
+sub = \x -> \y -> x
+
+mul :: Prim.Int -> Prim.Int -> Prim.Int
+mul = \x -> \y -> x
+
+test1 :: Prim.Int
+test1 = add 1 2
+
+test1' :: Prim.Int
+test1' = add 1 2
+
+test2 :: Prim.Int
+test2 = sub (add 1 2) 3
+
+test2' :: Prim.Int
+test2' = sub (add 1 2) 3
+
+test3 :: Prim.Int
+test3 = mul (sub (add 1 2) 3) 4
+
+test3' :: Prim.Int
+test3' = mul (sub (add 1 2) 3) 4
+
+const :: forall a b. a -> b -> a
+const = \x -> \y -> x
+
+test4 :: Prim.Int
+test4 = const 1 "hello"
+
+test4' :: Prim.Int
+test4' = const 1 "hello"
+
+test5 :: Prim.Int
+test5 = add (const 1 "hello") 2
+
+test5' :: Prim.Int
+test5' = add (const 1 "hello") 2
+
+apply :: forall a b. (a -> b) -> a -> b
+apply = \f -> \x -> f x
+
+chain :: forall a b c. (b -> c) -> (a -> b) -> a -> c
+chain = \g -> \f -> \x -> g (f x)
+
+test6 :: Prim.Int
+test6 = apply (chain (\x -> x) \x -> x) 1
+
+test6' :: Prim.Int
+test6' = apply (chain (\x -> x) \x -> x) 1
+
+curry :: forall a b c. (a -> b -> c) -> a -> b -> c
+curry = \f -> \x -> \y -> f x y
+
+test7 :: Prim.Int -> Prim.Int
+test7 = curry add 1
+
+test7' :: Prim.Int -> Prim.Int
+test7' = curry add 1

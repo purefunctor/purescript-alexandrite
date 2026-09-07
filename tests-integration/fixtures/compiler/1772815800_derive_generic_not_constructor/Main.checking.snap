@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+
+Derived
+derive forall t0. Data.Generic.Rep.Generic (Prim.Int -> Prim.Int) t0

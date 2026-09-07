@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+UserId :: Prim.Int -> Main.UserId
+wrapUserId :: Prim.Int -> Main.UserId
+unwrapUserId :: Main.UserId -> Prim.Int
+Wrapper :: forall @a. a -> Main.Wrapper a
+wrapWrapper :: forall a. a -> Main.Wrapper a
+unwrapWrapper :: forall a. Main.Wrapper a -> a
+
+Types
+UserId :: Prim.Type
+Wrapper :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Newtype.Newtype Main.UserId Prim.Int
+derive forall a. Data.Newtype.Newtype (Main.Wrapper a) a
+
+Roles
+UserId = []
+Wrapper = [Representational]

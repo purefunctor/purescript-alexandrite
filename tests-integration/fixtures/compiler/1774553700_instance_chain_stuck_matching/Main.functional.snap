@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export constructor Spec/0
+
+@export instance convertFunction = {  }
+
+@export instance convertAction = {  }
+
+@export it = \convertTGDict%2 -> \$string%0@(_) $t%1@(_) -> "Spec"
+
+@export foreign action
+
+@export test = it convertAction "do" action
+
+@export test2 = it convertFunction "function" (\$int%3@(_) -> action)
+
+@export test3 = it convertAction "variable" action

@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+test :: Effect.Effect Prim.Int
+test = pure {applicativeEffect} 1
+
+test' :: forall t0. Control.Applicative.Applicative t0 => t0 Prim.Int
+test' = \{applicativeDict} -> pure {applicativeDict} 1

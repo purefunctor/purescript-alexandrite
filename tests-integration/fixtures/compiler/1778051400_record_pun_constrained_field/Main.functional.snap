@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign fetch
+
+@export test = { fetch: \capabilityMDict%0 -> fetch capabilityMDict%0 }

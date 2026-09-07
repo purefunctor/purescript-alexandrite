@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+openLeft :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int | r ) ( b :: Prim.String ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+openLeft = \{unionDict} -> Proxy
+
+openRight :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String | r ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+openRight = \{unionDict} -> Proxy
+
+backwardLeft :: forall l r.
+  Prim.Row.Union @Prim.Type l ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | r ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+backwardLeft = \{unionDict} -> Proxy
+
+backwardRight :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) r ( a :: Prim.Int, b :: Prim.String | u ) =>
+  Main.Proxy @(Prim.Row Prim.Type) r
+backwardRight = \{unionDict} -> Proxy
+
+forceSolve :: forall t0 t1 t2 t3 t4 t5.
+  Prim.Row.Union @Prim.Type t0 ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | t1 ) =>
+  Prim.Row.Union @Prim.Type t2 ( b :: Prim.String ) t3 =>
+  { backwardLeft :: Main.Proxy @(Prim.Row Prim.Type) t0
+  , backwardRight :: Main.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | t4 )
+  , openLeft :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | t3 )
+  , openRight :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String | t5 )
+  }
+forceSolve = \{unionDict} -> \{unionDict1} ->
+  { openLeft: openLeft {trivial}, openRight: openRight {trivial}, backwardLeft: backwardLeft {unionDict}, backwardRight: backwardRight {trivial} }

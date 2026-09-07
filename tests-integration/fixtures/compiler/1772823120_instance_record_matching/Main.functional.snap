@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export make = \dictionary%0 -> dictionary%0.make
+
+@export instance makeRecordRecord = { make: \x%1 -> x%1 }
+
+@export testMake = make makeRecordRecord
+
+@export convert = \dictionary%2 -> dictionary%2.convert
+
+@export instance convertRecordRecordRow = { convert: \x%3 -> { converted: x%3 } }
+
+@export testConvert = convert convertRecordRecordRow

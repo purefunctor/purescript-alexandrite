@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+show :: forall @a. Main.Show a => a -> Prim.String
+
+Types
+Show :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
+
+Instances
+instance Main.Show Prim.Int

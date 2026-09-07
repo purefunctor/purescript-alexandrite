@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export bareTail = \$opts%0@(_) -> 1
+
+@export plainTail = \$opts%1@(_) -> 2
+
+@export recordTail = \$record%2@(_) -> 3
+
+@export withBareTail = bareTail { option: 1 }
+
+@export withPlainTail = plainTail { option: 1 }
+
+@export withRecordTail = recordTail { option: 1 }

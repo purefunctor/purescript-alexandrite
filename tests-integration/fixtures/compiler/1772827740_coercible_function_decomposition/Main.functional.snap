@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance newtypeAgeInt = { "Coercible0": \() -> <trivial evidence> }
+
+@export coerceFn = coerce <trivial evidence>
+
+@export over = \newtypeTADict%1 newtypeSBDict%2 -> \$function%0@(_) -> coerce <trivial evidence>
+
+@export under = \newtypeTADict%4 newtypeSBDict%5 -> \$function%3@(_) -> coerce <trivial evidence>
+
+@export alaF = \coercibleFTFADict%7 coercibleGSGBDict%8 newtypeTADict%9 newtypeSBDict%10 ->
+  \$function%6@(_) -> coerce <trivial evidence>

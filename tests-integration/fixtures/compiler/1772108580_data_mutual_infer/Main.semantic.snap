@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data F :: forall k0. k0 -> Prim.Type
+data F @a
+  | F :: Main.G a -> Main.F a
+
+data G :: forall k0. k0 -> Prim.Type
+data G @a
+  | G :: Main.F a -> Main.G a

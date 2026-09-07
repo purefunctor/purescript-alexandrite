@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+interface Monad :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Monad m where
+
+data Proxy ::
+  Prim.Type ->
+  Prim.Type ->
+  Prim.Type ->
+  Prim.Type ->
+  (Prim.Type -> Prim.Type) ->
+  Prim.Type ->
+  Prim.Type
+data Proxy @x' @x @a' @a @m @r
+  | Respond :: a -> (a' -> Main.Proxy x' x a' a m r) -> Main.Proxy x' x a' a m r
+  | Pure :: r -> Main.Proxy x' x a' a m r
+
+respond :: forall m a a' x x'. Main.Monad m => a -> Main.Proxy x' x a' a m a'
+respond = \{monadDict} -> \a -> Respond a Pure
+
+yield :: forall m a. Main.Monad m => a -> Main.Producer_ a m Main.Unit
+yield = \{monadDict} -> respond {monadDict}

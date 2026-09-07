@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export merge = \unionR1R2R3Dict%2 nubR3R4Dict%3 ->
+  \$record%0@(_) $record%1@(_) -> unsafeCoerce {  }
+
+@export a = \nubRowDict%4 -> merge <trivial evidence> nubRowDict%4 { a: 123 }
+
+@export b = a <trivial evidence> { b: 123 }
+
+@export fromUnion = \unionR1R2R3Dict%6 -> \$record%5@(_) -> unsafeCoerce 0
+
+@export test = \unionDict%7 -> fromUnion unionDict%7
+
+@export chainedUnion = \unionR1R2R3Dict%9 unionR3R4R5Dict%10 -> \$record%8@(_) -> unsafeCoerce {  }
+
+@export testChained = \unionDict%11 -> chainedUnion <trivial evidence> <trivial evidence> { x: 1 }
+
+@export multiMerge = \unionR1R2R3Dict%14 nubR3R4Dict%15 unionR4R5R6Dict%16 ->
+  \$record%12@(_) $record%13@(_) -> unsafeCoerce {  }
+
+@export testMulti1 = \unionDict%17 nubRowDict%18 ->
+  multiMerge <trivial evidence> nubRowDict%18 unionDict%17 { a: 1 }
+
+@export testMulti2 = \nubRowDict%20 unionRowDict%19 ->
+  multiMerge <trivial evidence> nubRowDict%20 unionRowDict%19 { a: 1 } { b: 2 }

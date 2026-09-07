@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Product :: forall @a @b. a -> b -> Main.Product a b
+
+Types
+LocalOpaque :: Prim.Type -> Prim.Type
+LocalAlias :: Prim.Type -> Prim.Type
+ImportedAlias :: Prim.Type -> Prim.Type
+NoBase :: Prim.Type -> Prim.Type
+Product :: Prim.Type -> Prim.Type -> Prim.Type
+ProductInt :: Prim.Type -> Prim.Type
+
+Synonyms
+type LocalAlias = Main.LocalOpaque
+type ImportedAlias = Library.ImportedOpaque
+type ProductInt a = Main.Product Prim.Int a
+
+Instances
+instance forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.LocalOpaque a)
+
+Derived
+derive Data.Eq.Eq1 Main.LocalAlias
+derive Data.Eq.Eq1 Main.ImportedAlias
+derive Data.Eq.Eq1 Main.NoBase
+derive Data.Eq.Eq1 ?[partial synonym application]
+
+Roles
+LocalOpaque = [Nominal]
+NoBase = [Nominal]
+Product = [Representational, Representational]

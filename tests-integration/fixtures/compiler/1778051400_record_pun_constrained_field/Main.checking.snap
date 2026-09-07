@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+fetch ::
+  forall (m :: Prim.Type -> Prim.Type).
+    Main.Capability (m :: Prim.Type -> Prim.Type) =>
+    Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
+test :: Main.Setup
+
+Types
+Capability :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Setup :: Prim.Type
+
+Synonyms
+type Setup = { fetch ::
+    forall (m :: Prim.Type -> Prim.Type).
+      Main.Capability (m :: Prim.Type -> Prim.Type) =>
+      Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
+}
+
+Classes
+class forall (m :: Prim.Type -> Prim.Type). Main.Capability (m :: Prim.Type -> Prim.Type)

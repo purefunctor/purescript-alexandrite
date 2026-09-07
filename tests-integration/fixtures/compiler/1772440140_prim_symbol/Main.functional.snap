@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export deriveAppended = \appendAppendedDict%0 -> "Proxy"
+
+@export deriveLeft = \appendLeftDict%1 -> "Proxy"
+
+@export deriveRight = \appendRightDict%2 -> "Proxy"
+
+@export compareLT = \compareOrdDict%3 -> "Proxy"
+
+@export compareEQ = \compareOrdDict%4 -> "Proxy"
+
+@export compareGT = \compareOrdDict%5 -> "Proxy"
+
+@export deriveCons = \consSymbolDict%6 -> "Proxy"
+
+@export deriveHeadTail = \consHeadTailDict%7 -> "Proxy"
+
+@export symbolValue = reflectSymbol (symbol "hello") "Proxy"
+
+@export symbolValue' = reflectSymbol (symbol "") "Proxy"
+
+@export forceSolve = {
+  deriveAppended: deriveAppended <trivial evidence>,
+  deriveLeft: deriveLeft <trivial evidence>,
+  deriveRight: deriveRight <trivial evidence>,
+  compareLT: compareLT <trivial evidence>,
+  compareEQ: compareEQ <trivial evidence>,
+  compareGT: compareGT <trivial evidence>,
+  deriveCons: deriveCons <trivial evidence>,
+  deriveHeadTail: deriveHeadTail <trivial evidence>,
+  symbolValue: symbolValue,
+  symbolValue': symbolValue'
+}

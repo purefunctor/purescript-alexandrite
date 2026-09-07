@@ -1,0 +1,120 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export instance bifunctorEither = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Left field0%3 ->
+          { tag: "Left", _1: firstFunction%0 field0%3 }
+        Right field0%4 ->
+          { tag: "Right", _1: secondFunction%1 field0%4 }
+}
+
+@export instance bifoldableEither = {
+  bifoldr:
+    \firstFunction%5 secondFunction%6 accumulator%7 value%8 ->
+      case value%8 of
+        Left field0%9 ->
+          firstFunction%5 field0%9 accumulator%7
+        Right field0%10 ->
+          secondFunction%6 field0%10 accumulator%7,
+  bifoldl:
+    \firstFunction%11 secondFunction%12 accumulator%13 value%14 ->
+      case value%14 of
+        Left field0%15 ->
+          firstFunction%11 accumulator%13 field0%15
+        Right field0%16 ->
+          secondFunction%12 accumulator%13 field0%16,
+  bifoldMap:
+    \monoidMDict%22 ->
+      \firstFunction%17 secondFunction%18 value%19 ->
+        case value%19 of
+          Left field0%20 ->
+            firstFunction%17 field0%20
+          Right field0%21 ->
+            secondFunction%18 field0%21
+}
+
+@export instance bitraversableEither = {
+  "Bifunctor0": \() -> bifunctorEither,
+  "Bifoldable1": \() -> bifoldableEither,
+  bitraverse:
+    \applicativeFDict%27 ->
+      \firstFunction%23 secondFunction%24 value%25 ->
+        let
+          Functor0Dict%30 = (applicativeFDict%27."Apply0"())."Functor0"()
+        in case value%25 of
+          Left field0%26 ->
+            map Functor0Dict%30 (\field0Result%28 -> { tag: "Left", _1: field0Result%28 })
+              (firstFunction%23 field0%26)
+          Right field0%29 ->
+            map Functor0Dict%30 (\field0Result%31 -> { tag: "Right", _1: field0Result%31 })
+              (secondFunction%24 field0%29),
+  bisequence:
+    \applicativeFDict%33 ->
+      \value%32 ->
+        bitraverse bitraversableEither applicativeFDict%33 (\effect0%34 -> effect0%34)
+          (\effect1%35 -> effect1%35)
+          value%32
+}
+
+@export constructor Pair/2
+
+@export instance bifunctorPair = {
+  bimap:
+    \firstFunction%36 secondFunction%37 value%38 ->
+      case value%38 of
+        Pair field0%39 field1%40 ->
+          { tag: "Pair", _1: firstFunction%36 field0%39, _2: secondFunction%37 field1%40 }
+}
+
+@export instance bifoldablePair = {
+  bifoldr:
+    \firstFunction%41 secondFunction%42 accumulator%43 value%44 ->
+      case value%44 of
+        Pair field0%45 field1%46 ->
+          firstFunction%41 field0%45 (secondFunction%42 field1%46 accumulator%43),
+  bifoldl:
+    \firstFunction%47 secondFunction%48 accumulator%49 value%50 ->
+      case value%50 of
+        Pair field0%51 field1%52 ->
+          secondFunction%48 (firstFunction%47 accumulator%49 field0%51) field1%52,
+  bifoldMap:
+    \monoidMDict%58 ->
+      \firstFunction%53 secondFunction%54 value%55 ->
+        case value%55 of
+          Pair field0%56 field1%57 ->
+            append (monoidMDict%58."Semigroup0"()) (firstFunction%53 field0%56)
+              (secondFunction%54 field1%57)
+}
+
+@export instance bitraversablePair = {
+  "Bifunctor0": \() -> bifunctorPair,
+  "Bifoldable1": \() -> bifoldablePair,
+  bitraverse:
+    \applicativeFDict%64 ->
+      \firstFunction%59 secondFunction%60 value%61 ->
+        let
+          Apply0Dict%65 = applicativeFDict%64."Apply0"()
+        in case value%61 of
+          Pair field0%62 field1%63 ->
+            apply Apply0Dict%65
+              (map (Apply0Dict%65."Functor0"())
+                (\field0Result%66 field1Result%67 ->
+                  { tag: "Pair", _1: field0Result%66, _2: field1Result%67 })
+                (firstFunction%59 field0%62))
+              (secondFunction%60 field1%63),
+  bisequence:
+    \applicativeFDict%69 ->
+      \value%68 ->
+        bitraverse bitraversablePair applicativeFDict%69 (\effect0%70 -> effect0%70)
+          (\effect1%71 -> effect1%71)
+          value%68
+}

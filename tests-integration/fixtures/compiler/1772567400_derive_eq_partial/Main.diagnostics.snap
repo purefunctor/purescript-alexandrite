@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [OverlappingInstances] · Main.purs:9:1
+  •
+  │
+  • Overlapping type class instances found for: Eq (Either Int b)
+  │
+  │   derive instance Eq (Either Int b)
+  │   ╰────────────────────────────────
+  • while
+  │
+  │   forall b1. Eq b1 => Eq (Either Int b1) is matching
+  │   forall b. Eq (Either Int b) is matching
+  •
+
+Error! · [NoInstanceFound] · Main.purs:9:1
+  •
+  │
+  • No instance found for: Eq b
+  │
+  │   derive instance Eq (Either Int b)
+  │   ╰────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

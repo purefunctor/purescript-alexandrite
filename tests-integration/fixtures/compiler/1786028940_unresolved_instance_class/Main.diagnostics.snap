@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Parse error · Main.purs:5:1 · Expected LAYOUT_START
+Parse error · Main.purs:5:1 · Expected LAYOUT_END
+Parse error · Main.purs:6:1 · Expected LAYOUT_START
+Parse error · Main.purs:6:1 · Expected LAYOUT_SEPARATOR
+Parse error · Main.purs:6:1 · Expected LAYOUT_END
+Error! · [NotInScope] · Main.purs:3:10
+  •
+  │
+  • 'Functor' is not in scope
+  │
+  │   instance Functor Array where
+  │            ╰──────
+  •
+
+Error! · [NotInScope] · Main.purs:5:10
+  •
+  │
+  • 'Missing.Functor' is not in scope
+  │
+  │   instance Missing.Functor Array where
+  │            ╰──────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

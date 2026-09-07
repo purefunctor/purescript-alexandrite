@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+compose ::
+  forall k (@f :: k -> k -> Prim.Type).
+    Main.Semigroupoid @k (f :: k -> k -> Prim.Type) =>
+    (forall (a :: k) (b :: k) (c :: k).
+      (f :: k -> k -> Prim.Type) (b :: k) (c :: k) ->
+      (f :: k -> k -> Prim.Type) (a :: k) (b :: k) ->
+      (f :: k -> k -> Prim.Type) (a :: k) (c :: k))
+Tagged :: forall (@n :: Prim.Int) @a. a -> Main.Tagged (n :: Prim.Int) a
+make :: forall a. a -> Main.HiddenTagged a
+ConcreteNewtype :: forall @a. Main.ConcreteTagged a -> Main.ConcreteNewtype a
+test :: forall a. a -> Main.ConcreteNewtype a
+
+Types
+Semigroupoid :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
+Tagged :: Prim.Int -> Prim.Type -> Prim.Type
+ConcreteTagged :: Prim.Type -> Prim.Type
+HiddenTagged :: Prim.Type -> Prim.Type
+ConcreteNewtype :: Prim.Type -> Prim.Type
+
+Synonyms
+type ConcreteTagged a = Main.Tagged 42 a
+type HiddenTagged a = forall (n :: Prim.Int). Main.Tagged (n :: Prim.Int) a
+
+Classes
+class forall (k :: Prim.Type) (f :: k -> k -> Prim.Type). Main.Semigroupoid @k (f :: k -> k -> Prim.Type)
+  compose ::
+  forall k (@f :: k -> k -> Prim.Type).
+    Main.Semigroupoid @k (f :: k -> k -> Prim.Type) =>
+    (forall (a :: k) (b :: k) (c :: k).
+      (f :: k -> k -> Prim.Type) (b :: k) (c :: k) ->
+      (f :: k -> k -> Prim.Type) (a :: k) (b :: k) ->
+      (f :: k -> k -> Prim.Type) (a :: k) (c :: k))
+
+Instances
+instance Main.Semigroupoid @Prim.Type Prim.Function
+
+Roles
+Tagged = [Phantom, Representational]
+ConcreteNewtype = [Representational]

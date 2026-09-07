@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export instance bifunctorEither = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Left field0%3 ->
+          { tag: "Left", _1: firstFunction%0 field0%3 }
+        Right field0%4 ->
+          { tag: "Right", _1: secondFunction%1 field0%4 }
+}
+
+@export constructor Pair/2
+
+@export instance bifunctorPair = {
+  bimap:
+    \firstFunction%5 secondFunction%6 value%7 ->
+      case value%7 of
+        Pair field0%8 field1%9 ->
+          { tag: "Pair", _1: firstFunction%5 field0%8, _2: secondFunction%6 field1%9 }
+}
+
+@export constructor Const2/1
+
+@export instance bifunctorConst2TypeType = {
+  bimap:
+    \firstFunction%10 secondFunction%11 value%12 ->
+      case value%12 of
+        Const2 field0%13 ->
+          { tag: "Const2", _1: field0%13 }
+}

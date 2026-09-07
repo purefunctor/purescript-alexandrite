@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+dictionary newtypeAgeInt :: Data.Newtype.Newtype Main.Age Prim.Int where
+  superclass coercibleDict = trivial
+
+coerceFn :: (Main.Age -> Prim.Int) -> Prim.Int -> Main.Age
+coerceFn = coerce {trivial}
+
+over :: forall t a s b.
+  Data.Newtype.Newtype t a => Data.Newtype.Newtype s b => (a -> t) -> (a -> b) -> t -> s
+over = \{newtypeDict} -> \{newtypeDict1} -> \_ -> coerce {trivial}
+
+under :: forall t a s b.
+  Data.Newtype.Newtype t a => Data.Newtype.Newtype s b => (a -> t) -> (t -> s) -> a -> b
+under = \{newtypeDict} -> \{newtypeDict1} -> \_ -> coerce {trivial}
+
+alaF :: forall f g t a s b.
+  Prim.Coerce.Coercible @Prim.Type (f t) (f a) =>
+  Prim.Coerce.Coercible @Prim.Type (g s) (g b) =>
+  Data.Newtype.Newtype t a =>
+  Data.Newtype.Newtype s b =>
+  (a -> t) -> (f t -> g s) -> f a -> g b
+alaF = \{coercibleDict} -> \{coercibleDict1} -> \{newtypeDict} -> \{newtypeDict1} -> \_ ->
+  coerce {trivial}

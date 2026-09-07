@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance pickSame = \compareAAEQDict%0 -> {  }
+
+@export instance pickFallback = {  }
+
+@export choose = \pickABResultDict%3 -> \$proxy%1@(_) $proxy%2@(_) -> "Proxy"
+
+@export x = choose (pickSame <trivial evidence>) "Proxy" "Proxy"

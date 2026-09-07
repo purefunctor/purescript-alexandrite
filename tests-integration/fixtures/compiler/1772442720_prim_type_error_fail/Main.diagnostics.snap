@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CustomFailure] · Main.purs:11:1
+  •
+  │
+  • This operation is not allowed
+  │
+  │   useFailBasic :: Int
+  │   ╰──────────────────
+  •
+
+Error! · [CustomFailure] · Main.purs:17:1
+  •
+  │
+  • Error:
+  │ Type String
+  │
+  │   useFailComplex :: Proxy String
+  │   ╰─────────────────────────────
+  •

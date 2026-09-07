@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Age :: Prim.Int -> Main.Age
+coerceArray :: Prim.Array Main.Age -> Prim.Array Prim.Int
+coerceArrayReverse :: Prim.Array Prim.Int -> Prim.Array Main.Age
+
+Types
+Age :: Prim.Type
+
+Roles
+Age = []

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Builder :: Prim.Type -> Prim.Type -> Prim.Type
+newtype Builder @a @b
+  | Builder :: (a -> b) -> Main.Builder a b
+
+dictionary semigroupoidTypeBuilder ::
+  Control.Semigroupoid.Semigroupoid @Prim.Type Main.Builder = semigroupoidFn
+
+dictionary categoryTypeBuilder :: Control.Category.Category @Prim.Type Main.Builder = categoryFn

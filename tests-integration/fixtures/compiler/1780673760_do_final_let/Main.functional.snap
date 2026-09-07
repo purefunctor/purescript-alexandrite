@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign bind
+
+@export foreign before
+
+@export foreign expectString
+
+@export test = bind before
+  (\record%0 ->
+    let
+      _ = expectString record%0.field
+    in <error>)

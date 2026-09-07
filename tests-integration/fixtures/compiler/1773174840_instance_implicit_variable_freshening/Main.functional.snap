@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export top = \dictionary%0 -> dictionary%0.top
+
+@export instance topProxy = { top: "Proxy" }

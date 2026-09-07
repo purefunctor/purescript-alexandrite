@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export isLeft = \$either%0 ->
+  case $either%0 of
+    Left _ ->
+      true
+    Right _ ->
+      false
+
+@export isRight = \$either%1 ->
+  case $either%1 of
+    Left _ ->
+      false
+    Right _ ->
+      true
+
+@export test = { left: Left, right: Right, isLeft: isLeft, isRight: isRight }

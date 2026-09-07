@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Predicate/1
+
+@export instance contravariantPredicate = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        Predicate field0%2 ->
+          { tag: "Predicate", _1: \argument%3 -> field0%2 (function%0 argument%3) }
+}
+
+@export constructor Comparison/1
+
+@export instance contravariantComparison = {
+  cmap:
+    \function%4 value%5 ->
+      case value%5 of
+        Comparison field0%6 ->
+          {
+            tag: "Comparison",
+            _1:
+              \argument%7 ->
+                \argument1%8 -> field0%6 (function%4 argument%7) (function%4 argument1%8)
+          }
+}
+
+@export constructor Op/1
+
+@export instance contravariantOp = {
+  cmap:
+    \function%9 value%10 ->
+      case value%10 of
+        Op field0%11 ->
+          { tag: "Op", _1: \argument%12 -> field0%11 (function%9 argument%12) }
+}

@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = \monadRecMDict%2 ->
+  \a%1 -> (\x%3 -> pure ((monadRecMDict%2."Monad0"())."Applicative0"()) x%3) a%1
+
+@export test2 = \monadRecMDict%6 ->
+  \ma%5 ->
+    (\x%7 ->
+      let
+        Monad0Dict%8 = monadRecMDict%6."Monad0"()
+      in bind (Monad0Dict%8."Bind1"()) x%7 (pure (Monad0Dict%8."Applicative0"())))
+      ma%5
+
+@export test3 = \monadRecMDict%11 ->
+  \mi%10 ->
+    (\x%13 ->
+      map ((((monadRecMDict%11."Monad0"())."Applicative0"())."Apply0"())."Functor0"())
+        (\y%12 -> y%12)
+        x%13)
+      mi%10

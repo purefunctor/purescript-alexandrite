@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Functor f where
+  map :: forall a b. (a -> b) -> f a -> f b
+
+data Box :: Prim.Type -> Prim.Type
+data Box @a
+  | Box :: a -> Main.Box a
+
+dictionary functorBox :: Main.Functor Main.Box where
+  map :: forall a b. (a -> b) -> Main.Box a -> Main.Box b
+  map = \f -> \(Box x) -> Box (f x)

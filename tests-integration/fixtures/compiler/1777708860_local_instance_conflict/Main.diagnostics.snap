@@ -1,0 +1,54 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [RedefinedIdent] · Main.purs:6:1
+  •
+  │
+  • Instance name 'classInt' conflicts with a local value declaration
+  │
+  │   instance classInt :: Class
+  │   ╰─────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   foreign import classInt :: Int
+  │   ╰─────────────────────────────
+  •
+
+Error! · [InstanceHeadMismatch] · Main.purs:1:1
+  •
+  │
+  • Instance head mismatch: expected 1 arguments, got 0
+  │
+  │   module Main where
+  │   ╰────────────────
+  •
+
+Error! · [CannotUnify] · Main.purs:1:1
+  •
+  │
+  • Cannot unify 'Type -> Constraint' with 'Constraint'
+  │
+  │   module Main where
+  │   ╰────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:7:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'classInt'
+  │
+  │   foreign import classInt :: Int
+  │   ╰─────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • runtime export name "classInt" refers to conflicting declarations
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

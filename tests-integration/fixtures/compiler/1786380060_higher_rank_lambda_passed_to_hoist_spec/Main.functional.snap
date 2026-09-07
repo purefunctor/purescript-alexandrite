@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export constructor First/0
+
+@export constructor Second/0
+
+@export constructor Third/0
+
+@export constructor SpecT/0
+
+@export identity = \x%0 -> x%0
+
+@export apply = \x%2 function%1 -> function%1 x%2
+
+@export describe = \$string%4@(_) specification%3 -> specification%3
+
+@export it = \$string%5@(_) $effect%6@(_) -> "SpecT"
+
+@export hoistSpec = \$naturalTransformation%7@(_) $function%8@(_) $specT%9@(_) -> "SpecT"
+
+@export catchFirst = \$first%10@(_) -> "Second"
+
+@export catchSecond = \$second%11@(_) -> "Third"
+
+@export runExample = "First"
+
+@export spec = apply (describe "outer" (it "inner" runExample))
+  (hoistSpec identity (\$unit%12@(_) -> \value%13 -> apply (apply value%13 catchFirst) catchSecond))

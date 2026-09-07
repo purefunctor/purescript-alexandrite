@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import unsafeCoerce :: forall a b. a -> b
+
+merge :: forall r1 r2 r3 r4.
+  Prim.Row.Union @Prim.Type r1 r2 r3 =>
+  Prim.Row.Nub @Prim.Type r3 r4 =>
+  {| r1 } -> {| r2 } -> {| r4 }
+merge = \{unionDict} -> \{nubDict} -> \_ -> \_ -> unsafeCoerce { }
+
+test :: { a :: Prim.Int, b :: Prim.String }
+test = merge {trivial} {trivial} { a: 42, b: "life" } { b: 42 }

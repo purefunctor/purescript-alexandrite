@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [TermHole] · Main.purs:11:10
+  •
+  │
+  • Hole '?help' has inferred type: Option
+  │
+  │   option = ?help
+  │            ╰────
+  • while
+  │
+  │   No :: Option is in scope
+  │   Yes :: Option is in scope
+  │   localOption :: Option is in scope
+  │   option :: Option is in scope
+  •
+
+Error! · [TermHole] · Main.purs:14:12
+  •
+  │
+  • Hole '?imported' has inferred type: ImportedOption
+  │
+  │   imported = ?imported
+  │              ╰────────
+  • while
+  │
+  │   ImportedNo :: ImportedOption is in scope
+  │   ImportedYes :: ImportedOption is in scope
+  │   imported :: ImportedOption is in scope
+  │   importedOption :: ImportedOption is in scope
+  •
+
+Error! · [TermHole] · Main.purs:20:10
+  •
+  │
+  • Hole '?method' has inferred type: a -> Option
+  │
+  │   method = ?method
+  │            ╰──────
+  • while
+  │
+  │   method :: forall a1. Select a1 => a1 -> Option is in scope
+  │   select :: forall @a2. Select a2 => a2 -> Option is in scope
+  •

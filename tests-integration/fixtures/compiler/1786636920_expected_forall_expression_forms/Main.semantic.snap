@@ -1,0 +1,59 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Token :: forall k0. k0 -> Prim.Type
+data Token @scope
+  | Token :: Main.Token scope
+
+data Effect :: Prim.Type -> Prim.Type
+data Effect @value
+  | Effect :: value -> Main.Effect value
+
+identity :: forall value. value -> value
+identity = \value -> value
+
+modify :: forall t0 scope. Main.Token @t0 scope -> Main.Token @t0 scope
+modify = \token -> token
+
+foreign import leak :: forall result. (forall scope. Main.Token @t0 scope -> result) -> result
+
+foreign import pure :: forall value. value -> Main.Effect value
+
+foreign import bind :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+
+foreign import discard :: forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+
+foreign import map :: forall value result. (value -> result) -> Main.Effect value -> Main.Effect result
+
+foreign import apply :: forall value result. Main.Effect (value -> result) -> Main.Effect value -> Main.Effect result
+
+applyValue :: forall value result. value -> (value -> result) -> result
+applyValue = \value -> \function -> function value
+
+escapedOperator :: forall t0. Main.Token @t0 scope
+escapedOperator = applyValue (leak modify) identity
+
+escapedSection :: forall t0 t1. (Main.Token @t0 scope -> t1) -> t1
+escapedSection = \v176 -> applyValue (leak modify) v176
+
+escapedDo :: forall t0. Main.Effect (Main.Token @t0 scope)
+escapedDo = bind (pure (leak modify)) \token -> pure token
+
+escapedAdo :: forall t0. Main.Effect (Main.Token @t0 scope)
+escapedAdo = map (\token -> token) (pure (leak modify))
+
+escapedRecord :: forall t0. { token :: Main.Token @t0 scope }
+escapedRecord = { token: leak modify }
+
+escapedRecordUpdate :: forall t0 t1 t2. { token :: t0 | t1 } -> { token :: Main.Token @t2 scope | t1 }
+escapedRecordUpdate = \record -> record { token = leak modify }
+
+escapedPatternGuard :: forall t0. t0 -> t0
+escapedPatternGuard = \value -> | token <- leak modify -> value
+
+escapedCase :: forall t0 t1. t0 -> { token :: Main.Token @t1 scope }
+escapedCase = \value ->
+  case value of
+    token -> { token: leak modify }

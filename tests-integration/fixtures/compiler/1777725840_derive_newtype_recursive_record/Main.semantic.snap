@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+newtype List :: forall k0. k0 -> Prim.Type
+newtype List @a
+  | List :: { head :: Prim.Int, tail :: Main.Maybe (Main.List @k0 a) } -> Main.List a
+
+dictionary eqMaybe :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Maybe a) where
+  eq :: Main.Maybe a -> Main.Maybe a -> Prim.Boolean
+  eq = \_ -> \_ -> true
+
+dictionary eqListType ::
+  forall a.
+  { eqDict :: Data.Eq.Eq a } =>
+  Data.Eq.Eq (Main.List @Prim.Type a) = eqRec {trivial} {eqRowCons {eqRowCons {eqRowNil} {trivial} {isSymbol("tail")} {eqMaybe {eqListType {eqDict}}}} {trivial} {isSymbol("head")} {eqInt}}

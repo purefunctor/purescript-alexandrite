@@ -1,0 +1,73 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Box :: Prim.Type
+data Box
+  | MkBox :: Prim.Int -> Main.Box
+
+data Pair :: Prim.Type
+data Pair
+  | MkPair :: Prim.Int -> Prim.Boolean -> Main.Pair
+
+data NoOrd :: Prim.Type
+data NoOrd
+  | MkNoOrd :: Main.NoOrd
+
+data ContainsNoOrd :: Prim.Type
+data ContainsNoOrd
+  | MkContainsNoOrd :: Main.NoOrd -> Main.ContainsNoOrd
+
+dictionary eqBox :: Data.Eq.Eq Main.Box where
+  eq :: Main.Box -> Main.Box -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (MkBox left0), (MkBox right0) ->
+        if eq {eqInt} left0 right0 then true else false
+
+dictionary ordBox :: Data.Ord.Ord Main.Box where
+  superclass eqDict = eqBox
+  compare :: Main.Box -> Main.Box -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (MkBox left0), (MkBox right0) ->
+        case compare {ordInt} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
+
+dictionary eqPair :: Data.Eq.Eq Main.Pair where
+  eq :: Main.Pair -> Main.Pair -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (MkPair left0 left1), (MkPair right0 right1) ->
+        if eq {eqInt} left0 right0 then
+          if eq {eqBoolean} left1 right1 then true else false
+        else
+          false
+
+dictionary ordPair :: Data.Ord.Ord Main.Pair where
+  superclass eqDict = eqPair
+  compare :: Main.Pair -> Main.Pair -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (MkPair left0 left1), (MkPair right0 right1) ->
+        case compare {ordInt} left0 right0 of
+          EQ ->
+            case compare {ordBoolean} left1 right1 of
+              EQ -> EQ
+              ordering -> ordering
+          ordering -> ordering
+
+dictionary eqNoOrd :: Data.Eq.Eq Main.NoOrd where
+  eq :: Main.NoOrd -> Main.NoOrd -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      MkNoOrd, MkNoOrd -> true
+
+dictionary eqContainsNoOrd :: Data.Eq.Eq Main.ContainsNoOrd where
+  eq :: Main.ContainsNoOrd -> Main.ContainsNoOrd -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (MkContainsNoOrd left0), (MkContainsNoOrd right0) ->
+        if eq {eqNoOrd} left0 right0 then true else false

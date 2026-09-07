@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+convert :: forall @a @b. Main.Convert a b => a -> b
+value :: Prim.String
+
+Types
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+Bar :: Prim.Type
+
+Synonyms
+type Bar = Prim.String
+
+Classes
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Convert a b
+  convert :: forall @a @b. Main.Convert a b => a -> b
+
+Instances
+instance Main.Convert Prim.String Main.Bar
+instance Main.Convert Prim.String Prim.String

@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Done/1
+
+@export constructor Loop/1
+
+@export append = \dictionary%0 -> dictionary%0.append
+
+@export mempty = \dictionary%1 -> dictionary%1.mempty
+
+@export tailRecM = \dictionary%2 -> dictionary%2.tailRecM
+
+@export ifM = \bindMDict%3 ->
+  \mb%4 t%6 f%7 ->
+    bind bindMDict%3 mb%4
+      (\b%5 ->
+        if b%5 then t%6 else f%7)
+
+@export lift2 = \applyFDict%8 ->
+  \f%9 fa%10 fb%11 -> apply applyFDict%8 (map (applyFDict%8."Functor0"()) f%9 fa%10) fb%11
+
+@export liftIfM = \applyFDict%12 bindMDict%13 ->
+  \p%14 x%15 y%16 -> lift2 applyFDict%12 (ifM bindMDict%13 p%14) x%15 y%16
+
+@export appendM = \monadRecMDict%17 applicativeFDict%22 semigroupFADict%20 ->
+  \xs%21 f%18 ->
+    bind (monadRecMDict%17."Bind1"()) f%18
+      (\x%19 ->
+        loop (monadRecMDict%17."Applicative0"())
+          (append semigroupFADict%20 xs%21 (pure applicativeFDict%22 x%19)))
+
+@export loop = \applicativeMDict%23 -> \a%24 -> pure applicativeMDict%23 { tag: "Loop", _1: a%24 }
+
+@export done = \applicativeMDict%25 -> \b%26 -> pure applicativeMDict%25 { tag: "Done", _1: b%26 }
+
+@export whileM' = \monadRecMDict%27 applicativeFDict%31 monoidFADict%30 ->
+  \p%28 f%32 ->
+    tailRecM monadRecMDict%27
+      (liftIfM applyFn (monadRecMDict%27."Bind1"()) p%28
+        (\section417%29 ->
+          appendM monadRecMDict%27 applicativeFDict%31 (monoidFADict%30."Semigroup0"())
+            section417%29
+            f%32)
+        (done (monadRecMDict%27."Applicative0"())))
+      (mempty monoidFADict%30)

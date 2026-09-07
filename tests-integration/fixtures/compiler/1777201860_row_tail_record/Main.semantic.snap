@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+tail :: forall r. {| r } -> Prim.Int
+tail = \_ -> 42
+
+nonTail :: forall r. {| r } -> Prim.Int
+nonTail = \_ -> 42
+
+asTail :: Prim.Array (forall r. {| r } -> Prim.Int)
+asTail = [tail, nonTail]
+
+asNonTail :: Prim.Array (forall r. {| r } -> Prim.Int)
+asNonTail = [tail, nonTail]

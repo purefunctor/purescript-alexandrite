@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance typeEquals = {  }
+
+@export foreign unsafeCoerce
+
+@export coerceRecord = \typeEqualsABDict%0 -> unsafeCoerce
+
+@export transform = \typeEqualsAIncludeDict%1 -> \v%2 -> coerceRecord typeEqualsAIncludeDict%1 v%2
+
+@export test = transform typeEquals { x: 42, y: "life", z: false }

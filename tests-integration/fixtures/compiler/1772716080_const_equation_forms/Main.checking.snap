@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+const :: forall a b. a -> b -> a
+const2 :: forall a b. a -> b -> a
+const3 :: forall a b. a -> b -> a
+
+Types

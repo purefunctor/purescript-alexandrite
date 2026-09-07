@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall kind (@value :: kind). Main.Proxy @kind (value :: kind)
+dependent ::
+  forall kind (@value :: kind).
+    Main.Dependent @kind (value :: kind) => Main.Proxy @kind (value :: kind)
+
+Types
+Proxy :: forall kind. kind -> Prim.Type
+Dependent :: forall kind. kind -> Prim.Constraint
+
+Classes
+class forall (kind :: Prim.Type) (value :: kind). Main.Dependent @kind (value :: kind)
+  dependent ::
+  forall kind (@value :: kind).
+    Main.Dependent @kind (value :: kind) => Main.Proxy @kind (value :: kind)
+
+Instances
+instance forall kind (value :: kind). Main.Dependent @kind (value :: kind)
+
+Roles
+Proxy = [Phantom]

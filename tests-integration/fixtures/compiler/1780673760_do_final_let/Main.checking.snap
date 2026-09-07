@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+bind :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
+before :: Main.Effect { field :: Prim.Int }
+expectString :: Prim.String -> Prim.Int
+test :: forall t0. Main.Effect t0
+
+Types
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Effect = [Nominal]

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export assertLesser = \compareLRLTDict%0 -> "Proxy"
+
+@export assertGreater = \compareLRGTDict%1 -> "Proxy"
+
+@export assertEqual = \compareLREQDict%2 -> "Proxy"
+
+@export transLt = \compareMNLTDict%4 compareNPLTDict%5 ->
+  \$proxy%3@(_) -> assertLesser <trivial evidence>
+
+@export transLtEq = \compareMNLTDict%7 compareNPEQDict%8 ->
+  \$proxy%6@(_) -> assertLesser <trivial evidence>
+
+@export transEqGt = \compareMNEQDict%10 compareNPGTDict%11 ->
+  \$proxy%9@(_) -> assertGreater <trivial evidence>
+
+@export transSymmEq = \compareNMEQDict%13 compareNPEQDict%14 ->
+  \$proxy%12@(_) -> assertEqual <trivial evidence>

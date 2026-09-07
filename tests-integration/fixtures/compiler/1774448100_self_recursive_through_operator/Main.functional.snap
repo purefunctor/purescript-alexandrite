@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Nil/0
+
+@export constructor Cons/1
+
+@export recursive[2] append = \section36%0 section37%1 ->
+  case section36%0, section37%1 of
+    Nil, Nil ->
+      "Nil"
+    Cons p%2, Nil ->
+      { tag: "Cons", _1: append p%2 "Nil" }
+    Nil, Cons p%3 ->
+      { tag: "Cons", _1: append "Nil" p%3 }
+    Cons p%4, Cons r%5 ->
+      { tag: "Cons", _1: append p%4 r%5 }

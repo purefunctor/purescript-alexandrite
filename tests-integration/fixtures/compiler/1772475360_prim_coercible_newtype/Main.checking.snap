@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Age :: Prim.Int -> Main.Age
+wrapAge :: Prim.Int -> Main.Age
+unwrapAge :: Main.Age -> Prim.Int
+Wrapper :: forall @a. a -> Main.Wrapper a
+wrapValue :: forall a. a -> Main.Wrapper a
+unwrapValue :: forall a. Main.Wrapper a -> a
+
+Types
+Age :: Prim.Type
+Wrapper :: Prim.Type -> Prim.Type
+
+Roles
+Age = []
+Wrapper = [Representational]

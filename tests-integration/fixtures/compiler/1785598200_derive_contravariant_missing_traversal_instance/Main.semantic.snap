@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Opaque :: Prim.Type -> Prim.Type
+data Opaque @a
+  | Opaque :: a -> Main.Opaque a
+
+data Wrapped :: Prim.Type -> Prim.Type
+data Wrapped @a
+  | Wrapped :: Main.Opaque (a -> Prim.Int) -> Main.Wrapped a

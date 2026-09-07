@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotDeriveForType] · Main.purs:8:1
+  •
+  │
+  • Cannot derive for type: Opaque (t0 -> Int)
+  │
+  │   derive instance Contravariant Wrapped
+  │   ╰────────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

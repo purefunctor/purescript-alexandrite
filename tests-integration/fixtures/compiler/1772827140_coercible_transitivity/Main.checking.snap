@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Age :: Prim.Int -> Main.Age
+Years :: Main.Age -> Main.Years
+coerceTransitive :: Prim.Int -> Main.Years
+unwrapTransitive :: Main.Years -> Prim.Int
+step1 :: Prim.Int -> Main.Age
+step2 :: Main.Age -> Main.Years
+
+Types
+Age :: Prim.Type
+Years :: Prim.Type
+
+Roles
+Age = []
+Years = []

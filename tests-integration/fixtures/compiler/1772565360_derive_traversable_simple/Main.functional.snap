@@ -1,0 +1,152 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Identity/1
+
+@export instance functorIdentity = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Identity field0%2 ->
+          { tag: "Identity", _1: function%0 field0%2 }
+}
+
+@export instance foldableIdentity = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        Identity field0%6 ->
+          function%3 field0%6 accumulator%4,
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Identity field0%10 ->
+          function%7 accumulator%8 field0%10,
+  foldMap:
+    \monoidMDict%14 ->
+      \function%11 value%12 ->
+        case value%12 of
+          Identity field0%13 ->
+            function%11 field0%13
+}
+
+@export instance traversableIdentity = {
+  "Functor0": \() -> functorIdentity,
+  "Foldable1": \() -> foldableIdentity,
+  traverse:
+    \applicativeMDict%18 ->
+      \function%15 value%16 ->
+        case value%16 of
+          Identity field0%17 ->
+            map ((applicativeMDict%18."Apply0"())."Functor0"())
+              (\field0Result%19 -> { tag: "Identity", _1: field0Result%19 })
+              (function%15 field0%17),
+  sequence:
+    \applicativeMDict%21 ->
+      \value%20 ->
+        traverse traversableIdentity applicativeMDict%21 (\effect0%22 -> effect0%22) value%20
+}
+
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance functorMaybe = {
+  map:
+    \function%23 value%24 ->
+      case value%24 of
+        Nothing ->
+          "Nothing"
+        Just field0%25 ->
+          { tag: "Just", _1: function%23 field0%25 }
+}
+
+@export instance foldableMaybe = {
+  foldr:
+    \function%26 accumulator%27 value%28 ->
+      case value%28 of
+        Nothing ->
+          accumulator%27
+        Just field0%29 ->
+          function%26 field0%29 accumulator%27,
+  foldl:
+    \function%30 accumulator%31 value%32 ->
+      case value%32 of
+        Nothing ->
+          accumulator%31
+        Just field0%33 ->
+          function%30 accumulator%31 field0%33,
+  foldMap:
+    \monoidMDict%36 ->
+      \function%34 value%35 ->
+        case value%35 of
+          Nothing ->
+            mempty monoidMDict%36
+          Just field0%37 ->
+            function%34 field0%37
+}
+
+@export instance traversableMaybe = {
+  "Functor0": \() -> functorMaybe,
+  "Foldable1": \() -> foldableMaybe,
+  traverse:
+    \applicativeMDict%40 ->
+      \function%38 value%39 ->
+        case value%39 of
+          Nothing ->
+            pure applicativeMDict%40 "Nothing"
+          Just field0%41 ->
+            map ((applicativeMDict%40."Apply0"())."Functor0"())
+              (\field0Result%42 -> { tag: "Just", _1: field0Result%42 })
+              (function%38 field0%41),
+  sequence:
+    \applicativeMDict%44 ->
+      \value%43 ->
+        traverse traversableMaybe applicativeMDict%44 (\effect0%45 -> effect0%45) value%43
+}
+
+@export constructor Const/1
+
+@export instance functorConstType = {
+  map:
+    \function%46 value%47 ->
+      case value%47 of
+        Const field0%48 ->
+          { tag: "Const", _1: field0%48 }
+}
+
+@export instance foldableConstType = {
+  foldr:
+    \function%49 accumulator%50 value%51 ->
+      case value%51 of
+        Const field0%52 ->
+          accumulator%50,
+  foldl:
+    \function%53 accumulator%54 value%55 ->
+      case value%55 of
+        Const field0%56 ->
+          accumulator%54,
+  foldMap:
+    \monoidMDict%60 ->
+      \function%57 value%58 ->
+        case value%58 of
+          Const field0%59 ->
+            mempty monoidMDict%60
+}
+
+@export instance traversableConstType = {
+  "Functor0": \() -> functorConstType,
+  "Foldable1": \() -> foldableConstType,
+  traverse:
+    \applicativeMDict%64 ->
+      \function%61 value%62 ->
+        case value%62 of
+          Const field0%63 ->
+            pure applicativeMDict%64 { tag: "Const", _1: field0%63 },
+  sequence:
+    \applicativeMDict%66 ->
+      \value%65 ->
+        traverse traversableConstType applicativeMDict%66 (\effect0%67 -> effect0%67) value%65
+}

@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Semigroup :: Prim.Type -> Prim.Constraint
+interface Semigroup a where
+  append :: a -> a -> a
+
+first :: forall t0. Main.Semigroup t0 => t0 -> t0
+first = \{semigroupDict} -> \value -> append {semigroupDict} value (second value)
+
+second :: forall t0. Main.Semigroup t0 => t0 -> t0
+second = \{semigroupDict} -> \value -> append {semigroupDict} value (first value)

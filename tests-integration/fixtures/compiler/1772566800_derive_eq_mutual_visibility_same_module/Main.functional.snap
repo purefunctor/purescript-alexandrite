@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Hours/0
+
+@export constructor Minutes/0
+
+@export constructor Seconds/0
+
+@export constructor Duration/2
+
+@export instance eqDuration = {
+  eq:
+    \left%0 right%1 ->
+      case left%0, right%1 of
+        Duration left0%2 left1%3, Duration right0%4 right1%5 ->
+          if eq eqDurationComponent left0%2 right0%4
+            then if eq eqInt left1%3 right1%5 then true else false
+            else false
+}
+
+@export instance eqDurationComponent = {
+  eq:
+    \left%6 right%7 ->
+      case left%6, right%7 of
+        Hours, Hours ->
+          true
+        Minutes, Minutes ->
+          true
+        Seconds, Seconds ->
+          true
+        _, _ ->
+          false
+}

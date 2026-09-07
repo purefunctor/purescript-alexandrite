@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Collect :: Prim.Type -> Prim.Constraint
+interface Collect a where
+  collect :: a -> Prim.Array Prim.String
+
+foreign import unsafeCoerce :: forall a b. a -> b
+
+foreign import consume :: forall given given_.
+  Prim.Row.Union @Prim.Type given given_ Main.Required => {| given } -> Prim.String
+
+merge :: forall r1 r2 r3 r4.
+  Prim.Row.Union @Prim.Type r1 r2 r3 =>
+  Prim.Row.Nub @Prim.Type r3 r4 =>
+  {| r1 } -> {| r2 } -> {| r4 }
+merge = \{unionDict} -> \{nubDict} -> \_ -> \_ -> unsafeCoerce { }
+
+dictionary collectArrayString :: Main.Collect (Prim.Array Prim.String) where
+  collect :: Prim.Array Prim.String -> Prim.Array Prim.String
+  collect = \xs -> xs
+
+combine :: forall partial duplicated deduped deduped_ items.
+  Main.Collect items =>
+  Prim.Row.Union @Prim.Type ( key :: Prim.String ) partial duplicated =>
+  Prim.Row.Nub @Prim.Type ( key :: Prim.String | partial ) deduped =>
+  Prim.Row.Union @Prim.Type deduped deduped_ Main.Required =>
+  {| partial } -> items -> Prim.String
+combine = \{collectDict} -> \{unionDict} -> \{nubDict} -> \{unionDict1} -> \provided -> \_ ->
+  consume {unionDict1} merged
+  where
+  merged :: {| deduped }
+  merged = merge {unionDict} {nubDict} { key: "value" } provided
+
+combine' :: forall items. Main.Collect items => items -> Prim.String
+combine' = \{collectDict} -> combine {collectDict} {trivial} {trivial} {trivial} { }
+
+repro :: Prim.String
+repro = combine {collectArrayString} {trivial} {trivial} {trivial} { } []

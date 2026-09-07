@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:14:13
+  •
+  │
+  • Pattern match is not exhaustive. Missing: _
+  │
+  │   refutable = case _ of
+  │               ╰────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:13:1
+  •
+  │
+  • No instance found for: Partial
+  │
+  │   refutable :: Array Int -> Int
+  │   ╰────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:18:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'arrayLength'
+  │
+  │   foreign import arrayLength :: forall a. Array a -> Int
+  │   ╰─────────────────────────────────────────────────────
+  •

@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Functor f where
+  map :: forall a b. (a -> b) -> f a -> f b
+
+newtype Wrap :: forall k. Prim.Type -> (k -> Prim.Type) -> k -> Prim.Type
+newtype Wrap @e @w @a
+  | Wrap :: w a -> Main.Wrap e w a
+
+dictionary functorWrapType ::
+  forall w e.
+  { functorDict :: Main.Functor w } =>
+  Main.Functor (Main.Wrap @Prim.Type e w)
+  where
+  map :: forall a b. (a -> b) -> Main.Wrap @Prim.Type e w a -> Main.Wrap @Prim.Type e w b
+  map = \f -> \(Wrap x) -> Wrap (map {functorDict} f x)

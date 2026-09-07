@@ -1,0 +1,86 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+M :: forall (@context :: Prim.Row Prim.Type) @a. a -> Main.M (context :: Prim.Row Prim.Type) a
+bind ::
+  forall (context :: Prim.Row Prim.Type) a b.
+    Main.M (context :: Prim.Row Prim.Type) a ->
+    (a -> Main.M (context :: Prim.Row Prim.Type) b) ->
+    Main.M (context :: Prim.Row Prim.Type) b
+ask ::
+  forall (@context :: Prim.Row Prim.Type) (@m :: Prim.Type -> Prim.Type).
+    Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) {| (context :: Prim.Row Prim.Type) }
+consume ::
+  forall (row :: Prim.Row Prim.Type) (list :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      (row :: Prim.Row Prim.Type)
+      (list :: Prim.RowList.RowList Prim.Type) =>
+    {| (row :: Prim.Row Prim.Type) } -> {}
+produce ::
+  forall (@context :: Prim.Row Prim.Type) (@input :: Prim.Row Prim.Type)
+    (@output :: Prim.Row Prim.Type).
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (context :: Prim.Row Prim.Type) } ->
+    {| (input :: Prim.Row Prim.Type) } ->
+    {| (output :: Prim.Row Prim.Type) }
+test ::
+  forall (context :: Prim.Row Prim.Type) (input :: Prim.Row Prim.Type)
+    (output :: Prim.Row Prim.Type) (outputList :: Prim.RowList.RowList Prim.Type).
+    Prim.RowList.RowToList @Prim.Type
+      (output :: Prim.Row Prim.Type)
+      (outputList :: Prim.RowList.RowList Prim.Type) =>
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (input :: Prim.Row Prim.Type) } -> Main.M (context :: Prim.Row Prim.Type) {}
+
+Types
+M :: Prim.Row Prim.Type -> Prim.Type -> Prim.Type
+Ask :: Prim.Row Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+Produce :: Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
+
+Classes
+class forall (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type). Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type)
+  ask ::
+  forall (@context :: Prim.Row Prim.Type) (@m :: Prim.Type -> Prim.Type).
+    Main.Ask (context :: Prim.Row Prim.Type) (m :: Prim.Type -> Prim.Type) =>
+    (m :: Prim.Type -> Prim.Type) {| (context :: Prim.Row Prim.Type) }
+class forall (context :: Prim.Row Prim.Type) (input :: Prim.Row Prim.Type) (output :: Prim.Row Prim.Type). Main.Produce
+  (context :: Prim.Row Prim.Type)
+  (input :: Prim.Row Prim.Type)
+  (output :: Prim.Row Prim.Type)
+  produce ::
+  forall (@context :: Prim.Row Prim.Type) (@input :: Prim.Row Prim.Type)
+    (@output :: Prim.Row Prim.Type).
+    Main.Produce
+      (context :: Prim.Row Prim.Type)
+      (input :: Prim.Row Prim.Type)
+      (output :: Prim.Row Prim.Type) =>
+    {| (context :: Prim.Row Prim.Type) } ->
+    {| (input :: Prim.Row Prim.Type) } ->
+    {| (output :: Prim.Row Prim.Type) }
+
+Instances
+instance forall (context :: Prim.Row Prim.Type).
+  Main.Ask (context :: Prim.Row Prim.Type) (Main.M (context :: Prim.Row Prim.Type))
+instance forall (input :: Prim.Row Prim.Type) (inputList :: Prim.RowList.RowList Prim.Type)
+  (context :: Prim.Row Prim.Type).
+  Prim.RowList.RowToList @Prim.Type
+    (input :: Prim.Row Prim.Type)
+    (inputList :: Prim.RowList.RowList Prim.Type) =>
+  Main.Produce
+    (context :: Prim.Row Prim.Type)
+    (input :: Prim.Row Prim.Type)
+    (input :: Prim.Row Prim.Type)
+
+Roles
+M = [Phantom, Representational]

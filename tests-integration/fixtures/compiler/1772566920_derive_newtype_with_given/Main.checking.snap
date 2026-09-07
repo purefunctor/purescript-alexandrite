@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Show.Show a => Data.Show.Show (Main.Identity a)
+
+Roles
+Identity = [Representational]

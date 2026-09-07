@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Identity/1
+
+@export instance functorIdentity = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Identity field0%2 ->
+          { tag: "Identity", _1: function%0 field0%2 }
+}
+
+@export constructor Const/1
+
+@export instance functorConstType = {
+  map:
+    \function%3 value%4 ->
+      case value%4 of
+        Const field0%5 ->
+          { tag: "Const", _1: field0%5 }
+}
+
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance functorMaybe = {
+  map:
+    \function%6 value%7 ->
+      case value%7 of
+        Nothing ->
+          "Nothing"
+        Just field0%8 ->
+          { tag: "Just", _1: function%6 field0%8 }
+}

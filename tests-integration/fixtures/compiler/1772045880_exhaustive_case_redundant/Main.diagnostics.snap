@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [RedundantPattern] · Main.purs:5:8
+  •
+  │
+  • Pattern match has redundant patterns: Just _
+  │
+  │   test = case _ of
+  │          ╰────────
+  •

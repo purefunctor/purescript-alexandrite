@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype UserId :: Prim.Type
+newtype UserId
+  | UserId :: Prim.Int -> Main.UserId
+
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+dictionary newtypeUserIdInt :: Data.Newtype.Newtype Main.UserId Prim.Int where
+  superclass coercibleDict = trivial
+
+wrapUserId :: Prim.Int -> Main.UserId
+wrapUserId = wrap {newtypeUserIdInt}
+
+unwrapUserId :: Main.UserId -> Prim.Int
+unwrapUserId = unwrap {newtypeUserIdInt}
+
+dictionary newtypeWrapper :: forall a. Data.Newtype.Newtype (Main.Wrapper a) a where
+  superclass coercibleDict = trivial
+
+wrapWrapper :: forall a. a -> Main.Wrapper a
+wrapWrapper = wrap {newtypeWrapper}
+
+unwrapWrapper :: forall a. Main.Wrapper a -> a
+unwrapWrapper = unwrap {newtypeWrapper}

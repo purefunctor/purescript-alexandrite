@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [PartialSynonymApplication] · Main.purs:13:12
+  •
+  │
+  • Partial type synonym application
+  │
+  │   type Bad = ReaderT Int
+  │              ╰──────────
+  •
+
+Error! · [CannotUnify] · Main.purs:13:12
+  •
+  │
+  • Cannot unify 'Type' with '?[invalid kind]'
+  │
+  │   type Bad = ReaderT Int
+  │              ╰──────────
+  •

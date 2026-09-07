@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+coerceContainer :: Lib.Container Lib.Maybe -> Lib.Container Lib.MaybeAlias
+coerceContainer = coerce {trivial}
+
+coerceContainerReverse :: Lib.Container Lib.MaybeAlias -> Lib.Container Lib.Maybe
+coerceContainerReverse = coerce {trivial}

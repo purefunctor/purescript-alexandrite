@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign force
+
+@export constructor Tuple/2
+
+@export constructor Node/3

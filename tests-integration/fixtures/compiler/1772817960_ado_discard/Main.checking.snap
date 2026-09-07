@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+pure :: forall a. a -> Main.Effect a
+map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+unit :: Main.Unit
+test :: Main.Effect Main.Unit
+test' :: Main.Effect Main.Unit
+
+Types
+Effect :: Prim.Type -> Prim.Type
+Unit :: Prim.Type
+
+Roles
+Effect = [Nominal]
+Unit = []

@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unionTypeMismatch ::
+  forall (l :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (l :: Prim.Row Prim.Type)
+      ( b :: Prim.String )
+      ( a :: Prim.Int, b :: Prim.Int ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (l :: Prim.Row Prim.Type)
+consMissingLabel ::
+  forall (t :: Prim.Row Prim.Type).
+    Prim.Row.Cons @Prim.Type
+      "missing"
+      Prim.Int
+      (t :: Prim.Row Prim.Type)
+      ( a :: Prim.Int, b :: Prim.String ) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (t :: Prim.Row Prim.Type)
+lacksPresent ::
+  Prim.Row.Lacks @Prim.Type "b" ( a :: Prim.Int, b :: Prim.String ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+forceSolve ::
+  forall (t0 :: Prim.Row Prim.Type).
+    { consMissingLabel :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (t0 :: Prim.Row Prim.Type)
+    , lacksPresent :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+    , unionTypeMismatch :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+    }
+
+Types

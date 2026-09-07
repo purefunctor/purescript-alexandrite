@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Missing :: Main.Missing
+
+Types
+Missing :: Prim.Type
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Parent value
+class forall (value :: Prim.Type). Main.Parent value <= Main.Child value
+
+Instances
+instance Main.Child Main.Missing
+
+Roles
+Missing = []

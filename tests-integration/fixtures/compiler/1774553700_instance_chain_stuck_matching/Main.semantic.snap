@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data Spec :: (Prim.Type -> Prim.Type) -> Prim.Type
+data Spec @g
+  | Spec :: Main.Spec g
+
+interface Convert :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Convert t m where
+
+dictionary convertFunction :: forall a m. Main.Convert (a -> m Main.Unit) m
+
+dictionary convertAction :: forall m. Main.Convert (m Main.Unit) m
+
+it :: forall t g. Main.Convert t g => Prim.String -> t -> Main.Spec g
+it = \{convertDict} -> \_ -> \_ -> Spec
+
+foreign import action :: forall m. m Main.Unit
+
+test :: Main.Spec Effect.Aff.Aff
+test = it {convertAction} "do" action
+
+test2 :: Main.Spec Effect.Aff.Aff
+test2 = it {convertFunction} "function" \(_ :: Prim.Int) -> action
+
+test3 :: Main.Spec Effect.Aff.Aff
+test3 = it {convertAction} "variable" action

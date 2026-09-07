@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Opaque :: Prim.Type
+
+Derived
+derive Data.Eq.Eq Main.Opaque
+derive Data.Ord.Ord Main.Opaque
+
+Roles
+Opaque = []

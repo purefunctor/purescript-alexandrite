@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+coerceDifferent :: Main.Maybe Prim.Int -> Main.Either Prim.Int Prim.String
+coerceDifferent = coerce {error}

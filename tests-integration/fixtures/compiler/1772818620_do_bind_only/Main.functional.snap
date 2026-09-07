@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = effect.bind (effect.pure 1) \x%0 -> effect.pure x%0
+
+@export test' = \bindDict%1 applicativeDict%2 ->
+  bind bindDict%1 (pure applicativeDict%2 1) (\x%3 -> pure applicativeDict%2 x%3)

@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+interface Foldable :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Foldable f where
+  foldMap :: forall a m. (a -> m) -> f a -> m
+
+interface FoldableWithIndex :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface FoldableWithIndex i f where
+  superclass foldableDict :: Main.Foldable f
+  foldMapWithIndex :: forall a m. (i -> a -> m) -> f a -> m
+  foldlWithIndex :: forall a b. (i -> b -> a -> b) -> b -> f a -> b
+  foldrWithIndex :: forall a b. (i -> a -> b -> b) -> b -> f a -> b
+
+data NonEmpty :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+data NonEmpty @f @a
+  | NonEmpty :: a -> f a -> Main.NonEmpty f a
+
+dictionary foldableNonEmpty ::
+  forall f.
+  { foldableDict :: Main.Foldable f } =>
+  Main.Foldable (Main.NonEmpty f)
+  where
+  foldMap :: forall a m. (a -> m) -> Main.NonEmpty f a -> m
+  foldMap = \f -> \(NonEmpty a fa) -> f a
+
+dictionary foldableWithIndexMaybeNonEmpty ::
+  forall i f.
+  { foldableWithIndexDict :: Main.FoldableWithIndex i f } =>
+  Main.FoldableWithIndex (Main.Maybe i) (Main.NonEmpty f)
+  where
+  superclass foldableDict = foldableNonEmpty {foldableWithIndexDict.foldableDict}
+  foldMapWithIndex :: forall a m. (Main.Maybe i -> a -> m) -> Main.NonEmpty f a -> m
+  foldMapWithIndex = \f -> \(NonEmpty a fa) -> f Nothing a
+  foldlWithIndex :: forall a b. (Main.Maybe i -> b -> a -> b) -> b -> Main.NonEmpty f a -> b
+  foldlWithIndex = \f -> \b -> \(NonEmpty a fa) ->
+    foldlWithIndex {foldableWithIndexDict} (compose {semigroupoidFn} f Just) (f Nothing b a) fa
+  foldrWithIndex :: forall a b. (Main.Maybe i -> a -> b -> b) -> b -> Main.NonEmpty f a -> b
+  foldrWithIndex = \f -> \b -> \(NonEmpty a fa) ->
+    f Nothing a (foldrWithIndex {foldableWithIndexDict} (compose {semigroupoidFn} f Just) b fa)

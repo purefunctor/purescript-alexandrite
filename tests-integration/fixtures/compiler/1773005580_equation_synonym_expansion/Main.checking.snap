@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+test ::
+  forall (f :: Prim.Type -> Prim.Type).
+    Main.NaturalTransformation Prim.Array (f :: Prim.Type -> Prim.Type)
+
+Types
+NaturalTransformation :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
+~> :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
+
+Synonyms
+type NaturalTransformation f g = forall a. (f :: Prim.Type -> Prim.Type) a -> (g :: Prim.Type -> Prim.Type) a

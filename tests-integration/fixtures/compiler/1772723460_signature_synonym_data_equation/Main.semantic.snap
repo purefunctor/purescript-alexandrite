@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Box :: Main.UnaryKind
+data Box @a
+  | Box :: a -> Main.Box a

@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export eq = \dictionary%0 -> dictionary%0.eq
+
+@export test = \eqADict%1 -> \a%2 -> eq eqADict%1 a%2 a%2

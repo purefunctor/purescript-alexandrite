@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+newtype FFIUtil :: Prim.Type
+newtype FFIUtil
+  | FFIUtil ::
+    { isLeft :: forall a b. Main.Either a b -> Prim.Boolean
+, isRight :: forall a1 b1. Main.Either a1 b1 -> Prim.Boolean
+, left :: forall a2 b2. a2 -> Main.Either a2 b2
+, right :: forall a3 b3. b3 -> Main.Either a3 b3
+} ->
+      Main.FFIUtil
+
+isLeft :: forall a b. Main.Either a b -> Prim.Boolean
+isLeft = \(Left _) -> true
+isLeft = \(Right _) -> false
+
+isRight :: forall a b. Main.Either a b -> Prim.Boolean
+isRight = \(Left _) -> false
+isRight = \(Right _) -> true
+
+test :: Main.FFIUtil
+test = FFIUtil { left: Left, right: Right, isLeft, isRight }

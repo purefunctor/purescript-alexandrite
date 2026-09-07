@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+coerceProxy :: forall t0 t1 a b. Main.Proxy @t0 a -> Main.Proxy @t1 b
+coerceProxy = coerce {trivial}
+
+coerceProxyIntString :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
+coerceProxyIntString = coerce {trivial}

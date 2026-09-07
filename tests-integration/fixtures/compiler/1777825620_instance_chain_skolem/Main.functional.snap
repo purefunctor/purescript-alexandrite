@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export step = \dictionary%0 -> dictionary%0.step
+
+@export done = \dictionary%1 -> dictionary%1.done
+
+@export walk = \dictionary%2 -> dictionary%2.walk
+
+@export instance walkArg = \stepFAXA'Dict%3 walkFA'XsDict%4 ->
+  { walk: \f%5 a%6 x%7 -> walk walkFA'XsDict%4 f%5 (step stepFAXA'Dict%3 f%5 a%6 x%7) }
+
+@export instance walkBase = \doneFAXDict%8 -> { walk: done doneFAXDict%8 }

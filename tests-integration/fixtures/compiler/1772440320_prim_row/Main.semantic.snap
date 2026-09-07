@@ -1,0 +1,100 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+deriveUnion :: forall u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String ) u =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+deriveUnion = \{unionDict} -> Proxy
+
+deriveUnionLeft :: forall l.
+  Prim.Row.Union @Prim.Type l ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) l
+deriveUnionLeft = \{unionDict} -> Proxy
+
+deriveUnionRight :: forall r.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) r ( a :: Prim.Int, b :: Prim.String ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r
+deriveUnionRight = \{unionDict} -> Proxy
+
+unionEmptyLeft :: forall u.
+  Prim.Row.Union @Prim.Type () ( a :: Prim.Int ) u => Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+unionEmptyLeft = \{unionDict} -> Proxy
+
+unionEmptyRight :: forall u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) () u => Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+unionEmptyRight = \{unionDict} -> Proxy
+
+unionBothEmpty :: forall t0 u. Prim.Row.Union @t0 () () u => Type.Proxy.Proxy @(Prim.Row t0) u
+unionBothEmpty = \{unionDict} -> Proxy
+
+unionMultiple :: forall u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int, b :: Prim.String ) ( c :: Prim.Boolean ) u =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+unionMultiple = \{unionDict} -> Proxy
+
+deriveCons :: forall row.
+  Prim.Row.Cons @Prim.Type "name" Prim.String () row => Type.Proxy.Proxy @(Prim.Row Prim.Type) row
+deriveCons = \{consDict} -> Proxy
+
+deriveTail :: forall tail.
+  Prim.Row.Cons @Prim.Type "name" Prim.String tail ( age :: Prim.Int, name :: Prim.String ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) tail
+deriveTail = \{consDict} -> Proxy
+
+deriveType :: forall t.
+  Prim.Row.Cons @Prim.Type "name" t () ( name :: Prim.String ) => Type.Proxy.Proxy @Prim.Type t
+deriveType = \{consDict} -> Proxy
+
+nestedCons :: forall row.
+  Prim.Row.Cons @Prim.Type "a" Prim.Int ( b :: Prim.String ) row =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) row
+nestedCons = \{consDict} -> Proxy
+
+lacksSimple :: forall t0 r.
+  Prim.Row.Lacks @Prim.Type "missing" ( a :: Prim.Int, b :: Prim.String ) =>
+  Type.Proxy.Proxy @t0 r -> Type.Proxy.Proxy @t0 r
+lacksSimple = \{lacksDict} -> \x -> x
+
+lacksEmpty :: forall t0 t1 r. Prim.Row.Lacks @t1 "anything" () => Type.Proxy.Proxy @t0 r -> Type.Proxy.Proxy @t0 r
+lacksEmpty = \{lacksDict} -> \x -> x
+
+nubNoDuplicates :: forall nubbed.
+  Prim.Row.Nub @Prim.Type ( a :: Prim.Int, b :: Prim.String ) nubbed =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) nubbed
+nubNoDuplicates = \{nubDict} -> Proxy
+
+nubEmpty :: forall t0 nubbed. Prim.Row.Nub @t0 () nubbed => Type.Proxy.Proxy @(Prim.Row t0) nubbed
+nubEmpty = \{nubDict} -> Proxy
+
+solveUnion :: forall t0.
+  { deriveUnion :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+  , deriveUnionLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+  , deriveUnionRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String )
+  , unionBothEmpty :: Type.Proxy.Proxy @(Prim.Row t0) ()
+  , unionEmptyLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+  , unionEmptyRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+  , unionMultiple ::
+      Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean )
+  }
+solveUnion =
+  { deriveUnion: deriveUnion {trivial}, deriveUnionLeft: deriveUnionLeft {trivial}, deriveUnionRight: deriveUnionRight {trivial}, unionEmptyLeft: unionEmptyLeft {trivial}, unionEmptyRight: unionEmptyRight {trivial}, unionBothEmpty: unionBothEmpty {trivial}, unionMultiple: unionMultiple {trivial} }
+
+solveCons :: { deriveCons :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( name :: Prim.String )
+, deriveTail :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( age :: Prim.Int )
+, deriveType :: Type.Proxy.Proxy @Prim.Type Prim.String
+, nestedCons :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+}
+solveCons =
+  { deriveCons: deriveCons {trivial}, deriveTail: deriveTail {trivial}, deriveType: deriveType {trivial}, nestedCons: nestedCons {trivial} }
+
+solveLacks :: forall t0 t1 t2 t3.
+  { lacksEmpty :: Type.Proxy.Proxy @t0 t1, lacksSimple :: Type.Proxy.Proxy @t2 t3 }
+solveLacks = { lacksSimple: lacksSimple {trivial} Proxy, lacksEmpty: lacksEmpty {trivial} Proxy }
+
+solveNub :: forall t0.
+  { nubEmpty :: Type.Proxy.Proxy @(Prim.Row t0) ()
+  , nubNoDuplicates :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+  }
+solveNub = { nubNoDuplicates: nubNoDuplicates {trivial}, nubEmpty: nubEmpty {trivial} }

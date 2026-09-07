@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+wrapAge :: Prim.Int -> Main.Age
+wrapAge = coerce {trivial}
+
+unwrapAge :: Main.Age -> Prim.Int
+unwrapAge = coerce {trivial}
+
+wrapValue :: forall a. a -> Main.Wrapper a
+wrapValue = coerce {trivial}
+
+unwrapValue :: forall a. Main.Wrapper a -> a
+unwrapValue = coerce {trivial}

@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export testBothLeft = Left
+
+@export testBothRight = Right
+
+@export testLeftLeft = Left
+
+@export testLeftRight = Left
+
+@export testRightLeft = Right
+
+@export testRightRight = Right

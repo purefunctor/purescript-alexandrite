@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Test :: Prim.Type -> Prim.Constraint
+interface Test a where
+  test :: a -> a
+
+dictionary testInt :: Main.Test Prim.Int where
+  test :: Prim.Int -> Prim.Int
+  test = \_ -> 0
+
+dictionary testRefl :: forall a. Main.Test a where
+  test :: a -> a
+  test = \x -> x
+
+value :: Prim.Int
+value = test {testInt} 1

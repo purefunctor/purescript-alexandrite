@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Identity :: Prim.Type -> Prim.Type
+data Identity @a
+  | Identity :: a -> Main.Identity a
+
+data Const :: forall k0. Prim.Type -> k0 -> Prim.Type
+data Const @e @a
+  | Const :: e -> Main.Const e a
+
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+dictionary functorIdentity :: Data.Functor.Functor Main.Identity where
+  map :: forall a b. (a -> b) -> Main.Identity a -> Main.Identity b
+  map = \function value ->
+    case value of
+      (Identity field0) -> Identity (function field0)
+
+dictionary functorConstType :: forall e. Data.Functor.Functor (Main.Const @Prim.Type e) where
+  map :: forall a b. (a -> b) -> Main.Const @Prim.Type e a -> Main.Const @Prim.Type e b
+  map = \function value ->
+    case value of
+      (Const field0) -> Const field0
+
+dictionary functorMaybe :: Data.Functor.Functor Main.Maybe where
+  map :: forall a b. (a -> b) -> Main.Maybe a -> Main.Maybe b
+  map = \function value ->
+    case value of
+      Nothing -> Nothing
+      (Just field0) -> Just (function field0)

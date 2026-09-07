@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data List :: Prim.Type -> Prim.Type
+data List @a
+  | Nil :: Main.List a
+  | Cons :: Main.List a -> Main.List a
+
+append :: forall a. Main.List a -> Main.List Prim.Int -> Main.List a
+append = \v36 v37 ->
+  case v36, v37 of
+    Nil, Nil -> Nil
+    (Cons p), Nil -> Cons (append p Nil)
+    Nil, (Cons p) -> Cons (append Nil p)
+    (Cons p), (Cons r) -> Cons (append p r)

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Box :: Prim.Type
+data Box
+  | Box :: { value :: Prim.Int } -> Main.Box
+
+dictionary eqBox :: Data.Eq.Eq Main.Box where
+  eq :: Main.Box -> Main.Box -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Box left0), (Box right0) ->
+        if eq {eqRec {trivial} {eqRowCons {eqRowNil} {trivial} {isSymbol("value")} {eqInt}}} left0
+          right0 then
+          true
+        else
+          false
+
+dictionary ordBox :: Data.Ord.Ord Main.Box where
+  superclass eqDict = eqBox
+  compare :: Main.Box -> Main.Box -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (Box left0), (Box right0) ->
+        case compare {ordRecord {trivial} {ordRecordCons {ordRecordNil} {trivial} {isSymbol("value")} {ordInt}}}
+          left0
+          right0 of
+          EQ -> EQ
+          ordering -> ordering

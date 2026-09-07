@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+Producer :: forall @a. (Prim.Int -> a) -> Main.Producer a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+Producer :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Identity
+derive Data.Functor.Contravariant.Contravariant Main.Producer
+
+Roles
+Identity = [Representational]
+Producer = [Representational]

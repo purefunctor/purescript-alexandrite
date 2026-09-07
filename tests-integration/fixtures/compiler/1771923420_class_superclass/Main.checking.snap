@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+compare :: forall @a. Main.Ord a => a -> a -> Prim.Int
+
+Types
+Eq :: Prim.Type -> Prim.Constraint
+Ord :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Eq a
+  eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+class forall (a :: Prim.Type). Main.Eq a <= Main.Ord a
+  compare :: forall @a. Main.Ord a => a -> a -> Prim.Int

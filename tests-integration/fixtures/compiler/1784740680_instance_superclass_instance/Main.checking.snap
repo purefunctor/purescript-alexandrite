@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Parent value
+class forall (value :: Prim.Type). Main.Parent value <= Main.Child value
+
+Instances
+instance Main.Parent Prim.Int
+instance Main.Child Prim.Int

@@ -1,0 +1,108 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data Token :: forall k0. k0 -> Prim.Type
+data Token @scope
+  | Token :: Main.Token scope
+
+data Effect :: Prim.Type -> Prim.Type
+data Effect @value
+  | Effect :: value -> Main.Effect value
+
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @value
+  | Proxy :: Main.Proxy value
+
+data Map :: forall k0 k1. k0 -> k1 -> Prim.Type
+data Map @key @value
+  | Map :: Main.Map key value
+
+interface Witness :: forall k0. k0 -> Prim.Constraint
+interface Witness scope where
+
+interface EscapingEvidence :: forall k0 k1. k0 -> k1 -> Prim.Constraint
+interface EscapingEvidence scope result where
+
+identity :: forall value. value -> value
+identity = \value -> value
+
+modify :: forall t0 scope. Main.Token @t0 scope -> Main.Token @t0 scope
+modify = \token -> token
+
+foreign import consumeIdentity :: (forall value. value -> value) -> Main.Unit
+
+foreign import discardValue :: forall value. value -> Main.Unit
+
+foreign import leak :: forall result. (forall scope. Main.Token @t0 scope -> result) -> result
+
+foreign import mutate :: forall discarded. (forall scope. Main.Token @t0 scope -> Main.Effect discarded) -> Main.Unit
+
+foreign import mutateConstrained :: (forall scope. Main.Witness @t0 scope => Main.Token @t0 scope -> Main.Effect Main.Unit) -> Main.Unit
+
+foreign import poke :: forall scope. Main.Token @t0 scope -> Main.Effect Main.Unit
+
+foreign import pokeReturningToken :: forall scope. Main.Token @t0 scope -> Main.Effect (Main.Token @t0 scope)
+
+foreign import pokeConstrained :: forall scope. Main.Witness @t0 scope => Main.Token @t0 scope -> Main.Effect Main.Unit
+
+foreign import pokeWithoutWitness :: forall scope result.
+  Main.EscapingEvidence @t0 @t1 scope result => Main.Token @t0 scope -> Main.Proxy @t1 result
+
+foreign import mutateMap :: forall key value discarded.
+  Main.Witness @t0 key =>
+  (forall scope. Main.Token @t1 scope -> Main.Effect discarded) ->
+  Main.Map @t0 @t2 key value ->
+  Main.Map @t0 @t2 key value
+
+foreign import pokeMap :: forall key value scope.
+  Main.Witness @Prim.Type key =>
+  key -> value -> Main.Token @t0 scope -> Main.Effect (Main.Token @t0 scope)
+
+validRankTwoCallback :: (forall value. value -> value) -> Main.Unit
+validRankTwoCallback = \callback -> consumeIdentity callback
+
+validDirectPolymorphicExpression :: Main.Unit
+validDirectPolymorphicExpression = consumeIdentity identity
+
+validDiscardedHigherRankResult :: Main.Unit
+validDiscardedHigherRankResult = mutate poke
+
+validDiscardedScopedHigherRankResult :: Main.Unit
+validDiscardedScopedHigherRankResult = mutate pokeReturningToken
+
+validDiscardedConstrainedHigherRankResult :: Main.Unit
+validDiscardedConstrainedHigherRankResult =
+  mutateConstrained \{witnessDict} -> pokeConstrained {witnessDict}
+
+validConstrainedTypeErasingCallback :: forall key value.
+  Main.Witness @Prim.Type key =>
+  key ->
+  value ->
+  Main.Map @Prim.Type @Prim.Type key value ->
+  Main.Map @Prim.Type @Prim.Type key value
+validConstrainedTypeErasingCallback = \{witnessDict} -> \key -> \value ->
+  mutateMap {witnessDict} (pokeMap {witnessDict} key value)
+
+escapedResult :: forall t0. Main.Token @t0 scope
+escapedResult = leak modify
+
+escapedBinder :: (value -> value) -> Main.Unit
+escapedBinder = \callback -> consumeIdentity callback
+
+escapedNestedUse :: forall t0. Main.Token @t0 scope
+escapedNestedUse = identity (leak modify)
+
+escapedDiscardedOuterArgument :: forall t0 t1. t0 -> Main.Token @t1 scope
+escapedDiscardedOuterArgument = \_ -> leak modify
+
+escapedDiscardedArgument :: Main.Unit
+escapedDiscardedArgument = discardValue (leak modify)
+
+escapedEvidenceOnly :: forall t0 t1 t2. Main.EscapingEvidence @t0 @t1 scope t2 => Main.Proxy @t1 t2
+escapedEvidenceOnly = \{escapingEvidenceDict} -> leak (pokeWithoutWitness {escapingEvidenceDict})

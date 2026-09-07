@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+assertGreater :: forall l r.
+  Prim.Int.Compare l r Prim.Ordering.GT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: l, right :: r )
+assertGreater = \{compareDict} -> Proxy
+
+assertLesser :: forall l r.
+  Prim.Int.Compare l r Prim.Ordering.LT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: l, right :: r )
+assertLesser = \{compareDict} -> Proxy
+
+weakenZeroToNegOne :: forall h.
+  Prim.Int.Compare h 0 Prim.Ordering.GT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: h, right :: (-1) )
+weakenZeroToNegOne = \{compareDict} -> assertGreater {trivial}
+
+weakenZeroToNegTwo :: forall h.
+  Prim.Int.Compare h 0 Prim.Ordering.GT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: h, right :: (-2) )
+weakenZeroToNegTwo = \{compareDict} -> assertGreater {trivial}
+
+weakenZeroLT :: forall h.
+  Prim.Int.Compare h 0 Prim.Ordering.LT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: h, right :: 1 )
+weakenZeroLT = \{compareDict} -> assertLesser {trivial}
+
+chainAbstractAndConcrete :: forall h k.
+  Prim.Int.Compare h k Prim.Ordering.GT =>
+  Prim.Int.Compare k 5 Prim.Ordering.GT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: h, right :: 4 )
+chainAbstractAndConcrete = \{compareDict} -> \{compareDict1} -> assertGreater {trivial}

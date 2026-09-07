@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Tuple/2
+
+@export append = \dictionary%0 -> dictionary%0.append
+
+@export test = \semigroupADict%1 semigroupBDict%5 ->
+  \a1%3 a2%4 b1%6 b2%7 ->
+    { tag: "Tuple", _1: append semigroupADict%1 a1%3 a2%4, _2: append semigroupBDict%5 b1%6 b2%7 }

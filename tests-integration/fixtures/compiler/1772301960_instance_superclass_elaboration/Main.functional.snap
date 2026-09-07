@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export eq = \dictionary%0 -> dictionary%0.eq
+
+@export compare = \dictionary%1 -> dictionary%1.compare
+
+@export test = \ordDict%2 ->
+  \x%3 ->
+    if eq (ordDict%2."Eq0"()) x%3 x%3 then compare ordDict%2 x%3 x%3 else compare ordDict%2 x%3 x%3

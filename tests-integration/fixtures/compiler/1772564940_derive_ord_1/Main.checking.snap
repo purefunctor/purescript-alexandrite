@@ -1,0 +1,68 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Id :: forall @a. a -> Main.Id a
+Wrap ::
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
+Compose ::
+  forall t0 t1 (@f :: t0 -> Prim.Type) (@g :: t1 -> t0) (@a :: t1).
+    (f :: t0 -> Prim.Type) ((g :: t1 -> t0) (a :: t1)) ->
+    Main.Compose @t0 @t1 (f :: t0 -> Prim.Type) (g :: t1 -> t0) (a :: t1)
+NoOrd :: forall @a. a -> Main.NoOrd a
+
+Types
+Id :: Prim.Type -> Prim.Type
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+Compose :: forall t0 t1. (t0 -> Prim.Type) -> (t1 -> t0) -> t1 -> Prim.Type
+NoOrd :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Id a)
+derive Data.Eq.Eq1 Main.Id
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.Id a)
+derive Data.Ord.Ord1 Main.Id
+derive forall (f :: Prim.Type -> Prim.Type) a.
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall (f :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1 (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) a.
+  Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord a =>
+  Data.Ord.Ord (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall (f :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord1 (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) t0 (g :: t0 -> Prim.Type) (a :: t0).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq ((g :: t0 -> Prim.Type) (a :: t0)) =>
+  Data.Eq.Eq
+    (Main.Compose @Prim.Type @t0 (f :: Prim.Type -> Prim.Type) (g :: t0 -> Prim.Type) (a :: t0))
+derive forall (f :: Prim.Type -> Prim.Type) t0 (g :: t0 -> Prim.Type) (a :: t0).
+  Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord ((g :: t0 -> Prim.Type) (a :: t0)) =>
+  Data.Ord.Ord
+    (Main.Compose @Prim.Type @t0 (f :: Prim.Type -> Prim.Type) (g :: t0 -> Prim.Type) (a :: t0))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq1
+    (Main.Compose @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Ord.Ord1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Ord.Ord1
+    (Main.Compose @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.NoOrd a)
+derive Data.Eq.Eq1 Main.NoOrd
+derive Data.Ord.Ord1 Main.NoOrd
+
+Roles
+Id = [Representational]
+Wrap = [Representational, Nominal]
+Compose = [Representational, Representational, Nominal]
+NoOrd = [Representational]

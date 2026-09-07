@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:11:31
+  •
+  │
+  • Cannot unify 'Boolean' with 'Int'
+  │
+  │     Just f -> let _ = f 42 in f true
+  │                                 ╰───
+  •
+
+Error! · [CannotUnify] · Main.purs:20:24
+  •
+  │
+  • Cannot unify 'Boolean' with 'Int'
+  │
+  │     in let _ = f 42 in f true
+  │                          ╰───
+  •

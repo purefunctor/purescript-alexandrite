@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+constructor :: forall t0 t1 t2. { example :: t0 | t1 } -> { example :: Main.Maybe t2 | t1 }
+constructor = \state -> state { example = Nothing }
+
+variable :: forall t0 t1 t2. { example :: t0 | t1 } -> { example :: Main.Maybe t2 | t1 }
+variable = \state ->
+  let
+    nothing :: forall @a. Main.Maybe a
+    nothing = Nothing
+  in
+    state { example = nothing }

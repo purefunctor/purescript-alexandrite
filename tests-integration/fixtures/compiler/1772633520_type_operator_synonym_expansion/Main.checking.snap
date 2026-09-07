@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
+
+Types
+Maybe :: Prim.Type -> Prim.Type
+NaturalTransformation :: forall k. (k -> Prim.Type) -> (k -> Prim.Type) -> Prim.Type
+~> :: forall k. (k -> Prim.Type) -> (k -> Prim.Type) -> Prim.Type
+Test1 :: Prim.Type
+Test2 :: Prim.Type
+
+Synonyms
+type NaturalTransformation f g = forall (a :: k). (f :: k -> Prim.Type) (a :: k) -> (g :: k -> Prim.Type) (a :: k)
+type Test1 = Main.NaturalTransformation @Prim.Type Prim.Array Main.Maybe
+type Test2 = Main.NaturalTransformation @Prim.Type Prim.Array Main.Maybe
+
+Roles
+Maybe = [Representational]

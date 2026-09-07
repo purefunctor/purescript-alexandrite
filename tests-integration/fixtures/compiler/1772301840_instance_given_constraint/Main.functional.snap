@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export eq = \dictionary%0 -> dictionary%0.eq
+
+@export instance eqInt = { eq: \$int%1@(_) $int%2@(_) -> true }
+
+@export instance eqArray = \eqADict%3 -> { eq: \$array%4@(_) $array%5@(_) -> false }
+
+@export test = eq (eqArray (eqArray eqInt)) [[1]] [[2]]

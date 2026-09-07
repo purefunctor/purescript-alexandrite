@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export fn0 = \a%0 b%1 -> a%0
+
+@export fn1 = \a%2 b%3 -> a%2
+
+@export fn2 = \a%5 -> \b%4 -> a%5
+
+@export fn3 = \a%6 -> \b%7 -> a%6
+
+@export fn4 = \a%8 b%9 -> a%8
+
+@export fn5 = \a%11 -> \b%10 -> a%11

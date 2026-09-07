@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Foo :: Prim.Int -> Main.Foo
+
+Types
+Foo :: Prim.Type
+
+Derived
+derive Data.Show.Show Main.Foo
+
+Roles
+Foo = []

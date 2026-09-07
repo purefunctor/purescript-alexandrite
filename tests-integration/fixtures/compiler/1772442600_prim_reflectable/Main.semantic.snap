@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+testSymbol :: Prim.String
+testSymbol = reflectType {reflectable("hello")} Proxy
+
+testSymbol' :: Prim.String
+testSymbol' = reflectType {reflectable("hello")} Proxy
+
+testInt :: Prim.Int
+testInt = reflectType {reflectable(42)} Proxy
+
+testInt' :: Prim.Int
+testInt' = reflectType {reflectable(42)} Proxy
+
+testTrue :: Prim.Boolean
+testTrue = reflectType {reflectable(true)} Proxy
+
+testTrue' :: Prim.Boolean
+testTrue' = reflectType {reflectable(true)} Proxy
+
+testFalse :: Prim.Boolean
+testFalse = reflectType {reflectable(false)} Proxy
+
+testFalse' :: Prim.Boolean
+testFalse' = reflectType {reflectable(false)} Proxy
+
+testLT :: Data.Ordering.Ordering
+testLT = reflectType {reflectable(LT)} Proxy
+
+testLT' :: Data.Ordering.Ordering
+testLT' = reflectType {reflectable(LT)} Proxy
+
+testEQ :: Data.Ordering.Ordering
+testEQ = reflectType {reflectable(EQ)} Proxy
+
+testEQ' :: Data.Ordering.Ordering
+testEQ' = reflectType {reflectable(EQ)} Proxy
+
+testGT :: Data.Ordering.Ordering
+testGT = reflectType {reflectable(GT)} Proxy
+
+testGT' :: Data.Ordering.Ordering
+testGT' = reflectType {reflectable(GT)} Proxy

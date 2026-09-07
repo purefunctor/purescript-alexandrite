@@ -1,0 +1,140 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [EscapedSkolem] · Main.purs:49:1
+  •
+  │
+  • Type variable '(scope :: t0)' has escaped its scope, appearing in type 'forall t0. Token @t0
+  │ (scope :: t0)'
+  │
+  │   escapedOperator = leak modify # identity
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:51:1
+  •
+  │
+  • Type variable '(scope1 :: t1)' has escaped its scope, appearing in type 'forall t1 t2. (Token
+  │ @t1 (scope1 :: t1) -> t2) -> t2'
+  │
+  │   escapedSection = (leak modify # _)
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:53:1
+  •
+  │
+  • Type variable '(scope2 :: t3)' has escaped its scope, appearing in type 'forall t3. Effect
+  │ (Token @t3 (scope2 :: t3))'
+  │
+  │   escapedDo = do
+  │   ╰─────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:57:1
+  •
+  │
+  • Type variable '(scope3 :: t4)' has escaped its scope, appearing in type 'forall t4. Effect
+  │ (Token @t4 (scope3 :: t4))'
+  │
+  │   escapedAdo = ado
+  │   ╰───────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:61:1
+  •
+  │
+  • Type variable '(scope4 :: t5)' has escaped its scope, appearing in type 'forall t5. { token ::
+  │ Token @t5 (scope4 :: t5) }'
+  │
+  │   escapedRecord = { token: leak modify }
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:63:1
+  •
+  │
+  • Type variable '(scope5 :: t6)' has escaped its scope, appearing in type 'forall t7 (t8 :: Row
+  │ Type) t6.
+  │   { token :: t7 | (t8 :: Row Type) } -> { token :: Token @t6 (scope5 :: t6) | (t8 :: Row
+  │ Type) }'
+  │
+  │   escapedRecordUpdate record = record { token = leak modify }
+  │   ╰──────────────────────────────────────────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:65:1
+  •
+  │
+  • Type variable '(scope6 :: ?83)' has escaped its scope, appearing in type 'Token @?83
+  │ (scope6 :: ?83)'
+  │
+  │   escapedPatternGuard value
+  │   ╰────────────────────────
+  •
+
+Error! · [EscapedSkolem] · Main.purs:68:1
+  •
+  │
+  • Type variable '(scope7 :: t9)' has escaped its scope, appearing in type 'forall t10 t9. t10 ->
+  │ { token :: Token @t9 (scope7 :: t9) }'
+  │
+  │   escapedCase value = case value of
+  │   ╰────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:13:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'leak'
+  │
+  │   foreign import leak
+  │   ╰──────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:18:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'pure'
+  │
+  │   foreign import pure :: forall value. value -> Effect value
+  │   ╰─────────────────────────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:20:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'bind'
+  │
+  │   foreign import bind
+  │   ╰──────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:26:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'discard'
+  │
+  │   foreign import discard
+  │   ╰─────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:32:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'map'
+  │
+  │   foreign import map
+  │   ╰─────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:38:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'apply'
+  │
+  │   foreign import apply
+  │   ╰───────────────────
+  •

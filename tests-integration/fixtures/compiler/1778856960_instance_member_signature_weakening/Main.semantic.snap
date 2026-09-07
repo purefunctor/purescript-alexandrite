@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Transform :: ((Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Transform t where
+  lift :: forall (f :: Prim.Type -> Prim.Type) a. Data.Functor.Functor f => f a -> t f a
+
+data Wrap :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+data Wrap @f @a
+  | Wrap :: f a -> Main.Wrap f a
+
+interface Render :: Prim.Type -> Prim.Constraint
+interface Render a where
+  render :: a -> Prim.String
+
+interface Renderer :: Prim.Type -> Prim.Constraint
+interface Renderer t where
+  renderer :: forall a. Main.Render a => a -> t
+
+interface TransformPlain :: ((Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) -> Prim.Constraint
+interface TransformPlain t where
+  liftPlain :: forall (f :: Prim.Type -> Prim.Type) a. f a -> t f a
+
+dictionary transformWrap :: Main.Transform Main.Wrap where
+  lift :: forall (f :: Prim.Type -> Prim.Type) a. f a -> Main.Wrap f a
+  lift = Wrap
+
+dictionary rendererString :: Main.Renderer Prim.String where
+  renderer :: forall a. Main.Render a => a -> Prim.String
+  renderer = \{renderDict} -> render {renderDict}
+
+dictionary transformPlainWrap :: Main.TransformPlain Main.Wrap where
+  liftPlain :: forall (f :: Prim.Type -> Prim.Type) a. Data.Functor.Functor f => f a -> Main.Wrap f a
+  liftPlain = \{functorDict} -> Wrap

@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+show :: forall @a. Main.Show a => a -> Prim.String
+use :: forall f g h. Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h => f -> g -> h -> Prim.Int
+test :: Main.Show Main.A => Main.Show Main.B => Main.Show Main.C => Prim.Int
+
+Types
+Show :: Prim.Type -> Prim.Constraint
+A :: Prim.Type
+B :: Prim.Type
+C :: Prim.Type
+TypeEquals :: forall k. k -> k -> Prim.Constraint
+Match3 :: forall t0 t1 t2. t0 -> t1 -> t2 -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
+class forall (k :: Prim.Type) (a :: k) (b :: k). Main.TypeEquals @k (a :: k) (b :: k)
+class forall (t0 :: Prim.Type) (t1 :: Prim.Type) (t2 :: Prim.Type) (f :: t0) (g :: t1) (h :: t2). Main.Match3 @t0 @t1 @t2 (f :: t0) (g :: t1) (h :: t2)
+
+Instances
+instance forall k (a :: k). Main.TypeEquals @k (a :: k) (a :: k)
+instance forall f g h.
+  Main.TypeEquals @Prim.Type f (Main.A -> Prim.String) =>
+  Main.TypeEquals @Prim.Type g (Main.B -> Prim.String) =>
+  Main.TypeEquals @Prim.Type h (Main.C -> Prim.String) =>
+  Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h
+
+Roles
+A = []
+B = []
+C = []

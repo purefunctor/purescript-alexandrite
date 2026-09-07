@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+foreign import pure :: forall a. a -> Main.Effect a
+
+foreign import map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+
+foreign import apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+
+unit :: Main.Unit
+unit = Unit
+
+test :: Main.Effect Main.Unit
+test = apply (map (\_ _ -> unit) (pure 1)) (pure unit)
+
+test' :: Main.Effect Main.Unit
+test' = apply (map (\_ _ -> unit) (pure 1)) (pure unit)

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  show :: a -> Prim.String
+
+evidenceDoesNotEscape :: forall a. { leaked :: a -> Prim.String, scoped :: Main.Eq a => a -> Prim.String }
+evidenceDoesNotEscape = { scoped: \{eqDict} -> show {eqDict}, leaked: show {error} }
+
+foreign import consume :: forall result. { value :: forall a. a -> result } -> result
+
+typeDoesNotEscape :: a
+typeDoesNotEscape = consume { value: \value -> value }

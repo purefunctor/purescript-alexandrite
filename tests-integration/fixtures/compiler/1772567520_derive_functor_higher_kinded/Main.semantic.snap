@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Wrap :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data Wrap @f @a
+  | Wrap :: f a -> Main.Wrap f a
+
+data WrapNoFunctor :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data WrapNoFunctor @f @a
+  | WrapNoFunctor :: f a -> Main.WrapNoFunctor f a
+
+dictionary functorWrapType ::
+  forall f.
+  { functorDict :: Data.Functor.Functor f } =>
+  Data.Functor.Functor (Main.Wrap @Prim.Type f)
+  where
+  map :: forall a b. (a -> b) -> Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f b
+  map = \function value ->
+    case value of
+      (Wrap field0) -> Wrap (map {functorDict} (\element -> function element) field0)

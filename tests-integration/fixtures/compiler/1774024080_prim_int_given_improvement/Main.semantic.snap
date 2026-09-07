@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+addChain :: forall n m. Prim.Int.Add 1 2 n => Prim.Int.Add 1 n m => Type.Proxy.Proxy @Prim.Int m
+addChain = \{addDict} -> \{addDict1} -> Proxy
+
+addContradiction :: forall m. Prim.Int.Add 1 2 4 => Prim.Int.Add 1 4 m => Type.Proxy.Proxy @Prim.Int m
+addContradiction = \{addDict} -> \{addDict1} -> Proxy
+
+forceSolve :: { addChain :: Type.Proxy.Proxy @Prim.Int 4, addContradiction :: Type.Proxy.Proxy @Prim.Int 5 }
+forceSolve =
+  { addChain: addChain {trivial} {trivial}, addContradiction: addContradiction {error} {trivial} }

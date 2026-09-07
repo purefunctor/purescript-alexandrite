@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:7:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nil
+  │
+  │   head :: forall a. List a -> a
+  │   ╰────────────────────────────
+  •

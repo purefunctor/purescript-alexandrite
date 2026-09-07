@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Triple :: forall k0 k1 k2. k0 -> k1 -> k2 -> Prim.Type
+data Triple @a @b @c
+  | Triple :: Main.Triple a b c
+
+data Captured :: forall k0. k0 -> Prim.Type
+data Captured @a
+  | Captured :: Main.Triple @k0 @Prim.Type @Prim.Type a Prim.Int Prim.String -> Main.Captured a

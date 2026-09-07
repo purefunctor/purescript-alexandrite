@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface Use :: forall k. k -> Prim.Constraint
+interface Use a where
+  use :: Main.Proxy @k a
+
+dictionary use1 ::
+  forall k a xs.
+  { rowToListDict :: Prim.RowList.RowToList @k ( x :: a ) xs } =>
+  Main.Use @k a
+  where
+  use :: Main.Proxy @k a
+  use = Proxy
+
+test :: Main.Proxy @Prim.Type Prim.String
+test = use {use1 {trivial}}

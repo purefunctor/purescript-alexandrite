@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+Unit :: Main.Unit
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Unit :: Prim.Type
+
+Derived
+derive Data.Functor.Functor (Main.Pair Prim.Int Prim.String)
+derive Data.Functor.Functor Main.Unit
+
+Roles
+Pair = [Representational, Representational]
+Unit = []

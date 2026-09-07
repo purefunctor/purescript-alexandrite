@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Given :: Prim.Type -> Prim.Constraint
+interface Given a where
+  consume :: a -> a
+
+testGiven :: forall a. Main.Given a => a -> a
+testGiven = \{givenDict} -> \a -> consume {givenDict} a
+  where
+  b :: a
+  b = consume {givenDict} a
+  c :: a
+  c = consume {givenDict} a

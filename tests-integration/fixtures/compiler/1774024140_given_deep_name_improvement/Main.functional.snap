@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export needsAdd = \addXDict%0 -> "Proxy"
+
+@export instance isIntTypeInt = {  }
+
+@export needsInt = \isIntValueDict%1 -> "Proxy"
+
+@export nonHeadGivenImprovement = \unionRowRowRowDict%2 -> needsAdd <trivial evidence>
+
+@export functionGivenImprovement = \unionRowRowRowDict%3 -> needsInt isIntTypeInt
+
+@export forceSolve = {
+  nonHeadGivenImprovement: nonHeadGivenImprovement <trivial evidence>,
+  functionGivenImprovement: functionGivenImprovement <trivial evidence>
+}

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Foldable (f :: Type -> Type)
+  │
+  │   derive instance Bifoldable (WrapBothNoConstraint f g)
+  │   ╰────────────────────────────────────────────────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Foldable (g :: Type -> Type)
+  │
+  │   derive instance Bifoldable (WrapBothNoConstraint f g)
+  │   ╰────────────────────────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •
