@@ -34,9 +34,7 @@ pub enum UnsupportedState {
     MissingLocalDeclaration(lowering::LetBindingNameGroupId),
     #[error("checked value declaration has no equations")]
     MissingEquation,
-    #[error(
-        "runtime export name {name:?} refers to conflicting globals {existing:?} and {duplicate:?}"
-    )]
+    #[error("runtime export name {name:?} refers to conflicting declarations")]
     ConflictingRuntimeExport { name: String, existing: GlobalId, duplicate: GlobalId },
     #[error("exported operator {term_id:?} has no runtime resolution")]
     MissingRuntimeExportOperatorResolution { term_id: TermItemId },

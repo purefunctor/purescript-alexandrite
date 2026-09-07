@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 278
+assertion_line: 298
 expression: diagnostics_report
 ---
 Terms
@@ -36,9 +36,7 @@ Backend Diagnostics
 Error! · [FunctionalCodegen] · Main.purs:1:1
   •
   │
-  • runtime export name "classInt" refers to conflicting globals Term(Idx::<File>(45),
-  │ Idx::<IndexedTermItem>(0)) and Instance(Declared(Idx::<File>(45),
-  │ AstId<syntax::cst::InstanceDeclaration>(15)))
+  • runtime export name "classInt" refers to conflicting declarations
   │
   │   module Main where
   │   ╰────────────────
