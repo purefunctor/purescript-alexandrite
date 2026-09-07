@@ -8,8 +8,10 @@ use std::time::Duration;
 use std::{env, io};
 
 use building::QueryEngine;
+use diagnostics::{collect_diagnostics, format_rich_with_path};
 use files::{FileId, Files};
 use itertools::Itertools;
+use line_index::LineIndex;
 use process_control::{ChildExt, Control};
 use url::Url;
 
@@ -94,7 +96,7 @@ impl JavaScriptModules {
 fn javascript_modules(
     engine: &QueryEngine,
     entry: FileId,
-) -> FixtureResult<javascript::ModuleResult<JavaScriptModules>> {
+) -> FixtureResult<Result<JavaScriptModules, (FileId, javascript::ModuleError)>> {
     let mut pending = vec![entry];
     let mut visited = HashSet::new();
     let mut modules = Vec::new();
@@ -104,7 +106,7 @@ fn javascript_modules(
         }
         let module = match engine.javascript(file_id)? {
             Ok(module) => module,
-            Err(error) => return Ok(Err(error)),
+            Err(error) => return Ok(Err((file_id, error))),
         };
         pending.extend(module.dependencies().iter().copied());
         modules.push(module);
@@ -195,7 +197,7 @@ fn verify_output(expected: &Path, generated_files: &BTreeMap<PathBuf, String>) -
         })?;
     let message = format!(
         "generated JavaScript differs from {}:\n  {changes}\nrun \
-         `just t backend {fixture_name} --update-output` to update fixture output",
+         `just t compiler {fixture_name} --update-output` to update fixture output",
         expected.display()
     );
     Err(invalid_data(message).into())
@@ -248,22 +250,49 @@ fn run_javascript_verification(folder: &Path, workspace: &Path) -> FixtureResult
     Err(invalid_data(message).into())
 }
 
-pub fn backend(path: &Path) -> FixtureResult {
+pub fn compiler(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let fixture = snapshot_path(folder);
     let file = module_name(path)?;
-    let display_path = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| {
-        invalid_data(format!("invariant violated: invalid fixture file name: {}", path.display()))
-    })?;
     let crate::LoadedFixture { engine, files, fixture_files } = crate::load_fixture(folder)?;
     let Some(id) = engine.module_file(&file) else {
         return Err(missing_module(path, &file).into());
     };
 
-    let checking_report = crate::generated::basic::report_checked(&engine, id, display_path);
-    let foreign_report = crate::generated::basic::report_foreign(&engine, id, display_path);
-    let backend_report = crate::generated::basic::report_backend(&engine, id, display_path);
-    let diagnostics_report = format!("{checking_report}{foreign_report}{backend_report}");
+    let checking_report = crate::generated::basic::report_checked_types(&engine, id);
+    let mut diagnostic_files = fixture_files.iter().copied().collect_vec();
+    diagnostic_files.sort_by_key(|&id| files.path(id));
+    let collected = collect_diagnostics(&engine, &diagnostic_files)?;
+    let mut diagnostics_report = String::new();
+    for collection in &collected {
+        let source = Url::parse(&files.path(collection.file_id))?
+            .to_file_path()
+            .map_err(|()| invalid_data("fixture source URL is not a file"))?;
+        let relative = source.strip_prefix(&fixture)?;
+        let display_path = relative.to_string_lossy().replace('\\', "/");
+        let line_index = LineIndex::new(&collection.content);
+        for diagnostics in [
+            collection.checking_diagnostics(),
+            collection.foreign_diagnostics(),
+            collection.backend_diagnostics(),
+        ] {
+            diagnostics_report.push_str(&format_rich_with_path(
+                diagnostics,
+                &collection.content,
+                &line_index,
+                &display_path,
+                false,
+            ));
+        }
+    }
+    let mut settings = insta::Settings::clone_current();
+    settings.set_snapshot_path(&fixture);
+    settings.set_prepend_module_to_snapshot(false);
+    settings.bind(|| {
+        insta::assert_snapshot!(format!("{file}.checking"), checking_report);
+        insta::assert_snapshot!(format!("{file}.diagnostics"), diagnostics_report);
+    });
+
     let generated = tempfile::tempdir()?;
     let output = generated.path().join("output");
     std::fs::create_dir(&output)?;
@@ -284,18 +313,19 @@ pub fn backend(path: &Path) -> FixtureResult {
                 }
             }
         }
-        Err(error) if backend_report.is_empty() => return Err(error.into()),
-        Err(_) => {}
+        Err((failed_file, error)) => {
+            let reported = collected.iter().any(|collection| {
+                collection.file_id == failed_file && !collection.backend_diagnostics().is_empty()
+            });
+            if !reported || fixture.join("verify.mjs").exists() {
+                return Err(error.into());
+            }
+        }
     }
     run_javascript_verification(&fixture, generated.path())?;
     let mut generated_files = output_files(&output)?;
     generated_files.retain(|path, _| expected_paths.contains(path));
     verify_output(&fixture.join("output"), &generated_files)?;
-
-    let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_path(fixture);
-    settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| insta::assert_snapshot!(file, diagnostics_report));
 
     Ok(())
 }

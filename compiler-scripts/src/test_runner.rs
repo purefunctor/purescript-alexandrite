@@ -14,7 +14,8 @@ use console::style;
 use crate::test_runner::ui::NextActionsArgs;
 
 pub fn run_category(category: TestCategory, args: &RunArgs) -> anyhow::Result<bool> {
-    if matches!(category, TestCategory::Backend | TestCategory::Checking | TestCategory::Semantic) {
+    if matches!(category, TestCategory::Compiler | TestCategory::Checking | TestCategory::Semantic)
+    {
         let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
         tests_support::prepare(
             repository.join("tests-integration/packages.json"),

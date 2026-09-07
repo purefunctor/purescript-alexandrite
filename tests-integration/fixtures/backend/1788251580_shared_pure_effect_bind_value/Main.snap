@@ -1,9 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 278
-expression: diagnostics_report
----
-Terms
-sharedBind :: Data.Unit.Unit -> Effect.Effect { left :: Prim.Int, right :: Prim.Int }
-
-Types

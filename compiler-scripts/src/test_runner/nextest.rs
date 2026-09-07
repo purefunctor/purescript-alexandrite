@@ -32,7 +32,7 @@ pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command 
 
     cmd.env("INSTA_FORCE_PASS", "1");
     cmd.env_remove(UPDATE_JAVASCRIPT_OUTPUT);
-    if matches!(category, TestCategory::Backend) && args.update_output {
+    if matches!(category, TestCategory::Compiler) && args.update_output {
         cmd.env(UPDATE_JAVASCRIPT_OUTPUT, "1");
     }
 
@@ -104,8 +104,8 @@ mod tests {
     }
 
     #[test]
-    fn backend_runs_backend_and_functional_reporters_with_filters() {
-        let command = build_nextest_command(TestCategory::Backend, &args(&["constructor"], false));
+    fn compiler_runs_compiler_and_functional_reporters_with_filters() {
+        let command = build_nextest_command(TestCategory::Compiler, &args(&["constructor"], false));
         let arguments = command_arguments(&command);
 
         assert_eq!(
@@ -116,7 +116,7 @@ mod tests {
                 "-p",
                 "tests-integration",
                 "--test",
-                "backend",
+                "compiler",
                 "--test",
                 "functional",
                 "constructor",
@@ -127,22 +127,22 @@ mod tests {
 
     #[test]
     fn other_categories_keep_their_single_reporter_and_verbose_options() {
-        let command = build_nextest_command(TestCategory::Checking, &args(&[], true));
+        let command = build_nextest_command(TestCategory::Lowering, &args(&[], true));
         let arguments = command_arguments(&command);
 
         assert_eq!(
             &arguments[..6],
-            ["nextest", "run", "-p", "tests-integration", "--test", "checking"]
+            ["nextest", "run", "-p", "tests-integration", "--test", "lowering"]
         );
         assert!(arguments.contains(&OsStr::new("--status-level=fail")));
     }
 
     #[test]
-    fn backend_output_updates_are_explicitly_enabled_for_nextest() {
+    fn compiler_output_updates_are_explicitly_enabled_for_nextest() {
         let mut run_args = args(&["javascript_execution"], false);
         run_args.update_output = true;
 
-        let command = build_nextest_command(TestCategory::Backend, &run_args);
+        let command = build_nextest_command(TestCategory::Compiler, &run_args);
 
         assert_eq!(
             environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT),
@@ -151,8 +151,8 @@ mod tests {
     }
 
     #[test]
-    fn ordinary_test_runs_do_not_update_backend_output() {
-        let command = build_nextest_command(TestCategory::Backend, &args(&[], false));
+    fn ordinary_test_runs_do_not_update_compiler_output() {
+        let command = build_nextest_command(TestCategory::Compiler, &args(&[], false));
 
         assert_eq!(environment_setting(&command, UPDATE_JAVASCRIPT_OUTPUT), Some(None));
     }

@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+requested :: Prim.Int
+
+Types

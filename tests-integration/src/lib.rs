@@ -105,7 +105,7 @@ pub struct LoadedFixture {
 
 pub fn load_fixture(folder: &Path) -> FixtureResult<LoadedFixture> {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let packages = if folder.starts_with("fixtures/backend/")
+    let packages = if folder.starts_with("fixtures/compiler/")
         || folder.starts_with("fixtures/checking/")
         || folder.starts_with("fixtures/semantic/")
     {

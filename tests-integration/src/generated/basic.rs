@@ -243,6 +243,24 @@ pub fn report_lowered(engine: &QueryEngine, id: FileId, name: &str) -> String {
 }
 
 pub fn report_checked(engine: &QueryEngine, id: FileId, path: &str) -> String {
+    let mut out = report_checked_types(engine, id);
+    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
+    let collected = collected.pop().unwrap();
+    if !collected.checking_diagnostics().is_empty() {
+        writeln!(out, "\nDiagnostics").unwrap();
+        let line_index = LineIndex::new(&collected.content);
+        out.push_str(&format_rich_with_path(
+            collected.checking_diagnostics(),
+            &collected.content,
+            &line_index,
+            path,
+            false,
+        ));
+    }
+    out
+}
+
+pub fn report_checked_types(engine: &QueryEngine, id: FileId) -> String {
     let indexed = engine.indexed(id).unwrap();
     let checked = engine.checked(id).unwrap();
     let config = pretty::PrettyConfig::new().fully_qualified_names();
@@ -372,48 +390,6 @@ pub fn report_checked(engine: &QueryEngine, id: FileId, path: &str) -> String {
         writeln!(out, "{name} = [{}]", roles_str.join(", ")).unwrap();
     }
 
-    write_checked_diagnostics(&mut out, engine, id, path);
-
-    out
-}
-
-pub fn report_foreign(engine: &QueryEngine, id: FileId, path: &str) -> String {
-    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
-    let collected = collected.pop().unwrap();
-    if collected.foreign_diagnostics().is_empty() {
-        return String::new();
-    }
-
-    let mut out = String::new();
-    heading(&mut out, "Diagnostics");
-    let line_index = LineIndex::new(&collected.content);
-    out.push_str(&format_rich_with_path(
-        collected.foreign_diagnostics(),
-        &collected.content,
-        &line_index,
-        path,
-        false,
-    ));
-    out
-}
-
-pub fn report_backend(engine: &QueryEngine, id: FileId, path: &str) -> String {
-    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
-    let collected = collected.pop().unwrap();
-    if collected.backend_diagnostics().is_empty() {
-        return String::new();
-    }
-
-    let mut out = String::new();
-    heading(&mut out, "Backend Diagnostics");
-    let line_index = LineIndex::new(&collected.content);
-    out.push_str(&format_rich_with_path(
-        collected.backend_diagnostics(),
-        &collected.content,
-        &line_index,
-        path,
-        false,
-    ));
     out
 }
 
@@ -519,22 +495,6 @@ fn write_term_resolution(
         None => {
             writeln!(out, "  -> nothing").unwrap();
         }
-    }
-}
-
-fn write_checked_diagnostics(out: &mut String, engine: &QueryEngine, id: FileId, path: &str) {
-    let mut collected = collect_diagnostics(engine, &[id]).unwrap();
-    let collected = collected.pop().unwrap();
-    if !collected.checking_diagnostics().is_empty() {
-        writeln!(out, "\nDiagnostics").unwrap();
-        let line_index = LineIndex::new(&collected.content);
-        out.push_str(&format_rich_with_path(
-            collected.checking_diagnostics(),
-            &collected.content,
-            &line_index,
-            path,
-            false,
-        ));
     }
 }
 

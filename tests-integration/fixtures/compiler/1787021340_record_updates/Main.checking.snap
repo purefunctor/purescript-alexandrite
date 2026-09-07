@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+model :: Main.Model
+updated :: Main.Model
+
+Types
+Model :: Prim.Type
+
+Synonyms
+type Model = { count :: Prim.Int, nested :: { enabled :: Prim.Boolean, label :: Prim.String } }

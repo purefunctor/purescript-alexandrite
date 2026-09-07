@@ -16,5 +16,5 @@ fn functional(path: &std::path::Path) -> datatest_stable::Result<()> {
 }
 
 datatest_stable::harness! {
-    { test = functional, root = "fixtures/backend", pattern = r".*/Main\.purs$" },
+    { test = functional, root = "fixtures/compiler", pattern = r".*/Main\.purs$" },
 }
