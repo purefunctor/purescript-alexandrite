@@ -2,8 +2,9 @@ use building_types::QueryResult;
 use files::FileId;
 use indexing::{
     ExportKind, ImplicitItems, ImportItemId, ImportKind, IndexedImport, IndexedModule,
-    IndexedTypeItemKind, TermItemId, TypeItemId,
+    IndexedTypeItemKind, InstanceSourceItemId, OrderedTermItemId, TermItemId, TypeItemId,
 };
+use rustc_hash::FxHashMap;
 use smol_str::SmolStr;
 
 use crate::{
@@ -25,10 +26,41 @@ pub(super) fn resolve_module(queries: &impl ExternalQueries, file: FileId) -> Qu
     let indexed = queries.indexed(file)?;
 
     let mut state = State::default();
+    validate_instance_names(&mut state, &indexed);
     resolve_imports(queries, &mut state, &indexed)?;
     resolve_exports(&mut state, &indexed, file);
 
     Ok(state)
+}
+
+fn validate_instance_names(state: &mut State, indexed: &IndexedModule) {
+    let mut instances = FxHashMap::default();
+    for &instance in indexed.items.instance_sources() {
+        let (name, item) = match instance {
+            InstanceSourceItemId::Instance(id) => {
+                (&indexed.items[id].name, OrderedTermItemId::Instance(id))
+            }
+            InstanceSourceItemId::Derive(id) => {
+                (&indexed.items[id].name, OrderedTermItemId::Derive(id))
+            }
+        };
+        let Some(name) = name else { continue };
+        let existing = *instances.entry(name).or_insert(item);
+        if existing != item {
+            state.errors.push(ResolvingError::InstanceNameConflict {
+                name: SmolStr::clone(name),
+                instance,
+                existing,
+            });
+        }
+        if let Some(term) = indexed.names.terms.lookup(name) {
+            state.errors.push(ResolvingError::InstanceNameConflict {
+                name: SmolStr::clone(name),
+                instance,
+                existing: OrderedTermItemId::Term(term),
+            });
+        }
+    }
 }
 
 fn resolve_imports(

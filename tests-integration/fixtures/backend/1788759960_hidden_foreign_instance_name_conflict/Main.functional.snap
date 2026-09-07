@@ -1,0 +1,10 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+foreign classInt
+
+@export instance classInt = {  }
+
+@export test = classInt

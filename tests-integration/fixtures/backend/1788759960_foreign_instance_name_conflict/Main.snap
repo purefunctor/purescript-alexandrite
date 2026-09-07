@@ -1,11 +1,11 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 299
-expression: report
+assertion_line: 278
+expression: diagnostics_report
 ---
 Terms
 classInt :: Prim.Int
-test :: Prim.Array Prim.Int
+test :: Prim.Int
 
 Types
 Class :: Prim.Type -> Prim.Constraint
@@ -14,16 +14,16 @@ Classes
 class forall (a :: Prim.Type). Main.Class a
 
 Instances
-instance Main.Class
+instance Main.Class Prim.Int
 
 Diagnostics
-Error! · [RedefinedIdent] · Main.purs:6:1
+Error! · [RedefinedIdent] · Main.purs:7:1
   •
   │
   • Instance name 'classInt' conflicts with a local value declaration
   │
-  │   instance classInt :: Class
-  │   ╰─────────────────────────
+  │   instance classInt :: Class Int
+  │   ╰─────────────────────────────
   │
   • Conflicting declaration
   │
@@ -31,19 +31,14 @@ Error! · [RedefinedIdent] · Main.purs:6:1
   │   ╰─────────────────────────────
   •
 
-Error! · [InstanceHeadMismatch] · Main.purs:1:1
-  •
-  │
-  • Instance head mismatch: expected 1 arguments, got 0
-  │
-  │   module Main where
-  │   ╰────────────────
-  •
 
-Error! · [CannotUnify] · Main.purs:1:1
+Backend Diagnostics
+Error! · [FunctionalCodegen] · Main.purs:1:1
   •
   │
-  • Cannot unify 'Type -> Constraint' with 'Constraint'
+  • runtime export name "classInt" refers to conflicting globals Term(Idx::<File>(45),
+  │ Idx::<IndexedTermItem>(0)) and Instance(Declared(Idx::<File>(45),
+  │ AstId<syntax::cst::InstanceDeclaration>(15)))
   │
   │   module Main where
   │   ╰────────────────

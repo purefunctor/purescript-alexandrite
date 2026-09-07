@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 354
+expression: report
+---
+module Main
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - classInt
+  - test
+
+Exported Types:
+
+Exported Classes:
+  - Class
+
+Local Terms:
+  - classInt
+  - test
+
+Local Types:
+
+Local Classes:
+  - Class
+
+Class Members:
+
+Diagnostics
+Error! · [RedefinedIdent] · Main.purs:6:1
+  •
+  │
+  • Instance name 'classInt' conflicts with a local value declaration
+  │
+  │   instance classInt :: Class Int
+  │   ╰─────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   foreign import classInt :: Int
+  │   ╰─────────────────────────────
+  •
