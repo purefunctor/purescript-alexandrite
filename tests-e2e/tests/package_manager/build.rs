@@ -3,7 +3,9 @@ use super::support::{TestWorkspace, assert_success};
 fn diagnostic_settings(workspace: &TestWorkspace) -> insta::Settings {
     let mut settings = insta::Settings::clone_current();
     settings.set_strip_ansi_escape_codes(true);
-    let workspace_path = regex::escape(&workspace.path().to_string_lossy());
+    let workspace_path = std::fs::canonicalize(workspace.path()).unwrap();
+    let workspace_path = workspace_path.to_string_lossy();
+    let workspace_path = regex::escape(workspace_path.trim_start_matches(r"\\?\"));
     settings.add_filter(&format!(r"{workspace_path}[/\\]"), "");
     settings.add_filter(r"src\\Main\.purs", "src/Main.purs");
     settings.add_filter(
