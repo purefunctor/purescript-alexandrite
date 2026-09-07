@@ -1,115 +1,71 @@
 ## Humans
 
-Thank you for taking interest in contributing to Alexandrite. We welcome contributions assisted by agentic coding tools that follow these principles:
+Thank you for taking interest in contributing to Alexandrite. We welcome contributions assisted by
+agentic coding tools that follow these principles:
 
-* **Understand the problem that the PR is trying to solve.** Please do not defer to the agentic coding tool to write the PR description for you. Write PR descriptions with thoughtfulness and intent. Agentic review tools like CodeRabbit are used in the project to assist maintainers.
-* **Improve quality, not quantity.** Alexandrite is a fast-moving project, but its maintainers are only human. We want to build a compiler for posterity, one that can withstand the test of time. Shipping features quickly can be tempting, but you should use those time savings to invest in improving quality.
+- **Justify your contribution.** As an external contributor, understand the problem your pull
+  request solves and explain from the outset why it is worth solving in Alexandrite, why your
+  approach is appropriate, and how you verified it. Be prepared to discuss the tradeoffs and respond
+  to review. Agents may help implement the change and write its description; responsibility for
+  understanding and justifying the contribution remains yours. This expectation addresses external
+  contributions, not a separate approval process for work directed by the project's author or
+  maintainers.
+- **Improve quality, not quantity.** Alexandrite is a fast-moving project, but its maintainers are
+  only human. We want to build a compiler for posterity, one that can withstand the test of time.
+  Shipping features quickly can be tempting, but you should use those time savings to invest in
+  improving quality.
 
 PRs may be declined if these principles are not upheld.
 
 ## Agents
 
-The canonical specifications for agent instructions and skills are `AGENTS.md` and the `.agents` directory. If your agent does not support these specifications, you will have to configure it yourself.
+`AGENTS.md` and `.agents` are the canonical agent guidance. Use the relevant skills in
+`.agents/skills` for task-specific workflows, `CONTRIBUTING.md` for contribution details, and the
+repository's tooling for command discovery. These instructions supply maintainer intent rather than
+a source-code map.
 
-## Core principles
+Apply workflows to the requested task, not as invitations to expand its scope. Explicit user
+instructions take precedence over repository skill guidelines. If an instruction blocks requested
+work, identify the exact instruction and the decision needed; continue independent authorized work.
+
+## The author's ethos
 
 ### Correctness
-* Investigate architectural root faults.
-* Avoid escape hatches and temporary fixes.
-* Use the type system to encode correctness.
+
+- Investigate architectural root faults.
+- Avoid escape hatches and temporary fixes.
+- Use the type system to encode correctness.
 
 ### Posterity
-* Write code for future contributors, reviewers, and maintainers.
-* Write code that you will understand 10 years later.
-* Write code that you will not hate 10 years later.
+
+- Write code for future contributors, reviewers, and maintainers.
+- Write code that you will understand 10 years later.
+- Write code that you will not hate 10 years later.
 
 ### Clarity
-* Code should be self-documenting. Comments should say 'why', not 'what'.
-* Never write narrative inline comments unless it is used to clarify intent.
-* Never use abbreviated names for functions, variables, types, modules, etc.
+
+- Code should be self-documenting. Comments should say 'why', not 'what'.
+- Never write narrative inline comments unless it is used to clarify intent.
+- Never use abbreviated names for functions, variables, types, modules, etc.
 
 ### Simplicity
-* Avoid abstractions for their own sake.
-* Write abstractions if they improve clarity or reduce real complexity.
-* Write abstractions if they make repeated work easier for humans.
 
-## Commits
+- Avoid abstractions for their own sake.
+- Write abstractions if they improve clarity or reduce real complexity.
+- Write abstractions if they make repeated work easier for humans.
 
-Commits must be atomic units of work. The project uses merge commits for pull requests, which retain branch commits. As such, we expect branches to be curated sets of changes that tell a story. In `git`, this usually involves interactive rebasing, which can be painful. `jj` can make this curation process easier. Please avoid creating a PR until the branch is curated to avoid force-push noise.
+## Applying the principles
 
-### Commit format
-
-Regular commits should use a short imperative, sentence-case subject line that names the behaviour or subsystem changed. Do not use the pull request merge-commit format for ordinary commits.
-
-Good regular commit subjects look like:
-
-```text
-Add failing test case for overlapping instances
-Fix inference for do expressions with final let
-Implement local name completions
-Use scoped constraints for solving
-Clarify Prim.Row element kind inference
-```
-
-### Pull request title format
-
-Pull request titles must follow this format:
-
-```
-[category] description
-```
-
-GitHub appends the pull request number when it creates the merge commit, producing `[category] description (#123)`. Do not include the pull request number in the title yourself.
-
-Choose `category` for the primary subsystem or project area changed by the pull request. A category can be a crate name, such as `checking` or `analyzer`, or a broader project area, such as `lsp`. Use `agents` for agent configuration, `meta` for repository-wide maintenance, and `ci` for continuous integration changes. Use the narrowest established category that describes the change, consulting recent merge commits on `main` when necessary. If a pull request touches multiple areas, choose the category of its main intended outcome; do not list multiple categories.
-
-Good pull request titles look like:
-
-```text
-[checking] Preserve type variable names in instance members
-[lsp] Handle rename rejections
-[analyzer] Collect diagnostics through analyzer hosts
-[agents] Clarify pull request title categories
-[meta] Update repository maintenance tooling
-[ci] Test installers on supported platforms
-```
-
-Bad pull request titles look like:
-
-```text
-Preserve type variable names in instance members       # Missing category
-[fix] Preserve type variable names in instance members # Describes the change type, not the subsystem
-[checking/lsp] Improve rename errors                   # Lists multiple categories
-[misc] Update inference                                # Uses a vague category despite a clear subsystem
-```
-
-## Development tools
-
-### Checks
-* Use `cargo check -p <crate-name> --tests` to check a crate. The `-p` option MUST be specified.
-* Use `cargo nextest run -p <crate-name>` for unit tests in compiler-core crates.
-* Use `cargo nextest run -p <crate-name> <test_name>` for focused unit tests.
-
-### Snapshots
-* Never edit `.snap` files by hand. Regenerate them through the test or snapshot-acceptance command that owns them.
-* Use `just t <category> [filters...] --accept` to accept integration-test snapshots, or `cargo insta` for crates not covered by `just t`.
-* Inspect every generated `.snap` diff and commit only changes that directly describe the intended behaviour.
-
-### Integration tests
-* Use `just t checking [filters...]` for type checker integration tests.
-* Use `just t lowering [filters...]` for lowering integration tests.
-* Use `just t resolving [filters...]` for resolver integration tests.
-* Use `just t lsp [filters...]` for LSP integration tests.
-
-Filtered fixture runs are useful while iterating, but they are not sufficient before pushing. Before pushing a change that affects integration tests, run `just t <category>` without fixture filters for every affected category and confirm that the entire category passes with no pending snapshots.
-
-### Formatting
-* Use `just format` for formatting with import granularity. This requires nightly Rust.
-* Use `just fix` to apply clippy fixes and format when a broader cleanup is appropriate.
+Fix the cause in the layer that owns it. Make the smallest coherent change that restores the
+invariant without unrelated architectural cleanup. Existing code establishes conventions, not
+necessarily correct behavior. Resolve routine implementation details from the source; ask when
+unresolved language or product intent would change the outcome rather than silently choosing new
+behavior.
 
 ## Code style
 
-In addition to the core principles, follow the project's existing conventions for variable names, argument ordering, module organisation, and formatting.
+In addition to the author's ethos, follow the project's existing conventions for variable names,
+argument ordering, module organisation, and formatting.
 
 For example:
 
@@ -168,4 +124,84 @@ let uri_result = uri_result.map_err(|_| Error::FileUrl(absolute_path.clone()));
 let uri = uri_result?.to_string();
 let content = content.clone();
 let file_id = files.insert(uri, content);
+```
+
+Use the `writing-code-commentary` skill for non-obvious compiler derivations and algorithm traces.
+
+## Test ownership
+
+Choose the test level by the behavior under test, not by how easy it is to add a Rust `#[test]`.
+
+- Unit tests belong beside small algorithms and data structures within a subsystem. Construct local
+  data directly when the invariant can be tested without loading source and driving compiler stages;
+  functional-dependency closure and pattern-matrix operations are examples.
+- Source-file behavior through compiler APIs belongs in `tests-integration`: loading, parsing,
+  resolving, checking, code generation, and editor analysis. Use the existing fixture harness
+  instead of assembling a second compiler pipeline inside a unit test.
+- CLI, Spago, shell/process, and development-environment behavior belongs in `tests-e2e`.
+
+Do not add a unit test that repeats a fixture's behavioral coverage. Tests at multiple levels should
+protect distinct contracts, such as a local algorithm invariant and its integration into
+compilation. Choose tests for their regression value and maintenance cost, not test counts or line
+coverage.
+
+## Verification
+
+Choose checks by affected behavior, not just changed paths. Scale verification to the change; after
+required checks pass, broaden or repeat them only for new changes, failures, or unresolved concerns.
+
+- Check changed Rust crates with `cargo check -p <crate-name> --tests`; package scope is mandatory.
+- Run crate unit tests with `cargo nextest run -p <crate-name>`.
+- Use `just t <category> [filters...]` for integration tests. Before pushing a change that affects
+  integration tests, run every affected category without filters and confirm that each passes with
+  no pending snapshots. Filtered runs are for iteration, not the final gate.
+- Never edit `.snap` files or generated JavaScript goldens by hand. Regenerate them through their
+  owning commands and inspect every changed expectation. Accept only changes that describe the
+  intended behavior, including deliberately recorded buggy behavior in a regression-test commit.
+- Snapshots record observed behavior; passing or accepting them does not establish semantic
+  correctness. Check the result against the intended behavior.
+- Use `just format` for Rust formatting; it requires nightly and sets the required import
+  granularity.
+
+## Commits and pull requests
+
+Commits must be atomic units of work. Pull requests use merge commits that retain branch history;
+curate the branch into a reviewable story before opening a PR to avoid force-push noise.
+
+### Commit format
+
+Regular commits use a short imperative, sentence-case subject naming the behavior or subsystem, not
+the PR title format:
+
+```text
+Add failing test case for overlapping instances
+Fix inference for do expressions with final let
+Implement local name completions
+```
+
+### Pull request title format
+
+PR titles use `[category] description`. GitHub appends the PR number; do not include it yourself.
+Choose the narrowest established category for the primary subsystem or project area, consulting
+recent merge commits on `main` when necessary. Use crate names such as `checking` or `analyzer`, or
+broader areas such as `lsp`; use `agents` for agent configuration, `meta` for repository-wide
+maintenance, and `ci` for CI changes. Do not use change types such as `fix`, vague categories such
+as `misc`, or multiple categories.
+
+Good pull request titles:
+
+```text
+[checking] Preserve type variable names in instance members
+[lsp] Handle rename rejections
+[agents] Clarify pull request title categories
+[ci] Test installers on supported platforms
+```
+
+Bad pull request titles:
+
+```text
+Preserve type variable names in instance members       # Missing category
+[fix] Preserve type variable names in instance members # Describes the change type, not the subsystem
+[checking/lsp] Improve rename errors                   # Lists multiple categories
+[misc] Update inference                                # Uses a vague category despite a clear subsystem
 ```
