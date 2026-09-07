@@ -1,6 +1,6 @@
 ---
-source: tests-integration/tests/functional.rs
-assertion_line: 14
-expression: report
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: functional_report
 ---
-cannot convert checked module Idx::<File>(45): runtime export name "classInt" refers to conflicting globals Instance(Declared(Idx::<File>(45), AstId<syntax::cst::InstanceDeclaration>(13))) and Term(Idx::<File>(45), Idx::<IndexedTermItem>(0))
+Module Main rejected; see Main.diagnostics.snap

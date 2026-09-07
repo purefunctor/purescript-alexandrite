@@ -50,10 +50,6 @@ name = "semantic"
 harness = false
 
 [[test]]
-name = "functional"
-harness = false
-
-[[test]]
 name = "lowering"
 harness = false
 

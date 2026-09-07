@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn compiler_runs_compiler_and_functional_reporters_with_filters() {
+    fn compiler_runs_unified_reporter_with_filters() {
         let command = build_nextest_command(TestCategory::Compiler, &args(&["constructor"], false));
         let arguments = command_arguments(&command);
 
@@ -117,8 +117,6 @@ mod tests {
                 "tests-integration",
                 "--test",
                 "compiler",
-                "--test",
-                "functional",
                 "constructor",
                 "--status-level=none",
             ]

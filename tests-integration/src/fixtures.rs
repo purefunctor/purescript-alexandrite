@@ -260,6 +260,10 @@ pub fn compiler(path: &Path) -> FixtureResult {
     };
 
     let checking_report = crate::generated::basic::report_checked_types(&engine, id);
+    let functional_report = match engine.functional(id)? {
+        Ok(module) => functional::pretty::render(&module),
+        Err(_) => format!("Module {file} rejected; see {file}.diagnostics.snap"),
+    };
     let mut diagnostic_files = fixture_files.iter().copied().collect_vec();
     diagnostic_files.sort_by_key(|&id| files.path(id));
     let collected = collect_diagnostics(&engine, &diagnostic_files)?;
@@ -291,6 +295,7 @@ pub fn compiler(path: &Path) -> FixtureResult {
     settings.bind(|| {
         insta::assert_snapshot!(format!("{file}.checking"), checking_report);
         insta::assert_snapshot!(format!("{file}.diagnostics"), diagnostics_report);
+        insta::assert_snapshot!(format!("{file}.functional"), functional_report);
     });
 
     let generated = tempfile::tempdir()?;
