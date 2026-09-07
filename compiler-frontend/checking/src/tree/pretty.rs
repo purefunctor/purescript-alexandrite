@@ -1786,13 +1786,7 @@ where
         names: &mut EvidenceNames,
         evidence: EvidenceVarId,
     ) -> QueryResult<SmolStr> {
-        match self.checked.evidence[evidence].state {
-            EvidenceState::Solved(proof) => {
-                self.evidence_name(names, &self.checked.evidence[proof])
-            }
-            EvidenceState::Unsolved => Ok(SmolStr::new("unsolved")),
-            EvidenceState::Error => Ok(SmolStr::new("error")),
-        }
+        self.evidence_name(names, &Evidence::Variable(evidence))
     }
 
     fn evidence_name(
@@ -1800,30 +1794,79 @@ where
         names: &mut EvidenceNames,
         evidence: &Evidence,
     ) -> QueryResult<SmolStr> {
-        match evidence {
-            Evidence::Variable(evidence) => self.evidence_variable_name(names, *evidence),
-            Evidence::Given(binder) => self.evidence_binder_name(names, *binder),
-            Evidence::Instance { origin, subgoals } => {
-                let mut instance = self.instance_dictionary_name(*origin)?;
-                for subgoal in subgoals {
-                    let subgoal = self.evidence_variable_name(names, *subgoal)?;
-                    instance = format_smolstr!("{instance} {{{subgoal}}}");
-                }
-                Ok(instance)
-            }
-            Evidence::Superclass { parent, superclass } => {
-                let parent_evidence = &self.checked.evidence[*parent];
-                let parent = self.evidence_name(names, parent_evidence)?;
-                let field = self.superclass_field_name(*superclass)?;
-                if parent.contains(' ') {
-                    Ok(format_smolstr!("({parent}).{field}"))
-                } else {
-                    Ok(format_smolstr!("{parent}.{field}"))
-                }
-            }
-            Evidence::Trivial => Ok(SmolStr::new("trivial")),
-            Evidence::Synthesized(evidence) => Ok(synthesized_evidence_name(evidence)),
+        enum Step<'a> {
+            Evidence(&'a Evidence),
+            Variable(EvidenceVarId),
+            Text(&'static str),
+            FinishSuperclass { superclass: SuperclassId, opening: usize, spaces_before: usize },
         }
+
+        let mut steps = vec![Step::Evidence(evidence)];
+        let mut fragments: Vec<SmolStr> = vec![];
+        let mut space_fragments = 0;
+        while let Some(step) = steps.pop() {
+            let fragment = match step {
+                Step::Evidence(evidence) => match evidence {
+                    Evidence::Variable(variable) => {
+                        steps.push(Step::Variable(*variable));
+                        continue;
+                    }
+                    Evidence::Given(binder) => self.evidence_binder_name(names, *binder)?,
+                    Evidence::Instance { origin, subgoals } => {
+                        let instance = self.instance_dictionary_name(*origin)?;
+                        for subgoal in subgoals.iter().rev() {
+                            steps.push(Step::Text("}"));
+                            steps.push(Step::Variable(*subgoal));
+                            steps.push(Step::Text(" {"));
+                        }
+                        instance
+                    }
+                    Evidence::Superclass { parent, superclass } => {
+                        // Reserve the opening parenthesis so wrapping a deep parent never
+                        // shifts or copies its already emitted text.
+                        let opening = fragments.len();
+                        fragments.push(SmolStr::new_static(""));
+                        steps.push(Step::FinishSuperclass {
+                            superclass: *superclass,
+                            opening,
+                            spaces_before: space_fragments,
+                        });
+                        steps.push(Step::Evidence(&self.checked.evidence[*parent]));
+                        continue;
+                    }
+                    Evidence::Trivial => SmolStr::new_static("trivial"),
+                    Evidence::Synthesized(evidence) => synthesized_evidence_name(evidence),
+                },
+                Step::Variable(variable) => match self.checked.evidence[variable].state {
+                    EvidenceState::Solved(proof) => {
+                        steps.push(Step::Evidence(&self.checked.evidence[proof]));
+                        continue;
+                    }
+                    EvidenceState::Unsolved => SmolStr::new_static("unsolved"),
+                    EvidenceState::Error => SmolStr::new_static("error"),
+                },
+                Step::Text(text) => SmolStr::new_static(text),
+                Step::FinishSuperclass { superclass, opening, spaces_before } => {
+                    // Only the parent has emitted text since entry. Counting space-bearing
+                    // fragments preserves `parent.contains(' ')`, including quoted spaces,
+                    // without rescanning the parent at every projection.
+                    if space_fragments != spaces_before {
+                        fragments[opening] = SmolStr::new_static("(");
+                        fragments.push(SmolStr::new_static(")"));
+                    }
+                    let field = self.superclass_field_name(superclass)?;
+                    format_smolstr!(".{field}")
+                }
+            };
+            space_fragments += usize::from(fragment.contains(' '));
+            fragments.push(fragment);
+        }
+
+        let mut output = SmolStrBuilder::new();
+        for fragment in fragments {
+            output.push_str(&fragment);
+        }
+        Ok(output.finish())
     }
 
     fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {
