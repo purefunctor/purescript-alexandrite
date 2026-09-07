@@ -26,3 +26,18 @@ Local Classes:
   - Class
 
 Class Members:
+
+Diagnostics
+Error! · [RedefinedIdent] · Hidden.purs:6:1
+  •
+  │
+  • Instance name 'classInt' conflicts with a local value declaration
+  │
+  │   instance classInt :: Class Int
+  │   ╰─────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   foreign import classInt :: Int
+  │   ╰─────────────────────────────
+  •

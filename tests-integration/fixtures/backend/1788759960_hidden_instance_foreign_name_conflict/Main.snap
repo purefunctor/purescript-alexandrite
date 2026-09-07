@@ -1,33 +1,20 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 354
-expression: report
+assertion_line: 278
+expression: diagnostics_report
 ---
-module Main
+Terms
+classInt :: Prim.Int
+test :: Prim.Int
 
-Unqualified Imports:
+Types
+Class :: Prim.Type -> Prim.Constraint
 
-Qualified Imports:
+Classes
+class forall (a :: Prim.Type). Main.Class a
 
-Exported Terms:
-  - classInt
-  - test
-
-Exported Types:
-
-Exported Classes:
-  - Class
-
-Local Terms:
-  - classInt
-  - test
-
-Local Types:
-
-Local Classes:
-  - Class
-
-Class Members:
+Instances
+instance Main.Class Prim.Int
 
 Diagnostics
 Error! · [RedefinedIdent] · Main.purs:6:1

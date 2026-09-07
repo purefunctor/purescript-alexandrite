@@ -36,3 +36,60 @@ Local Classes:
   - Class
 
 Class Members:
+
+Diagnostics
+Error! · [DuplicateInstance] · DuplicateInstances.purs:7:1
+  •
+  │
+  • Instance name 'duplicate' has been defined multiple times
+  │
+  │   instance duplicate :: Class String
+  │   ╰─────────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   instance duplicate :: Class Int
+  │   ╰──────────────────────────────
+  •
+
+Error! · [DuplicateInstance] · DuplicateInstances.purs:13:1
+  •
+  │
+  • Instance name 'duplicate' has been defined multiple times
+  │
+  │   derive newtype instance duplicate :: Class First
+  │   ╰───────────────────────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   instance duplicate :: Class Int
+  │   ╰──────────────────────────────
+  •
+
+Error! · [DuplicateInstance] · DuplicateInstances.purs:15:1
+  •
+  │
+  • Instance name 'derived' has been defined multiple times
+  │
+  │   instance derived :: Class Boolean
+  │   ╰────────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   derive newtype instance derived :: Class Second
+  │   ╰──────────────────────────────────────────────
+  •
+
+Error! · [DuplicateInstance] · DuplicateInstances.purs:16:1
+  •
+  │
+  • Instance name 'derived' has been defined multiple times
+  │
+  │   derive newtype instance derived :: Class Third
+  │   ╰─────────────────────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   derive newtype instance derived :: Class Second
+  │   ╰──────────────────────────────────────────────
+  •

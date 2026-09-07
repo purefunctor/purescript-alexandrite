@@ -5,7 +5,7 @@ use functional::tree::{GlobalId, InstanceIdentity};
 use functional::{
     ModuleError as FunctionalModuleError, UnsupportedState as FunctionalUnsupportedState,
 };
-use indexing::{IndexedTypeItemKind, IndexingError};
+use indexing::{IndexedTypeItemKind, IndexingError, InstanceSourceItemId, OrderedTermItemId};
 use itertools::Itertools;
 use javascript::{
     ModuleDiagnostic as JavaScriptModuleDiagnostic, ModuleError as JavaScriptModuleError,
@@ -306,6 +306,44 @@ impl ToDiagnostics for ResolvingError {
         Q: ExternalQueries,
     {
         match self {
+            ResolvingError::InstanceNameConflict { name, instance, existing } => {
+                let pointer = match instance {
+                    InstanceSourceItemId::Instance(id) => {
+                        context.stabilized.syntax_ptr(context.indexed.items[*id].id)
+                    }
+                    InstanceSourceItemId::Derive(id) => {
+                        context.stabilized.syntax_ptr(context.indexed.items[*id].id)
+                    }
+                };
+                let Some(span) = pointer.and_then(|pointer| context.span_from_syntax_ptr(&pointer))
+                else {
+                    return vec![];
+                };
+                let (code, message, pointer) = match existing {
+                    OrderedTermItemId::Term(id) => (
+                        "RedefinedIdent",
+                        format!("Instance name '{name}' conflicts with a local value declaration"),
+                        context.indexed.term_item_ptr(context.stabilized, *id).next(),
+                    ),
+                    OrderedTermItemId::Instance(id) => (
+                        "DuplicateInstance",
+                        format!("Instance name '{name}' has been defined multiple times"),
+                        context.stabilized.syntax_ptr(context.indexed.items[*id].id),
+                    ),
+                    OrderedTermItemId::Derive(id) => (
+                        "DuplicateInstance",
+                        format!("Instance name '{name}' has been defined multiple times"),
+                        context.stabilized.syntax_ptr(context.indexed.items[*id].id),
+                    ),
+                };
+                let mut diagnostic = Diagnostic::error(code, message, span, "resolving");
+                if let Some(span) =
+                    pointer.and_then(|pointer| context.span_from_syntax_ptr(&pointer))
+                {
+                    diagnostic = diagnostic.with_related(span, "Conflicting declaration");
+                }
+                vec![diagnostic]
+            }
             ResolvingError::TermExportConflict { .. }
             | ResolvingError::TypeExportConflict { .. }
             | ResolvingError::ExistingTerm { .. }

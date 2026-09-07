@@ -28,3 +28,32 @@ Local Classes:
   - Class
 
 Class Members:
+
+Diagnostics
+Error! · [RedefinedIdent] · Values.purs:6:1
+  •
+  │
+  • Instance name 'classInt' conflicts with a local value declaration
+  │
+  │   instance classInt :: Class Int
+  │   ╰─────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   classInt :: Int
+  │   ╰──────────────
+  •
+
+Error! · [RedefinedIdent] · Values.purs:12:1
+  •
+  │
+  • Instance name 'classString' conflicts with a local value declaration
+  │
+  │   instance classString :: Class String
+  │   ╰───────────────────────────────────
+  │
+  • Conflicting declaration
+  │
+  │   classString :: String
+  │   ╰────────────────────
+  •

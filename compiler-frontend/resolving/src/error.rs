@@ -1,11 +1,19 @@
 use files::FileId;
-use indexing::{ImportId, ImportItemId, TermItemId, TypeItemId};
+use indexing::{
+    ImportId, ImportItemId, InstanceSourceItemId, OrderedTermItemId, TermItemId, TypeItemId,
+};
+use smol_str::SmolStr;
 
 use crate::ExportSource;
 
 /// The kind of errors produced during name resolution.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ResolvingError {
+    InstanceNameConflict {
+        name: SmolStr,
+        instance: InstanceSourceItemId,
+        existing: OrderedTermItemId,
+    },
     TermExportConflict {
         existing: (FileId, TermItemId, ExportSource),
         duplicate: (FileId, TermItemId, ExportSource),

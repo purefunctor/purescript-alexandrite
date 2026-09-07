@@ -1,0 +1,20 @@
+---
+source: tests-integration/tests/functional.rs
+assertion_line: 14
+expression: report
+---
+@export instance imported = {  }
+
+@export instance classString1 = {  }
+
+@export instance local = {  }
+
+@export foreign dictionary
+
+@export foreign classString
+
+@export test = imported
+
+@export shadow = \local%0 -> local%0
+
+@export record = { local: dictionary }
