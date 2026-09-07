@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 286
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -10,7 +10,7 @@ Types
 Wrapper :: Prim.Type
 
 Derived
-derive Data.Newtype.Newtype @Prim.Type Main.Wrapper
+derive Data.Newtype.Newtype Main.Wrapper
 
 Roles
 Wrapper = []

@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 50
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -10,7 +10,7 @@ Types
 UserId :: Prim.Type
 
 Derived
-derive Data.Newtype.Newtype @Prim.Type Main.UserId Prim.Int
+derive Data.Newtype.Newtype Main.UserId Prim.Int
 
 Roles
 UserId = []

@@ -7,5 +7,5 @@ expression: report
 
 @export localBind = \$unit%2@(_) ->
   let
-    continuation%0 = makeContinuation "Unit"
-  in effect.bind (effect.pure "Unit") \bindValue%1 -> continuation%0 bindValue%1
+    continuation%0 = makeContinuation unit
+  in effect.bind (effect.pure unit) \bindValue%1 -> continuation%0 bindValue%1

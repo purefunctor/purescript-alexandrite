@@ -32,7 +32,7 @@ just t <category> --create "descriptive name"
 
 The CLI picks the next timestamped fixture number, creates the folder under `tests-integration/fixtures/<category>/`, and writes a `Main.purs` template.
 
-Tests are auto-discovered by `build.rs`.
+Tests are auto-discovered by the datatest harnesses in `tests-integration/tests/`.
 
 ### 2. Write focused PureScript modules
 
@@ -40,7 +40,11 @@ Keep each fixture about one behavior. Use a small `Main.purs` by default, and ad
 
 #### Backend fixtures
 
-Use backend fixtures for SSA or generated JavaScript behavior. The harness compares generated JavaScript with the fixture's tracked `output/` tree. Add `verify.mjs` when the behavior must also be executed with Node, and use foreign `.js` modules only when foreign imports are part of the scenario.
+Use backend fixtures for functional trees or generated JavaScript behavior. The harness compares only fixture-owned generated JavaScript and FFI with the tracked `output/` tree. Add `verify.mjs` when the behavior must also be executed with Node; it runs against the full freshly generated dependency closure in a temporary ESM workspace. Do not add a fixture `package.json` or commit registry output or copies of `runtime.js`.
+
+Backend errors belong in the diagnostic `Main.snap`; `Main.functional.snap` records successful trees only.
+
+Backend, checking, and semantic fixtures use the package-set version and root packages in `tests-integration/packages.json`. Edit its `package_set` field to update dependencies; preparation resolves and caches the package list automatically, without a committed lockfile. `just t` prepares them before running fixtures; for direct nextest use, run `just integration-prepare` first. Use package modules instead of vendoring stand-ins. Deliberate malformed-module cases require a fixture-local `replacements.json` mapping each replaced registry module to a nonempty reason. Prim and fixture/fixture collisions cannot be replaced. See `CONTRIBUTING.md` for dependency updates and distribution boundaries.
 
 #### Checking fixtures
 
@@ -137,7 +141,7 @@ test = Just life
 
 ### Backend
 
-Review SSA snapshots and every changed file under `output/`. Check module paths, imports, exports, foreign-module copies, and emitted expressions. When a fixture has `verify.mjs`, confirm the Node verification passes after updating output.
+Review functional snapshots, backend diagnostics, and every changed file under `output/`. Check module paths, imports, exports, fixture foreign-module copies, and emitted expressions. Registry modules are compiled for execution but excluded from goldens. When a fixture has `verify.mjs`, confirm it passes against generated output before accepting changes.
 
 ### Checking
 

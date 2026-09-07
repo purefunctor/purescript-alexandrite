@@ -3,11 +3,11 @@ source: tests-integration/tests/functional.rs
 assertion_line: 14
 expression: report
 ---
-@export instance newtypeTypeIdentifierInt = { "Coercible0": \() -> <trivial evidence> }
+@export instance newtypeIdentifierInt = { "Coercible0": \() -> <trivial evidence> }
 
 @export wrapped = 42
 
-@export unwrapped = unwrap newtypeTypeIdentifierInt wrapped
+@export unwrapped = unwrap newtypeIdentifierInt wrapped
 
 @export constructor Empty/0
 
@@ -19,28 +19,21 @@ expression: report
   to:
     \representation%0 ->
       case representation%0 of
-        Inl (Constructor NoArguments) ->
+        Inl NoArguments ->
           "Empty"
-        Inr (Inl (Constructor field0%1)) ->
+        Inr (Inl field0%1) ->
           { tag: "Single", _1: field0%1 }
-        Inr (Inr (Constructor (Product field0%2 field1%3))) ->
+        Inr (Inr (Product field0%2 field1%3)) ->
           { tag: "Pair", _1: field0%2, _2: field1%3 },
   from:
     \value%4 ->
       case value%4 of
         Empty ->
-          { tag: "Inl", _1: { tag: "Constructor", _1: "NoArguments" } }
+          { tag: "Inl", _1: "NoArguments" }
         Single field0%5 ->
-          { tag: "Inr", _1: { tag: "Inl", _1: { tag: "Constructor", _1: field0%5 } } }
+          { tag: "Inr", _1: { tag: "Inl", _1: field0%5 } }
         Pair field0%6 field1%7 ->
-          {
-            tag: "Inr",
-            _1:
-              {
-                tag: "Inr",
-                _1: { tag: "Constructor", _1: { tag: "Product", _1: field0%6, _2: field1%7 } }
-              }
-          }
+          { tag: "Inr", _1: { tag: "Inr", _1: { tag: "Product", _1: field0%6, _2: field1%7 } } }
 }
 
 @export roundTrip = \value%8 ->

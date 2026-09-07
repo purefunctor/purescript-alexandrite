@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 286
+assertion_line: 319
 expression: report
 ---
 Terms
@@ -8,7 +8,7 @@ Terms
 Types
 
 Derived
-derive forall t0. Data.Newtype.Newtype @Prim.Type Lib.Wrapper t0
+derive forall t0. Data.Newtype.Newtype Lib.Wrapper t0
 
 Diagnostics
 Error! · [NonLocalNewtype] · Main.purs:6:1

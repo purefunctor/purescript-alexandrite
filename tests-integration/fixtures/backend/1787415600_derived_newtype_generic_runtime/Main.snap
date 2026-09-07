@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 268
+assertion_line: 298
 expression: diagnostics_report
 ---
 Terms
@@ -21,7 +21,7 @@ Choice :: Prim.Type
 Void :: Prim.Type
 
 Derived
-derive Data.Newtype.Newtype @Prim.Type Main.Identifier Prim.Int
+derive Data.Newtype.Newtype Main.Identifier Prim.Int
 derive Data.Generic.Rep.Generic
   Main.Choice
   (Data.Generic.Rep.Sum

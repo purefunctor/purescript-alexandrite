@@ -3,7 +3,7 @@ module Main where
 import Control.Applicative (pure)
 import Control.Bind (bind, discard)
 import Control.Monad.ST.Internal (ST)
-import Data.Unit (Unit(..))
+import Data.Unit (Unit, unit)
 
 foreign import constructST :: forall region a. String -> a -> ST region a
 foreign import mark :: forall a. String -> a -> a
@@ -23,7 +23,7 @@ chained seed = do
 
 discarded :: forall region. String -> ST region String
 discarded seed = do
-  constructST "discard-first" Unit
+  constructST "discard-first" unit
   let
     result = mark "discard-let" seed
   constructST "discard-second" result

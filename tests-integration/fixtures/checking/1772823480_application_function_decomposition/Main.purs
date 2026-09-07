@@ -1,6 +1,6 @@
 module Main where
 
-import Data.Semigroupoid ((<<<))
+import Control.Semigroupoid ((<<<))
 
 data Maybe a = Just a | Nothing
 

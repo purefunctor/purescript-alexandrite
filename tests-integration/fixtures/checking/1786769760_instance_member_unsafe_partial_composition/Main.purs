@@ -1,6 +1,6 @@
 module Main where
 
-import Data.Semigroupoid ((<<<))
+import Control.Semigroupoid ((<<<))
 import Partial.Unsafe (unsafePartial)
 
 data Content = Sentence String | Paragraph (Array String)

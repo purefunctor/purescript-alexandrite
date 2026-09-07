@@ -6,6 +6,7 @@ set positional-arguments
 [doc("Generate coverage for local tests")]
 coverage:
   cargo llvm-cov clean --workspace
+  just integration-prepare
   cargo llvm-cov nextest --no-report
   cargo llvm-cov nextest --no-report -p tests-integration
 
@@ -21,7 +22,11 @@ coverage-codecov:
 coverage-html:
   cargo llvm-cov report --html
 
-@integration *args="":
+[doc("Prepare locked registry sources for integration tests")]
+@integration-prepare:
+  cargo run -q -p tests-support -- prepare tests-integration/packages.json target/integration-packages
+
+@integration *args="": integration-prepare
   cargo nextest run -p tests-integration "$@" --status-level=fail --final-status-level=fail --failure-output=final
 
 [doc("Install end-to-end test tools")]

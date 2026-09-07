@@ -3,7 +3,7 @@ module Main where
 import Control.Applicative (class Applicative, pure)
 import Control.Bind (class Bind, bind)
 import Control.Monad (class Monad)
-import Control.Monad.Rec (class MonadRec, tailRecM)
+import Control.Monad.Rec.Class (class MonadRec, tailRecM)
 import Data.Functor (class Functor, map)
 
 test :: forall m a. MonadRec m => a -> m a

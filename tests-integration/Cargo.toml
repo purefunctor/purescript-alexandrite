@@ -2,6 +2,7 @@
 name = "tests-integration"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
@@ -30,6 +31,7 @@ sugar = { version = "0.1.0", path = "../compiler-frontend/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-frontend/syntax" }
 tabled = "0.21.0"
 tempfile = "3.27.0"
+tests-support = { path = "../tests-support" }
 url = "2.5.8"
 
 [dev-dependencies]

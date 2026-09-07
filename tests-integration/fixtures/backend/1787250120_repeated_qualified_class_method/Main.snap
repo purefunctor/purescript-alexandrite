@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 262
+assertion_line: 298
 expression: diagnostics_report
 ---
 Terms
@@ -30,8 +30,8 @@ compareArraysThrice :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolea
 compareNestedArraysWhole ::
   Prim.Array (Prim.Array Prim.Int) -> Prim.Array (Prim.Array Prim.Int) -> Prim.Boolean
 compareSuperclassArraysTwice ::
-  forall a. Data.Eq.Ordered a => Prim.Array a -> Prim.Array a -> Prim.Boolean
-compareSuperclassTwice :: forall a. Data.Eq.Ordered a => a -> a -> Prim.Boolean
+  forall a. Library.Ordered a => Prim.Array a -> Prim.Array a -> Prim.Boolean
+compareSuperclassTwice :: forall a. Library.Ordered a => a -> a -> Prim.Boolean
 lambdaScope :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
 whereIsolation :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
 equationScope :: Prim.Boolean -> Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean

@@ -26,23 +26,23 @@ const $lazy_genericVoidNoConstructors = $runtime.binding("genericVoidNoConstruct
     from: $closure$1
   };
 });
-export const newtypeTypeIdentifierInt = { Coercible0: () => ({}) };
+export const newtypeIdentifierInt = { Coercible0: () => ({}) };
 export const wrapped = 42 | 0;
-export const unwrapped = /* @__PURE__ */ Data_Newtype.unwrap(newtypeTypeIdentifierInt)(wrapped);
+export const unwrapped = /* @__PURE__ */ Data_Newtype.unwrap(newtypeIdentifierInt)(wrapped);
 export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt = /* @__PURE__ */ (() => {
   const $closure = (representation) => {
-    if (representation.tag === "Inl" && representation._1.tag === "Constructor" && representation._1._1 === "NoArguments") {
+    if (representation.tag === "Inl" && representation._1 === "NoArguments") {
       return "Empty";
     }
-    if (representation.tag === "Inr" && representation._1.tag === "Inl" && representation._1._1.tag === "Constructor") {
-      const { _1: field0 } = representation._1._1;
+    if (representation.tag === "Inr" && representation._1.tag === "Inl") {
+      const { _1: field0 } = representation._1;
       return {
         tag: "Single",
         _1: field0
       };
     }
-    if (representation.tag === "Inr" && representation._1.tag === "Inr" && representation._1._1.tag === "Constructor" && representation._1._1._1.tag === "Product") {
-      const { _1: field0$1, _2: field1 } = representation._1._1._1;
+    if (representation.tag === "Inr" && representation._1.tag === "Inr" && representation._1._1.tag === "Product") {
+      const { _1: field0$1, _2: field1 } = representation._1._1;
       return {
         tag: "Pair",
         _1: field0$1,
@@ -55,10 +55,7 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
     if (value === "Empty") {
       return {
         tag: "Inl",
-        _1: {
-          tag: "Constructor",
-          _1: "NoArguments"
-        }
+        _1: "NoArguments"
       };
     }
     if (value.tag === "Single") {
@@ -67,10 +64,7 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
         tag: "Inr",
         _1: {
           tag: "Inl",
-          _1: {
-            tag: "Constructor",
-            _1: field0$2
-          }
+          _1: field0$2
         }
       };
     }
@@ -81,12 +75,9 @@ export const genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntCons
         _1: {
           tag: "Inr",
           _1: {
-            tag: "Constructor",
-            _1: {
-              tag: "Product",
-              _1: field0$3,
-              _2: field1$1
-            }
+            tag: "Product",
+            _1: field0$3,
+            _2: field1$1
           }
         }
       };

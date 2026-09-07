@@ -1,0 +1,12 @@
+{
+  "Data.Bifoldable": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Bifunctor": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Bitraversable": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Eq": "Give the compiler-known classes an extra parameter to test derive arity validation.",
+  "Data.Foldable": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Functor": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Functor.Contravariant": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Ord": "Give the compiler-known classes an extra parameter to test derive arity validation.",
+  "Data.Profunctor": "Give the compiler-known class an extra parameter to test derive arity validation.",
+  "Data.Traversable": "Give the compiler-known class an extra parameter to test derive arity validation."
+}

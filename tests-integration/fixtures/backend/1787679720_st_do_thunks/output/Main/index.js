@@ -1,3 +1,4 @@
+import * as Data_Unit from "../Data.Unit/index.js";
 import * as $foreign from "./foreign.js";
 export function chained(seed) {
   const $action = constructST("first")(seed);
@@ -12,7 +13,7 @@ export function chained(seed) {
   };
 }
 export function discarded(seed) {
-  const $action = constructST("discard-first")("Unit");
+  const $action = constructST("discard-first")(Data_Unit.unit);
   return () => {
     const $unit = $action();
     const result = mark("discard-let")(seed);

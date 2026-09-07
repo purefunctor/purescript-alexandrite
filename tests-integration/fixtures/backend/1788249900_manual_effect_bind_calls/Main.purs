@@ -2,7 +2,7 @@ module Main where
 
 import Control.Applicative (pure)
 import Control.Bind (bind)
-import Data.Unit (Unit(..))
+import Data.Unit (Unit, unit)
 import Effect (Effect)
 
 foreign import equalInt :: Int -> Int -> Boolean
@@ -12,9 +12,9 @@ namedContinuation :: Unit -> Effect Int
 namedContinuation _ = pure 42
 
 namedBind :: Unit -> Effect Int
-namedBind _ = bind (pure Unit) namedContinuation
+namedBind _ = bind (pure unit) namedContinuation
 
 tailBind :: Int -> Effect Int
 tailBind value =
   if equalInt value 0 then pure value
-  else bind (pure Unit) (\_ -> tailBind (decrementInt value))
+  else bind (pure unit) (\_ -> tailBind (decrementInt value))
