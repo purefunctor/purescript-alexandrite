@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign apply
+
+@export foreign identity
+
+@export foreign constrainedValue
+
+@export foreign consumeConstrained
+
+@export constrainedSubtree = apply consumeConstrained
+  (\firstIntDict%0 -> apply identity (constrainedValue firstIntDict%0))

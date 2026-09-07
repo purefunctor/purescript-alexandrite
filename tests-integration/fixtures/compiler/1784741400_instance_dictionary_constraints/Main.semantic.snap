@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface First :: Prim.Type -> Prim.Constraint
+interface First a where
+
+interface Second :: Prim.Type -> Prim.Constraint
+interface Second b where
+
+interface Example :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Example a b where
+  example :: a -> b -> Prim.Boolean
+
+implementation :: forall b a. Main.Second b => a -> b -> Prim.Boolean
+implementation = \{secondDict} -> \_ -> \_ -> boolean
+
+foreign import boolean :: Prim.Boolean
+
+dictionary exampleAB ::
+  forall a b.
+  { firstDict :: Main.First a } =>
+  { secondDict :: Main.Second b } =>
+  Main.Example a b
+  where
+  example :: a -> b -> Prim.Boolean
+  example = implementation {secondDict}

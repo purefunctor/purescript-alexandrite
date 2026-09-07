@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export missingBinder = true
+
+@export missingBody = \value%0 -> <error>
+
+@export missingBinderAndBody = <error>

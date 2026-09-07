@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Function :: forall @a @b. (a -> b) -> Main.Function a b
+DoubleInput :: forall @a. Main.Function (Main.Function a Prim.Int) Prim.Int -> Main.DoubleInput a
+
+Types
+Function :: Prim.Type -> Prim.Type -> Prim.Type
+DoubleInput :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Profunctor.Profunctor Main.Function
+derive Data.Functor.Functor Main.DoubleInput
+
+Roles
+Function = [Representational, Representational]
+DoubleInput = [Representational]

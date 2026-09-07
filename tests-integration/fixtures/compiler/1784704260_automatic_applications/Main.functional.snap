@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export default = \dictionary%0 -> dictionary%0.default
+
+@export useDefault = \defaultADict%1 -> default defaultADict%1
+
+@export foreign interleaved
+
+@export useInterleaved = \firstADict%3 secondBDict%2 -> interleaved firstADict%3 secondBDict%2

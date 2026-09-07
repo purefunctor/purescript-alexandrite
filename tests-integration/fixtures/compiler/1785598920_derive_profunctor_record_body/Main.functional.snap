@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RecordPro/1
+
+@export instance profunctorRecordPro = {
+  dimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        RecordPro field0%3 ->
+          {
+            tag: "RecordPro",
+            _1:
+              field0%3 {
+                consume = \argument%4 -> field0%3.consume (firstFunction%0 argument%4),
+                produce = secondFunction%1 field0%3.produce
+              }
+          }
+}

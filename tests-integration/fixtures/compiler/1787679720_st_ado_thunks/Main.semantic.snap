@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructST :: forall region a. Prim.String -> a -> Control.Monad.ST.Internal.ST region a
+
+foreign import mark :: forall a. Prim.String -> a -> a
+
+timedAdo :: forall region.
+  Prim.String ->
+  Control.Monad.ST.Internal.ST region { first :: Prim.String, second :: { seed :: Prim.String } }
+timedAdo = \seed ->
+  apply {applyST}
+    (map {functorST} (\first second -> { first, second }) (constructST "ado-first" seed))
+    (constructST "ado-second" { seed })
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+mapped :: forall region. Prim.String -> Control.Monad.ST.Internal.ST region Prim.String
+mapped = \value -> map {functorST} (mark "map-function" identity) (constructST "map-action" value)
+
+applied :: forall region. Prim.String -> Control.Monad.ST.Internal.ST region Prim.String
+applied = \value ->
+  apply {applyST} (constructST "apply-function-action" identity)
+    (constructST "apply-value-action" value)
+
+capturedPure :: forall region. Prim.String -> Control.Monad.ST.Internal.ST region Prim.String
+capturedPure = \value -> pure {applicativeST} (mark "pure-value" value)

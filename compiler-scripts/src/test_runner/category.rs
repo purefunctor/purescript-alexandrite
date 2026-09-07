@@ -6,7 +6,6 @@ use anyhow::bail;
 pub enum TestCategory {
     Compiler,
     Checking,
-    Semantic,
     Lowering,
     Resolving,
     Lsp,
@@ -18,7 +17,6 @@ impl TestCategory {
         match self {
             TestCategory::Compiler => "compiler",
             TestCategory::Checking => "checking",
-            TestCategory::Semantic => "semantic",
             TestCategory::Lowering => "lowering",
             TestCategory::Resolving => "resolving",
             TestCategory::Lsp => "lsp",
@@ -34,7 +32,6 @@ impl TestCategory {
         match self {
             TestCategory::Compiler => &["compiler"],
             TestCategory::Checking => &["checking"],
-            TestCategory::Semantic => &["semantic"],
             TestCategory::Lowering => &["lowering"],
             TestCategory::Resolving => &["resolving"],
             TestCategory::Lsp => &["lsp"],
@@ -57,13 +54,12 @@ impl FromStr for TestCategory {
         match s.to_lowercase().as_str() {
             "compiler" | "c" => Ok(TestCategory::Compiler),
             "checking" => Ok(TestCategory::Checking),
-            "semantic" | "s" => Ok(TestCategory::Semantic),
             "lowering" | "l" => Ok(TestCategory::Lowering),
             "resolving" | "r" => Ok(TestCategory::Resolving),
             "lsp" => Ok(TestCategory::Lsp),
             "docs" => Ok(TestCategory::Docs),
             _ => bail!(
-                "unknown test category '{}', expected: compiler (c), checking, semantic (s), lowering (l), resolving (r), lsp, docs",
+                "unknown test category '{}', expected: compiler (c), checking, lowering (l), resolving (r), lsp, docs",
                 s
             ),
         }
@@ -82,7 +78,7 @@ mod tests {
 
     #[test]
     fn obsolete_compiler_category_names_are_rejected() {
-        for name in ["backend", "b"] {
+        for name in ["backend", "b", "semantic", "s"] {
             assert!(TestCategory::from_str(name).is_err(), "{name} should be rejected");
         }
     }

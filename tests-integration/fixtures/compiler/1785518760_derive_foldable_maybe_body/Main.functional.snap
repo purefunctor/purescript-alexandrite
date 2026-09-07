@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance foldableMaybe = {
+  foldr:
+    \function%0 accumulator%1 value%2 ->
+      case value%2 of
+        Nothing ->
+          accumulator%1
+        Just field0%3 ->
+          function%0 field0%3 accumulator%1,
+  foldl:
+    \function%4 accumulator%5 value%6 ->
+      case value%6 of
+        Nothing ->
+          accumulator%5
+        Just field0%7 ->
+          function%4 accumulator%5 field0%7,
+  foldMap:
+    \monoidMDict%10 ->
+      \function%8 value%9 ->
+        case value%9 of
+          Nothing ->
+            mempty monoidMDict%10
+          Just field0%11 ->
+            function%8 field0%11
+}

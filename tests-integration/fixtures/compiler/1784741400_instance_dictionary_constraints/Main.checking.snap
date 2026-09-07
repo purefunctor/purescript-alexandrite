@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+example :: forall @a @b. Main.Example a b => a -> b -> Prim.Boolean
+implementation :: forall b a. Main.Second b => a -> b -> Prim.Boolean
+boolean :: Prim.Boolean
+
+Types
+First :: Prim.Type -> Prim.Constraint
+Second :: Prim.Type -> Prim.Constraint
+Example :: Prim.Type -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.First a
+class forall (b :: Prim.Type). Main.Second b
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Example a b
+  example :: forall @a @b. Main.Example a b => a -> b -> Prim.Boolean
+
+Instances
+instance forall a b. Main.First a => Main.Second b => Main.Example a b

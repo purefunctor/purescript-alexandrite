@@ -46,10 +46,6 @@ name = "checking"
 harness = false
 
 [[test]]
-name = "semantic"
-harness = false
-
-[[test]]
 name = "lowering"
 harness = false
 

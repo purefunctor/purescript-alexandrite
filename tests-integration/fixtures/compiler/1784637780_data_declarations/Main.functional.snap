@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export constructor Just/1
+
+@export constructor Nothing/0

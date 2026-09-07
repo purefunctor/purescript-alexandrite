@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance eqOpaque = \eqADict%0 -> { eq: \$opaque%1@(_) $opaque%2@(_) -> true }
+
+@export instance eq1Opaque = { eq1: \eqADict%3 -> eq (eqOpaque eqADict%3) }
+
+@export instance ordOpaque = \ordADict%4 ->
+  { "Eq0": \() -> eqOpaque (ordADict%4."Eq0"()), compare: \$opaque%5@(_) $opaque%6@(_) -> "EQ" }
+
+@export instance ord1Opaque = {
+  "Eq10": \() -> eq1Opaque,
+  compare1: \ordADict%7 -> compare (ordOpaque ordADict%7)
+}

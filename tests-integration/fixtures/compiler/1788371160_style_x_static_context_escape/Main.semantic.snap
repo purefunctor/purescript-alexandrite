@@ -1,0 +1,7 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+escaped :: Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String
+escaped = color {stringValueString} "red"

@@ -1,0 +1,47 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Box :: Prim.Type -> Prim.Type
+data Box @value
+  | Box :: value -> Main.Box value
+
+liftApplicative :: forall functor value result.
+  Control.Applicative.Applicative functor => (value -> result) -> functor value -> functor result
+liftApplicative = \{applicativeDict} -> \function -> \value ->
+  apply {applicativeDict.applyDict} (pure {applicativeDict} function) value
+
+applyMonad :: forall monad value result.
+  Control.Monad.Monad monad => monad (value -> result) -> monad value -> monad result
+applyMonad = \{monadDict} -> \functions -> \values ->
+  bind {monadDict.bindDict} functions \function ->
+    bind {monadDict.bindDict} values \value -> pure {monadDict.applicativeDict} (function value)
+
+dictionary functorBox :: Data.Functor.Functor Main.Box where
+  map :: forall a b. (a -> b) -> Main.Box a -> Main.Box b
+  map = liftApplicative {applicativeBox}
+
+dictionary applyBox :: Control.Apply.Apply Main.Box where
+  superclass functorDict = functorBox
+  apply :: forall a b. Main.Box (a -> b) -> Main.Box a -> Main.Box b
+  apply = applyMonad {monadBox}
+
+dictionary applicativeBox :: Control.Applicative.Applicative Main.Box where
+  superclass applyDict = applyBox
+  pure :: forall a. a -> Main.Box a
+  pure = Box
+
+dictionary bindBox :: Control.Bind.Bind Main.Box where
+  superclass applyDict = applyBox
+  bind :: forall a b. Main.Box a -> (a -> Main.Box b) -> Main.Box b
+  bind = \(Box value) -> \continuation -> continuation value
+
+dictionary monadBox :: Control.Monad.Monad Main.Box where
+  superclass applicativeDict = applicativeBox
+  superclass bindDict = bindBox
+
+result :: Prim.Int
+result =
+  case map {functorBox} (\value -> value) (Box 42) of
+    (Box value) -> value

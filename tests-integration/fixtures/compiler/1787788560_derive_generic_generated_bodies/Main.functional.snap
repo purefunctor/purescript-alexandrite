@@ -1,0 +1,96 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance genericVoidNoConstructors = {
+  to:
+    \value%0 ->
+      case value%0 of
+        _ ->
+          to genericVoidNoConstructors value%0,
+  from:
+    \value%1 ->
+      case value%1 of
+        _ ->
+          from genericVoidNoConstructors value%1
+}
+
+@export constructor Unit/0
+
+@export instance genericUnitConstructorNoArguments = {
+  to:
+    \representation%2 ->
+      case representation%2 of
+        NoArguments ->
+          "Unit",
+  from:
+    \value%3 ->
+      case value%3 of
+        Unit ->
+          "NoArguments"
+}
+
+@export constructor Identity/1
+
+@export instance genericIdentityConstructorArgument = {
+  to:
+    \representation%4 ->
+      case representation%4 of
+        field0%5 ->
+          { tag: "Identity", _1: field0%5 },
+  from:
+    \value%6 ->
+      case value%6 of
+        Identity field0%7 ->
+          field0%7
+}
+
+@export constructor Pair/2
+
+@export instance genericPairConstructorProductArgumentArgument = {
+  to:
+    \representation%8 ->
+      case representation%8 of
+        Product field0%9 field1%10 ->
+          { tag: "Pair", _1: field0%9, _2: field1%10 },
+  from:
+    \value%11 ->
+      case value%11 of
+        Pair field0%12 field1%13 ->
+          { tag: "Product", _1: field0%12, _2: field1%13 }
+}
+
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export instance genericEitherSumConstructorArgumentConstructorArgument = {
+  to:
+    \representation%14 ->
+      case representation%14 of
+        Inl field0%15 ->
+          { tag: "Left", _1: field0%15 }
+        Inr field0%16 ->
+          { tag: "Right", _1: field0%16 },
+  from:
+    \value%17 ->
+      case value%17 of
+        Left field0%18 ->
+          { tag: "Inl", _1: field0%18 }
+        Right field0%19 ->
+          { tag: "Inr", _1: field0%19 }
+}
+
+@export instance genericWrapperConstructorArgument = {
+  to:
+    \representation%20 ->
+      case representation%20 of
+        field0%21 ->
+          field0%21,
+  from:
+    \value%22 ->
+      case value%22 of
+        field0%23 ->
+          field0%23
+}

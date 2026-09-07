@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Product :: forall @a @b. a -> b -> Main.Product a b
+RightNested :: forall @a. Main.Product Prim.Int a -> Main.RightNested a
+
+Types
+Product :: Prim.Type -> Prim.Type -> Prim.Type
+RightNested :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifoldable.Bifoldable Main.Product
+derive Data.Foldable.Foldable (Main.Product Prim.Int)
+derive Data.Foldable.Foldable Main.RightNested
+
+Roles
+Product = [Representational, Representational]
+RightNested = [Representational]

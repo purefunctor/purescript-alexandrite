@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export choose = \left%0 right%1 -> left%0
+
+@export singleInfix = choose 1 "text"
+
+@export multipleInfix = choose (choose 1 "first") true
+
+@export identity = \value%2 -> value%2
+
+@export polymorphicHead = choose identity 1

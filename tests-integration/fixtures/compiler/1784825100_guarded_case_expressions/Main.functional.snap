@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Empty/0
+
+@export constructor One/1
+
+@export constructor Pair/2
+
+@export guarded = \condition%2 choice%0 ->
+  case choice%0 of
+    One nested%1 ->
+      | condition%2, One value%3 <- nested%1 -> value%3
+    Pair left%4 right%5 ->
+      | One value%6 <- left%4 -> value%6
+      | One value%7 <- right%5 -> value%7
+    _ ->
+      0
+
+@export withWhere = \choice%8 ->
+  case choice%8 of
+    One value%9 ->
+      value%9
+    _ ->
+      0

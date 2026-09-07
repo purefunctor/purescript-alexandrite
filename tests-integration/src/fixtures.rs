@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
+use std::fmt::Write;
 use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -260,6 +261,7 @@ pub fn compiler(path: &Path) -> FixtureResult {
     };
 
     let checking_report = crate::generated::basic::report_checked_types(&engine, id);
+    let semantic_report = crate::generated::semantic::report(&engine, id);
     let functional_report = match engine.functional(id)? {
         Ok(module) => functional::pretty::render(&module),
         Err(_) => format!("Module {file} rejected; see {file}.diagnostics.snap"),
@@ -274,6 +276,16 @@ pub fn compiler(path: &Path) -> FixtureResult {
             .map_err(|()| invalid_data("fixture source URL is not a file"))?;
         let relative = source.strip_prefix(&fixture)?;
         let display_path = relative.to_string_lossy().replace('\\', "/");
+        let (_, parse_errors) = engine.parsed(collection.file_id)?;
+        for error in parse_errors.iter() {
+            writeln!(
+                diagnostics_report,
+                "Parse error · {display_path}:{}:{} · {}",
+                error.position.line,
+                error.position.column,
+                error.message,
+            )?;
+        }
         let line_index = LineIndex::new(&collection.content);
         for diagnostics in [
             collection.checking_diagnostics(),
@@ -295,6 +307,7 @@ pub fn compiler(path: &Path) -> FixtureResult {
     settings.bind(|| {
         insta::assert_snapshot!(format!("{file}.checking"), checking_report);
         insta::assert_snapshot!(format!("{file}.diagnostics"), diagnostics_report);
+        insta::assert_snapshot!(format!("{file}.semantic"), semantic_report);
         insta::assert_snapshot!(format!("{file}.functional"), functional_report);
     });
 
@@ -347,24 +360,6 @@ pub fn checking(path: &Path) -> FixtureResult {
     };
 
     let report = crate::generated::basic::report_checked(&engine, id, display_path);
-
-    let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_path(snapshot_path(folder));
-    settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| insta::assert_snapshot!(file, report));
-
-    Ok(())
-}
-
-pub fn semantic(path: &Path) -> FixtureResult {
-    let folder = fixture_folder(path)?;
-    let file = module_name(path)?;
-    let (engine, _) = crate::load_compiler(folder)?;
-    let Some(id) = engine.module_file(&file) else {
-        return Err(missing_module(path, &file).into());
-    };
-
-    let report = crate::generated::semantic::report(&engine, id);
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_path(snapshot_path(folder));

@@ -105,22 +105,20 @@ pub struct LoadedFixture {
 
 pub fn load_fixture(folder: &Path) -> FixtureResult<LoadedFixture> {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let packages = if folder.starts_with("fixtures/compiler/")
-        || folder.starts_with("fixtures/checking/")
-        || folder.starts_with("fixtures/semantic/")
-    {
-        tests_support::prepared_sources(
-            manifest.join("packages.json"),
-            manifest.join("../target/integration-packages"),
-        )
-        .map_err(|error| {
-            std::io::Error::other(format!(
-                "{error:#}; run `just integration-prepare` before running integration tests"
-            ))
-        })?
-    } else {
-        Vec::new()
-    };
+    let packages =
+        if folder.starts_with("fixtures/compiler/") || folder.starts_with("fixtures/checking/") {
+            tests_support::prepared_sources(
+                manifest.join("packages.json"),
+                manifest.join("../target/integration-packages"),
+            )
+            .map_err(|error| {
+                std::io::Error::other(format!(
+                    "{error:#}; run `just integration-prepare` before running integration tests"
+                ))
+            })?
+        } else {
+            Vec::new()
+        };
     let mut engine = QueryEngine::default();
     let mut files = Files::default();
     let mut foreign_files = ForeignFiles::default();

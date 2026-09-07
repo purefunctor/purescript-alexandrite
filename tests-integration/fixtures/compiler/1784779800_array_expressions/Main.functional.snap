@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export identity = \value%0 -> value%0
+
+@export empty = []
+
+@export values = [1, 2]
+
+@export nested = [[1], [2, 3]]
+
+@export inferredFunctions = [identity]
+
+@export checkedFunctions = [identity]
+
+@export checkedIdentity = identity
+
+@export consume = \value%1 -> value%1
+
+@export application = consume [1, 2]

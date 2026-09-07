@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor LT/0
+
+@export constructor EQ/0
+
+@export constructor GT/0
+
+@export eq = \dictionary%0 -> dictionary%0.eq
+
+@export compare = \dictionary%1 -> dictionary%1.compare
+
+@export parentDict = \dictionary%2 -> dictionary%2.parentDict

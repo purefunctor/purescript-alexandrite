@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export record = { nested: { value: 1 }, value: 2 }
+
+@export missingValue = record { value = <error> }
+
+@export nestedMissingValue = record { nested { value = <error> } }
+
+@export validSibling = record { nested { value = <error> }, value = 3 }

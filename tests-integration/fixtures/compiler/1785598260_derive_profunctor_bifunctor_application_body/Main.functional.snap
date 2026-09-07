@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Pair/2
+
+@export instance bifunctorPair = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Pair field0%3 field1%4 ->
+          { tag: "Pair", _1: firstFunction%0 field0%3, _2: secondFunction%1 field1%4 }
+}
+
+@export constructor Nested/1
+
+@export instance profunctorNested = {
+  dimap:
+    \firstFunction%5 secondFunction%6 value%7 ->
+      case value%7 of
+        Nested field0%8 ->
+          {
+            tag: "Nested",
+            _1:
+              bimap bifunctorPair
+                (\element%9 -> \argument%10 -> element%9 (firstFunction%5 argument%10))
+                (\element%11 -> secondFunction%6 element%11)
+                field0%8
+          }
+}

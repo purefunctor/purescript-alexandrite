@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Empty/0
+
+@export constructor One/1
+
+@export constructor Pair/2
+
+@export checked = \choice%0 ->
+  case choice%0 of
+    Empty ->
+      0
+    One value%1 ->
+      value%1
+    Pair left%2 _ ->
+      left%2
+
+@export inferred = \choice%3 ->
+  case choice%3 of
+    Empty ->
+      0
+    One value%4 ->
+      value%4
+    Pair left%5 _ ->
+      left%5
+
+@export multiple = \first%6 second%7 ->
+  case first%6, second%7 of
+    One left%8, One _ ->
+      left%8
+    Pair left%9 _, _ ->
+      left%9
+    _, One right%10 ->
+      right%10
+    _, _ ->
+      0
+
+@export partial = \partialDict%13 ->
+  \choice%11 ->
+    case choice%11 of
+      One value%12 ->
+        value%12

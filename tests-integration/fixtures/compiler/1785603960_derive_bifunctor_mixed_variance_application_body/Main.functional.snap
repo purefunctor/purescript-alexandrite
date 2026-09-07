@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Predicate/1
+
+@export instance contravariantPredicate = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        Predicate field0%2 ->
+          { tag: "Predicate", _1: \argument%3 -> field0%2 (function%0 argument%3) }
+}
+
+@export constructor Function/1
+
+@export instance profunctorFunction = {
+  dimap:
+    \firstFunction%4 secondFunction%5 value%6 ->
+      case value%6 of
+        Function field0%7 ->
+          {
+            tag: "Function",
+            _1: \argument%8 -> secondFunction%5 (field0%7 (firstFunction%4 argument%8))
+          }
+}
+
+@export constructor Mixed/1
+
+@export instance bifunctorMixed = {
+  bimap:
+    \firstFunction%9 secondFunction%10 value%11 ->
+      case value%11 of
+        Mixed field0%12 ->
+          {
+            tag: "Mixed",
+            _1:
+              dimap profunctorFunction
+                (\element%13 ->
+                  cmap contravariantPredicate (\element%14 -> firstFunction%9 element%14)
+                    element%13)
+                (\element%15 -> secondFunction%10 element%15)
+                field0%12
+          }
+}

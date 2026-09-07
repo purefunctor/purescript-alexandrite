@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+checked :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
+checked = \{partialDict} -> \(Just value) -> value
+
+inferred :: forall t0. Prim.Partial => Main.Maybe t0 -> t0
+inferred = \{partialDict} -> \(Just value) -> value

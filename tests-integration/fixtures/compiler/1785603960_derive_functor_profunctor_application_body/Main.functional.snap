@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Function/1
+
+@export instance profunctorFunction = {
+  dimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Function field0%3 ->
+          {
+            tag: "Function",
+            _1: \argument%4 -> secondFunction%1 (field0%3 (firstFunction%0 argument%4))
+          }
+}
+
+@export constructor DoubleInput/1
+
+@export instance functorDoubleInput = {
+  map:
+    \function%5 value%6 ->
+      case value%6 of
+        DoubleInput field0%7 ->
+          {
+            tag: "DoubleInput",
+            _1:
+              profunctorFunctionDictDimap
+                (\element%8 ->
+                  profunctorFunctionDictDimap (\element%9 -> function%5 element%9)
+                    (\unchanged%10 -> unchanged%10)
+                    element%8)
+                (\unchanged%11 -> unchanged%11)
+                field0%7
+          }
+}
+
+profunctorFunctionDictDimap = dimap profunctorFunction

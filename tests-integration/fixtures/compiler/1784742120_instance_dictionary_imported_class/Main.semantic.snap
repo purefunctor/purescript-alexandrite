@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Token :: Prim.Type
+data Token
+  | Token :: Main.Token
+
+dictionary childToken :: { parentDict :: Classes.Parent Main.Token } => Classes.Child Main.Token
+  where
+  superclass parentDict = parentDict
+  child :: Main.Token
+  child = Token

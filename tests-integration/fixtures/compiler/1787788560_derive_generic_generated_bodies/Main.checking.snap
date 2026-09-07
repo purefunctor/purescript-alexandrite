@@ -1,0 +1,54 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+Identity :: forall @a. a -> Main.Identity a
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+Wrapper :: forall @a. a -> Main.Wrapper a
+
+Types
+Void :: Prim.Type
+Unit :: Prim.Type
+Identity :: Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Either :: Prim.Type -> Prim.Type -> Prim.Type
+Wrapper :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
+derive Data.Generic.Rep.Generic
+  Main.Unit
+  (Data.Generic.Rep.Constructor "Unit" Data.Generic.Rep.NoArguments)
+derive forall a.
+  Data.Generic.Rep.Generic
+    (Main.Identity a)
+    (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument a))
+derive forall a b.
+  Data.Generic.Rep.Generic
+    (Main.Pair a b)
+    (Data.Generic.Rep.Constructor
+      "Pair"
+      (Data.Generic.Rep.Product (Data.Generic.Rep.Argument a) (Data.Generic.Rep.Argument b)))
+derive forall a b.
+  Data.Generic.Rep.Generic
+    (Main.Either a b)
+    (Data.Generic.Rep.Sum
+      (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument a))
+      (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument b)))
+derive forall a.
+  Data.Generic.Rep.Generic
+    (Main.Wrapper a)
+    (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument a))
+
+Roles
+Void = []
+Unit = []
+Identity = [Representational]
+Pair = [Representational, Representational]
+Either = [Representational, Representational]
+Wrapper = [Representational]

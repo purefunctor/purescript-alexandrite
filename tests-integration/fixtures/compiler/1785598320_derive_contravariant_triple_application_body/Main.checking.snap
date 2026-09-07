@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+TripleNegative ::
+  forall @a. Main.Predicate (Main.Predicate (Main.Predicate a)) -> Main.TripleNegative a
+
+Types
+Predicate :: Prim.Type -> Prim.Type
+TripleNegative :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.TripleNegative
+
+Roles
+Predicate = [Representational]
+TripleNegative = [Representational]

@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Tuple/2
+
+@export foreign pure
+
+@export foreign map
+
+@export foreign apply
+
+@export zero = pure 1
+
+@export zeroWithLet = pure 1
+
+@export one = map (\value%1 -> value%1) (pure 1)
+
+@export multiple = apply
+  (map (\first%2 second%3 -> { tag: "Tuple", _1: first%2, _2: second%3 }) (pure 1))
+  (pure "two")
+
+@export discarded = apply (map (\$int%4@(_) value%5 -> value%5) (pure 1)) (pure "kept")
+
+@export withLet = apply
+  (map (\first%6 second%7 -> { tag: "Tuple", _1: first%6, _2: second%7 }) (pure 1))
+  (pure 2)
+
+@export nested = map (\value%9 -> value%9) (map (\inner%10 -> inner%10) (pure 1))

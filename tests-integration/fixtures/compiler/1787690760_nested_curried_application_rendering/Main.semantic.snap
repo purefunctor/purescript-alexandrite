@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import node :: Prim.String -> Prim.Array Prim.String -> Prim.Array Prim.String -> Prim.String
+
+foreign import attribute :: Prim.String -> Prim.String
+
+foreign import text :: Prim.String -> Prim.String
+
+render :: Prim.Boolean -> Prim.String
+render = \state ->
+  let
+    dynamicClass :: Prim.Boolean -> Prim.String
+    dynamicClass = \value ->
+      if value then "active" else "inactive"
+  in
+    node "main" [attribute "root"]
+      [node "span" [attribute (dynamicClass state)] [text "first"], node "span" [] [text "second"]]

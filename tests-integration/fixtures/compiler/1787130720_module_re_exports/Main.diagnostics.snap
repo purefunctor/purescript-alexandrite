@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 298
+assertion_line: 309
 expression: diagnostics_report
 ---
-
+Parse error · Main.purs:12:16 · Empty import list

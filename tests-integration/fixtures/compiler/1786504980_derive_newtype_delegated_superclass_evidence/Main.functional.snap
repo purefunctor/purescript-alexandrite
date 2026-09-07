@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export parent = \dictionary%0 -> dictionary%0.parent
+
+@export child = \dictionary%1 -> dictionary%1.child
+
+@export constructor Representation/0
+
+@export instance parentRepresentation = { parent: \value%2 -> value%2 }
+
+@export instance childRepresentation = {
+  "Parent0": \() -> parentRepresentation,
+  child: \value%3 -> value%3
+}
+
+@export instance parentWrapper = \gateDict%4 -> { parent: \value%5 -> value%5 }
+
+@export instance childWrapper = childRepresentation
+
+@export parentFromChild = \childValueDict%6 -> parent (childValueDict%6."Parent0"())
+
+@export useDelegateSuperclass = parentFromChild childWrapper

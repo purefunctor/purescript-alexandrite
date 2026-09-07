@@ -1,0 +1,73 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Product/2
+
+@export instance bifoldableProduct = {
+  bifoldr:
+    \firstFunction%0 secondFunction%1 accumulator%2 value%3 ->
+      case value%3 of
+        Product field0%4 field1%5 ->
+          firstFunction%0 field0%4 (secondFunction%1 field1%5 accumulator%2),
+  bifoldl:
+    \firstFunction%6 secondFunction%7 accumulator%8 value%9 ->
+      case value%9 of
+        Product field0%10 field1%11 ->
+          secondFunction%7 (firstFunction%6 accumulator%8 field0%10) field1%11,
+  bifoldMap:
+    \monoidMDict%17 ->
+      \firstFunction%12 secondFunction%13 value%14 ->
+        case value%14 of
+          Product field0%15 field1%16 ->
+            append (monoidMDict%17."Semigroup0"()) (firstFunction%12 field0%15)
+              (secondFunction%13 field1%16)
+}
+
+@export instance foldableProductInt = {
+  foldr:
+    \function%18 accumulator%19 value%20 ->
+      case value%20 of
+        Product field0%21 field1%22 ->
+          function%18 field1%22 accumulator%19,
+  foldl:
+    \function%23 accumulator%24 value%25 ->
+      case value%25 of
+        Product field0%26 field1%27 ->
+          function%23 accumulator%24 field1%27,
+  foldMap:
+    \monoidMDict%32 ->
+      \function%28 value%29 ->
+        case value%29 of
+          Product field0%30 field1%31 ->
+            function%28 field1%31
+}
+
+@export constructor RightNested/1
+
+@export instance foldableRightNested = {
+  foldr:
+    \function%33 accumulator%34 value%35 ->
+      case value%35 of
+        RightNested field0%36 ->
+          foldr foldableProductInt
+            (\element%37 accumulator%38 -> function%33 element%37 accumulator%38)
+            accumulator%34
+            field0%36,
+  foldl:
+    \function%39 accumulator%40 value%41 ->
+      case value%41 of
+        RightNested field0%42 ->
+          foldl foldableProductInt
+            (\accumulator%43 element%44 -> function%39 accumulator%43 element%44)
+            accumulator%40
+            field0%42,
+  foldMap:
+    \monoidMDict%48 ->
+      \function%45 value%46 ->
+        case value%46 of
+          RightNested field0%47 ->
+            foldMap foldableProductInt monoidMDict%48 (\element%49 -> function%45 element%49)
+              field0%47
+}

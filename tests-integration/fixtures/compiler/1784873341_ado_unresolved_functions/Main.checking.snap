@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+unresolvedMap :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+unresolvedApply :: forall (t0 :: Prim.Type -> Prim.Type) t1. (t0 :: Prim.Type -> Prim.Type) t1
+unresolvedPure :: forall (t0 :: Prim.Type -> Prim.Type). (t0 :: Prim.Type -> Prim.Type) Prim.Int
+
+Types

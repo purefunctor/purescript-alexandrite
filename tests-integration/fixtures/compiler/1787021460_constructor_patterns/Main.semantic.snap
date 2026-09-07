@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type -> Prim.Type
+data Choice @a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+  | Pair :: a -> a -> Main.Choice a
+
+newtype Identity :: Prim.Type -> Prim.Type
+newtype Identity @a
+  | Identity :: a -> Main.Identity a
+
+data Nested :: Prim.Type -> Prim.Type
+data Nested @a
+  | Outer :: Main.Choice a -> Main.Nested a
+
+first :: forall a. Main.Choice a -> Main.Choice a
+first = \Empty -> Empty
+first = \(One value) -> One value
+first = \whole@(Pair left _) ->
+  case whole of
+    (Pair _ _) -> One left
+    _ -> Empty
+
+pair :: forall a. Main.Choice a -> Main.Choice a
+pair = \(Pair left right) -> Pair left right
+pair = \choice -> choice
+
+unwrap :: forall a. Main.Identity a -> a
+unwrap = \(Identity value) -> value
+
+nested :: forall a. Main.Nested a -> Main.Choice a
+nested = \(Outer (One value)) -> One value
+nested = \_ -> Empty
+
+bind :: forall a b. a -> (a -> b) -> b
+bind = \value -> \continuation -> continuation value
+
+ordinaryBind :: Main.Identity Prim.Int -> Prim.Int
+ordinaryBind = \identity -> bind identity \(Identity value) -> value
+
+partialBind :: Prim.Partial => Main.Choice Prim.Int -> Prim.Int
+partialBind = \{partialDict} -> \choice -> bind choice \(One value) -> value

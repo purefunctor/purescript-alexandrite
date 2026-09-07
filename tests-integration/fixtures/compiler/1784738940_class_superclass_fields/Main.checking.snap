@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+LT :: Main.Ordering
+EQ :: Main.Ordering
+GT :: Main.Ordering
+eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+compare :: forall @a. Main.Ord a => a -> a -> Main.Ordering
+parentDict :: forall @a. Main.Child a => a -> a
+
+Types
+Ordering :: Prim.Type
+Eq :: Prim.Type -> Prim.Constraint
+Ord :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Eq a
+  eq :: forall @a. Main.Eq a => a -> a -> Prim.Boolean
+class forall (a :: Prim.Type). Main.Eq a <= Main.Ord a
+  compare :: forall @a. Main.Ord a => a -> a -> Main.Ordering
+class forall (a :: Prim.Type). First.Parent a, Second.Parent a <= Main.Child a
+  parentDict :: forall @a. Main.Child a => a -> a
+
+Roles
+Ordering = []

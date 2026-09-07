@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+json :: Prim.String
+json = "[\"ann\"]"
+
+escaped :: Prim.String
+escaped = "tab:\t carriage-return:\r newline:\n quotes:\"' backslash:\\ unicode:☃ null:\x000000"
+
+gap :: Prim.String
+gap = "hello world"

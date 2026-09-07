@@ -1,0 +1,126 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Identity/1
+
+@export instance functorIdentity = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Identity field0%2 ->
+          { tag: "Identity", _1: function%0 field0%2 }
+}
+
+@export constructor Const/1
+
+@export instance functorConstType = {
+  map:
+    \function%3 value%4 ->
+      case value%4 of
+        Const field0%5 ->
+          { tag: "Const", _1: field0%5 }
+}
+
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance functorMaybe = {
+  map:
+    \function%6 value%7 ->
+      case value%7 of
+        Nothing ->
+          "Nothing"
+        Just field0%8 ->
+          { tag: "Just", _1: function%6 field0%8 }
+}
+
+@export constructor Wrap/1
+
+@export instance functorWrapType = \functorFDict%9 ->
+  {
+    map:
+      \function%10 value%11 ->
+        case value%11 of
+          Wrap field0%12 ->
+            {
+              tag: "Wrap",
+              _1: map functorFDict%9 (\element%13 -> function%10 element%13) field0%12
+            }
+  }
+
+@export constructor Compose/1
+
+@export instance functorComposeTypeType = \functorFDict%14 functorGDict%15 ->
+  {
+    map:
+      \function%16 value%17 ->
+        case value%17 of
+          Compose field0%18 ->
+            {
+              tag: "Compose",
+              _1:
+                map functorFDict%14
+                  (\element%19 ->
+                    map functorGDict%15 (\element%20 -> function%16 element%20) element%19)
+                  field0%18
+            }
+  }
+
+@export constructor Reader/1
+
+@export instance functorReader = {
+  map:
+    \function%21 value%22 ->
+      case value%22 of
+        Reader field0%23 ->
+          { tag: "Reader", _1: \argument%24 -> function%21 (field0%23 argument%24) }
+}
+
+@export constructor NestedReader/1
+
+@export instance functorNestedReader = {
+  map:
+    \function%25 value%26 ->
+      case value%26 of
+        NestedReader field0%27 ->
+          {
+            tag: "NestedReader",
+            _1: \argument%28 -> \argument1%29 -> function%25 (field0%27 argument%28 argument1%29)
+          }
+}
+
+@export constructor Cont/1
+
+@export instance functorCont = {
+  map:
+    \function%30 value%31 ->
+      case value%31 of
+        Cont field0%32 ->
+          {
+            tag: "Cont",
+            _1: \argument%33 -> field0%32 (\argument1%34 -> argument%33 (function%30 argument1%34))
+          }
+}
+
+@export constructor Record/1
+
+@export instance functorRecord = {
+  map:
+    \function%35 value%36 ->
+      case value%36 of
+        Record field0%37 ->
+          { tag: "Record", _1: field0%37 { changed = function%35 field0%37.changed } }
+}
+
+@export constructor OpenRecord/1
+
+@export instance functorOpenRecord = {
+  map:
+    \function%38 value%39 ->
+      case value%39 of
+        OpenRecord field0%40 ->
+          { tag: "OpenRecord", _1: field0%40 { changed = function%38 field0%40.changed } }
+}

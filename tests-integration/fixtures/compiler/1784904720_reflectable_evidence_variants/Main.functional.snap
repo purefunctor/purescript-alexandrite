@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export symbol = reflectType (reflectable "symbol") "Proxy"
+
+@export integer = reflectType (reflectable 42) "Proxy"
+
+@export booleanTrue = reflectType (reflectable true) "Proxy"
+
+@export booleanFalse = reflectType (reflectable false) "Proxy"
+
+@export orderingLess = reflectType (reflectable LT) "Proxy"
+
+@export orderingEqual = reflectType (reflectable EQ) "Proxy"
+
+@export orderingGreater = reflectType (reflectable GT) "Proxy"

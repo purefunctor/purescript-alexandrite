@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export singleFieldUpdate = \section9%0 -> section9%0 { a = 1 }
+
+@export multipleFieldUpdate = \section17%1 -> section17%1 { a = 2, b = true, c = "three" }
+
+@export nestedRecordUpdate = \section29%2 -> section29%2 { a { b { c = 42 } } }
+
+@export updateWithValueSection = \section41%3 ->
+  section41%3 { a = \section46%4 -> add section46%4 1 }
+
+@export updateWithSectionInteraction = \section54%5 section57%6 -> section54%5 { a = section57%6 }
+
+@export polymorphicRecordUpdate = \section62%7 -> section62%7 { foo = 0 }
+
+@export higherOrderContext = map (\section74%8 -> section74%8 { x = 10 })
+
+@export multipleSectionsInteraction = \section82%9 section85%10 section87%11 ->
+  section82%9 { x = section85%10, y = section87%11 }
+
+@export nestedSectionInteraction = \section92%12 section97%13 ->
+  section92%12 { a { b = section97%13 } }
+
+@export mixedSections = \section102%14 ->
+  section102%14 { a = \section106%15 -> add section106%15 1, b = 2 }
+
+@export recordAccessSectionUpdate = \section116%16 ->
+  section116%16 { a = \section120%17 -> section120%17.b }
+
+@export concreteRecordUpdateSection = \section132%18 -> { a: 1 } { a = section132%18 }
+
+@export map = \f%19 x%20 -> []
+
+@export add = \x%21 y%22 -> x%21

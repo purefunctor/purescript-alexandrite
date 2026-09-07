@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+sharedBind :: Data.Unit.Unit -> Effect.Effect { left :: Prim.Int, right :: Prim.Int }
+sharedBind = \_ ->
+  bind {bindEffect} (pure {applicativeEffect} 42) \value ->
+    pure {applicativeEffect} { left: value, right: value }

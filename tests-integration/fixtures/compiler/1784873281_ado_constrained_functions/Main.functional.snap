@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Tuple/2
+
+@export pure = \dictionary%0 -> dictionary%0.pure
+
+@export map = \dictionary%1 -> dictionary%1.map
+
+@export apply = \dictionary%2 -> dictionary%2.apply
+
+@export usingMapApply = \operationsEffectDict%3 ->
+  apply operationsEffectDict%3
+    (map operationsEffectDict%3 (\first%4 second%5 -> { tag: "Tuple", _1: first%4, _2: second%5 })
+      (pure operationsEffectDict%3 1))
+    (pure operationsEffectDict%3 "two")
+
+@export usingPure = \operationsEffectDict%6 -> pure operationsEffectDict%6 1

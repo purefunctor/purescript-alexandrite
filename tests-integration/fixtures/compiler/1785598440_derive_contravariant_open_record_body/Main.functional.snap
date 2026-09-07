@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor OpenPredicate/1
+
+@export instance contravariantOpenPredicate = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        OpenPredicate field0%2 ->
+          {
+            tag: "OpenPredicate",
+            _1: field0%2 { run = \argument%3 -> field0%2.run (function%0 argument%3) }
+          }
+}

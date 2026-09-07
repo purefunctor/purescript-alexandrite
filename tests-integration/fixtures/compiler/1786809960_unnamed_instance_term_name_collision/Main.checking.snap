@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+convert :: forall @value. Main.Convert value => value -> Prim.Int
+convertInt :: Prim.Int
+test :: Prim.Int
+
+Types
+Convert :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Convert value
+  convert :: forall @value. Main.Convert value => value -> Prim.Int
+
+Instances
+instance Main.Convert Prim.Int

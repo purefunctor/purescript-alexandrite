@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Const/1
+
+@export instance functorConstType = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Const field0%2 ->
+          { tag: "Const", _1: field0%2 }
+}
+
+@export instance foldableConstType = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        Const field0%6 ->
+          accumulator%4,
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Const field0%10 ->
+          accumulator%8,
+  foldMap:
+    \monoidMDict%14 ->
+      \function%11 value%12 ->
+        case value%12 of
+          Const field0%13 ->
+            mempty monoidMDict%14
+}
+
+@export instance traversableConstType = {
+  "Functor0": \() -> functorConstType,
+  "Foldable1": \() -> foldableConstType,
+  traverse:
+    \applicativeMDict%18 ->
+      \function%15 value%16 ->
+        case value%16 of
+          Const field0%17 ->
+            pure applicativeMDict%18 { tag: "Const", _1: field0%17 },
+  sequence:
+    \applicativeMDict%20 ->
+      \value%19 ->
+        traverse traversableConstType applicativeMDict%20 (\effect0%21 -> effect0%21) value%19
+}

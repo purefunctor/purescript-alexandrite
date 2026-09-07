@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export append = \dictionary%0 -> dictionary%0.append
+
+@export instance semigroupString = { append: \left%1 right%2 -> left%1 }
+
+@export ordinaryConstrainedOperatorChain = semigroupStringDictAppend "first"
+  (semigroupStringDictAppend "second" "third")
+
+semigroupStringDictAppend = append semigroupString

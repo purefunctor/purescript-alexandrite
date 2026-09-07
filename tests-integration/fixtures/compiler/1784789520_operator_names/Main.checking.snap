@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+combine :: forall @a. Main.Combine a => a -> a -> a
+<> :: forall @a. Main.Combine a => a -> a -> a
+operatorName :: forall a. Main.Combine a => a -> a -> a
+operatorApplication :: forall a. Main.Combine a => a -> a -> a
+Cons :: forall @a. a -> Main.List a -> Main.List a
+Nil :: forall @a. Main.List a
+: :: forall @a. a -> Main.List a -> Main.List a
+constructorOperator :: forall t0. t0 -> Main.List t0 -> Main.List t0
+
+Types
+Combine :: Prim.Type -> Prim.Constraint
+List :: Prim.Type -> Prim.Type
+
+Classes
+class forall (a :: Prim.Type). Main.Combine a
+  combine :: forall @a. Main.Combine a => a -> a -> a
+
+Roles
+List = [Representational]

@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import firstAction :: Effect.Effect Prim.Int
+
+foreign import secondAction :: Prim.Int -> Effect.Effect Prim.String
+
+foreign import independentAction :: Effect.Effect Prim.Boolean
+
+sequential :: Effect.Effect Prim.String
+sequential = bind {bindEffect} firstAction \first -> secondAction first
+
+independent :: Effect.Effect { first :: Prim.Int, second :: Prim.Boolean }
+independent =
+  apply {applyEffect} (map {functorEffect} (\first second -> { first, second }) firstAction)
+    independentAction
+
+pureValue :: Effect.Effect Prim.Int
+pureValue = pure {applicativeEffect} 42

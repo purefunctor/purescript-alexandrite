@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign negate
+
+@export negative = \negativeADict%0 -> \value%1 -> negate negativeADict%0 value%1
+
+@export shadowedNegate = \negate%2 value%3 -> negate%2 value%3

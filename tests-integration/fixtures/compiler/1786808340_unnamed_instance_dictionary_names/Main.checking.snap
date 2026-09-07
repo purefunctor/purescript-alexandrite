@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+convert :: forall @source @target. Main.Convert source target => source -> target
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+:+: :: Prim.Type -> Prim.Type -> Prim.Type
+Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (source :: Prim.Type) (target :: Prim.Type). Main.Convert source target
+  convert :: forall @source @target. Main.Convert source target => source -> target
+
+Instances
+instance Main.Convert Prim.Int Prim.String
+instance Main.Convert (Main.Pair Prim.Int Prim.String) Prim.Boolean
+instance forall value. Main.Convert value value
+instance forall value. Main.Convert value (Main.Pair value value)
+
+Roles
+Pair = [Representational, Representational]

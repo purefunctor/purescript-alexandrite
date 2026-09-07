@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Error! · [NotInScope] · Main.purs:3:17
+  •
+  │
+  • 'map' is not in scope
+  │
+  │   unresolvedMap = ado
+  │                   ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:7:19
+  •
+  │
+  • 'map' is not in scope
+  │
+  │   unresolvedApply = ado
+  │                     ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:7:19
+  •
+  │
+  • 'apply' is not in scope
+  │
+  │   unresolvedApply = ado
+  │                     ╰──
+  •
+
+Error! · [NotInScope] · Main.purs:12:18
+  •
+  │
+  • 'pure' is not in scope
+  │
+  │   unresolvedPure = ado
+  │                    ╰──
+  •
+
+Error! · [CannotUnify] · Main.purs:4:3
+  •
+  │
+  • Cannot unify 'Int' with '(t0 :: Type -> Type) t1'
+  │
+  │     value <- 1
+  │     ╰─────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:3
+  •
+  │
+  • Cannot unify 'Int' with '(t2 :: Type -> Type) t3'
+  │
+  │     first <- 1
+  │     ╰─────────
+  •
+
+Error! · [CannotUnify] · Main.purs:9:3
+  •
+  │
+  • Cannot unify 'Int' with '(t2 :: Type -> Type) ?16'
+  │
+  │     second <- 2
+  │     ╰──────────
+  •

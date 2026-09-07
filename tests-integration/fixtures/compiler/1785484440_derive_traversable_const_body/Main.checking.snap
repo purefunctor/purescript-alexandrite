@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Const :: forall t0 @e (@a :: t0). e -> Main.Const @t0 e (a :: t0)
+
+Types
+Const :: forall t0. Prim.Type -> t0 -> Prim.Type
+
+Derived
+derive forall e. Data.Functor.Functor (Main.Const @Prim.Type e)
+derive forall e. Data.Foldable.Foldable (Main.Const @Prim.Type e)
+derive forall e. Data.Traversable.Traversable (Main.Const @Prim.Type e)
+
+Roles
+Const = [Representational, Phantom]

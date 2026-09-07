@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RightOnly/1
+
+@export instance bifunctorRightOnlyType = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        RightOnly field0%3 ->
+          { tag: "RightOnly", _1: secondFunction%1 field0%3 }
+}
+
+@export constructor NestedRightOnly/1
+
+@export instance bifunctorNestedRightOnlyType = {
+  bimap:
+    \firstFunction%4 secondFunction%5 value%6 ->
+      case value%6 of
+        NestedRightOnly field0%7 ->
+          {
+            tag: "NestedRightOnly",
+            _1:
+              bimap bifunctorRightOnlyType (\unchanged%8 -> unchanged%8)
+                (\element%9 -> secondFunction%5 element%9)
+                field0%7
+          }
+}

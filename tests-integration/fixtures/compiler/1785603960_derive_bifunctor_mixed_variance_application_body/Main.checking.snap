@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+Function :: forall @a @b. (a -> b) -> Main.Function a b
+Mixed :: forall @a @b. Main.Function (Main.Predicate a) b -> Main.Mixed a b
+
+Types
+Predicate :: Prim.Type -> Prim.Type
+Function :: Prim.Type -> Prim.Type -> Prim.Type
+Mixed :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Profunctor.Profunctor Main.Function
+derive Data.Bifunctor.Bifunctor Main.Mixed
+
+Roles
+Predicate = [Representational]
+Function = [Representational, Representational]
+Mixed = [Representational, Representational]

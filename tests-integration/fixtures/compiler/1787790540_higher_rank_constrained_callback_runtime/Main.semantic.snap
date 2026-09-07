@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Before :: Prim.Type -> Prim.Constraint
+interface Before value where
+  before :: value -> value -> Prim.Boolean
+
+data Marker :: Prim.Type
+data Marker
+  | Left :: Main.Marker
+  | Right :: Main.Marker
+
+dictionary beforeMarker :: Main.Before Main.Marker where
+  before :: Main.Marker -> Main.Marker -> Prim.Boolean
+  before = \Left -> \Right -> true
+  before = \_ -> \_ -> false
+
+runComparison :: (forall value. Main.Before value => value -> value -> Prim.Boolean) -> Prim.Boolean
+runComparison = \comparison -> comparison {beforeMarker} Left Right
+
+result :: Prim.Boolean
+result = runComparison \{beforeDict} -> \left right -> before {beforeDict} left right

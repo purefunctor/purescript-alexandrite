@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import addInt :: Prim.Int -> Prim.Int -> Prim.Int
+
+foreign import multiplyInt :: Prim.Int -> Prim.Int -> Prim.Int
+
+constantAdd :: Prim.Int
+constantAdd = addInt 20 22
+
+constantMultiply :: Prim.Int
+constantMultiply = multiplyInt 6 7
+
+overflowAdd :: Prim.Int
+overflowAdd = addInt 2147483647 1
+
+unknownAdd :: Prim.Int -> Prim.Int -> Prim.Int
+unknownAdd = addInt

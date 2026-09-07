@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+apply :: forall a b. (a -> b) -> a -> b
+apply = \function -> \value -> function value
+
+argument :: forall t0. t0 -> t0
+argument = apply \value -> value
+
+functionPosition :: forall t0 t1. (t0 -> t1) -> t0 -> t1
+functionPosition = (\function -> function) apply

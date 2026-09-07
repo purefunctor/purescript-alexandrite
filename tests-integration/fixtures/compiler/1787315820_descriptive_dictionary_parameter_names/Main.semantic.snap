@@ -1,0 +1,53 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Equal :: Prim.Type -> Prim.Constraint
+interface Equal a where
+  equal :: a -> a -> Prim.Boolean
+
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert source target where
+  convert :: source -> target
+
+interface Available :: Prim.Constraint
+interface Available where
+  available :: Prim.Boolean
+
+data Wrapper :: Prim.Type -> Prim.Type
+data Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+genericEqual :: forall value. Main.Equal value => value -> value -> Prim.Boolean
+genericEqual = \{equalDict} -> \left -> \right -> equal {equalDict} left right
+
+arrayEqual :: forall value. Main.Equal (Prim.Array value) => Prim.Array value -> Prim.Array value -> Prim.Boolean
+arrayEqual = \{equalDict} -> \left -> \right -> equal {equalDict} left right
+
+wrapperEqual :: forall value.
+  Main.Equal (Main.Wrapper value) => Main.Wrapper value -> Main.Wrapper value -> Prim.Boolean
+wrapperEqual = \{equalDict} -> \left -> \right -> equal {equalDict} left right
+
+concreteEqual :: Main.Equal Prim.Int => Prim.Int -> Prim.Int -> Prim.Boolean
+concreteEqual = \{equalDict} -> \left -> \right -> equal {equalDict} left right
+
+convertToInt :: forall value. Main.Convert value Prim.Int => value -> Prim.Int
+convertToInt = \{convertDict} -> \value -> convert {convertDict} value
+
+distinctEqual :: forall left right.
+  Main.Equal left =>
+  Main.Equal right =>
+  left -> left -> right -> right -> { left :: Prim.Boolean, right :: Prim.Boolean }
+distinctEqual = \{equalDict} -> \{equalDict1} -> \left1 -> \left2 -> \right1 -> \right2 ->
+  { left: equal {equalDict} left1 left2, right: equal {equalDict1} right1 right2 }
+
+duplicateEqual :: forall value. Main.Equal value => Main.Equal value => value -> value -> Prim.Boolean
+duplicateEqual = \{equalDict} -> \{equalDict1} -> \left -> \right -> equal {equalDict1} left right
+
+parameterCollision :: forall value. Main.Equal value => Prim.Boolean -> value -> value -> Prim.Boolean
+parameterCollision = \{equalDict} -> \equalValueDict -> \left -> \right ->
+  if equalValueDict then equal {equalDict} left right else false
+
+isAvailable :: Main.Available => Prim.Boolean
+isAvailable = \{availableDict} -> available {availableDict}

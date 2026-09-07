@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+dictionary eqMaybe :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Maybe a) where
+  eq :: Main.Maybe a -> Main.Maybe a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      Nothing, Nothing -> true
+      (Just left0), (Just right0) ->
+        if eq {eqDict} left0 right0 then true else false
+      _, _ -> false
+
+dictionary ordMaybe :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Maybe a) where
+  superclass eqDict = eqMaybe {ordDict.eqDict}
+  compare :: Main.Maybe a -> Main.Maybe a -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      Nothing, Nothing -> EQ
+      Nothing, _ -> LT
+      _, Nothing -> GT
+      (Just left0), (Just right0) ->
+        case compare {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering

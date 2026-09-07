@@ -1,0 +1,93 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Compose/1
+
+@export instance functorComposeTypeType = \functorFDict%0 functorGDict%1 ->
+  {
+    map:
+      \function%2 value%3 ->
+        case value%3 of
+          Compose field0%4 ->
+            {
+              tag: "Compose",
+              _1:
+                map functorFDict%0
+                  (\element%5 -> map functorGDict%1 (\element%6 -> function%2 element%6) element%5)
+                  field0%4
+            }
+  }
+
+@export instance foldableComposeTypeType = \foldableFDict%7 foldableGDict%8 ->
+  {
+    foldr:
+      \function%9 accumulator%10 value%11 ->
+        case value%11 of
+          Compose field0%12 ->
+            foldr foldableFDict%7
+              (\element%13 accumulator%14 ->
+                foldr foldableGDict%8
+                  (\element%15 accumulator%16 -> function%9 element%15 accumulator%16)
+                  accumulator%14
+                  element%13)
+              accumulator%10
+              field0%12,
+    foldl:
+      \function%17 accumulator%18 value%19 ->
+        case value%19 of
+          Compose field0%20 ->
+            foldl foldableFDict%7
+              (\accumulator%21 element%22 ->
+                foldl foldableGDict%8
+                  (\accumulator%23 element%24 -> function%17 accumulator%23 element%24)
+                  accumulator%21
+                  element%22)
+              accumulator%18
+              field0%20,
+    foldMap:
+      \monoidMDict%28 ->
+        \function%25 value%26 ->
+          case value%26 of
+            Compose field0%27 ->
+              foldMap foldableFDict%7 monoidMDict%28
+                (\element%29 ->
+                  foldMap foldableGDict%8 monoidMDict%28 (\element%30 -> function%25 element%30)
+                    element%29)
+                field0%27
+  }
+
+@export instance traversableComposeTypeType = \traversableFDict%31 traversableGDict%32 ->
+  {
+    "Functor0":
+      \() ->
+        functorComposeTypeType
+          (traversableFDict%31."Functor0"())
+          (traversableGDict%32."Functor0"()),
+    "Foldable1":
+      \() ->
+        foldableComposeTypeType
+          (traversableFDict%31."Foldable1"())
+          (traversableGDict%32."Foldable1"()),
+    traverse:
+      \applicativeMDict%36 ->
+        \function%33 value%34 ->
+          case value%34 of
+            Compose field0%35 ->
+              map ((applicativeMDict%36."Apply0"())."Functor0"())
+                (\field0Result%37 -> { tag: "Compose", _1: field0Result%37 })
+                (traverse traversableFDict%31 applicativeMDict%36
+                  (\element%38 ->
+                    traverse traversableGDict%32 applicativeMDict%36
+                      (\element%39 -> function%33 element%39)
+                      element%38)
+                  field0%35),
+    sequence:
+      \applicativeMDict%41 ->
+        \value%40 ->
+          traverse (traversableComposeTypeType traversableFDict%31 traversableGDict%32)
+            applicativeMDict%41
+            (\effect0%42 -> effect0%42)
+            value%40
+  }

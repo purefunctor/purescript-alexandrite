@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export convert = \dictionary%0 -> dictionary%0.convert
+
+@export convertExplicit = \dictionary%1 -> dictionary%1.convertExplicit
+
+@export clash = \dictionary%2 -> dictionary%2.clash
+
+@export instance convertFG = { convert: unsafeCoerce, convertExplicit: unsafeCoerce }
+
+@export instance clash1 = {
+  clash:
+    \value%3 ->
+      case value%3 of
+        matched%4 ->
+          unsafeCoerce matched%4
+}

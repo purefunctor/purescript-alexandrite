@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign interleaved
+
+@export inferredPun = \firstDict%1 secondDict%0 ->
+  { interleaved: interleaved firstDict%1 secondDict%0 }
+
+@export inferredExplicit = \firstDict%3 secondDict%2 ->
+  { interleaved: interleaved firstDict%3 secondDict%2 }
+
+@export aliased = 1
+
+@export inferredAliasPun = { aliased: aliased }
+
+@export inferredAliasExplicit = { aliased: aliased }
+
+@export foreign fetch
+
+@export expectedPun = { fetch: \capabilityMDict%4 -> fetch capabilityMDict%4 }
+
+@export expectedExplicit = { fetch: \capabilityMDict%5 -> fetch capabilityMDict%5 }

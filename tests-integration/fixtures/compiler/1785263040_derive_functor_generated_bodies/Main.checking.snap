@@ -1,0 +1,66 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+Const :: forall t0 @e (@a :: t0). e -> Main.Const @t0 e (a :: t0)
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
+Wrap ::
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
+Compose ::
+  forall t0 t1 (@f :: t0 -> Prim.Type) (@g :: t1 -> t0) (@a :: t1).
+    (f :: t0 -> Prim.Type) ((g :: t1 -> t0) (a :: t1)) ->
+    Main.Compose @t0 @t1 (f :: t0 -> Prim.Type) (g :: t1 -> t0) (a :: t1)
+Reader :: forall @r @a. (r -> a) -> Main.Reader r a
+NestedReader :: forall @r @s @a. (r -> s -> a) -> Main.NestedReader r s a
+Cont :: forall @r @a. ((a -> r) -> r) -> Main.Cont r a
+Record :: forall @a. { changed :: a, fixed :: Prim.Int } -> Main.Record a
+OpenRecord ::
+  forall (@r :: Prim.Row Prim.Type) @a.
+    { changed :: a | (r :: Prim.Row Prim.Type) } -> Main.OpenRecord (r :: Prim.Row Prim.Type) a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+Const :: forall t0. Prim.Type -> t0 -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+Compose :: forall t0 t1. (t0 -> Prim.Type) -> (t1 -> t0) -> t1 -> Prim.Type
+Reader :: Prim.Type -> Prim.Type -> Prim.Type
+NestedReader :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+Cont :: Prim.Type -> Prim.Type -> Prim.Type
+Record :: Prim.Type -> Prim.Type
+OpenRecord :: Prim.Row Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Identity
+derive forall e. Data.Functor.Functor (Main.Const @Prim.Type e)
+derive Data.Functor.Functor Main.Maybe
+derive forall (f :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (g :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor
+    (Main.Compose @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+derive forall r. Data.Functor.Functor (Main.Reader r)
+derive forall r s. Data.Functor.Functor (Main.NestedReader r s)
+derive forall r. Data.Functor.Functor (Main.Cont r)
+derive Data.Functor.Functor Main.Record
+derive forall (r :: Prim.Row Prim.Type). Data.Functor.Functor (Main.OpenRecord (r :: Prim.Row Prim.Type))
+
+Roles
+Identity = [Representational]
+Const = [Representational, Phantom]
+Maybe = [Representational]
+Wrap = [Representational, Nominal]
+Compose = [Representational, Representational, Nominal]
+Reader = [Representational, Representational]
+NestedReader = [Representational, Representational, Representational]
+Cont = [Representational, Representational]
+Record = [Representational]
+OpenRecord = [Representational, Representational]

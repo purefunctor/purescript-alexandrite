@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
+
+Types
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive forall a b. Data.Eq.Eq a => Data.Eq.Eq b => Data.Eq.Eq (Main.Tuple a b)
+derive forall a b. Data.Ord.Ord a => Data.Ord.Ord b => Data.Ord.Ord (Main.Tuple a b)
+
+Roles
+Tuple = [Representational, Representational]

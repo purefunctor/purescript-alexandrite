@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+None :: forall @a. Main.OptionalPredicate a
+Some :: forall @a. (a -> Prim.Boolean) -> Main.OptionalPredicate a
+
+Types
+OptionalPredicate :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.OptionalPredicate
+
+Roles
+OptionalPredicate = [Representational]

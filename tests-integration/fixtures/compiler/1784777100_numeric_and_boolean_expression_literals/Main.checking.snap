@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+booleanTrue :: Prim.Boolean
+booleanFalse :: Prim.Boolean
+integer :: Prim.Int
+integerHexadecimal :: Prim.Int
+integerMaximum :: Prim.Int
+numberDecimal :: Prim.Number
+numberExponent :: Prim.Number
+
+Types

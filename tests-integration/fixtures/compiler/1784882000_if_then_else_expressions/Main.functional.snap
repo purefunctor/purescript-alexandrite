@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export predicate = \dictionary%0 -> dictionary%0.predicate
+
+@export defaultValue = \dictionary%1 -> dictionary%1.defaultValue
+
+@export checked = \condition%2 ->
+  if condition%2 then 1 else 2
+
+@export inferred = \condition%3 ->
+  if condition%3 then "yes" else "no"
+
+@export constrained = \predicateValueDict%4 ->
+  \value%5 ->
+    if predicate predicateValueDict%4 value%5 then 1 else 2
+
+@export constrainedBranches = \defaultValueDict%7 ->
+  \condition%6 ->
+    if condition%6 then defaultValue defaultValueDict%7 else defaultValue defaultValueDict%7
+
+@export higherRank = \condition%8 ->
+  if condition%8 then identity else identity
+
+@export nested = \first%9 second%10 ->
+  if first%9 then if second%10 then 1 else 2 else 3
+
+@export asArgument = \condition%11 -> identity (if condition%11 then 1 else 2)
+
+@export identity = \value%12 -> value%12

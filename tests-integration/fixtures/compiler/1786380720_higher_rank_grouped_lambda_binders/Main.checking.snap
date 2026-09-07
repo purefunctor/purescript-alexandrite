@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+consume ::
+  (Main.Unit -> (forall value. Main.Identity @Prim.Type value => value -> value)) -> Main.Unit
+test :: Main.Unit
+
+Types
+Unit :: Prim.Type
+Identity :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (value :: t0). Main.Identity @t0 (value :: t0)
+
+Roles
+Unit = []

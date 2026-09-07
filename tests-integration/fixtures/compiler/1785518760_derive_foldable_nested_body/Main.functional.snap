@@ -1,0 +1,44 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Compose/1
+
+@export instance foldableComposeTypeType = \foldableFDict%0 foldableGDict%1 ->
+  {
+    foldr:
+      \function%2 accumulator%3 value%4 ->
+        case value%4 of
+          Compose field0%5 ->
+            foldr foldableFDict%0
+              (\element%6 accumulator%7 ->
+                foldr foldableGDict%1
+                  (\element%8 accumulator%9 -> function%2 element%8 accumulator%9)
+                  accumulator%7
+                  element%6)
+              accumulator%3
+              field0%5,
+    foldl:
+      \function%10 accumulator%11 value%12 ->
+        case value%12 of
+          Compose field0%13 ->
+            foldl foldableFDict%0
+              (\accumulator%14 element%15 ->
+                foldl foldableGDict%1
+                  (\accumulator%16 element%17 -> function%10 accumulator%16 element%17)
+                  accumulator%14
+                  element%15)
+              accumulator%11
+              field0%13,
+    foldMap:
+      \monoidMDict%21 ->
+        \function%18 value%19 ->
+          case value%19 of
+            Compose field0%20 ->
+              foldMap foldableFDict%0 monoidMDict%21
+                (\element%22 ->
+                  foldMap foldableGDict%1 monoidMDict%21 (\element%23 -> function%18 element%23)
+                    element%22)
+                field0%20
+  }

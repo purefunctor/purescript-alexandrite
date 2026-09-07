@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor PredicateWithFormatter/2
+
+@export instance contravariantPredicateWithFormatter = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        PredicateWithFormatter field0%2 field1%3 ->
+          {
+            tag: "PredicateWithFormatter",
+            _1: \argument%4 -> field0%2 (function%0 argument%4),
+            _2: field1%3
+          }
+}

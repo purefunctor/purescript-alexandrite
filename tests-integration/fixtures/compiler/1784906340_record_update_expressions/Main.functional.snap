@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export identity = \value%0 -> value%0
+
+@export record = { first: 1, nested: { value: 2 }, transform: identity }
+
+@export leaf = record { first = 2 }
+
+@export typeChanging = record { first = "two" }
+
+@export multiple = record { first = 2, transform = identity }
+
+@export nested = record { nested { value = 3 } }
+
+@export accessValue = record { first = record.nested.value }
+
+@export applicationBase = (identity record) { first = 2 }
+
+@export argument = identity (record { first = 2 })

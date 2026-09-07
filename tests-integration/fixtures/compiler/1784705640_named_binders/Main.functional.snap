@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export fromMaybe = \$a%0 $maybe%1 ->
+  case $a%0, $maybe%1 of
+    fallback%2, whole%3@(Just value%4) ->
+      value%4
+    fallback%5, Nothing ->
+      fallback%5

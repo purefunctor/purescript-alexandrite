@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor LeftDuplicate/1
+
+@export instance functorLeftDuplicateType = \bifunctorPDict%0 ->
+  {
+    map:
+      \function%1 $leftDuplicate%4@(LeftDuplicate value%3) ->
+        {
+          tag: "LeftDuplicate",
+          _1: bimap bifunctorPDict%0 function%1 (\fixed%2 -> fixed%2) value%3
+        }
+  }
+
+@export instance foldableLeftDuplicateType = \bifoldablePDict%5 ->
+  {
+    foldr:
+      \function%6 initial%9 $leftDuplicate%11@(LeftDuplicate value%10) ->
+        bifoldr bifoldablePDict%5 function%6 (\$int%7@(_) accumulated%8 -> accumulated%8) initial%9
+          value%10,
+    foldl:
+      \function%12 initial%15 $leftDuplicate%17@(LeftDuplicate value%16) ->
+        bifoldl bifoldablePDict%5 function%12 (\accumulated%13 $int%14@(_) -> accumulated%13)
+          initial%15
+          value%16,
+    foldMap:
+      \monoidMDict%18 ->
+        \function%19 $leftDuplicate%22@(LeftDuplicate value%21) ->
+          bifoldMap bifoldablePDict%5 monoidMDict%18 function%19
+            (\$int%20@(_) -> mempty monoidMDict%18)
+            value%21
+  }
+
+@export instance traversableLeftDuplicateType = \bitraversablePDict%23 ->
+  {
+    "Functor0": \() -> functorLeftDuplicateType (bitraversablePDict%23."Bifunctor0"()),
+    "Foldable1": \() -> foldableLeftDuplicateType (bitraversablePDict%23."Bifoldable1"()),
+    traverse:
+      \applicativeMDict%27 ->
+        \function%24 value%25 ->
+          case value%25 of
+            LeftDuplicate field0%26 ->
+              map ((applicativeMDict%27."Apply0"())."Functor0"())
+                (\field0Result%28 -> { tag: "LeftDuplicate", _1: field0Result%28 })
+                (bitraverse bitraversablePDict%23 applicativeMDict%27
+                  (\element%29 -> function%24 element%29)
+                  (\unchanged%30 -> pure applicativeMDict%27 unchanged%30)
+                  field0%26),
+    sequence:
+      \applicativeMDict%32 ->
+        \value%31 ->
+          traverse (traversableLeftDuplicateType bitraversablePDict%23) applicativeMDict%32
+            (\effect0%33 -> effect0%33)
+            value%31
+  }

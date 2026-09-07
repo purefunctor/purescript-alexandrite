@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import failAt :: Prim.String -> Prim.Boolean -> Prim.Int -> Prim.Int
+
+foreign import makeModel :: Prim.String -> Main.Model
+
+foreign import observe :: Prim.String -> Prim.Int -> Prim.Int
+
+updateLocal :: Main.Model -> Main.Model
+updateLocal = \source ->
+  source { first = observe "local-first" 10, nested { value = observe "local-nested"
+    20 }, last = observe "local-last" 30 }
+
+updateCall :: Prim.Boolean -> Main.Model
+updateCall = \shouldThrow ->
+  (makeModel "call") { first = observe "call-first" 10, nested { value = failAt "call-nested"
+    shouldThrow
+    20 }, last = observe "call-last" 30 }
+
+updateDeep :: Prim.Boolean -> Main.Model
+updateDeep = \_ ->
+  (makeModel "deep") { nested { value = observe "deep-nested" 50, inner { value = observe
+    "deep-inner"
+    60 } } }
+
+updateControl :: Prim.Boolean -> Main.Model -> Main.Model
+updateControl = \condition -> \source ->
+  source { first = observe "control-first" 10, nested { value = if condition then
+    observe "control-then" 30
+  else
+    observe "control-else" 31 }, last = observe "control-last" 32 }
+
+updateOpen :: forall row. { first :: Prim.Int | row } -> { first :: Prim.Int | row }
+updateOpen = \source -> source { first = observe "open-first" 40 }

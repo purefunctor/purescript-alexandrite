@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+choose :: forall a b. a -> b -> a
+singleInfix :: Prim.Int
+multipleInfix :: Prim.Int
+identity :: forall a. a -> a
+polymorphicHead :: forall t0. t0 -> t0
+
+Types

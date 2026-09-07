@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+append :: forall @a. Main.Semigroup a => a -> a -> a
+<> :: forall @a. Main.Semigroup a => a -> a -> a
+ordinaryConstrainedOperatorChain :: Prim.String
+
+Types
+Semigroup :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Semigroup a
+  append :: forall @a. Main.Semigroup a => a -> a -> a
+
+Instances
+instance Main.Semigroup Prim.String

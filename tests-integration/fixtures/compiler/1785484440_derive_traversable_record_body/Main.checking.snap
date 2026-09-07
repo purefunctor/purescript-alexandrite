@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Record :: forall @a. { alpha :: a, fixed :: Prim.Int, zeta :: a } -> Main.Record a
+
+Types
+Record :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Record
+derive Data.Foldable.Foldable Main.Record
+derive Data.Traversable.Traversable Main.Record
+
+Roles
+Record = [Representational]

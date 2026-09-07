@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type
+data Choice
+  | First :: Main.Choice
+  | Second :: Main.Choice
+
+foreign import constructEffect :: forall value. Prim.String -> value -> Effect.Effect value
+
+branchResult :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+branchResult = \condition -> \seed ->
+  bind {bindEffect}
+    (if condition then
+      constructEffect "branch-then" seed
+    else
+      constructEffect "branch-else" seed) \selected -> constructEffect "branch-after" selected
+
+caseResult :: Main.Choice -> Prim.String -> Effect.Effect Prim.String
+caseResult = \choice -> \seed ->
+  bind {bindEffect}
+    (case choice of
+      First -> constructEffect "case-first" seed
+      Second -> constructEffect "case-second" seed) \selected ->
+    constructEffect "case-after" selected
+
+guardResult :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+guardResult = \condition -> \seed ->
+  bind {bindEffect}
+    (case seed of
+      value
+        | condition -> constructEffect "guard-true" value
+      value -> constructEffect "guard-false" value) \selected ->
+    constructEffect "guard-after" selected

@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Left/1
+
+@export constructor Right/1
+
+@export instance bifoldableEither = {
+  bifoldr:
+    \firstFunction%0 secondFunction%1 accumulator%2 value%3 ->
+      case value%3 of
+        Left field0%4 ->
+          firstFunction%0 field0%4 accumulator%2
+        Right field0%5 ->
+          secondFunction%1 field0%5 accumulator%2,
+  bifoldl:
+    \firstFunction%6 secondFunction%7 accumulator%8 value%9 ->
+      case value%9 of
+        Left field0%10 ->
+          firstFunction%6 accumulator%8 field0%10
+        Right field0%11 ->
+          secondFunction%7 accumulator%8 field0%11,
+  bifoldMap:
+    \monoidMDict%17 ->
+      \firstFunction%12 secondFunction%13 value%14 ->
+        case value%14 of
+          Left field0%15 ->
+            firstFunction%12 field0%15
+          Right field0%16 ->
+            secondFunction%13 field0%16
+}

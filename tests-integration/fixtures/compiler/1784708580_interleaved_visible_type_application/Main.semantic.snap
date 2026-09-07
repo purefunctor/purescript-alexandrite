@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Default :: Prim.Type -> Prim.Constraint
+interface Default a where
+
+foreign import select :: forall a. Main.Default a => (forall @b. a -> b -> a)
+
+specialize :: forall a. Main.Default a => a -> Prim.String -> a
+specialize = \{defaultDict} -> select {defaultDict}

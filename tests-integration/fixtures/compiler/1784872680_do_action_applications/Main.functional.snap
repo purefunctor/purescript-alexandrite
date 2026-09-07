@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign constrained
+
+@export foreign pure
+
+@export foreign bind
+
+@export selected = \selectIntDict%0 -> bind (constrained selectIntDict%0) (\value%1 -> pure value%1)

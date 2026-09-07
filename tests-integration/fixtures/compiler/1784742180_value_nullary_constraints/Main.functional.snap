@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign boolean
+
+@export deferred = \failTextDict%0 failTextDict%1 -> boolean

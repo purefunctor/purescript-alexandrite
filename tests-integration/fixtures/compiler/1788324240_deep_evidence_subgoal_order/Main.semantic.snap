@@ -1,0 +1,61 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Seed :: Prim.Constraint
+interface Seed where
+
+interface Left :: forall k0. k0 -> Prim.Constraint
+interface Left number where
+  left :: Prim.Int
+
+interface Right :: forall k0. k0 -> Prim.Constraint
+interface Right number where
+  right :: Prim.Int
+
+interface Combined :: Prim.Constraint
+interface Combined where
+  combined :: Prim.Int
+
+dictionary seed :: Main.Seed
+
+dictionary leftZero :: { seedDict :: Main.Seed } => Main.Left @Prim.Int 0 where
+  left :: Prim.Int
+  left = observe "left"
+
+dictionary leftNext ::
+  forall previous current.
+  { addDict :: Prim.Int.Add previous 1 current } =>
+  { leftDict :: Main.Left @Prim.Int previous } =>
+  Main.Left @Prim.Int current
+  where
+  left :: Prim.Int
+  left = 0
+
+dictionary rightZero :: { seedDict :: Main.Seed } => Main.Right @Prim.Int 0 where
+  right :: Prim.Int
+  right = observe "right"
+
+dictionary rightNext ::
+  forall previous current.
+  { addDict :: Prim.Int.Add previous 1 current } =>
+  { rightDict :: Main.Right @Prim.Int previous } =>
+  Main.Right @Prim.Int current
+  where
+  right :: Prim.Int
+  right = 0
+
+dictionary combinedInstance ::
+  { leftDict :: Main.Left @Prim.Int 70 } =>
+  { rightDict :: Main.Right @Prim.Int 40 } =>
+  Main.Combined
+  where
+  combined :: Prim.Int
+  combined = 0
+
+foreign import observe :: Prim.String -> Prim.Int
+
+result :: Prim.Int
+result =
+  combined {combinedInstance {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftNext {trivial} {leftZero {seed}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightNext {trivial} {rightZero {seed}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}

@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+symbol :: Prim.String
+symbol = reflectSymbol {isSymbol("alexandrite")} Proxy
+
+reflectedString :: Prim.String
+reflectedString = reflectType {reflectable("reflected")} Proxy
+
+reflectedInteger :: Prim.Int
+reflectedInteger = reflectType {reflectable(42)} Proxy
+
+reflectedTrue :: Prim.Boolean
+reflectedTrue = reflectType {reflectable(true)} Proxy
+
+reflectedFalse :: Prim.Boolean
+reflectedFalse = reflectType {reflectable(false)} Proxy
+
+reflectedLess :: Data.Ordering.Ordering
+reflectedLess = reflectType {reflectable(LT)} Proxy
+
+reflectedEqual :: Data.Ordering.Ordering
+reflectedEqual = reflectType {reflectable(EQ)} Proxy
+
+reflectedGreater :: Data.Ordering.Ordering
+reflectedGreater = reflectType {reflectable(GT)} Proxy

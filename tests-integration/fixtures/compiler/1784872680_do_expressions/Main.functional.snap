@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign pure
+
+@export foreign bind
+
+@export foreign discard
+
+@export bound = bind (pure 1) (\value%0 -> pure value%0)
+
+@export discarded = discard (pure 1) (\$int%1@(_) -> pure "done")
+
+@export withLet = bind (pure 1) (\value%2 -> pure value%2)
+
+@export nested = bind (bind (pure 1) (\inner%4 -> pure inner%4)) (\value%5 -> pure value%5)

@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export headOr = \$a%0 $array%1 ->
+  case $a%0, $array%1 of
+    fallback%2, [first%3, _] ->
+      first%3
+    fallback%4, _ ->
+      fallback%4

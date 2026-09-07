@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import observe :: forall value. Prim.String -> value -> value
+
+foreign import readTrace :: Prim.Boolean -> Prim.Array Prim.String
+
+composed :: Prim.Int
+composed = compose {semigroupoidFn} (\value -> value) (\value -> value) 42
+
+composeOrder :: Prim.Boolean -> Prim.Int
+composeOrder = \_ ->
+  compose {semigroupoidFn} (observe "outer" \value -> value) (observe "inner" \value -> value)
+    (observe "argument" 42)
+
+partiallyComposedOrder :: Prim.Boolean -> Prim.Int
+partiallyComposedOrder = \_ ->
+  let
+    composedFunction :: Prim.Function Prim.Int Prim.Int
+    composedFunction =
+      compose {semigroupoidFn} (observe "outer" \value -> value) (observe "inner" \value -> value)
+  in
+    composedFunction (observe "argument" 42)
+
+flippedComposed :: Prim.Int
+flippedComposed = composeFlipped {semigroupoidFn} (\value -> value) (\value -> value) 42
+
+flippedComposeOrder :: Prim.Boolean -> Prim.Int
+flippedComposeOrder = \_ ->
+  composeFlipped {semigroupoidFn} (observe "inner" \value -> value)
+    (observe "outer" \value -> value)
+    (observe "argument" 42)
+
+partiallyFlippedComposedOrder :: Prim.Boolean -> Prim.Int
+partiallyFlippedComposedOrder = \_ ->
+  let
+    composedFunction :: Prim.Function Prim.Int Prim.Int
+    composedFunction =
+      composeFlipped {semigroupoidFn} (observe "inner" \value -> value)
+        (observe "outer" \value -> value)
+  in
+    composedFunction (observe "argument" 42)
+
+lookalikeCompose :: Prim.Int
+lookalikeCompose = compose (\value -> value) (\value -> value) 42
+
+lookalikeComposeFlipped :: Prim.Int
+lookalikeComposeFlipped = composeFlipped (\value -> value) (\value -> value) 42

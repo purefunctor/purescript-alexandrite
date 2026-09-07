@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Named :: forall k0. k0 -> Prim.Constraint
+interface Named a where
+  name :: Prim.String
+
+use :: forall body. Main.Named @Prim.Type body => body -> Prim.String
+use = \{namedDict} -> \_ -> alias {namedDict}
+  where
+  alias :: Main.Named @Prim.Type body => Prim.String
+  alias = name

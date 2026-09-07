@@ -1,0 +1,97 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+newtype Identifier :: Prim.Type
+newtype Identifier
+  | Identifier :: Prim.Int -> Main.Identifier
+
+data Choice :: Prim.Type
+data Choice
+  | Empty :: Main.Choice
+  | Single :: Prim.Int -> Main.Choice
+  | Pair :: Prim.Int -> Prim.Int -> Main.Choice
+
+data Void :: Prim.Type
+data Void
+
+dictionary newtypeIdentifierInt :: Data.Newtype.Newtype Main.Identifier Prim.Int where
+  superclass coercibleDict = trivial
+
+wrapped :: Main.Identifier
+wrapped = Identifier 42
+
+unwrapped :: Prim.Int
+unwrapped = unwrap {newtypeIdentifierInt} wrapped
+
+dictionary genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt ::
+  Data.Generic.Rep.Generic
+  Main.Choice
+  (Data.Generic.Rep.Sum
+    (Data.Generic.Rep.Constructor "Empty" Data.Generic.Rep.NoArguments)
+    (Data.Generic.Rep.Sum
+      (Data.Generic.Rep.Constructor "Single" (Data.Generic.Rep.Argument Prim.Int))
+      (Data.Generic.Rep.Constructor
+        "Pair"
+        (Data.Generic.Rep.Product
+          (Data.Generic.Rep.Argument Prim.Int)
+          (Data.Generic.Rep.Argument Prim.Int)))))
+  where
+  to :: Data.Generic.Rep.Sum
+  (Data.Generic.Rep.Constructor "Empty" Data.Generic.Rep.NoArguments)
+  (Data.Generic.Rep.Sum
+    (Data.Generic.Rep.Constructor "Single" (Data.Generic.Rep.Argument Prim.Int))
+    (Data.Generic.Rep.Constructor
+      "Pair"
+      (Data.Generic.Rep.Product
+        (Data.Generic.Rep.Argument Prim.Int)
+        (Data.Generic.Rep.Argument Prim.Int)))) ->
+Main.Choice
+  to = \representation ->
+    case representation of
+      (Inl (Constructor NoArguments)) -> Empty
+      (Inr (Inl (Constructor (Argument field0)))) -> Single field0
+      (Inr (Inr (Constructor (Product (Argument field0) (Argument field1))))) -> Pair field0 field1
+  from :: Main.Choice ->
+Data.Generic.Rep.Sum
+  (Data.Generic.Rep.Constructor "Empty" Data.Generic.Rep.NoArguments)
+  (Data.Generic.Rep.Sum
+    (Data.Generic.Rep.Constructor "Single" (Data.Generic.Rep.Argument Prim.Int))
+    (Data.Generic.Rep.Constructor
+      "Pair"
+      (Data.Generic.Rep.Product
+        (Data.Generic.Rep.Argument Prim.Int)
+        (Data.Generic.Rep.Argument Prim.Int))))
+  from = \value ->
+    case value of
+      Empty -> Inl (Constructor NoArguments)
+      (Single field0) -> Inr (Inl (Constructor (Argument field0)))
+      (Pair field0 field1) -> Inr (Inr (Constructor (Product (Argument field0) (Argument field1))))
+
+roundTrip :: Main.Choice -> Main.Choice
+roundTrip = \value ->
+  to {genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt}
+    (from {genericChoiceSumConstructorNoArgumentsSumConstructorArgumentIntConstructorProductArgumentIntArgumentInt}
+      value)
+
+emptyRoundTrip :: Main.Choice
+emptyRoundTrip = roundTrip Empty
+
+singleRoundTrip :: Main.Choice
+singleRoundTrip = roundTrip (Single 6)
+
+pairRoundTrip :: Main.Choice
+pairRoundTrip = roundTrip (Pair 7 8)
+
+dictionary genericVoidNoConstructors ::
+  Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
+  where
+  to :: Data.Generic.Rep.NoConstructors -> Main.Void
+  to = \value ->
+    case value of
+      _ -> to {genericVoidNoConstructors} value
+  from :: Main.Void -> Data.Generic.Rep.NoConstructors
+  from = \value ->
+    case value of
+      _ -> from {genericVoidNoConstructors} value

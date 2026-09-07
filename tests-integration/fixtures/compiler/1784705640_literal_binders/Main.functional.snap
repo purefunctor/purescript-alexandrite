@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export integer = \$int%0 $a%1 ->
+  case $int%0, $a%1 of
+    -1, value%2 ->
+      value%2
+    _, value%3 ->
+      value%3
+
+@export number = \$number%4 $a%5 ->
+  case $number%4, $a%5 of
+    -1.5, value%6 ->
+      value%6
+    _, value%7 ->
+      value%7
+
+@export string = \$string%8 $a%9 ->
+  case $string%8, $a%9 of
+    "life", value%10 ->
+      value%10
+    _, value%11 ->
+      value%11
+
+@export character = \$char%12 $a%13 ->
+  case $char%12, $a%13 of
+    'a', value%14 ->
+      value%14
+    _, value%15 ->
+      value%15
+
+@export boolean = \$boolean%16 $a%17 ->
+  case $boolean%16, $a%17 of
+    true, value%18 ->
+      value%18
+    false, value%19 ->
+      value%19

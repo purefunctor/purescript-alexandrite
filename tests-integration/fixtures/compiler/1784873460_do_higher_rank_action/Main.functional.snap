@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign polymorphic
+
+@export foreign bind
+
+@export higherRank = bind polymorphic (\value%0 -> 42)

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+missingScrutinee :: Prim.Boolean
+mismatchedBinders :: forall t0 t1. t0 -> t1 -> Prim.Boolean
+missingResult :: forall t0 t1. t0 -> t1
+missingGuardResult :: forall t0 t1. t0 -> t1
+missingBranchBody :: forall t0 t1. t0 -> t1
+
+Types

@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RightNested/1
+
+@export instance foldableRightNestedType = \bifoldablePDict%0 ->
+  {
+    foldr:
+      \function%1 accumulator%2 value%3 ->
+        case value%3 of
+          RightNested field0%4 ->
+            bifoldr bifoldablePDict%0 (\ignored%5 accumulator%6 -> accumulator%6)
+              (\element%7 accumulator%8 -> function%1 element%7 accumulator%8)
+              accumulator%2
+              field0%4,
+    foldl:
+      \function%9 accumulator%10 value%11 ->
+        case value%11 of
+          RightNested field0%12 ->
+            bifoldl bifoldablePDict%0 (\accumulator%13 ignored%14 -> accumulator%13)
+              (\accumulator%15 element%16 -> function%9 accumulator%15 element%16)
+              accumulator%10
+              field0%12,
+    foldMap:
+      \monoidMDict%20 ->
+        \function%17 value%18 ->
+          case value%18 of
+            RightNested field0%19 ->
+              bifoldMap bifoldablePDict%0 monoidMDict%20 (\ignored%21 -> mempty monoidMDict%20)
+                (\element%22 -> function%17 element%22)
+                field0%19
+  }

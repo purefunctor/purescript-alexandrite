@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+NonEmpty :: forall @a. Prim.Array a -> Main.NonEmpty a
+
+Types
+NonEmpty :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Show.Show a => Data.Show.Show (Main.NonEmpty a)
+
+Roles
+NonEmpty = [Representational]

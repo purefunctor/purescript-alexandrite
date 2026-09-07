@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Function/1
+
+@export instance profunctorFunction = {
+  dimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Function field0%3 ->
+          {
+            tag: "Function",
+            _1: \argument%4 -> secondFunction%1 (field0%3 (firstFunction%0 argument%4))
+          }
+}
+
+@export constructor NestedRight/1
+
+@export instance profunctorNestedRightType = {
+  dimap:
+    \firstFunction%5 secondFunction%6 value%7 ->
+      case value%7 of
+        NestedRight field0%8 ->
+          {
+            tag: "NestedRight",
+            _1:
+              dimap profunctorFunction (\unchanged%9 -> unchanged%9)
+                (\element%10 -> secondFunction%6 element%10)
+                field0%8
+          }
+}

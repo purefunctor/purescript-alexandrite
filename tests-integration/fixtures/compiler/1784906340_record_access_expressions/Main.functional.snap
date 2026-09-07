@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export identity = \value%0 -> value%0
+
+@export record = { function: identity, nested: { value: 42 } }
+
+@export direct = record.nested
+
+@export chained = record.nested.value
+
+@export functionPosition = record.function 1
+
+@export argument = identity record.nested
+
+@export applicationBase = (identity record).nested.value

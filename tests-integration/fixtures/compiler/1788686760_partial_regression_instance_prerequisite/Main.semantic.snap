@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Select :: Prim.Type -> Prim.Constraint
+interface Select a where
+  select :: a -> a -> a
+
+data Wrapped :: Prim.Type -> Prim.Type
+data Wrapped @a
+  | Wrapped :: a -> Main.Wrapped a
+
+dictionary selectInt :: Main.Select Prim.Int where
+  select :: Prim.Int -> Prim.Int -> Prim.Int
+  select = \first -> \second -> second
+
+dictionary selectWrapped ::
+  forall a.
+  { selectDict :: Main.Select a } =>
+  Main.Select (Main.Wrapped a)
+  where
+  select :: Main.Wrapped a -> Main.Wrapped a -> Main.Wrapped a
+  select = \(Wrapped first) -> \(Wrapped second) -> Wrapped (select {selectDict} first second)
+
+ordinaryPrerequisite :: Main.Wrapped Prim.Int
+ordinaryPrerequisite = select {selectWrapped {selectInt}} (Wrapped 10) (Wrapped 20)

@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+first :: Prim.Int
+first = second
+
+second :: Prim.Int
+second = first

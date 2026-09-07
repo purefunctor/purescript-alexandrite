@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Class :: Prim.Type -> Prim.Constraint
+interface Class a where
+
+foreign import classInt :: Prim.Int
+
+dictionary classInt :: Main.Class Prim.Int
+
+test :: Prim.Int
+test = classInt

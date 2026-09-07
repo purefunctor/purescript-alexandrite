@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import collect :: Prim.Int -> Prim.Int -> Prim.Int -> Prim.Array Prim.Int
+
+foreign import failAt :: Prim.String -> Prim.Boolean -> Prim.Int -> Prim.Int
+
+foreign import observe :: Prim.String -> Prim.Int -> Prim.Int
+
+foreign import observedRecord :: { value :: Prim.Int }
+
+ordered :: Prim.Boolean -> Prim.Boolean -> Prim.Array Prim.Int
+ordered = \branch -> \shouldThrow ->
+  let
+    choose :: Prim.Int -> Prim.Int
+    choose = \value ->
+      if branch then observe "branch-true" value else observe "branch-false" value
+  in
+    collect (observe "before" observedRecord.value) (choose (failAt "middle" shouldThrow 2))
+      (observe "after" 3)
+
+reused :: Prim.Array Prim.Int
+reused =
+  let
+    value :: Prim.Int
+    value = observe "reused" 4
+  in
+    [value, value]

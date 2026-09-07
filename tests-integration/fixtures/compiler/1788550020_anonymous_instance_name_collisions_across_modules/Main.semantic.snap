@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Pick :: Prim.Symbol -> Prim.Constraint
+interface Pick symbol where
+  pick :: Library.Proxy symbol -> Prim.Int
+
+dictionary pick1 :: Main.Pick "first" where
+  pick :: Library.Proxy "first" -> Prim.Int
+  pick = \_ -> 10
+
+result :: { first :: Prim.Int
+, local :: Prim.Int
+, named :: Prim.Int
+, repeated :: Prim.Int
+, second :: Prim.Int
+, third :: Prim.Int
+}
+result =
+  { third: pick {pick5} Proxy, first: pick {pick2} Proxy, second: pick {pick3}
+    Proxy, named: pick {pick4} Proxy, repeated: pick {pick5} Proxy, local: pick {pick1} Proxy }

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Default :: Prim.Type -> Prim.Constraint
+interface Default a where
+  default :: a
+
+interface First :: Prim.Type -> Prim.Constraint
+interface First a where
+
+interface Second :: Prim.Type -> Prim.Constraint
+interface Second a where
+
+useDefault :: forall a. Main.Default a => a
+useDefault = \{defaultDict} -> default {defaultDict}
+
+foreign import interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
+
+useInterleaved :: forall a b. Main.First a => Main.Second b => a -> b
+useInterleaved = \{firstDict} -> \{secondDict} -> interleaved {firstDict} {secondDict}

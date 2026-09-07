@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+test :: Prim.Partial => Prim.Int
+test = \{partialDict} ->
+  let
+    (Just x) = Just 1
+  in
+    x
+
+foreign import unsafePartial :: forall a. (Prim.Partial => a) -> a
+
+consumed :: Prim.Partial => Prim.Int
+consumed = \{partialDict} -> test {partialDict}
+
+discharged :: Prim.Int
+discharged = unsafePartial \{partialDict} -> test {partialDict}

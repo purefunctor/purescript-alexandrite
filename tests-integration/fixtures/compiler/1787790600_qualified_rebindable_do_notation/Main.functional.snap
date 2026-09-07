@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export qualifiedDo = bind action (\value%0 -> discard action (\$argument0%1@(_) -> pure value%0))
+
+@export qualifiedAdo = apply (map (\left%2 right%3 -> left%2) action) action
+
+@export qualifiedPure = pure 1

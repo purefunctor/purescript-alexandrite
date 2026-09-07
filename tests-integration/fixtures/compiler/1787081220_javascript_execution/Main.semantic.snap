@@ -1,0 +1,126 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type
+data Choice
+  | None :: Main.Choice
+  | Pair :: Prim.Int -> Prim.Int -> Main.Choice
+
+interface Measure :: Prim.Type -> Prim.Constraint
+interface Measure a where
+  measure :: a -> Prim.Int
+
+foreign import addInt :: Prim.Int -> Prim.Int -> Prim.Int
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import foreignValue :: Prim.Int
+
+foreign import effectValue :: Effect.Effect Prim.Int
+
+foreign import await :: Prim.Int
+
+integer :: Prim.Int
+integer = 42
+
+number :: Prim.Number
+number = 1.5
+
+string :: Prim.String
+string = "alexandrite"
+
+array :: Prim.Array Prim.Int
+array = [1, 2, 3]
+
+model :: Main.Model
+model =
+  { count: 0, nested: { enabled: true }, hostile-field: await, __proto__: "data, not a prototype" }
+
+updated :: Main.Model
+updated = model { count = 1, nested { enabled = false } }
+
+readHostile :: Main.Model -> Prim.Int
+readHostile = \value -> value.hostile-field
+
+readProto :: Main.Model -> Prim.String
+readProto = \value -> value.__proto__
+
+capture :: Prim.Int -> Prim.Int -> Prim.Int
+capture = \captured -> \_ -> captured
+
+apply :: forall a b. (a -> b) -> a -> b
+apply = \function -> \value -> function value
+
+addCaptured :: Prim.Int -> Prim.Int -> Prim.Int
+addCaptured = \amount -> \value -> addInt amount value
+
+curried :: Prim.Int
+curried = apply (addCaptured 2) 40
+
+nestedJoin :: Prim.Boolean -> Prim.Boolean -> Prim.Int
+nestedJoin = \outer -> \inner ->
+  if outer then
+    let
+      captured :: Prim.Int
+      captured = foreignValue
+      result :: Prim.Int
+      result =
+        if inner then 1 else 2
+    in
+      addInt captured result
+  else
+    0
+
+countdown :: Prim.Int -> Prim.Int
+countdown = \value ->
+  if equalInt value 0 then 0 else addInt 1 (countdown (decrementInt value))
+
+isEven :: Prim.Int -> Prim.Boolean
+isEven = \value ->
+  if equalInt value 0 then true else isOdd (decrementInt value)
+
+isOdd :: Prim.Int -> Prim.Boolean
+isOdd = \value ->
+  if equalInt value 0 then false else isEven (decrementInt value)
+
+capturedMutual :: Prim.Int -> Prim.Boolean -> Prim.Int
+capturedMutual = \captured -> \condition -> localFirst condition
+  where
+  localFirst :: Prim.Boolean -> Prim.Int
+  localFirst = \true -> captured
+  localFirst = \false -> localSecond true
+  localSecond :: Prim.Boolean -> Prim.Int
+  localSecond = \true -> captured
+  localSecond = \false -> localFirst true
+
+pair :: Main.Choice
+pair = Pair 7 8
+
+first :: Main.Choice -> Prim.Int
+first = \choice ->
+  case choice of
+    None -> 0
+    (Pair left _) -> left
+
+partialPattern :: Main.Choice -> Prim.Int
+partialPattern = \(Pair left _) -> left
+
+unwrapWrapped :: Library.Wrapped -> Prim.Int
+unwrapWrapped = \(Wrapped value) -> value
+
+crossModule :: Prim.Int
+crossModule = unwrapWrapped wrapped
+
+forwardReference :: Prim.Int
+forwardReference = forward
+
+dictionary measureInt :: Main.Measure Prim.Int where
+  measure :: Prim.Int -> Prim.Int
+  measure = addInt 1
+
+evidenceValue :: Prim.Int
+evidenceValue = measure {measureInt} 41

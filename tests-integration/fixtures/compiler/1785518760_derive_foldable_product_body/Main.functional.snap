@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Product/4
+
+@export instance foldableProduct = {
+  foldr:
+    \function%0 accumulator%1 value%2 ->
+      case value%2 of
+        Product field0%3 field1%4 field2%5 field3%6 ->
+          function%0 field0%3 (function%0 field2%5 (function%0 field3%6 accumulator%1)),
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Product field0%10 field1%11 field2%12 field3%13 ->
+          function%7 (function%7 (function%7 accumulator%8 field0%10) field2%12) field3%13,
+  foldMap:
+    \monoidMDict%20 ->
+      \function%14 value%15 ->
+        let
+          Semigroup0Dict%21 = monoidMDict%20."Semigroup0"()
+        in case value%15 of
+          Product field0%16 field1%17 field2%18 field3%19 ->
+            append Semigroup0Dict%21 (function%14 field0%16)
+              (append Semigroup0Dict%21 (function%14 field2%18) (function%14 field3%19))
+}

@@ -1,0 +1,55 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Product/3
+
+@export instance functorProduct = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Product field0%2 field1%3 field2%4 ->
+          { tag: "Product", _1: function%0 field0%2, _2: field1%3, _3: function%0 field2%4 }
+}
+
+@export instance foldableProduct = {
+  foldr:
+    \function%5 accumulator%6 value%7 ->
+      case value%7 of
+        Product field0%8 field1%9 field2%10 ->
+          function%5 field0%8 (function%5 field2%10 accumulator%6),
+  foldl:
+    \function%11 accumulator%12 value%13 ->
+      case value%13 of
+        Product field0%14 field1%15 field2%16 ->
+          function%11 (function%11 accumulator%12 field0%14) field2%16,
+  foldMap:
+    \monoidMDict%22 ->
+      \function%17 value%18 ->
+        case value%18 of
+          Product field0%19 field1%20 field2%21 ->
+            append (monoidMDict%22."Semigroup0"()) (function%17 field0%19) (function%17 field2%21)
+}
+
+@export instance traversableProduct = {
+  "Functor0": \() -> functorProduct,
+  "Foldable1": \() -> foldableProduct,
+  traverse:
+    \applicativeMDict%28 ->
+      \function%23 value%24 ->
+        let
+          Apply0Dict%29 = applicativeMDict%28."Apply0"()
+        in case value%24 of
+          Product field0%25 field1%26 field2%27 ->
+            apply Apply0Dict%29
+              (map (Apply0Dict%29."Functor0"())
+                (\field0Result%30 field2Result%31 ->
+                  { tag: "Product", _1: field0Result%30, _2: field1%26, _3: field2Result%31 })
+                (function%23 field0%25))
+              (function%23 field2%27),
+  sequence:
+    \applicativeMDict%33 ->
+      \value%32 ->
+        traverse traversableProduct applicativeMDict%33 (\effect0%34 -> effect0%34) value%32
+}

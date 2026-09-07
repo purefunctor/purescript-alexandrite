@@ -1,0 +1,44 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type -> Prim.Type
+data Choice @a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+
+booleanGuard :: Prim.Boolean -> Prim.Int
+booleanGuard = \value ->
+  | value -> 1
+  | true -> 0
+
+patternGuard :: Main.Choice Prim.Int -> Prim.Int
+patternGuard = \choice ->
+  | (One value) <- choice -> value
+  | true -> 0
+
+caseBooleanGuard :: Prim.Boolean -> Prim.Int
+caseBooleanGuard = \value ->
+  case value of
+    _
+      | false -> 1
+    _ -> 2
+
+casePatternGuard :: Main.Choice Prim.Int -> Prim.Int
+casePatternGuard = \choice ->
+  case choice of
+    _
+      | (One value) <- choice -> value
+    _ -> 0
+
+nestedCaseGuard :: Prim.Boolean -> Prim.Int
+nestedCaseGuard = \value ->
+  case value of
+    true
+      | true ->
+        case value of
+          _
+            | false -> 1
+          _ -> 2
+    _ -> 3

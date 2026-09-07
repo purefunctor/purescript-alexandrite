@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Identity a)
+derive Data.Eq.Eq1 Main.Identity
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.Identity a)
+derive Data.Ord.Ord1 Main.Identity
+
+Roles
+Identity = [Representational]

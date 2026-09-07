@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+record :: { nested :: { value :: Prim.Int }, value :: Prim.Int }
+missingValue :: { nested :: { value :: Prim.Int }, value :: ?[missing record update expression] }
+nestedMissingValue ::
+  { nested :: { value :: ?[missing record update expression] }, value :: Prim.Int }
+validSibling :: { nested :: { value :: ?[missing record update expression] }, value :: Prim.Int }
+
+Types

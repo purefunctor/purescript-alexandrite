@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export apply = \dictionary%0 -> dictionary%0.apply
+
+@export implementation = \requiredBDict%3 -> \$a%1@(_) $b%2@(_) -> boolean
+
+@export foreign boolean
+
+@export instance exampleInt = { apply: \requiredBDict%4 -> implementation requiredBDict%4 }

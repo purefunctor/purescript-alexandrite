@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Leaf :: forall @a. a -> Main.Tree a
+Branch :: forall @a. Main.Tree a -> Main.Tree a -> Main.Tree a
+
+Types
+Tree :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Foldable.Foldable Main.Tree
+
+Roles
+Tree = [Representational]

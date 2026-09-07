@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export booleanTrue = true
+
+@export booleanFalse = false
+
+@export integer = 1
+
+@export integerHexadecimal = 42
+
+@export integerMaximum = 2147483647
+
+@export numberDecimal = 1.0
+
+@export numberExponent = 6.02e23

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+add :: Prim.Int -> Prim.Int -> Prim.Int
+add = \left -> \right -> left
+
+identity :: forall @a. a -> a
+identity = \value -> value
+
+operatorApplication :: Prim.Int
+operatorApplication = add 1 2
+
+visibleTypeApplication :: Prim.Int
+visibleTypeApplication = identity 42
+
+increment :: Prim.Int -> Prim.Int
+increment = \v60 -> add v60 1
+
+accessValue :: forall value row. { value :: value | row } -> value
+accessValue = \v79 -> v79.value

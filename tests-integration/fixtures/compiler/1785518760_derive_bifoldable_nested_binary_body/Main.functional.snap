@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nested/1
+
+@export instance bifoldableNestedTypeType = \bifoldablePDict%0 ->
+  {
+    bifoldr:
+      \firstFunction%1 secondFunction%2 accumulator%3 value%4 ->
+        case value%4 of
+          Nested field0%5 ->
+            bifoldr bifoldablePDict%0
+              (\element%6 accumulator%7 -> firstFunction%1 element%6 accumulator%7)
+              (\element%8 accumulator%9 -> secondFunction%2 element%8 accumulator%9)
+              accumulator%3
+              field0%5,
+    bifoldl:
+      \firstFunction%10 secondFunction%11 accumulator%12 value%13 ->
+        case value%13 of
+          Nested field0%14 ->
+            bifoldl bifoldablePDict%0
+              (\accumulator%15 element%16 -> firstFunction%10 accumulator%15 element%16)
+              (\accumulator%17 element%18 -> secondFunction%11 accumulator%17 element%18)
+              accumulator%12
+              field0%14,
+    bifoldMap:
+      \monoidMDict%23 ->
+        \firstFunction%19 secondFunction%20 value%21 ->
+          case value%21 of
+            Nested field0%22 ->
+              bifoldMap bifoldablePDict%0 monoidMDict%23
+                (\element%24 -> firstFunction%19 element%24)
+                (\element%25 -> secondFunction%20 element%25)
+                field0%22
+  }

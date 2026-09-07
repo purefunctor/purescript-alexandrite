@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+OpenPredicate ::
+  forall (@r :: Prim.Row Prim.Type) @a.
+    { run :: a -> Prim.Boolean | (r :: Prim.Row Prim.Type) } ->
+    Main.OpenPredicate (r :: Prim.Row Prim.Type) a
+
+Types
+OpenPredicate :: Prim.Row Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive forall (r :: Prim.Row Prim.Type).
+  Data.Functor.Contravariant.Contravariant (Main.OpenPredicate (r :: Prim.Row Prim.Type))
+
+Roles
+OpenPredicate = [Representational, Representational]

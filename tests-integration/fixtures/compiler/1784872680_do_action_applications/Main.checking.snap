@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+constrained :: forall value. Main.Select @Prim.Type value => Main.Effect value
+pure :: forall value. value -> Main.Effect value
+bind ::
+  forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+selected :: Main.Select @Prim.Type Prim.Int => Main.Effect Prim.Int
+
+Types
+Effect :: Prim.Type -> Prim.Type
+Select :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (value :: t0). Main.Select @t0 (value :: t0)
+
+Roles
+Effect = [Nominal]

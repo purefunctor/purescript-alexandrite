@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+First :: Main.Ordering
+Second :: Main.Ordering
+Third :: Main.Ordering
+
+Types
+Void :: Prim.Type
+Ordering :: Prim.Type
+
+Derived
+derive Data.Eq.Eq Main.Void
+derive Data.Ord.Ord Main.Void
+derive Data.Eq.Eq Main.Ordering
+derive Data.Ord.Ord Main.Ordering
+
+Roles
+Void = []
+Ordering = []

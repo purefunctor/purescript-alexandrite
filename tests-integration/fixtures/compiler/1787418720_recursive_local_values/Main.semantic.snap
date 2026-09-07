@@ -1,0 +1,66 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import same :: forall value. value -> value -> Prim.Boolean
+
+foreign import observe :: forall value. Prim.String -> value -> value
+
+foreign import readTrace :: Prim.Boolean -> Prim.Array Prim.String
+
+applicationRecursive :: Prim.Boolean -> { result :: Prim.Int, trace :: Prim.Array Prim.String }
+applicationRecursive = \token ->
+  let
+    first :: Prim.Boolean -> Prim.Int
+    first =
+      observe "first" \condition ->
+        if condition then second false else 1
+    second :: Prim.Boolean -> Prim.Int
+    second =
+      observe "second" \condition ->
+        if condition then first false else 2
+  in
+    { result: first true, trace: readTrace token }
+
+recordRecursive :: Prim.Boolean
+recordRecursive =
+  let
+    first :: { value :: Prim.Boolean -> Prim.Int }
+    first = { value: second }
+    second :: Prim.Boolean -> Prim.Int
+    second = \condition ->
+      if condition then first.value false else 20
+  in
+    same first.value second
+
+caseRecursive :: Prim.Boolean -> Prim.Int
+caseRecursive = \condition -> go true
+  where
+  go :: Prim.Boolean -> Prim.Int
+  go =
+    case condition of
+      true -> \current ->
+        if current then go false else 30
+      false -> \_ -> 31
+
+letRecursive :: Prim.Boolean -> Prim.Int
+letRecursive = \condition -> go condition
+  where
+  go :: Prim.Boolean -> Prim.Int
+  go =
+    let
+      wrapped :: Prim.Boolean -> Prim.Int
+      wrapped = \current ->
+        if current then go false else 40
+    in
+      wrapped
+
+strictCycle :: Prim.Boolean -> Prim.Int
+strictCycle = \_ -> value
+  where
+  value :: Prim.Int
+  value = wrap value
+
+wrap :: forall value. value -> value
+wrap = \value -> value

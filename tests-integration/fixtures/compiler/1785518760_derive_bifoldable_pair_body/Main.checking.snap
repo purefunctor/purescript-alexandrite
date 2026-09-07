@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Pair :: forall @a @b. a -> Prim.Int -> b -> Main.Pair a b
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifoldable.Bifoldable Main.Pair
+
+Roles
+Pair = [Representational, Representational]

@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+apply :: forall a b. (a -> b) -> a -> b
+apply = \function -> \value -> function value
+
+capture :: Prim.Int -> Prim.Int -> Prim.Int
+capture = \captured -> \_ -> captured
+
+choose :: Prim.Boolean -> Prim.Int -> Prim.Int -> Prim.Int
+choose = \condition -> \left -> \right ->
+  if condition then left else right
+
+partial :: Prim.Int -> Prim.Int
+partial = choose true 42
+
+literalCase :: Prim.Int -> Prim.String
+literalCase = \value ->
+  case value of
+    0 -> "zero"
+    _ -> "other"
+
+higherOrder :: Prim.Int
+higherOrder = apply (capture 42) 0

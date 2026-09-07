@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+select :: forall a. Main.Default a => (forall @b. a -> b -> a)
+specialize :: forall a. Main.Default a => a -> Prim.String -> a
+
+Types
+Default :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Default a

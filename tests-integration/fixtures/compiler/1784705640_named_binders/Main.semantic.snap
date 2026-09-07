@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+fromMaybe :: forall a. a -> Main.Maybe a -> a
+fromMaybe = \fallback -> \whole@(Just value) -> value
+fromMaybe = \fallback -> \Nothing -> fallback

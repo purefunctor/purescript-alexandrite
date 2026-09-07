@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Ordering :: Prim.Type
+data Ordering
+  | LT :: Main.Ordering
+  | EQ :: Main.Ordering
+  | GT :: Main.Ordering
+
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  eq :: a -> a -> Prim.Boolean
+
+interface Ord :: Prim.Type -> Prim.Constraint
+interface Ord a where
+  superclass eqDict :: Main.Eq a
+  compare :: a -> a -> Main.Ordering
+
+interface Child :: Prim.Type -> Prim.Constraint
+interface Child a where
+  superclass parentDict1 :: First.Parent a
+  superclass parentDict2 :: Second.Parent a
+  parentDict :: a -> a

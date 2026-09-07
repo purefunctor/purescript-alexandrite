@@ -1,0 +1,85 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+Const2 ::
+  forall t0 t1 @value (@a :: t0) (@b :: t1). value -> Main.Const2 @t0 @t1 value (a :: t0) (b :: t1)
+WrapBoth ::
+  forall t0 t1 (@f :: t0 -> Prim.Type) (@g :: t1 -> Prim.Type) (@a :: t0) (@b :: t1).
+    (f :: t0 -> Prim.Type) (a :: t0) ->
+    (g :: t1 -> Prim.Type) (b :: t1) ->
+    Main.WrapBoth @t0 @t1 (f :: t0 -> Prim.Type) (g :: t1 -> Prim.Type) (a :: t0) (b :: t1)
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
+Both :: forall @a @b. Main.Tuple a b -> Main.Both a b
+OneSidedFirst :: forall @a @b. Main.Tuple a Prim.Int -> Main.OneSided a b
+OneSidedSecond :: forall @a @b. Main.Tuple Prim.Int b -> Main.OneSided a b
+Box :: forall @a. a -> Main.Box a
+Nested :: forall @a @b. Main.Box (Main.Tuple a b) -> Main.Nested a b
+Triple :: forall @fixed @a @b. fixed -> a -> b -> Main.Triple fixed a b
+NestedTriple :: forall @a @b. Main.Triple Prim.Int a b -> Main.NestedTriple a b
+NestedTripleLast ::
+  forall t0 (@a :: t0) @b.
+    Main.Triple Prim.Int Prim.String b -> Main.NestedTripleLast @t0 (a :: t0) b
+ReaderPair :: forall @a @b. (Prim.Int -> Main.Tuple a b) -> Main.ReaderPair a b
+RecordPair :: forall @a @b. { first :: a, fixed :: Prim.Int, second :: b } -> Main.RecordPair a b
+
+Types
+Either :: Prim.Type -> Prim.Type -> Prim.Type
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Const2 :: forall t0 t1. Prim.Type -> t0 -> t1 -> Prim.Type
+WrapBoth :: forall t0 t1. (t0 -> Prim.Type) -> (t1 -> Prim.Type) -> t0 -> t1 -> Prim.Type
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+Both :: Prim.Type -> Prim.Type -> Prim.Type
+OneSided :: Prim.Type -> Prim.Type -> Prim.Type
+Box :: Prim.Type -> Prim.Type
+Nested :: Prim.Type -> Prim.Type -> Prim.Type
+Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+NestedTriple :: Prim.Type -> Prim.Type -> Prim.Type
+NestedTripleLast :: forall t0. t0 -> Prim.Type -> Prim.Type
+ReaderPair :: Prim.Type -> Prim.Type -> Prim.Type
+RecordPair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.Either
+derive Data.Bifunctor.Bifunctor Main.Pair
+derive forall value. Data.Bifunctor.Bifunctor (Main.Const2 @Prim.Type @Prim.Type value)
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (g :: Prim.Type -> Prim.Type) =>
+  Data.Bifunctor.Bifunctor
+    (Main.WrapBoth @Prim.Type @Prim.Type
+      (f :: Prim.Type -> Prim.Type)
+      (g :: Prim.Type -> Prim.Type))
+derive Data.Bifunctor.Bifunctor Main.Tuple
+derive forall a. Data.Functor.Functor (Main.Tuple a)
+derive Data.Bifunctor.Bifunctor Main.Both
+derive Data.Bifunctor.Bifunctor Main.OneSided
+derive Data.Functor.Functor Main.Box
+derive Data.Bifunctor.Bifunctor Main.Nested
+derive forall fixed. Data.Bifunctor.Bifunctor (Main.Triple fixed)
+derive forall fixed a. Data.Functor.Functor (Main.Triple fixed a)
+derive Data.Bifunctor.Bifunctor Main.NestedTriple
+derive Data.Bifunctor.Bifunctor (Main.NestedTripleLast @Prim.Type)
+derive Data.Bifunctor.Bifunctor Main.ReaderPair
+derive Data.Bifunctor.Bifunctor Main.RecordPair
+
+Roles
+Either = [Representational, Representational]
+Pair = [Representational, Representational]
+Const2 = [Representational, Phantom, Phantom]
+WrapBoth = [Representational, Representational, Nominal, Nominal]
+Tuple = [Representational, Representational]
+Both = [Representational, Representational]
+OneSided = [Representational, Representational]
+Box = [Representational]
+Nested = [Representational, Representational]
+Triple = [Representational, Representational, Representational]
+NestedTriple = [Representational, Representational]
+NestedTripleLast = [Phantom, Representational]
+ReaderPair = [Representational, Representational]
+RecordPair = [Representational, Representational]

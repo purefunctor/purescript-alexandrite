@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+pure :: forall value. value -> Main.Effect value
+bind ::
+  forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+discard ::
+  forall value result. Main.Effect value -> (value -> Main.Effect result) -> Main.Effect result
+emptyDo :: ?[empty do block]
+finalBind :: Main.Effect Prim.Int
+finalLet :: forall t0. t0
+missingDoAction :: forall t0. t0
+missingFinalBindAction :: ?[empty do block]
+missingFinalDiscardAction :: ?[empty do block]
+
+Types
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Effect = [Nominal]

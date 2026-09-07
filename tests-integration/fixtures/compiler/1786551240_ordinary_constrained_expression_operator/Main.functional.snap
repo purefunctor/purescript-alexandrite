@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export equal = \dictionary%0 -> dictionary%0.equal
+
+@export instance equalInt = { equal: \left%1 right%2 -> true }
+
+@export ordinaryConstrainedOperator = equal equalInt 1 2

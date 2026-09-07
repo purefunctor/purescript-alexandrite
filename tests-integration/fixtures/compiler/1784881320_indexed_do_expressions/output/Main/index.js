@@ -1,0 +1,13 @@
+import * as $foreign from "./foreign.js";
+export const bind = $foreign["bind"];
+export const discard = $foreign["discard"];
+export const stepZero = $foreign["stepZero"];
+export const stepOne = $foreign["stepOne"];
+export const stepTwo = $foreign["stepTwo"];
+export const stepThree = $foreign["stepThree"];
+export const stepFour = $foreign["stepFour"];
+export const onZero = {};
+export const onTwo = {};
+export const onDefault = {};
+export const indexedBind = /* @__PURE__ */ bind(onZero)(stepZero)((zero) => /* @__PURE__ */ bind(onDefault)(stepOne)((one) => /* @__PURE__ */ bind(onTwo)(stepTwo)((two) => /* @__PURE__ */ bind(onDefault)(stepThree)((three) => stepFour))));
+export const indexedDiscard = /* @__PURE__ */ discard(onDefault)(stepFour)(($number) => stepTwo);

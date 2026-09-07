@@ -1,0 +1,88 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Leaf/1
+
+@export constructor Branch/2
+
+@export instance functorTree = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Leaf field0%2 ->
+          { tag: "Leaf", _1: function%0 field0%2 }
+        Branch field0%3 field1%4 ->
+          {
+            tag: "Branch",
+            _1: map functorTree (\element%5 -> function%0 element%5) field0%3,
+            _2: map functorTree (\element%6 -> function%0 element%6) field1%4
+          }
+}
+
+@export instance foldableTree = {
+  foldr:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Leaf field0%10 ->
+          function%7 field0%10 accumulator%8
+        Branch field0%11 field1%12 ->
+          foldr foldableTree (\element%13 accumulator%14 -> function%7 element%13 accumulator%14)
+            (foldr foldableTree (\element%15 accumulator%16 -> function%7 element%15 accumulator%16)
+              accumulator%8
+              field1%12)
+            field0%11,
+  foldl:
+    \function%17 accumulator%18 value%19 ->
+      case value%19 of
+        Leaf field0%20 ->
+          function%17 accumulator%18 field0%20
+        Branch field0%21 field1%22 ->
+          foldl foldableTree (\accumulator%23 element%24 -> function%17 accumulator%23 element%24)
+            (foldl foldableTree
+              (\accumulator%25 element%26 -> function%17 accumulator%25 element%26)
+              accumulator%18
+              field0%21)
+            field1%22,
+  foldMap:
+    \monoidMDict%32 ->
+      \function%27 value%28 ->
+        case value%28 of
+          Leaf field0%29 ->
+            function%27 field0%29
+          Branch field0%30 field1%31 ->
+            append (monoidMDict%32."Semigroup0"())
+              (foldMap foldableTree monoidMDict%32 (\element%33 -> function%27 element%33)
+                field0%30)
+              (foldMap foldableTree monoidMDict%32 (\element%34 -> function%27 element%34)
+                field1%31)
+}
+
+@export instance traversableTree = {
+  "Functor0": \() -> functorTree,
+  "Foldable1": \() -> foldableTree,
+  traverse:
+    \applicativeMDict%38 ->
+      \function%35 value%36 ->
+        let
+          Apply0Dict%42 = applicativeMDict%38."Apply0"()
+          Functor0Dict%43 = Apply0Dict%42."Functor0"()
+        in case value%36 of
+          Leaf field0%37 ->
+            map Functor0Dict%43 (\field0Result%39 -> { tag: "Leaf", _1: field0Result%39 })
+              (function%35 field0%37)
+          Branch field0%40 field1%41 ->
+            apply Apply0Dict%42
+              (map Functor0Dict%43
+                (\field0Result%44 field1Result%45 ->
+                  { tag: "Branch", _1: field0Result%44, _2: field1Result%45 })
+                (traverse traversableTree applicativeMDict%38
+                  (\element%46 -> function%35 element%46)
+                  field0%40))
+              (traverse traversableTree applicativeMDict%38 (\element%47 -> function%35 element%47)
+                field1%41),
+  sequence:
+    \applicativeMDict%49 ->
+      \value%48 -> traverse traversableTree applicativeMDict%49 (\effect0%50 -> effect0%50) value%48
+}

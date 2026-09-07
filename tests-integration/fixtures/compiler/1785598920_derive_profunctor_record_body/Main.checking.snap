@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+RecordPro ::
+  forall @a @b.
+    { consume :: a -> Prim.Int, fixed :: Prim.String, produce :: b } -> Main.RecordPro a b
+
+Types
+RecordPro :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Profunctor.Profunctor Main.RecordPro
+
+Roles
+RecordPro = [Representational, Representational]

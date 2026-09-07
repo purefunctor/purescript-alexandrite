@@ -1,0 +1,49 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+convert ::
+  forall (@f :: Prim.Type -> Prim.Type) (@g :: Prim.Type -> Prim.Type).
+    Main.Convert (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) =>
+    (forall a. (f :: Prim.Type -> Prim.Type) a -> (g :: Prim.Type -> Prim.Type) a)
+convertExplicit ::
+  forall (@f :: Prim.Type -> Prim.Type) (@g :: Prim.Type -> Prim.Type).
+    Main.Convert (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) =>
+    (forall a. (f :: Prim.Type -> Prim.Type) a -> (g :: Prim.Type -> Prim.Type) a)
+clash ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Clash (f :: Prim.Type -> Prim.Type) =>
+    (forall a. (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) a)
+
+Types
+Convert :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Constraint
+Clash :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+F :: Prim.Type -> Prim.Type
+G :: Prim.Type -> Prim.Type
+
+Classes
+class forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type). Main.Convert (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type)
+  convert ::
+  forall (@f :: Prim.Type -> Prim.Type) (@g :: Prim.Type -> Prim.Type).
+    Main.Convert (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) =>
+    (forall a. (f :: Prim.Type -> Prim.Type) a -> (g :: Prim.Type -> Prim.Type) a)
+  convertExplicit ::
+  forall (@f :: Prim.Type -> Prim.Type) (@g :: Prim.Type -> Prim.Type).
+    Main.Convert (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type) =>
+    (forall a1. (f :: Prim.Type -> Prim.Type) a1 -> (g :: Prim.Type -> Prim.Type) a1)
+class forall (f :: Prim.Type -> Prim.Type). Main.Clash (f :: Prim.Type -> Prim.Type)
+  clash ::
+  forall (@f :: Prim.Type -> Prim.Type).
+    Main.Clash (f :: Prim.Type -> Prim.Type) =>
+    (forall a. (f :: Prim.Type -> Prim.Type) a -> (f :: Prim.Type -> Prim.Type) a)
+
+Instances
+instance Main.Convert Main.F Main.G
+instance forall (f :: Prim.Type -> Prim.Type). Main.Clash (f :: Prim.Type -> Prim.Type)
+
+Roles
+F = [Phantom]
+G = [Phantom]

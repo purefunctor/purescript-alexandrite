@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b)
+inferredPun :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
+inferredExplicit :: forall t0 t1. Main.First t0 => Main.Second t1 => { interleaved :: t0 -> t1 }
+aliased :: Main.Alias
+inferredAliasPun :: { aliased :: Prim.Int }
+inferredAliasExplicit :: { aliased :: Prim.Int }
+fetch ::
+  forall (m :: Prim.Type -> Prim.Type).
+    Main.Capability (m :: Prim.Type -> Prim.Type) =>
+    Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
+expectedPun :: Main.Setup
+expectedExplicit :: Main.Setup
+
+Types
+First :: Prim.Type -> Prim.Constraint
+Second :: Prim.Type -> Prim.Constraint
+Alias :: Prim.Type
+Capability :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+Setup :: Prim.Type
+
+Synonyms
+type Alias = Prim.Int
+type Setup = { fetch ::
+    forall (m :: Prim.Type -> Prim.Type).
+      Main.Capability (m :: Prim.Type -> Prim.Type) =>
+      Prim.Int -> (m :: Prim.Type -> Prim.Type) Prim.Int
+}
+
+Classes
+class forall (a :: Prim.Type). Main.First a
+class forall (a :: Prim.Type). Main.Second a
+class forall (m :: Prim.Type -> Prim.Type). Main.Capability (m :: Prim.Type -> Prim.Type)

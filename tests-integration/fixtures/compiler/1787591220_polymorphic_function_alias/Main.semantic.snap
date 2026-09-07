@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Pair :: Prim.Type -> Prim.Type -> Prim.Type
+data Pair @a @b
+  | Pair :: a -> b -> Main.Pair a b
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+use :: Main.Pair Prim.Int Prim.String
+use = Pair (alias 42) (alias "x")
+  where
+  alias :: forall a. a -> a
+  alias = identity

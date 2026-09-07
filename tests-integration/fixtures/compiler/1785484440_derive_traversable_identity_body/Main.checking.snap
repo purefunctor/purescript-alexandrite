@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Identity
+derive Data.Foldable.Foldable Main.Identity
+derive Data.Traversable.Traversable Main.Identity
+
+Roles
+Identity = [Representational]

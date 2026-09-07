@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+letBinding :: forall a. a -> a
+whereBinding :: forall a. a -> a
+siblingPolymorphicBindings :: forall a. a -> { first :: a, second :: a }
+unIdentity :: forall a. Main.Identity a -> a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+
+Roles
+Identity = [Representational]

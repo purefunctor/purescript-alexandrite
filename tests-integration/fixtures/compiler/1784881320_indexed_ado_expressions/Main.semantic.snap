@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface OnStep :: Prim.Int -> Prim.Constraint
+interface OnStep step where
+
+dictionary onZero :: Main.OnStep 0
+
+dictionary onTwo :: Main.OnStep 2
+
+dictionary onDefault :: forall step. Main.OnStep step
+
+foreign import map :: forall step.
+  Main.OnStep step =>
+  (forall value result. (value -> result) -> Main.Action step value -> Main.Action step result)
+
+foreign import apply :: forall step.
+  Main.OnStep step =>
+  (forall previous value result.
+    Main.Action previous (value -> result) -> Main.Action step value -> Main.Action step result)
+
+foreign import pure :: forall step. Main.OnStep step => (forall value. value -> Main.Action step value)
+
+foreign import stepZero :: Main.Action 0 Prim.Int
+
+foreign import stepOne :: Main.Action 1 Prim.String
+
+foreign import stepTwo :: Main.Action 2 Prim.Boolean
+
+foreign import stepThree :: Main.Action 3 Prim.String
+
+indexedApply :: Main.Action 3 Prim.String
+indexedApply =
+  apply {onDefault}
+    (apply {onTwo}
+      (apply {onDefault} (map {onZero} (\zero one two three -> three) stepZero) stepOne)
+      stepTwo)
+    stepThree
+
+indexedPure :: Main.Action 2 Prim.Int
+indexedPure = pure {onTwo} 1

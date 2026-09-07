@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type -> Prim.Type
+data Choice @a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+  | Pair :: a -> a -> Main.Choice a
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+nested :: Main.Choice (Main.Choice Prim.Int) -> Prim.Int
+nested = \choice ->
+  case choice of
+    (One inner) ->
+      case inner of
+        (One value) -> value
+        (Pair left _) -> left
+        _ -> 0
+    _ -> 0
+
+applied :: Main.Choice Prim.Int -> Prim.Int
+applied = \choice ->
+  identity case choice of
+    (One value) -> value
+    _ -> 0

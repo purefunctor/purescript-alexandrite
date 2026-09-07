@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
++ :: Prim.Int -> Prim.Int -> Prim.Int
+add :: Prim.Int -> Prim.Int -> Prim.Int
+use :: Prim.Int -> Prim.String -> Prim.String
+checked :: Prim.Int -> Prim.Int
+inferred :: Prim.Int -> Prim.Int
+ordered :: Prim.Int -> Prim.String -> Prim.String
+nested :: forall t0 t1. (((Prim.Int -> t0) -> t0) -> t1) -> t1
+access :: forall t0 (t1 :: Prim.Row Prim.Type). { value :: t0 | (t1 :: Prim.Row Prim.Type) } -> t0
+update ::
+  forall t0 t1 (t2 :: Prim.Row Prim.Type) t3 t4.
+    { first :: t0, second :: t1 | (t2 :: Prim.Row Prim.Type) } ->
+    t3 ->
+    t4 ->
+    { first :: t3, second :: t4 | (t2 :: Prim.Row Prim.Type) }
+conditional :: forall t0. Prim.Boolean -> t0 -> t0 -> t0
+caseScrutinee :: Prim.Boolean -> Prim.Int
+caseScrutinees :: Prim.Boolean -> Prim.Int -> Prim.Int
+caseAlternatives ::
+  forall t0 (t1 :: Prim.Row Prim.Type).
+    Prim.Boolean -> { value :: t0 | (t1 :: Prim.Row Prim.Type) } -> t0
+
+Types

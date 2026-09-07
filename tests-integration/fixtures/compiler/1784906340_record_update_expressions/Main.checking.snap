@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+identity :: forall a. a -> a
+record :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+leaf :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+typeChanging ::
+  { first :: Prim.String, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+multiple :: forall t0. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t0 -> t0 }
+nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+accessValue ::
+  { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+applicationBase ::
+  { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+argument ::
+  { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+
+Types

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+integer :: Prim.Int -> Prim.Boolean
+integer = \0 -> true
+integer = \_ -> false
+
+number :: Prim.Number -> Prim.Boolean
+number = \1.5 -> true
+number = \_ -> false
+
+character :: Prim.Char -> Prim.Boolean
+character = \'a' -> true
+character = \_ -> false
+
+escapedDoubleQuote :: Prim.Char
+escapedDoubleQuote = '"'
+
+matchesEscapedDoubleQuote :: Prim.Char -> Prim.Boolean
+matchesEscapedDoubleQuote = \'"' -> true
+matchesEscapedDoubleQuote = \_ -> false
+
+string :: Prim.String -> Prim.Boolean
+string = \"alexandrite" -> true
+string = \_ -> false
+
+boolean :: Prim.Boolean -> Prim.Boolean
+boolean = \true -> true
+boolean = \false -> false

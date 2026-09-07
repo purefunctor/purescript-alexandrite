@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Required :: Prim.Type -> Prim.Constraint
+interface Required value where
+
+interface Example :: Prim.Type -> Prim.Constraint
+interface Example a where
+  apply :: forall b. Main.Required b => a -> b -> Prim.Boolean
+
+implementation :: forall a b. Main.Required b => a -> b -> Prim.Boolean
+implementation = \{requiredDict} -> \_ -> \_ -> boolean
+
+foreign import boolean :: Prim.Boolean
+
+dictionary exampleInt :: Main.Example Prim.Int where
+  apply :: forall b. Main.Required b => Prim.Int -> b -> Prim.Boolean
+  apply = \{requiredDict} -> implementation {requiredDict}

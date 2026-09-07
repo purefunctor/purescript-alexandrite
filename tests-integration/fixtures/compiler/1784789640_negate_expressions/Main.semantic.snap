@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Negative :: Prim.Type -> Prim.Constraint
+interface Negative a where
+
+foreign import negate :: forall a. Main.Negative a => a -> a
+
+negative :: forall a. Main.Negative a => a -> a
+negative = \{negativeDict} -> \value -> negate {negativeDict} value
+
+shadowedNegate :: (Prim.Int -> Prim.Int) -> Prim.Int -> Prim.Int
+shadowedNegate = \negate -> \value -> negate value

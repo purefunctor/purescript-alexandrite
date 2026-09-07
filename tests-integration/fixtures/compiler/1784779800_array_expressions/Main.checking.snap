@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+identity :: forall t0. t0 -> t0
+empty :: Prim.Array Prim.Int
+values :: Prim.Array Prim.Int
+nested :: Prim.Array (Prim.Array Prim.Int)
+inferredFunctions :: forall t0. Prim.Array (t0 -> t0)
+checkedFunctions :: Prim.Array (Prim.Int -> Prim.Int)
+checkedIdentity :: Prim.Array Prim.Int -> Prim.Array Prim.Int
+consume :: Prim.Array Prim.Int -> Prim.Array Prim.Int
+application :: Prim.Array Prim.Int
+
+Types

@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export identity = \value%0 -> value%0
+
+@export const = \value%1 $b%2@(_) -> value%1
+
+@export testIdentity = identity
+
+@export testConst = const

@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+newtype Identity :: Prim.Type -> Prim.Type
+newtype Identity @a
+  | Identity :: a -> Main.Identity a
+
+data Choice :: Prim.Type -> Prim.Type
+data Choice @a
+  | Empty :: Main.Choice a
+  | One :: a -> Main.Choice a
+
+unwrap :: forall a. Main.Identity a -> a
+unwrap = \wrapped ->
+  let
+    (Identity value) = wrapped
+  in
+    value
+
+select :: { first :: Prim.Int, second :: Prim.String } -> Prim.String
+select = \record ->
+  let
+    { first, second } = record
+  in
+    second
+
+unwrapOne :: forall a. Prim.Partial => Main.Choice a -> a
+unwrapOne = \{partialDict} -> \choice ->
+  let
+    (One value) = choice
+  in
+    value

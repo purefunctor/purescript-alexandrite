@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+compareInts :: Prim.Int -> Prim.Int -> Prim.Boolean
+compareInts = \left -> \right ->
+  if eq {eqInt} left right then eq {eqInt} right left else false
+
+initialized :: Prim.Boolean
+initialized = compareInts 1 1
