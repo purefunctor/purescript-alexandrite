@@ -8,7 +8,7 @@ publish = false
 purescript-alexandrite = { path = "../compiler-bin" }
 
 [dev-dependencies]
-insta = "1.48.0"
+insta = { version = "1.48.0", features = ["filters"] }
 itertools = "0.15.0"
 tempfile = "3.27.0"
 
