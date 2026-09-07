@@ -4,11 +4,12 @@ Thank you for taking interest in contributing to Alexandrite.
 
 ## Integration tests
 
-Run `just t backend`, `just t checking`, or `just t semantic` to test a category.
-These commands prepare the registry package set pinned in
+Run `just t compiler` (alias `just t c`) for the unified compiler integration
+category. It prepares the registry package set pinned in
 [`tests-integration/packages.json`](tests-integration/packages.json)
-before starting the fixture runner. Node.js 22 is required for backend execution.
-Other categories do not load registry packages.
+before starting the fixture runner. Node.js 22 is required for JavaScript
+execution. Lowering, resolving, and LSP are unchanged and do not load registry
+packages.
 
 For direct nextest use, prepare the packages first:
 
@@ -25,17 +26,28 @@ sources into fixture directories.
 
 ### Fixture ownership and execution
 
-Backend fixtures compile their reachable dependency closure with the current
-Alexandrite. Only fixture-owned generated JavaScript and adjacent FFI are kept in
-`output/`; registry output and the compiler's `runtime.js` are not goldens.
-`Main.functional.snap` records successful functional trees. Backend errors are
-diagnostics in `Main.snap`, not raw errors in functional snapshots.
+Compiler fixtures live in `tests-integration/fixtures/compiler/` and enter through
+`Main.purs`.
+
+| Snapshot | Contents |
+|----------|----------|
+| `Main.checking.snap` | Checked types, kinds, and declaration metadata, without diagnostics |
+| `Main.diagnostics.snap` | Parser, checking, foreign, and backend diagnostics for all fixture-owned modules, with stable fixture-relative paths |
+| `Main.semantic.snap` | Checked semantic trees, including recovery |
+| `Main.functional.snap` | A successful functional tree or an explicit rejection |
+
+Each fixture runs all these reports; diagnostics do not skip later stages, which
+also exercise compiler recovery.
+
+Compiler fixtures compile their reachable dependency closure with the current
+Alexandrite. Only reachable fixture-owned generated JavaScript and adjacent FFI
+are kept in `output/`; registry output and `runtime.js` are not goldens.
 
 An optional `verify.mjs` is staged beside a fresh temporary `output/` containing
 the complete generated program. Use imports such as `./output/Main/index.js` and
 Node built-ins. The runner supplies ESM configuration; fixtures do not need a
 `package.json`. Verification never executes tracked goldens. It must pass before
-`just t backend --update-output` writes new goldens.
+`just t compiler --update-output` writes new goldens.
 
 Use real package modules rather than local library stand-ins. Tests that must
 deliberately replace a compiler-known module can declare the module and its reason
