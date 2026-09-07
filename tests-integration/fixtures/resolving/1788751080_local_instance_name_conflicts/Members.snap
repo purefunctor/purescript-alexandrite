@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 354
+expression: report
+---
+module Members
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - classString
+  - classInt
+
+Exported Types:
+
+Exported Classes:
+  - Class
+  - Other
+
+Local Terms:
+  - classString
+  - classInt
+
+Local Types:
+
+Local Classes:
+  - Class
+  - Other
+
+Class Members:
+  - Class.classInt
+  - Other.classString

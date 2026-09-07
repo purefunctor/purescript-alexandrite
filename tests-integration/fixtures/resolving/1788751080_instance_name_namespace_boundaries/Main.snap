@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 354
+expression: report
+---
+module Main
+
+Unqualified Imports:
+
+Terms:
+  - imported is Explicit
+
+Types:
+
+Classes:
+
+Qualified Imports:
+
+Exported Terms:
+  - dictionary
+  - test
+  - classString
+  - shadow
+  - record
+
+Exported Types:
+
+Exported Classes:
+  - Class
+
+Local Terms:
+  - dictionary
+  - test
+  - classString
+  - shadow
+  - record
+
+Local Types:
+
+Local Classes:
+  - Class
+
+Class Members:

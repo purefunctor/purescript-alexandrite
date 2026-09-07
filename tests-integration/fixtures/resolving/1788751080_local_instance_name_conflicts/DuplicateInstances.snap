@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 354
+expression: report
+---
+module DuplicateInstances
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - Second
+  - Third
+  - First
+
+Exported Types:
+  - Second
+  - Third
+  - First
+
+Exported Classes:
+  - Class
+
+Local Terms:
+  - Second
+  - Third
+  - First
+
+Local Types:
+  - Second
+  - Third
+  - First
+
+Local Classes:
+  - Class
+
+Class Members:

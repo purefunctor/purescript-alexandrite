@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 354
+expression: report
+---
+module HiddenForeignFirst
+
+Unqualified Imports:
+
+Qualified Imports:
+
+Exported Terms:
+  - test
+
+Exported Types:
+
+Exported Classes:
+
+Local Terms:
+  - classInt
+  - test
+
+Local Types:
+
+Local Classes:
+  - Class
+
+Class Members:
