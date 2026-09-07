@@ -3587,6 +3587,7 @@ dependencies = [
  "insta",
  "itertools 0.15.0",
  "purescript-alexandrite",
+ "regex",
  "tempfile",
 ]
 

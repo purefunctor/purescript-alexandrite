@@ -1,8 +1,10 @@
 use super::support::{TestWorkspace, assert_success};
 
-fn diagnostic_settings() -> insta::Settings {
+fn diagnostic_settings(workspace: &TestWorkspace) -> insta::Settings {
     let mut settings = insta::Settings::clone_current();
     settings.set_strip_ansi_escape_codes(true);
+    let workspace_path = regex::escape(&workspace.path().to_string_lossy());
+    settings.add_filter(&format!(r"{workspace_path}[/\\]"), "");
     settings.add_filter(r"src\\Main\.purs", "src/Main.purs");
     settings.add_filter(
         concat!(
@@ -76,7 +78,7 @@ broken = missing
         String::from_utf8_lossy(&output.stderr)
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let _settings = diagnostic_settings().bind_to_scope();
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
     insta::assert_snapshot!("resilient_source_diagnostics", stderr);
 
     let generated = workspace.read("output/Main/index.js");
@@ -115,7 +117,7 @@ second = first
     let strict = workspace.command(&["build", "--quiet"]);
     assert!(!strict.status.success());
     let stderr = String::from_utf8_lossy(&strict.stderr);
-    let _settings = diagnostic_settings().bind_to_scope();
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
     insta::assert_snapshot!("strict_initializer_cycle_diagnostics", stderr);
     assert!(!workspace.path().join("output/Main/index.js").exists());
 
@@ -162,7 +164,7 @@ partialProps = props
     let output = workspace.command(&["build", "--quiet"]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let _settings = diagnostic_settings().bind_to_scope();
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
     insta::assert_snapshot!("backend_failure_diagnostics", stderr);
     assert!(!workspace.path().join("output/Main/index.js").exists());
     workspace.assert_spago_calls(
