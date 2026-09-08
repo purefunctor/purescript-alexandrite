@@ -57,7 +57,7 @@ impl Options {
         if self.expand {
             normalise::expand(state, context, id)
         } else {
-            normalise::normalise(state, context, id)
+            Ok(normalise::normalise(state, context, id))
         }
     }
 }
@@ -76,7 +76,7 @@ where
     safe_loop! {
         function_kind = options.normalise(state, context, function_kind)?;
 
-        match context.lookup_type(function_kind) {
+        match *context.lookup_type(function_kind) {
             Type::Function(expected_kind, result_kind) => {
                 let argument_type = check_application_argument_kind(
                     state,

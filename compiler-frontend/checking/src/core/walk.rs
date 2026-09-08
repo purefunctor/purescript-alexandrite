@@ -34,14 +34,14 @@ where
     Q: ExternalQueries,
     W: TypeWalker,
 {
-    let id = normalise::normalise(state, context, id)?;
+    let id = normalise::normalise(state, context, id);
     let t = context.lookup_type(id);
 
     if let WalkAction::Stop = walker.visit(state, context, id, &t)? {
         return Ok(());
     }
 
-    match t {
+    match *t {
         Type::Application(function, argument) | Type::KindApplication(function, argument) => {
             walk_type(state, context, function, walker)?;
             walk_type(state, context, argument, walker)?;

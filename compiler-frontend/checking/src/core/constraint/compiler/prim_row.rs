@@ -50,9 +50,9 @@ where
         if let Type::Application(row_constructor, row_element_kind) =
             context.lookup_type(argument_kind)
         {
-            let row_constructor = normalise::expand(state, context, row_constructor)?;
+            let row_constructor = normalise::expand(state, context, *row_constructor)?;
             if row_constructor == context.prim.row {
-                return Ok(row_element_kind);
+                return Ok(*row_element_kind);
             }
         }
     }

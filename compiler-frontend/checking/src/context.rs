@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use building_types::QueryResult;
 use files::FileId;
-use indexing::{IndexedModule, TermItemId, TypeItemId};
+use indexing::{IndexedModule, InstanceSourceItemId, TermItemId, TypeItemId};
 use itertools::Itertools;
 use lowering::{GroupedModule, LoweredModule};
 use resolving::ResolvedModule;
@@ -17,6 +17,7 @@ use smol_str::SmolStr;
 use stabilizing::StabilizedModule;
 use sugar::{Bracketed, Sectioned};
 
+use crate::core::constraint::instances::InstanceCandidateOrigin;
 use crate::core::{
     CheckedSynonym, Depth, ForallBinder, ForallBinderId, Name, RowField, RowType, RowTypeId, Type,
     TypeFlags, TypeId,
@@ -44,6 +45,7 @@ where
     pub sectioned: Arc<Sectioned>,
     pub resolved: Arc<ResolvedModule>,
 
+    pub(crate) instance_positions: FxHashMap<InstanceCandidateOrigin, usize>,
     checked_dependencies: RefCell<FxHashMap<FileId, Arc<CheckedModule>>>,
     checked_synonyms: RefCell<FxHashMap<(FileId, TypeItemId), Option<CheckedSynonym>>>,
 }
@@ -73,6 +75,19 @@ where
         let sectioned = queries.sectioned(id)?;
         let resolved = queries.resolved(id)?;
 
+        let mut instance_positions = FxHashMap::default();
+        for (position, item) in indexed.items.instance_sources().iter().enumerate() {
+            let origin = match *item {
+                InstanceSourceItemId::Instance(item) => {
+                    InstanceCandidateOrigin::Instance(id, indexed.items[item].id)
+                }
+                InstanceSourceItemId::Derive(item) => {
+                    InstanceCandidateOrigin::Derive(id, indexed.items[item].id)
+                }
+            };
+            instance_positions.entry(origin).or_insert(position);
+        }
+
         Ok(CheckContext {
             queries,
             core,
@@ -84,6 +99,7 @@ where
             bracketed,
             sectioned,
             resolved,
+            instance_positions,
             checked_dependencies: RefCell::default(),
             checked_synonyms: RefCell::default(),
         })
@@ -309,7 +325,7 @@ where
     }
 
     /// Looks up the [`Type`] for the given [`TypeId`].
-    pub fn lookup_type(&self, id: TypeId) -> Type {
+    pub fn lookup_type(&self, id: TypeId) -> &'q Type {
         self.queries.lookup_type(id)
     }
 
@@ -323,7 +339,7 @@ where
     }
 
     /// Looks up the [`RowType`] for the given [`RowTypeId`].
-    pub fn lookup_row_type(&self, id: RowTypeId) -> RowType {
+    pub fn lookup_row_type(&self, id: RowTypeId) -> &'q RowType {
         self.queries.lookup_row_type(id)
     }
 

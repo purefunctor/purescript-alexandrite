@@ -495,7 +495,7 @@ impl ConstraintInScope {
     where
         Q: ExternalQueries,
     {
-        let Type::Constructor(file_id, type_id) = context.lookup_type(context.prim.partial) else {
+        let Type::Constructor(file_id, type_id) = *context.lookup_type(context.prim.partial) else {
             unreachable!("critical violation: Partial is not Partial");
         };
         let constraint = &state.canonicals[self.key.wanted];

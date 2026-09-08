@@ -13,14 +13,14 @@ use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxNodePtr, TextRange};
 use crate::Span;
 
 pub trait ExternalQueries: checking::ExternalQueries {
-    fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr;
+    fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> &smol_str::SmolStr;
 }
 
 impl<T> ExternalQueries for T
 where
     T: checking::ExternalQueries + ?Sized,
 {
-    fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> smol_str::SmolStr {
+    fn lookup_checking_smol_str(&self, id: checking::core::SmolStrId) -> &smol_str::SmolStr {
         self.lookup_smol_str(id)
     }
 }

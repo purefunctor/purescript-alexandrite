@@ -58,7 +58,7 @@ where
 
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Application(function, argument) => {
                 arguments.push(argument);
                 id = function;
@@ -86,7 +86,7 @@ where
 
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Application(function, argument) => {
                 arguments.push(crate::core::ApplicationArgument::Type(argument));
                 id = function;
@@ -326,7 +326,7 @@ where
     safe_loop! {
         current = normalise::expand(state, context, current)?;
 
-        let Type::Forall(binder_id, inner) = context.lookup_type(current) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(current) else {
             break;
         };
 
@@ -369,7 +369,7 @@ where
             return Ok(InspectFunction { arguments, result: current });
         }
 
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Function(argument, result) => {
                 arguments.push(argument);
                 current = result;
@@ -377,7 +377,7 @@ where
             Type::Application(function_argument, result) => {
                 let function_argument = normalise::expand(state, context, function_argument)?;
 
-                let Type::Application(function, argument) = context.lookup_type(function_argument)
+                let Type::Application(function, argument) = *context.lookup_type(function_argument)
                 else {
                     return Ok(InspectFunction { arguments, result: current });
                 };
@@ -448,7 +448,7 @@ where
 
     safe_loop! {
         current = normalise::expand(state, context, current)?;
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Constrained(constraint, constrained) => {
                 constraints.push(constraint);
                 current = constrained;
@@ -484,12 +484,12 @@ where
     safe_loop! {
         id = normalise::expand(state, context, id)?;
 
-        let Type::Forall(binder_id, inner) = context.lookup_type(id) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(id) else {
             break;
         };
 
         let binder = context.lookup_forall_binder(binder_id);
-        let binder_kind = normalise::normalise(state, context, binder.kind)?;
+        let binder_kind = normalise::normalise(state, context, binder.kind);
 
         let replacement = state.fresh_unification(context.queries, binder_kind);
         id = SubstituteName::one(state, context, binder.name, replacement, inner)?;
@@ -510,12 +510,12 @@ where
     safe_loop! {
         id = normalise::expand(state, context, id)?;
 
-        let Type::Forall(binder_id, inner) = context.lookup_type(id) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(id) else {
             break;
         };
 
         let binder = context.lookup_forall_binder(binder_id);
-        let binder_kind = normalise::normalise(state, context, binder.kind)?;
+        let binder_kind = normalise::normalise(state, context, binder.kind);
 
         let text = state.checked.lookup_name(binder.name);
         let rigid = state.fresh_rigid_named(context.queries, binder_kind, text);
@@ -536,7 +536,7 @@ where
 {
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Constrained(constraint, constrained) => {
                 state.push_wanted(constraint);
                 id = constrained;
@@ -557,7 +557,7 @@ where
 {
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Constrained(constraint, constrained) => {
                 state.push_given(constraint);
                 id = constrained;
@@ -578,7 +578,7 @@ where
 {
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Constrained(_, constrained) => {
                 id = constrained;
             }
@@ -673,7 +673,7 @@ where
 {
     let t = normalise::expand(state, context, t)?;
 
-    match context.lookup_type(t) {
+    match *context.lookup_type(t) {
         Type::Function(argument, result) => Ok(Some((argument, result))),
 
         Type::Unification(unification_id) => {
@@ -688,12 +688,12 @@ where
 
         Type::Application(partial, result) => {
             let partial = normalise::expand(state, context, partial)?;
-            if let Type::Application(constructor, argument) = context.lookup_type(partial) {
+            if let Type::Application(constructor, argument) = *context.lookup_type(partial) {
                 let constructor = normalise::expand(state, context, constructor)?;
                 if constructor == context.prim.function {
                     return Ok(Some((argument, result)));
                 }
-                if let Type::Unification(unification_id) = context.lookup_type(constructor) {
+                if let Type::Unification(unification_id) = *context.lookup_type(constructor) {
                     unification::solve(
                         state,
                         context,
@@ -720,7 +720,7 @@ where
     Q: ExternalQueries,
 {
     let type_id = normalise::expand(state, context, type_id)?;
-    let Type::Application(function, argument) = context.lookup_type(type_id) else {
+    let Type::Application(function, argument) = *context.lookup_type(type_id) else {
         return Ok(None);
     };
     Ok(Some((function, argument)))
@@ -773,7 +773,7 @@ where
 {
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Constructor(file_id, item_id) => return Ok(Some((file_id, item_id))),
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 id = function;
@@ -840,7 +840,7 @@ where
 
     safe_loop! {
         current = normalise::expand(state, context, current)?;
-        let Type::Forall(binder_id, inner) = context.lookup_type(current) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(current) else {
             break;
         };
 
@@ -862,7 +862,7 @@ where
         current = SubstituteName::one(state, context, binder.name, replacement, inner)?;
     }
 
-    current = normalise::normalise(state, context, current)?;
+    current = normalise::normalise(state, context, current);
 
     let InspectFunction { arguments, .. } = inspect_function(state, context, current)?;
     let [inner] = arguments[..] else { return Ok(None) };

@@ -146,7 +146,7 @@ where
     Q: ExternalQueries,
 {
     let expected = normalise::expand(state, context, expected)?;
-    let Type::Application(constructor, element) = context.lookup_type(expected) else {
+    let Type::Application(constructor, element) = *context.lookup_type(expected) else {
         return Ok(None);
     };
 
@@ -208,11 +208,11 @@ where
     Q: ExternalQueries,
 {
     let normalised = normalise::expand(state, context, expected)?;
-    if let Type::Application(constructor, row_type) = context.lookup_type(normalised) {
+    if let Type::Application(constructor, row_type) = *context.lookup_type(normalised) {
         let constructor = normalise::expand(state, context, constructor)?;
         if constructor == context.prim.record {
             let row_type = normalise::expand(state, context, row_type)?;
-            if let Type::Row(row_id) = context.lookup_type(row_type) {
+            if let Type::Row(row_id) = *context.lookup_type(row_type) {
                 let expected_fields = context.lookup_row_type(row_id);
                 let (record_type, fields, complete) = record_core(
                     state,

@@ -153,7 +153,7 @@ where
 
     let reported = checked.errors.iter().filter_map(|error| {
         let ErrorKind::EscapedSkolem { skolem, .. } = error.kind else { return None };
-        let Type::Rigid(name, _, _) = context.lookup_type(skolem) else { return None };
+        let Type::Rigid(name, _, _) = *context.lookup_type(skolem) else { return None };
         name.scope
     });
     let reported = reported.collect();
@@ -579,7 +579,7 @@ fn inspect_rigid_kind<Q>(
 ) where
     Q: ExternalQueries,
 {
-    if let Type::Rigid(_, _, kind) = checker.context.lookup_type(rigid) {
+    if let Type::Rigid(_, _, kind) = *checker.context.lookup_type(rigid) {
         inspect_type(checker, kind, crumb);
     }
 }
@@ -599,7 +599,7 @@ fn inspect_type<Q>(
             continue;
         }
 
-        match checker.context.lookup_type(type_id) {
+        match *checker.context.lookup_type(type_id) {
             Type::Application(function, argument)
             | Type::KindApplication(function, argument)
             | Type::Constrained(function, argument)
@@ -688,7 +688,7 @@ where
     Q: ExternalQueries,
 {
     let mut scopes = vec![];
-    while let Type::Forall(binder, inner) = context.lookup_type(type_id) {
+    while let Type::Forall(binder, inner) = *context.lookup_type(type_id) {
         let binder = context.lookup_forall_binder(binder);
         let Some(scope) = binder.scope else { break };
         scopes.push(scope);

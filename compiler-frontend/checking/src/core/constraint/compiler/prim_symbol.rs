@@ -169,7 +169,7 @@ where
 
     let matched = if extract_symbol(state, context, symbol)?.is_some() {
         MatchInstance::empty()
-    } else if let Type::Unification(id) = context.lookup_type(symbol) {
+    } else if let Type::Unification(id) = *context.lookup_type(symbol) {
         MatchInstance::Stuck { stuck: vec![id], skolem: false }
     } else {
         MatchInstance::Apart

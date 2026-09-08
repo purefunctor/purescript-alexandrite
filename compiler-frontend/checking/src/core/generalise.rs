@@ -54,10 +54,10 @@ where
     where
         Q: ExternalQueries,
     {
-        let id = normalise::normalise(state, context, id)?;
+        let id = normalise::normalise(state, context, id);
         let t = context.lookup_type(id);
 
-        match t {
+        match *t {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
                 aux(graph, state, context, function, dependent, visited_kinds)?;
                 aux(graph, state, context, argument, dependent, visited_kinds)?;
@@ -238,7 +238,7 @@ where
             }
             UnificationState::Solved(solution) => {
                 let solution = normalise::expand(state, context, solution)?;
-                let Type::Rigid(name, _, kind) = context.lookup_type(solution) else {
+                let Type::Rigid(name, _, kind) = *context.lookup_type(solution) else {
                     continue;
                 };
                 (solution, name, kind)

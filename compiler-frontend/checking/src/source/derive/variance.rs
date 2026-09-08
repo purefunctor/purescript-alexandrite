@@ -194,7 +194,7 @@ where
 
     loop {
         current = normalise::expand(state, context, current)?;
-        let Type::Forall(binder_id, inner) = context.lookup_type(current) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(current) else {
             break;
         };
 
@@ -208,7 +208,7 @@ where
             })
             .unwrap_or_else(|| {
                 let rigid = state.fresh_rigid(context.queries, binder.kind);
-                let Type::Rigid(name, _, _) = context.lookup_type(rigid) else {
+                let Type::Rigid(name, _, _) = *context.lookup_type(rigid) else {
                     unreachable!("fresh_rigid must create Type::Rigid")
                 };
                 names.push(name);
@@ -330,7 +330,7 @@ where
             return Ok(None);
         }
 
-        match self.context.lookup_type(type_id) {
+        match *self.context.lookup_type(type_id) {
             Type::Rigid(name, _, _) => {
                 if let Some(parameter) = self.rigids.get(name) {
                     *self.valid &=
@@ -798,14 +798,14 @@ where
         }
 
         match (context.lookup_type(left), context.lookup_type(right)) {
-            (Type::Constructor(left_file, left_id), Type::Constructor(right_file, right_id)) => {
+            (&Type::Constructor(left_file, left_id), &Type::Constructor(right_file, right_id)) => {
                 left_file == right_file && left_id == right_id
             }
             // Generalisation can reconstruct a rigid's kind while preserving the binder
             // name. Constructor-head availability depends on that binder identity, not
             // its kind ID.
-            (Type::Rigid(left_name, ..), Type::Rigid(right_name, ..)) => left_name == right_name,
-            (Type::Free(left_name), Type::Free(right_name)) => left_name == right_name,
+            (&Type::Rigid(left_name, ..), &Type::Rigid(right_name, ..)) => left_name == right_name,
+            (&Type::Free(left_name), &Type::Free(right_name)) => left_name == right_name,
             _ => false,
         }
     };

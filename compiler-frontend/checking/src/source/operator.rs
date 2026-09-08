@@ -382,7 +382,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::ExpressionId {
         F: FnOnce(&mut CheckState, TypeId) -> QueryResult<(Self::Elaborated, TypeId)>,
     {
         let expected = normalise::expand(state, context, expected)?;
-        let Type::Constrained(constraint, constrained) = context.lookup_type(expected) else {
+        let Type::Constrained(constraint, constrained) = *context.lookup_type(expected) else {
             return check(state, expected);
         };
 
@@ -552,7 +552,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             operator_kind,
             &[(left_argument, left_kind), (right_argument, right_kind)],
         )? {
-            let result_kind = normalise::normalise(state, context, result_kind)?;
+            let result_kind = normalise::normalise(state, context, result_kind);
             return Ok((elaborated_type, result_kind));
         }
 
@@ -574,7 +574,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             application::Records::Ignore,
         )?;
 
-        let result_kind = normalise::normalise(state, context, right.result_type)?;
+        let result_kind = normalise::normalise(state, context, right.result_type);
         Ok((elaborated_type, result_kind))
     }
 

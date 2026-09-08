@@ -122,11 +122,8 @@ where
             }
         }
 
-        let binders = lowered.tree.iter_binder();
-        let mut binders = binders.collect_vec();
-        binders.sort_unstable_by_key(|(binder_id, _)| *binder_id);
         let mut record_pun_names = FxHashMap::default();
-        for (_, binder) in binders {
+        for (_, binder) in lowered.tree.iter_binder() {
             let lowering::BinderKind::Record { record } = binder else { continue };
             for field in record.iter() {
                 let lowering::BinderRecordItem::RecordPun { id, name: Some(name) } = field else {
@@ -358,7 +355,7 @@ where
             _ => match binder.source {
                 checking_tree::BinderSource::Binder(source) => self.source_binder_name(source),
                 checking_tree::BinderSource::Generated { name, .. } => {
-                    self.queries.lookup_smol_str(name)
+                    SmolStr::clone(self.queries.lookup_smol_str(name))
                 }
                 checking_tree::BinderSource::Section(source) => {
                     format_smolstr!("section{}", source.into_raw().get())
@@ -401,7 +398,7 @@ where
         type_id: checking::TypeId,
         fallback: SmolStr,
     ) -> QueryResult<SmolStr> {
-        let name = match self.queries.lookup_type(type_id) {
+        let name = match *self.queries.lookup_type(type_id) {
             checking::Type::Application(function, _)
             | checking::Type::KindApplication(function, _)
             | checking::Type::Kinded(function, _)
@@ -431,7 +428,9 @@ where
         } else {
             self.queries.checked(rigid.file)?
         };
-        Ok(checked.lookup_name(rigid).map(|name| self.queries.lookup_smol_str(name)))
+        Ok(checked
+            .lookup_name(rigid)
+            .map(|name| SmolStr::clone(self.queries.lookup_smol_str(name))))
     }
 
     fn parameter(&mut self, source: BindingSource, name: SmolStr) -> ConversionResult<Parameter> {
@@ -541,7 +540,7 @@ where
     fn constraint_class_name(&self, constraint: checking::TypeId) -> QueryResult<Option<SmolStr>> {
         let mut current = constraint;
         loop {
-            match self.queries.lookup_type(current) {
+            match *self.queries.lookup_type(current) {
                 checking::Type::Application(function, _)
                 | checking::Type::KindApplication(function, _)
                 | checking::Type::Kinded(function, _) => current = function,

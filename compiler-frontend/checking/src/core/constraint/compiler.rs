@@ -8,6 +8,8 @@ pub mod prim_type_error;
 
 use std::sync::Arc;
 
+use lowering::StringLiteral;
+
 use crate::context::CheckContext;
 use crate::core::fold::{FoldAction, TypeFold, fold_type};
 use crate::core::unification::{CanUnify, can_unify};
@@ -64,7 +66,7 @@ pub enum RowView {
 }
 
 impl RowView {
-    fn from_row(row: RowType) -> RowView {
+    fn from_row(row: &RowType) -> RowView {
         let fields = Arc::clone(&row.fields);
         match row.tail {
             Some(tail) => RowView::Open { fields, tail },
@@ -143,17 +145,17 @@ where
     Q: ExternalQueries,
 {
     let id = recursively_normalise(state, context, id)?;
-    match context.lookup_type(id) {
+    match *context.lookup_type(id) {
         Type::Integer(value) => Ok(Some(value)),
         _ => Ok(None),
     }
 }
 
-pub fn extract_symbol<Q>(
+pub fn extract_symbol<'q, Q>(
     state: &mut CheckState,
-    context: &CheckContext<Q>,
+    context: &CheckContext<'q, Q>,
     id: TypeId,
-) -> QueryResult<Option<lowering::StringLiteral>>
+) -> QueryResult<Option<&'q lowering::StringLiteral>>
 where
     Q: ExternalQueries,
 {
@@ -170,7 +172,7 @@ where
     Q: ExternalQueries,
 {
     let id = recursively_normalise(state, context, id)?;
-    let row = if let Type::Row(id) = context.lookup_type(id) {
+    let row = if let Type::Row(id) = *context.lookup_type(id) {
         RowView::from_row(context.lookup_row_type(id))
     } else {
         RowView::from_tail(id)
@@ -388,7 +390,7 @@ where
         let symbol = extract_symbol(state, context, symbol)?.unwrap_or_else(|| {
             unreachable!("invariant violated: solved IsSymbol constraint has no symbol")
         });
-        return Ok(SynthesizedEvidence::IsSymbol(symbol));
+        return Ok(SynthesizedEvidence::IsSymbol(StringLiteral::clone(symbol)));
     }
 
     if context.known_reflectable.reflectable == Some(class) {
@@ -397,7 +399,7 @@ where
         };
         let value = recursively_normalise(state, context, value)?;
         let reflected = if let Some(symbol) = extract_symbol(state, context, value)? {
-            ReflectableEvidence::String(symbol)
+            ReflectableEvidence::String(StringLiteral::clone(symbol))
         } else if let Some(integer) = extract_integer(state, context, value)? {
             ReflectableEvidence::Integer(integer)
         } else if value == context.prim_boolean.true_ {

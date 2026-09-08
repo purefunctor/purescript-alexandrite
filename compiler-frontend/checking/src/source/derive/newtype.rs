@@ -52,7 +52,7 @@ where
         return Ok(None);
     };
 
-    let inner = normalise::normalise(state, context, inner)?;
+    let inner = normalise::normalise(state, context, inner);
     let class = context.queries.intern_type(Type::Constructor(class_file, class_id));
     let class_kind = toolkit::lookup_file_type(state, context, class_file, class_id)?;
 
@@ -131,7 +131,7 @@ where
     for &rigid in rigids.iter().rev() {
         type_id = normalise::expand(state, context, type_id)?;
 
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
                 let argument = normalise::expand(state, context, argument)?;
                 if argument != rigid {

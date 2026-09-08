@@ -49,7 +49,7 @@ where
 {
     let function = normalise::expand(state, context, function)?;
 
-    match context.lookup_type(function) {
+    match *context.lookup_type(function) {
         Type::Function(argument, result) => Ok(CallableAnalysis::Function { argument, result }),
 
         Type::Unification(unification_id) => {
@@ -74,7 +74,7 @@ where
         Type::Application(function_argument, result) => {
             let function_argument = normalise::expand(state, context, function_argument)?;
 
-            let Type::Application(constructor, argument) = context.lookup_type(function_argument)
+            let Type::Application(constructor, argument) = *context.lookup_type(function_argument)
             else {
                 return Ok(CallableAnalysis::NotCallable);
             };
@@ -84,7 +84,7 @@ where
                 return Ok(CallableAnalysis::Function { argument, result });
             }
 
-            if let Type::Unification(unification_id) = context.lookup_type(constructor) {
+            if let Type::Unification(unification_id) = *context.lookup_type(constructor) {
                 unification::solve(
                     state,
                     context,
@@ -128,7 +128,7 @@ where
 {
     safe_loop! {
         let type_id = normalise::expand(state, context, expression.type_id)?;
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Forall(binder_id, body) => {
                 let binder = context.lookup_forall_binder(binder_id);
                 let (_, result) = instantiate_callable_forall(state, context, binder, body)?;
@@ -160,7 +160,7 @@ where
 {
     safe_loop! {
         let type_id = normalise::expand(state, context, expression.type_id)?;
-        let Type::Constrained(constraint, result) = context.lookup_type(type_id) else {
+        let Type::Constrained(constraint, result) = *context.lookup_type(type_id) else {
             break Ok(expression);
         };
         let evidence = state.push_wanted(constraint);
@@ -364,7 +364,7 @@ where
 
     safe_loop! {
         let type_id = normalise::expand(state, context, function.type_id)?;
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Forall(binder_id, body) => {
                 let binder = context.lookup_forall_binder(binder_id);
                 if binder.visible {

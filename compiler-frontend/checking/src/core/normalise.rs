@@ -30,10 +30,10 @@ where
     fn reduce_once(&mut self, id: TypeId) -> Option<TypeId> {
         let t = self.context.lookup_type(id);
 
-        if let Some(next) = self.rule_prune_unifications(&t) {
+        if let Some(next) = self.rule_prune_unifications(t) {
             return Some(next);
         }
-        if let Some(next) = self.rule_simplify_rows(&t) {
+        if let Some(next) = self.rule_simplify_rows(t) {
             return Some(next);
         }
 
@@ -65,7 +65,7 @@ where
         let tail_id = row.tail?;
         let tail_t = self.context.lookup_type(tail_id);
 
-        let Type::Row(inner_row_id) = tail_t else {
+        let Type::Row(inner_row_id) = *tail_t else {
             return None;
         };
 
@@ -94,16 +94,12 @@ where
 ///
 /// This function should be used in checking rules where
 /// synonyms must remain opaque such as in kind checking.
-pub fn normalise<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    mut id: TypeId,
-) -> QueryResult<TypeId>
+pub fn normalise<Q>(state: &mut CheckState, context: &CheckContext<Q>, mut id: TypeId) -> TypeId
 where
     Q: ExternalQueries,
 {
     if !context.lookup_type_flags(id).may_normalise() {
-        return Ok(id);
+        return id;
     }
 
     let mut reduction = ReductionContext::new(state, context);
@@ -120,7 +116,7 @@ where
         state.unifications.solve(unification_id, id);
     }
 
-    Ok(id)
+    id
 }
 
 /// Expands synonym constructor applications.
@@ -138,12 +134,12 @@ where
 {
     // Keeping the reduction head normalised avoids repeating the same
     // unification pruning while discovering synonym application spines.
-    id = normalise(state, context, id)?;
+    id = normalise(state, context, id);
 
     safe_loop! {
         let expanded = expand_synonym(state, context, id)?;
         if expanded != id {
-            id = normalise(state, context, expanded)?;
+            id = normalise(state, context, expanded);
             continue;
         }
 
@@ -151,7 +147,7 @@ where
         if expanded == id {
             return Ok(id);
         }
-        id = normalise(state, context, expanded)?;
+        id = normalise(state, context, expanded);
     }
 }
 
@@ -176,7 +172,7 @@ where
     let mut flattened_once = false;
 
     let row_tail = safe_loop! {
-        let Type::Row(row_id) = context.lookup_type(current_id) else {
+        let Type::Row(row_id) = *context.lookup_type(current_id) else {
             if flattened_once {
                 break Some(current_id);
             } else {
@@ -248,16 +244,16 @@ where
     // Most application heads are not synonyms. Inspect the head before
     // allocating storage for arguments, preserving normalisation along the spine.
     safe_loop! {
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 argument_count += 1;
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             _ => break,
         }
     }
 
-    let (file_id, type_id) = match context.lookup_type(current) {
+    let (file_id, type_id) = match *context.lookup_type(current) {
         Type::Constructor(file_id, type_id) => (file_id, type_id),
         _ => return Ok(id),
     };
@@ -270,14 +266,14 @@ where
     let mut arguments = Vec::with_capacity(argument_count);
     current = id;
     safe_loop! {
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Application(function, argument) => {
                 arguments.push(ApplicationArgument::Type(argument));
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             Type::KindApplication(function, argument) => {
                 arguments.push(ApplicationArgument::Kind(argument));
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             _ => break,
         }
@@ -305,9 +301,9 @@ where
     // expansion would leave `k` rigid inside the synonym body causing
     // unification errors downstream.
     safe_loop! {
-        kind = normalise(state, context, kind)?;
+        kind = normalise(state, context, kind);
 
-        let Type::Forall(binder_id, inner) = context.lookup_type(kind) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(kind) else {
             break;
         };
 

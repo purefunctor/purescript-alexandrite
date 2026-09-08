@@ -248,6 +248,7 @@ fn source_updates_preserve_identity_and_module_ownership() {
     files.apply(&engine, source_disk("module Main where\n"));
     let file_id = files.source_id(unit().source()).unwrap();
     assert_eq!(engine.module_file("Main"), Some(file_id));
+    engine.parsed(file_id).unwrap();
 
     let event = LifecycleEvent::Source {
         unit: unit(),
@@ -274,6 +275,7 @@ fn source_updates_preserve_identity_and_module_ownership() {
     let change = files.apply(&engine, event);
     assert_eq!(files.source_version(file_id), Some(3));
     assert!(matches!(change.analysis(), AnalysisInvalidation::Sources(_)));
+    engine.parsed(file_id).unwrap();
 
     let event = LifecycleEvent::Source {
         unit: unit(),
@@ -282,6 +284,7 @@ fn source_updates_preserve_identity_and_module_ownership() {
     files.apply(&engine, event);
     assert_eq!(engine.module_file("Library"), None);
     assert_eq!(engine.module_file("Newer"), Some(file_id));
+    engine.parsed(file_id).unwrap();
 
     let event = LifecycleEvent::Source {
         unit: unit(),

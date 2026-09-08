@@ -148,16 +148,20 @@ where
         // ordinary subtyping handles it without collecting applications.
         (_, Type::Forall(_, _)) => subtype(state, context, t1, t2),
         (Type::Forall(binder_id, inner), _) => {
-            let binder = context.lookup_forall_binder(binder_id);
+            let binder = context.lookup_forall_binder(*binder_id);
             let argument = state.fresh_unification(context.queries, binder.kind);
-            let result = SubstituteName::one(state, context, binder.name, argument, inner)?;
+            let result = SubstituteName::one(state, context, binder.name, argument, *inner)?;
             applications.push(SubtypeApplication::Type { result });
             subtype_with_applications_core(state, context, result, t2, applications)
         }
         (Type::Constrained(constraint, result), _) => {
-            let evidence = state.push_wanted(constraint);
-            applications.push(SubtypeApplication::Evidence { evidence, constraint, result });
-            subtype_with_applications_core(state, context, result, t2, applications)
+            let evidence = state.push_wanted(*constraint);
+            applications.push(SubtypeApplication::Evidence {
+                evidence,
+                constraint: *constraint,
+                result: *result,
+            });
+            subtype_with_applications_core(state, context, *result, t2, applications)
         }
         (_, _) => subtype(state, context, t1, t2),
     }
@@ -192,8 +196,8 @@ where
             subtype_function::<Q>(
                 state,
                 context,
-                (t1_argument, t1_result),
-                (t2_argument, t2_result),
+                (*t1_argument, *t1_result),
+                (*t2_argument, *t2_result),
             )
         }
 
@@ -205,7 +209,7 @@ where
                     state,
                     context,
                     (t1_argument, t1_result),
-                    (t2_argument, t2_result),
+                    (*t2_argument, *t2_result),
                 )
             } else {
                 unify(state, context, t1, t2)
@@ -217,7 +221,7 @@ where
                 subtype_function::<Q>(
                     state,
                     context,
-                    (t1_argument, t1_result),
+                    (*t1_argument, *t1_result),
                     (t2_argument, t2_result),
                 )
             } else {
@@ -247,11 +251,11 @@ where
         // If `?a` is solved to a type containing `h`, the skolem escape
         // check is triggered because `h` was defined in a deeper scope.
         (_, Type::Forall(binder_id, inner)) => {
-            let binder = context.lookup_forall_binder(binder_id);
+            let binder = context.lookup_forall_binder(*binder_id);
             let text = state.checked.lookup_name(binder.name);
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
 
-            let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
+            let inner = SubstituteName::one(state, context, binder.name, skolem, *inner)?;
             state.with_depth(|state| subtype_with::<P, Q>(state, context, t1, inner))
         }
 
@@ -272,15 +276,15 @@ where
         //
         // with the substitution [?a := b'].
         (Type::Forall(binder_id, inner), _) => {
-            let binder = context.lookup_forall_binder(binder_id);
+            let binder = context.lookup_forall_binder(*binder_id);
             let unification = state.fresh_unification(context.queries, binder.kind);
 
-            let inner = SubstituteName::one(state, context, binder.name, unification, inner)?;
+            let inner = SubstituteName::one(state, context, binder.name, unification, *inner)?;
             subtype_with::<P, Q>(state, context, inner, t2)
         }
 
         (Type::Constrained(constraint, constrained), _) => {
-            P::on_constrained(state, context, t1, constraint, constrained, t2)
+            P::on_constrained(state, context, t1, *constraint, *constrained, t2)
         }
 
         // Record subtyping is implemented through subtype_rows. Unlike
@@ -289,9 +293,9 @@ where
         (
             Type::Application(t1_function, t1_argument),
             Type::Application(t2_function, t2_argument),
-        ) if t1_function == context.prim.record && t2_function == context.prim.record => {
-            let t1_argument = normalise::expand(state, context, t1_argument)?;
-            let t2_argument = normalise::expand(state, context, t2_argument)?;
+        ) if *t1_function == context.prim.record && *t2_function == context.prim.record => {
+            let t1_argument = normalise::expand(state, context, *t1_argument)?;
+            let t2_argument = normalise::expand(state, context, *t2_argument)?;
 
             let t1_argument_core = context.lookup_type(t1_argument);
             let t2_argument_core = context.lookup_type(t2_argument);
@@ -299,7 +303,7 @@ where
             if let (Type::Row(t1_row_id), Type::Row(t2_row_id)) =
                 (t1_argument_core, t2_argument_core)
             {
-                subtype_rows::<NonElaborating, Q>(state, context, t1_row_id, t2_row_id)
+                subtype_rows::<NonElaborating, Q>(state, context, *t1_row_id, *t2_row_id)
             } else {
                 unify(state, context, t1, t2)
             }
@@ -347,23 +351,23 @@ where
         // PureScript has an impredicative type system i.e. unification
         // variables can be solved to Type::Forall. These rules must
         // be placed before the one-sided Type::Forall skolemisation.
-        (Type::Unification(id), _) => return solve(state, context, t1, id, t2),
-        (_, Type::Unification(id)) => return solve(state, context, t2, id, t1),
+        (Type::Unification(id), _) => return solve(state, context, t1, *id, t2),
+        (_, Type::Unification(id)) => return solve(state, context, t2, *id, t1),
 
         (
             Type::Application(t1_function, t1_argument),
             Type::Application(t2_function, t2_argument),
         ) => {
-            unify(state, context, t1_function, t2_function)?
-                && unify(state, context, t1_argument, t2_argument)?
+            unify(state, context, *t1_function, *t2_function)?
+                && unify(state, context, *t1_argument, *t2_argument)?
         }
 
         (
             Type::KindApplication(t1_function, t1_argument),
             Type::KindApplication(t2_function, t2_argument),
         ) => {
-            unify(state, context, t1_function, t2_function)?
-                && unify(state, context, t1_argument, t2_argument)?
+            unify(state, context, *t1_function, *t2_function)?
+                && unify(state, context, *t1_argument, *t2_argument)?
         }
 
         // Forall-Forall
@@ -376,8 +380,8 @@ where
         // types to be instantiated with the same fresh varible. It
         // does not make sense for Forall to instantiate either side.
         (Type::Forall(t1_binder_id, t1_inner), Type::Forall(t2_binder_id, t2_inner)) => {
-            let t1_binder = context.lookup_forall_binder(t1_binder_id);
-            let t2_binder = context.lookup_forall_binder(t2_binder_id);
+            let t1_binder = context.lookup_forall_binder(*t1_binder_id);
+            let t2_binder = context.lookup_forall_binder(*t2_binder_id);
 
             unify(state, context, t1_binder.kind, t2_binder.kind)?;
 
@@ -387,8 +391,8 @@ where
                 .or_else(|| state.checked.lookup_name(t2_binder.name));
             let skolem = state.fresh_rigid_named(context.queries, t1_binder.kind, text);
 
-            let t1_inner = SubstituteName::one(state, context, t1_binder.name, skolem, t1_inner)?;
-            let t2_inner = SubstituteName::one(state, context, t2_binder.name, skolem, t2_inner)?;
+            let t1_inner = SubstituteName::one(state, context, t1_binder.name, skolem, *t1_inner)?;
+            let t2_inner = SubstituteName::one(state, context, t2_binder.name, skolem, *t2_inner)?;
 
             state.with_depth(|state| unify(state, context, t1_inner, t2_inner))?
         }
@@ -408,17 +412,17 @@ where
         //
         // with the substitution [?a := 'b].
         (Type::Forall(binder_id, inner), _) => {
-            let binder = context.lookup_forall_binder(binder_id);
+            let binder = context.lookup_forall_binder(*binder_id);
             let text = state.checked.lookup_name(binder.name);
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
-            let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
+            let inner = SubstituteName::one(state, context, binder.name, skolem, *inner)?;
             unify(state, context, inner, t2)?
         }
         (_, Type::Forall(binder_id, inner)) => {
-            let binder = context.lookup_forall_binder(binder_id);
+            let binder = context.lookup_forall_binder(*binder_id);
             let text = state.checked.lookup_name(binder.name);
             let skolem = state.fresh_rigid_named(context.queries, binder.kind, text);
-            let inner = SubstituteName::one(state, context, binder.name, skolem, inner)?;
+            let inner = SubstituteName::one(state, context, binder.name, skolem, *inner)?;
             unify(state, context, t1, inner)?
         }
 
@@ -426,26 +430,27 @@ where
             Type::Constrained(t1_constraint, t1_inner),
             Type::Constrained(t2_constraint, t2_inner),
         ) => {
-            unify(state, context, t1_constraint, t2_constraint)?
-                && unify(state, context, t1_inner, t2_inner)?
+            unify(state, context, *t1_constraint, *t2_constraint)?
+                && unify(state, context, *t1_inner, *t2_inner)?
         }
 
         (Type::Application(_, _), Type::Function(t2_argument, t2_result)) => {
-            let t2 = context.intern_function_application(t2_argument, t2_result);
+            let t2 = context.intern_function_application(*t2_argument, *t2_result);
             unify(state, context, t1, t2)?
         }
         (Type::Function(t1_argument, t1_result), Type::Application(_, _)) => {
-            let t1 = context.intern_function_application(t1_argument, t1_result);
+            let t1 = context.intern_function_application(*t1_argument, *t1_result);
             unify(state, context, t1, t2)?
         }
 
         (Type::Function(t1_argument, t1_result), Type::Function(t2_argument, t2_result)) => {
-            unify(state, context, t1_argument, t2_argument)?
-                && unify(state, context, t1_result, t2_result)?
+            unify(state, context, *t1_argument, *t2_argument)?
+                && unify(state, context, *t1_result, *t2_result)?
         }
 
         (Type::Kinded(t1_inner, t1_kind), Type::Kinded(t2_inner, t2_kind)) => {
-            unify(state, context, t1_inner, t2_inner)? && unify(state, context, t1_kind, t2_kind)?
+            unify(state, context, *t1_inner, *t2_inner)?
+                && unify(state, context, *t1_kind, *t2_kind)?
         }
 
         (Type::Constructor(t1_file, t1_item), Type::Constructor(t2_file, t2_item))
@@ -463,13 +468,13 @@ where
         }
 
         (Type::Row(t1_row_id), Type::Row(t2_row_id)) => {
-            unify_rows(state, context, t1_row_id, t2_row_id)?
+            unify_rows(state, context, *t1_row_id, *t2_row_id)?
         }
 
         (Type::Rigid(t1_name, _, t1_kind), Type::Rigid(t2_name, _, t2_kind))
             if t1_name == t2_name =>
         {
-            unify(state, context, t1_kind, t2_kind)?
+            unify(state, context, *t1_kind, *t2_kind)?
         }
 
         _ => false,
@@ -515,27 +520,27 @@ where
         (
             Type::Application(t1_function, t1_argument),
             Type::Application(t2_function, t2_argument),
-        ) => can_unify(state, context, t1_function, t2_function)?
-            .and_then(|| can_unify(state, context, t1_argument, t2_argument)),
+        ) => can_unify(state, context, *t1_function, *t2_function)?
+            .and_then(|| can_unify(state, context, *t1_argument, *t2_argument)),
 
         (Type::Function(t1_argument, t1_result), Type::Function(t2_argument, t2_result)) => {
-            can_unify(state, context, t1_argument, t2_argument)?
-                .and_then(|| can_unify(state, context, t1_result, t2_result))
+            can_unify(state, context, *t1_argument, *t2_argument)?
+                .and_then(|| can_unify(state, context, *t1_result, *t2_result))
         }
 
         (Type::Application(t1_function, _), Type::Function(t2_argument, t2_result)) => {
-            let t1_function = normalise::expand(state, context, t1_function)?;
+            let t1_function = normalise::expand(state, context, *t1_function)?;
             if matches!(context.lookup_type(t1_function), Type::Application(_, _)) {
-                let t2 = context.intern_function_application(t2_argument, t2_result);
+                let t2 = context.intern_function_application(*t2_argument, *t2_result);
                 can_unify(state, context, t1, t2)
             } else {
                 Ok(CanUnify::Apart)
             }
         }
         (Type::Function(t1_argument, t1_result), Type::Application(t2_function, _)) => {
-            let t2_function = normalise::expand(state, context, t2_function)?;
+            let t2_function = normalise::expand(state, context, *t2_function)?;
             if matches!(context.lookup_type(t2_function), Type::Application(_, _)) {
-                let t1 = context.intern_function_application(t1_argument, t1_result);
+                let t1 = context.intern_function_application(*t1_argument, *t1_result);
                 can_unify(state, context, t1, t2)
             } else {
                 Ok(CanUnify::Apart)
@@ -545,33 +550,33 @@ where
         (
             Type::KindApplication(t1_function, t1_argument),
             Type::KindApplication(t2_function, t2_argument),
-        ) => can_unify(state, context, t1_function, t2_function)?
-            .and_then(|| can_unify(state, context, t1_argument, t2_argument)),
+        ) => can_unify(state, context, *t1_function, *t2_function)?
+            .and_then(|| can_unify(state, context, *t1_argument, *t2_argument)),
 
         (Type::Kinded(t1_inner, t1_kind), Type::Kinded(t2_inner, t2_kind)) => {
-            can_unify(state, context, t1_inner, t2_inner)?
-                .and_then(|| can_unify(state, context, t1_kind, t2_kind))
+            can_unify(state, context, *t1_inner, *t2_inner)?
+                .and_then(|| can_unify(state, context, *t1_kind, *t2_kind))
         }
 
         (
             Type::Constrained(t1_constraint, t1_constrained),
             Type::Constrained(t2_constraint, t2_constrained),
-        ) => can_unify(state, context, t1_constraint, t2_constraint)?
-            .and_then(|| can_unify(state, context, t1_constrained, t2_constrained)),
+        ) => can_unify(state, context, *t1_constraint, *t2_constraint)?
+            .and_then(|| can_unify(state, context, *t1_constrained, *t2_constrained)),
 
         (Type::Rigid(t1_name, _, t1_kind), Type::Rigid(t2_name, _, t2_kind)) => {
             if t1_name == t2_name {
-                can_unify(state, context, t1_kind, t2_kind)
+                can_unify(state, context, *t1_kind, *t2_kind)
             } else {
                 Ok(CanUnify::Apart)
             }
         }
 
         (Type::Forall(t1_binder, t1_inner), Type::Forall(t2_binder, t2_inner)) => {
-            let t1_binder = context.lookup_forall_binder(t1_binder);
-            let t2_binder = context.lookup_forall_binder(t2_binder);
+            let t1_binder = context.lookup_forall_binder(*t1_binder);
+            let t2_binder = context.lookup_forall_binder(*t2_binder);
             can_unify(state, context, t1_binder.kind, t2_binder.kind)?
-                .and_then(|| can_unify(state, context, t1_inner, t2_inner))
+                .and_then(|| can_unify(state, context, *t1_inner, *t2_inner))
         }
 
         _ => Ok(CanUnify::Apart),
@@ -673,12 +678,12 @@ where
 
         match t {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
-                check(promote, state, context, function)?
-                    .and_then(|| check(promote, state, context, argument))
+                check(promote, state, context, *function)?
+                    .and_then(|| check(promote, state, context, *argument))
             }
 
             Type::Forall(binder_id, inner) => {
-                let binder = context.lookup_forall_binder(binder_id);
+                let binder = context.lookup_forall_binder(*binder_id);
 
                 let on_kind = check(promote, state, context, binder.kind)?;
                 if !matches!(on_kind, PromoteResult::Ok) {
@@ -686,26 +691,26 @@ where
                 }
 
                 promote.names.push(binder.name);
-                let on_inner = check(promote, state, context, inner)?;
+                let on_inner = check(promote, state, context, *inner)?;
                 promote.names.pop();
 
                 Ok(on_inner)
             }
 
-            Type::Constrained(constraint, inner) => check(promote, state, context, constraint)?
-                .and_then(|| check(promote, state, context, inner)),
+            Type::Constrained(constraint, inner) => check(promote, state, context, *constraint)?
+                .and_then(|| check(promote, state, context, *inner)),
 
-            Type::Function(argument, result) => check(promote, state, context, argument)?
-                .and_then(|| check(promote, state, context, result)),
+            Type::Function(argument, result) => check(promote, state, context, *argument)?
+                .and_then(|| check(promote, state, context, *result)),
 
-            Type::Kinded(inner, kind) => check(promote, state, context, inner)?
-                .and_then(|| check(promote, state, context, kind)),
+            Type::Kinded(inner, kind) => check(promote, state, context, *inner)?
+                .and_then(|| check(promote, state, context, *kind)),
 
             Type::Constructor(_, _) => Ok(PromoteResult::Ok),
             Type::Integer(_) | Type::String(_, _) => Ok(PromoteResult::Ok),
 
             Type::Row(row_id) => {
-                let row = context.lookup_row_type(row_id);
+                let row = context.lookup_row_type(*row_id);
                 for field in row.fields.iter() {
                     let on_field = check(promote, state, context, field.id)?;
                     if !matches!(on_field, PromoteResult::Ok) {
@@ -721,17 +726,17 @@ where
 
             Type::Rigid(name, rigid_depth, kind) => {
                 if promote.names.contains(&name) {
-                    check(promote, state, context, kind)
-                } else if rigid_depth > promote.depth {
+                    check(promote, state, context, *kind)
+                } else if *rigid_depth > promote.depth {
                     Ok(PromoteResult::SkolemEscape)
                 } else {
-                    check(promote, state, context, kind)
+                    check(promote, state, context, *kind)
                 }
             }
 
             Type::Unification(id) => {
                 // Disallow `?t := ?t`
-                if id == promote.id {
+                if *id == promote.id {
                     return Ok(PromoteResult::OccursCheck);
                 }
                 // When solving `a` to a deeper unification variable `b`,
@@ -749,11 +754,11 @@ where
                 // This process eliminates unsolved unification variables
                 // at depth markers that are not in scope, and replaces
                 // them with unification variables that are in scope.
-                let UnificationEntry { depth, kind, .. } = *state.unifications.get(id);
+                let UnificationEntry { depth, kind, .. } = *state.unifications.get(*id);
                 if depth > promote.depth {
                     let promoted = state.unifications.fresh(promote.depth, kind);
                     let promoted = context.queries.intern_type(Type::Unification(promoted));
-                    state.unifications.solve(id, promoted);
+                    state.unifications.solve(*id, promoted);
                 }
 
                 Ok(PromoteResult::Ok)

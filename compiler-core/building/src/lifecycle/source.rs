@@ -184,9 +184,9 @@ where
         let id = self.source_files.insert(Arc::clone(&unit.source), Arc::clone(&text));
         self.source_units.insert(id, SourceUnitKey::clone(unit));
         engine.set_content(id, Arc::clone(&text));
-        let lexed = lexing::lex(&text);
-        let tokens = lexing::layout(&lexed);
-        let (parsed, _) = parsing::parse(&lexed, &tokens);
+        let (parsed, _) = engine
+            .parsed(id)
+            .expect("invariant violated: source lifecycle requires exclusive engine mutation");
         if let Some(name) = parsed.module_name(&text) {
             engine.set_module_file(&name, id);
         }
@@ -204,9 +204,9 @@ where
         if previous_content == *text {
             return false;
         }
-        let previous_lexed = lexing::lex(&previous_content);
-        let previous_tokens = lexing::layout(&previous_lexed);
-        let (previous_parsed, _) = parsing::parse(&previous_lexed, &previous_tokens);
+        let (previous_parsed, _) = engine
+            .parsed(id)
+            .expect("invariant violated: source lifecycle requires exclusive engine mutation");
         let previous_name = previous_parsed.module_name(&previous_content);
 
         let path = self.source_files.path(id);
@@ -214,9 +214,9 @@ where
         debug_assert_eq!(inserted_id, id);
         engine.set_content(id, Arc::clone(text));
 
-        let current_lexed = lexing::lex(text);
-        let current_tokens = lexing::layout(&current_lexed);
-        let (current_parsed, _) = parsing::parse(&current_lexed, &current_tokens);
+        let (current_parsed, _) = engine
+            .parsed(id)
+            .expect("invariant violated: source lifecycle requires exclusive engine mutation");
         let current_name = current_parsed.module_name(text);
         if previous_name != current_name
             && let Some(previous_name) = previous_name

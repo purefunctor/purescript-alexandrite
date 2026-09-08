@@ -269,7 +269,7 @@ where
         let Some(text) = toolkit::lookup_name(state, context, binder.name)? else {
             continue;
         };
-        let Type::Rigid(name, _, _) = context.lookup_type(argument) else {
+        let Type::Rigid(name, _, _) = *context.lookup_type(argument) else {
             continue;
         };
         state.checked.names.entry(name).or_insert(text);
@@ -434,7 +434,7 @@ where
 
         if let Some(class_member_type) = class_member_type {
             let unified = state.with_implication(|state| {
-                let class_member_type = normalise::normalise(state, context, class_member_type)?;
+                let class_member_type = normalise::normalise(state, context, class_member_type);
                 let class_member_type =
                     toolkit::skolemise_forall(state, context, class_member_type)?;
                 let class_member_type = toolkit::collect_givens(state, context, class_member_type)?;
@@ -633,7 +633,7 @@ where
     }
 
     let field_type = SubstituteName::many(state, context, &bindings, member.field_type)?;
-    let field_type = normalise::normalise(state, context, field_type)?;
+    let field_type = normalise::normalise(state, context, field_type);
     Ok(Some(field_type))
 }
 
