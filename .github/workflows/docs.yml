@@ -25,8 +25,16 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Locate pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: v2-docs-pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('docs/pnpm-lock.yaml') }}
 
       - name: Install Rust toolchain
         run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown
@@ -35,7 +43,7 @@ jobs:
         uses: Swatinem/rust-cache@v2.9.2
         with:
           cache-bin: "false"
-          prefix-key: "v4-docs"
+          prefix-key: "v5-docs"
 
       - name: Install wasm-pack
         uses: taiki-e/install-action@v2.87.1
