@@ -1,9 +1,9 @@
 {
   "private": true,
   "devDependencies": {
-    "@babel/core": "7.28.5",
+    "@babel/core": "8.0.1",
     "@stylexjs/babel-plugin": "0.19.0",
     "@stylexjs/stylex": "0.19.0",
-    "spago": "1.0.3"
+    "spago": "1.0.4"
   }
 }
