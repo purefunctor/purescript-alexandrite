@@ -98,7 +98,11 @@ pub fn format_rich_with_path(
         let wrapped = textwrap::wrap(&diagnostic.message, message_width);
         for (index, line) in wrapped.iter().enumerate() {
             let gutter = if index == 0 { &branch } else { &stem };
-            output.push_str(&format!("{gutter} {}\n", paint_quoted_text(line, color)));
+            if line.is_empty() {
+                output.push_str(&format!("{gutter}\n"));
+            } else {
+                output.push_str(&format!("{gutter} {}\n", paint_quoted_text(line, color)));
+            }
         }
         output.push_str(&format!("{stem}\n"));
         render_rich_source(
@@ -115,8 +119,12 @@ pub fn format_rich_with_path(
             let wrapped = textwrap::wrap(&related.message, message_width);
             for (index, line) in wrapped.iter().enumerate() {
                 let gutter = if index == 0 { &branch } else { &stem };
-                let message = paint_quoted_text(&line, color);
-                output.push_str(&format!("{gutter} {message}\n"));
+                if line.is_empty() {
+                    output.push_str(&format!("{gutter}\n"));
+                } else {
+                    let message = paint_quoted_text(line, color);
+                    output.push_str(&format!("{gutter} {message}\n"));
+                }
             }
             output.push_str(&format!("{stem}\n"));
             render_rich_source(

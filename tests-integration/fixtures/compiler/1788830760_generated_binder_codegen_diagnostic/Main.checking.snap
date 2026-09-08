@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Test :: Prim.Int -> Main.Test
+
+Types
+Test :: Prim.Type
+
+Derived
+derive Data.Ord.Ord Main.Test
+
+Roles
+Test = []

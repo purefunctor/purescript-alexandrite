@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+N :: Prim.Int -> Main.N
+:+ :: Prim.Int -> Main.N
+test :: ?[invalid operator kind] -> Prim.Int
+
+Types
+N :: Prim.Type
+
+Roles
+N = []

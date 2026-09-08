@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [JavaScriptCodegen] · Main.purs:1:1
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ The number literal '1.0e999' cannot be represented as a finite JavaScript number.
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

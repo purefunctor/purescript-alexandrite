@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 422
+expression: report
+---
+Diagnostics
+
+0:0..1:0 analyzer/functional [FunctionalCodegen] Cannot generate JavaScript for this module.
+
+A module header with a module name is required.

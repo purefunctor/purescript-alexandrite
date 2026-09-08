@@ -39,11 +39,13 @@ Warning! · [RedundantPattern] · Main.purs:6:1
   │   ╰─────────────────────────────────
   •
 
-Error! · [FunctionalCodegen] · Main.purs:1:1
+Error! · [FunctionalCodegen] · Main.purs:7:15
   •
   │
-  • checked binder Idx::<Binder>(0) contains an error
+  • Cannot generate JavaScript for module 'Main'.
   │
-  │   module Main where
-  │   ╰────────────────
+  │ A pattern could not be translated from its checked representation.
+  │
+  │   invalidBinder "\q" = true
+  │                 ╰───
   •
