@@ -1786,13 +1786,7 @@ where
         names: &mut EvidenceNames,
         evidence: EvidenceVarId,
     ) -> QueryResult<SmolStr> {
-        match self.checked.evidence[evidence].state {
-            EvidenceState::Solved(proof) => {
-                self.evidence_name(names, &self.checked.evidence[proof])
-            }
-            EvidenceState::Unsolved => Ok(SmolStr::new("unsolved")),
-            EvidenceState::Error => Ok(SmolStr::new("error")),
-        }
+        self.evidence_name(names, &Evidence::Variable(evidence))
     }
 
     fn evidence_name(
@@ -1804,57 +1798,77 @@ where
             Evidence(&'a Evidence),
             Variable(EvidenceVarId),
             Text(&'static str),
-            Superclass { start: usize, superclass: SuperclassId },
+            Superclass { opening: usize, spaces_before: usize, superclass: SuperclassId },
         }
 
-        let mut rendered = String::new();
+        let mut fragments: Vec<SmolStr> = vec![];
+        let mut space_fragments = 0;
         let mut pending = vec![Pending::Evidence(evidence)];
         while let Some(next) = pending.pop() {
-            match next {
+            let fragment = match next {
                 Pending::Evidence(Evidence::Variable(evidence)) => {
                     pending.push(Pending::Variable(*evidence));
+                    continue;
                 }
                 Pending::Variable(evidence) => match self.checked.evidence[evidence].state {
                     EvidenceState::Solved(proof) => {
                         pending.push(Pending::Evidence(&self.checked.evidence[proof]));
+                        continue;
                     }
-                    EvidenceState::Unsolved => rendered.push_str("unsolved"),
-                    EvidenceState::Error => rendered.push_str("error"),
+                    EvidenceState::Unsolved => SmolStr::new_static("unsolved"),
+                    EvidenceState::Error => SmolStr::new_static("error"),
                 },
                 Pending::Evidence(Evidence::Given(binder)) => {
-                    rendered.push_str(&self.evidence_binder_name(names, *binder)?);
+                    self.evidence_binder_name(names, *binder)?
                 }
                 Pending::Evidence(Evidence::Instance { origin, subgoals }) => {
-                    rendered.push_str(&self.instance_dictionary_name(*origin)?);
+                    let instance = self.instance_dictionary_name(*origin)?;
                     for subgoal in subgoals.iter().rev() {
                         pending.push(Pending::Text("}"));
                         pending.push(Pending::Variable(*subgoal));
                         pending.push(Pending::Text(" {"));
                     }
+                    instance
                 }
                 Pending::Evidence(Evidence::Superclass { parent, superclass }) => {
+                    // Reserve the opening parenthesis so wrapping a deep parent never
+                    // shifts or copies its already emitted text.
+                    let opening = fragments.len();
+                    fragments.push(SmolStr::new_static(""));
                     pending.push(Pending::Superclass {
-                        start: rendered.len(),
+                        opening,
+                        spaces_before: space_fragments,
                         superclass: *superclass,
                     });
                     pending.push(Pending::Evidence(&self.checked.evidence[*parent]));
+                    continue;
                 }
-                Pending::Evidence(Evidence::Trivial) => rendered.push_str("trivial"),
+                Pending::Evidence(Evidence::Trivial) => SmolStr::new_static("trivial"),
                 Pending::Evidence(Evidence::Synthesized(evidence)) => {
-                    rendered.push_str(&synthesized_evidence_name(evidence));
+                    synthesized_evidence_name(evidence)
                 }
-                Pending::Text(text) => rendered.push_str(text),
-                Pending::Superclass { start, superclass } => {
-                    if rendered[start..].contains(' ') {
-                        rendered.insert(start, '(');
-                        rendered.push(')');
+                Pending::Text(text) => SmolStr::new_static(text),
+                Pending::Superclass { opening, spaces_before, superclass } => {
+                    // Only the parent has emitted text since entry. Counting space-bearing
+                    // fragments preserves `parent.contains(' ')`, including quoted spaces,
+                    // without rescanning the parent at every projection.
+                    if space_fragments != spaces_before {
+                        fragments[opening] = SmolStr::new_static("(");
+                        fragments.push(SmolStr::new_static(")"));
                     }
-                    rendered.push('.');
-                    rendered.push_str(&self.superclass_field_name(superclass)?);
+                    let field = self.superclass_field_name(superclass)?;
+                    format_smolstr!(".{field}")
                 }
-            }
+            };
+            space_fragments += usize::from(fragment.contains(' '));
+            fragments.push(fragment);
         }
-        Ok(SmolStr::new(rendered))
+
+        let mut output = SmolStrBuilder::new();
+        for fragment in fragments {
+            output.push_str(&fragment);
+        }
+        Ok(output.finish())
     }
 
     fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {
