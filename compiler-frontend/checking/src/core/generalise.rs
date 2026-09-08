@@ -54,7 +54,7 @@ where
     where
         Q: ExternalQueries,
     {
-        let id = normalise::normalise(state, context, id)?;
+        let id = normalise::normalise(state, context, id);
         let t = context.lookup_type(id);
 
         match *t {

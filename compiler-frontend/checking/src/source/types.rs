@@ -616,7 +616,7 @@ where
             match *context.lookup_type(function_kind) {
                 Type::Forall(binder_id, inner_kind) => {
                     let binder = context.lookup_forall_binder(binder_id);
-                    let argument = normalise::normalise(state, context, argument)?;
+                    let argument = normalise::normalise(state, context, argument);
                     SubstituteName::one(state, context, binder.name, argument, inner_kind)?
                 }
                 _ => unknown,

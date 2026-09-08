@@ -52,7 +52,7 @@ where
         return Ok(None);
     };
 
-    let inner = normalise::normalise(state, context, inner)?;
+    let inner = normalise::normalise(state, context, inner);
     let class = context.queries.intern_type(Type::Constructor(class_file, class_id));
     let class_kind = toolkit::lookup_file_type(state, context, class_file, class_id)?;
 

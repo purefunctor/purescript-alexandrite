@@ -94,16 +94,12 @@ where
 ///
 /// This function should be used in checking rules where
 /// synonyms must remain opaque such as in kind checking.
-pub fn normalise<Q>(
-    state: &mut CheckState,
-    context: &CheckContext<Q>,
-    mut id: TypeId,
-) -> QueryResult<TypeId>
+pub fn normalise<Q>(state: &mut CheckState, context: &CheckContext<Q>, mut id: TypeId) -> TypeId
 where
     Q: ExternalQueries,
 {
     if !context.lookup_type_flags(id).may_normalise() {
-        return Ok(id);
+        return id;
     }
 
     let mut reduction = ReductionContext::new(state, context);
@@ -120,7 +116,7 @@ where
         state.unifications.solve(unification_id, id);
     }
 
-    Ok(id)
+    id
 }
 
 /// Expands synonym constructor applications.
@@ -138,12 +134,12 @@ where
 {
     // Keeping the reduction head normalised avoids repeating the same
     // unification pruning while discovering synonym application spines.
-    id = normalise(state, context, id)?;
+    id = normalise(state, context, id);
 
     safe_loop! {
         let expanded = expand_synonym(state, context, id)?;
         if expanded != id {
-            id = normalise(state, context, expanded)?;
+            id = normalise(state, context, expanded);
             continue;
         }
 
@@ -151,7 +147,7 @@ where
         if expanded == id {
             return Ok(id);
         }
-        id = normalise(state, context, expanded)?;
+        id = normalise(state, context, expanded);
     }
 }
 
@@ -251,7 +247,7 @@ where
         match *context.lookup_type(current) {
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 argument_count += 1;
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             _ => break,
         }
@@ -273,11 +269,11 @@ where
         match *context.lookup_type(current) {
             Type::Application(function, argument) => {
                 arguments.push(ApplicationArgument::Type(argument));
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             Type::KindApplication(function, argument) => {
                 arguments.push(ApplicationArgument::Kind(argument));
-                current = normalise(state, context, function)?;
+                current = normalise(state, context, function);
             }
             _ => break,
         }
@@ -305,7 +301,7 @@ where
     // expansion would leave `k` rigid inside the synonym body causing
     // unification errors downstream.
     safe_loop! {
-        kind = normalise(state, context, kind)?;
+        kind = normalise(state, context, kind);
 
         let Type::Forall(binder_id, inner) = *context.lookup_type(kind) else {
             break;

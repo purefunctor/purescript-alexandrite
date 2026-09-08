@@ -45,14 +45,14 @@ where
     Q: ExternalQueries,
     F: TypeFold,
 {
-    let mut id = normalise::normalise(state, context, id)?;
+    let mut id = normalise::normalise(state, context, id);
 
     let t = safe_loop! {
         let t = context.lookup_type(id);
         match folder.transform(state, context, id, t)? {
             FoldAction::Replace(id) => return Ok(id),
             FoldAction::ReplaceThen(then_id) => {
-                let then_id = normalise::normalise(state, context, then_id)?;
+                let then_id = normalise::normalise(state, context, then_id);
                 if then_id == id {
                     break context.lookup_type(id);
                 }
@@ -160,7 +160,7 @@ where
             break;
         };
 
-        let tail = normalise::normalise(state, context, tail)?;
+        let tail = normalise::normalise(state, context, tail);
         let Type::Row(row_id) = *context.lookup_type(tail) else {
             break;
         };

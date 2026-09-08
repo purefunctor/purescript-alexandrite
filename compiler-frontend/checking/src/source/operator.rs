@@ -552,7 +552,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             operator_kind,
             &[(left_argument, left_kind), (right_argument, right_kind)],
         )? {
-            let result_kind = normalise::normalise(state, context, result_kind)?;
+            let result_kind = normalise::normalise(state, context, result_kind);
             return Ok((elaborated_type, result_kind));
         }
 
@@ -574,7 +574,7 @@ impl<Q: ExternalQueries> IsOperator<Q> for lowering::TypeId {
             application::Records::Ignore,
         )?;
 
-        let result_kind = normalise::normalise(state, context, right.result_type)?;
+        let result_kind = normalise::normalise(state, context, right.result_type);
         Ok((elaborated_type, result_kind))
     }
 

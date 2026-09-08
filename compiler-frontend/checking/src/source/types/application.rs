@@ -57,7 +57,7 @@ impl Options {
         if self.expand {
             normalise::expand(state, context, id)
         } else {
-            normalise::normalise(state, context, id)
+            Ok(normalise::normalise(state, context, id))
         }
     }
 }

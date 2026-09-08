@@ -489,7 +489,7 @@ where
         };
 
         let binder = context.lookup_forall_binder(binder_id);
-        let binder_kind = normalise::normalise(state, context, binder.kind)?;
+        let binder_kind = normalise::normalise(state, context, binder.kind);
 
         let replacement = state.fresh_unification(context.queries, binder_kind);
         id = SubstituteName::one(state, context, binder.name, replacement, inner)?;
@@ -515,7 +515,7 @@ where
         };
 
         let binder = context.lookup_forall_binder(binder_id);
-        let binder_kind = normalise::normalise(state, context, binder.kind)?;
+        let binder_kind = normalise::normalise(state, context, binder.kind);
 
         let text = state.checked.lookup_name(binder.name);
         let rigid = state.fresh_rigid_named(context.queries, binder_kind, text);
@@ -862,7 +862,7 @@ where
         current = SubstituteName::one(state, context, binder.name, replacement, inner)?;
     }
 
-    current = normalise::normalise(state, context, current)?;
+    current = normalise::normalise(state, context, current);
 
     let InspectFunction { arguments, .. } = inspect_function(state, context, current)?;
     let [inner] = arguments[..] else { return Ok(None) };

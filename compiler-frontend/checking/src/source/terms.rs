@@ -113,7 +113,7 @@ fn check_expression_quiet<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = normalise::normalise(state, context, expected)?;
+    let expected = normalise::normalise(state, context, expected);
     check_expected_expression(state, context, expected, |state, expected| {
         if let Some(section_result) = context.sectioned.expressions.get(&expression) {
             check_sectioned_expression(state, context, expression, section_result, expected)
@@ -132,7 +132,7 @@ pub(super) fn check_elaborated_expression<Q>(
 where
     Q: ExternalQueries,
 {
-    let expected = normalise::normalise(state, context, expected)?;
+    let expected = normalise::normalise(state, context, expected);
     let checked = check_expected_expression(state, context, expected, |state, expected| {
         check_elaborated_expression_quiet(state, context, inferred, expected)
     })?;
@@ -154,7 +154,7 @@ where
         Type::Forall(binder_id, inner) => {
             let binder = context.lookup_forall_binder(binder_id);
 
-            let kind = normalise::normalise(state, context, binder.kind)?;
+            let kind = normalise::normalise(state, context, binder.kind);
             let text = state.checked.lookup_name(binder.name);
             let (rigid, name, scope) = state.fresh_scoped_rigid_named(context.queries, kind, text);
 
