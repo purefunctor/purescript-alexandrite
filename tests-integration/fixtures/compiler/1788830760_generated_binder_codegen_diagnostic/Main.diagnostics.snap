@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:7:1
+  •
+  │
+  • Cannot unify 'Int -> Ordering' with 'Ordering'
+  │
+  │   derive instance ordTest :: Ord Test
+  │   ╰──────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:7:1
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ A pattern could not be translated from its checked representation.
+  │
+  │   derive instance ordTest :: Ord Test
+  │   ╰──────────────────────────────────
+  •

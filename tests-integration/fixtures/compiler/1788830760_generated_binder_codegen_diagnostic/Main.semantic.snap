@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Test :: Prim.Type
+data Test
+  | Test :: Prim.Int -> Main.Test
+
+dictionary ordTest :: Data.Ord.Ord Main.Test where
+  compare :: Main.Test -> Main.Test -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (Test left0), (Test right0) ->
+        case compare {ordInt} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering

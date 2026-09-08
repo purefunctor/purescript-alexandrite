@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+test :: Prim.Int
+test =
+  let
+    missing :: Prim.Int
+    missing = <error>
+  in
+    missing

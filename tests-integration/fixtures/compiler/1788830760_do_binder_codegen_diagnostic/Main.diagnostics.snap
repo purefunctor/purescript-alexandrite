@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Parse error · Main.purs:6:3 · Expected LEFT_ARROW
+Parse error · Main.purs:6:5 · Unexpected token in function binders
+Error! · [FunctionalCodegen] · Main.purs:6:3
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ A pattern could not be translated from its checked representation.
+  │
+  │     \ @ -> 1
+  │     ╰───────
+  •
