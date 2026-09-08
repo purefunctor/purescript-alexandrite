@@ -14,8 +14,8 @@ use functional::optimize::{for_each_expression_child, local_uses};
 use functional::tree::{
     Binding, CaseAlternative, Declaration, DeclarationKind, EffectExpression,
     ExpressionId as FunctionalExpressionId, ExpressionKind, Global, GlobalId, Guard,
-    GuardedAlternative, LocalId, Module as FunctionalModule, Parameter, PatternId, PatternKind,
-    RecordUpdate,
+    GuardedAlternative, LocalId, Module as FunctionalModule, ModuleDependency, Parameter,
+    PatternId, PatternKind, RecordUpdate,
 };
 use itertools::Itertools;
 use oxc_allocator::Allocator;
@@ -48,6 +48,7 @@ const INITIALIZER_CYCLE_MESSAGE: &str = "Top-level value initializer cycle";
 
 pub(crate) struct Generator<'m> {
     module: &'m FunctionalModule,
+    module_dependencies: FxHashMap<FileId, &'m ModuleDependency>,
     global_names: FxHashMap<GlobalId, SmolStr>,
     external_module_namespaces: FxHashMap<FileId, SmolStr>,
     external_named_imports: FxHashMap<GlobalId, SmolStr>,
@@ -270,6 +271,11 @@ impl<'m> Generator<'m> {
             global_names.insert(declaration.global.id, name);
         }
 
+        let mut module_dependencies = FxHashMap::default();
+        for dependency in module.dependencies.iter() {
+            module_dependencies.entry(dependency.file_id).or_insert(dependency);
+        }
+
         let external_references = collect_module_references(module);
         let stylex_references = collect_stylex_references(module);
         let stylex_reference_ids =
@@ -277,10 +283,8 @@ impl<'m> Generator<'m> {
         let mut external_named_imports = FxHashMap::default();
         for global in stylex_references {
             let file_id = global_file(global.id);
-            let dependency = module
-                .dependencies
-                .iter()
-                .find(|dependency| dependency.file_id == file_id)
+            let dependency = module_dependencies
+                .get(&file_id)
                 .expect("invariant violated: external global has no module dependency");
             let preferred = format_smolstr!("{}_{}", dependency.module_name, global.item_name);
             let name = allocator.allocate(preferred.replace('.', "_"));
@@ -291,10 +295,8 @@ impl<'m> Generator<'m> {
             external_references.iter().filter(|global| !stylex_reference_ids.contains(&global.id))
         {
             let file_id = global_file(global.id);
-            let dependency = module
-                .dependencies
-                .iter()
-                .find(|dependency| dependency.file_id == file_id)
+            let dependency = module_dependencies
+                .get(&file_id)
                 .expect("invariant violated: external global has no module dependency");
             external_module_namespaces
                 .entry(file_id)
@@ -357,6 +359,7 @@ impl<'m> Generator<'m> {
 
         Generator {
             module,
+            module_dependencies,
             global_names,
             external_module_namespaces,
             external_named_imports,
@@ -3169,11 +3172,9 @@ impl Generator<'_> {
             .expect("invariant violated: JavaScript global has no allocated name")
     }
 
-    fn module_dependency(&self, file_id: FileId) -> &functional::tree::ModuleDependency {
-        self.module
-            .dependencies
-            .iter()
-            .find(|dependency| dependency.file_id == file_id)
+    fn module_dependency(&self, file_id: FileId) -> &ModuleDependency {
+        self.module_dependencies
+            .get(&file_id)
             .expect("invariant violated: referenced module has no dependency metadata")
     }
 
