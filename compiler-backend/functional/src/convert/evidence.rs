@@ -601,13 +601,17 @@ where
         &mut self,
         declarations: &mut Vec<Declaration>,
     ) -> ConversionResult<()> {
+        let occurrences = std::mem::take(&mut self.evidence_hoisting.occurrences);
+        if occurrences.is_empty() {
+            return Ok(());
+        }
+
         let roots = declarations.iter().filter_map(|declaration| match declaration.kind {
             DeclarationKind::Value(expression) => Some(expression),
             DeclarationKind::Constructor { .. } | DeclarationKind::Foreign => None,
         });
         let reachable = reachable_expressions(&self.storage, roots);
         let unsafe_instances = unsafe_local_instances(&self.storage, declarations);
-        let occurrences = std::mem::take(&mut self.evidence_hoisting.occurrences);
 
         let mut candidates = Vec::new();
         for (key, mut occurrences) in occurrences {
@@ -1010,6 +1014,14 @@ fn unsafe_local_instances(
     storage: &Storage,
     declarations: &[Declaration],
 ) -> FxHashSet<InstanceIdentity> {
+    let has_instances = declarations.iter().any(|declaration| {
+        matches!(declaration.global.id, GlobalId::Instance(_))
+            && matches!(declaration.kind, DeclarationKind::Value(_))
+    });
+    if !has_instances {
+        return FxHashSet::default();
+    }
+
     let values = declarations.iter().filter_map(|declaration| match declaration.kind {
         DeclarationKind::Value(expression) => {
             Some((declaration.global.id, declaration.recursive_group, expression))
