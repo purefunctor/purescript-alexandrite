@@ -1798,77 +1798,62 @@ where
             Evidence(&'a Evidence),
             Variable(EvidenceVarId),
             Text(&'static str),
-            Superclass { opening: usize, spaces_before: usize, superclass: SuperclassId },
+            Superclass { prefix: SmolStrBuilder, superclass: SuperclassId },
         }
 
-        let mut fragments: Vec<SmolStr> = vec![];
-        let mut space_fragments = 0;
+        let mut rendered = SmolStrBuilder::new();
         let mut pending = vec![Pending::Evidence(evidence)];
         while let Some(next) = pending.pop() {
-            let fragment = match next {
+            match next {
                 Pending::Evidence(Evidence::Variable(evidence)) => {
                     pending.push(Pending::Variable(*evidence));
-                    continue;
                 }
                 Pending::Variable(evidence) => match self.checked.evidence[evidence].state {
                     EvidenceState::Solved(proof) => {
                         pending.push(Pending::Evidence(&self.checked.evidence[proof]));
-                        continue;
                     }
-                    EvidenceState::Unsolved => SmolStr::new_static("unsolved"),
-                    EvidenceState::Error => SmolStr::new_static("error"),
+                    EvidenceState::Unsolved => rendered.push_str("unsolved"),
+                    EvidenceState::Error => rendered.push_str("error"),
                 },
                 Pending::Evidence(Evidence::Given(binder)) => {
-                    self.evidence_binder_name(names, *binder)?
+                    rendered.push_str(&self.evidence_binder_name(names, *binder)?);
                 }
                 Pending::Evidence(Evidence::Instance { origin, subgoals }) => {
-                    let instance = self.instance_dictionary_name(*origin)?;
+                    rendered.push_str(&self.instance_dictionary_name(*origin)?);
                     for subgoal in subgoals.iter().rev() {
                         pending.push(Pending::Text("}"));
                         pending.push(Pending::Variable(*subgoal));
                         pending.push(Pending::Text(" {"));
                     }
-                    instance
                 }
                 Pending::Evidence(Evidence::Superclass { parent, superclass }) => {
-                    // Reserve the opening parenthesis so wrapping a deep parent never
-                    // shifts or copies its already emitted text.
-                    let opening = fragments.len();
-                    fragments.push(SmolStr::new_static(""));
                     pending.push(Pending::Superclass {
-                        opening,
-                        spaces_before: space_fragments,
+                        prefix: std::mem::take(&mut rendered),
                         superclass: *superclass,
                     });
                     pending.push(Pending::Evidence(&self.checked.evidence[*parent]));
-                    continue;
                 }
-                Pending::Evidence(Evidence::Trivial) => SmolStr::new_static("trivial"),
+                Pending::Evidence(Evidence::Trivial) => rendered.push_str("trivial"),
                 Pending::Evidence(Evidence::Synthesized(evidence)) => {
-                    synthesized_evidence_name(evidence)
+                    rendered.push_str(&synthesized_evidence_name(evidence));
                 }
-                Pending::Text(text) => SmolStr::new_static(text),
-                Pending::Superclass { opening, spaces_before, superclass } => {
-                    // Only the parent has emitted text since entry. Counting space-bearing
-                    // fragments preserves `parent.contains(' ')`, including quoted spaces,
-                    // without rescanning the parent at every projection.
-                    if space_fragments != spaces_before {
-                        fragments[opening] = SmolStr::new_static("(");
-                        fragments.push(SmolStr::new_static(")"));
+                Pending::Text(text) => rendered.push_str(text),
+                Pending::Superclass { prefix, superclass } => {
+                    let parent = rendered.finish();
+                    rendered = prefix;
+                    if parent.contains(' ') {
+                        rendered.push('(');
+                        rendered.push_str(&parent);
+                        rendered.push(')');
+                    } else {
+                        rendered.push_str(&parent);
                     }
-                    let field = self.superclass_field_name(superclass)?;
-                    format_smolstr!(".{field}")
+                    rendered.push('.');
+                    rendered.push_str(&self.superclass_field_name(superclass)?);
                 }
-            };
-            space_fragments += usize::from(fragment.contains(' '));
-            fragments.push(fragment);
+            }
         }
-
-        let mut output = SmolStrBuilder::new();
-        for fragment in fragments {
-            output.push_str(&fragment);
-        }
-        Ok(output.finish())
+        Ok(rendered.finish())
     }
 
     fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {
