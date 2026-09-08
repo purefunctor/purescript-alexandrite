@@ -49,6 +49,27 @@ enum ExpressionPrecedence {
     Atom,
 }
 
+#[derive(Clone, Copy)]
+enum EvidencePrecedence {
+    Application,
+    Atom,
+}
+
+impl EvidencePrecedence {
+    fn append_projection(self, output: &mut SmolStrBuilder, parent: &str, field: &str) {
+        match self {
+            EvidencePrecedence::Application => {
+                output.push('(');
+                output.push_str(parent);
+                output.push(')');
+            }
+            EvidencePrecedence::Atom => output.push_str(parent),
+        }
+        output.push('.');
+        output.push_str(field);
+    }
+}
+
 fn character_literal(value: char) -> String {
     match value {
         '\n' => "'\\n'".to_string(),
@@ -1798,10 +1819,12 @@ where
             Evidence(&'a Evidence),
             Variable(EvidenceVarId),
             Text(&'static str),
+            Precedence(EvidencePrecedence),
             Superclass { prefix: SmolStrBuilder, superclass: SuperclassId },
         }
 
         let mut rendered = SmolStrBuilder::new();
+        let mut precedence = EvidencePrecedence::Atom;
         let mut pending = vec![Pending::Evidence(evidence)];
         while let Some(next) = pending.pop() {
             match next {
@@ -1812,14 +1835,27 @@ where
                     EvidenceState::Solved(proof) => {
                         pending.push(Pending::Evidence(&self.checked.evidence[proof]));
                     }
-                    EvidenceState::Unsolved => rendered.push_str("unsolved"),
-                    EvidenceState::Error => rendered.push_str("error"),
+                    EvidenceState::Unsolved => {
+                        rendered.push_str("unsolved");
+                        precedence = EvidencePrecedence::Atom;
+                    }
+                    EvidenceState::Error => {
+                        rendered.push_str("error");
+                        precedence = EvidencePrecedence::Atom;
+                    }
                 },
                 Pending::Evidence(Evidence::Given(binder)) => {
                     rendered.push_str(&self.evidence_binder_name(names, *binder)?);
+                    precedence = EvidencePrecedence::Atom;
                 }
                 Pending::Evidence(Evidence::Instance { origin, subgoals }) => {
                     rendered.push_str(&self.instance_dictionary_name(*origin)?);
+                    let instance_precedence = if subgoals.is_empty() {
+                        EvidencePrecedence::Atom
+                    } else {
+                        EvidencePrecedence::Application
+                    };
+                    pending.push(Pending::Precedence(instance_precedence));
                     for subgoal in subgoals.iter().rev() {
                         pending.push(Pending::Text("}"));
                         pending.push(Pending::Variable(*subgoal));
@@ -1833,23 +1869,22 @@ where
                     });
                     pending.push(Pending::Evidence(&self.checked.evidence[*parent]));
                 }
-                Pending::Evidence(Evidence::Trivial) => rendered.push_str("trivial"),
+                Pending::Evidence(Evidence::Trivial) => {
+                    rendered.push_str("trivial");
+                    precedence = EvidencePrecedence::Atom;
+                }
                 Pending::Evidence(Evidence::Synthesized(evidence)) => {
                     rendered.push_str(&synthesized_evidence_name(evidence));
+                    precedence = EvidencePrecedence::Atom;
                 }
                 Pending::Text(text) => rendered.push_str(text),
+                Pending::Precedence(completed) => precedence = completed,
                 Pending::Superclass { prefix, superclass } => {
                     let parent = rendered.finish();
                     rendered = prefix;
-                    if parent.contains(' ') {
-                        rendered.push('(');
-                        rendered.push_str(&parent);
-                        rendered.push(')');
-                    } else {
-                        rendered.push_str(&parent);
-                    }
-                    rendered.push('.');
-                    rendered.push_str(&self.superclass_field_name(superclass)?);
+                    let field = self.superclass_field_name(superclass)?;
+                    precedence.append_projection(&mut rendered, &parent, &field);
+                    precedence = EvidencePrecedence::Atom;
                 }
             }
         }
@@ -2102,5 +2137,39 @@ fn synthesized_evidence_name(evidence: &SynthesizedEvidence) -> SmolStr {
         SynthesizedEvidence::Reflectable(ReflectableEvidence::Ordering(
             ReflectableOrdering::Greater,
         )) => REFLECTABLE_GREATER_EVIDENCE,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use smol_str::SmolStrBuilder;
+
+    use super::EvidencePrecedence;
+
+    #[test]
+    fn atomic_evidence_projections_do_not_depend_on_text_contents() {
+        for parent in ["childDict", "childInt", "childDict.parentDict", "isSymbol(\"two words\")"] {
+            let mut output = SmolStrBuilder::new();
+            output.push_str("useParent {");
+            EvidencePrecedence::Atom.append_projection(&mut output, parent, "parentDict");
+            output.push('}');
+            assert_eq!(output.finish(), format!("useParent {{{parent}.parentDict}}"));
+        }
+    }
+
+    #[test]
+    fn application_evidence_is_parenthesized_before_projection() {
+        let mut output = SmolStrBuilder::new();
+        EvidencePrecedence::Application.append_projection(
+            &mut output,
+            "childInt {parentInt}",
+            "parentDict",
+        );
+        let parent = output.finish();
+        assert_eq!(parent, "(childInt {parentInt}).parentDict");
+
+        let mut output = SmolStrBuilder::new();
+        EvidencePrecedence::Atom.append_projection(&mut output, &parent, "ancestorDict");
+        assert_eq!(output.finish(), "(childInt {parentInt}).parentDict.ancestorDict");
     }
 }
