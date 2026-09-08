@@ -269,7 +269,7 @@ where
         let Some(text) = toolkit::lookup_name(state, context, binder.name)? else {
             continue;
         };
-        let Type::Rigid(name, _, _) = context.lookup_type(argument) else {
+        let Type::Rigid(name, _, _) = *context.lookup_type(argument) else {
             continue;
         };
         state.checked.names.entry(name).or_insert(text);

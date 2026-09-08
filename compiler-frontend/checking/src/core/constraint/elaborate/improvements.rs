@@ -32,10 +32,10 @@ where
 
     match (context.lookup_type(left), context.lookup_type(right)) {
         (Type::Rigid(name, _, _), _) => {
-            improvements.push((name, right));
+            improvements.push((*name, right));
         }
         (_, Type::Rigid(name, _, _)) => {
-            improvements.push((name, left));
+            improvements.push((*name, left));
         }
 
         (
@@ -49,16 +49,16 @@ where
             collect_structural_improvements(
                 state,
                 context,
-                left_function,
-                right_function,
+                *left_function,
+                *right_function,
                 seen,
                 improvements,
             )?;
             collect_structural_improvements(
                 state,
                 context,
-                left_argument,
-                right_argument,
+                *left_argument,
+                *right_argument,
                 seen,
                 improvements,
             )?;
@@ -71,28 +71,28 @@ where
             collect_structural_improvements(
                 state,
                 context,
-                left_argument,
-                right_argument,
+                *left_argument,
+                *right_argument,
                 seen,
                 improvements,
             )?;
             collect_structural_improvements(
                 state,
                 context,
-                left_result,
-                right_result,
+                *left_result,
+                *right_result,
                 seen,
                 improvements,
             )?;
         }
 
         (Type::Function(left_argument, left_result), Type::Application(_, _)) => {
-            let left = context.intern_function_application(left_argument, left_result);
+            let left = context.intern_function_application(*left_argument, *left_result);
             collect_structural_improvements(state, context, left, right, seen, improvements)?;
         }
 
         (Type::Application(_, _), Type::Function(right_argument, right_result)) => {
-            let right = context.intern_function_application(right_argument, right_result);
+            let right = context.intern_function_application(*right_argument, *right_result);
             collect_structural_improvements(state, context, left, right, seen, improvements)?;
         }
 
@@ -100,16 +100,16 @@ where
             collect_structural_improvements(
                 state,
                 context,
-                left_inner,
-                right_inner,
+                *left_inner,
+                *right_inner,
                 seen,
                 improvements,
             )?;
             collect_structural_improvements(
                 state,
                 context,
-                left_kind,
-                right_kind,
+                *left_kind,
+                *right_kind,
                 seen,
                 improvements,
             )?;
@@ -119,8 +119,8 @@ where
             collect_row_improvements(
                 state,
                 context,
-                left_row_id,
-                right_row_id,
+                *left_row_id,
+                *right_row_id,
                 seen,
                 improvements,
             )?;
@@ -152,8 +152,8 @@ where
     let mut right_index = 0;
     let mut right_only = vec![];
 
-    let left_fields = left_row.fields;
-    let right_fields = right_row.fields;
+    let left_fields = &left_row.fields;
+    let right_fields = &right_row.fields;
 
     while left_index < left_fields.len() && right_index < right_fields.len() {
         let left_field = &left_fields[left_index];

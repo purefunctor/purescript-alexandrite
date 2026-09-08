@@ -93,7 +93,7 @@ where
 {
     safe_loop! {
         id = normalise::expand(state, context, id)?;
-        match context.lookup_type(id) {
+        match *context.lookup_type(id) {
             Type::Unification(u) => return Ok(Some(u)),
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 id = function;
@@ -270,11 +270,11 @@ where
     Q: ExternalQueries,
 {
     let id = normalise::expand(state, context, id)?;
-    match context.lookup_type(id) {
+    match *context.lookup_type(id) {
         Type::Function(argument, result) => Ok(Some((argument, result))),
         Type::Application(partial, result) => {
             let partial = normalise::expand(state, context, partial)?;
-            if let Type::Application(constructor, argument) = context.lookup_type(partial) {
+            if let Type::Application(constructor, argument) = *context.lookup_type(partial) {
                 let constructor = normalise::expand(state, context, constructor)?;
                 if constructor == context.prim.function {
                     return Ok(Some((argument, result)));
@@ -298,8 +298,8 @@ where
     let left = normalise::expand(state, context, left)?;
     let right = normalise::expand(state, context, right)?;
 
-    let Type::Row(left_row_id) = context.lookup_type(left) else { return Ok(None) };
-    let Type::Row(right_row_id) = context.lookup_type(right) else { return Ok(None) };
+    let Type::Row(left_row_id) = *context.lookup_type(left) else { return Ok(None) };
+    let Type::Row(right_row_id) = *context.lookup_type(right) else { return Ok(None) };
 
     let left_row = context.lookup_row_type(left_row_id);
     let right_row = context.lookup_row_type(right_row_id);
@@ -385,7 +385,7 @@ where
 {
     safe_loop! {
         kind_id = normalise::expand(state, context, kind_id)?;
-        match context.lookup_type(kind_id) {
+        match *context.lookup_type(kind_id) {
             Type::Forall(binder_id, inner_kind) => {
                 let binder = context.lookup_forall_binder(binder_id);
                 let fresh = state.fresh_rigid(context.queries, binder.kind);
@@ -428,25 +428,25 @@ where
             Type::KindApplication(t2_function, t2_argument),
         )
         | (Type::Kinded(t1_function, t1_argument), Type::Kinded(t2_function, t2_argument)) => {
-            Ok(try_refl(state, context, t1_function, t2_function)?
-                && try_refl(state, context, t1_argument, t2_argument)?)
+            Ok(try_refl(state, context, *t1_function, *t2_function)?
+                && try_refl(state, context, *t1_argument, *t2_argument)?)
         }
 
         (Type::Function(t1_argument, t1_result), Type::Function(t2_argument, t2_result)) => {
-            Ok(try_refl(state, context, t1_argument, t2_argument)?
-                && try_refl(state, context, t1_result, t2_result)?)
+            Ok(try_refl(state, context, *t1_argument, *t2_argument)?
+                && try_refl(state, context, *t1_result, *t2_result)?)
         }
 
         (Type::Forall(t1_binder_id, t1_inner), Type::Forall(t2_binder_id, t2_inner)) => {
-            let t1_binder = context.lookup_forall_binder(t1_binder_id);
-            let t2_binder = context.lookup_forall_binder(t2_binder_id);
+            let t1_binder = context.lookup_forall_binder(*t1_binder_id);
+            let t2_binder = context.lookup_forall_binder(*t2_binder_id);
             Ok(try_refl(state, context, t1_binder.kind, t2_binder.kind)?
-                && try_refl(state, context, t1_inner, t2_inner)?)
+                && try_refl(state, context, *t1_inner, *t2_inner)?)
         }
 
         (Type::Row(t1_row_id), Type::Row(t2_row_id)) => {
-            let t1_row = context.lookup_row_type(t1_row_id);
-            let t2_row = context.lookup_row_type(t2_row_id);
+            let t1_row = context.lookup_row_type(*t1_row_id);
+            let t2_row = context.lookup_row_type(*t2_row_id);
             if t1_row.fields.len() != t2_row.fields.len() {
                 return Ok(false);
             }
@@ -465,7 +465,7 @@ where
         }
 
         (Type::Rigid(t1_name, _, t1_kind), Type::Rigid(t2_name, _, t2_kind)) => {
-            Ok(t1_name == t2_name && try_refl(state, context, t1_kind, t2_kind)?)
+            Ok(t1_name == t2_name && try_refl(state, context, *t1_kind, *t2_kind)?)
         }
 
         _ => Ok(false),

@@ -1135,7 +1135,7 @@ where
 
     safe_loop! {
         current_id = normalise::expand(state, context, current_id)?;
-        match context.lookup_type(current_id) {
+        match *context.lookup_type(current_id) {
             Type::Application(function, argument) => {
                 arguments.push(argument);
                 current_id = function;
@@ -1169,7 +1169,7 @@ where
 
     safe_loop! {
         type_id = normalise::expand(state, context, type_id)?;
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Forall(binder_id, inner) => {
                 let binder = context.lookup_forall_binder(binder_id);
                 let argument_type = if let Some(argument) = arguments_iter.next() {

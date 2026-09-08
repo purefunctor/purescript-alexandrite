@@ -63,7 +63,7 @@ where
 
     loop {
         current = normalise::expand(state, context, current)?;
-        let Type::Forall(binder_id, inner) = context.lookup_type(current) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(current) else {
             break;
         };
 
@@ -96,7 +96,7 @@ where
 {
     let type_id = normalise::expand(state, context, type_id)?;
 
-    match context.lookup_type(type_id) {
+    match *context.lookup_type(type_id) {
         Type::Application(function, argument) => {
             let function = normalise::expand(state, context, function)?;
             if function == context.prim.record {
@@ -137,7 +137,7 @@ where
     Q: ExternalQueries,
 {
     let type_id = normalise::expand(state, context, type_id)?;
-    let Type::Application(function, _) = context.lookup_type(type_id) else {
+    let Type::Application(function, _) = *context.lookup_type(type_id) else {
         return Ok(ComparisonStyle::Direct);
     };
     comparison_style_for_function(state, context, function)
@@ -152,7 +152,7 @@ where
     Q: ExternalQueries,
 {
     let function = normalise::expand(state, context, function)?;
-    let kind = match context.lookup_type(function) {
+    let kind = match *context.lookup_type(function) {
         Type::Rigid(_, _, kind) => kind,
         Type::Unification(unification_id) => state.unifications.get(unification_id).kind,
         _ => return Ok(ComparisonStyle::Direct),

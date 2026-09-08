@@ -152,7 +152,7 @@ where
     let mut arguments = vec![];
     safe_loop! {
         applied_type = normalise::expand(state, context, applied_type)?;
-        match context.lookup_type(applied_type) {
+        match *context.lookup_type(applied_type) {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
                 arguments.push(argument);
                 applied_type = function;
@@ -178,7 +178,7 @@ where
 
     safe_loop! {
         current = normalise::expand(state, context, current)?;
-        let Type::Forall(binder_id, inner) = context.lookup_type(current) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(current) else {
             break;
         };
 

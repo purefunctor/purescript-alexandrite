@@ -150,7 +150,7 @@ where
     F: FnOnce(&mut CheckState, TypeId) -> QueryResult<ElaboratedExpression>,
 {
     let expected = normalise::expand(state, context, expected)?;
-    match context.lookup_type(expected) {
+    match *context.lookup_type(expected) {
         Type::Forall(binder_id, inner) => {
             let binder = context.lookup_forall_binder(binder_id);
 
@@ -214,7 +214,7 @@ where
         if !parameters.is_empty() {
             let expanded = normalise::expand(state, context, current)?;
             let requires_abstraction = matches!(
-                context.lookup_type(expanded),
+                *context.lookup_type(expanded),
                 Type::Forall(_, _) | Type::Constrained(_, _)
             );
             if requires_abstraction {

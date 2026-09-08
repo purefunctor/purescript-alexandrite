@@ -151,7 +151,7 @@ where
         if !arguments.is_empty() {
             let expanded = normalise::expand(state, context, remaining)?;
             let requires_abstraction = matches!(
-                context.lookup_type(expanded),
+                *context.lookup_type(expanded),
                 Type::Forall(_, _) | Type::Constrained(_, _)
             );
             if requires_abstraction {

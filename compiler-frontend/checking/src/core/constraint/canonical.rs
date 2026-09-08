@@ -108,7 +108,7 @@ where
 
     let class = normalise::expand(state, context, class)?;
 
-    let Type::Constructor(file_id, type_id) = context.lookup_type(class) else {
+    let Type::Constructor(file_id, type_id) = *context.lookup_type(class) else {
         return Ok(None);
     };
 

@@ -622,16 +622,16 @@ where
     Ok((record_type, checked_fields.into()))
 }
 
-fn extract_expected_row<Q>(
+fn extract_expected_row<'q, Q>(
     state: &mut CheckState,
-    context: &CheckContext<Q>,
+    context: &CheckContext<'q, Q>,
     expected_type: TypeId,
-) -> QueryResult<Option<RowType>>
+) -> QueryResult<Option<&'q RowType>>
 where
     Q: ExternalQueries,
 {
     let expected_type = normalise::expand(state, context, expected_type)?;
-    let Type::Application(function, argument) = context.lookup_type(expected_type) else {
+    let Type::Application(function, argument) = *context.lookup_type(expected_type) else {
         return Ok(None);
     };
     let function = normalise::expand(state, context, function)?;
@@ -639,7 +639,7 @@ where
         return Ok(None);
     }
     let row = normalise::expand(state, context, argument)?;
-    let Type::Row(row_id) = context.lookup_type(row) else {
+    let Type::Row(row_id) = *context.lookup_type(row) else {
         return Ok(None);
     };
     Ok(Some(context.lookup_row_type(row_id)))
@@ -660,7 +660,7 @@ where
 
     let expected_type = normalise::expand(state, context, expected_type)?;
 
-    let expected_row = if let Type::Application(function, _) = context.lookup_type(expected_type) {
+    let expected_row = if let Type::Application(function, _) = *context.lookup_type(expected_type) {
         let function = normalise::expand(state, context, function)?;
         if function == context.prim.record {
             extract_expected_row(state, context, expected_type)?

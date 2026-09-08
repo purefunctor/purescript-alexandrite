@@ -175,14 +175,14 @@ where
         result_type: checking::TypeId,
         call: StyleXRootCall,
     ) -> ConversionResult<Option<ExpressionId>> {
-        let checking::Type::Application(_, mut row_type) = self.queries.lookup_type(result_type)
+        let checking::Type::Application(_, mut row_type) = *self.queries.lookup_type(result_type)
         else {
             return Ok(None);
         };
 
         let mut labels = vec![];
         loop {
-            let checking::Type::Row(row_id) = self.queries.lookup_type(row_type) else {
+            let checking::Type::Row(row_id) = *self.queries.lookup_type(row_type) else {
                 return Ok(None);
             };
             let row = self.queries.lookup_row_type(row_id);

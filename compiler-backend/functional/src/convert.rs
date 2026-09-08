@@ -355,7 +355,7 @@ where
             _ => match binder.source {
                 checking_tree::BinderSource::Binder(source) => self.source_binder_name(source),
                 checking_tree::BinderSource::Generated { name, .. } => {
-                    self.queries.lookup_smol_str(name)
+                    SmolStr::clone(self.queries.lookup_smol_str(name))
                 }
                 checking_tree::BinderSource::Section(source) => {
                     format_smolstr!("section{}", source.into_raw().get())
@@ -398,7 +398,7 @@ where
         type_id: checking::TypeId,
         fallback: SmolStr,
     ) -> QueryResult<SmolStr> {
-        let name = match self.queries.lookup_type(type_id) {
+        let name = match *self.queries.lookup_type(type_id) {
             checking::Type::Application(function, _)
             | checking::Type::KindApplication(function, _)
             | checking::Type::Kinded(function, _)
@@ -428,7 +428,9 @@ where
         } else {
             self.queries.checked(rigid.file)?
         };
-        Ok(checked.lookup_name(rigid).map(|name| self.queries.lookup_smol_str(name)))
+        Ok(checked
+            .lookup_name(rigid)
+            .map(|name| SmolStr::clone(self.queries.lookup_smol_str(name))))
     }
 
     fn parameter(&mut self, source: BindingSource, name: SmolStr) -> ConversionResult<Parameter> {
@@ -538,7 +540,7 @@ where
     fn constraint_class_name(&self, constraint: checking::TypeId) -> QueryResult<Option<SmolStr>> {
         let mut current = constraint;
         loop {
-            match self.queries.lookup_type(current) {
+            match *self.queries.lookup_type(current) {
                 checking::Type::Application(function, _)
                 | checking::Type::KindApplication(function, _)
                 | checking::Type::Kinded(function, _) => current = function,

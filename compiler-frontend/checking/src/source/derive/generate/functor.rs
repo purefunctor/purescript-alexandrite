@@ -969,11 +969,11 @@ where
     }
 }
 
-fn extract_record_row<Q>(
+fn extract_record_row<'q, Q>(
     state: &mut CheckState,
-    context: &CheckContext<Q>,
+    context: &CheckContext<'q, Q>,
     type_id: TypeId,
-) -> QueryResult<Option<RowType>>
+) -> QueryResult<Option<&'q RowType>>
 where
     Q: ExternalQueries,
 {
@@ -981,6 +981,6 @@ where
         return Ok(None);
     };
     let row = normalise::expand(state, context, row)?;
-    let Type::Row(row) = context.lookup_type(row) else { return Ok(None) };
+    let Type::Row(row) = *context.lookup_type(row) else { return Ok(None) };
     Ok(Some(context.lookup_row_type(row)))
 }

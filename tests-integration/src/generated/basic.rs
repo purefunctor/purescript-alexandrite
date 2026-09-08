@@ -294,7 +294,7 @@ pub fn report_checked(engine: &QueryEngine, id: FileId) -> String {
             class.kind_binders.iter().chain(class.type_parameters.iter()).copied().collect_vec();
 
         let mut class_head = class.canonical;
-        while let core::Type::Forall(_, inner) = engine.lookup_type(class_head) {
+        while let core::Type::Forall(_, inner) = *engine.lookup_type(class_head) {
             class_head = inner;
         }
 

@@ -35,13 +35,13 @@ pub trait PrettyQueries:
         Lowered = Arc<lowering::LoweredModule>,
     >
 {
-    fn lookup_type(&self, id: TypeId) -> Type;
+    fn lookup_type(&self, id: TypeId) -> &Type;
 
     fn lookup_forall_binder(&self, id: ForallBinderId) -> ForallBinder;
 
-    fn lookup_row_type(&self, id: RowTypeId) -> RowType;
+    fn lookup_row_type(&self, id: RowTypeId) -> &RowType;
 
-    fn lookup_smol_str(&self, id: SmolStrId) -> SmolStr;
+    fn lookup_smol_str(&self, id: SmolStrId) -> &SmolStr;
 }
 
 #[derive(Clone, Debug)]
@@ -93,7 +93,7 @@ impl PrettyNames {
 
         let display = if let Some(&id) = names.get(&name) {
             let base = queries.lookup_smol_str(id);
-            self.allocate_display_name(base)
+            self.allocate_display_name(SmolStr::clone(base))
         } else {
             let base = SmolStr::clone(&self.default_name);
             self.allocate_generated_display_name(base)
@@ -387,7 +387,7 @@ where
         }
     }
 
-    fn lookup_type(&self, id: TypeId) -> Type {
+    fn lookup_type(&self, id: TypeId) -> &Type {
         self.queries.lookup_type(id)
     }
 
@@ -395,11 +395,7 @@ where
         self.queries.lookup_forall_binder(id)
     }
 
-    fn lookup_row_type(&self, id: RowTypeId) -> RowType {
-        self.queries.lookup_row_type(id)
-    }
-
-    fn lookup_smol_str(&self, id: SmolStrId) -> smol_str::SmolStr {
+    fn lookup_smol_str(&self, id: SmolStrId) -> &smol_str::SmolStr {
         self.queries.lookup_smol_str(id)
     }
 
@@ -437,7 +433,7 @@ where
     }
 
     fn is_record_constructor(&self, id: TypeId) -> bool {
-        if let Type::Constructor(file_id, type_id) = self.lookup_type(id)
+        if let Type::Constructor(file_id, type_id) = *self.lookup_type(id)
             && file_id == self.queries.prim_id()
             && let Some(name) = self.lookup_type_name(file_id, type_id)
         {
@@ -447,7 +443,7 @@ where
     }
 
     fn is_type_kind(&self, id: TypeId) -> bool {
-        if let Type::Constructor(file_id, type_id) = self.lookup_type(id)
+        if let Type::Constructor(file_id, type_id) = *self.lookup_type(id)
             && file_id == self.queries.prim_id()
             && let Some(name) = self.lookup_type_name(file_id, type_id)
         {
@@ -467,33 +463,34 @@ where
     }
 
     fn traverse(&mut self, precedence: Precedence, id: TypeId) -> Doc<'arena> {
-        match self.lookup_type(id) {
-            Type::Application(function, argument) => {
+        let queries = self.queries;
+        match queries.lookup_type(id) {
+            &Type::Application(function, argument) => {
                 self.traverse_application(precedence, function, argument)
             }
 
-            Type::KindApplication(function, argument) => {
+            &Type::KindApplication(function, argument) => {
                 self.traverse_kind_application(precedence, function, argument)
             }
 
-            Type::Forall(binder_id, inner) => self.traverse_forall(precedence, binder_id, inner),
+            &Type::Forall(binder_id, inner) => self.traverse_forall(precedence, binder_id, inner),
 
-            Type::Constrained(constraint, inner) => {
+            &Type::Constrained(constraint, inner) => {
                 self.traverse_constrained(precedence, constraint, inner)
             }
 
-            Type::Function(argument, result) => {
+            &Type::Function(argument, result) => {
                 self.traverse_function(precedence, argument, result)
             }
 
-            Type::Kinded(inner, kind) => {
+            &Type::Kinded(inner, kind) => {
                 let inner = self.traverse(Precedence::Application, inner);
                 let kind = self.traverse(Precedence::Top, kind);
                 let kinded = inner.append(self.arena.text(" :: ")).append(kind);
                 self.parens_if(precedence > Precedence::Atom, kinded)
             }
 
-            Type::Constructor(file_id, type_id) => {
+            &Type::Constructor(file_id, type_id) => {
                 let name = self
                     .display_type_name(file_id, type_id)
                     .unwrap_or_else(|| "<InvalidName>".to_string());
@@ -506,9 +503,9 @@ where
                 self.parens_if(negative, integer)
             }
 
-            Type::String(kind, string) => match kind {
+            Type::String(kind, string) => match *kind {
                 StringKind::String => {
-                    self.arena.text(lowering::literal::encode_normal_string(&string))
+                    self.arena.text(lowering::literal::encode_normal_string(string))
                 }
                 StringKind::RawString => {
                     let string = string.to_utf8().unwrap_or_else(|_| {
@@ -518,15 +515,15 @@ where
                 }
             },
 
-            Type::Row(row_id) => {
-                let row = self.lookup_row_type(row_id);
+            &Type::Row(row_id) => {
+                let row = queries.lookup_row_type(row_id);
                 if row.fields.is_empty() && row.tail.is_none() {
                     return self.arena.text("()");
                 }
                 self.format_row(&row.fields, row.tail)
             }
 
-            Type::Rigid(name, _, kind) => {
+            &Type::Rigid(name, _, kind) => {
                 let text = self.pretty_names.display_name(self.queries, self.names, name);
                 if self.show_rigid_kinds && !self.is_type_kind(kind) {
                     let kind = self.traverse(Precedence::Top, kind);
@@ -539,14 +536,14 @@ where
                 }
             }
 
-            Type::Unification(unification_id) => self.arena.text(format!("?{unification_id}")),
+            &Type::Unification(unification_id) => self.arena.text(format!("?{unification_id}")),
 
-            Type::Free(name_id) => {
+            &Type::Free(name_id) => {
                 let name = self.lookup_smol_str(name_id);
                 self.arena.text(format!("{name}"))
             }
 
-            Type::Unknown(name_id) => {
+            &Type::Unknown(name_id) => {
                 let name = self.lookup_smol_str(name_id);
                 self.arena.text(format!("?[{name}]"))
             }
@@ -570,7 +567,7 @@ where
 
         let mut arguments = vec![argument];
 
-        while let Type::Application(inner_function, argument) = self.lookup_type(function) {
+        while let Type::Application(inner_function, argument) = *self.lookup_type(function) {
             function = inner_function;
             arguments.push(argument);
         }
@@ -589,9 +586,10 @@ where
     }
 
     fn format_record_application(&mut self, argument: TypeId) -> Doc<'arena> {
-        match self.lookup_type(argument) {
-            Type::Row(row_id) => {
-                let row = self.lookup_row_type(row_id);
+        let queries = self.queries;
+        match queries.lookup_type(argument) {
+            &Type::Row(row_id) => {
+                let row = queries.lookup_row_type(row_id);
                 self.format_record(&row.fields, row.tail)
             }
             _ => {
@@ -609,7 +607,7 @@ where
     ) -> Doc<'arena> {
         let mut arguments = vec![argument];
 
-        while let Type::KindApplication(inner_function, argument) = self.lookup_type(function) {
+        while let Type::KindApplication(inner_function, argument) = *self.lookup_type(function) {
             function = inner_function;
             arguments.push(argument);
         }
@@ -642,7 +640,7 @@ where
         let binder = self.lookup_forall_binder(binder_id);
         let mut binders = vec![binder];
 
-        while let Type::Forall(next_binder_id, next_inner) = self.lookup_type(inner) {
+        while let Type::Forall(next_binder_id, next_inner) = *self.lookup_type(inner) {
             binders.push(self.lookup_forall_binder(next_binder_id));
             inner = next_inner;
         }
@@ -689,7 +687,7 @@ where
     ) -> Doc<'arena> {
         let mut constraints = vec![constraint];
 
-        while let Type::Constrained(constraint, next_inner) = self.lookup_type(inner) {
+        while let Type::Constrained(constraint, next_inner) = *self.lookup_type(inner) {
             constraints.push(constraint);
             inner = next_inner;
         }
@@ -718,7 +716,7 @@ where
     ) -> Doc<'arena> {
         let mut arguments = vec![argument];
 
-        while let Type::Function(argument, next_result) = self.lookup_type(result) {
+        while let Type::Function(argument, next_result) = *self.lookup_type(result) {
             result = next_result;
             arguments.push(argument);
         }

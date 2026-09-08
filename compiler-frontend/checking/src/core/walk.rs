@@ -41,7 +41,7 @@ where
         return Ok(());
     }
 
-    match t {
+    match *t {
         Type::Application(function, argument) | Type::KindApplication(function, argument) => {
             walk_type(state, context, function, walker)?;
             walk_type(state, context, argument, walker)?;

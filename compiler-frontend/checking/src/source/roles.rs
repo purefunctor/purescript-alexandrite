@@ -163,7 +163,7 @@ where
 {
     let type_id = normalise::expand(inference.state, inference.context, type_id)?;
 
-    match inference.context.lookup_type(type_id) {
+    match *inference.context.lookup_type(type_id) {
         Type::Rigid(name, _, kind) => {
             if let Some(index) = inference.parameters.get(&name) {
                 let role = if mode.requires_nominal_role() {
@@ -181,7 +181,7 @@ where
             let function_id = normalise::expand(inference.state, inference.context, function)?;
 
             let is_type_variable =
-                matches!(inference.context.lookup_type(function_id), Type::Rigid(_, _, _));
+                matches!(*inference.context.lookup_type(function_id), Type::Rigid(_, _, _));
 
             infer_roles(inference, function, mode.child())?;
             infer_roles(inference, argument, mode.argument_child(is_type_variable))?;

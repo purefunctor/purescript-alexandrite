@@ -154,8 +154,8 @@ where
 
     let row_type_id = normalise::expand(state, context, *row_type_id)?;
 
-    let row_fields = if let Type::Row(row_type_id) = context.lookup_type(row_type_id) {
-        context.lookup_row_type(row_type_id).fields
+    let row_fields = if let Type::Row(row_type_id) = *context.lookup_type(row_type_id) {
+        Arc::clone(&context.lookup_row_type(row_type_id).fields)
     } else {
         return Ok(None);
     };
@@ -354,7 +354,7 @@ where
 
     safe_loop! {
         type_id = normalise::expand(state, context, type_id)?;
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Application(function, argument) => {
                 arguments.push(argument);
                 type_id = function;

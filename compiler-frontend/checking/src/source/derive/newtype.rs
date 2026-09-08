@@ -131,7 +131,7 @@ where
     for &rigid in rigids.iter().rev() {
         type_id = normalise::expand(state, context, type_id)?;
 
-        match context.lookup_type(type_id) {
+        match *context.lookup_type(type_id) {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
                 let argument = normalise::expand(state, context, argument)?;
                 if argument != rigid {

@@ -83,7 +83,7 @@ impl<'a> TypeEncoder<'a> {
     }
 
     fn encode_type(&mut self, id: checking::TypeId) -> Result<schema::Type, Error> {
-        let expression = match self.engine.lookup_type(id) {
+        let expression = match *self.engine.lookup_type(id) {
             checking::Type::Application(function, argument) => schema::Type::Application {
                 function: self.encode_boxed_type(function)?,
                 argument: self.encode_boxed_type(argument)?,
@@ -112,7 +112,7 @@ impl<'a> TypeEncoder<'a> {
                 reference: self.resolve_type_reference(file_id, type_id)?,
             },
             checking::Type::Integer(value) => schema::Type::Integer { value },
-            checking::Type::String(kind, value) => {
+            checking::Type::String(kind, ref value) => {
                 let value = match value.to_utf8() {
                     Ok(value) => schema::StringLiteralValue::Utf8(value),
                     Err(_) => schema::StringLiteralValue::Utf16(value.as_utf16().to_vec()),

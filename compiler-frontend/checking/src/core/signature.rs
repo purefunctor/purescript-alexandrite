@@ -57,7 +57,7 @@ where
     safe_loop! {
         current = normalise::expand(state, context, current)?;
 
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Forall(binder_id, inner) => {
                 abstractions.push(DecomposedAbstraction::Type { binder: binder_id });
                 current = inner;
@@ -89,7 +89,7 @@ where
                 let function_argument =
                     normalise::expand(state, context, function_argument)?;
 
-                let Type::Application(function, argument) = context.lookup_type(function_argument)
+                let Type::Application(function, argument) = *context.lookup_type(function_argument)
                 else {
                     return Ok(DecomposedSignature { abstractions, arguments, result: current });
                 };
@@ -175,7 +175,7 @@ where
     while arguments.len() < required {
         let current = normalise::expand(state, context, *result_type)?;
 
-        let Type::Unification(unification_id) = context.lookup_type(current) else {
+        let Type::Unification(unification_id) = *context.lookup_type(current) else {
             break;
         };
 

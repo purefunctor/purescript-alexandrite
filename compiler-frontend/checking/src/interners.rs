@@ -16,8 +16,8 @@ impl CoreInterners {
         self.types.intern_with_metadata(t, flags)
     }
 
-    pub fn lookup_type(&self, id: TypeId) -> Type {
-        self.types[id].clone()
+    pub fn lookup_type(&self, id: TypeId) -> &Type {
+        &self.types[id]
     }
 
     pub fn lookup_type_flags(&self, id: TypeId) -> TypeFlags {
@@ -49,16 +49,16 @@ impl CoreInterners {
         self.row_types.intern(r)
     }
 
-    pub fn lookup_row_type(&self, id: RowTypeId) -> RowType {
-        self.row_types[id].clone()
+    pub fn lookup_row_type(&self, id: RowTypeId) -> &RowType {
+        &self.row_types[id]
     }
 
     pub fn intern_smol_str(&self, s: SmolStr) -> crate::core::SmolStrId {
         self.smol_strs.intern(s)
     }
 
-    pub fn lookup_smol_str(&self, id: crate::core::SmolStrId) -> SmolStr {
-        self.smol_strs[id].clone()
+    pub fn lookup_smol_str(&self, id: crate::core::SmolStrId) -> &SmolStr {
+        &self.smol_strs[id]
     }
 }
 
@@ -70,6 +70,38 @@ mod tests {
 
     use super::CoreInterners;
     use crate::core::{RowField, RowType, Type};
+
+    #[test]
+    fn borrowed_values_remain_stable_during_concurrent_interning() {
+        let interners = CoreInterners::default();
+        let type_id = interners.intern_type(Type::Integer(-1));
+        let row_id = interners.intern_row_type(RowType::from_closed(Arc::from([])));
+        let string_id = interners.intern_smol_str(SmolStr::new("stable"));
+        let borrowed_type = interners.lookup_type(type_id);
+        let borrowed_row = interners.lookup_row_type(row_id);
+        let borrowed_string = interners.lookup_smol_str(string_id);
+
+        std::thread::scope(|scope| {
+            for _ in 0..4 {
+                let interners = &interners;
+                scope.spawn(move || {
+                    for value in 0..4096 {
+                        let id = interners.intern_type(Type::Integer(value));
+                        let fields = Arc::from([RowField { label: SmolStr::new("field"), id }]);
+                        interners.intern_row_type(RowType::from_closed(fields));
+                        interners.intern_smol_str(SmolStr::new(value.to_string()));
+                        assert_eq!(borrowed_type, &Type::Integer(-1));
+                        assert_eq!(borrowed_row, &RowType::from_closed(Arc::from([])));
+                        assert_eq!(borrowed_string, "stable");
+                    }
+                });
+            }
+        });
+
+        assert!(std::ptr::eq(borrowed_type, interners.lookup_type(type_id)));
+        assert!(std::ptr::eq(borrowed_row, interners.lookup_row_type(row_id)));
+        assert!(std::ptr::eq(borrowed_string, interners.lookup_smol_str(string_id)));
+    }
 
     #[test]
     fn normalisation_flags_describe_head_reductions() {

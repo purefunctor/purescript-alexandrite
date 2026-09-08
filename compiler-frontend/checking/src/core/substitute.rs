@@ -33,7 +33,7 @@ impl RigidRenaming {
     where
         Q: ExternalQueries,
     {
-        let Type::Rigid(name, depth, _) = context.lookup_type(replacement) else {
+        let Type::Rigid(name, depth, _) = *context.lookup_type(replacement) else {
             unreachable!("invariant violated: expected a rigid variable");
         };
         let replacement = RigidReplacement { name, depth, type_id: replacement };

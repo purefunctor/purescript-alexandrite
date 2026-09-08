@@ -1,5 +1,5 @@
 use building_types::QueryResult;
-use lowering::StringKind;
+use lowering::{StringKind, StringLiteral};
 use smol_str::{SmolStr, format_smolstr};
 
 use crate::ExternalQueries;
@@ -52,7 +52,7 @@ where
 {
     let id = normalise::expand(state, context, id)?;
     if let Type::String(kind, value) = context.lookup_type(id) {
-        Ok(Some((kind, value)))
+        Ok(Some((*kind, StringLiteral::clone(value))))
     } else {
         Ok(None)
     }
@@ -100,7 +100,7 @@ where
 {
     let doc = normalise::expand(state, context, doc)?;
 
-    if let Type::Unification(u) = context.lookup_type(doc) {
+    if let Type::Unification(u) = *context.lookup_type(doc) {
         return Err(RenderStuck::Blocked(u));
     }
 

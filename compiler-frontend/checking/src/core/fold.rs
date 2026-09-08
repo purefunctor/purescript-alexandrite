@@ -49,7 +49,7 @@ where
 
     let t = safe_loop! {
         let t = context.lookup_type(id);
-        match folder.transform(state, context, id, &t)? {
+        match folder.transform(state, context, id, t)? {
             FoldAction::Replace(id) => return Ok(id),
             FoldAction::ReplaceThen(then_id) => {
                 let then_id = normalise::normalise(state, context, then_id)?;
@@ -77,7 +77,7 @@ where
         }};
     }
 
-    let result = match t {
+    let result = match *t {
         Type::Application(function, argument) => {
             fold_pair!(function, argument, intern_application)
         }
@@ -161,7 +161,7 @@ where
         };
 
         let tail = normalise::normalise(state, context, tail)?;
-        let Type::Row(row_id) = context.lookup_type(tail) else {
+        let Type::Row(row_id) = *context.lookup_type(tail) else {
             break;
         };
 

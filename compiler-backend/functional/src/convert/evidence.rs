@@ -896,7 +896,7 @@ where
         let mut current = constraint;
         let mut arguments = vec![];
         loop {
-            match self.queries.lookup_type(current) {
+            match *self.queries.lookup_type(current) {
                 checking::Type::Application(function, argument) => {
                     arguments.push(argument);
                     current = function;
@@ -931,7 +931,7 @@ where
         if *fragments >= MAX_EVIDENCE_NAME_FRAGMENTS {
             return Ok(());
         }
-        match self.queries.lookup_type(type_id) {
+        match *self.queries.lookup_type(type_id) {
             checking::Type::Application(function, argument) => {
                 self.append_evidence_type_name(name, function, fragments)?;
                 self.append_evidence_type_name(name, argument, fragments)?;

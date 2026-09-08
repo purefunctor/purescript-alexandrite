@@ -325,7 +325,7 @@ where
     }
 
     /// Looks up the [`Type`] for the given [`TypeId`].
-    pub fn lookup_type(&self, id: TypeId) -> Type {
+    pub fn lookup_type(&self, id: TypeId) -> &'q Type {
         self.queries.lookup_type(id)
     }
 
@@ -339,7 +339,7 @@ where
     }
 
     /// Looks up the [`RowType`] for the given [`RowTypeId`].
-    pub fn lookup_row_type(&self, id: RowTypeId) -> RowType {
+    pub fn lookup_row_type(&self, id: RowTypeId) -> &'q RowType {
         self.queries.lookup_row_type(id)
     }
 

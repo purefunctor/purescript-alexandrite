@@ -365,7 +365,7 @@ where
     let replacement = substitute_type(state, context, substitution, replacement)?;
     let replacement = normalise::expand(state, context, replacement)?;
 
-    match context.lookup_type(replacement) {
+    match *context.lookup_type(replacement) {
         Type::Unification(_) | Type::Unknown(_) => return Ok(false),
         Type::Rigid(replacement, _, _) if replacement == name => return Ok(false),
         _ => {}

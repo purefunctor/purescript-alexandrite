@@ -72,7 +72,7 @@ impl ApplyKinds {
         Q: ExternalQueries,
     {
         safe_loop! {
-            match context.lookup_type(function) {
+            match *context.lookup_type(function) {
                 Type::KindApplication(inner_function, _) => function = inner_function,
                 Type::Constructor(file_id, item_id) => return self.reference == (file_id, item_id),
                 _ => return false,

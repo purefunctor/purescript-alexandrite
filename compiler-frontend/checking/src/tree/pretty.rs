@@ -473,7 +473,7 @@ where
             let mut constructor_type = result;
             for &argument_id in constructor.arguments.iter().rev() {
                 let argument = type_pretty.render(argument_id);
-                let argument = match self.queries.lookup_type(argument_id) {
+                let argument = match *self.queries.lookup_type(argument_id) {
                     Type::Forall(..)
                     | Type::Constrained(..)
                     | Type::Function(..)
@@ -717,7 +717,7 @@ where
         let mut type_pretty = self.type_pretty.state();
 
         for (rigid, display) in rigid_names {
-            if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
+            if let Type::Rigid(name, _, _) = *self.queries.lookup_type(*rigid) {
                 type_pretty.assign_display_name(name, SmolStr::clone(display));
             }
         }
@@ -734,7 +734,7 @@ where
             };
             if let Some(text) = text {
                 let text = self.queries.lookup_smol_str(text);
-                type_pretty.allocate_display_name(binder.name, text);
+                type_pretty.allocate_display_name(binder.name, SmolStr::clone(text));
             }
         }
 
@@ -766,7 +766,7 @@ where
         rigid_names: &[(crate::TypeId, SmolStr)],
     ) {
         for (rigid, display) in rigid_names {
-            if let Type::Rigid(name, _, _) = self.queries.lookup_type(*rigid) {
+            if let Type::Rigid(name, _, _) = *self.queries.lookup_type(*rigid) {
                 type_pretty.assign_display_name(name, SmolStr::clone(display));
             }
         }
@@ -781,13 +781,13 @@ where
     ) -> QueryResult<(Doc<'arena>, Vec<(crate::TypeId, SmolStr)>)> {
         let mut binders = vec![];
         let mut current = type_id;
-        while let Type::Forall(binder, inner) = self.queries.lookup_type(current) {
+        while let Type::Forall(binder, inner) = *self.queries.lookup_type(current) {
             binders.push(binder);
             current = inner;
         }
         debug_assert_eq!(binders.len(), instance.rigid_parameters.len());
 
-        while let Type::Constrained(_, inner) = self.queries.lookup_type(current) {
+        while let Type::Constrained(_, inner) = *self.queries.lookup_type(current) {
             current = inner;
         }
 
@@ -872,7 +872,7 @@ where
         let mut current = type_id;
         let mut arguments = vec![];
         loop {
-            match self.queries.lookup_type(current) {
+            match *self.queries.lookup_type(current) {
                 Type::Forall(_, inner) | Type::Constrained(_, inner) | Type::Kinded(inner, _) => {
                     current = inner;
                 }
@@ -900,7 +900,7 @@ where
         name: &mut String,
         type_id: crate::TypeId,
     ) -> QueryResult<()> {
-        match self.queries.lookup_type(type_id) {
+        match *self.queries.lookup_type(type_id) {
             Type::Application(function, argument) | Type::KindApplication(function, argument) => {
                 self.append_type_constructor_names(name, function)?;
                 self.append_type_constructor_names(name, argument)?;
@@ -2046,7 +2046,7 @@ where
 
     fn evidence_base_name(&self, mut constraint: crate::TypeId) -> QueryResult<SmolStr> {
         let class_name = loop {
-            match self.queries.lookup_type(constraint) {
+            match *self.queries.lookup_type(constraint) {
                 Type::Application(function, _)
                 | Type::KindApplication(function, _)
                 | Type::Kinded(function, _) => constraint = function,

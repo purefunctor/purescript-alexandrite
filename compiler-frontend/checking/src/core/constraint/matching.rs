@@ -80,14 +80,14 @@ where
     let right_core = context.lookup_type(right);
 
     match (left_core, right_core) {
-        (Type::Kinded(left, _), _) => types_match(state, context, pattern, left, right),
-        (_, Type::Kinded(right, _)) => types_match(state, context, pattern, left, right),
+        (Type::Kinded(left, _), _) => types_match(state, context, pattern, *left, right),
+        (_, Type::Kinded(right, _)) => types_match(state, context, pattern, left, *right),
 
         (Type::Unification(left), Type::Unification(right)) => {
             if left == right {
                 Ok(MatchType::Match { bindings: vec![] })
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left, right], skolem: false })
+                Ok(MatchType::Stuck { stuck: vec![*left, *right], skolem: false })
             }
         }
 
@@ -98,11 +98,11 @@ where
         }
 
         (_, Type::Rigid(right, _, _)) if pattern.contains(&right) => {
-            Ok(MatchType::Match { bindings: vec![(right, left)] })
+            Ok(MatchType::Match { bindings: vec![(*right, left)] })
         }
 
         (Type::Unification(unification), _) | (_, Type::Unification(unification)) => {
-            Ok(MatchType::Stuck { stuck: vec![unification], skolem: false })
+            Ok(MatchType::Stuck { stuck: vec![*unification], skolem: false })
         }
 
         (Type::Rigid(name, _, _), _) | (_, Type::Rigid(name, _, _)) if !pattern.contains(&name) => {
@@ -127,18 +127,18 @@ where
             Type::Application(left_function, left_argument),
             Type::Application(right_function, right_argument),
         ) => {
-            let function = types_match(state, context, pattern, left_function, right_function)?;
-            let argument = types_match(state, context, pattern, left_argument, right_argument)?;
+            let function = types_match(state, context, pattern, *left_function, *right_function)?;
+            let argument = types_match(state, context, pattern, *left_argument, *right_argument)?;
             Ok(function.combine(argument))
         }
 
         (Type::Application(_, _), Type::Function(right_argument, right_result)) => {
-            let right = context.intern_function_application(right_argument, right_result);
+            let right = context.intern_function_application(*right_argument, *right_result);
             types_match(state, context, pattern, left, right)
         }
 
         (Type::Function(left_argument, left_result), Type::Application(_, _)) => {
-            let left = context.intern_function_application(left_argument, left_result);
+            let left = context.intern_function_application(*left_argument, *left_result);
             types_match(state, context, pattern, left, right)
         }
 
@@ -146,8 +146,8 @@ where
             Type::KindApplication(left_function, left_argument),
             Type::KindApplication(right_function, right_argument),
         ) => {
-            let function = types_match(state, context, pattern, left_function, right_function)?;
-            let argument = types_match(state, context, pattern, left_argument, right_argument)?;
+            let function = types_match(state, context, pattern, *left_function, *right_function)?;
+            let argument = types_match(state, context, pattern, *left_argument, *right_argument)?;
             Ok(function.combine(argument))
         }
 
@@ -155,16 +155,16 @@ where
             Type::Function(left_argument, left_result),
             Type::Function(right_argument, right_result),
         ) => {
-            let argument = types_match(state, context, pattern, left_argument, right_argument)?;
-            let result = types_match(state, context, pattern, left_result, right_result)?;
+            let argument = types_match(state, context, pattern, *left_argument, *right_argument)?;
+            let result = types_match(state, context, pattern, *left_result, *right_result)?;
             Ok(argument.combine(result))
         }
 
         (Type::Row(left), Type::Row(right)) => compare_row_types_with(
             state,
             context,
-            left,
-            right,
+            *left,
+            *right,
             &mut |state, context, left, right| types_match(state, context, pattern, left, right),
         ),
 
@@ -239,8 +239,8 @@ where
     if let (Type::Row(left_row), Type::Row(right_row)) =
         (context.lookup_type(left_tail), context.lookup_type(right_tail))
     {
-        let left_row = context.lookup_row_type(left_row);
-        let right_row = context.lookup_row_type(right_row);
+        let left_row = context.lookup_row_type(*left_row);
+        let right_row = context.lookup_row_type(*right_row);
 
         if left_row.fields.is_empty()
             && left_row.tail.is_none()
@@ -272,14 +272,14 @@ where
     let right_core = context.lookup_type(right);
 
     match (left_core, right_core) {
-        (Type::Kinded(left, _), _) => types_equal(state, context, left, right),
-        (_, Type::Kinded(right, _)) => types_equal(state, context, left, right),
+        (Type::Kinded(left, _), _) => types_equal(state, context, *left, right),
+        (_, Type::Kinded(right, _)) => types_equal(state, context, left, *right),
 
         (Type::Unification(left), Type::Unification(right)) => {
             if left == right {
                 Ok(MatchType::Match { bindings: vec![] })
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left, right], skolem: false })
+                Ok(MatchType::Stuck { stuck: vec![*left, *right], skolem: false })
             }
         }
 
@@ -292,23 +292,23 @@ where
         }
 
         (Type::Unification(left), _) => {
-            if toolkit::contains_unification(state, context, right, left)? {
+            if toolkit::contains_unification(state, context, right, *left)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Stuck { stuck: vec![left], skolem: false })
+                Ok(MatchType::Stuck { stuck: vec![*left], skolem: false })
             }
         }
 
         (_, Type::Unification(right)) => {
-            if toolkit::contains_unification(state, context, left, right)? {
+            if toolkit::contains_unification(state, context, left, *right)? {
                 Ok(MatchType::Apart)
             } else {
-                Ok(MatchType::Stuck { stuck: vec![right], skolem: false })
+                Ok(MatchType::Stuck { stuck: vec![*right], skolem: false })
             }
         }
 
         (Type::Rigid(left, _, _), _) => {
-            if toolkit::contains_rigid(state, context, right, left)? {
+            if toolkit::contains_rigid(state, context, right, *left)? {
                 Ok(MatchType::Apart)
             } else {
                 Ok(MatchType::Stuck { stuck: vec![], skolem: true })
@@ -316,7 +316,7 @@ where
         }
 
         (_, Type::Rigid(right, _, _)) => {
-            if toolkit::contains_rigid(state, context, left, right)? {
+            if toolkit::contains_rigid(state, context, left, *right)? {
                 Ok(MatchType::Apart)
             } else {
                 Ok(MatchType::Stuck { stuck: vec![], skolem: true })
@@ -341,18 +341,18 @@ where
             Type::Application(left_function, left_argument),
             Type::Application(right_function, right_argument),
         ) => {
-            let function = types_equal(state, context, left_function, right_function)?;
-            let argument = types_equal(state, context, left_argument, right_argument)?;
+            let function = types_equal(state, context, *left_function, *right_function)?;
+            let argument = types_equal(state, context, *left_argument, *right_argument)?;
             Ok(function.combine(argument))
         }
 
         (Type::Application(_, _), Type::Function(right_argument, right_result)) => {
-            let right = context.intern_function_application(right_argument, right_result);
+            let right = context.intern_function_application(*right_argument, *right_result);
             types_equal(state, context, left, right)
         }
 
         (Type::Function(left_argument, left_result), Type::Application(_, _)) => {
-            let left = context.intern_function_application(left_argument, left_result);
+            let left = context.intern_function_application(*left_argument, *left_result);
             types_equal(state, context, left, right)
         }
 
@@ -360,8 +360,8 @@ where
             Type::KindApplication(left_function, left_argument),
             Type::KindApplication(right_function, right_argument),
         ) => {
-            let function = types_equal(state, context, left_function, right_function)?;
-            let argument = types_equal(state, context, left_argument, right_argument)?;
+            let function = types_equal(state, context, *left_function, *right_function)?;
+            let argument = types_equal(state, context, *left_argument, *right_argument)?;
             Ok(function.combine(argument))
         }
 
@@ -369,16 +369,16 @@ where
             Type::Function(left_argument, left_result),
             Type::Function(right_argument, right_result),
         ) => {
-            let argument = types_equal(state, context, left_argument, right_argument)?;
-            let result = types_equal(state, context, left_result, right_result)?;
+            let argument = types_equal(state, context, *left_argument, *right_argument)?;
+            let result = types_equal(state, context, *left_result, *right_result)?;
             Ok(argument.combine(result))
         }
 
         (Type::Row(left), Type::Row(right)) => compare_row_types_with(
             state,
             context,
-            left,
-            right,
+            *left,
+            *right,
             &mut |state, context, left, right| types_equal(state, context, left, right),
         ),
 
@@ -805,10 +805,10 @@ where
 
     match (left_core, right_core) {
         (Type::Kinded(left, _), _) => {
-            types_apart(state, context, left, right, comparing_kind_argument)
+            types_apart(state, context, *left, right, comparing_kind_argument)
         }
         (_, Type::Kinded(right, _)) => {
-            types_apart(state, context, left, right, comparing_kind_argument)
+            types_apart(state, context, left, *right, comparing_kind_argument)
         }
 
         (Type::Rigid(_, _, _), Type::Rigid(_, _, _))
@@ -839,36 +839,36 @@ where
         (
             Type::Application(left_function, left_argument),
             Type::Application(right_function, right_argument),
-        ) => Ok(types_apart(state, context, left_function, right_function, false)?
-            .combine(types_apart(state, context, left_argument, right_argument, false)?)),
+        ) => Ok(types_apart(state, context, *left_function, *right_function, false)?
+            .combine(types_apart(state, context, *left_argument, *right_argument, false)?)),
 
         (Type::Application(_, _), Type::Function(right_argument, right_result)) => {
-            let right = context.intern_function_application(right_argument, right_result);
+            let right = context.intern_function_application(*right_argument, *right_result);
             types_apart(state, context, left, right, comparing_kind_argument)
         }
 
         (Type::Function(left_argument, left_result), Type::Application(_, _)) => {
-            let left = context.intern_function_application(left_argument, left_result);
+            let left = context.intern_function_application(*left_argument, *left_result);
             types_apart(state, context, left, right, comparing_kind_argument)
         }
 
         (
             Type::KindApplication(left_function, left_argument),
             Type::KindApplication(right_function, right_argument),
-        ) => Ok(types_apart(state, context, left_function, right_function, false)?
-            .combine(types_apart(state, context, left_argument, right_argument, true)?)),
+        ) => Ok(types_apart(state, context, *left_function, *right_function, false)?
+            .combine(types_apart(state, context, *left_argument, *right_argument, true)?)),
 
         (
             Type::Function(left_argument, left_result),
             Type::Function(right_argument, right_result),
-        ) => Ok(types_apart(state, context, left_argument, right_argument, false)?
-            .combine(types_apart(state, context, left_result, right_result, false)?)),
+        ) => Ok(types_apart(state, context, *left_argument, *right_argument, false)?
+            .combine(types_apart(state, context, *left_result, *right_result, false)?)),
 
         (Type::Row(left), Type::Row(right)) => compare_row_types_with(
             state,
             context,
-            left,
-            right,
+            *left,
+            *right,
             &mut |state, context, left, right| types_apart(state, context, left, right, false),
         ),
 

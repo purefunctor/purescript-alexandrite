@@ -43,7 +43,7 @@ where
         return Ok(Some(match_expected(state, context, t, expected)?));
     }
 
-    if let Type::Unification(id) = context.lookup_type(v) {
+    if let Type::Unification(id) = *context.lookup_type(v) {
         return Ok(Some(MatchInstance::Stuck { stuck: vec![id], skolem: false }));
     }
 

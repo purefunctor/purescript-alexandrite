@@ -30,10 +30,10 @@ where
     fn reduce_once(&mut self, id: TypeId) -> Option<TypeId> {
         let t = self.context.lookup_type(id);
 
-        if let Some(next) = self.rule_prune_unifications(&t) {
+        if let Some(next) = self.rule_prune_unifications(t) {
             return Some(next);
         }
-        if let Some(next) = self.rule_simplify_rows(&t) {
+        if let Some(next) = self.rule_simplify_rows(t) {
             return Some(next);
         }
 
@@ -65,7 +65,7 @@ where
         let tail_id = row.tail?;
         let tail_t = self.context.lookup_type(tail_id);
 
-        let Type::Row(inner_row_id) = tail_t else {
+        let Type::Row(inner_row_id) = *tail_t else {
             return None;
         };
 
@@ -176,7 +176,7 @@ where
     let mut flattened_once = false;
 
     let row_tail = safe_loop! {
-        let Type::Row(row_id) = context.lookup_type(current_id) else {
+        let Type::Row(row_id) = *context.lookup_type(current_id) else {
             if flattened_once {
                 break Some(current_id);
             } else {
@@ -248,7 +248,7 @@ where
     // Most application heads are not synonyms. Inspect the head before
     // allocating storage for arguments, preserving normalisation along the spine.
     safe_loop! {
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Application(function, _) | Type::KindApplication(function, _) => {
                 argument_count += 1;
                 current = normalise(state, context, function)?;
@@ -257,7 +257,7 @@ where
         }
     }
 
-    let (file_id, type_id) = match context.lookup_type(current) {
+    let (file_id, type_id) = match *context.lookup_type(current) {
         Type::Constructor(file_id, type_id) => (file_id, type_id),
         _ => return Ok(id),
     };
@@ -270,7 +270,7 @@ where
     let mut arguments = Vec::with_capacity(argument_count);
     current = id;
     safe_loop! {
-        match context.lookup_type(current) {
+        match *context.lookup_type(current) {
             Type::Application(function, argument) => {
                 arguments.push(ApplicationArgument::Type(argument));
                 current = normalise(state, context, function)?;
@@ -307,7 +307,7 @@ where
     safe_loop! {
         kind = normalise(state, context, kind)?;
 
-        let Type::Forall(binder_id, inner) = context.lookup_type(kind) else {
+        let Type::Forall(binder_id, inner) = *context.lookup_type(kind) else {
             break;
         };
 
