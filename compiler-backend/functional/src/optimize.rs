@@ -240,40 +240,47 @@ fn is_simple_expression(
     expression: ExpressionId,
     recursive_globals: &FxHashSet<GlobalId>,
 ) -> bool {
-    match &storage[expression].kind {
-        ExpressionKind::Literal { .. }
-        | ExpressionKind::Constructor { .. }
-        | ExpressionKind::Local { .. }
-        | ExpressionKind::Abstraction { .. }
-        | ExpressionKind::UncurriedAbstraction { .. }
-        | ExpressionKind::SynthesizedEvidence { .. }
-        | ExpressionKind::TrivialEvidence => true,
-        ExpressionKind::Global { global } => !recursive_globals.contains(&global.id),
-        ExpressionKind::Array { elements } => elements
-            .iter()
-            .all(|element| is_simple_expression(storage, *element, recursive_globals)),
-        ExpressionKind::Record { fields } => fields
-            .iter()
-            .all(|field| is_simple_expression(storage, field.expression, recursive_globals)),
-        ExpressionKind::Project { record, .. } | ExpressionKind::Unary { value: record, .. } => {
-            is_simple_expression(storage, *record, recursive_globals)
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        match &storage[expression].kind {
+            ExpressionKind::Literal { .. }
+            | ExpressionKind::Constructor { .. }
+            | ExpressionKind::Local { .. }
+            | ExpressionKind::Abstraction { .. }
+            | ExpressionKind::UncurriedAbstraction { .. }
+            | ExpressionKind::SynthesizedEvidence { .. }
+            | ExpressionKind::TrivialEvidence => {}
+            ExpressionKind::Global { global } => {
+                if recursive_globals.contains(&global.id) {
+                    return false;
+                }
+            }
+            ExpressionKind::Array { elements } => pending.extend(elements.iter().rev().copied()),
+            ExpressionKind::Record { fields } => {
+                pending.extend(fields.iter().rev().map(|field| field.expression));
+            }
+            ExpressionKind::Project { record, .. }
+            | ExpressionKind::Unary { value: record, .. } => {
+                pending.push(*record);
+            }
+            ExpressionKind::Binary { left, right, .. } => {
+                pending.push(*right);
+                pending.push(*left);
+            }
+            ExpressionKind::RecordUpdate { .. }
+            | ExpressionKind::Error
+            | ExpressionKind::Application { .. }
+            | ExpressionKind::UncurriedApplication { .. }
+            | ExpressionKind::StyleX(_)
+            | ExpressionKind::IfThenElse { .. }
+            | ExpressionKind::Case { .. }
+            | ExpressionKind::Guarded { .. }
+            | ExpressionKind::Let { .. }
+            | ExpressionKind::LetPattern { .. }
+            | ExpressionKind::Effect { .. } => return false,
         }
-        ExpressionKind::Binary { left, right, .. } => {
-            is_simple_expression(storage, *left, recursive_globals)
-                && is_simple_expression(storage, *right, recursive_globals)
-        }
-        ExpressionKind::RecordUpdate { .. }
-        | ExpressionKind::Error
-        | ExpressionKind::Application { .. }
-        | ExpressionKind::UncurriedApplication { .. }
-        | ExpressionKind::StyleX(_)
-        | ExpressionKind::IfThenElse { .. }
-        | ExpressionKind::Case { .. }
-        | ExpressionKind::Guarded { .. }
-        | ExpressionKind::Let { .. }
-        | ExpressionKind::LetPattern { .. }
-        | ExpressionKind::Effect { .. } => false,
     }
+    true
 }
 
 pub fn for_each_expression_child(kind: &ExpressionKind, mut visit: impl FnMut(ExpressionId)) {
@@ -439,6 +446,42 @@ mod tests {
         assert_eq!(local_uses(&storage, root, LocalId(0)), 1);
         substitute_local(&mut storage, root, LocalId(0), replacement);
         assert_eq!(local_uses(&storage, root, LocalId(0)), 0);
+
+        let parameter = Parameter { id: LocalId(1), name: "bound".into() };
+        let body = storage.allocate_expression(Expression {
+            kind: ExpressionKind::Local { parameter: Parameter::clone(&parameter) },
+        });
+        let binding = storage.allocate_expression(Expression {
+            kind: ExpressionKind::Let {
+                recursive: false,
+                bindings: [Binding { parameter, expression: root, source_order: 0 }].into(),
+                body,
+            },
+        });
+        inline_simple_bindings(&mut storage, binding, &FxHashSet::default());
+        assert_eq!(storage[binding].kind, storage[root].kind);
+        assert_eq!(local_uses(&storage, binding, LocalId(1)), 0);
+    }
+
+    #[test]
+    fn simplicity_preserves_abstraction_boundaries_and_recursive_globals() {
+        let mut storage = Storage::default();
+        let global = GlobalId::Generated(files::FileId::new(0), crate::tree::GeneratedGlobalId(0));
+        let body = storage.allocate_expression(Expression {
+            kind: ExpressionKind::Global {
+                global: crate::tree::Global { id: global, item_name: "recursive".into() },
+            },
+        });
+        let recursive_globals = FxHashSet::from_iter([global]);
+        assert!(is_simple_expression(&storage, body, &FxHashSet::default()));
+        assert!(!is_simple_expression(&storage, body, &recursive_globals));
+        for kind in [
+            ExpressionKind::Abstraction { parameters: [].into(), body },
+            ExpressionKind::UncurriedAbstraction { parameters: [].into(), body },
+        ] {
+            let abstraction = storage.allocate_expression(Expression { kind });
+            assert!(is_simple_expression(&storage, abstraction, &recursive_globals));
+        }
     }
 
     #[test]
