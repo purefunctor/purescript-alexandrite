@@ -122,11 +122,8 @@ where
             }
         }
 
-        let binders = lowered.tree.iter_binder();
-        let mut binders = binders.collect_vec();
-        binders.sort_unstable_by_key(|(binder_id, _)| *binder_id);
         let mut record_pun_names = FxHashMap::default();
-        for (_, binder) in binders {
+        for (_, binder) in lowered.tree.iter_binder() {
             let lowering::BinderKind::Record { record } = binder else { continue };
             for field in record.iter() {
                 let lowering::BinderRecordItem::RecordPun { id, name: Some(name) } = field else {
