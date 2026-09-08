@@ -402,9 +402,18 @@ pub fn lsp(path: &Path) -> FixtureResult {
     let folder = fixture_folder(path)?;
     let file = module_name(path)?;
     let (engine, files) = crate::load_compiler(folder)?;
-    let Some(id) = engine.module_file(&file) else {
-        return Err(missing_module(path, &file).into());
-    };
+    let source_path = snapshot_path(folder).join(path.file_name().ok_or_else(|| {
+        invalid_data(format!("fixture path has no file name: {}", path.display()))
+    })?);
+    let source_url = Url::from_file_path(&source_path).map_err(|()| {
+        invalid_data(format!(
+            "fixture path cannot be converted to a URL: {}",
+            source_path.display()
+        ))
+    })?;
+    let id = files.id(source_url.as_str()).ok_or_else(|| {
+        invalid_data(format!("fixture source was not loaded: {}", source_path.display()))
+    })?;
 
     let report = crate::generated::lsp::report(&engine, &files, id);
     let mut settings = insta::Settings::clone_current();

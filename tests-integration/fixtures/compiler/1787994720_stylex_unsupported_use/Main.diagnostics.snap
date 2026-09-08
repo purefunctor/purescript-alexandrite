@@ -1,12 +1,16 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 298
+assertion_line: 307
 expression: diagnostics_report
 ---
 Error! · [FunctionalCodegen] · Main.purs:5:1
   •
   │
-  • Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ 'Alexandrite.StyleX.props' must be called directly with all of its arguments.
+  │
+  │ It cannot be passed around as a function or partially applied.
   │
   │   partialProps :: Style -> Props
   │   ╰─────────────────────────────

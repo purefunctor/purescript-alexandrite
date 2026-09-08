@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [FunctionalCodegen] · Main.purs:3:1
+  •
+  │
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ The runtime implementation of exported operator '+++' could not be resolved.
+  │
+  │   infixl 5 missing as +++
+  │   ╰──────────────────────
+  •

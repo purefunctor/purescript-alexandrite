@@ -24,7 +24,9 @@ Error! · [CannotUnify] · Main.purs:7:1
 Error! · [FunctionalCodegen] · Main.purs:1:1
   •
   │
-  • checked instance declaration is missing
+  • Cannot generate JavaScript for module 'Main'.
+  │
+  │ The checked representation of an instance declaration is unavailable.
   │
   │   module Main where
   │   ╰────────────────

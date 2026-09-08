@@ -1,5 +1,27 @@
 use super::support::{TestWorkspace, assert_success};
 
+fn diagnostic_settings(workspace: &TestWorkspace) -> insta::Settings {
+    let mut settings = insta::Settings::clone_current();
+    settings.set_strip_ansi_escape_codes(true);
+    let workspace_path = std::fs::canonicalize(workspace.path()).unwrap();
+    let workspace_path = workspace_path.to_string_lossy();
+    let workspace_path = regex::escape(workspace_path.trim_start_matches(r"\\?\"));
+    settings.add_filter(&format!(r"{workspace_path}[/\\]"), "");
+    settings.add_filter(r"src\\Main\.purs", "src/Main.purs");
+    settings.add_filter(
+        concat!(
+            r"(?m)^(?:Reading Spago workspace configuration\.\.\.",
+            r"|✓ Selecting package to build: application",
+            r#"|Adding dependency ranges to the config in "spago.yaml""#,
+            r"|Downloading dependencies\.\.\.",
+            r"|No lockfile found, generating it\.\.\.",
+            r"|Lockfile written to spago.lock\. Please commit this file\.)\r?\n(?:\r?\n)*",
+        ),
+        "",
+    );
+    settings
+}
+
 #[test]
 fn builds_a_single_package_with_real_spago() {
     let workspace = TestWorkspace::empty();
@@ -58,7 +80,8 @@ broken = missing
         String::from_utf8_lossy(&output.stderr)
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("'missing' is not in scope"), "unexpected stderr:\n{stderr}");
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
+    insta::assert_snapshot!("resilient_source_diagnostics", stderr);
 
     let generated = workspace.read("output/Main/index.js");
     assert!(generated.contains("Generated code reached a source error"));
@@ -96,13 +119,14 @@ second = first
     let strict = workspace.command(&["build", "--quiet"]);
     assert!(!strict.status.success());
     let stderr = String::from_utf8_lossy(&strict.stderr);
-    assert!(stderr.contains("JavaScriptInitializerCycle"), "unexpected stderr:\n{stderr}");
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
+    insta::assert_snapshot!("strict_initializer_cycle_diagnostics", stderr);
     assert!(!workspace.path().join("output/Main/index.js").exists());
 
     let resilient = workspace.command(&["build", "--quiet", "--resilient"]);
     assert!(!resilient.status.success());
     let stderr = String::from_utf8_lossy(&resilient.stderr);
-    assert!(stderr.contains("JavaScriptInitializerCycle"), "unexpected stderr:\n{stderr}");
+    insta::assert_snapshot!("resilient_initializer_cycle_diagnostics", stderr);
     let generated = workspace.read("output/Main/index.js");
     assert!(generated.contains("Top-level value initializer cycle"));
     assert!(!generated.contains("@__PURE__"));
@@ -142,14 +166,8 @@ partialProps = props
     let output = workspace.command(&["build", "--quiet"]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("FunctionalCodegen"), "unexpected stderr:\n{stderr}");
-    assert!(
-        stderr.contains(
-            "Alexandrite.StyleX.props must be used as a direct, saturated intrinsic call"
-        ),
-        "unexpected stderr:\n{stderr}"
-    );
-    assert!(!stderr.contains("failed to generate JavaScript"), "unexpected stderr:\n{stderr}");
+    let _settings = diagnostic_settings(&workspace).bind_to_scope();
+    insta::assert_snapshot!("backend_failure_diagnostics", stderr);
     assert!(!workspace.path().join("output/Main/index.js").exists());
     workspace.assert_spago_calls(
         "",

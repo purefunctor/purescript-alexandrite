@@ -103,9 +103,9 @@ where
     fn new(queries: &'c Q, file_id: FileId) -> ConversionResult<Context<'c, Q>> {
         let content = queries.content(file_id)?;
         let (parsed, _) = queries.parsed(file_id)?;
-        let module_name = parsed
-            .module_name(&content)
-            .expect("invariant violated: checked module has no source module name");
+        let module_name = parsed.module_name(&content).filter(|name| !name.is_empty()).ok_or(
+            ModuleError::Unsupported { file_id, state: UnsupportedState::MissingModuleName },
+        )?;
         let indexed = queries.indexed(file_id)?;
         let lowered = queries.lowered(file_id)?;
         let grouped = queries.grouped(file_id)?;

@@ -246,11 +246,13 @@ Error! · [CannotUnify] · Main.purs:26:15
   │                 ╰─────
   •
 
-Error! · [FunctionalCodegen] · Main.purs:1:1
+Error! · [FunctionalCodegen] · Main.purs:30:1
   •
   │
-  • exported operator Idx::<IndexedTermItem>(9) has no runtime resolution
+  • Cannot generate JavaScript for module 'Main'.
   │
-  │   module Main where
-  │   ╰────────────────
+  │ The runtime implementation of exported operator '<+>' could not be resolved.
+  │
+  │   infix 5 missingOperatorName as <+>
+  │   ╰─────────────────────────────────
   •

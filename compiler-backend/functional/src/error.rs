@@ -16,6 +16,8 @@ pub enum ModuleError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum UnsupportedState {
+    #[error("source module has no module name")]
+    MissingModuleName,
     #[error("checked binder {0:?} contains an error")]
     BinderError(checked_tree::BinderId),
     #[error("record update contains an error")]
