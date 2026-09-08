@@ -54,5 +54,9 @@ name = "lsp"
 harness = false
 
 [[test]]
+name = "lifecycle"
+harness = false
+
+[[test]]
 name = "docs"
 harness = false
