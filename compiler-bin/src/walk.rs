@@ -49,7 +49,7 @@ pub fn walk_filtered(
 
     let globs = globs.build()?;
     let excludes = build_excludes(root, excludes)?;
-    files.retain(|path| excludes.matches(path).is_empty());
+    files.retain(|path| !excludes.is_match(path));
     let mut files_from_glob = BTreeSet::default();
 
     for root in &roots {
@@ -59,7 +59,7 @@ pub fn walk_filtered(
 
         for entry in WalkDir::new(root) {
             let path = entry?.into_path();
-            if !globs.matches(&path).is_empty() && excludes.matches(&path).is_empty() {
+            if globs.is_match(&path) && !excludes.is_match(&path) {
                 files_from_glob.insert(path);
             }
         }
