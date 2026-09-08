@@ -418,7 +418,7 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 fn digest_hex(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    hex(&Sha256::digest(bytes))
 }
 
 fn unique_suffix() -> String {
