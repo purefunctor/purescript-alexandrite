@@ -29,7 +29,7 @@ similar = "3"
 stabilizing = { version = "0.1.0", path = "../compiler-frontend/stabilizing" }
 sugar = { version = "0.1.0", path = "../compiler-frontend/sugar" }
 syntax = { version = "0.1.0", path = "../compiler-frontend/syntax" }
-tabled = "0.21.0"
+tabled = "0.22.0"
 tempfile = "3.27.0"
 tests-support = { path = "../tests-support" }
 url = "2.5.8"

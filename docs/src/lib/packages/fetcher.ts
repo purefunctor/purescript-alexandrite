@@ -1,4 +1,4 @@
-import pako from "pako";
+import { ungzip } from "pako";
 import type { RawModule, PackageSet } from "./types";
 
 const REGISTRY_URL = "https://packages.registry.purescript.org";
@@ -94,7 +94,7 @@ export async function fetchPackage(
   }
 
   // Decompress gzip
-  const tarData = pako.ungzip(compressed);
+  const tarData = ungzip(compressed);
 
   // Extract .purs files
   const files = parseTar(tarData);

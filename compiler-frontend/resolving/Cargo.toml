@@ -8,7 +8,7 @@ building-types = { version = "0.1.0", path = "../../compiler-core/building-types
 files = { version = "0.1.0", path = "../../compiler-core/files" }
 indexing = { version = "0.1.0", path = "../indexing" }
 rustc-hash = "2.1.3"
-smol_str = "0.3.4"
+smol_str = "0.3.6"
 
 [dev-dependencies]
 itertools = "0.15.0"

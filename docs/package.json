@@ -13,30 +13,29 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{js,ts,json}\""
   },
   "dependencies": {
-    "@fontsource/iosevka": "^5.2.5",
-    "@fontsource/manrope": "^5.2.8",
+    "@fontsource/iosevka": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
     "comlink": "^4.4.2",
-    "monaco-editor": "^0.52.2",
-    "pako": "^2.1.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "wouter": "^3.9.0"
+    "monaco-editor": "^0.56.0",
+    "pako": "^3.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "wouter": "^3.11.0"
   },
   "devDependencies": {
-    "@iconify-json/ri": "^1.2.7",
+    "@iconify-json/ri": "^1.2.10",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
-    "@tailwindcss/vite": "^4.2.4",
-    "@types/pako": "^2.0.4",
-    "@types/react": "^18.3.27",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
     "docs-lib": "workspace:*",
-    "prettier": "^3.8.1",
-    "tailwindcss": "^4.2.4",
-    "typescript": "^5.9.3",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
     "unplugin-icons": "^23.0.1",
-    "vite": "^8.1.5"
+    "vite": "^8.2.2"
   },
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }
