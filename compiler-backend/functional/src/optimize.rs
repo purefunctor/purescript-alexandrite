@@ -386,10 +386,15 @@ fn try_for_each_update_child<Error>(
     updates: &[RecordUpdate],
     visit: &mut impl FnMut(ExpressionId) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    for update in updates {
+    let mut pending = vec![updates.iter()];
+    while let Some(updates) = pending.last_mut() {
+        let Some(update) = updates.next() else {
+            pending.pop();
+            continue;
+        };
         match update {
             RecordUpdate::Leaf { expression, .. } => visit(*expression)?,
-            RecordUpdate::Branch { updates, .. } => try_for_each_update_child(updates, visit)?,
+            RecordUpdate::Branch { updates, .. } => pending.push(updates.iter()),
         }
     }
     Ok(())
@@ -496,6 +501,34 @@ mod tests {
             storage[negation].kind,
             ExpressionKind::Unary { operator: UnaryOperator::IntegerNegate, value: local }
         );
+    }
+
+    #[test]
+    fn deep_record_updates_do_not_use_the_call_stack() {
+        let (mut storage, local, replacement) = nested_arrays(0);
+        let field = Field { identity: FieldIdentity::Label("field".into()), name: "field".into() };
+        let mut updates: Arc<[RecordUpdate]> =
+            Arc::from([RecordUpdate::Leaf { field: Field::clone(&field), expression: local }]);
+        let mut retained = Vec::new();
+        for _ in 0..100_000 {
+            retained.push(Arc::clone(&updates));
+            updates = Arc::from([RecordUpdate::Branch { field: Field::clone(&field), updates }]);
+        }
+        let root = storage.allocate_expression(Expression {
+            kind: ExpressionKind::RecordUpdate { record: replacement, updates },
+        });
+
+        assert_eq!(visited_children(&storage[root].kind), vec![replacement, local]);
+        inline_simple_bindings(&mut storage, root, &FxHashSet::default());
+        assert_eq!(local_uses(&storage, root, LocalId(0)), 1);
+        substitute_local(&mut storage, root, LocalId(0), replacement);
+        assert_eq!(local_uses(&storage, root, LocalId(0)), 0);
+
+        // Retained levels keep recursive Arc destruction out of this traversal test.
+        drop(storage);
+        while let Some(updates) = retained.pop() {
+            drop(updates);
+        }
     }
 
     #[test]
