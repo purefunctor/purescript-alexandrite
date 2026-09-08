@@ -81,13 +81,7 @@ where
         return Ok(());
     };
 
-    let Some(current_position) = context
-        .indexed
-        .items
-        .instance_sources()
-        .iter()
-        .position(|&candidate_item_id| candidate_item_id == item_id)
-    else {
+    let Some(&current_position) = context.instance_positions.get(&origin) else {
         return Ok(());
     };
 
@@ -288,31 +282,6 @@ where
     context.indexed.pairs.instance_chain_id(instance_id).map(|chain_id| (file_id, chain_id))
 }
 
-fn instance_candidate_position<Q>(
-    context: &CheckContext<Q>,
-    origin: InstanceCandidateOrigin,
-) -> Option<usize>
-where
-    Q: ExternalQueries,
-{
-    if match origin {
-        InstanceCandidateOrigin::Instance(file_id, _)
-        | InstanceCandidateOrigin::Derive(file_id, _) => file_id != context.id,
-    } {
-        return None;
-    }
-
-    let item_id = match origin {
-        InstanceCandidateOrigin::Instance(_, id) => {
-            InstanceSourceItemId::Instance(context.indexed.pairs.instance_to_item(id)?)
-        }
-        InstanceCandidateOrigin::Derive(_, id) => {
-            InstanceSourceItemId::Derive(context.indexed.pairs.derive_to_item(id)?)
-        }
-    };
-    context.indexed.items.instance_sources().iter().position(|&id| id == item_id)
-}
-
 fn should_report_overlap<Q>(
     context: &CheckContext<Q>,
     candidate: InstanceCandidateOrigin,
@@ -326,7 +295,7 @@ where
         return false;
     }
 
-    let Some(candidate_position) = instance_candidate_position(context, candidate) else {
+    let Some(&candidate_position) = context.instance_positions.get(&candidate) else {
         return true;
     };
 
