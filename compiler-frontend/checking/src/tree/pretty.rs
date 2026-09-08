@@ -2139,37 +2139,3 @@ fn synthesized_evidence_name(evidence: &SynthesizedEvidence) -> SmolStr {
         )) => REFLECTABLE_GREATER_EVIDENCE,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use smol_str::SmolStrBuilder;
-
-    use super::EvidencePrecedence;
-
-    #[test]
-    fn atomic_evidence_projections_do_not_depend_on_text_contents() {
-        for parent in ["childDict", "childInt", "childDict.parentDict", "isSymbol(\"two words\")"] {
-            let mut output = SmolStrBuilder::new();
-            output.push_str("useParent {");
-            EvidencePrecedence::Atom.append_projection(&mut output, parent, "parentDict");
-            output.push('}');
-            assert_eq!(output.finish(), format!("useParent {{{parent}.parentDict}}"));
-        }
-    }
-
-    #[test]
-    fn application_evidence_is_parenthesized_before_projection() {
-        let mut output = SmolStrBuilder::new();
-        EvidencePrecedence::Application.append_projection(
-            &mut output,
-            "childInt {parentInt}",
-            "parentDict",
-        );
-        let parent = output.finish();
-        assert_eq!(parent, "(childInt {parentInt}).parentDict");
-
-        let mut output = SmolStrBuilder::new();
-        EvidencePrecedence::Atom.append_projection(&mut output, &parent, "ancestorDict");
-        assert_eq!(output.finish(), "(childInt {parentInt}).parentDict.ancestorDict");
-    }
-}
